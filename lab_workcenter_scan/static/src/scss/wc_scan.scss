@@ -1,0 +1,14 @@
+// The button is pressed with gloves on a dusty terminal, so it keeps a 44px target
+// even in a form row where everything around it is smaller.
+.o_wc_scan_btn {
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.o_wc_prompt_input {
+    min-height: 48px;
+    font-size: 1.25rem;
+    font-family: monospace;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}

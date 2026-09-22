@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.DoingItDialog">
+    <Dialog title="title" size="'md'" footer="false" contentClass="'o_st_doing_dlg'">
+        <!-- The rule, as a label — not as a refusal. -->
+        <div class="o_st_warnlabel" role="alert">
+            <i class="fa fa-exclamation-triangle" title="Warning"/>
+            <span t-esc="warning"/>
+        </div>
+
+        <!-- The job, so a lead holding three cards knows which one this is. -->
+        <div class="o_st_doing_job">
+            <span class="o_st_mo" t-esc="props.job.production or props.job.name"/>
+            <span t-if="props.job.order" class="o_st_ref" t-esc="props.job.order"/>
+            <div t-if="props.job.patient or props.job.clinic" class="o_st_case">
+                <span t-if="props.job.patient" class="o_st_patient" t-esc="props.job.patient"/>
+                <span t-if="props.job.patient and props.job.clinic"> · </span>
+                <span t-if="props.job.clinic" class="o_st_clinic" t-esc="props.job.clinic"/>
+            </div>
+            <div class="o_st_doing_next">
+                <i class="fa fa-share me-1" title="Then"/>
+                <t t-if="handsOn">Then it goes to </t>
+                <t t-else="">Stays on the bench; later it goes to </t>
+                <strong t-esc="props.job.next_station or 'finish'"/>
+            </div>
+        </div>
+
+        <t t-if="props.canAssign and props.people.length">
+            <div class="o_st_doing_lead" t-esc="lead"/>
+            <div class="o_st_tiles">
+                <button t-foreach="props.people" t-as="p" t-key="p.id"
+                        class="o_st_tile"
+                        t-att-class="{
+                            'o_st_tile_lead': p.is_lead,
+                            'o_st_tile_light': p.id === lightestId,
+                            'o_st_tile_busy': state.picked === p.id,
+                        }"
+                        t-att-disabled="state.busy"
+                        t-on-click="() => this.pick(p)">
+                    <span class="o_st_tile_key" t-if="p_index lt 9" t-esc="p_index + 1"/>
+                    <span class="o_st_avatar" t-esc="initials(p.name)"/>
+                    <span class="o_st_tile_name" t-esc="p.name"/>
+                    <span class="o_st_tile_load">
+                        <i t-if="state.picked === p.id" class="fa fa-circle-o-notch fa-spin" title="Saving"/>
+                        <t t-else="">
+                            <t t-esc="p.load or 0"/> on bench
+                            <t t-if="p.id === lightestId"> · lightest</t>
+                        </t>
+                    </span>
+                </button>
+            </div>
+        </t>
+        <t t-else="">
+            <div class="o_st_doing_lead o_st_doing_noone">
+                <i class="fa fa-lock me-1" title="Lead only"/>
+                <t t-if="!props.people.length">Nobody is posted to this station yet, so the job cannot be given to anyone. Ask an administrator to add the bench's people to the work centre.</t>
+                <t t-else="">Only the station lead can name the technician. Ask them to give it out — the job stays on the bench until then.</t>
+            </div>
+        </t>
+
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-on-click="() => this.props.close()">Not now</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

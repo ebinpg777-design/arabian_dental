@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- CR numbers for clinics (0001, 0002, ...). number_next is lifted past the
+             highest existing numeric CR number by the 19.0.1.2.0 post-migrate and
+             again, if ever needed, by res.partner._cr_sequence(). -->
+        <record id="seq_partner_cr_number" model="ir.sequence">
+            <field name="name">Clinic CR Number</field>
+            <field name="code">res.partner.cr_number</field>
+            <field name="padding">4</field>
+            <field name="number_increment">1</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

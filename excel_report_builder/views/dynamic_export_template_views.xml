@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- List view -->
+    <record id="view_dynamic_export_template_list" model="ir.ui.view">
+        <field name="name">view.dynamic.export.template.list</field>
+        <field name="model">dynamic.export.template</field>
+        <field name="arch" type="xml">
+            <list string="Excel Report Templates" default_order="name">
+                <field name="name"/>
+                <field name="res_model" string="Model" readonly="1"/>
+                <field name="field_type" string="Type" widget="badge"
+                       decoration-info="field_type == 'standard'"
+                       decoration-success="field_type == 'group'"/>
+                <field name="is_shared" widget="boolean_toggle" string="Shared"/>
+                <field name="schedule_enabled" widget="boolean_toggle" string="Scheduled"/>
+                <field name="user_id" string="Owner" widget="many2one_avatar_user"/>
+                <field name="groupby" string="Group By" optional="hide"/>
+                <field name="domain" string="Domain" readonly="1" optional="hide"/>
+                <field name="fields_json" string="Fields JSON" readonly="1" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form view -->
+    <record id="view_dynamic_export_template_form" model="ir.ui.view">
+        <field name="name">view.dynamic.export.template.form</field>
+        <field name="model">dynamic.export.template</field>
+        <field name="arch" type="xml">
+            <form string="Excel Report Template">
+                <header>
+                    <button name="action_send_now" type="object" string="Send Now"
+                            class="btn-primary" icon="fa-paper-plane"
+                            invisible="not schedule_email_to"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Template name…"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Configuration">
+                            <field name="res_model" readonly="1"/>
+                            <field name="field_type"/>
+                            <field name="groupby" invisible="field_type != 'group'"/>
+                            <field name="user_id"/>
+                            <field name="is_shared"/>
+                        </group>
+                        <group string="Export Options">
+                            <field name="filename" placeholder="auto-generated if blank"/>
+                            <field name="freeze_header"/>
+                            <field name="alternate_rows"/>
+                            <field name="show_totals"/>
+                            <field name="auto_filter"/>
+                            <field name="header_bg_color" widget="color"/>
+                            <field name="header_font_color" widget="color"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Chart">
+                            <field name="chart_type"/>
+                            <field name="chart_measure"
+                                   invisible="not chart_type"
+                                   placeholder="numeric field name (blank = all numeric)"/>
+                        </group>
+                    </group>
+                    <group string="Scheduled Delivery">
+                        <group>
+                            <field name="schedule_enabled"/>
+                            <field name="schedule_interval" invisible="not schedule_enabled"/>
+                        </group>
+                        <group>
+                            <field name="schedule_email_to" invisible="not schedule_enabled"
+                                   placeholder="a@x.com, b@y.com"/>
+                            <field name="schedule_next" invisible="not schedule_enabled" readonly="1"/>
+                            <field name="schedule_last_sent" invisible="not schedule_enabled"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <field name="description" nolabel="1"
+                               placeholder="Optional description visible when selecting this template…"/>
+                    </group>
+                    <group string="Raw Data" groups="base.group_system">
+                        <field name="domain" readonly="1"/>
+                        <field name="fields_json" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search view -->
+    <record id="view_dynamic_export_template_search" model="ir.ui.view">
+        <field name="name">view.dynamic.export.template.search</field>
+        <field name="model">dynamic.export.template</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Name"/>
+                <field name="res_model" string="Model"/>
+                <filter string="Shared" name="shared" domain="[('is_shared', '=', True)]"/>
+                <filter string="My Templates" name="mine" domain="[('user_id', '=', uid)]"/>
+                <filter string="Grouped Reports" name="grouped" domain="[('field_type', '=', 'group')]"/>
+                <group>
+                    <filter string="Model" name="by_model" context="{'group_by': 'res_model'}"/>
+                    <filter string="Type" name="by_type" context="{'group_by': 'field_type'}"/>
+                    <filter string="Owner" name="by_user" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Window action -->
+    <record id="action_dynamic_export_template" model="ir.actions.act_window">
+        <field name="name">Excel Report Templates</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">dynamic.export.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                No templates yet. Open the <strong>Report Builder</strong> from any list view
+                to create and save your first template.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu item -->
+    <menuitem
+        id="main_menu_excel_report_builder"
+        name="Excel Report Templates"
+        sequence="30"
+        action="action_dynamic_export_template"
+        parent="base.reporting_menuitem"/>
+
+</odoo>

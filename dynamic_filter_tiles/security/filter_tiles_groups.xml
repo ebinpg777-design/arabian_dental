@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Technical group: no privilege category, it is not a per-app right. -->
+    <record id="group_tile_manager" model="res.groups">
+        <field name="name">Filter Tiles / Manager</field>
+        <field name="comment">Can publish filter tiles for everybody, and edit the shared ones. Every internal user can already build tiles for themselves.</field>
+    </record>
+    <!-- Settings users manage tiles out of the box; everybody else just uses them. -->
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('dynamic_filter_tiles.group_tile_manager'))]"/>
+    </record>
+    <!--
+        Ownership model
+        ===============
+        `owner_id` empty  = shared tile: everybody sees it, only a manager edits it.
+        `owner_id` set    = personal tile: only its owner sees it, and only its owner edits it.
+
+        Regular users get full CRUD rights in ir.model.access.csv; these rules are
+        what keeps them inside their own ribbon. `create()` stamps their tiles as
+        personal, so the write rule below is never a surprise at save time.
+    -->
+    <record id="rule_filter_tile_read" model="ir.rule">
+        <field name="name">Filter tiles: shared ones and my own</field>
+        <field name="model_id" ref="model_filter_tile"/>
+        <field name="domain_force">['|', ('owner_id', '=', False), ('owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_filter_tile_own" model="ir.rule">
+        <field name="name">Filter tiles: only my own are editable</field>
+        <field name="model_id" ref="model_filter_tile"/>
+        <field name="domain_force">[('owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- A manager sees and edits everything that is not somebody's private tile. -->
+    <record id="rule_filter_tile_manager" model="ir.rule">
+        <field name="name">Filter tiles: managers own the shared ribbon</field>
+        <field name="model_id" ref="model_filter_tile"/>
+        <field name="domain_force">['|', ('owner_id', '=', False), ('owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('dynamic_filter_tiles.group_tile_manager'))]"/>
+    </record>
+
+    <!-- History points follow the tile they belong to. -->
+    <record id="rule_filter_tile_snapshot" model="ir.rule">
+        <field name="name">Tile history: follows the tile</field>
+        <field name="model_id" ref="model_filter_tile_snapshot"/>
+        <field name="domain_force">['|', ('tile_id.owner_id', '=', False), ('tile_id.owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Multi-company: a tile pinned to a company only exists inside it. -->
+    <record id="rule_filter_tile_company" model="ir.rule">
+        <field name="name">Filter tiles: multi-company</field>
+        <field name="model_id" ref="model_filter_tile"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+</odoo>

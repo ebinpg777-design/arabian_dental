@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- DUE FOR INVOICING: the cases whose day has come and which nobody has
+         billed. Two days from registration, the same day for an emergency - the
+         promise the counter makes, now a list somebody can work through.
+         (client, 2026-09-18) -->
+    <record id="view_order_due_list" model="ir.ui.view">
+        <field name="name">sale.order.list.due</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <!-- The row's colour is its PRIORITY: emergency red, urgent orange.
+                 (client, 2026-09-19)
+
+                 It used to be how overdue the case was - but every row in this list
+                 is due or past due by definition (the action's own domain is
+                 date_due <= today), so "days_overdue > 0" was true for very nearly
+                 every one of them and the list came out a solid wash of colour that
+                 told nobody anything. The Days Over column carries that, in days,
+                 where it can be read and sorted. -->
+            <list string="Due for Invoicing" default_order="date_due, name"
+                  decoration-danger="priority == 'emergency'"
+                  decoration-warning="priority == 'urgent'">
+                <field name="name" string="Case"/>
+                <field name="date_order" string="Registered" optional="show"/>
+                <field name="date_due" string="Due"/>
+                <field name="days_overdue" string="Days Over"/>
+                <field name="partner_id" string="Customer"/>
+                <field name="patient" optional="show"/>
+                <field name="product_names" string="Products" optional="hide"/>
+                <field name="team_id" string="Route" optional="show"/>
+                <field name="priority" optional="hide" widget="badge"/>
+                <field name="user_id" string="Salesperson" optional="hide"/>
+                <field name="amount_total" string="Total" sum="Total"/>
+                <field name="invoice_status" string="Invoicing" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_order_due_search" model="ir.ui.view">
+        <field name="name">sale.order.search.due</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <search string="Due for Invoicing">
+                <field name="name" string="Case"/>
+                <field name="partner_id" string="Customer"/>
+                <field name="patient"/>
+                <field name="team_id" string="Route"/>
+                <field name="priority" string="Priority"/>
+                <field name="appliance_type" string="Appliance Type"/>
+                <filter name="due_today" string="Due today"
+                        domain="[('date_due', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="overdue" string="Past its day"
+                        domain="[('date_due', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="urgent" string="Urgent" domain="[('priority', '=', 'urgent')]"/>
+                <filter name="emergency" string="Emergency" domain="[('priority', '=', 'emergency')]"/>
+                <separator/>
+                <!-- Odoo's own words for where the billing stands: "to invoice" is
+                     ready to bill now, "no" is a case with nothing billable on it
+                     yet - both are unbilled work whose day has come. -->
+                <!-- A rework is a remake of work already paid for: it is unbilled
+                     for ever, and left in it drowns the cases somebody can act on.
+                     Left ON by default, but as a facet in the search bar, so it is
+                     visible and one click from being removed. (client, 2026-09-18) -->
+                <filter name="no_rework" string="Not a rework"
+                        domain="[('is_rework', '=', False)]"/>
+                <filter name="rework_only" string="Reworks only"
+                        domain="[('is_rework', '=', True)]"/>
+                <separator/>
+                <filter name="ready_to_bill" string="Ready to bill"
+                        domain="[('invoice_status', '=', 'to invoice')]"/>
+                <filter name="nothing_billable" string="Nothing billable yet"
+                        domain="[('invoice_status', '=', 'no')]"/>
+                <separator/>
+                <!-- Appliance type quick filters for common cases -->
+                <filter name="appliance_fixed" string="Fixed"
+                        domain="[('appliance_type', '=', 'fixed')]"/>
+                <filter name="appliance_removable" string="Removable"
+                        domain="[('appliance_type', '=', 'removable')]"/>
+                <filter name="appliance_clear_retainer" string="Clear Retainer"
+                        domain="[('appliance_type', '=', 'clear_retainer')]"/>
+                <group>
+                    <filter name="group_route" string="Sales Route" context="{'group_by': 'team_id'}"/>
+                    <filter name="group_due" string="Due Date" context="{'group_by': 'date_due'}"/>
+                    <filter name="group_customer" string="Customer" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_priority" string="Priority" context="{'group_by': 'priority'}"/>
+                    <filter name="group_appliance" string="Appliance Type" context="{'group_by': 'appliance_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_orders_due_for_invoicing" model="ir.actions.act_window">
+        <field name="name">Due for Invoicing</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_order_due_list"/>
+        <field name="search_view_id" ref="view_order_due_search"/>
+        <!-- Confirmed, its day has come, and not yet fully billed. -->
+        <field name="domain">[('state', 'in', ['sale', 'done']),
+                              ('invoice_status', '!=', 'invoiced'),
+                              ('date_due', '!=', False),
+                              ('date_due', '&lt;=', context_today().strftime('%Y-%m-%d'))]</field>
+        <!-- Group by Sales route and Due Date hierarchically by default: route first,
+             then due date within each route. The desk works through each route in turn.
+             (client, 2026-09-19) -->
+        <field name="context">{'search_default_group_route': 1, 'search_default_group_due': 1, 'search_default_no_rework': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing is waiting to be billed</p>
+            <p>A case appears here on the day it is owed - two days after it was
+               registered, the same day if it is urgent - and leaves when it is
+               invoiced.</p>
+        </field>
+    </record>
+
+    <!-- On the Sales menu itself, beside Order List and Dispatch Register,
+         not inside Orders: the desk opens it every day. (client, 2026-09-19) -->
+    <menuitem id="menu_orders_due_for_invoicing"
+              name="Due for Invoicing"
+              parent="sale.sale_menu_root"
+              action="action_orders_due_for_invoicing"
+              sequence="17"
+              groups="sales_team.group_sale_salesman"/>
+</odoo>

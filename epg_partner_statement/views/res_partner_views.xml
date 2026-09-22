@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_statement" model="ir.ui.view">
+        <field name="name">res.partner.form.epg.statement</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <button name="action_view_partner_invoices" position="before">
+                <button name="action_open_statement_wizard" type="object" class="oe_stat_button"
+                        icon="fa-file-text-o" string="Statement"
+                        groups="account.group_account_invoice,account.group_account_readonly"/>
+            </button>
+            <xpath expr="//page[@name='sales_purchases']//group[@name='sale']" position="inside">
+                <field name="statement_auto_send"/>
+                <field name="statement_send_type" invisible="not statement_auto_send"/>
+               This month <field name="statement_last_sent" invisible="not statement_auto_send"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_partner_filter_statement" model="ir.ui.view">
+        <field name="name">res.partner.search.epg.statement</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <filter name="inactive" position="before">
+                <filter string="Monthly Statement" name="statement_auto_send" domain="[('statement_auto_send', '=', True)]"/>
+                <separator/>
+            </filter>
+        </field>
+    </record>
+</odoo>

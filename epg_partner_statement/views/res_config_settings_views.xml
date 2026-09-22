@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_statement" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.epg.statement</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='invoicing_settings']" position="after">
+                <block title="Statements of Account" name="epg_partner_statement_settings">
+                    <setting string="Default type" help="Receivable, payable or both when the wizard opens.">
+                        <field name="epg_statement_default_type"/>
+                    </setting>
+                    <setting string="Monthly auto-send" help="Partners with 'Monthly Statement by E-mail' receive last month's statement on this day of the month.">
+                        <field name="epg_statement_auto_send_day"/>
+                    </setting>
+                    <setting string="Letterhead" help="QWeb layout template wrapping the statement (blank = standard document layout).">
+                        <field name="epg_statement_layout" placeholder="web.external_layout"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

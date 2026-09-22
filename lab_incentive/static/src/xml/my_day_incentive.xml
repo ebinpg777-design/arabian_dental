@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    My Incentive as a button on My Day. An executive has one app and works from a
+    phone at a clinic door; anything reachable only through the menu is effectively
+    not reachable. (client, 2026-08-24)
+-->
+<templates xml:space="preserve">
+    <t t-name="lab_incentive.MyDayIncentive"
+       t-inherit="lab_fieldwork.MyDay" t-inherit-mode="extension">
+        <xpath expr="//section[hasclass('o_fw_sec_mine')]//div[hasclass('o_fw_sec_grid')]" position="inside">
+            <button class="o_fw_qa"
+                    t-on-click="() => this.action.doAction('lab_incentive.action_incentive_sheet_my')">
+                <i class="fa fa-trophy" title="My incentive"/>
+                <span>Incentives</span>
+            </button>
+        </xpath>
+    </t>
+</templates>

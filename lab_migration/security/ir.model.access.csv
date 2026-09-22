@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_migration_backend_user,migration.backend.user,model_migration_backend,lab_migration.group_lab_migration_user,1,0,0,0
+access_migration_backend_mgr,migration.backend.manager,model_migration_backend,lab_migration.group_lab_migration_manager,1,1,1,1
+access_migration_map_user,migration.map.user,model_migration_map,lab_migration.group_lab_migration_user,1,0,0,0
+access_migration_map_mgr,migration.map.manager,model_migration_map,lab_migration.group_lab_migration_manager,1,1,1,1

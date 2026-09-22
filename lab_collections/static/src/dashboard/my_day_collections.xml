@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    My Collections as a button on My Day, for the same reason the menu item exists
+    there: an executive's only app is Field Work, so this is where the widget has to
+    be reachable from. (client, 2026-08-24)
+-->
+<templates xml:space="preserve">
+    <t t-name="lab_collections.MyDayCollections"
+       t-inherit="lab_fieldwork.MyDay" t-inherit-mode="extension">
+        <xpath expr="//section[hasclass('o_fw_sec_mine')]//div[hasclass('o_fw_sec_grid')]" position="inside">
+            <button class="o_fw_qa"
+                    t-on-click="() => this.action.doAction('lab_collections.action_collection_dashboard')">
+                <i class="fa fa-inr" title="My collections"/>
+                <span>Collections</span>
+            </button>
+        </xpath>
+        <!-- Statement and what the clinic owes, on every card. -->
+        <xpath expr="//div[hasclass('o_fw_clinic_acts')]" position="inside">
+            <button class="o_fw_clinic_ico" type="button" title="Statement"
+                    t-on-click="(ev) => this.openClinicStatement(c, ev)">
+                <i class="fa fa-file-text-o"/></button>
+            <button t-if="c.open_receivable" class="o_fw_clinic_ico" type="button"
+                    title="Open receivable"
+                    t-on-click="(ev) => this.openClinicReceivable(c, ev)">
+                <i class="fa fa-inr"/></button>
+        </xpath>
+    </t>
+</templates>

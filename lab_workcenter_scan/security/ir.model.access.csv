@@ -1,0 +1,16 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_production_performance_user,lab.production.performance user,model_lab_production_performance,mrp.group_mrp_user,1,0,0,0
+access_production_report_wizard,lab.production.report.wizard,model_lab_production_report_wizard,mrp.group_mrp_user,1,1,1,1
+access_lab_callover_wizard,lab.callover.wizard,model_lab_callover_wizard,mrp.group_mrp_user,1,1,1,1
+access_lab_packing_manifest_wizard,lab.packing.manifest.wizard,model_lab_packing_manifest_wizard,mrp.group_mrp_user,1,1,1,1
+access_lab_closeout_wizard,lab.closeout.wizard,model_lab_closeout_wizard,mrp.group_mrp_user,1,1,1,1
+access_lab_clinic_work_wizard,lab.clinic.work.wizard,model_lab_clinic_work_wizard,mrp.group_mrp_user,1,1,1,1
+access_lab_redo_reason_mrp_user,lab.redo.reason group_mrp_user,model_lab_redo_reason,mrp.group_mrp_user,1,0,0,0
+access_lab_redo_reason_mrp_manager,lab.redo.reason group_mrp_manager,model_lab_redo_reason,mrp.group_mrp_manager,1,1,1,1
+access_lab_mrp_redo_mrp_user,lab.mrp.redo group_mrp_user,model_lab_mrp_redo,mrp.group_mrp_user,1,1,1,0
+access_lab_mrp_redo_mrp_manager,lab.mrp.redo group_mrp_manager,model_lab_mrp_redo,mrp.group_mrp_manager,1,1,1,1
+access_lab_mrp_redo_wizard_mrp_user,lab.mrp.redo.wizard group_mrp_user,model_lab_mrp_redo_wizard,mrp.group_mrp_user,1,1,1,1
+access_work_target_user,lab.work.target user,model_lab_work_target,mrp.group_mrp_user,1,0,0,0
+access_work_target_manager,lab.work.target manager,model_lab_work_target,lab_workcenter_scan.group_production_manager,1,1,1,1
+access_work_target_wizard,lab.work.target.wizard,model_lab_work_target_wizard,lab_workcenter_scan.group_production_manager,1,1,1,1
+access_work_target_wizard_line,lab.work.target.wizard.line,model_lab_work_target_wizard_line,lab_workcenter_scan.group_production_manager,1,1,1,1

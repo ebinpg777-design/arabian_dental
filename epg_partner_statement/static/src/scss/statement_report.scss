@@ -1,0 +1,122 @@
+// Statement of Account — print stylesheet (loaded in web.report_assets_common)
+.epg-statement {
+    font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    color: #222;
+    line-height: 1.35;
+
+    // Same trap as the letterhead: reboot's zero-width solid borders print as hairlines,
+    // so every layout table (the PAY TO strip, the QR and signature cells) came out boxed.
+    // Reset here; the rules below still draw the borders the design does want.
+    table, thead, tbody, tfoot, tr, th, td { border-style: none; border-width: 0; }
+
+    $accent: #1f6f8b;
+    $accent-soft: #e8f1f5;
+    $muted: #6c757d;
+    $rule: #d9dee3;
+    $danger: #b42318;
+    $danger-soft: #fdecea;
+
+    h2.epg-title {
+        font-size: 20pt; font-weight: 700; letter-spacing: .2px; margin: 0 0 2px;
+        color: $accent;
+    }
+    .epg-subtitle { color: $muted; font-size: 9pt; margin-bottom: 8px; }
+    .epg-meta {
+        display: inline-block; margin: 2px 8px 2px 0; padding: 2px 8px; border-radius: 3px;
+        background: $accent-soft; color: #234; font-size: 9pt;
+        b { color: $accent; margin-right: 3px; }
+    }
+
+    .epg-partner {
+        border-left: 3px solid $accent; padding: 4px 10px; font-size: 9.5pt;
+        .epg-partner-name { font-size: 12pt; font-weight: 700; margin-bottom: 1px; }
+        .epg-ident { color: $muted; }
+    }
+
+    // summary strip — a table, not flexbox: wkhtmltopdf ignores flex, so the tiles used
+    // to shrink to their text and left the rest of the row empty. table-layout: fixed
+    // splits the full width evenly between them.
+    table.epg-summary {
+        width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 8px 0;
+        margin: 12px -8px 10px;
+    }
+    .epg-card {
+        border: 1px solid $rule; border-radius: 4px; padding: 7px 10px; vertical-align: top;
+        .epg-card-label { font-size: 8.6pt; text-transform: uppercase; letter-spacing: .5px; color: $muted; }
+        .epg-card-value { font-size: 13.5pt; font-weight: 700; margin-top: 1px; white-space: nowrap; }
+        &.epg-card-due { background: $accent; border-color: $accent; color: #fff;
+            .epg-card-label { color: rgba(255,255,255,.9); } .epg-card-value { font-size: 15pt; } }
+        &.epg-card-danger { border-color: $danger; .epg-card-value { color: $danger; } }
+    }
+
+    // ledger
+    // table-layout: fixed for the same reason the summary strip above needs it — with
+    // auto layout the declared column widths are only hints, and the browser hands the
+    // width to whatever is `white-space: nowrap` (the document number, the money, the
+    // "Payments & Credits" heading) while Description, the one column with something to
+    // say, wraps every other row. Fixed makes the percentages mean what they say.
+    // (client, 2026-08-27)
+    table.epg-ledger {
+        width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 8px;
+        font-size: 10.5pt;
+        thead th {
+            background: $accent; color: #fff; font-weight: 600; padding: 6px 6px; border: none;
+            font-size: 9.4pt; text-transform: uppercase; letter-spacing: .3px;
+            // Headings WRAP, cells do not. Under fixed layout a nowrap heading cannot
+            // shrink to its column, so "Payments & Credits" ran straight over
+            // "Balance". A two-line heading costs nothing; the figures below it are
+            // still nowrap and still fit. (client, 2026-08-27)
+            white-space: normal; word-break: break-word;
+        }
+        tbody td { padding: 6px 6px; border-bottom: 1px solid $rule; vertical-align: top; }
+        tbody tr:nth-child(even) td { background: #fafbfc; }
+        tr.epg-row-total td { background: $accent-soft !important; font-weight: 700; border-top: 2px solid $accent; }
+        tr.epg-row-open td { background: $accent-soft !important; font-weight: 600; }
+        // Right-aligned and tabular for BOTH, but only the cells refuse to wrap.
+        // `th.num` (0,1,1) outranks `thead th` (0,0,2), so leaving nowrap on the
+        // heading here is what kept "Payments & Credits" from wrapping and ran it
+        // into "Balance". Figures still never wrap. (client, 2026-08-27)
+        td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+        td.num { white-space: nowrap; }
+        .epg-kind { display: inline-block; font-size: 8.6pt; padding: 0 5px; border-radius: 8px;
+                    background: #eef0f2; color: #333; white-space: nowrap; }
+        .epg-kind-inv { background: #e6f0ff; color: #1d4ed8; }
+        .epg-kind-pay { background: #e6f7ee; color: #067647; }
+        .epg-kind-cn  { background: #fff3e0; color: #b45309; }
+        .epg-overdue { display: inline-block; font-size: 8.6pt; padding: 0 5px; border-radius: 8px;
+                       background: $danger-soft; color: $danger; white-space: nowrap; }
+        .epg-sub { color: $muted; font-size: 9.4pt; }
+        td.epg-due { white-space: nowrap; }
+        .epg-doc { font-weight: 600; white-space: nowrap; }
+    }
+
+    // ageing
+    .epg-ageing {
+        display: flex; gap: 6px; margin: 4px 0 12px; page-break-inside: avoid;
+        .epg-bucket {
+            flex: 1; border: 1px solid $rule; border-radius: 4px; padding: 4px 8px; text-align: right;
+            .epg-bucket-label { font-size: 7.8pt; color: $muted; text-transform: uppercase; letter-spacing: .3px; text-align: left; }
+            .epg-bucket-value { font-weight: 700; font-size: 10pt; margin-top: 1px; }
+            &.epg-bucket-hot { border-color: $danger; background: $danger-soft; .epg-bucket-value { color: $danger; } }
+            &.epg-bucket-total { background: $accent-soft; border-color: $accent; .epg-bucket-value { color: $accent; font-size: 11pt; } }
+        }
+    }
+    .epg-ageing-title { font-size: 8.6pt; text-transform: uppercase; letter-spacing: .4px; color: $muted; margin-top: 4px; }
+    .epg-credits { font-size: 8.6pt; color: $muted; margin: -6px 0 10px; }
+
+    // footer block — kept tight: bank on the left, a big scannable QR, signature right
+    table.epg-footer { margin-top: 6px; border-collapse: collapse; td { padding: 0 6px; border: none; } }
+    .epg-bank-table { width: 100%; border-collapse: collapse; font-size: 8.8pt;
+        th { background: $accent-soft; color: $accent; font-weight: 600; padding: 2px 5px; border: 1px solid $rule; font-size: 8pt; text-transform: uppercase; }
+        td { padding: 2px 5px; border: 1px solid $rule; } }
+    .epg-bank-title { font-size: 8.6pt; text-transform: uppercase; letter-spacing: .4px; color: $muted; margin-bottom: 2px; }
+    td.epg-qr { font-size: 8pt; color: $muted;
+        img { display: block; margin: 0 auto 1px; width: 45mm; height: 45mm; } }
+    td.epg-sign { font-size: 9pt;
+        .epg-sign-for { color: $muted; } img { max-height: 60px; margin: 2px 0 0; }
+        .epg-sign-line { display: inline-block; border-top: 1px solid #333; padding-top: 1px; min-width: 140px; margin-top: 2px; } }
+    .epg-note { font-size: 7.6pt; color: $muted; margin-top: 5px; border-top: 1px dashed $rule; padding-top: 3px; }
+
+    .epg-empty { text-align: center; color: $muted; padding: 20px 0; font-style: italic; }
+}

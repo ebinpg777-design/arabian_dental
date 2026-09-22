@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The lab event a template answers to. It was the one thing that decided
+         which template fired on Confirm / Validate / Post, and it was on no screen
+         at all - set only by the seed data. (client, 2026-08-28) -->
+    <record id="view_template_form_event" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.form.event</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_template_form"/>
+        <field name="arch" type="xml">
+            <field name="model_id" position="after">
+                <field name="event"
+                       help="Which lab moment sends this template automatically. One template per event and model; 'Manual / Other' is what the Send WhatsApp button offers."/>
+                <field name="auto_send" widget="boolean_toggle"
+                       invisible="not event or event == 'manual'"
+                       groups="epg_whatsapp.group_whatsapp_admin"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_template_list_event" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.list.event</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_template_list"/>
+        <field name="arch" type="xml">
+            <field name="model_id" position="after">
+                <field name="event" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_template_search_event" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.search.event</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_template_search"/>
+        <field name="arch" type="xml">
+            <filter name="group_model" position="after">
+                <filter name="group_event" string="Lab event"
+                        context="{'group_by': 'event'}"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

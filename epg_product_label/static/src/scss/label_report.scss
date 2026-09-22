@@ -1,0 +1,29 @@
+// Styles that ship inside the rendered PDF.
+//
+// The label geometry itself is inline on each element, because it is computed per
+// template; what lives here is only what has to be true for every label.
+
+.epg_label_page {
+    margin: 0;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.epg_label {
+    // Absolutely-positioned children are placed against this box.
+    position: relative;
+    overflow: hidden;
+    // Thermal and laser stock is white; never let a theme colour bleed in.
+    color: #000;
+}
+
+.epg_label_element {
+    box-sizing: border-box;
+    word-break: break-word;
+}
+
+.epg_label_element img {
+    max-width: 100%;
+    max-height: 100%;
+}

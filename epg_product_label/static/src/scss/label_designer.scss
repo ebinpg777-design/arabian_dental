@@ -1,0 +1,728 @@
+.epg_designer {
+    --epg-accent: #714B67;
+    --epg-guide: #ff3d9a;
+
+    .epg_designer_toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 6px 8px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-bottom: 0;
+        border-radius: 4px 4px 0 0;
+        position: relative;
+    }
+
+    .epg_designer_status {
+        white-space: nowrap;
+    }
+
+    .epg_designer_palette {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 50;
+        width: 250px;
+        max-height: 380px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, .15);
+        padding: 4px 0;
+    }
+
+    .epg_designer_palette_group {
+        padding: 6px 12px 2px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #adb5bd;
+    }
+
+    .epg_designer_palette_item {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 6px 12px;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        font-size: 13px;
+
+        &:hover {
+            background: #f1f3f5;
+        }
+    }
+
+    // The canvas and the layers panel sit side by side; the panel keeps a fixed
+    // width so the canvas does not resize every time a name gets longer.
+    .epg_designer_workspace {
+        display: flex;
+        align-items: stretch;
+        border: 1px solid #dee2e6;
+    }
+
+    .epg_designer_stage {
+        flex: 1 1 auto;
+        display: flex;
+        justify-content: center;
+        padding: 24px;
+        background: #e9ecef;
+        overflow: auto;
+        outline: none;
+        min-height: 260px;
+    }
+
+    .epg_designer_canvas {
+        position: relative;
+        background-color: #fff;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .2);
+        flex: 0 0 auto;
+        touch-action: none;
+    }
+
+    // ---- WYSIWYG layer -------------------------------------------------
+    .epg_designer_paper {
+        position: absolute;
+        left: 0;
+        top: 0;
+        // Inert by design: the interaction layer above owns every pointer event,
+        // so a click always lands on a handle and never inside rendered text.
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .epg_designer_paper_item {
+        // The rendered element positions itself; this wrapper must not interfere.
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    // While a gesture is in flight the printed copy fades and the wireframe box
+    // leads, so the element does not appear to lag behind the cursor.
+    .epg_designer_paper_ghost {
+        opacity: .25;
+    }
+
+    .epg_designer_paper_label {
+        position: relative;
+        overflow: hidden;
+    }
+
+    // ---- interaction layer ---------------------------------------------
+    .epg_designer_element {
+        position: absolute;
+        box-sizing: border-box;
+        border: 1px solid rgba(113, 75, 103, .55);
+        background: rgba(113, 75, 103, .07);
+        cursor: move;
+        overflow: hidden;
+        font-size: 11px;
+        line-height: 1.1;
+        display: flex;
+        align-items: center;
+        user-select: none;
+        touch-action: none;
+        z-index: 5;
+
+        &:hover {
+            border-color: var(--epg-accent);
+            background: rgba(113, 75, 103, .14);
+        }
+
+        &.epg_designer_selected {
+            border: 1px solid var(--epg-accent);
+            box-shadow: 0 0 0 1px var(--epg-accent);
+            background: rgba(113, 75, 103, .18);
+            z-index: 20;
+        }
+
+        // An element hanging off the label is the single most common design slip,
+        // so it gets a colour of its own rather than a silent clip at print time.
+        &.epg_designer_oob {
+            border-color: #d9534f;
+            background: rgba(217, 83, 79, .12);
+        }
+
+        // Once the real content is drawn underneath, the wireframe steps back to
+        // a hairline so it frames the element instead of covering it.
+        &.epg_designer_wysiwyg {
+            background: transparent;
+            border-color: rgba(113, 75, 103, .25);
+            border-style: dashed;
+
+            .epg_designer_element_body {
+                opacity: 0;
+                transition: opacity .12s;
+            }
+
+            &:hover,
+            &.epg_designer_selected {
+                background: rgba(113, 75, 103, .10);
+                border-style: solid;
+
+                .epg_designer_element_body {
+                    opacity: 1;
+                }
+            }
+        }
+    }
+
+    .epg_designer_element_body {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        padding: 0 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        pointer-events: none;
+        color: #4a3244;
+    }
+
+    .epg_designer_element_label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .epg_designer_type_barcode,
+    .epg_designer_type_qrcode,
+    .epg_designer_type_vcard {
+        background: rgba(23, 162, 184, .1);
+        border-color: rgba(23, 162, 184, .6);
+    }
+
+    .epg_designer_type_price,
+    .epg_designer_type_price_promo,
+    .epg_designer_type_price_diff,
+    .epg_designer_type_price_uom {
+        background: rgba(40, 167, 69, .1);
+        border-color: rgba(40, 167, 69, .6);
+    }
+
+    .epg_designer_type_image {
+        background: rgba(255, 193, 7, .12);
+        border-color: rgba(255, 193, 7, .7);
+    }
+
+    .epg_designer_type_box,
+    .epg_designer_type_line,
+    .epg_designer_type_ellipse {
+        background: rgba(108, 117, 125, .08);
+        border-color: rgba(108, 117, 125, .6);
+    }
+
+    .epg_designer_handle {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: #fff;
+        border: 1px solid var(--epg-accent);
+        border-radius: 1px;
+        z-index: 30;
+        touch-action: none;
+    }
+
+    .epg_designer_handle_nw { top: -4px; left: -4px; cursor: nwse-resize; }
+    .epg_designer_handle_n  { top: -4px; left: calc(50% - 4px); cursor: ns-resize; }
+    .epg_designer_handle_ne { top: -4px; right: -4px; cursor: nesw-resize; }
+    .epg_designer_handle_e  { top: calc(50% - 4px); right: -4px; cursor: ew-resize; }
+    .epg_designer_handle_se { bottom: -4px; right: -4px; cursor: nwse-resize; }
+    .epg_designer_handle_s  { bottom: -4px; left: calc(50% - 4px); cursor: ns-resize; }
+    .epg_designer_handle_sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
+    .epg_designer_handle_w  { top: calc(50% - 4px); left: -4px; cursor: ew-resize; }
+
+    // ---- guides and rubber band ----------------------------------------
+    .epg_designer_guide {
+        position: absolute;
+        background: var(--epg-guide);
+        pointer-events: none;
+        z-index: 40;
+        box-shadow: 0 0 2px rgba(255, 61, 154, .8);
+    }
+
+    .epg_designer_marquee {
+        position: absolute;
+        border: 1px dashed var(--epg-accent);
+        background: rgba(113, 75, 103, .10);
+        pointer-events: none;
+        z-index: 35;
+    }
+
+    // ---- layers panel ---------------------------------------------------
+    .epg_designer_layers {
+        flex: 0 0 210px;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid #dee2e6;
+        background: #fff;
+        max-height: 520px;
+    }
+
+    .epg_designer_layers_head {
+        display: flex;
+        align-items: center;
+        padding: 8px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: #6c757d;
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .epg_designer_layers_body {
+        overflow-y: auto;
+        flex: 1 1 auto;
+    }
+
+    .epg_designer_layer {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 4px 6px;
+        font-size: 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f3f5;
+
+        &:hover {
+            background: #f8f9fa;
+        }
+
+        &.epg_designer_layer_selected {
+            background: rgba(113, 75, 103, .12);
+            box-shadow: inset 2px 0 0 var(--epg-accent);
+        }
+    }
+
+    .epg_designer_layer_name {
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .epg_designer_layer_z {
+        font-size: 10px;
+        color: #adb5bd;
+        min-width: 14px;
+        text-align: right;
+    }
+
+    .epg_designer_layer_eye,
+    .epg_designer_layer_order button {
+        border: 0;
+        background: transparent;
+        padding: 0 3px;
+        color: #6c757d;
+        line-height: 1;
+
+        &:hover { color: var(--epg-accent); }
+    }
+
+    .epg_designer_layer_order {
+        display: flex;
+        flex-direction: column;
+        font-size: 9px;
+        opacity: 0;
+    }
+
+    .epg_designer_layer:hover .epg_designer_layer_order {
+        opacity: 1;
+    }
+
+    // ---- property strips -------------------------------------------------
+    .epg_designer_props {
+        display: flex;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-top: 0;
+        border-radius: 0 0 4px 4px;
+
+        label {
+            display: flex;
+            flex-direction: column;
+            font-size: 11px;
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .o_input {
+            width: 82px;
+            font-size: 13px;
+            padding: 2px 4px;
+        }
+
+        label:first-of-type .o_input {
+            width: 160px;
+        }
+
+        .epg_designer_props_check {
+            flex-direction: row;
+            align-items: center;
+            gap: 4px;
+            padding-bottom: 4px;
+        }
+    }
+
+    .epg_designer_props_multi {
+        align-items: center;
+    }
+
+    .epg_designer_props_title {
+        font-weight: 600;
+        font-size: 13px;
+        color: #4a3244;
+        align-self: center;
+        margin-right: 8px;
+    }
+
+    &.epg_designer_readonly {
+        .epg_designer_element { cursor: default; }
+    }
+}
+
+// The preview field renders a real label; keep the surrounding form from
+// squashing it.
+.o_field_widget[name="preview_html"],
+.o_field_widget[name="preview_html"] > div {
+    max-width: 100%;
+    overflow: auto;
+}
+
+// ======================================================================
+// Gallery thumbnails
+// ======================================================================
+.epg_label_thumb {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+    flex: 0 0 auto;
+}
+
+.epg_label_thumb_inner {
+    transform-origin: top left;
+}
+
+.epg_template_card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.epg_template_thumb_wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    padding: 10px;
+    background: repeating-conic-gradient(#f6f7f8 0% 25%, #ffffff 0% 50%) 50% / 14px 14px;
+    border-radius: 4px;
+}
+
+.epg_template_meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+// ======================================================================
+// Label stock gallery
+// ======================================================================
+.epg_stock_card {
+    display: flex;
+    flex-direction: column;
+}
+
+.epg_stock_visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 96px;
+    background: #f6f7f8;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.epg_stock_sheet {
+    // Drawn from the label's own aspect ratio, so the card shows the shape of
+    // the thing you are about to load into the printer.
+    max-width: 84%;
+    max-height: 78px;
+    min-width: 34px;
+    min-height: 18px;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 2px;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, .06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.epg_stock_dims {
+    font-size: 10px;
+    color: #868e96;
+    white-space: nowrap;
+}
+
+.epg_stock_name {
+    display: block;
+    line-height: 1.2;
+}
+
+// ======================================================================
+// Layout picker (assistant)
+// ======================================================================
+.epg_layout_picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 10px;
+    margin: 8px 0 16px;
+}
+
+.epg_layout_card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    text-align: left;
+    transition: border-color .12s, box-shadow .12s, transform .12s;
+
+    &:hover {
+        border-color: #adb5bd;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, .1);
+    }
+
+    &.epg_layout_card_selected {
+        border-color: #714B67;
+        box-shadow: 0 0 0 2px rgba(113, 75, 103, .25);
+    }
+}
+
+.epg_layout_frame {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    background: #fbfbfc;
+    border: 1px solid #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.epg_layout_block {
+    position: absolute;
+    border-radius: 1px;
+    background: #ced4da;
+}
+
+// Each block reads as the kind of thing it stands for, so the wireframe can be
+// understood at a glance instead of decoded.
+.epg_layout_block_big    { background: #495057; }
+.epg_layout_block_bar    { background: #ced4da; }
+.epg_layout_block_text   { background: repeating-linear-gradient(#ced4da 0 2px, transparent 2px 5px); }
+.epg_layout_block_price  { background: #2f9e44; }
+.epg_layout_block_strike {
+    background: #ced4da;
+    position: absolute;
+
+    &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 1px;
+        background: #e03131;
+    }
+}
+.epg_layout_block_badge  { background: #e03131; border-radius: 3px; }
+.epg_layout_block_code   { background: repeating-linear-gradient(90deg, #343a40 0 1.5px, transparent 1.5px 4px); }
+.epg_layout_block_qr     {
+    background:
+        repeating-linear-gradient(90deg, #343a40 0 2px, transparent 2px 4px),
+        repeating-linear-gradient(#343a40 0 2px, transparent 2px 4px);
+    background-color: #fff;
+}
+.epg_layout_block_box    { background: #dee2e6; border: 1px dashed #adb5bd; }
+
+.epg_layout_name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #343a40;
+    line-height: 1.2;
+}
+
+.epg_layout_tick {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #714B67;
+    color: #fff;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.epg_assistant_intro {
+    padding: 4px 0 12px;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 12px;
+}
+
+// ======================================================================
+// Field path picker
+// ======================================================================
+.epg_field_path {
+    position: relative;
+    width: 100%;
+
+    .epg_field_path_input {
+        display: flex;
+        gap: 4px;
+
+        .o_input { flex: 1 1 auto; }
+    }
+}
+
+.epg_field_path_popover {
+    position: absolute;
+    z-index: 1060;
+    top: 100%;
+    left: 0;
+    width: 340px;
+    max-width: 90vw;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .18);
+    margin-top: 2px;
+}
+
+.epg_field_path_head {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 12px;
+}
+
+.epg_field_path_crumbs {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.epg_field_path_model {
+    font-family: monospace;
+    font-size: 11px;
+    color: #868e96;
+}
+
+.epg_field_path_search {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 0;
+    padding: 6px 8px;
+}
+
+.epg_field_path_results {
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.epg_field_path_row {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid #f8f9fa;
+
+    &:hover { background: #f8f9fa; }
+}
+
+.epg_field_path_pick {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    border: 0;
+    background: transparent;
+    padding: 5px 8px;
+    text-align: left;
+    font-size: 12px;
+    min-width: 0;
+}
+
+.epg_field_path_label {
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.epg_field_path_tech {
+    font-family: monospace;
+    font-size: 10px;
+    color: #868e96;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.epg_field_path_type {
+    margin-left: auto;
+    font-size: 10px;
+    color: #adb5bd;
+    white-space: nowrap;
+}
+
+.epg_field_path_into {
+    border: 0;
+    border-left: 1px solid #f1f3f5;
+    background: transparent;
+    padding: 0 8px;
+    color: #714B67;
+
+    &:hover { background: rgba(113, 75, 103, .12); }
+}
+
+// ======================================================================
+// Barcode status badge
+// ======================================================================
+.epg_barcode_status {
+    .badge { font-weight: 500; }
+}
+
+.epg_barcode_sample {
+    margin-top: 3px;
+    font-size: 11px;
+
+    code {
+        word-break: break-all;
+    }
+}

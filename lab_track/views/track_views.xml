@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_track" model="ir.actions.client">
+        <field name="name">Track a Work</field>
+        <field name="tag">lab_track</field>
+    </record>
+
+    <!-- Track Order from the Station Board: the same screen, read-only - names
+         only, nothing that opens a record. No menu; the bench's button opens it. -->
+    <record id="action_track_floor" model="ir.actions.client">
+        <field name="name">Track Order</field>
+        <field name="tag">lab_track_readonly</field>
+    </record>
+
+    <!-- Its own application (client, 2026-08-17): the screen a manager, the counter and
+         whoever picks up the phone open most often — one click from the app switcher, no
+         hunting through Sales or Management. Every internal user may open it; what it
+         shows of a case is still governed by that user's own read rights on the order. -->
+    <menuitem id="menu_track_root" name="Track Order"
+              web_icon="lab_track,static/description/icon.svg"
+              action="action_track" sequence="12"
+              groups="base.group_user"/>
+</odoo>

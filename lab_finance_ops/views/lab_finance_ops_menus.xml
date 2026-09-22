@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        One dropdown of its own in Accounting (client, 2026-08-19). These five screens are
+        the lab's own finance desk — cheques, payment approvals and the day's reports —
+        and scattering them through Customers and Reporting made them hard to find among
+        Odoo's standard entries.
+    -->
+    <menuitem id="menu_lab_finance_ops_root" name="Finance Ops"
+              parent="account.menu_finance" sequence="8"
+              groups="account.group_account_readonly,lab_finance_ops.group_lab_cheque_user,lab_finance_ops.group_lab_payment_approver"/>
+
+    <!-- collections -->
+    <menuitem id="menu_lab_cheque_register" name="Cheque Register"
+              parent="menu_lab_finance_ops_root"
+              action="action_lab_cheque" sequence="10"
+              groups="lab_finance_ops.group_lab_cheque_user"/>
+
+    <menuitem id="menu_lab_payments_to_approve" name="Payments to Approve"
+              parent="menu_lab_finance_ops_root"
+              action="action_lab_payments_to_approve" sequence="20"
+              groups="lab_finance_ops.group_lab_payment_approver"/>
+
+    <!-- reports -->
+    <!-- The daybook wizard is only accessible to billing users, so Accounting
+         Readonly got an access error the moment the menu opened. -->
+    <menuitem id="menu_lab_daybook" name="Daybook"
+              parent="menu_lab_finance_ops_root"
+              action="action_lab_daybook" sequence="30"
+              groups="account.group_account_invoice"/>
+
+    <menuitem id="menu_lab_outstanding" name="Doctor-wise Outstanding"
+              parent="menu_lab_finance_ops_root"
+              action="action_lab_outstanding_report" sequence="40"/>
+
+    <!-- Not for Accounting Readonly: the page reads the cheque register and the
+         outstanding report, which that role cannot read, so the menu opened
+         straight into an access error. The cheque-register role reads both. -->
+    <menuitem id="menu_lab_eod" name="End-of-Day Report"
+              parent="menu_lab_finance_ops_root"
+              action="action_lab_eod_report" sequence="50"
+              groups="lab_finance_ops.group_lab_cheque_user"/>
+
+    <menuitem id="menu_order_count_report" name="Order Count"
+              parent="menu_lab_finance_ops_root"
+              action="sale_custom.action_order_count_report" sequence="45"/>
+</odoo>

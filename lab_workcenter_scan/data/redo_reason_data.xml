@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        The lab's own list of what goes wrong on a bench.
+
+        noupdate: once the lab starts editing these — renaming one, adding their own —
+        a module upgrade must not put them back. (client, 2026-08-27)
+    -->
+    <data noupdate="1">
+        <record id="redo_reason_fit_wire" model="lab.redo.reason">
+            <field name="name">Ill-fitting (Wire Bending)</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="redo_reason_fit_acryl" model="lab.redo.reason">
+            <field name="name">Ill-fitting Acrylisation</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="redo_reason_fit_polish" model="lab.redo.reason">
+            <field name="name">Ill-fitting (Polishing)</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="redo_reason_broken" model="lab.redo.reason">
+            <field name="name">Broken</field>
+            <field name="sequence">40</field>
+        </record>
+        <record id="redo_reason_colour" model="lab.redo.reason">
+            <field name="name">Color Changes</field>
+            <field name="sequence">50</field>
+        </record>
+        <record id="redo_reason_bands" model="lab.redo.reason">
+            <field name="name">Loose Bands</field>
+            <field name="sequence">60</field>
+        </record>
+        <record id="redo_reason_occlusion" model="lab.redo.reason">
+            <field name="name">Occlusion</field>
+            <field name="sequence">70</field>
+        </record>
+        <record id="redo_reason_bite" model="lab.redo.reason">
+            <field name="name">Bite Problems</field>
+            <field name="sequence">80</field>
+        </record>
+    </data>
+</odoo>

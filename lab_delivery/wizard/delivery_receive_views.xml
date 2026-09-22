@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_delivery_receive_wizard_form" model="ir.ui.view">
+        <field name="name">lab.delivery.receive.wizard.form</field>
+        <field name="model">lab.delivery.receive.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Receive at Lab">
+                <group>
+                    <field name="delivery_id" readonly="1"/>
+                    <field name="received_condition" widget="radio"
+                           options="{'horizontal': true}"/>
+                    <field name="damage_note"
+                           invisible="received_condition != 'damaged'"
+                           required="received_condition == 'damaged'"/>
+                    <field name="received_by"/>
+                    <field name="proof_image" widget="image"/>
+                </group>
+                <footer>
+                    <button string="Received" name="action_confirm" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

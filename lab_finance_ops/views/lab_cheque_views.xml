@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_lab_cheque_form" model="ir.ui.view">
+        <field name="name">lab.cheque.form</field>
+        <field name="model">lab.cheque</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_load_open_invoices" type="object"
+                            string="Allocate to Open Invoices" class="btn-secondary"
+                            invisible="state != 'received'"/>
+                    <button name="action_deposit" type="object" string="Deposit"
+                            class="btn-primary" invisible="state != 'received'"/>
+                    <button name="action_clear" type="object" string="Mark Cleared"
+                            class="btn-primary" invisible="state != 'deposited'"
+                            groups="lab_finance_ops.group_lab_payment_approver"/>
+                    <button name="action_bounce" type="object" string="Mark Bounced"
+                            class="btn-danger" invisible="state not in ('deposited', 'cleared')"
+                            groups="lab_finance_ops.group_lab_payment_approver"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('cleared', 'cancel')"/>
+                    <button name="action_draft" type="object" string="Back to Register"
+                            invisible="state not in ('bounced', 'cancel')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="received,deposited,cleared"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_payment" type="object" class="oe_stat_button"
+                                icon="fa-money" invisible="not payment_id">
+                            <span class="o_stat_text">Payment</span>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Post-dated" bg_color="text-bg-warning"
+                            invisible="not is_post_dated or state != 'received'"/>
+                    <widget name="web_ribbon" title="Bounced" bg_color="text-bg-danger"
+                            invisible="state != 'bounced'"/>
+                    <div class="oe_title">
+                        <label for="cheque_number"/>
+                        <h1><field name="cheque_number" placeholder="Cheque number"/></h1>
+                        <field name="name" readonly="1" class="text-muted"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="amount"/>
+                            <field name="bank_id"/>
+                            <field name="branch"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="cheque_date"/>
+                            <field name="is_post_dated" invisible="1"/>
+                            <field name="received_date"/>
+                            <field name="collected_by_id"/>
+                            <field name="journal_id" required="state != 'received'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Invoice-wise Allocation" name="allocation">
+                            <field name="allocation_ids" readonly="state != 'received'">
+                                <list editable="bottom">
+                                    <field name="move_id"
+                                           domain="[('partner_id', 'child_of', parent.partner_id),
+                                                    ('move_type', '=', 'out_invoice'),
+                                                    ('state', '=', 'posted')]"/>
+                                    <field name="invoice_date"/>
+                                    <field name="invoice_date_due"/>
+                                    <field name="move_total"/>
+                                    <field name="move_residual"/>
+                                    <field name="amount" sum="Allocated"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="allocated_amount"/>
+                                <field name="unallocated_amount"
+                                       decoration-warning="unallocated_amount &gt; 0"/>
+                            </group>
+                        </page>
+                        <page string="Bounce / Notes" name="notes">
+                            <group>
+                                <field name="bounce_reason"
+                                       required="state == 'bounced'"/>
+                                <field name="deposit_date"/>
+                                <field name="clear_date"/>
+                                <field name="payment_id"/>
+                            </group>
+                            <field name="note" placeholder="Internal notes..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_lab_cheque_list" model="ir.ui.view">
+        <field name="name">lab.cheque.list</field>
+        <field name="model">lab.cheque</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="state == 'bounced'"
+                  decoration-success="state == 'cleared'"
+                  decoration-warning="is_post_dated and state == 'received'"
+                  decoration-muted="state == 'cancel'">
+                <field name="cheque_number"/>
+                <field name="partner_id"/>
+                <field name="bank_id" optional="show"/>
+                <field name="cheque_date"/>
+                <field name="received_date" optional="hide"/>
+                <field name="deposit_date" optional="hide"/>
+                <field name="clear_date" optional="hide"/>
+                <field name="amount" sum="Total"/>
+                <field name="allocated_amount" optional="show" sum="Allocated"/>
+                <field name="unallocated_amount" optional="hide"/>
+                <field name="journal_id" optional="hide"/>
+                <field name="collected_by_id" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'cleared'"
+                       decoration-danger="state == 'bounced'"
+                       decoration-info="state == 'deposited'"/>
+                <field name="is_post_dated" column_invisible="1"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_lab_cheque_search" model="ir.ui.view">
+        <field name="name">lab.cheque.search</field>
+        <field name="model">lab.cheque</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="cheque_number"/>
+                <field name="partner_id"/>
+                <field name="bank_id"/>
+                <filter name="in_hand" string="In Hand" domain="[('state', '=', 'received')]"/>
+                <filter name="deposited" string="Deposited" domain="[('state', '=', 'deposited')]"/>
+                <filter name="bounced" string="Bounced" domain="[('state', '=', 'bounced')]"/>
+                <separator/>
+                <filter name="post_dated" string="Post-dated"
+                        domain="[('is_post_dated', '=', True), ('state', '=', 'received')]"/>
+                <filter name="due_now" string="Due for Deposit"
+                        domain="[('state', '=', 'received'),
+                                 ('cheque_date', '&lt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="unallocated" string="Not Fully Allocated"
+                        domain="[('unallocated_amount', '&gt;', 0)]"/>
+                <group>
+                    <filter name="group_partner" string="Clinic" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_bank" string="Drawee Bank" context="{'group_by': 'bank_id'}"/>
+                    <filter name="group_cheque_date" string="Cheque Date" context="{'group_by': 'cheque_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_lab_cheque" model="ir.actions.act_window">
+        <field name="name">Cheque Register</field>
+        <field name="res_model">lab.cheque</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_lab_cheque_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Record a cheque you have collected</p>
+            <p>Hold it, allocate it against the doctor's open invoices, bank it, and mark it
+               cleared — the customer payment and the reconciliation happen for you.</p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_performance_list" model="ir.ui.view">
+        <field name="name">lab.performance.list</field>
+        <field name="model">lab.performance</field>
+        <field name="arch" type="xml">
+            <list create="false" delete="false"
+                  decoration-danger="location_ok &lt; 60 and done &gt; 4"
+                  decoration-success="cases_per_visit &gt;= 1">
+                <field name="month"/>
+                <field name="user_id"/>
+                <field name="team_id" optional="show"/>
+                <field name="done" sum="Visits"/>
+                <field name="completion" widget="percentage" optional="show"/>
+                <field name="clinics" optional="hide" sum="Clinics"/>
+                <field name="cases" sum="Cases"/>
+                <field name="case_value" sum="Case Value"/>
+                <field name="cases_per_visit" digits="[16,2]" optional="show"/>
+                <field name="collected" sum="Collected" optional="show"/>
+                <field name="location_ok" widget="percentage" optional="show"/>
+                <field name="distance" sum="km" optional="hide"/>
+                <field name="travel_cost" sum="Travel" optional="hide"/>
+                <field name="cost_per_case" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_performance_pivot" model="ir.ui.view">
+        <field name="name">lab.performance.pivot</field>
+        <field name="model">lab.performance</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="user_id" type="row"/>
+                <field name="month" interval="month" type="col"/>
+                <field name="case_value" type="measure"/>
+                <field name="done" type="measure"/>
+                <field name="cases" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_performance_graph" model="ir.ui.view">
+        <field name="name">lab.performance.graph</field>
+        <field name="model">lab.performance</field>
+        <field name="arch" type="xml">
+            <graph type="bar">
+                <field name="user_id"/>
+                <field name="case_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_performance_search" model="ir.ui.view">
+        <field name="name">lab.performance.search</field>
+        <field name="model">lab.performance</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="team_id"/>
+                <filter name="filter_month" date="month" string="Month"/>
+                <separator/>
+                <!-- The three shapes a manager is looking for. Each is a different
+                     conversation, which is why they are separate filters. -->
+                <filter name="low_conversion" string="Visiting but not converting"
+                        domain="[('done', '&gt;=', 5), ('cases_per_visit', '&lt;', 0.5)]"/>
+                <filter name="location_concern" string="Location concerns"
+                        domain="[('done', '&gt;=', 5), ('location_ok', '&lt;', 60)]"/>
+                <filter name="expensive" string="High travel per case"
+                        domain="[('cases', '&gt;', 0), ('cost_per_case', '&gt;', 500)]"/>
+                <separator/>
+                <filter name="behind" string="Behind on plan"
+                        domain="[('planned', '&gt;', 0), ('completion', '&lt;', 70)]"/>
+                <group>
+                    <filter name="g_user" string="Executive" context="{'group_by': 'user_id'}"/>
+                    <filter name="g_team" string="Sales Team" context="{'group_by': 'team_id'}"/>
+                    <filter name="g_month" string="Month" context="{'group_by': 'month'}"/>
+                    <filter name="g_beat" string="Beat" context="{'group_by': 'beat_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_performance" model="ir.actions.act_window">
+        <field name="name">Field Performance</field>
+        <field name="res_model">lab.performance</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="context">{'search_default_g_user': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No activity yet</p>
+            <p>Effort, output and discipline on one line per executive per month.</p>
+        </field>
+    </record>
+
+    <record id="action_performance_team" model="ir.actions.act_window">
+        <field name="name">Team Performance</field>
+        <field name="res_model">lab.performance</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_g_team': 1, 'search_default_filter_month': 1}</field>
+    </record>
+</odoo>

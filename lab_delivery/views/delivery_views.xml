@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_delivery_list" model="ir.ui.view">
+        <field name="name">lab.delivery.list</field>
+        <field name="model">lab.delivery</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="is_delayed or state == 'failed'"
+                  decoration-success="state == 'delivered'"
+                  decoration-bf="is_emergency">
+                <field name="is_emergency" invisible="1"/>
+                <field name="name"/>
+                <field name="invoice_id" class="fw-bold"/>
+                <field name="partner_id"/>
+                <field name="patient" optional="show"/>
+                <field name="executive_id"/>
+                <field name="priority" widget="priority" optional="show"/>
+                <field name="scheduled_date"/>
+                <field name="delay_hours" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'delivered'"
+                       decoration-danger="state == 'failed'"
+                       decoration-warning="state in ('draft','assigned','out')"/>
+                <field name="delivery_outcome" optional="hide"/>
+                <field name="near_place_name" optional="show"/>
+                        <field name="delivered_gps_state" optional="hide" widget="badge"
+                   groups="lab_fieldwork.group_fieldwork_manager,base.group_system"
+                   decoration-success="delivered_gps_state == 'ok'"
+                   decoration-danger="delivered_gps_state == 'far'"/>
+            <field name="delivered_distance_m" optional="hide" string="From clinic (m)"
+                   groups="lab_fieldwork.group_fieldwork_manager,base.group_system"/>
+</list>
+        </field>
+    </record>
+
+    <record id="view_delivery_kanban" model="ir.ui.view">
+        <field name="name">lab.delivery.kanban</field>
+        <field name="model">lab.delivery</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="name"/><field name="is_emergency"/><field name="is_delayed"/>
+                <field name="delay_hours"/><field name="scheduled_date"/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="oe_kanban_card p-2 #{record.is_emergency.raw_value ? 'border border-danger border-2' : ''}">
+                            <widget name="web_ribbon" title="EMERGENCY" bg_color="text-bg-danger"
+                                    invisible="not is_emergency"/>
+                            <strong><field name="name"/></strong>
+                            <div><field name="partner_id"/></div>
+                            <div class="text-muted small"><field name="executive_id"/></div>
+                            <div t-if="record.is_delayed.raw_value" class="text-danger small">
+                                <i class="fa fa-clock-o" title="Late"/> <field name="delay_hours"/> h late
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_delivery_calendar" model="ir.ui.view">
+        <field name="name">lab.delivery.calendar</field>
+        <field name="model">lab.delivery</field>
+        <field name="arch" type="xml">
+            <calendar date_start="scheduled_date" string="Deliveries" color="executive_id">
+                <field name="partner_id"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_delivery_form" model="ir.ui.view">
+        <field name="name">lab.delivery.form</field>
+        <field name="model">lab.delivery</field>
+        <field name="arch" type="xml">
+            <form string="Delivery">
+                <header>
+                    <button name="action_assign_to_me" type="object" string="Assign to Me"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_start" type="object" string="Start Delivery"
+                            class="btn-primary"
+                            invisible="state not in ('draft','assigned') or direction == 'in'"/>
+                    <button name="action_start" type="object" string="Collected — heading to lab"
+                            class="btn-primary"
+                            invisible="state not in ('draft','assigned') or direction == 'out'"/>
+                    <button name="action_mark_delivered" type="object" string="Mark Delivered"
+                            class="btn-primary" invisible="state != 'out' or direction == 'in'"/>
+                    <button name="action_receive_at_lab" type="object" string="Receive at Lab"
+                            class="btn-primary"
+                            invisible="state not in ('assigned','out') or direction == 'out'"/>
+                    <button name="action_mark_failed" type="object" string="Mark Failed"
+                            invisible="state != 'out'"/>
+                    <button name="action_dispatch_courier" type="object"
+                            string="Send by Courier" icon="fa-paper-plane"
+                            invisible="state in ('delivered','cancel')"/>
+                    <button name="action_log_courier_event" type="object"
+                            string="Tracking Update" icon="fa-map-signs"
+                            invisible="not courier_id or state in ('delivered','cancel')"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('delivered','cancel')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,assigned,out,delivered"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="EMERGENCY" bg_color="text-bg-danger"
+                            invisible="not is_emergency"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_order" type="object" class="oe_stat_button"
+                                icon="fa-file-text-o" string="Order"
+                                invisible="not sale_order_id"/>
+                        <button name="action_open_visit" type="object" class="oe_stat_button"
+                                icon="fa-map-marker" string="Visit"
+                                invisible="not visit_id"/>
+                    </div>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <div class="alert alert-danger" role="alert" invisible="not is_delayed">
+                        <strong>Delayed</strong> — <field name="delay_hours" nolabel="1"
+                            class="oe_inline"/> hour(s) past the deadline.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="direction" widget="radio" options="{'horizontal': true}"
+                                   readonly="state != 'draft' and name != 'New'"/>
+                            <field name="sale_order_id"
+                                   invisible="direction == 'in'"
+                                   required="direction == 'out'"/>
+                            <field name="invoice_id" readonly="1"
+                                   invisible="not invoice_id"/>
+                            <field name="partner_id" readonly="direction == 'out'"
+                                   required="direction == 'in'"/>
+                            <field name="patient" readonly="direction == 'out'"/>
+                            <field name="priority" widget="priority" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="executive_id"/>
+                            <field name="visit_id" readonly="1"
+                                   invisible="not visit_id"/>
+                            <field name="delivery_mode"/>
+                            <field name="mode_note"
+                                   invisible="delivery_mode != 'other'"
+                                   placeholder="Bus to Muvattupuzha, parcel office…"/>
+                            <field name="courier_id" invisible="delivery_mode != 'courier'"
+                                   options="{'no_quick_create': True}"/>
+                            <field name="courier_awb" invisible="delivery_mode != 'courier'"/>
+                            <!-- Numbers typed before the reader existed have no
+                                 provenance; an empty label would only invite a
+                                 question nobody can answer. -->
+                            <field name="courier_awb_source" readonly="1"
+                                   invisible="delivery_mode != 'courier' or not courier_awb_source"/>
+                            <field name="courier_awb_captured_by_id" readonly="1"
+                                   invisible="delivery_mode != 'courier' or not courier_awb_captured_by_id"/>
+                            <field name="courier_name" invisible="not courier_name"
+                                   readonly="1"/>
+                            <field name="scheduled_date"/>
+                        </group>
+                    </group>
+                    <group string="Emergency" invisible="not is_emergency">
+                        <field name="emergency_reason"/>
+                        <field name="promised_datetime"/>
+                        <field name="authorized_by_id" readonly="1"/>
+                    </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not courier_is_stale">
+                        <strong>Not moving</strong> — nothing from the courier for
+                        <field name="courier_days_silent" nolabel="1" class="oe_inline"/>
+                        day(s). Worth a phone call.
+                    </div>
+                    <group string="Courier" invisible="delivery_mode != 'courier'">
+                        <!-- The receipt, and the reader that fills the number from it,
+                             on the parcel itself: a number typed wrong at dispatch is
+                             corrected here from the paper. (client, 2026-08-28) -->
+                        <field name="courier_receipt_image" widget="courier_receipt_scan"
+                               nolabel="1" colspan="2"
+                               invisible="state in ('delivered', 'cancel') and not courier_receipt_image"
+                               readonly="state in ('delivered', 'cancel')"
+                               options="{'awb': 'courier_awb', 'courier': 'courier_id',
+                                         'source': 'courier_awb_source'}"/>
+                        <group>
+                            <field name="courier_status" readonly="1"/>
+                            <field name="courier_dispatched_at" readonly="1"/>
+                            <field name="courier_expected_date"/>
+                        </group>
+                        <group>
+                            <field name="courier_last_event_at" readonly="1"/>
+                            <field name="courier_is_stale" invisible="1"/>
+                            <field name="courier_tracking_url" invisible="1"/>
+                            <button name="action_open_tracking" type="object"
+                                    string="Open tracking page" icon="fa-external-link"
+                                    class="btn-link ps-0"
+                                    invisible="not courier_tracking_url"/>
+                        </group>
+                    </group>
+                    <notebook invisible="direction != 'in' and (delivery_mode != 'courier' or courier_event_count == 0)">
+                        <page string="Slips in the bag" name="pickup_cases"
+                              invisible="direction != 'in'">
+                            <field name="case_ids"
+                                   context="{'list_view_ref': False}"/>
+                        </page>
+                        <page string="Tracking" name="courier_tracking"
+                              invisible="delivery_mode != 'courier' or courier_event_count == 0">
+                            <field name="courier_event_count" invisible="1"/>
+                            <field name="courier_event_ids" readonly="1"
+                                   context="{'default_delivery_id': id}"/>
+                        </page>
+                    </notebook>
+                    <!-- Where the executive was standing when they pressed
+                         Delivered. Manager and administrator only, and never
+                         editable: the question it answers is "was this really handed
+                         over at the clinic", which a value somebody could retype
+                         cannot answer. (client, 2026-08-28) -->
+                    <group string="Where it was handed over" name="delivered_location"
+                           invisible="state not in ('delivered',)"
+                           groups="lab_fieldwork.group_fieldwork_manager,base.group_system">
+                        <group>
+                            <field name="delivered_by_id" readonly="1"/>
+                            <field name="delivered_datetime" readonly="1"/>
+                            <field name="delivered_gps_state" readonly="1" widget="badge"
+                                   decoration-success="delivered_gps_state == 'ok'"
+                                   decoration-danger="delivered_gps_state == 'far'"
+                                   decoration-warning="delivered_gps_state in ('nopin', 'nofix')"/>
+                        </group>
+                        <group>
+                            <field name="delivered_distance_m" readonly="1"
+                                   invisible="delivered_gps_state not in ('ok', 'far')"/>
+                            <field name="delivered_accuracy_m" readonly="1"
+                                   invisible="not delivered_accuracy_m"/>
+                            <field name="delivered_lat" readonly="1" invisible="not delivered_lat"/>
+                            <field name="delivered_lon" readonly="1" invisible="not delivered_lon"/>
+                            <field name="delivered_map_url" invisible="1"/>
+                            <button name="action_open_delivered_map" type="object"
+                                    string="Open in maps" icon="fa-map-marker"
+                                    class="btn-link ps-0"
+                                    invisible="not delivered_map_url"/>
+                        </group>
+                        <div colspan="2" class="text-muted"
+                             invisible="delivered_gps_state != 'nofix'">
+                            No location was captured — it was confirmed from a desktop,
+                            the phone refused the fix, or the courier feed closed it.
+                        </div>
+                        <div colspan="2" class="text-muted"
+                             invisible="delivered_gps_state != 'nopin'">
+                            This clinic has no map pin, so the distance cannot be
+                            worked out. Pin it on the contact to make this useful.
+                        </div>
+                    </group>
+
+                    <group string="Outcome" invisible="state not in ('delivered','failed')">
+                        <field name="delivery_outcome" readonly="1"/>
+                        <field name="received_condition" readonly="1"
+                               invisible="direction != 'in'"/>
+                        <field name="near_place_name" readonly="1"
+                               invisible="delivery_outcome != 'near_place'"/>
+                        <field name="received_by" readonly="1"/>
+                        <!-- Editable while the delivery is still out: `action_mark_failed`
+                             REFUSES without a reason, and the field was only ever shown
+                             once the delivery had already failed — so the button could
+                             never be used at all. (client, 2026-08-27) -->
+                        <field name="fail_reason"
+                               invisible="state not in ('out', 'failed')"
+                               readonly="state == 'failed'"
+                               placeholder="Clinic closed, doctor unavailable, wrong address…"/>
+                        <field name="proof_image" widget="image" readonly="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_delivery_search" model="ir.ui.view">
+        <field name="name">lab.delivery.search</field>
+        <field name="model">lab.delivery</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="executive_id"/>
+                <field name="visit_id"/>
+                <field name="courier_id"/>
+                <field name="courier_awb" string="Consignment No."/>
+                <filter name="mine" string="My Deliveries" domain="[('executive_id','=',uid)]"/>
+                <filter name="outbound" string="To doctors"
+                        domain="[('direction','=','out')]"/>
+                <filter name="inbound" string="To the lab (pickups)"
+                        domain="[('direction','=','in')]"/>
+                <!-- The working list is what is still IN HAND. A box that reached the
+                     doctor is history: it stays reachable by clearing this filter,
+                     but it must not bury today's parcels. (client, 2026-08-24) -->
+                <filter name="open" string="Open"
+                        domain="[('state','not in',('delivered','cancel','failed'))]"/>
+                <filter name="history" string="Delivered / closed"
+                        domain="[('state','in',('delivered','cancel','failed'))]"/>
+                <filter name="on_a_visit" string="Handed over on a visit"
+                        domain="[('visit_id','!=',False)]"/>
+                <filter name="delayed_now" string="Delayed now" domain="[('is_delayed','=',True)]"/>
+                <filter name="late_delivered" string="Delivered late (this month)"
+                        domain="[('late_delivered','=',True),
+                                 ('delivered_datetime','&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <filter name="emergency" string="Emergency"
+                        domain="[('is_emergency','=',True)]"/>
+                <filter name="by_courier_mode" string="Sent by courier"
+                        domain="[('delivery_mode','=','courier')]"/>
+                <filter name="handed_over_away" string="Handed over away from the clinic"
+                        groups="lab_fieldwork.group_fieldwork_manager,base.group_system"
+                        domain="[('delivered_gps_state', '=', 'far')]"/>
+                <filter name="handed_over_nowhere" string="Handed over with no location"
+                        groups="lab_fieldwork.group_fieldwork_manager,base.group_system"
+                        domain="[('delivered_gps_state', '=', 'nofix')]"/>
+                <separator groups="lab_fieldwork.group_fieldwork_manager,base.group_system"/>
+                <filter name="courier_stale" string="Consignment not moving"
+                        domain="[('courier_is_stale','=',True)]"/>
+                <filter name="courier_trouble" string="Courier exception"
+                        domain="[('courier_status','in',('exception','returned'))]"/>
+                <!-- No string=/expand= on <group> here — invalid in an Odoo 19 search view. -->
+                <group>
+                    <filter name="by_executive" string="Executive" context="{'group_by':'executive_id'}"/>
+                    <filter name="by_doctor" string="Doctor" context="{'group_by':'partner_id'}"/>
+                    <filter name="by_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="by_month" string="Month" context="{'group_by':'scheduled_date:month'}"/>
+                    <filter name="by_visit" string="Visit" context="{'group_by':'visit_id'}"/>
+                    <filter name="by_courier" string="Courier" context="{'group_by':'courier_id'}"/>
+                    <filter name="by_consignment_status" string="Consignment Status"
+                            context="{'group_by':'courier_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_delivery_my" model="ir.actions.act_window">
+        <field name="name">My Deliveries</field>
+        <field name="res_model">lab.delivery</field>
+        <field name="view_mode">list,kanban,form,calendar</field>
+        <field name="domain">[('executive_id','=',uid)]</field>
+        <field name="context">{'search_default_open': 1}</field>
+    </record>
+    <record id="action_delivery_dispatch" model="ir.actions.act_window">
+        <field name="name">Dispatch Board</field>
+        <field name="res_model">lab.delivery</field>
+        <field name="view_mode">kanban,list,form,calendar</field>
+        <field name="view_id" ref="view_delivery_kanban"/>
+    </record>
+    <record id="action_pickup_incoming" model="ir.actions.act_window">
+        <field name="name">Incoming Work</field>
+        <field name="res_model">lab.delivery</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('direction','=','in')]</field>
+        <field name="context">{'search_default_open': 1, 'default_direction': 'in'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing on its way</p>
+            <p>Impressions collected at clinics appear here while they travel, and are
+               received with one click when the bag arrives.</p>
+        </field>
+    </record>
+    <record id="action_delivery_all" model="ir.actions.act_window">
+        <field name="name">All Deliveries</field>
+        <field name="res_model">lab.delivery</field>
+        <field name="view_mode">list,kanban,form,calendar</field>
+    </record>
+    <record id="action_delivery_delays" model="ir.actions.act_window">
+        <field name="name">Delivery Delays</field>
+        <field name="res_model">lab.delivery</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="domain">['|', ('is_delayed','=',True), ('late_delivered','=',True)]</field>
+        <field name="context">{'search_default_by_executive': 1}</field>
+    </record>
+
+    <!-- Smart button on the order -->
+    <record id="view_order_form_delivery" model="ir.ui.view">
+        <field name="name">sale.order.form.lab.delivery</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <!--
+                    Not fa-truck, and not "Deliveries": sale_stock already puts a
+                    truck labelled "Delivery" in this same button box for the stock
+                    picking. Two trucks a word apart is a button nobody can aim at.
+                    fa-cube is the parcel throughout this module — My Day, Track a
+                    Work and the visit form all use it for the same object.
+                -->
+                <button name="action_view_deliveries" type="object"
+                        class="oe_stat_button" icon="fa-cube"
+                        invisible="lab_delivery_count == 0">
+                    <field name="lab_delivery_count" widget="statinfo" string="Dispatch"/>
+                </button>
+            </xpath>
+            <!-- Read-only on purpose: the dispatch is what says the doctor has it.
+                 A tick here that disagreed with the dispatch would quietly take the
+                 work off the Hand Over list with nothing delivered. -->
+            <xpath expr="//field[@name='commitment_date']" position="after">
+                <field name="lab_handed_over" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Handed over is worth seeing on the list: it is the difference between work
+         that still needs carrying and work that is finished with. -->
+    <record id="view_order_tree_delivery" model="ir.ui.view">
+        <field name="name">sale.order.list.lab.delivery</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="lab_handed_over" string="Handed Over"
+                       optional="hide" widget="boolean_toggle" readonly="1"/>
+            </field>
+        </field>
+    </record>
+    <!--
+        The visit side of the link. An executive reviewing what a trip achieved should
+        see the boxes it carried without hunting for them in another menu.
+    -->
+    <record id="view_visit_form_delivery" model="ir.ui.view">
+        <field name="name">lab.visit.form.lab.delivery</field>
+        <field name="model">lab.visit</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_visit_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_deliveries" type="object"
+                        class="oe_stat_button" icon="fa-cube"
+                        invisible="delivery_count == 0">
+                    <field name="delivery_count" widget="statinfo" string="Delivered"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Deliveries" name="deliveries"
+                      invisible="delivery_count == 0">
+                    <field name="delivery_ids" readonly="1">
+                        <list>
+                            <field name="name"/>
+                            <field name="sale_order_id"/>
+                            <field name="patient"/>
+                            <field name="state"/>
+                            <field name="delivery_outcome"/>
+                            <field name="near_place_name"/>
+                            <field name="delivered_datetime"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+            <xpath expr="//header" position="inside">
+                <button name="action_hand_over" type="object" string="Hand Over Work"
+                        class="btn-secondary" icon="fa-cube"
+                        invisible="state != 'open'"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

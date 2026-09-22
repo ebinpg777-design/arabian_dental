@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Make the "Work Orders" feature switch tell the truth.
+
+        This database grants mrp.group_mrp_routings to its users directly (115 of
+        them), but the General Settings checkbox for it reads the base.group_user
+        IMPLICATION, which was never set. So the page showed Work Orders as OFF
+        while the whole lab ran on routings - and core MRP's set_values reacts to
+        "was on, saved as off" by ARCHIVING EVERY ROUTING OPERATION
+        (mrp/models/res_config_settings.py). One innocent save of General Settings
+        by any admin would have archived all 1,203 of them, after a 13-minute hang.
+
+        Declaring the implication makes the checkbox show ON, which is the truth,
+        and removes the trap. (client, 2026-08-28)
+    -->
+    <!-- base.group_user is a noupdate record, so a <record> element silently
+         does nothing on upgrade. A <function> runs every time, and the (4, id)
+         command is idempotent. -->
+    <function model="res.groups" name="write"
+              eval="[[ref('base.group_user')],
+                     {'implied_ids': [(4, ref('mrp.group_mrp_routings'))]}]"/>
+</odoo>

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ===== Partner / Vendor reports ===== -->
+    <record id="view_print_partner_customer" model="ir.ui.view">
+        <field name="name">wizard.print.partner.customer</field>
+        <field name="model">wizard.print.partner</field>
+        <field name="arch" type="xml">
+            <form string="Print Customer Reports">
+                <group>
+                    <div colspan="2">Select the customers in the list, then choose a report:</div>
+                </group>
+                <footer>
+                    <button name="print_customer" type="object" string="Print Details" class="btn-primary"/>
+                    <button name="print_customer_registration" type="object" string="Print Registration" class="btn-primary"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_print_partner_vendor" model="ir.ui.view">
+        <field name="name">wizard.print.partner.vendor</field>
+        <field name="model">wizard.print.partner</field>
+        <field name="arch" type="xml">
+            <form string="Print Vendor Reports">
+                <group>
+                    <div colspan="2">Select the vendors in the list, then choose a report:</div>
+                </group>
+                <footer>
+                    <button name="print_vendor" type="object" string="Vendor Details" class="btn-primary"/>
+                    <button name="print_vendor_registration" type="object" string="Vendor Registration" class="btn-primary"/>
+                    <button name="print_vendor_evaluation" type="object" string="Vendor Evaluation" class="btn-primary"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_print_customer" model="ir.actions.act_window">
+        <field name="name">Print Customer Reports</field>
+        <field name="res_model">wizard.print.partner</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_print_partner_customer"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form</field>
+    </record>
+
+    <record id="action_print_vendor" model="ir.actions.act_window">
+        <field name="name">Print Vendor Reports</field>
+        <field name="res_model">wizard.print.partner</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_print_partner_vendor"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form</field>
+    </record>
+
+    <!-- ===== BoM / Daily Production (from Sale Order) ===== -->
+    <record id="view_print_order_sale" model="ir.ui.view">
+        <field name="name">wizard.print.order.sale</field>
+        <field name="model">wizard.print.order</field>
+        <field name="arch" type="xml">
+            <form string="Print Order Reports">
+                <group>
+                    <field name="prepared_by"/>
+                    <field name="approved_by"/>
+                    <field name="workcenter_id" help="Required for the Daily Production report"/>
+                </group>
+                <footer>
+                    <button name="print_bill_of_material" type="object" string="Bill of Material Report" class="btn-primary"/>
+                    <button name="print_daily_production" type="object" string="Daily Production Report" class="btn-primary"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_print_order_sale" model="ir.actions.act_window">
+        <field name="name">Print Order Reports</field>
+        <field name="res_model">wizard.print.order</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_print_order_sale"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form</field>
+    </record>
+
+    <!-- ===== BoM report (from Bill of Material) ===== -->
+    <record id="view_print_order_bom" model="ir.ui.view">
+        <field name="name">wizard.print.order.bom</field>
+        <field name="model">wizard.print.order</field>
+        <field name="arch" type="xml">
+            <form string="Print Bill of Material">
+                <group>
+                    <field name="prepared_by"/>
+                    <field name="approved_by"/>
+                </group>
+                <footer>
+                    <button name="print_bom_detail" type="object" string="Bill of Material Report" class="btn-primary"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_print_order_bom" model="ir.actions.act_window">
+        <field name="name">Print Bill of Material</field>
+        <field name="res_model">wizard.print.order</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_print_order_bom"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_bom"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form</field>
+    </record>
+
+    <!-- ===== Job Card (from Sale Order) ===== -->
+    <record id="view_print_jobcard" model="ir.ui.view">
+        <field name="name">wizard.print.jobcard</field>
+        <field name="model">wizard.print.jobcard</field>
+        <field name="arch" type="xml">
+            <form string="Print Job Card">
+                <group>
+                    <div colspan="2">Generate the department-wise Job Card for the selected orders.</div>
+                </group>
+                <footer>
+                    <button name="print_job_card" type="object" string="Job Card" class="btn-primary"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_print_jobcard" model="ir.actions.act_window">
+        <field name="name">Job Card</field>
+        <field name="res_model">wizard.print.jobcard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_print_jobcard"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="epg_whatsapp.WaEditor">
+    <div class="o_wa_editor" t-att-class="{ o_wa_editor_ro: props.readonly }">
+        <div class="o_wa_editor_bar" t-if="!props.readonly">
+            <button type="button" class="o_wa_editor_btn fw-bold" title="Bold: *text*" t-on-click="() => this.wrap('*')">B</button>
+            <button type="button" class="o_wa_editor_btn fst-italic" title="Italic: _text_" t-on-click="() => this.wrap('_')">I</button>
+            <button type="button" class="o_wa_editor_btn text-decoration-line-through" title="Strike: ~text~" t-on-click="() => this.wrap('~')">S</button>
+            <button type="button" class="o_wa_editor_btn" title="Emoji" t-ref="emoji">😊</button>
+            <button type="button" class="o_wa_editor_btn" t-if="state.fields.length" title="Drop in a field of the contact"
+                    t-att-class="{ o_wa_editor_btn_on: state.showFields }" t-on-click="() => state.showFields = !state.showFields">
+                <i class="fa fa-user-o me-1" title="Field"/>{{ field }}
+            </button>
+            <span class="o_wa_editor_count" t-att-class="{ 'text-danger': value.length > 1024 }">
+                <t t-esc="value.length"/> / 1024
+            </span>
+        </div>
+        <div t-if="state.showFields and !props.readonly" class="o_wa_editor_fields">
+            <input type="text" class="form-control form-control-sm mb-1" placeholder="Search a field… e.g. name, city"
+                   t-model="state.query"/>
+            <div class="o_wa_editor_fieldlist">
+                <button t-foreach="shownFields" t-as="f" t-key="f.path" type="button" class="o_wa_editor_field"
+                        t-att-title="'{{' + f.path + '}}'" t-on-click="() => this.insertField(f.path)">
+                    <span t-esc="f.label"/>
+                    <code t-esc="f.path"/>
+                </button>
+            </div>
+            <div class="o_wa_editor_hint text-muted small mt-1">
+                Dates, money and choices already read well. To say how: <code>{{date_order|date}}</code>
+                <code>{{amount_total|money}}</code> <code>{{partner_id.name|doctor}}</code>
+                <code>{{name|upper}}</code> <code>{{name|first}}</code>
+            </div>
+        </div>
+        <textarea t-ref="textarea" class="o_wa_editor_ta" rows="8"
+                  t-att-readonly="props.readonly" t-att-placeholder="props.placeholder"
+                  t-att-value="value" t-on-input="onInput"/>
+    </div>
+</t>
+
+</templates>

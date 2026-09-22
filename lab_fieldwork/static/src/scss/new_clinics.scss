@@ -1,0 +1,97 @@
+// New clinics — the doors a round opened this month.
+//
+// Read on a phone in a car park as often as on a desk, so nothing is below 13px and
+// every row is a 44px target. SCSS variables only: Odoo 19's backend defines no --bs-*
+// custom properties, so var(--bs-border-color) resolves to nothing.
+$nc-accent: #0d7c8a;
+$nc-warm:   #b45309;
+
+.o_fw_newclinics {
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+
+    .o_fw_nc_head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+    }
+    .o_fw_nc_eyebrow { font-size: .8125rem; color: $o-gray-600; }
+    .o_fw_nc_title { margin: 0; font-size: 1.5rem; font-weight: 700; color: $o-gray-900; }
+    .o_fw_nc_sub { font-size: .8125rem; color: $o-gray-600; }
+
+    .o_fw_nc_nav { display: flex; gap: .375rem; }
+    .o_fw_nc_btn {
+        min-width: 44px; min-height: 44px; border: 1px solid $border-color;
+        border-radius: .5rem; background: $body-bg; color: $o-gray-800;
+        &:hover:not(:disabled) { border-color: $nc-accent; color: $nc-accent; }
+        &:disabled { opacity: .4; }
+    }
+
+    .o_fw_nc_cards { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .o_fw_nc_card {
+        flex: 1 1 10rem; border: 1px solid $border-color; border-radius: .75rem;
+        background: $body-bg; padding: .75rem 1rem; cursor: pointer;
+        &:hover { border-color: $nc-accent; }
+    }
+    .o_fw_nc_v { font-size: 1.75rem; font-weight: 700; color: $o-gray-900;
+                 font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .o_fw_nc_l { font-size: .8125rem; color: $o-gray-600; }
+
+    .o_fw_nc_panel {
+        border: 1px solid $border-color; border-radius: .75rem; background: $body-bg;
+        padding: .875rem 1rem; margin-bottom: 1rem;
+    }
+    .o_fw_nc_panel_h { font-weight: 700; color: $o-gray-900; margin-bottom: .625rem; }
+    .o_fw_nc_empty { color: $o-gray-600; padding: .5rem 0; }
+
+    // six months side by side: one month means little on its own
+    .o_fw_nc_spark { display: flex; gap: .5rem; align-items: flex-end; }
+    .o_fw_nc_bar { flex: 1; text-align: center; cursor: pointer;
+                   &:hover .o_fw_nc_barfill { background: darken($nc-accent, 8%); } }
+    .o_fw_nc_barwrap { height: 74px; display: flex; align-items: flex-end; }
+    .o_fw_nc_barfill { width: 100%; background: rgba($nc-accent, .55);
+                       border-radius: .25rem .25rem 0 0; min-height: 2px; }
+    .o_fw_nc_bar_now .o_fw_nc_barfill { background: $nc-accent; }
+    .o_fw_nc_barn { font-weight: 700; font-size: .875rem;
+                    font-variant-numeric: tabular-nums; }
+    .o_fw_nc_barl { font-size: .75rem; color: $o-gray-600; }
+
+    .o_fw_nc_route {
+        display: flex; align-items: center; gap: .75rem; min-height: 40px;
+        padding: .25rem 0; cursor: pointer;
+        &:hover .o_fw_nc_route_n { color: $nc-accent; }
+    }
+    .o_fw_nc_route_n { flex: 0 0 7rem; font-weight: 600; font-size: .9375rem; }
+    .o_fw_nc_route_bar { flex: 1; height: 10px; background: $o-gray-200;
+                         border-radius: 999px; overflow: hidden; }
+    .o_fw_nc_route_fill { height: 100%; background: $nc-accent; }
+    .o_fw_nc_route_c { flex: 0 0 2.5rem; text-align: right; font-weight: 700;
+                       font-variant-numeric: tabular-nums; }
+
+    .o_fw_nc_row {
+        display: flex; align-items: center; min-height: 52px; cursor: pointer;
+        padding: .5rem 0; border-bottom: 1px solid $border-color;
+        &:last-child { border-bottom: 0; }
+        &:hover { background: $o-gray-100; }
+    }
+    .o_fw_nc_row_t { font-weight: 600; color: $o-gray-900; }
+    .o_fw_nc_row_s { font-size: .8125rem; color: $o-gray-600; }
+    .o_fw_nc_row_r { text-align: right; white-space: nowrap; }
+    .o_fw_nc_row_d { font-size: .8125rem; color: $o-gray-700;
+                     font-variant-numeric: tabular-nums; }
+    .o_fw_nc_row_o { font-size: .8125rem; font-weight: 600; color: $nc-accent; }
+    .o_fw_nc_quiet { color: $nc-warm; font-weight: 500; }
+    .o_fw_nc_tag { display: inline-block; margin-left: .375rem; padding: 0 .375rem;
+                   border-radius: .25rem; font-size: .6875rem; font-weight: 700;
+                   background: rgba($nc-accent, .12); color: $nc-accent; }
+}
+
+// The board must scroll: its root carries `o_action`, which the web client styles
+// height:100%/overflow:hidden with four compound selectors. Mirroring the parent is
+// what restores the specificity contest. (client, 2026-08-27)
+html .o_web_client > .o_action_manager > .o_action {
+    &.o_fw_newclinics {
+        overflow-y: auto; overflow-x: hidden; min-height: 0;
+        -webkit-overflow-scrolling: touch;
+    }
+}

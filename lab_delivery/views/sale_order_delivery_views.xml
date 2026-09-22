@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Everything still to reach a doctor, whichever clinic it belongs to, with the
+         invoice number beside the case number and one button per row that raises the
+         delivery. The clinic is taken from the order, so nothing has to be picked.
+         (client, 2026-08-28) -->
+    <record id="view_order_list_awaiting_delivery" model="ir.ui.view">
+        <field name="name">sale.order.list.awaiting.delivery</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <!-- The button is the FIRST column: this list exists to be acted on, and
+                 an action at the far right of eight columns is one a thumb never
+                 reaches. No form view behind it either - opening an order is not what
+                 anybody came here to do. (client, 2026-08-28) -->
+            <list string="Waiting to be delivered" create="false" edit="false"
+                  default_order="date_order asc">
+                <button name="action_lab_raise_delivery" type="object"
+                        string="Raise delivery" icon="fa-truck"
+                        class="btn-primary text-nowrap"
+                        title="Create the delivery record for this order — the clinic is taken from the order"/>
+                <field name="name" string="Case"/>
+                <field name="lab_invoice_ref" string="Invoice"/>
+                <field name="partner_id" string="Clinic"/>
+                <field name="patient" optional="show"/>
+                <field name="team_id" string="Route" optional="show"/>
+                <field name="date_order" string="Ordered" optional="show"/>
+                <field name="commitment_date" string="Promised" optional="hide"/>
+                <field name="amount_total" sum="Total" optional="show"/>
+                <field name="lab_awaiting_delivery" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_order_search_awaiting_delivery" model="ir.ui.view">
+        <field name="name">sale.order.search.awaiting.delivery</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_view_search_inherit_sale"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <filter name="lab_awaiting_delivery" string="Waiting to be delivered"
+                        domain="[('lab_awaiting_delivery', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_orders_awaiting_delivery" model="ir.actions.act_window">
+        <field name="name">Work waiting to be delivered</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_order_list_awaiting_delivery"/>
+        <field name="domain">[('lab_awaiting_delivery', '=', True)]</field>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing is waiting to go out</p>
+            <p>Confirmed work that nobody is carrying yet. Press the truck on a row to
+               raise its delivery — the clinic is taken from the order.</p>
+        </field>
+    </record>
+
+    <!-- "My ..." is not decoration: every entry an executive sees on this app is
+         their own work, and a test enforces it. The list is scoped to their route by
+         the sale.order record rules anyway. (client, 2026-08-28) -->
+    <menuitem id="menu_orders_awaiting_delivery" name="My Work to Deliver"
+              parent="lab_fieldwork.menu_fieldwork_root"
+              action="action_orders_awaiting_delivery" sequence="26"
+              groups="lab_fieldwork.group_fieldwork_executive,lab_fieldwork.group_fieldwork_manager"/>
+
+    <!-- The hand-over flag on the order form's Other Info page. This placement
+         was first made by editing CORE's form record straight through the UI -
+         which put a field of THIS module into a view that validates before this
+         module loads, and every later upgrade of sale_custom died on it. Same
+         spot, owned by the module the field belongs to. (client, 2026-08-28) -->
+    <record id="view_order_form_awaiting_delivery" model="ir.ui.view">
+        <field name="name">sale.order.form.awaiting.delivery</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="lab_awaiting_delivery"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

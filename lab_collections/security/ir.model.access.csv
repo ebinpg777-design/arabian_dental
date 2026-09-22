@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_lab_collection_open_item,lab.collection.open.item,model_lab_collection_open_item,account.group_account_readonly,1,1,1,1
+access_lab_collection_open_item_exec,lab.collection.open.item.exec,model_lab_collection_open_item,lab_fieldwork.group_fieldwork_executive,1,0,0,0

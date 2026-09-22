@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_incentive_rule_mgr,rule manage,model_lab_incentive_rule,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_incentive_rule_slab_mgr,slab manage,model_lab_incentive_rule_slab,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_incentive_rule_user,rule read,model_lab_incentive_rule,lab_fieldwork.group_fieldwork_executive,1,0,0,0
+access_incentive_sheet_exec,sheet read own,model_lab_incentive_sheet,lab_fieldwork.group_fieldwork_executive,1,0,0,0
+access_incentive_sheet_mgr,sheet manage,model_lab_incentive_sheet,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_incentive_sheet_line_exec,sheet line read,model_lab_incentive_sheet_line,lab_fieldwork.group_fieldwork_executive,1,0,0,0
+access_incentive_sheet_line_mgr,sheet line manage,model_lab_incentive_sheet_line,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_incentive_generate_wizard,generate wizard,model_lab_incentive_generate_wizard,lab_fieldwork.group_fieldwork_manager,1,1,1,1

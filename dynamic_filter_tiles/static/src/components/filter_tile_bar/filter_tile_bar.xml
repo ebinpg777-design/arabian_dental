@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="dynamic_filter_tiles.FilterTileBar">
+        <div t-if="isVisible" class="o_dft_bar" t-ref="root"
+             t-att-class="{
+                 o_dft_bar_collapsed: state.collapsed,
+                 o_dft_bar_compact: state.compact,
+                 o_dft_bar_empty: !state.defs.length,
+                 o_dft_bar_resizing: state.resizingRow,
+             }">
+
+            <button class="o_dft_collapse btn btn-link"
+                    t-att-title="state.collapsed ? 'Show filter tiles' : 'Hide filter tiles'"
+                    t-on-click="toggleCollapsed">
+                <i class="fa" t-att-class="state.collapsed ? 'fa-caret-right' : 'fa-caret-down'"/>
+            </button>
+
+            <!-- One block per row: its own strip, its own scroll, its own height. -->
+            <div class="o_dft_rows" t-if="!state.collapsed">
+                <div class="o_dft_row" t-foreach="rows" t-as="rowInfo" t-key="rowInfo.row">
+                    <!-- Row caption, standing on its left edge: it costs a few
+                         pixels of width instead of a whole line of height.
+                         Editable for managers, plain text for everybody else,
+                         and absent entirely on a bare one-row bar. -->
+                    <div class="o_dft_row_name" t-if="showRowNames"
+                         t-att-title="rowInfo.name or 'Name this row'">
+                        <!-- A textarea rather than an input: a row name is two or
+                             three words and has to wrap inside a narrow pane,
+                             which an input can never do. Enter saves, it does
+                             not insert a line break. -->
+                        <textarea t-if="state.canManage"
+                                  rows="2"
+                                  t-att-data-row="rowInfo.row"
+                                  t-attf-placeholder="Row {{ rowInfo.row }}"
+                                  t-on-change="(ev) => this.renameRow(rowInfo.row, ev.target.value)"
+                                  t-on-keydown="onRowNameKeydown"><t t-esc="rowInfo.name"/></textarea>
+                        <span t-else="" t-out="rowInfo.name"/>
+
+                        <button class="o_dft_row_delete" t-if="canDeleteRow"
+                                t-on-click="() => this.deleteRow(rowInfo)"
+                                t-attf-title="Delete row {{ rowInfo.row }} — its tiles move to the next row">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+
+                    <div t-attf-class="o_dft_strip {{ rowSizeClass(rowInfo.row) }}"
+                         t-att-data-row="rowInfo.row"
+                         t-att-style="rowStyle(rowInfo.row)"
+                         t-att-class="{ o_dft_strip_sized: state.rowHeights[rowInfo.row] }">
+
+                        <FilterTile t-foreach="rowInfo.defs" t-as="def" t-key="def.key"
+                                    def="def"
+                                    data="dataFor(def)"
+                                    total="state.total"
+                                    active="isActive(def)"
+                                    broken="tileIsBroken(def)"
+                                    compact="state.compact"
+                                    canManage="state.canManage"
+                                    selectable="state.multiSelect"
+                                    shortcut="shortcutFor(def)"
+                                    loading="state.loading and !dataFor(def)"
+                                    onSelect="(ev) => this.onTileSelected(def, ev)"
+                                    onEdit="() => this.openEditor(def.id)"
+                                    onBreakdown="(target) => this.openBreakdown(def, target)"
+                                    onResize="def.editable ? ((width) => this.onTileResized(def, width)) : undefined"
+                                    onDelete="def.editable ? (() => this.deleteTile(def)) : undefined"/>
+
+                        <!-- Ghost tile: turns whatever is filtered right now into a
+                             tile, on this row. -->
+                        <button class="o_dft_add" t-if="state.canManage or state.canPersonalize"
+                                t-on-click="() => this.openEditor(false, !state.canManage, rowInfo.row)"
+                                t-attf-title="Create a tile from the current filter, on row {{ rowInfo.row }}">
+                            <i class="fa fa-plus"/>
+                            <span class="o_dft_add_label" t-if="!state.defs.length">
+                                Capture this filter as a tile
+                            </span>
+                        </button>
+
+                        <button class="o_dft_dismiss btn btn-link" t-if="!state.defs.length"
+                                title="Not here, thanks" t-on-click="dismissHint">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+
+                    <!-- Drag this edge to set how tall the row is. -->
+                    <span class="o_dft_row_resize"
+                          title="Drag to set this row's height · double-click to reset"
+                          t-on-pointerdown="(ev) => this.onRowResizeStart(rowInfo.row, ev)"
+                          t-on-dblclick="() => this.resetRowHeight(rowInfo.row)"/>
+                </div>
+
+                <div class="o_dft_row_tools">
+                    <button class="o_dft_add_row" t-if="canAddRow" t-on-click="() => this.addRow()"
+                            title="Stack another row of tiles on this view">
+                        <i class="fa fa-plus me-1"/>Add a row
+                    </button>
+
+                    <!-- Multi-select: a real checkbox that is always there, so the
+                         option is discoverable before it is on and obvious while it is. -->
+                    <label class="o_dft_multi_toggle"
+                           t-att-class="{ o_dft_multi_toggle_on: state.multiSelect }"
+                           title="When on, every click adds a tile to the selection instead of replacing it">
+                        <input type="checkbox" t-att-checked="state.multiSelect"
+                               t-on-change="() => this.toggleMultiSelect()"/>
+                        <span>Multi-select</span>
+                    </label>
+                    <button class="o_dft_multi o_dft_multi_mode" t-if="activeKeys.length > 1"
+                            t-on-click="() => this.toggleCombineMode()"
+                            t-att-title="state.combineAll
+                                ? 'Records must match every selected tile - click for any'
+                                : 'Records may match any selected tile - click for all'">
+                        <t t-esc="state.combineAll ? 'match all' : 'match any'"/>
+                    </button>
+                    <button class="o_dft_multi" t-if="activeKeys.length"
+                            t-on-click="() => this.clearTileFacets()"
+                            title="Unselect every tile (Alt + 0)">
+                        <i class="fa fa-times me-1"/><t t-esc="activeKeys.length"/> selected
+                    </button>
+                </div>
+            </div>
+
+            <div class="o_dft_summary" t-else="">
+                <span class="o_dft_summary_count">
+                    <t t-esc="state.defs.length"/> tiles
+                </span>
+                <span class="o_dft_summary_rows" t-if="rows.length > 1">
+                    · <t t-esc="rows.length"/> rows
+                </span>
+                <span class="o_dft_summary_active" t-if="activeKeys.length">
+                    · <t t-esc="activeKeys.length"/> applied
+                </span>
+            </div>
+
+            <Dropdown t-if="state.canManage or state.canPersonalize" menuClass="'o_dft_menu'">
+                <button class="o_dft_gear btn btn-link" title="Tile studio">
+                    <i class="fa fa-sliders"/>
+                </button>
+                <t t-set-slot="content">
+                    <DropdownItem t-if="state.canManage"
+                                  onSelected="() => this.openEditor(false, false)">
+                        <i class="fa fa-plus fa-fw me-2"/>New shared tile from this filter
+                    </DropdownItem>
+                    <DropdownItem onSelected="() => this.openEditor(false, true)">
+                        <i class="fa fa-user-secret fa-fw me-2"/>New tile just for me
+                    </DropdownItem>
+                    <DropdownItem t-if="state.canManage" onSelected="() => this.openGenerator()">
+                        <i class="fa fa-magic fa-fw me-2"/>Generate a tile set…
+                    </DropdownItem>
+                    <div role="separator" class="dropdown-divider"/>
+                    <DropdownItem t-if="canAddRow" onSelected="() => this.addRow()">
+                        <i class="fa fa-plus-square-o fa-fw me-2"/>Add a row
+                    </DropdownItem>
+                    <DropdownItem t-if="state.multiSelect or activeKeys.length > 1"
+                                  onSelected="() => this.toggleCombineMode()">
+                        <i class="fa fa-fw me-2"
+                           t-att-class="state.combineAll ? 'fa-compress' : 'fa-code-fork'"/>
+                        <t t-esc="combineLabel"/>
+                    </DropdownItem>
+                    <div role="separator" class="dropdown-divider"/>
+                    <DropdownItem onSelected="() => this.toggleCompact()">
+                        <i class="fa fa-fw me-2"
+                           t-att-class="state.compact ? 'fa-expand' : 'fa-compress'"/>
+                        <t t-esc="state.compact ? 'Comfortable tiles' : 'Compact tiles'"/>
+                    </DropdownItem>
+                    <DropdownItem onSelected="() => this.cycleRefresh()">
+                        <i class="fa fa-refresh fa-fw me-2"
+                           t-att-class="{ 'fa-spin': state.refreshEvery }"/>
+                        <t t-esc="refreshLabel"/>
+                    </DropdownItem>
+                    <DropdownItem t-if="hasCustomHeights" onSelected="() => this.resetAllRowHeights()">
+                        <i class="fa fa-arrows-v fa-fw me-2"/>Reset the row heights
+                    </DropdownItem>
+                    <div role="separator" class="dropdown-divider"/>
+                    <DropdownItem t-if="state.defs.length" onSelected="() => this.exportTiles()">
+                        <i class="fa fa-download fa-fw me-2"/>Export these tiles
+                    </DropdownItem>
+                    <DropdownItem t-if="state.canManage" onSelected="() => this.openImport()">
+                        <i class="fa fa-upload fa-fw me-2"/>Import a tile set…
+                    </DropdownItem>
+                    <DropdownItem onSelected="() => this.openTileList()">
+                        <i class="fa fa-list fa-fw me-2"/>Manage all tiles
+                    </DropdownItem>
+                    <div role="separator" class="dropdown-divider"/>
+                    <div class="o_dft_menu_hint text-muted small px-3 py-1">
+                        Alt + 1…9 applies a tile, Alt + 0 clears them.
+                        Ctrl-click combines several.
+                        Drag a tile's right edge to resize it, the bottom of a row to set its
+                        height, or a tile onto another row to move it.
+                    </div>
+                </t>
+            </Dropdown>
+        </div>
+    </t>
+
+</templates>

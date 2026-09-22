@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Sales Routes as a SEARCH PANEL (client, 2026-08-18).
+
+        Routes used to be one filter tile each; past twenty routes that ribbon crowded out
+        the queue tiles. A search panel puts them in a single scannable column on the left
+        of every list / kanban, with a live count per route, and it applies to EVERY action
+        that uses these search views — orders, invoices and contacts alike.
+    -->
+    <record id="view_sales_order_filter_route_panel" model="ir.ui.view">
+        <field name="name">sale.order.search.route.panel</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <searchpanel>
+                    <field name="team_id" string="Sales Route" icon="fa-map-marker"
+                           enable_counters="1" expand="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_account_invoice_filter_route_panel" model="ir.ui.view">
+        <field name="name">account.move.search.route.panel</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <searchpanel>
+                    <field name="team_id" string="Sales Route" icon="fa-map-marker"
+                           enable_counters="1" expand="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <!-- Vendor bills inherit the customer-invoice search view, and a purchase never has
+         a Sales Route: the panel would be one long "None". Drop it there. -->
+    <record id="view_account_bill_filter_no_route_panel" model="ir.ui.view">
+        <field name="name">account.move.bill.search.no.route.panel</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_bill_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//searchpanel" position="replace"/>
+        </field>
+    </record>
+
+    <record id="view_res_partner_filter_route_panel" model="ir.ui.view">
+        <field name="name">res.partner.search.route.panel</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <searchpanel>
+                    <field name="team_id" string="Sales Route" icon="fa-map-marker"
+                           enable_counters="1" expand="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,516 @@
+// Arabian Dental Lab — public site.
+//
+// Built mobile-first: the dentists this is aimed at open it on a phone between
+// patients. Every section reflows to a single column below 768px, and nothing depends
+// on hover, which does not exist on a touch screen.
+
+$adl-red:     #b3122b;   // the red of the tooth in the lab's mark
+$adl-red-ink: #8d0e22;   // hover / pressed
+$adl-deep:    #14213d;   // headings, dark sections
+$adl-ink:     #1f2933;
+$adl-muted:   #5f6b76;
+$adl-ivory:   #faf7f2;   // tinted panels
+$adl-blush:   #fbe9ec;   // tinted badges
+$adl-gold:    #c99a3d;   // used sparingly for emphasis
+
+.o_lab {
+    color: $adl-ink;
+
+    h1, h2, h3, h4 { color: $adl-deep; font-weight: 700; letter-spacing: -.01em; }
+    h2 { font-size: clamp(1.5rem, calc(1.1rem + 1.6vw), 2.25rem); }   // scales, never wraps badly
+
+    // ---------------------------------------------------------------- hero
+    .o_lab_hero {
+        position: relative;
+        padding: clamp(3rem, 8vw, 6rem) 0;
+        background:
+            radial-gradient(1200px 500px at 15% -10%, rgba(179, 18, 43, .12), transparent 60%),
+            linear-gradient(160deg, #fffdfb 0%, $adl-ivory 60%, #ffffff 100%);
+        overflow: hidden;
+
+        // Depth without an image: a soft dot grid that fades out.
+        &::before {
+            content: "";
+            position: absolute; inset: 0;
+            background-image: radial-gradient(rgba(20, 33, 61, .11) 1px, transparent 1px);
+            background-size: 22px 22px;
+            -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.5), transparent 65%);
+            mask-image: linear-gradient(180deg, rgba(0,0,0,.5), transparent 65%);
+            pointer-events: none;
+        }
+        > .container { position: relative; }   // sit above the pattern
+    }
+    .o_lab_eyebrow {
+        display: inline-block;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        color: $adl-red;
+        font-weight: 700;
+        margin-bottom: .75rem;
+    }
+    .o_lab_eyebrow_light { color: #f3b8c2; }
+    .o_lab_h1 {
+        font-size: clamp(2.1rem, calc(1.4rem + 3.2vw), 3.9rem);
+        line-height: 1.06;
+        margin-bottom: 1rem;
+    }
+    .o_lab_lead { font-size: clamp(1rem, calc(.95rem + .3vw), 1.15rem); color: $adl-muted; max-width: 34em; }
+
+    .o_lab_cta { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1.5rem 0 1.25rem; }
+
+    .o_lab_btn, .o_lab_btn_ghost, .o_lab_btn_light {
+        border-radius: 999px;
+        padding: .7rem 1.5rem;
+        font-weight: 600;
+        border: 2px solid transparent;
+        transition: transform .12s ease, box-shadow .12s ease;
+        &:hover { transform: translateY(-1px); }
+        &:focus-visible { outline: 3px solid rgba(179, 18, 43, .4); outline-offset: 2px; }
+    }
+    .o_lab_btn {
+        background: $adl-red; color: #fff;
+        box-shadow: 0 6px 18px rgba(179, 18, 43, .28);
+        &:hover { background: $adl-red-ink; color: #fff; }
+    }
+    .o_lab_btn_ghost {
+        border-color: rgba(20, 33, 61, .2); color: $adl-deep; background: transparent;
+        &:hover { border-color: $adl-red; color: $adl-red; }
+    }
+    .o_lab_btn_light {
+        background: #fff; color: $adl-deep;
+        &:hover { background: $adl-ivory; color: $adl-deep; }
+    }
+
+    .o_lab_badges {
+        display: flex; flex-wrap: wrap; gap: 1.1rem;
+        font-size: .85rem; color: $adl-muted;
+        i { color: $adl-red; }
+    }
+
+    // A dental arch drawn in CSS — no image to load or lose. The teeth are white, so
+    // they sit on a navy stage: on the ivory hero alone they vanished.
+    .o_lab_hero_art {
+        position: relative; height: 340px;
+        &::before {
+            content: "";
+            position: absolute; inset: 3% 0 16%;
+            border-radius: 46% 54% 50% 50% / 55% 45% 55% 45%;
+            background:
+                radial-gradient(260px 160px at 70% 20%, rgba(201, 154, 61, .35), transparent 65%),
+                radial-gradient(300px 220px at 25% 90%, rgba(179, 18, 43, .35), transparent 65%),
+                linear-gradient(150deg, $adl-deep, #22365e);
+            box-shadow: 0 24px 60px rgba(20, 33, 61, .28);
+        }
+    }
+    .o_lab_arch {
+        position: absolute; inset: 0;
+        display: grid; place-items: center;
+        span {
+            position: absolute;
+            width: 26px; height: 34px;
+            border-radius: 8px 8px 12px 12px;
+            background: linear-gradient(180deg, #fff, #ece4d9);
+            box-shadow: 0 2px 6px rgba(20, 33, 61, .12);
+            // 14 teeth laid on an arc that stays inside the stage above
+            transform: rotate(calc((var(--i) - 6.5) * 11deg))
+                       translateY(-104px);
+            transform-origin: 50% 120px;
+            animation: adl-rise .5s ease both;
+            animation-delay: calc(var(--i) * .04s);
+        }
+        // Two of them are the crowns being made: the brand red edge says "this one".
+        span:nth-child(5), span:nth-child(10) {
+            background: linear-gradient(180deg, #fff, #f7dfe3);
+            box-shadow: 0 0 0 2px $adl-red, 0 2px 6px rgba(20, 33, 61, .12);
+        }
+    }
+    @keyframes adl-rise { from { opacity: 0; transform: rotate(calc((var(--i) - 6.5) * 11deg)) translateY(-80px); } }
+    @media (prefers-reduced-motion: reduce) {
+        .o_lab_arch span { animation: none; }
+    }
+
+    .o_lab_hero_card {
+        position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+        width: 240px; padding: .9rem 1rem;
+        background: #fff; border-radius: 1rem;
+        box-shadow: 0 14px 40px rgba(20, 33, 61, .16);
+        &_t { font-weight: 700; color: $adl-deep; font-size: .9rem; }
+        &_s { font-size: .78rem; color: $adl-muted; margin-bottom: .5rem; }
+    }
+    .o_lab_hero_bar {
+        height: 6px; border-radius: 999px; background: rgba(20, 33, 61, .1);
+        i { display: block; height: 100%; width: 72%; border-radius: 999px; background: $adl-red; }
+    }
+
+    // ---------------------------------------------------------------- stats
+    .o_lab_stats {
+        background:
+            radial-gradient(700px 220px at 20% 0%, rgba(201, 154, 61, .22), transparent 60%),
+            $adl-deep;
+        color: #fff; padding: 2rem 0;
+        .o_lab_stat_n { font-size: clamp(1.6rem, calc(1.2rem + 1.4vw), 2.4rem); font-weight: 800; color: #fff; }
+        .o_lab_stat_l { font-size: .8rem; opacity: .75; }
+        [class*="col-"] { padding-block: .5rem; }
+    }
+
+    // ---------------------------------------------------------------- sections
+    .o_lab_sec { padding: clamp(2.5rem, 6vw, 4.5rem) 0; }
+    .o_lab_sec_alt { background: linear-gradient(180deg, $adl-ivory, #ffffff); }
+    .o_lab_sec_head {
+        text-align: center; max-width: 42em; margin: 0 auto 2rem;
+        p { color: $adl-muted; }
+        // A hairline accent under every section title — cheap, and it stops the page
+        // reading as one undifferentiated column of text.
+        h2 {
+            position: relative;
+            padding-bottom: .6rem;
+            &::after {
+                content: "";
+                position: absolute; left: 50%; bottom: 0;
+                width: 54px; height: 3px; border-radius: 999px;
+                transform: translateX(-50%);
+                background: linear-gradient(90deg, $adl-red, $adl-gold);
+            }
+        }
+    }
+
+    .o_lab_fam {
+        position: relative; overflow: hidden;
+        display: block; height: 100%;
+        padding: 1.4rem;
+        border-radius: 1rem;
+        background: #fff;
+        border: 1px solid rgba(20, 33, 61, .09);
+        text-decoration: none; color: inherit;
+        transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+
+        // The brand edge appears as the card lifts.
+        &::before {
+            content: "";
+            position: absolute; inset: 0 0 auto 0; height: 3px;
+            background: linear-gradient(90deg, $adl-red, $adl-gold);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .18s ease;
+        }
+        &:hover, &:focus-visible {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 34px rgba(20, 33, 61, .12);
+            border-color: rgba(179, 18, 43, .35);
+            text-decoration: none;
+            &::before { transform: scaleX(1); }
+        }
+        h3 { font-size: 1.05rem; margin: .6rem 0 .35rem; }
+        p { font-size: .87rem; color: $adl-muted; margin-bottom: .6rem; }
+    }
+    .o_lab_fam_i {
+        display: inline-grid; place-items: center;
+        width: 46px; height: 46px; border-radius: 13px;
+        background: $adl-blush; color: $adl-red; font-size: 1.25rem;
+    }
+    .o_lab_fam_n {
+        display: inline-block; font-size: .75rem; font-weight: 700;
+        color: $adl-red; background: $adl-blush;
+        padding: .2rem .6rem; border-radius: 999px;
+    }
+
+    // ---------------------------------------------------------------- flow
+    // Scrolls sideways on a phone rather than stacking: the sequence is the point.
+    .o_lab_flow {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(190px, 1fr);
+        gap: .75rem;
+        overflow-x: auto;
+        padding-bottom: .5rem;
+        scroll-snap-type: x mandatory;
+        > * { scroll-snap-align: start; }
+
+        @media (min-width: 992px) { overflow: visible; }
+    }
+    .o_lab_step {
+        position: relative;
+        background: #fff; border-radius: 1rem; padding: 1.1rem;
+        border: 1px solid rgba(20, 33, 61, .09);
+        transition: transform .14s ease, box-shadow .14s ease;
+        &:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(20, 33, 61, .1); }
+        h4 { font-size: .98rem; margin: .5rem 0 .3rem; }
+        p  { font-size: .82rem; color: $adl-muted; margin: 0; }
+    }
+    .o_lab_step_n {
+        display: grid; place-items: center;
+        width: 30px; height: 30px; border-radius: 50%;
+        background: $adl-red; color: #fff; font-weight: 700; font-size: .85rem;
+    }
+
+    // ---------------------------------------------------------------- band / art
+    .o_lab_band {
+        padding: clamp(2.5rem, 6vw, 4.5rem) 0;
+        background: linear-gradient(180deg, #ffffff, $adl-ivory);
+    }
+    .o_lab_band_art {
+        border-radius: 1.25rem;
+        background: linear-gradient(160deg, #ffffff, #f3ece3);
+        box-shadow: 0 22px 50px rgba(20, 33, 61, .14);
+        padding: clamp(1rem, 3vw, 2rem);
+        .o_lab_art { display: block; width: 100%; height: auto; }
+    }
+    .o_lab_band_art_sm { padding: 1rem; }
+
+    // ---------------------------------------------------------------- why
+    .o_lab_why {
+        height: 100%; padding: 1.4rem; border-radius: 1rem; background: $adl-ivory;
+        i { font-size: 1.5rem; color: $adl-red; }
+        h3 { font-size: 1.05rem; margin: .6rem 0 .4rem; }
+        p  { color: $adl-muted; font-size: .9rem; margin: 0; }
+    }
+
+    // ---------------------------------------------------------------- academy
+    .o_lab_academy_band {
+        padding: clamp(2.5rem, 6vw, 4rem) 0;
+        color: #fff;
+        background:
+            radial-gradient(900px 300px at 85% 0%, rgba(201, 154, 61, .28), transparent 60%),
+            linear-gradient(120deg, $adl-deep, #22365e);
+        h2 { color: #fff; }
+        p  { color: rgba(255, 255, 255, .82); max-width: 44em; margin-bottom: 0; }
+    }
+    .o_lab_course {
+        height: 100%; padding: 1.4rem; border-radius: 1rem;
+        background: #fff; border: 1px solid rgba(20, 33, 61, .09);
+        i { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 12px;
+            background: $adl-blush; color: $adl-red; font-size: 1.1rem; }
+        h3 { font-size: 1.02rem; margin: .7rem 0 .35rem; }
+        p  { color: $adl-muted; font-size: .88rem; margin: 0; }
+    }
+    .o_lab_who {
+        background: #fff; border-radius: 1.1rem; padding: 1.5rem;
+        box-shadow: 0 14px 40px rgba(20, 33, 61, .1);
+        h4 { font-size: 1.05rem; margin-bottom: 1rem; }
+    }
+    .o_lab_who_i {
+        display: grid; grid-template-columns: 40px 1fr; gap: .8rem; align-items: start;
+        padding: .7rem 0; border-top: 1px solid rgba(20, 33, 61, .08);
+        &:first-of-type { border-top: 0; padding-top: 0; }
+        i { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 10px;
+            background: $adl-ivory; color: $adl-red; }
+        strong { display: block; color: $adl-deep; font-size: .92rem; }
+        span { color: $adl-muted; font-size: .85rem; }
+    }
+
+    // ---------------------------------------------------------------- contact
+    .o_lab_contact {
+        padding: clamp(2.5rem, 6vw, 4.5rem) 0;
+        background: linear-gradient(160deg, $adl-ivory, #ffffff);
+        border-top: 1px solid rgba(20, 33, 61, .08);
+        h2 { margin-bottom: .5rem; }
+    }
+    .o_lab_contact_rows {
+        display: grid; gap: .8rem; margin-top: 1.2rem;
+        > div { display: grid; grid-template-columns: 26px 1fr; align-items: start; }
+        i { color: $adl-red; margin-top: .2rem; }
+        a { color: $adl-deep; text-decoration: none; &:hover { color: $adl-red; } }
+    }
+    .o_lab_maplink {
+        display: inline-block; margin-top: .3rem;
+        font-size: .82rem; font-weight: 600; color: $adl-red !important;
+    }
+    .o_lab_panel {
+        background: #fff; border-radius: 1.1rem; padding: 1.5rem;
+        border: 1px solid rgba(179, 18, 43, .12);
+        box-shadow: 0 14px 40px rgba(20, 33, 61, .1);
+        h4 { font-size: 1.05rem; }
+        p  { color: $adl-muted; font-size: .9rem; }
+    }
+    .o_lab_facts {
+        list-style: none; padding: 0; margin: 0;
+        li {
+            display: flex; justify-content: space-between; gap: 1rem;
+            padding: .5rem 0; border-bottom: 1px solid rgba(20, 33, 61, .08);
+            &:last-child { border-bottom: 0; }
+            span { color: $adl-muted; font-size: .87rem; }
+            strong { color: $adl-deep; font-size: .87rem; text-align: right; }
+        }
+    }
+    .o_lab_facts_plain { margin-top: 1rem; max-width: 30em; }
+
+    // ---------------------------------------------------------------- inner pages
+    .o_lab_pagehead {
+        padding: clamp(2.5rem, 6vw, 4rem) 0 1.5rem;
+        background: linear-gradient(160deg, $adl-ivory, #ffffff);
+        h1 { font-size: clamp(1.9rem, calc(1.4rem + 2vw), 3rem); }
+        p  { color: $adl-muted; max-width: 42em; }
+    }
+    .o_lab_pagehero {
+        padding: clamp(3rem, 7vw, 5rem) 0 clamp(2rem, 4vw, 3rem);
+        color: #fff;
+        background:
+            radial-gradient(900px 300px at 85% 0%, rgba(179, 18, 43, .35), transparent 60%),
+            linear-gradient(100deg, $adl-deep, #22365e);
+        h1 { color: #fff; font-size: clamp(1.9rem, calc(1.4rem + 2vw), 3rem); }
+        p  { color: rgba(255, 255, 255, .85); max-width: 44em; margin-bottom: 0; }
+    }
+    .o_lab_pagehero_academy {
+        background:
+            radial-gradient(900px 300px at 85% 0%, rgba(201, 154, 61, .32), transparent 60%),
+            linear-gradient(100deg, $adl-deep, #22365e);
+    }
+
+    // Sticky family nav. Scrolls sideways on a phone rather than wrapping to three
+    // lines and eating the screen.
+    .o_lab_jump {
+        position: sticky; top: 0; z-index: 5;
+        background: rgba(255, 255, 255, .94);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(20, 33, 61, .09);
+
+        > .container {
+            display: flex; gap: .5rem;
+            overflow-x: auto;
+            padding-block: .6rem;
+            scrollbar-width: none;
+            &::-webkit-scrollbar { display: none; }
+        }
+    }
+    .o_lab_jump_i {
+        flex: 0 0 auto;
+        display: inline-flex; align-items: center; gap: .5rem;
+        padding: .35rem .8rem .35rem .5rem;
+        border-radius: 999px;
+        border: 1px solid rgba(20, 33, 61, .12);
+        background: #fff;
+        color: $adl-deep; text-decoration: none;
+        font-size: .84rem; font-weight: 600;
+        white-space: nowrap;
+        transition: border-color .14s ease, transform .14s ease;
+
+        i { color: $adl-red; }
+        b {
+            font-size: .72rem; font-weight: 700; color: $adl-red;
+            background: $adl-blush; border-radius: 999px; padding: .05rem .45rem;
+        }
+        &:hover, &:focus-visible {
+            border-color: $adl-red; color: $adl-red;
+            transform: translateY(-1px); text-decoration: none;
+        }
+    }
+
+    // One family per row: emblem and description side by side, alternating so the
+    // page has a rhythm instead of four identical blocks.
+    .o_lab_famrow {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        padding: clamp(1.5rem, 4vw, 2.5rem) 0;
+        border-bottom: 1px solid rgba(20, 33, 61, .08);
+        scroll-margin-top: 130px;          // clears the sticky header AND the jump nav
+        &:last-child { border-bottom: 0; }
+
+        @media (min-width: 992px) {
+            grid-template-columns: 4fr 8fr;
+            gap: 2.5rem;
+            align-items: center;
+
+            &.o_lab_famrow_alt {
+                .o_lab_famrow_img  { order: 2; }
+                .o_lab_famrow_body { order: 1; }
+            }
+        }
+    }
+    .o_lab_famrow_img {
+        position: relative;
+        display: grid; place-items: center;
+        aspect-ratio: 4 / 3;
+        border-radius: 1.25rem;
+        background:
+            radial-gradient(400px 200px at 30% 20%, rgba(179, 18, 43, .12), transparent 60%),
+            linear-gradient(160deg, #ffffff, #f3ece3);
+        box-shadow: 0 18px 44px rgba(20, 33, 61, .14);
+
+        > i { font-size: clamp(3rem, 8vw, 5rem); color: $adl-red; opacity: .9; }
+    }
+    .o_lab_famrow_badge {
+        position: absolute; left: .9rem; bottom: .9rem;
+        background: rgba(255, 255, 255, .95);
+        color: $adl-deep;
+        border-radius: 999px;
+        padding: .3rem .8rem;
+        font-size: .78rem; font-weight: 600;
+        box-shadow: 0 4px 14px rgba(20, 33, 61, .18);
+        b { color: $adl-red; }
+    }
+    .o_lab_famrow_body {
+        h2 { margin-bottom: .5rem; }
+        .o_lab_lead { margin-bottom: 1rem; }
+    }
+    .o_lab_prodhead {
+        font-size: .78rem; text-transform: uppercase; letter-spacing: .1em;
+        color: $adl-muted; font-weight: 700; margin-bottom: .5rem;
+    }
+    .o_lab_prodlist { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .9rem; }
+    .o_lab_prod {
+        font-size: .78rem; color: $adl-deep;
+        background: $adl-ivory; border-radius: 999px; padding: .25rem .7rem;
+    }
+    .o_lab_more { font-size: .84rem; color: $adl-muted; margin: .6rem 0 0; }
+
+    // Nothing here should ever force a horizontal scrollbar on a phone.
+    img, svg { max-width: 100%; height: auto; }
+}
+
+// ---------------------------------------------------------------------------
+// Site chrome. The header and footer live OUTSIDE #wrap, so nothing scoped to
+// .o_lab reaches them. Kept deliberately light: these are Odoo's own editable
+// blocks, and heavy-handed rules here would fight the website builder.
+// ---------------------------------------------------------------------------
+#wrapwrap > header {
+    background: rgba(255, 255, 255, .92);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid rgba(20, 33, 61, .08);
+
+    .navbar-brand img, .o_website_logo { max-height: 46px; width: auto; }
+    .navbar-brand { font-weight: 800; color: $adl-deep; letter-spacing: -.01em; }
+    .nav-link {
+        font-weight: 600;
+        color: $adl-deep;
+        &:hover, &:focus { color: $adl-red; }
+    }
+    .nav-item.active > .nav-link { color: $adl-red; }
+}
+
+#wrapwrap > footer {
+    background: $adl-deep;
+    color: rgba(255, 255, 255, .82);
+    a { color: rgba(255, 255, 255, .82); &:hover { color: #fff; } }
+    h1, h2, h3, h4, h5, .h4 { color: #fff; }
+}
+
+// ---------------------------------------------------------------------------
+// The mobile menu opened as a 48px sliver (Ortho site, 2026-09-05)
+//
+// The closed drawer is `position: fixed`, `visibility: hidden` and parked to
+// the right of the viewport by a transform — 412px wide screen, drawer sitting
+// from 412 to 776. Chrome on a phone fits the layout to that 776 and zooms
+// out, so `window.innerWidth` (776) stops matching
+// `document.documentElement.clientWidth` (412).
+//
+// Bootstrap's ScrollBarHelper reads exactly that difference as the width of a
+// scrollbar. On opening any offcanvas it sets `padding-right` on <body> to
+// compensate — 364px of it — and the whole page, #wrapwrap included, is
+// squeezed into the 48px that remain. The drawer inherits it too, because
+// `.offcanvas` carries `max-width: 100%` and 100% of a 48px parent is 48px.
+// Hence a menu one letter wide.
+//
+// Measured: hiding the parked drawer alone returns innerWidth to 412 and the
+// body padding to 0. So the fix is to stop it claiming space while it is
+// closed, rather than to paper over the symptom with `overflow-x: hidden` on
+// the body, which would also mask any other element that overflows.
+//
+// `.showing` and `.hiding` are excluded so Bootstrap's slide keeps its width
+// through both transitions.
+// ---------------------------------------------------------------------------
+.offcanvas:not(.show):not(.showing):not(.hiding) {
+    max-width: 0;
+    overflow: hidden;
+}

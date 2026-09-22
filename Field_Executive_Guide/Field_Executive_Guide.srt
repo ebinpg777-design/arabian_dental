@@ -1,0 +1,216 @@
+1
+00:00:00,000 --> 00:00:03,000
+Field Work — the guide for field executives.
+
+2
+00:00:03,000 --> 00:00:06,200
+Everything you do in a day, one button at a time.
+
+3
+00:00:06,200 --> 00:00:10,800
+My Day is the whole application. Open it in the morning and stay there.
+
+4
+00:00:10,800 --> 00:00:14,800
+The numbers at the top fill in by themselves as you work.
+
+5
+00:00:14,800 --> 00:00:17,800
+You never type your own figures.
+
+6
+00:00:17,800 --> 00:00:22,000
+First, press Start my day to mark your attendance.
+
+7
+00:00:22,000 --> 00:00:26,400
+The card turns green. Now your visits and travel are unlocked.
+
+8
+00:00:26,400 --> 00:00:30,000
+Before you leave, record your odometer.
+
+9
+00:00:30,000 --> 00:00:34,600
+Type the reading and photograph it. The photo is not optional.
+
+10
+00:00:34,600 --> 00:00:38,600
+Your travel claim is worked out from these two numbers.
+
+11
+00:00:38,600 --> 00:00:42,200
+Every clinic on your round today is a card.
+
+12
+00:00:42,200 --> 00:00:46,200
+Navigate opens your map. Call rings the clinic.
+
+13
+00:00:46,200 --> 00:00:50,800
+On a phone the button shows only a picture: a pin means I'm Here.
+
+14
+00:00:50,800 --> 00:00:54,800
+Press I'm Here when you are standing at the clinic.
+
+15
+00:00:54,800 --> 00:00:59,200
+Not in the car on the way — the app records where you are.
+
+16
+00:00:59,200 --> 00:01:03,600
+If it says Location is off, turn location on and tap again.
+
+17
+00:01:03,600 --> 00:01:08,000
+For each patient the doctor gives you, open a case slip.
+
+18
+00:01:08,000 --> 00:01:12,200
+From the visit, tap the three dots, then Add Case.
+
+19
+00:01:12,200 --> 00:01:16,200
+Fill it in while the doctor is still in front of you.
+
+20
+00:01:16,200 --> 00:01:20,400
+Add a line opens the list of everything the lab makes.
+
+21
+00:01:20,400 --> 00:01:25,000
+Tap the appliance, then set upper or lower, quantity and colour.
+
+22
+00:01:25,000 --> 00:01:28,800
+When the slip is complete, press Submit Case.
+
+23
+00:01:28,800 --> 00:01:32,400
+Five cases from one doctor means five slips.
+
+24
+00:01:32,400 --> 00:01:36,600
+Made a mistake? Press Reopen, fix it, submit again.
+
+25
+00:01:36,600 --> 00:01:40,800
+Before you leave, say what happened at this clinic.
+
+26
+00:01:40,800 --> 00:01:45,000
+Count the cases, and tap every outcome that applies.
+
+27
+00:01:45,000 --> 00:01:48,600
+If you collected money, enter the amount.
+
+28
+00:01:48,600 --> 00:01:52,800
+You must say whether it was cash, cheque or online.
+
+29
+00:01:52,800 --> 00:01:56,200
+Then press Save, and Finish Visit.
+
+30
+00:01:56,200 --> 00:02:00,800
+The visit is closed and your case slips have gone to the office.
+
+31
+00:02:00,800 --> 00:02:05,200
+You can still correct the cases, the outcome and the payment.
+
+32
+00:02:05,200 --> 00:02:08,800
+Back on My Day, your numbers have moved.
+
+33
+00:02:08,800 --> 00:02:13,000
+Go to the next clinic and do the same three steps again.
+
+34
+00:02:13,000 --> 00:02:17,000
+Collected cash? Tell the system you are carrying it.
+
+35
+00:02:17,000 --> 00:02:21,400
+On the finished visit, three dots, then Cash into My Float.
+
+36
+00:02:21,400 --> 00:02:26,000
+It records where the money is. You still hand it to the office.
+
+37
+00:02:26,000 --> 00:02:29,800
+Money does not always arrive with the paperwork.
+
+38
+00:02:29,800 --> 00:02:34,400
+A doctor settles an old bill while you are there for something else.
+
+39
+00:02:34,400 --> 00:02:39,200
+Tap Cash in. No visit needed — never invent one to carry money.
+
+40
+00:02:39,200 --> 00:02:44,000
+It counts in today's total, your day sheet and your target straight away.
+
+41
+00:02:44,000 --> 00:02:47,800
+The question every doctor asks at the counter.
+
+42
+00:02:47,800 --> 00:02:51,800
+Track order answers it without phoning the lab.
+
+43
+00:02:51,800 --> 00:02:55,800
+Doctors and Clinics shows everyone on your route.
+
+44
+00:02:55,800 --> 00:03:00,000
+Making an extra stop? New visit adds it to today.
+
+45
+00:03:00,000 --> 00:03:04,000
+At the end of the day, open Travel one last time.
+
+46
+00:03:04,000 --> 00:03:08,400
+Closing reading, closing photo, Save, then End the Day.
+
+47
+00:03:08,400 --> 00:03:12,600
+Your kilometres and your claim are calculated for you.
+
+48
+00:03:12,600 --> 00:03:15,800
+You never work this out yourself.
+
+49
+00:03:15,800 --> 00:03:19,600
+Last of all, press End the day on My Day.
+
+50
+00:03:19,600 --> 00:03:24,200
+Your day sheet is built for you overnight — there is nothing to type.
+
+51
+00:03:24,200 --> 00:03:28,400
+Start your day first. Press I'm Here at the door.
+
+52
+00:03:28,400 --> 00:03:33,000
+One slip per patient, and say what happened before you finish.
+
+53
+00:03:33,000 --> 00:03:37,600
+Photograph the odometer twice, and enter cases the same day.
+
+54
+00:03:37,600 --> 00:03:42,200
+And put the cash you collected into your float before you go home.
+

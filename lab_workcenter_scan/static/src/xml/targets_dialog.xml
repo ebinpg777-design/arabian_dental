@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.TargetsDialog">
+    <Dialog title="title" size="'md'" contentClass="'o_st_targets_dlg'">
+        <div class="o_st_targets_lead">
+            <i class="fa fa-bullseye me-1" title="Targets"/>
+            Jobs each person is to take or finish at <b t-esc="props.station"/>.
+            A zero takes the target away.
+        </div>
+
+        <!-- The usual morning: one number for the whole bench, then adjust. -->
+        <div class="o_st_targets_all">
+            <label>Same for everyone</label>
+            <input type="number" min="0" inputmode="numeric" class="o_st_targets_in"
+                   t-model="state.all" placeholder="e.g. 8"/>
+            <button class="btn btn-secondary" t-on-click="() => this.setAll()">Apply</button>
+        </div>
+
+        <div class="o_st_targets_rows">
+            <div t-foreach="props.people" t-as="p" t-key="p.id" class="o_st_targets_row">
+                <span class="o_st_avatar" t-esc="initials(p.name)"/>
+                <span class="o_st_targets_who">
+                    <span class="o_st_targets_name">
+                        <t t-esc="p.name"/><t t-if="p.is_lead"> ★</t>
+                    </span>
+                    <span class="o_st_targets_done">
+                        <t t-esc="p.day_count or 0"/> taken or finished <t t-esc="props.dayLabel"/>
+                    </span>
+                </span>
+                <span class="o_st_targets_ctl">
+                    <button class="o_st_targets_btn" t-on-click="() => this.bump(p, -1)" title="One fewer">−</button>
+                    <input type="number" min="0" inputmode="numeric" class="o_st_targets_in"
+                           t-att-value="state.values[p.id]"
+                           t-on-input="(ev) => this.onInput(p, ev)"/>
+                    <button class="o_st_targets_btn" t-on-click="() => this.bump(p, 1)" title="One more">+</button>
+                </span>
+            </div>
+        </div>
+
+        <div class="o_st_targets_total">
+            Bench total <b t-esc="total"/>
+        </div>
+
+        <t t-set-slot="footer">
+            <button class="btn btn-primary" t-att-disabled="state.busy" t-on-click="() => this.save()">
+                <i t-if="state.busy" class="fa fa-circle-o-notch fa-spin me-1"/>Save targets
+            </button>
+            <button class="btn btn-secondary" t-on-click="() => props.close()">Cancel</button>
+        </t>
+    </Dialog>
+</t>
+
+</templates>

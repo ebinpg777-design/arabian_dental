@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Branded letterhead reproducing the Odoo 10 report.external_layout_header /
+        _footer (dual logos + company address + PAN/GSTIN). Scoped to this module's
+        reports instead of globally overriding every report's layout.
+    -->
+    <!--
+        In-body letterhead. wkhtmltopdf draws the page header inside the top margin, and
+        Odoo pads it further, so a card this tall never fits the band: it spilled over the
+        first lines of the body (statement, 2026-08-18). Reports that need the full
+        letterhead set `hide_letterhead` and t-call this at the top of their page instead,
+        exactly like the invoice does.
+    -->
+    <template id="letterhead_block">
+        <t t-if="not company">
+            <t t-if="o and 'company_id' in o and o.company_id.sudo()">
+                <t t-set="company" t-value="o.company_id.sudo()"/>
+            </t>
+            <t t-else=""><t t-set="company" t-value="res_company"/></t>
+        </t>
+        <div class="lab-letterhead">
+            <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                    <td style="border:none;padding:0;vertical-align:middle;">
+                        <img t-if="company.logo1" class="oc-logo" t-att-src="image_data_uri(company.logo1)"/>
+                    </td>
+                    <td style="border:none;padding:0;text-align:right;vertical-align:middle;">
+                        <img t-if="company.logo2" class="oc-cert" t-att-src="image_data_uri(company.logo2)"/>
+                    </td>
+                </tr>
+            </table>
+            <div class="oc-addr">
+                <t t-set="sparts" t-value="[' '.join(x.split()).replace(' ,', ',').strip(' ,') for x in [company.street or '', company.street2 or ''] if x.strip(' ,')]"/>
+                <div t-out="', '.join(sparts)"/>
+                <div>
+                    <t t-set="cparts" t-value="[x.strip() for x in [company.city or '', company.state_id.name or ''] if x and x.strip()]"/>
+                    <span t-out="', '.join(cparts)"/><t t-if="company.zip"> - <span t-field="company.zip"/></t>
+                </div>
+            </div>
+            <div class="oc-ids">
+                <span t-if="company.pan_number">PAN: <span t-field="company.pan_number"/></span>
+                <span t-if="company.pan_number and company.gst_number">&#160;&#160;&#160;</span>
+                <span t-if="company.gst_number">GSTIN: <span t-field="company.gst_number"/></span>
+            </div>
+        </div>
+        <div class="lab-rule"/>
+    </template>
+
+    <template id="external_layout_lab">
+        <t t-if="not o" t-set="o" t-value="doc"/>
+        <t t-if="not company">
+            <t t-if="o and 'company_id' in o and o.company_id.sudo()">
+                <t t-set="company" t-value="o.company_id.sudo()"/>
+            </t>
+            <t t-else="">
+                <t t-set="company" t-value="res_company"/>
+            </t>
+        </t>
+
+        <!-- Compact letterhead for the documents that repeat it on every page
+             (statement, job card, delivery slip). The invoice draws the full card in its
+             own body instead - see report/tax_invoice_report.xml. -->
+        <div class="header lab-header" t-if="not hide_letterhead">
+            <div class="row align-items-center">
+                <div class="col-8 text-start">
+                    <img t-if="company.logo1" t-att-src="image_data_uri(company.logo1)" style="max-height: 52px;"/>
+                </div>
+                <div class="col-4 text-end">
+                    <img t-if="company.logo2" t-att-src="image_data_uri(company.logo2)" style="max-height: 46px;"/>
+                </div>
+            </div>
+            <div class="row" style="margin-top:2px;">
+                <div class="col-12" name="company_address"
+                     style="font-size:8.5pt; line-height:1.25; color:#333;">
+                    <div t-if="company.street" t-field="company.street"/>
+                    <div t-if="company.street2" t-field="company.street2"/>
+                    <div t-out="' '.join([x for x in [(company.city or '').strip(), company.state_id.code or '', (company.zip or '').strip()] if x])"/>
+                    <div style="color:#555;">
+                        <span t-if="company.pan_number">PAN: <span t-field="company.pan_number"/></span>
+                        <span t-if="company.pan_number and company.gst_number"> &#160;·&#160; </span>
+                        <span t-if="company.gst_number">GSTIN: <span t-field="company.gst_number"/></span>
+                    </div>
+                </div>
+            </div>
+            <div style="border-bottom:1px solid #333; margin-top:4px;"/>
+        </div>
+
+        <div class="article" t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id"
+             t-att-data-oe-lang="o and o.env.context.get('lang')">
+            <t t-out="0"/>
+        </div>
+
+        <!-- One tight line: contact details left, page number right. (Was three stacked
+             lists, which ate ~20 mm at the foot of every page.) -->
+        <!-- Footer bar: contact details, and the page number on the right. -->
+        <div class="footer lab-footerbar">
+            <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                    <td>Phone: <span t-field="company.phone"/></td>
+                    <td style="text-align:center;">Email: <span t-field="company.email"/></td>
+                    <td style="text-align:right;"><t t-out="(company.website or '').replace('https://', '').replace('http://', '').rstrip('/')"/></td>
+                </tr>
+                <tr>
+                    <td class="oc-foot-strong" t-out="footer_note or ''"/>
+                    <td/>
+                    <td style="text-align:right;">Page <span class="page"/> / <span class="topage"/></td>
+                </tr>
+            </table>
+        </div>
+
+    </template>
+</odoo>

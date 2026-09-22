@@ -1,0 +1,71 @@
+// Order List — landscape register, same palette as the invoice / dispatch register.
+.lab-invoice.oll {
+    // the letterhead card sets the page's left edge; nothing else may indent past it
+    padding-left: 0; margin-left: 0;
+    $navy: #1f3a5f;
+    $card: #eef3f7;
+    $muted: #4d5c6b;
+    $line: #dfe5ea;
+
+    table.oll-title { margin-bottom: 8px; }
+    .oll-sub { font-size: 9.4pt; color: $muted; margin-top: 2px; }
+    .oll-period { font-size: 15pt; font-weight: 700; color: $navy; line-height: 1.2; }
+    .oll-countchip { display: inline-block; background: $card; border-radius: 10px;
+        padding: 2px 12px; margin-top: 4px; font-size: 9.2pt; font-weight: 700; color: $navy;
+        white-space: nowrap; }
+
+    .oll-criteria { margin: 2px 0 8px; padding-left: 0; }
+    .oll-crit { display: inline-block; background: $card; border-radius: 4px;
+        padding: 2px 9px; margin: 0 6px 4px 0; font-size: 8.8pt; color: #2b3238;
+        .oll-crit-k { color: $muted; text-transform: uppercase; letter-spacing: .4px;
+            font-size: 7.8pt; font-weight: 700; margin-right: 5px; } }
+
+    table.oll-groupband {
+        background: $navy; color: #fff; border-radius: 6px 6px 0 0; margin-top: 12px;
+        page-break-after: avoid;
+        td { padding: 6px 12px; font-weight: 700; font-size: 10.5pt; letter-spacing: .3px; }
+    }
+    // Rows are two tiers on a portrait page: identity on top, detail underneath. The
+    // grid rules are horizontal only - a vertical line every column turned the page
+    // into a cage, and wkhtmltopdf draws hairlines from zero-width borders anyway
+    // (client, 2026-08-21: "check borders").
+    table.oll-lines {
+        font-size: 10pt; border-collapse: collapse; width: 100%;
+        table, thead, tbody, tfoot, tr, th, td { border-style: none; border-width: 0; }
+        thead th { background: $card; color: $muted; font-weight: 700; font-size: 8.2pt;
+            text-transform: uppercase; letter-spacing: .5px; padding: 5px 8px;
+            text-align: left; border-bottom: 1px solid $line; }
+        thead th.num { text-align: right; }
+        td { padding: 4px 8px; vertical-align: top; }
+        .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        tr.oll-row-top td { padding-top: 7px; }
+        tr.oll-row-sub td { padding-bottom: 7px; border-bottom: 1px solid $line;
+            font-size: 9pt; color: $muted; }
+        .oll-doc { font-weight: 700; white-space: nowrap; color: $navy; }
+        .oll-party { font-weight: 700; color: #2b3238; }
+        .oll-amount { font-weight: 700; color: $navy; }
+        .oll-products { color: #2b3238; }
+        .oll-patient { white-space: nowrap; }
+        .oll-states { text-align: right; white-space: nowrap; }
+        tr.oll-subtotal td { background: $card; font-weight: 700; color: $navy;
+            border-bottom: none; padding: 6px 8px; }
+    }
+
+    .oll-chip { display: inline-block; font-size: 7.6pt; font-weight: 700; padding: 1px 7px;
+        border-radius: 9px; letter-spacing: .3px; white-space: nowrap;
+        background: #f0f2f4; color: $muted;
+        &.s-sale { background: #e7f6ee; color: #067647; }
+        &.s-draft, &.s-sent { background: #e6f0ff; color: #1d4ed8; }
+        &.s-cancel { background: #fdecea; color: #b42318; }
+        &.i-invoiced { background: #e7f6ee; color: #067647; }
+        &.i-to-invoice { background: #fdf3e3; color: #b45309; }
+        &.i-upselling { background: #e6f0ff; color: #1d4ed8; } }
+
+    table.oll-grand {
+        margin-top: 12px; background: $navy; color: #fff; border-radius: 6px;
+        td { padding: 8px 12px; font-size: 12pt; font-weight: 700; }
+        .num { text-align: right; white-space: nowrap; }
+    }
+
+    .oll-empty { text-align: center; color: $muted; font-style: italic; padding: 26px 0; }
+}

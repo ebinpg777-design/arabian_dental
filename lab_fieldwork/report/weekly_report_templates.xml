@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The week as a PDF: what gets printed for the notice board or attached
+         to a mail outside the system. The body is the same inline-styled HTML
+         the mail carries, so paper and inbox never disagree. -->
+    <template id="report_weekly_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2 t-field="doc.name"/>
+                        <p t-if="doc.is_interim" style="color:#8a6400;">
+                            Interim snapshot — the full week report is filed on Monday.
+                        </p>
+                        <div t-out="doc.body_html"/>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="report_weekly" model="ir.actions.report">
+        <field name="name">Weekly Field Report</field>
+        <field name="model">lab.weekly.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_fieldwork.report_weekly_document</field>
+        <field name="report_file">lab_fieldwork.report_weekly_document</field>
+        <field name="binding_model_id" ref="model_lab_weekly_report"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">object.name</field>
+    </record>
+</odoo>

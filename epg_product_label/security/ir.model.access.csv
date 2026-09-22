@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_epg_label_template_user,epg.label.template.user,model_epg_label_template,epg_product_label.group_label_user,1,0,0,0
+access_epg_label_template_designer,epg.label.template.designer,model_epg_label_template,epg_product_label.group_label_designer,1,1,1,1
+access_epg_label_element_user,epg.label.element.user,model_epg_label_element,epg_product_label.group_label_user,1,0,0,0
+access_epg_label_element_designer,epg.label.element.designer,model_epg_label_element,epg_product_label.group_label_designer,1,1,1,1
+access_epg_label_stock_user,epg.label.stock.user,model_epg_label_stock,epg_product_label.group_label_user,1,0,0,0
+access_epg_label_stock_designer,epg.label.stock.designer,model_epg_label_stock,epg_product_label.group_label_designer,1,1,1,1
+access_epg_label_print_log_user,epg.label.print.log.user,model_epg_label_print_log,epg_product_label.group_label_user,1,0,0,0
+access_epg_label_print_log_designer,epg.label.print.log.designer,model_epg_label_print_log,epg_product_label.group_label_designer,1,1,0,1
+access_epg_label_print_user,epg.label.print.user,model_epg_label_print,epg_product_label.group_label_user,1,1,1,1
+access_epg_label_print_line_user,epg.label.print.line.user,model_epg_label_print_line,epg_product_label.group_label_user,1,1,1,1
+access_epg_label_import_designer,epg.label.import.designer,model_epg_label_import,epg_product_label.group_label_designer,1,1,1,1
+access_epg_label_assistant_designer,epg.label.assistant.designer,model_epg_label_assistant,epg_product_label.group_label_designer,1,1,1,1

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Work — Field Executive ഗൈഡ്</title>
+<style>
+  :root {
+    --ink: #1d2025;
+    --soft: #5b6472;
+    --line: #dfe3ea;
+    --brand: #6b3fd4;
+    --brandbg: #f3efff;
+    --mark: #e8590c;
+    --markbg: #fff3ea;
+    --warnbg: #fff8e1;
+    --warnline: #f0c36d;
+  }
+  * { box-sizing: border-box; }
+  /* Latin first so English technical names keep their own shapes; Malayalam
+     falls through to Noto Sans Malayalam, which Chrome shapes with HarfBuzz. */
+  body {
+    margin: 0;
+    font-family: "DejaVu Sans", "Noto Sans", "Noto Sans Malayalam", sans-serif;
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.85;
+    background: #fff;
+  }
+  .page { max-width: 1000px; margin: 0 auto; padding: 32px 28px 64px; }
+
+  .cover {
+    background: linear-gradient(135deg, #6b3fd4 0%, #9b3fd4 100%);
+    color: #fff;
+    border-radius: 18px;
+    padding: 44px 40px;
+    margin-bottom: 34px;
+  }
+  .cover .kicker {
+    text-transform: uppercase; letter-spacing: .16em;
+    font-size: 12px; opacity: .85; margin-bottom: 10px;
+  }
+  .cover h1 { margin: 0 0 10px; font-size: 36px; line-height: 1.3; }
+  .cover p { margin: 0; font-size: 17px; opacity: .95; max-width: 46em; }
+  .cover .meta { margin-top: 22px; font-size: 13px; opacity: .8; }
+
+  h2 {
+    font-size: 23px; margin: 42px 0 6px; padding-top: 16px; line-height: 1.45;
+    border-top: 3px solid var(--brand);
+  }
+  h2 .num { display: inline-block; min-width: 1.9em; color: var(--brand); }
+  h3 { font-size: 18px; margin: 26px 0 6px; line-height: 1.5; }
+  p { margin: 8px 0; }
+  .lead { color: var(--soft); margin-bottom: 14px; }
+
+  .step { display: flex; gap: 26px; align-items: flex-start; margin: 18px 0 8px; }
+  .step .shot { flex: 0 0 268px; }
+  .step .shot img {
+    width: 100%; border: 1px solid var(--line); border-radius: 12px; display: block;
+  }
+  .step .shot .cap {
+    font-size: 12px; color: var(--soft); text-align: center; margin-top: 6px;
+    line-height: 1.5;
+  }
+  .step .says { flex: 1 1 auto; min-width: 0; }
+
+  ol.marks { list-style: none; margin: 0; padding: 0; counter-reset: mark; }
+  ol.marks > li { position: relative; padding-left: 40px; margin-bottom: 12px; }
+  ol.marks > li::before {
+    counter-increment: mark; content: counter(mark);
+    position: absolute; left: 0; top: 5px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--mark); color: #fff;
+    font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.marks b { color: var(--ink); }
+
+  .note, .warn, .tip {
+    border-radius: 10px; padding: 12px 16px; margin: 14px 0;
+    border-left: 5px solid var(--brand); background: var(--brandbg);
+  }
+  .warn { border-left-color: var(--warnline); background: var(--warnbg); }
+  .tip  { border-left-color: var(--mark); background: var(--markbg); }
+  .note p:first-child, .warn p:first-child, .tip p:first-child { margin-top: 0; }
+  .note p:last-child, .warn p:last-child, .tip p:last-child { margin-bottom: 0; }
+  .note > b:first-child, .warn > b:first-child, .tip > b:first-child {
+    display: block; margin-bottom: 2px; }
+
+  .wide img { width: 100%; border: 1px solid var(--line); border-radius: 10px; display: block; }
+
+  table {
+    border-collapse: collapse; width: 100%; margin: 14px 0;
+    font-size: 14px; table-layout: fixed;
+  }
+  td, th { overflow-wrap: anywhere; }
+  th, td { border: 1px solid var(--line); padding: 9px 12px; text-align: left; vertical-align: top; }
+  th { background: #f6f7fa; font-size: 13px; letter-spacing: .03em; }
+  td.what { width: 36%; font-weight: 600; }
+  /* The error column is English on purpose — it is what the screen says. */
+  td.msg { font-family: "DejaVu Sans", sans-serif; }
+
+  .daymap { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 6px; }
+  .daymap .box {
+    flex: 1 1 160px; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; background: #fbfbfd;
+  }
+  .daymap .box .n {
+    display: inline-block; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--brand); color: #fff; font-weight: 700; font-size: 13px;
+    text-align: center; line-height: 24px; margin-bottom: 6px;
+  }
+  .daymap .box .t { font-weight: 600; line-height: 1.5; }
+  .daymap .box .s { font-size: 13px; color: var(--soft); line-height: 1.5; }
+
+  .btn {
+    display: inline-block; background: #efe9ff; color: #4a2ba0;
+    border-radius: 6px; padding: 1px 7px; font-weight: 600; font-size: .94em;
+    white-space: nowrap; font-family: "DejaVu Sans", sans-serif;
+  }
+  .icon {
+    display: inline-block; background: #f1f3f7; border: 1px solid var(--line);
+    border-radius: 6px; padding: 0 6px; font-size: .92em;
+  }
+  footer {
+    margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--soft);
+  }
+
+  @media print {
+    .page { max-width: none; padding: 0 3mm; }
+    h2, h3 { page-break-after: avoid; break-after: avoid; }
+    .step, .note, .warn, .tip, table, .daymap { page-break-inside: avoid; break-inside: avoid; }
+    .cover { page-break-after: always; break-after: page; }
+  }
+  @media (max-width: 640px) {
+    .step { display: block; }
+    .step .shot { margin-bottom: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="cover">
+  <div class="kicker">Arabian Dental Lab · Field Work</div>
+  <h1>Field Executive ഗൈഡ്</h1>
+  <p>ഒരു ദിവസം നിങ്ങൾ ചെയ്യുന്ന എല്ലാ കാര്യങ്ങളും — ദിവസം തുടങ്ങുക, ക്ലിനിക്കുകൾ
+     സന്ദർശിക്കുക, ഡോക്ടർ തരുന്ന കേസുകൾ എഴുതുക, പണം വാങ്ങുക, ദിവസം
+     അവസാനിപ്പിക്കുക. ഒരു സ്ക്രീൻ, ഓരോ തവണയും ഒരു ബട്ടൺ മാത്രം.</p>
+  <div class="meta">Field Executive-മാർക്ക് മാത്രം · ഫോണിൽ പ്രവർത്തിക്കും · Odoo 19</div>
+</div>
+
+<div class="note">
+  <b>ഈ ഗൈഡിനെക്കുറിച്ച്</b>
+  <p>സ്ക്രീനിൽ കാണുന്ന എല്ലാ പേരുകളും ബട്ടണുകളും <b>ഇംഗ്ലീഷിൽ തന്നെ</b> ഇവിടെ
+     കൊടുത്തിരിക്കുന്നു — ആപ്പ് ഇംഗ്ലീഷിലാണ്, അതുകൊണ്ട് ഫോണിൽ കാണുന്ന അതേ വാക്ക്
+     തന്നെ ഇവിടെയും കാണാം. വിശദീകരണം മാത്രമാണ് മലയാളത്തിൽ.</p>
+</div>
+
+<h2><span class="num">A.</span>തുടങ്ങുന്നതിനു മുമ്പ്</h2>
+<p class="lead">മൂന്ന് കാര്യങ്ങൾ, ഒരിക്കൽ മാത്രം.</p>
+<ul>
+  <li><b>നിങ്ങളുടെ login-ഉം password-ഉം.</b> ഇത് ഓഫീസ് ആണ് തരുന്നത്. ഇത്
+      നിങ്ങളുടേത് മാത്രമാണ് — ആരുമായും പങ്കുവെക്കരുത്.</li>
+  <li><b>Location നിർബന്ധമായും ON ആയിരിക്കണം.</b> ക്ലിനിക്കിൽ എത്തുമ്പോൾ നിങ്ങൾ
+      എവിടെയാണെന്ന് ആപ്പ് രേഖപ്പെടുത്തും. Location ഓഫ് ആണെങ്കിൽ ഒരു visit
+      തുടങ്ങാൻ കഴിയില്ല.</li>
+  <li><b>ഫോണിലെ browser (Chrome) ഉപയോഗിക്കുക.</b> ഇതിനൊന്നും കമ്പ്യൂട്ടർ വേണ്ട.</li>
+</ul>
+
+<div class="note">
+  <b>നിങ്ങളുടെ ജോലി മാത്രമേ നിങ്ങൾ കാണൂ</b>
+  <p>നിങ്ങളുടെ visits, travel, cases, പണം, target — ഇത്രയും മാത്രം. മറ്റൊരു
+     executive-ന്റെ രേഖകൾ നിങ്ങൾക്ക് കാണാൻ കഴിയില്ല, നിങ്ങളുടേത് അവർക്കും
+     കാണാൻ കഴിയില്ല.</p>
+</div>
+
+<h2><span class="num">B.</span>ഒരു ദിവസം — തുടക്കം മുതൽ ഒടുക്കം വരെ</h2>
+<p class="lead">ഇതാണ് ദിവസം മുഴുവൻ. ഈ ഗൈഡിലെ ബാക്കി എല്ലാം ഈ എട്ട് ഘട്ടങ്ങളുടെ
+   വിശദീകരണമാണ്.</p>
+<div class="daymap">
+  <div class="box"><span class="n">1</span><div class="t">Start my day</div><div class="s">അറ്റൻഡൻസ് രേഖപ്പെടുത്തുക</div></div>
+  <div class="box"><span class="n">2</span><div class="t">തുടക്കത്തിലെ km</div><div class="s">ഓഡോമീറ്റർ + ഫോട്ടോ</div></div>
+  <div class="box"><span class="n">3</span><div class="t">ക്ലിനിക്കിലേക്ക്</div><div class="s">നിങ്ങളുടെ ലിസ്റ്റിൽ നിന്ന്</div></div>
+  <div class="box"><span class="n">4</span><div class="t">I'm Here</div><div class="s">എത്തിയാൽ ഉടൻ അമർത്തുക</div></div>
+</div>
+<div class="daymap">
+  <div class="box"><span class="n">5</span><div class="t">കേസുകൾ എഴുതുക</div><div class="s">ഓരോ രോഗിക്കും ഒരു slip</div></div>
+  <div class="box"><span class="n">6</span><div class="t">Finish Visit</div><div class="s">എന്ത് നടന്നു എന്ന് പറയുക</div></div>
+  <div class="box"><span class="n">7</span><div class="t">അടുത്ത ക്ലിനിക്</div><div class="s">4 മുതൽ 6 വരെ ആവർത്തിക്കുക</div></div>
+  <div class="box"><span class="n">8</span><div class="t">End the day</div><div class="s">അവസാനത്തെ km, ക്ലോക്ക് ഔട്ട്</div></div>
+</div>
+
+<h2><span class="num">1.</span>Sign in ചെയ്യുക</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/01_login.png" alt="Sign in screen">
+    <div class="cap">Sign-in സ്ക്രീൻ</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Email അല്ലെങ്കിൽ username</b> — ഓഫീസ് നിങ്ങൾക്ക് തന്നത്.</li>
+      <li><b>Password</b> — ടൈപ്പ് ചെയ്തത് ശരിയാണോ എന്ന് നോക്കണമെങ്കിൽ ബോക്സിന്റെ
+          അറ്റത്തുള്ള കണ്ണിന്റെ അടയാളത്തിൽ ടാപ്പ് ചെയ്യുക.</li>
+      <li><b>Log in</b> അമർത്തുക.</li>
+    </ol>
+    <div class="tip">
+      <b>ഒരിക്കൽ സൈൻ ഇൻ ചെയ്താൽ മതി</b>
+      <p>നിങ്ങളുടെ ഫോൺ സൈൻ ഇൻ ആയി തന്നെ നിൽക്കും. എല്ലാ ദിവസവും രാവിലെ ഇത്
+         ടൈപ്പ് ചെയ്യേണ്ട ആവശ്യമില്ല.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">2.</span>Field Work എവിടെയാണ്</h2>
+<p class="lead">Sign in ചെയ്ത ഉടനെ നിങ്ങൾ <b>Field Work</b>-ൽ എത്തും. ഇത്രയും
+   മെനുകൾ മാത്രമേ നിങ്ങൾക്കുള്ളൂ, ഓരോന്നും നിങ്ങളുടെ സ്വന്തം ജോലിയെക്കുറിച്ചാണ്.</p>
+<div class="wide">
+  <img src="images/00_menubar.png" alt="Field Work menu bar">
+</div>
+<table>
+  <tr><th>മെനു</th><th>എന്താണ് ഇത്</th></tr>
+  <tr><td class="what">My Day</td><td>ഇന്നത്തെ ക്ലിനിക്കുകളും വേണ്ട എല്ലാ ബട്ടണുകളും. <b>ഇതാണ് നിങ്ങൾ ദിവസം മുഴുവൻ ഉപയോഗിക്കുന്ന സ്ക്രീൻ.</b></td></tr>
+  <tr><td class="what">My Day Sheets</td><td>പൂർത്തിയായ നിങ്ങളുടെ ദിവസങ്ങൾ, മാനേജർ നോക്കിയതിനു ശേഷം.</td></tr>
+  <tr><td class="what">My Visits</td><td>നിങ്ങൾ ചെയ്ത എല്ലാ ക്ലിനിക് സന്ദർശനങ്ങളും.</td></tr>
+  <tr><td class="what">My Cases</td><td>നിങ്ങൾ എഴുതിയ എല്ലാ case slip-ഉം.</td></tr>
+  <tr><td class="what">My Travel</td><td>ദിവസേനയുള്ള കിലോമീറ്ററും യാത്രാ ക്ലെയിമും.</td></tr>
+  <tr><td class="what">My Deliveries / My Work to Deliver</td><td>ക്ലിനിക്കുകളിലേക്ക് നിങ്ങൾ കൊണ്ടുപോകുന്ന ജോലികൾ.</td></tr>
+</table>
+<div class="note">
+  <b>ഫോണിൽ ഈ മെനു വേണ്ട</b>
+  <p>മുകളിൽ പറഞ്ഞ എല്ലാം <b>My Day</b>-യിൽ ബട്ടണായി ഉണ്ട്. രാവിലെ My Day
+     തുറന്നാൽ ദിവസം മുഴുവൻ അവിടെ തന്നെ നിന്നാൽ മതി.</p>
+</div>
+
+<h2><span class="num">3.</span>My Day സ്ക്രീൻ</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/03_myday_cold.png" alt="My Day before the day starts">
+    <div class="cap">രാവിലത്തെ My Day</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>ഇന്നത്തെ തീയതി.</b> എഴുതാൻ വിട്ടുപോയ കാര്യങ്ങൾ ഉണ്ടെങ്കിൽ ഇതിന്റെ
+          അടുത്തുള്ള അമ്പടയാളം ഉപയോഗിച്ച് കഴിഞ്ഞ ദിവസങ്ങളിലേക്ക് പോകാം.
+          നാളത്തേക്ക് പോകാൻ ഒരിക്കലും കഴിയില്ല.</li>
+      <li><b>ഇന്നത്തെ കണക്ക്</b> — എത്ര visit കഴിഞ്ഞു, എത്ര case, അതിന്റെ വില,
+          വാങ്ങിയ പണം. ഇതെല്ലാം തനിയെ വരും. നിങ്ങൾ ഒരിക്കലും ടൈപ്പ് ചെയ്യേണ്ട.</li>
+      <li><b>Start my day.</b> ഇത് അമർത്തുന്നതുവരെ ബാക്കി ഒന്നും പ്രവർത്തിക്കില്ല.</li>
+      <li><b>DO</b> — ക്ലിനിക്കിന്റെ വാതിൽക്കൽ ചെയ്യുന്ന കാര്യങ്ങൾ: travel,
+          quick entry, track order, ഡോക്ടറെ തിരയൽ, scan, deliver, collect.</li>
+      <li><b>MY</b> — നിങ്ങളുടെ സ്വന്തം പേജുകൾ: visits, cases, travel, cash,
+          targets, deliveries.</li>
+    </ol>
+  </div>
+</div>
+
+<h2><span class="num">4.</span>Start my day</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/04_on_duty.png" alt="On duty">
+    <div class="cap">Start my day അമർത്തിയ ശേഷം</div>
+  </div>
+  <div class="says">
+    <p><span class="btn">Start my day</span> അമർത്തുക. കാർഡ് പച്ച നിറമാകും.</p>
+    <ol class="marks">
+      <li><b>On duty</b> — എപ്പോൾ തുടങ്ങി, എത്ര നേരമായി എന്നും കാണിക്കും.</li>
+      <li>അതേ ബട്ടൺ ഇപ്പോൾ <span class="btn">End the day</span> ആയി മാറും.
+          ജോലി പൂർണ്ണമായി കഴിഞ്ഞതിനു ശേഷം മാത്രം ഇത് അമർത്തുക.</li>
+    </ol>
+    <div class="warn">
+      <b>"Not set up for attendance" എന്ന് കാണിച്ചാൽ</b>
+      <p>നിങ്ങളുടെ login employee രേഖയുമായി ബന്ധിപ്പിച്ചിട്ടില്ല. ഓഫീസിനോടോ
+         HR-നോടോ പറയുക — ഇത് നിങ്ങൾക്ക് സ്വയം ശരിയാക്കാൻ കഴിയില്ല.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">5.</span>തുടക്കത്തിലെ കിലോമീറ്റർ എഴുതുക</h2>
+<p class="lead">വണ്ടി മുന്നിൽ ഉള്ളപ്പോൾ തന്നെ, പുറപ്പെടുന്നതിനു മുമ്പ് ഇത് ചെയ്യുക.</p>
+<div class="step">
+  <div class="shot">
+    <img src="images/05_travel_blank.png" alt="The travel form">
+    <div class="cap">DO-യിലെ "Start the day" ടാപ്പ് ചെയ്യുക</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Vehicle</b> — Two Wheeler, Four Wheeler അല്ലെങ്കിൽ Public Transport.
+          ഒരു കിലോമീറ്ററിന് എത്ര കിട്ടും എന്ന് ഇത് തീരുമാനിക്കും.</li>
+      <li><b>Start Reading</b> — ഇപ്പോൾ ഓഡോമീറ്ററിൽ കാണുന്ന നമ്പർ.</li>
+      <li><b>Start Photo</b> — ഓഡോമീറ്ററിന്റെ ഒരു ഫോട്ടോ എടുക്കുക.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/06_travel_filled.png" alt="Travel form filled in">
+    <div class="cap">പൂരിപ്പിച്ച ശേഷം</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>നമ്പർ ടൈപ്പ് ചെയ്തു.</li>
+      <li>ഫോട്ടോ എടുത്തു.</li>
+      <li>ഏറ്റവും താഴെയുള്ള പച്ച <span class="btn">Save</span> ബട്ടൺ അമർത്തുക.</li>
+    </ol>
+    <p>അതിനുശേഷം ഫോമിന്റെ മുകളിലുള്ള <span class="btn">Start the Day</span>
+       അമർത്തുക.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/07_travel_saved.png" alt="Trip on the road">
+    <div class="cap">യാത്ര തുടങ്ങി</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>സ്ഥിതി <b>On the Road</b> എന്നായി. ഇവിടെ മുതൽ നിങ്ങളുടെ കിലോമീറ്റർ
+          കണക്കാക്കാൻ തുടങ്ങും.</li>
+    </ol>
+    <div class="warn">
+      <b>ഫോട്ടോ നിർബന്ധമാണ്</b>
+      <p>ഫോട്ടോ ഇല്ലെങ്കിൽ <b>"A photo of the opening reading is required."</b>
+         എന്ന് കാണിക്കും. ഫോട്ടോ എടുത്തിട്ട് വീണ്ടും Start the Day അമർത്തുക.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">6.</span>ഇന്നത്തെ ക്ലിനിക്കുകൾ</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/08_cards.png" alt="Today's clinic cards">
+    <div class="cap">ഓരോ ക്ലിനിക്കിനും ഒരു കാർഡ്</div>
+  </div>
+  <div class="says">
+    <p>ബട്ടണുകൾക്ക് താഴേക്ക് സ്ക്രോൾ ചെയ്യുക. ഇന്ന് പോകേണ്ട ഓരോ ക്ലിനിക്കും
+       ക്രമത്തിൽ ഒരു കാർഡായി കാണാം.</p>
+    <ol class="marks">
+      <li><b>ക്ലിനിക്കിന്റെ പേര്</b>, സ്ഥലം, എന്തിനാണ് പോകുന്നത് എന്നിവ.</li>
+      <li><b>വിലാസവും</b> മൂന്ന് എളുപ്പവഴികളും: <b>Navigate</b> മാപ്പ് തുറക്കും,
+          <b>Call</b> ക്ലിനിക്കിലേക്ക് വിളിക്കും, <b>Chat</b> WhatsApp തുറക്കും.</li>
+      <li><b>വലതുവശത്തെ ബട്ടൺ.</b> ആ കാർഡിന് വേണ്ട ശരിയായ കാര്യം മാത്രമേ ഇത്
+          ചെയ്യൂ — നിങ്ങൾ ഒന്നും തിരഞ്ഞെടുക്കേണ്ട.</li>
+    </ol>
+    <div class="tip">
+      <b>ഫോണിൽ ഈ ബട്ടണിൽ ചിത്രം മാത്രമേ കാണൂ</b>
+      <p><span class="icon">📍</span> = I'm Here &nbsp;·&nbsp;
+         <span class="icon">✓</span> = Finish &nbsp;·&nbsp;
+         <span class="icon">👁</span> = View (കഴിഞ്ഞത്)</p>
+    </div>
+    <p>കാർഡിൽ തന്നെ ടാപ്പ് ചെയ്താൽ പൂർണ്ണമായ visit തുറക്കും.</p>
+  </div>
+</div>
+<div class="note">
+  <b>"Nothing planned for today." എന്ന് കാണിച്ചാൽ</b>
+  <p>നിങ്ങളുടെ റൗണ്ട് തയ്യാറാക്കിയിട്ടില്ല. beat തയ്യാറാക്കാൻ മാനേജരോട് പറയുക —
+     പിന്നെ എല്ലാ ദിവസവും രാവിലെ ക്ലിനിക്കുകൾ തനിയെ ഇവിടെ വരും. എവിടെ പോകാൻ
+     ഉദ്ദേശിക്കുന്നു എന്ന് പറയാൻ നിങ്ങൾ ഒരു visit ഉണ്ടാക്കേണ്ട ആവശ്യമില്ല.</p>
+</div>
+
+<h2><span class="num">7.</span>ക്ലിനിക്കിൽ — I'm Here അമർത്തുക</h2>
+<p class="lead">ക്ലിനിക്കിൽ എത്തി നിൽക്കുമ്പോൾ മാത്രം അമർത്തുക, വഴിയിൽ വെച്ചല്ല.</p>
+<div class="step">
+  <div class="shot">
+    <img src="images/09_checked_in.png" alt="Checked in at the clinic">
+    <div class="cap">I'm Here അമർത്തിയ ശേഷം</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>കാർഡിൽ ഇപ്പോൾ <b>At clinic</b> എന്ന് കാണിക്കും.</li>
+      <li>ബട്ടൺ <b>Finish</b> (<span class="icon">✓</span>) ആയി മാറി — പോകാൻ
+          നേരത്ത് ഇത് അമർത്താൻ.</li>
+    </ol>
+    <div class="warn">
+      <b>"Location is off" എന്ന് കാണിച്ചാൽ</b>
+      <p>browser-ന് Location ഓൺ ചെയ്യുക, ഫോണിന്റെ മുകളിൽ അമ്പടയാളം വരുന്നതുവരെ
+         കാത്തിരിക്കുക, പിന്നെ വീണ്ടും ടാപ്പ് ചെയ്യുക. Location ഇല്ലാതെ ഒരു
+         visit തുടങ്ങാൻ കഴിയില്ല.</p>
+    </div>
+    <div class="note">
+      <b>ക്ലിനിക്കിൽ നിന്ന് അകലെയാണെങ്കിൽ</b>
+      <p>നിങ്ങളെ <b>ഒരിക്കലും തടയില്ല.</b> ക്ലിനിക്കിൽ നിന്ന് അകലെ നിന്നാണ്
+         check in ചെയ്തത് എന്ന് രേഖപ്പെടുത്തും, visit അടയ്ക്കുന്നതിനു മുമ്പ്
+         ഒരു ചെറിയ കാരണം ചോദിക്കും — ഉദാഹരണത്തിന് "met the doctor at their other
+         branch". സത്യം എഴുതുക; ഇത് ഒരു കുറിപ്പ് മാത്രമാണ്, ശിക്ഷയല്ല.</p>
+    </div>
+    <div class="note">
+      <b>"GPS not checked — this clinic has no location on the map"</b>
+      <p>ഇന്ന് മിക്ക ക്ലിനിക്കുകളിലും ഇത് കാണും, അത് നിങ്ങളുടെ തെറ്റല്ല: അവയിൽ
+         മിക്കതും ഇതുവരെ മാപ്പിൽ അടയാളപ്പെടുത്തിയിട്ടില്ല. നിങ്ങളുടെ check-in
+         രേഖപ്പെടുത്തും — എത്ര അടുത്തായിരുന്നു എന്ന് മാത്രം ആപ്പിന് പറയാൻ
+         കഴിയില്ല.</p>
+      <p>നിങ്ങൾ ക്ലിനിക്കിൽ നിൽക്കുകയാണെങ്കിൽ visit തുറന്ന്
+         <span class="btn">Pin Clinic Here</span> അമർത്തുക. അത് നിങ്ങൾക്കും ഇനി
+         വരുന്ന എല്ലാവർക്കും ശരിയാക്കും.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">8.</span>ഡോക്ടർ തരുന്ന കേസുകൾ എഴുതുക</h2>
+<p class="lead">ഓരോ രോഗിക്കും ഒരു slip. ഡോക്ടർ മുന്നിൽ ഉള്ളപ്പോൾ തന്നെ
+   പൂരിപ്പിക്കുക.</p>
+<div class="step">
+  <div class="shot">
+    <img src="images/10_visit_open.png" alt="The open visit">
+    <div class="cap">തുറന്ന visit</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><span class="btn">Finish Visit</span> — ഇത് ഇപ്പോൾ അമർത്തരുത്.</li>
+      <li><b>മൂന്ന് കുത്തുകൾ.</b> ഫോണിൽ ബാക്കി ബട്ടണുകൾ ഇതിനുള്ളിലാണ്. ഇതിൽ
+          ടാപ്പ് ചെയ്ത് <span class="btn">Add Case</span> തിരഞ്ഞെടുക്കുക.</li>
+      <li><b>Purposes</b> — ബാധകമായ എല്ലാം ടാപ്പ് ചെയ്യുക: routine round,
+          case collection, delivery, payment, complaint, new doctor, marketing.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/11_case_blank.png" alt="A blank case slip">
+    <div class="cap">പുതിയ case slip</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>രോഗിയുടെ പേര്.</b></li>
+      <li><b>Age</b> — − ഉം + ഉം ഉപയോഗിക്കുക, അല്ലെങ്കിൽ നമ്പറിൽ ടാപ്പ് ചെയ്ത്
+          ടൈപ്പ് ചെയ്യുക.</li>
+      <li><b>Gender</b> — ആണോ പെണ്ണോ.</li>
+      <li><b>Priority</b> — ഡോക്ടർ വേഗം വേണമെന്ന് പറഞ്ഞില്ലെങ്കിൽ Normal ആയി
+          വിടുക.</li>
+      <li><b>Add a line</b> — എന്താണ് ഉണ്ടാക്കേണ്ടത് എന്ന് ഇവിടെ പറയുക.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/12a_work_picker.png" alt="Choosing the appliance">
+    <div class="cap">Appliance തിരഞ്ഞെടുക്കൽ</div>
+  </div>
+  <div class="says">
+    <p>ലാബ് ഉണ്ടാക്കുന്ന എല്ലാ സാധനങ്ങളുടെയും ലിസ്റ്റ് സ്ക്രീൻ നിറയെ തുറക്കും.</p>
+    <ol class="marks">
+      <li><b>ഡോക്ടർ പറഞ്ഞ appliance-ൽ ടാപ്പ് ചെയ്യുക.</b> ലിസ്റ്റ് വലുതാണെങ്കിൽ
+          മുകളിലുള്ള തിരയൽ അടയാളം ഉപയോഗിക്കുക.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/13_case_saved.png" alt="The case slip with one line">
+    <div class="cap">Slip-ൽ ജോലി വന്നു</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Line.</b> <b>U/L</b> (മുകളിലെ അണ്ണാക്ക്, താഴത്തെ അണ്ണാക്ക്, അല്ലെങ്കിൽ
+          രണ്ടും), <b>quantity</b>, ഡോക്ടർ നിറം പറഞ്ഞെങ്കിൽ <b>colour</b> എന്നിവ
+          കൊടുക്കുക. ഒന്നിലധികം appliance ഉണ്ടെങ്കിൽ വേറെ line ചേർക്കുക.</li>
+      <li>Slip പൂർത്തിയായാൽ <span class="btn">Submit Case</span> അമർത്തുക.</li>
+    </ol>
+    <div class="warn">
+      <b>"Add what is being made … a case with no work on it cannot be saved."</b>
+      <p>നിങ്ങൾ ഇതുവരെ ഒരു line ചേർത്തിട്ടില്ല. <b>Add a line</b>-ലേക്ക് തിരിച്ചു
+         പോയി appliance തിരഞ്ഞെടുക്കുക.</p>
+    </div>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/14_case_submitted.png" alt="A submitted case slip">
+    <div class="cap">Submitted</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>Slip-ൽ ഇപ്പോൾ <b>Submitted</b> എന്ന് കാണാം.</li>
+    </ol>
+    <p>Visit-ലേക്ക് തിരിച്ചു പോയി അടുത്ത രോഗിയെ ഇതേ പോലെ ചേർക്കുക. ഒരു ഡോക്ടർ
+       അഞ്ച് കേസ് തന്നാൽ അഞ്ച് slip വേണം.</p>
+    <div class="note">
+      <b>തെറ്റ് പറ്റിയോ?</b>
+      <p><span class="btn">Reopen</span> അമർത്തി, തിരുത്തി, വീണ്ടും submit ചെയ്യുക.
+         Visit finish ചെയ്യുന്നതുവരെ ഇത് ചെയ്യാം — അതിനുശേഷം അത് ഓഫീസിന്റെ
+         കൈയിലാണ്.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">9.</span>എന്ത് നടന്നു എന്ന് പറഞ്ഞ് Finish ചെയ്യുക</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/16_what_happened.png" alt="What happened at the clinic">
+    <div class="cap">ഈ ക്ലിനിക്കിൽ എന്ത് നടന്നു</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Number of cases</b> — ഈ ക്ലിനിക്കിൽ നിന്ന് എത്ര കേസ് കൊണ്ടുപോകുന്നു
+          എന്ന് നിങ്ങൾ തന്നെ എണ്ണി കൊടുക്കുക. − ഉം + ഉം ഉപയോഗിക്കുക.</li>
+      <li><b>What happened</b> — ബാധകമായ എല്ലാം ടാപ്പ് ചെയ്യുക: cases collected,
+          reworks collected, delivered, payment received, follow-up needed,
+          doctor not available, complaint logged, അല്ലെങ്കിൽ no requirement today.</li>
+    </ol>
+    <div class="tip">
+      <b>"Rework(s) Collected" ടാപ്പ് ചെയ്താൽ</b>
+      <p>എത്ര rework എടുത്തു എന്ന് ചോദിക്കുന്ന രണ്ടാമത്തെ എണ്ണം വരും. അത്
+         പൂരിപ്പിക്കുക.</p>
+    </div>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/16b_payment.png" alt="Recording a payment">
+    <div class="cap">വാങ്ങിയ പണം</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Payment collected</b> — വേഗത്തിലുള്ള തുകകളിൽ (+100, +500, +1000,
+          +5000) ടാപ്പ് ചെയ്യുക, അല്ലെങ്കിൽ കൃത്യമായ തുക ടൈപ്പ് ചെയ്യുക.</li>
+      <li><b>Received as</b> — Cash, Cheque അല്ലെങ്കിൽ UPI / Online. ഏതാണെന്ന്
+          നിർബന്ധമായും പറയണം.</li>
+    </ol>
+    <p>പിന്നെ <span class="btn">Save</span> അമർത്തുക, മുകളിലുള്ള
+       <span class="btn">Finish Visit</span> അമർത്തുക.</p>
+    <div class="warn">
+      <b>Finish Visit തടയുന്ന രണ്ട് കാര്യങ്ങൾ</b>
+      <p>"<b>Record what happened…</b>" — നിങ്ങൾ ഒരു outcome-ഉം ടാപ്പ്
+         ചെയ്തിട്ടില്ല.<br>
+         "<b>… case(s) have not been submitted</b>" — ഒരു slip ഇപ്പോഴും
+         തുറന്നു കിടക്കുന്നു. അത് submit ചെയ്യുക, അല്ലെങ്കിൽ തെറ്റി
+         തുടങ്ങിയതാണെങ്കിൽ delete ചെയ്യുക.</p>
+    </div>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/17_visit_done.png" alt="A completed visit">
+    <div class="cap">Completed</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>Visit <b>Completed</b> ആയി. നിങ്ങളുടെ case slip-കൾ order ആയി ഓഫീസിലേക്ക്
+          പോയി, അവർ ഇപ്പോൾ അത് പരിശോധിക്കുന്നു.</li>
+    </ol>
+    <div class="note">
+      <b>എന്ത് നടന്നു എന്നത് ഇനിയും തിരുത്താം</b>
+      <p>Completed ആയ visit-ലും കേസുകളുടെ എണ്ണം, outcome, പണം എന്നിവ മാറ്റാം —
+         കാരണം പുറത്തിറങ്ങി ഒരു മിനിറ്റ് കഴിഞ്ഞാണ് പലപ്പോഴും ഇത്
+         തീരുമാനമാകുന്നത്. ബാക്കി എല്ലാം പൂട്ടിയിരിക്കും.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">10.</span>കണക്ക് നോക്കി അടുത്ത ക്ലിനിക്കിലേക്ക്</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/18_myday_after.png" alt="My Day after one clinic">
+    <div class="cap">ആദ്യത്തെ ക്ലിനിക് കഴിഞ്ഞ ശേഷം</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>ഇന്നത്തെ കണക്ക്</b> — 5-ൽ 1 visit, 1 case, അതിന്റെ വില, വാങ്ങിയ
+          പണം. എല്ലാം നിങ്ങൾക്കുവേണ്ടി എണ്ണിയിരിക്കുന്നു.</li>
+      <li><b>Target ring</b> — ഈ മാസത്തെ ലക്ഷ്യത്തിന്റെ എത്ര ഭാഗം എത്തി.</li>
+    </ol>
+    <p>അടുത്ത ക്ലിനിക്കിലേക്ക് പോയി 7 മുതൽ 9 വരെയുള്ള ഘട്ടങ്ങൾ ആവർത്തിക്കുക.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/18b_done_card.png" alt="The finished clinic">
+    <div class="cap">പൂർത്തിയായ ക്ലിനിക്</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>പൂർത്തിയായ ക്ലിനിക് <b>Done</b> എന്ന അടയാളത്തോടെ ലിസ്റ്റിന്റെ ഏറ്റവും
+          മുകളിലേക്ക് മാറും. അവിടെ നിന്ന് കിട്ടിയ കേസുകളും പണവും കാർഡിൽ തന്നെ
+          കാണാം.</li>
+    </ol>
+  </div>
+</div>
+
+<h2><span class="num">11.</span>മറ്റ് ബട്ടണുകൾ</h2>
+
+<h3>Track order — "എന്റെ രോഗിയുടെ സാധനം എവിടെ എത്തി?"</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/19_track.png" alt="Tracking an order">
+    <div class="cap">Track order</div>
+  </div>
+  <div class="says">
+    <p>ഓരോ ഡോക്ടറും ചോദിക്കുന്ന ചോദ്യം. <span class="btn">Track order</span>
+       ടാപ്പ് ചെയ്യുക.</p>
+    <ol class="marks">
+      <li><b>അറിയാവുന്നത് എന്തും ടൈപ്പ് ചെയ്യുക</b> — രോഗിയുടെ പേര്, ക്ലിനിക്,
+          appliance, അല്ലെങ്കിൽ order നമ്പർ.</li>
+      <li><b>ഉത്തരം.</b> ഒരു വരിയിൽ ടാപ്പ് ചെയ്താൽ മുഴുവൻ യാത്ര കാണാം: confirmed,
+          in the lab, work finished, out for delivery, delivered, invoiced —
+          ആരാണ് ഉണ്ടാക്കിയത് എന്നുൾപ്പെടെ.</li>
+    </ol>
+    <p>ഇനിയും തീരാത്ത ജോലികൾ മാത്രമേ ഇവിടെ കാണൂ. കഴിഞ്ഞ് invoice ആയവ
+       കാണിക്കില്ല.</p>
+  </div>
+</div>
+
+<h3>Doctors / Clinics — ഈ വഴിയിൽ വേറെ ആരൊക്കെ ഉണ്ട്</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/20_clinics.png" alt="Doctors and clinics on your route">
+    <div class="cap">Doctors / Clinics</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>നിങ്ങളുടെ റൂട്ടിലെ ഒരു ക്ലിനിക്</b>, അവർ തരാനുള്ള പണവും ഇനിയും
+          തീരാത്ത order-കളുടെ എണ്ണവും സഹിതം. സ്ഥിരം പോകുന്നവ മുകളിൽ വരാൻ
+          നക്ഷത്രത്തിൽ ടാപ്പ് ചെയ്യുക.</li>
+      <li><b>New visit</b> — പ്ലാനിൽ ഇല്ലാത്ത ക്ലിനിക്കാണെങ്കിലും ഇന്നത്തേക്ക്
+          ചേർക്കും. അധികമായി ഒരു സ്ഥലത്ത് കയറുമ്പോൾ ഇത് ഉപയോഗിക്കുക.</li>
+    </ol>
+  </div>
+</div>
+
+<h3>Quick entry — ഒരുമിച്ച് ഒരുപാട് കേസുകൾ</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/21_quick_entry.png" alt="Quick case entry">
+    <div class="cap">Quick entry</div>
+  </div>
+  <div class="says">
+    <p>ഒരു ഡോക്ടറിൽ നിന്ന് എട്ട് impression ബാഗിൽ ഉള്ള വൈകുന്നേരങ്ങൾക്ക് —
+       എട്ട് slip വെവ്വേറെ തുറക്കേണ്ട.</p>
+    <ol class="marks">
+      <li><b>Doctor / Clinic</b> — ഒരിക്കൽ തിരഞ്ഞെടുത്താൽ മതി.</li>
+      <li><b>ഓരോ രോഗിക്കും ഒരു വരി</b> — പേര്, appliance, U/L, priority.</li>
+      <li><b>Submit all for verification</b> — ഇത് ടിക്ക് ചെയ്തു തന്നെ വിടുക.</li>
+      <li><span class="btn">Create Cases</span> അമർത്തുക.</li>
+    </ol>
+    <div class="tip">
+      <b>അന്നുതന്നെ ചെയ്യുക</b>
+      <p>ദിവസങ്ങൾ കഴിഞ്ഞ് കേസ് ചേർത്താൽ ആപ്പ് കാരണം ചോദിക്കും. എടുത്ത അന്നുതന്നെ
+         ചേർത്താൽ ഒരിക്കലും ചോദിക്കില്ല.</p>
+    </div>
+  </div>
+</div>
+
+<h3>Cash in — visit ഇല്ലാതെ കിട്ടുന്ന പണം</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/30_cash_in_blank.png" alt="Record Cash Collected">
+    <div class="cap">Cash in</div>
+  </div>
+  <div class="says">
+    <p>പണം എപ്പോഴും പേപ്പർ ജോലിക്കൊപ്പം വരില്ല. വേറെ ആവശ്യത്തിന് പോയപ്പോൾ
+       ഡോക്ടർ പഴയ കുടിശ്ശിക തീർക്കുന്നു, പോകുന്ന വഴി റിസപ്ഷനിസ്റ്റ് ഒരു കവർ
+       തരുന്നു, കഴിഞ്ഞ ആഴ്ച വേറൊരാൾ എത്തിച്ച കേസിന്റെ പണം ആരെങ്കിലും തരുന്നു.</p>
+    <p>മുമ്പ് ഇത് രേഖപ്പെടുത്താൻ ഒരു visit-ലെ payment box മാത്രമേ ഉണ്ടായിരുന്നുള്ളൂ —
+       അതായത് നടക്കാത്ത ഒരു visit ഉണ്ടാക്കേണ്ടി വന്നു. ഇനി അത് വേണ്ട. DO-യിലെ
+       <span class="btn">Cash in</span> ടാപ്പ് ചെയ്യുക.</p>
+    <ol class="marks">
+      <li><b>ഏത് ഡോക്ടറിൽ / ക്ലിനിക്കിൽ നിന്നാണ്</b> പണം കിട്ടിയത്.</li>
+      <li><b>എത്ര രൂപ.</b></li>
+      <li><b>എങ്ങനെ കിട്ടി</b> — Cash, Cheque അല്ലെങ്കിൽ UPI / Online.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/31_cash_in_filled.png" alt="Cash in filled in">
+    <div class="cap">പൂരിപ്പിച്ചു, രേഖപ്പെടുത്താൻ തയ്യാർ</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>തുക.</b> സഹായകമാണെങ്കിൽ ഒരു കുറിപ്പും ചേർക്കാം — "old bill settled
+          at the door".</li>
+      <li><span class="btn">Record</span> അമർത്തുക.</li>
+    </ol>
+    <div class="tip">
+      <b>ഉടൻ തന്നെ എല്ലായിടത്തും കണക്കിൽ വരും</b>
+      <p>ഒരു visit രേഖപ്പെടുത്തുന്ന അതേ മൂന്ന് കാര്യങ്ങൾ തന്നെയാണ് ഇത്,
+         അതുകൊണ്ട് കണക്കും ഒരുപോലെ: ഇന്നത്തെ collected തുകയിൽ, നിങ്ങളുടെ day
+         sheet-ൽ, നിങ്ങളുടെ collection target-ൽ, മാനേജരുടെ റിപ്പോർട്ടിൽ. രൊക്കം
+         പണമാണെങ്കിൽ അത് തനിയെ നിങ്ങളുടെ float-ൽ പോകും —
+         <span class="btn">Cash into My Float</span> വേറെ ചെയ്യേണ്ട.</p>
+    </div>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/32_after_cash_in.png" alt="My Day after recording cash">
+    <div class="cap">My Day-യിൽ തിരിച്ചെത്തുമ്പോൾ</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>ഇന്നത്തെ collected തുക കൂടിയിരിക്കും</b> — അതിനുവേണ്ടി ഇല്ലാത്ത ഒരു
+          visit ഉണ്ടാക്കേണ്ടി വന്നില്ല.</li>
+    </ol>
+    <div class="warn">
+      <b>കൈയിൽ കിട്ടിയ പണത്തിന് മാത്രം</b>
+      <p>പണം കൈയിൽ കിട്ടുമ്പോൾ രേഖപ്പെടുത്തുക, വാക്ക് കിട്ടുമ്പോഴല്ല. Cheque-ഉം
+         UPI-യും നേരിട്ട് ബാങ്കിൽ എത്തും; രൊക്കം പണം മാത്രമേ float-ൽ പോകൂ.</p>
+    </div>
+  </div>
+</div>
+
+<h3>വാങ്ങിയ പണം — നിങ്ങളുടെ float-ൽ ഇടുക</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/17b_cash_to_float.png" alt="Cash taken into the float">
+    <div class="cap">പണത്തിന്റെ നീക്കം</div>
+  </div>
+  <div class="says">
+    <p>ക്ലിനിക്കിൽ നിന്ന് <b>രൊക്കം പണം (cash)</b> വാങ്ങിയാൽ, അത് നിങ്ങളുടെ
+       കൈയിലുണ്ട് എന്ന് സിസ്റ്റത്തോട് പറയുക. പൂർത്തിയായ visit-ൽ മൂന്ന് കുത്തുകൾ
+       ടാപ്പ് ചെയ്ത് <span class="btn">Cash into My Float</span>
+       തിരഞ്ഞെടുക്കുക.</p>
+    <ol class="marks">
+      <li><b>തുക</b> — ക്ലിനിക്കിൽ നിന്ന് നിങ്ങളുടെ കൈയിലേക്ക് വന്നത്.</li>
+      <li><b>Posted</b> — പണം നിങ്ങളുടെ കൈയിലുണ്ട് എന്ന് ഓഫീസിന് ഇപ്പോൾ കാണാം.</li>
+    </ol>
+    <p>ഇത് പണം തിരികെ ഏൽപ്പിക്കുന്നതിന് പകരമല്ല. <em>പണം ഇപ്പോൾ എവിടെയാണ്</em>
+       എന്ന് രേഖപ്പെടുത്തുക മാത്രമാണ് — എന്നിട്ട് ആരും വിളിച്ച് ചോദിക്കേണ്ടി
+       വരില്ല.</p>
+    <div class="tip">
+      <b>Cash-ന് മാത്രം</b>
+      <p>Cheque-ഉം UPI-യും നേരിട്ട് ബാങ്കിൽ എത്തും. രൊക്കം പണം മാത്രമേ float-ൽ
+         ഇടാവൂ.</p>
+    </div>
+  </div>
+</div>
+
+<h3>My Cash</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/22_cash.png" alt="My Cash">
+    <div class="cap">My Cash</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>നിങ്ങളുടെ float</b> — ഓഫീസ് തന്ന പണവും ഇപ്പോൾ ബാക്കിയുള്ളതും.</li>
+    </ol>
+    <p>My Day-യുടെ താഴെയും <b>Cash in hand</b> കാണിക്കും. വാങ്ങിയ പണം ഇതുവരെ
+       float-ൽ ഇട്ടിട്ടില്ലെങ്കിൽ അവിടെ ഓർമ്മപ്പെടുത്തും.</p>
+    <div class="warn">
+      <b>പണം ഏൽപ്പിക്കാൻ മറക്കരുത്</b>
+      <p>രേഖപ്പെടുത്തുന്നത് പണം തിരികെ കൊടുക്കുന്നതിന് തുല്യമല്ല. പതിവുപോലെ
+         ഓഫീസിൽ പണം ഏൽപ്പിക്കുക — രാത്രി മുഴുവൻ കൈയിൽ വെക്കരുത്.</p>
+    </div>
+  </div>
+</div>
+
+<h3>My Visits</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/24_visits.png" alt="My Visits">
+    <div class="cap">My Visits</div>
+  </div>
+  <div class="says">
+    <p>നിങ്ങൾ ചെയ്ത എല്ലാ ക്ലിനിക് സന്ദർശനങ്ങളും, ഏറ്റവും പുതിയത് ആദ്യം,
+       ഓരോന്നിൽ നിന്നും കിട്ടിയത് സഹിതം — എത്ര കേസ്, എത്ര പണം.</p>
+    <p>കഴിഞ്ഞ ആഴ്ച പോയ ഒരു ക്ലിനിക്കിനെക്കുറിച്ച് ആരെങ്കിലും ചോദിച്ചാൽ,
+       അല്ലെങ്കിൽ ഈ മാസം അവിടെ പോയോ എന്ന് നോക്കാൻ, ഇത് ഉപയോഗിക്കുക.</p>
+  </div>
+</div>
+
+<h3>My Day Sheets</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/25_day_sheets.png" alt="My Day Sheets">
+    <div class="cap">My Day Sheets</div>
+  </div>
+  <div class="says">
+    <p><b>ഇത് നിങ്ങൾ എഴുതേണ്ട.</b> ഓരോ ദിവസവും അവസാനിക്കുമ്പോൾ നിങ്ങളുടെ
+       visits, travel, attendance എന്നിവയിൽ നിന്ന് ഈ sheet തനിയെ ഉണ്ടാകും,
+       എന്നിട്ട് മാനേജർമാരുടെ അടുത്തേക്ക് പോകും — ആദ്യം Operational Manager,
+       പിന്നെ Marketing Manager.</p>
+    <p>ഒരു ദിവസം <b>തിരിച്ചു വന്നാൽ</b> ഇവിടെ നോക്കുക. എന്താണ് ശരിയാക്കേണ്ടത്
+       എന്ന് sheet-ൽ പറയും. ശരിയാക്കിയാൽ അത് വീണ്ടും അവരുടെ അടുത്തേക്ക് പോകും.</p>
+    <div class="tip">
+      <b>ആദ്യ ദിവസം ഒഴിഞ്ഞു കിടക്കും</b>
+      <p>"No day sheets yet" എന്നാൽ നിങ്ങളുടെ ഒരു ദിവസവും ഇതുവരെ അടച്ച്
+         മുകളിലേക്ക് പോയിട്ടില്ല എന്നാണ്. അത് തനിയെ വന്നുകൊള്ളും.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">12.</span>ദിവസം അവസാനിപ്പിക്കൽ</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/26_travel_end.png" alt="Closing odometer">
+    <div class="cap">അവസാനത്തെ കിലോമീറ്റർ</div>
+  </div>
+  <div class="says">
+    <p>DO-യിലെ <span class="btn">Travel</span> അവസാനമായി ഒരിക്കൽ കൂടി തുറക്കുക.</p>
+    <ol class="marks">
+      <li><b>End Reading</b> — ഇപ്പോഴത്തെ ഓഡോമീറ്റർ വായന.</li>
+      <li><b>End Photo</b> — രാവിലത്തെ പോലെ തന്നെ ഒരു ഫോട്ടോ എടുക്കുക.</li>
+    </ol>
+    <p><span class="btn">Save</span> അമർത്തുക, പിന്നെ
+       <span class="btn">End the Day</span> അമർത്തുക.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/27_travel_claim.png" alt="The travel claim">
+    <div class="cap">നിങ്ങളുടെ ക്ലെയിം, തനിയെ കണക്കാക്കിയത്</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>ദൂരവും പണവും.</b> 48,263 − 48,210 = 53 km, നിങ്ങളുടെ നിരക്കിൽ
+          ക്ലെയിം. ഇത് നിങ്ങൾ ഒരിക്കലും കണക്കുകൂട്ടേണ്ട.</li>
+      <li>സ്ഥിതി ഇപ്പോൾ <b>Submitted</b> — അത് മാനേജരുടെ അടുത്ത് എത്തി.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/29_day_ended.png" alt="Day ended">
+    <div class="cap">ദിവസം അവസാനിച്ചു</div>
+  </div>
+  <div class="says">
+    <p>My Day-യിലേക്ക് തിരിച്ചു പോയി പച്ച കാർഡിലെ
+       <span class="btn">End the day</span> അമർത്തുക.</p>
+    <ol class="marks">
+      <li>അത് വീണ്ടും <b>Not started yet</b> ആയി മാറും, ജോലി ചെയ്ത സമയവും
+          കാണിക്കും.</li>
+    </ol>
+    <p>ഇത്രയേ ഉള്ളൂ ഒരു ദിവസം. നിങ്ങളുടെ day sheet രാത്രിയിൽ തനിയെ
+       ഉണ്ടാക്കിക്കൊള്ളും.</p>
+  </div>
+</div>
+
+<h2><span class="num">13.</span>എന്തെങ്കിലും തെറ്റിയാൽ</h2>
+<table>
+  <tr><th>സ്ക്രീനിൽ കാണുന്നത്</th><th>എന്ത് ചെയ്യണം</th></tr>
+  <tr>
+    <td class="what msg">"Location is off"</td>
+    <td>browser-ന് Location ഓൺ ചെയ്യുക, ഫോണിന്റെ മുകളിൽ അമ്പടയാളം വരുന്നതുവരെ
+        കാത്തിരിക്കുക, വീണ്ടും ടാപ്പ് ചെയ്യുക. I'm Here-നും Finish-നും ഇത്
+        വേണം.</td>
+  </tr>
+  <tr>
+    <td class="what msg">"This check-in was … m from the clinic. Add a short reason"</td>
+    <td>ക്ലിനിക്കിൽ നിന്ന് അകലെ നിന്നാണ് check in ചെയ്തത്. ഒരു ചെറിയ സത്യസന്ധമായ
+        കാരണം എഴുതിയാൽ visit അടയ്ക്കാം.</td>
+  </tr>
+  <tr>
+    <td class="what msg">"GPS not checked — this clinic has no location on the map"</td>
+    <td>ഈ ക്ലിനിക്കിന്റെ സ്ഥലം ആരും ഇതുവരെ അടയാളപ്പെടുത്തിയിട്ടില്ല. നിങ്ങൾ
+        അവിടെ നിൽക്കുകയാണെങ്കിൽ visit തുറന്ന് <b>Pin Clinic Here</b> ഉപയോഗിക്കുക.
+        അത് നിങ്ങൾക്ക് ശേഷം വരുന്ന എല്ലാവർക്കും സഹായമാകും.</td>
+  </tr>
+  <tr>
+    <td class="what msg">"Record what happened at the clinic before closing the visit."</td>
+    <td><b>What happened</b>-ൽ ഒരു outcome എങ്കിലും ടാപ്പ് ചെയ്യുക.</td>
+  </tr>
+  <tr>
+    <td class="what msg">"… case(s) have not been submitted"</td>
+    <td>ഒരു slip ഇപ്പോഴും തുറന്നു കിടക്കുന്നു. അത് submit ചെയ്യുക, അല്ലെങ്കിൽ
+        തെറ്റി തുടങ്ങിയതാണെങ്കിൽ delete ചെയ്യുക.</td>
+  </tr>
+  <tr>
+    <td class="what msg">"Say how the payment was received."</td>
+    <td>തുക കൊടുത്തു, പക്ഷേ Cash / Cheque / UPI പറഞ്ഞില്ല. ഒന്ന് ടാപ്പ് ചെയ്യുക.</td>
+  </tr>
+  <tr>
+    <td class="what msg">"A photo of the opening reading is required."</td>
+    <td>ദിവസം തുടങ്ങുന്നതിനു മുമ്പ് ഓഡോമീറ്ററിന്റെ ഫോട്ടോ എടുക്കുക.</td>
+  </tr>
+  <tr>
+    <td class="what msg">"Nothing planned for today."</td>
+    <td>നിങ്ങളുടെ റൗണ്ട് തയ്യാറാക്കിയിട്ടില്ല. beat തയ്യാറാക്കാൻ മാനേജരോട്
+        പറയുക.</td>
+  </tr>
+  <tr>
+    <td class="what msg">"Not set up for attendance"</td>
+    <td>നിങ്ങളുടെ login employee രേഖയുമായി ബന്ധിപ്പിച്ചിട്ടില്ല. HR-നോട് പറയുക.</td>
+  </tr>
+  <tr>
+    <td class="what">ലിസ്റ്റിൽ ഒരു ക്ലിനിക് കാണുന്നില്ല</td>
+    <td>നിങ്ങളുടെ സ്വന്തം റൂട്ടിലെ ക്ലിനിക്കുകൾ മാത്രമേ കാണൂ. നിങ്ങളുടെ beat-ൽ
+        അത് ചേർക്കാൻ മാനേജരോട് പറയുക.</td>
+  </tr>
+  <tr>
+    <td class="what">ഇന്നലത്തെ കാര്യം എഴുതാൻ മറന്നു</td>
+    <td>My Day-യിൽ തീയതിയുടെ അടുത്തുള്ള പിന്നോട്ടുള്ള അമ്പടയാളം ഉപയോഗിക്കുക.
+        കുറച്ച് ദിവസം പിന്നോട്ട് പോകാം — അതിലധികം പറ്റില്ല, മുന്നോട്ട്
+        ഒരിക്കലും പറ്റില്ല.</td>
+  </tr>
+</table>
+
+<h2><span class="num">14.</span>ഓർത്തിരിക്കേണ്ട ഏഴ് കാര്യങ്ങൾ</h2>
+<ol>
+  <li><b>ആദ്യം Start my day.</b> അത് ചെയ്യുന്നതുവരെ ഒന്നും കണക്കിൽ വരില്ല.</li>
+  <li><b>ക്ലിനിക്കിന്റെ വാതിൽക്കൽ വെച്ച് I'm Here</b> അമർത്തുക, വണ്ടിയിൽ
+      വെച്ചല്ല.</li>
+  <li><b>ഓരോ രോഗിക്കും ഒരു slip</b>, പോകുന്നതിനു മുമ്പ് ഓരോന്നും submit ചെയ്യുക.</li>
+  <li><b>Visit finish ചെയ്യുന്നതിനു മുമ്പ് എന്ത് നടന്നു എന്ന് പറയുക</b> —
+      നിങ്ങളുടെ ദിവസം വിലയിരുത്തുന്നത് അതുവെച്ചാണ്.</li>
+  <li><b>ദിവസത്തിൽ രണ്ടു തവണ ഓഡോമീറ്ററിന്റെ ഫോട്ടോ</b> എടുക്കുക. ഫോട്ടോ
+      ഇല്ലെങ്കിൽ ക്ലെയിമും ഇല്ല.</li>
+  <li><b>കേസുകൾ അന്നുതന്നെ ചേർക്കുക.</b> നാളെ രാവിലെ അത് ഒരു ചോദ്യമായി മാറും.</li>
+  <li><b>വാങ്ങിയ പണം അന്നുതന്നെ float-ൽ ഇടുക</b>, കഴിയുന്നത്ര വേഗം ഓഫീസിൽ
+      ഏൽപ്പിക്കുക. Visit ഇല്ലാതെ വാതിൽക്കൽ കിട്ടിയ പണം
+      <span class="btn">Cash in</span> വഴി ചേർക്കുക — അതിനുവേണ്ടി ഒരിക്കലും
+      ഇല്ലാത്ത ഒരു visit ഉണ്ടാക്കരുത്.</li>
+</ol>
+
+<footer>
+  Arabian Dental Lab · Field Work — Field Executive ഗൈഡ് (മലയാളം).<br>
+  ഈ ഗൈഡിലെ എല്ലാ സ്ക്രീൻഷോട്ടുകളും യഥാർത്ഥ ആപ്ലിക്കേഷന്റേതാണ്, ഇവിടെ പറഞ്ഞ
+  ഘട്ടങ്ങൾ ചെയ്തുകൊണ്ട് എടുത്തതാണ് — ലൈവ് ഡാറ്റാബേസിന്റെ ഒരു പകർപ്പിൽ. അതുകൊണ്ട്
+  ഇതിൽ കാണുന്ന ക്ലിനിക്കുകളും ഡോക്ടർമാരും ജോലികളും യഥാർത്ഥമാണ്. ഈ രേഖ
+  അതനുസരിച്ച് സൂക്ഷിക്കുക.<br>
+  ഇംഗ്ലീഷ് പതിപ്പ്: <b>Field_Executive_Guide.pdf</b>
+</footer>
+
+</div>
+</body>
+</html>

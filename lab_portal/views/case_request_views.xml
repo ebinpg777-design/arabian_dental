@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_case_request_form" model="ir.ui.view">
+        <field name="name">lab.case.request.form</field>
+        <field name="model">lab.case.request</field>
+        <field name="arch" type="xml">
+            <form string="Case Request">
+                <header>
+                    <button name="action_mark_reviewed" type="object" string="Mark Reviewed"
+                            invisible="state != 'new'"/>
+                    <button name="action_convert_to_case" type="object" class="btn-primary"
+                            string="Convert to Case"
+                            invisible="state in ('converted','rejected')"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state in ('converted','rejected')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="new,reviewed,converted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_case" type="object" class="oe_stat_button"
+                                icon="fa-file-text-o" string="Case"
+                                invisible="not sale_order_id"/>
+                    </div>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="state != 'new'"/>
+                            <field name="patient" readonly="state != 'new'"/>
+                            <field name="age" readonly="state != 'new'"/>
+                            <field name="gender" readonly="state != 'new'"/>
+                        </group>
+                        <group>
+                            <field name="modification" readonly="state != 'new'"/>
+                            <field name="instruction" readonly="state != 'new'"/>
+                            <field name="sale_order_id" readonly="1"
+                                   invisible="not sale_order_id"/>
+                            <field name="staff_note"/>
+                        </group>
+                    </group>
+                    <field name="line_ids" readonly="state != 'new'">
+                        <list editable="bottom">
+                            <field name="product_id"/>
+                            <field name="ul"/>
+                            <field name="quantity"/>
+                            <field name="note"/>
+                        </list>
+                    </field>
+                    <field name="note" placeholder="What the doctor wrote…"/>
+                    <field name="attachment_ids" widget="many2many_binary"
+                           string="Scans / Files"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_case_request_list" model="ir.ui.view">
+        <field name="name">lab.case.request.list</field>
+        <field name="model">lab.case.request</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="state == 'new'" decoration-muted="state == 'rejected'">
+                <field name="name"/>
+                <field name="create_date" string="Received"/>
+                <field name="partner_id"/>
+                <field name="patient"/>
+                <field name="line_count" string="Items"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'new'"
+                       decoration-success="state == 'converted'"
+                       decoration-danger="state == 'rejected'"/>
+                <field name="sale_order_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_case_request" model="ir.actions.act_window">
+        <field name="name">Case Requests (Digital Rx)</field>
+        <field name="res_model">lab.case.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No case requests yet</p>
+            <p>Prescriptions doctors submit through the portal land here to be checked
+               and turned into cases.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_case_request" name="Case Requests"
+              parent="sale.sale_order_menu" sequence="23"
+              action="action_case_request"
+              groups="lab_order_control.group_lab_order_checker,lab_fieldwork.group_fieldwork_manager"/>
+</odoo>

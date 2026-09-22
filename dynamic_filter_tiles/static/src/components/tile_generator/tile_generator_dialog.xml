@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="dynamic_filter_tiles.TileGeneratorDialog">
+        <Dialog title="'Generate a tile set'" size="'md'">
+            <p class="text-muted">
+                Pick the field the tiles should split on. One tile is created per value,
+                with a matching colour and icon - edit or reorder them afterwards.
+            </p>
+
+            <div class="o_dft_gen_fields">
+                <div t-foreach="props.fields" t-as="field" t-key="field.name"
+                     class="o_dft_gen_field"
+                     t-att-class="{ o_dft_gen_selected: field.name === state.selected }"
+                     t-on-click="() => this.select(field.name)">
+                    <div class="o_dft_gen_field_head">
+                        <i class="fa fa-fw"
+                           t-att-class="field.name === state.selected ? 'fa-dot-circle-o' : 'fa-circle-o'"/>
+                        <span class="o_dft_gen_field_name" t-out="field.string"/>
+                        <span class="o_dft_gen_field_tech" t-out="field.name"/>
+                        <span class="o_dft_gen_field_count">
+                            <t t-esc="field.values.length"/> tiles
+                        </span>
+                    </div>
+                    <div class="o_dft_gen_chips">
+                        <span t-foreach="field.values" t-as="value" t-key="value.value"
+                              class="o_dft_gen_chip" t-att-style="chipStyle(value_index)"
+                              t-out="value.label"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-check mt-3" t-if="props.hasTiles">
+                <input type="checkbox" class="form-check-input" id="dft_gen_replace"
+                       t-model="state.replace"/>
+                <label class="form-check-label" for="dft_gen_replace">
+                    Delete the tiles this model already has
+                </label>
+            </div>
+
+                <div class="o_dft_gen_rows mt-3">
+                    <span class="o_dft_gen_rows_label">Put them on</span>
+                    <button t-foreach="rowChoices" t-as="row" t-key="row"
+                            class="o_dft_gen_row"
+                            t-att-class="{ o_dft_gen_row_active: state.row === row }"
+                            t-on-click="() => this.pickRow(row)">
+                        <t t-esc="rowLabel(row)"/>
+                    </button>
+                </div>
+
+                <div class="form-check mt-2" t-if="props.actionName">
+                    <input type="checkbox" class="form-check-input" id="dft_gen_action"
+                           t-model="state.thisActionOnly"/>
+                    <label class="form-check-label" for="dft_gen_action">
+                        Only on <b t-out="props.actionName"/> — leave unticked to put them on every
+                        list and kanban view of this model
+                    </label>
+                </div>
+
+            <t t-set-slot="footer">
+                <button class="btn btn-primary" t-att-disabled="state.generating or !state.selected"
+                        t-on-click="confirm">
+                    <i class="fa fa-magic me-1"/>
+                    Generate tiles
+                </button>
+                <button class="btn btn-secondary" t-on-click="() => this.props.close()">
+                    Cancel
+                </button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>

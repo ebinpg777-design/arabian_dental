@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Manufacturer geometries.  Figures come from the published templates; the
+        margins are the distance from the paper edge to the first label, which is
+        what the renderer needs, not the "top margin" printed on the box.
+    -->
+    <data noupdate="1">
+
+        <!-- ============ Avery, A4 ============ -->
+        <record id="stock_avery_l7160" model="epg.label.stock">
+            <field name="name">Avery L7160 - Address</field>
+            <field name="code">L7160</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">10</field>
+            <field name="note">21 per sheet, 3 × 7</field>
+            <field name="label_width">63.5</field>
+            <field name="label_height">38.1</field>
+            <field name="page_format">A4</field>
+            <field name="margin_top">15.1</field>
+            <field name="margin_bottom">15.1</field>
+            <field name="margin_left">7.2</field>
+            <field name="margin_right">7.2</field>
+            <field name="column_gap">2.5</field>
+            <field name="row_gap">0</field>
+            <field name="columns">3</field>
+            <field name="rows">7</field>
+        </record>
+
+        <record id="stock_avery_l7161" model="epg.label.stock">
+            <field name="name">Avery L7161 - Address</field>
+            <field name="code">L7161</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">11</field>
+            <field name="note">18 per sheet, 3 × 6</field>
+            <field name="label_width">63.5</field>
+            <field name="label_height">46.6</field>
+            <field name="page_format">A4</field>
+            <field name="margin_top">8.7</field>
+            <field name="margin_bottom">8.7</field>
+            <field name="margin_left">7.2</field>
+            <field name="margin_right">7.2</field>
+            <field name="column_gap">2.5</field>
+            <field name="row_gap">0</field>
+            <field name="columns">3</field>
+            <field name="rows">6</field>
+        </record>
+
+        <record id="stock_avery_l7162" model="epg.label.stock">
+            <field name="name">Avery L7162 - Address</field>
+            <field name="code">L7162</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">12</field>
+            <field name="note">16 per sheet, 2 × 8</field>
+            <field name="label_width">99.1</field>
+            <field name="label_height">33.9</field>
+            <field name="page_format">A4</field>
+            <field name="margin_top">12.9</field>
+            <field name="margin_bottom">12.9</field>
+            <field name="margin_left">4.65</field>
+            <field name="margin_right">4.65</field>
+            <field name="column_gap">2.5</field>
+            <field name="row_gap">0</field>
+            <field name="columns">2</field>
+            <field name="rows">8</field>
+        </record>
+
+        <record id="stock_avery_l7163" model="epg.label.stock">
+            <field name="name">Avery L7163 - Shipping</field>
+            <field name="code">L7163</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">13</field>
+            <field name="note">14 per sheet, 2 × 7</field>
+            <field name="label_width">99.1</field>
+            <field name="label_height">38.1</field>
+            <field name="page_format">A4</field>
+            <field name="margin_top">15.1</field>
+            <field name="margin_bottom">15.1</field>
+            <field name="margin_left">4.65</field>
+            <field name="margin_right">4.65</field>
+            <field name="column_gap">2.5</field>
+            <field name="row_gap">0</field>
+            <field name="columns">2</field>
+            <field name="rows">7</field>
+        </record>
+
+        <record id="stock_avery_l7165" model="epg.label.stock">
+            <field name="name">Avery L7165 - Parcel</field>
+            <field name="code">L7165</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">14</field>
+            <field name="note">8 per sheet, 2 × 4</field>
+            <field name="label_width">99.1</field>
+            <field name="label_height">67.7</field>
+            <field name="page_format">A4</field>
+            <field name="margin_top">13.1</field>
+            <field name="margin_bottom">13.1</field>
+            <field name="margin_left">4.65</field>
+            <field name="margin_right">4.65</field>
+            <field name="column_gap">2.5</field>
+            <field name="row_gap">0</field>
+            <field name="columns">2</field>
+            <field name="rows">4</field>
+        </record>
+
+        <record id="stock_avery_l7651" model="epg.label.stock">
+            <field name="name">Avery L7651 - Mini</field>
+            <field name="code">L7651</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">15</field>
+            <field name="note">65 per sheet, 5 × 13</field>
+            <field name="label_width">38.1</field>
+            <field name="label_height">21.2</field>
+            <field name="page_format">A4</field>
+            <field name="margin_top">10.7</field>
+            <field name="margin_bottom">10.7</field>
+            <field name="margin_left">4.75</field>
+            <field name="margin_right">4.75</field>
+            <field name="column_gap">2.5</field>
+            <field name="row_gap">0</field>
+            <field name="columns">5</field>
+            <field name="rows">13</field>
+        </record>
+
+        <record id="stock_avery_l7654" model="epg.label.stock">
+            <field name="name">Avery L7654 - Small Product</field>
+            <field name="code">L7654</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">16</field>
+            <field name="note">40 per sheet, 4 × 10</field>
+            <field name="label_width">45.7</field>
+            <field name="label_height">25.4</field>
+            <field name="page_format">A4</field>
+            <field name="margin_top">21.5</field>
+            <field name="margin_bottom">21.5</field>
+            <field name="margin_left">9.75</field>
+            <field name="margin_right">9.75</field>
+            <field name="column_gap">2.5</field>
+            <field name="row_gap">0</field>
+            <field name="columns">4</field>
+            <field name="rows">10</field>
+        </record>
+
+        <!-- ============ Avery, US Letter ============ -->
+        <record id="stock_avery_5160" model="epg.label.stock">
+            <field name="name">Avery 5160 - Address</field>
+            <field name="code">5160</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">20</field>
+            <field name="note">30 per sheet, 3 × 10, 2⅝" × 1"</field>
+            <field name="unit">in</field>
+            <field name="label_width">2.625</field>
+            <field name="label_height">1.0</field>
+            <field name="page_format">Letter</field>
+            <field name="margin_top">0.5</field>
+            <field name="margin_bottom">0.5</field>
+            <field name="margin_left">0.1875</field>
+            <field name="margin_right">0.1875</field>
+            <field name="column_gap">0.125</field>
+            <field name="row_gap">0</field>
+            <field name="columns">3</field>
+            <field name="rows">10</field>
+        </record>
+
+        <record id="stock_avery_5161" model="epg.label.stock">
+            <field name="name">Avery 5161 - Address</field>
+            <field name="code">5161</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">21</field>
+            <field name="note">20 per sheet, 2 × 10, 4" × 1"</field>
+            <field name="unit">in</field>
+            <field name="label_width">4.0</field>
+            <field name="label_height">1.0</field>
+            <field name="page_format">Letter</field>
+            <field name="margin_top">0.5</field>
+            <field name="margin_bottom">0.5</field>
+            <field name="margin_left">0.15625</field>
+            <field name="margin_right">0.15625</field>
+            <field name="column_gap">0.1875</field>
+            <field name="row_gap">0</field>
+            <field name="columns">2</field>
+            <field name="rows">10</field>
+        </record>
+
+        <record id="stock_avery_5163" model="epg.label.stock">
+            <field name="name">Avery 5163 - Shipping</field>
+            <field name="code">5163</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">22</field>
+            <field name="note">10 per sheet, 2 × 5, 4" × 2"</field>
+            <field name="unit">in</field>
+            <field name="label_width">4.0</field>
+            <field name="label_height">2.0</field>
+            <field name="page_format">Letter</field>
+            <field name="margin_top">0.5</field>
+            <field name="margin_bottom">0.5</field>
+            <field name="margin_left">0.15625</field>
+            <field name="margin_right">0.15625</field>
+            <field name="column_gap">0.1875</field>
+            <field name="row_gap">0</field>
+            <field name="columns">2</field>
+            <field name="rows">5</field>
+        </record>
+
+        <record id="stock_avery_5167" model="epg.label.stock">
+            <field name="name">Avery 5167 - Return Address</field>
+            <field name="code">5167</field>
+            <field name="vendor">avery</field>
+            <field name="sequence">23</field>
+            <field name="note">80 per sheet, 4 × 20, 1¾" × ½"</field>
+            <field name="unit">in</field>
+            <field name="label_width">1.75</field>
+            <field name="label_height">0.5</field>
+            <field name="page_format">Letter</field>
+            <field name="margin_top">0.5</field>
+            <field name="margin_bottom">0.5</field>
+            <field name="margin_left">0.28125</field>
+            <field name="margin_right">0.28125</field>
+            <field name="column_gap">0.3125</field>
+            <field name="row_gap">0</field>
+            <field name="columns">4</field>
+            <field name="rows">20</field>
+        </record>
+
+        <!-- ============ Dymo, roll ============ -->
+        <record id="stock_dymo_99010" model="epg.label.stock">
+            <field name="name">Dymo 99010 - Standard Address</field>
+            <field name="code">99010</field>
+            <field name="vendor">dymo</field>
+            <field name="sequence">30</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">89</field>
+            <field name="label_height">28</field>
+        </record>
+
+        <record id="stock_dymo_99012" model="epg.label.stock">
+            <field name="name">Dymo 99012 - Large Address</field>
+            <field name="code">99012</field>
+            <field name="vendor">dymo</field>
+            <field name="sequence">31</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">89</field>
+            <field name="label_height">36</field>
+        </record>
+
+        <record id="stock_dymo_99014" model="epg.label.stock">
+            <field name="name">Dymo 99014 - Shipping</field>
+            <field name="code">99014</field>
+            <field name="vendor">dymo</field>
+            <field name="sequence">32</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">101</field>
+            <field name="label_height">54</field>
+        </record>
+
+        <record id="stock_dymo_11354" model="epg.label.stock">
+            <field name="name">Dymo 11354 - Multi-purpose</field>
+            <field name="code">11354</field>
+            <field name="vendor">dymo</field>
+            <field name="sequence">33</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">57</field>
+            <field name="label_height">32</field>
+        </record>
+
+        <!-- ============ Zebra / thermal, roll ============ -->
+        <record id="stock_zebra_100x150" model="epg.label.stock">
+            <field name="name">Thermal 100 × 150 mm - Shipping</field>
+            <field name="code">Z100150</field>
+            <field name="vendor">zebra</field>
+            <field name="sequence">40</field>
+            <field name="note">The 4" × 6" carrier label</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">100</field>
+            <field name="label_height">150</field>
+        </record>
+
+        <record id="stock_zebra_100x100" model="epg.label.stock">
+            <field name="name">Thermal 100 × 100 mm</field>
+            <field name="code">Z100100</field>
+            <field name="vendor">zebra</field>
+            <field name="sequence">41</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">100</field>
+            <field name="label_height">100</field>
+        </record>
+
+        <record id="stock_zebra_76x51" model="epg.label.stock">
+            <field name="name">Thermal 76 × 51 mm</field>
+            <field name="code">Z7651</field>
+            <field name="vendor">zebra</field>
+            <field name="sequence">42</field>
+            <field name="note">3" × 2"</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">76</field>
+            <field name="label_height">51</field>
+        </record>
+
+        <record id="stock_zebra_57x32" model="epg.label.stock">
+            <field name="name">Thermal 57 × 32 mm</field>
+            <field name="code">Z5732</field>
+            <field name="vendor">zebra</field>
+            <field name="sequence">43</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">57</field>
+            <field name="label_height">32</field>
+        </record>
+
+        <record id="stock_zebra_50x25" model="epg.label.stock">
+            <field name="name">Thermal 50 × 25 mm</field>
+            <field name="code">Z5025</field>
+            <field name="vendor">zebra</field>
+            <field name="sequence">44</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">50</field>
+            <field name="label_height">25</field>
+        </record>
+
+        <record id="stock_zebra_38x19" model="epg.label.stock">
+            <field name="name">Thermal 38 × 19 mm - Small Part</field>
+            <field name="code">Z3819</field>
+            <field name="vendor">zebra</field>
+            <field name="sequence">45</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">38</field>
+            <field name="label_height">19</field>
+        </record>
+
+        <record id="stock_zebra_102x25" model="epg.label.stock">
+            <field name="name">Thermal 102 × 25 mm - Shelf Edge</field>
+            <field name="code">Z10225</field>
+            <field name="vendor">zebra</field>
+            <field name="sequence">46</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">102</field>
+            <field name="label_height">25</field>
+        </record>
+
+        <!-- ============ Brother ============ -->
+        <record id="stock_brother_dk11201" model="epg.label.stock">
+            <field name="name">Brother DK-11201 - Standard Address</field>
+            <field name="code">DK-11201</field>
+            <field name="vendor">brother</field>
+            <field name="sequence">50</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">90</field>
+            <field name="label_height">29</field>
+        </record>
+
+        <record id="stock_brother_dk11208" model="epg.label.stock">
+            <field name="name">Brother DK-11208 - Large Address</field>
+            <field name="code">DK-11208</field>
+            <field name="vendor">brother</field>
+            <field name="sequence">51</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">90</field>
+            <field name="label_height">38</field>
+        </record>
+
+        <record id="stock_brother_dk11241" model="epg.label.stock">
+            <field name="name">Brother DK-11241 - Large Shipping</field>
+            <field name="code">DK-11241</field>
+            <field name="vendor">brother</field>
+            <field name="sequence">52</field>
+            <field name="layout_mode">roll</field>
+            <field name="page_format">custom</field>
+            <field name="label_width">102</field>
+            <field name="label_height">152</field>
+        </record>
+
+    </data>
+</odoo>

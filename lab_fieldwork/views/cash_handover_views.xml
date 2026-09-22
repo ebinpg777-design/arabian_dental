@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Collected cash going back to the office, from both sides of the desk:
+        the executive who hands it over (on a phone) and the office that counts
+        it (at a desk, with an envelope in one hand).
+    -->
+
+    <!-- The slip. Full form: the code is big enough to read across a desk. -->
+    <record id="view_cash_handover_form" model="ir.ui.view">
+        <field name="name">lab.cash.handover.form</field>
+        <field name="model">lab.cash.handover</field>
+        <field name="arch" type="xml">
+            <form string="Cash Handover" class="o_fw_form">
+                <header>
+                    <button name="action_declare" type="object" string="Hand Over"
+                            class="btn-primary" invisible="state != 'draft'"
+                            data-hotkey="q"/>
+                    <button name="action_confirm_receipt" type="object"
+                            string="Confirm Receipt" class="btn-primary"
+                            invisible="state != 'declared' or not can_receive"/>
+                    <button name="action_print_receipt" type="object" string="Print Receipt"
+                            invisible="state not in ('declared', 'received')"/>
+                    <button name="action_draft" type="object" string="Back to Draft"
+                            invisible="state != 'declared'"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state not in ('draft', 'declared')"
+                            confirm="Cancel this handover?"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,declared,received"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+
+                    <!-- The code, and nothing else, while the office is counting. -->
+                    <div class="o_fw_code_box" invisible="state != 'declared'">
+                        <div class="o_fw_code_hint">Read this code to the office, or let
+                            them scan it</div>
+                        <div class="o_fw_code"><field name="code" readonly="1"/></div>
+                        <field name="qr_image" widget="image" class="o_fw_code_qr"
+                               options="{'size': [150, 150]}"/>
+                    </div>
+
+                    <group>
+                        <group name="who">
+                            <field name="user_id" readonly="state != 'draft'"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   domain="[('id', 'in', allowed_user_ids)]"/>
+                            <field name="allowed_user_ids" invisible="1"/>
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="amount" readonly="state != 'draft'"
+                                   class="o_fw_big_amount"/>
+                            <field name="available" invisible="state != 'draft'"/>
+                            <field name="allocation_id" invisible="not allocation_id"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="can_receive" invisible="1"/>
+                        </group>
+                        <group name="count" string="The Count" invisible="state == 'draft'">
+                            <field name="counted_amount"
+                                   readonly="state != 'declared' or not can_receive"/>
+                            <field name="difference_reason"
+                                   readonly="state != 'declared' or not can_receive"
+                                   placeholder="Only when the count differs"/>
+                            <field name="difference" invisible="state != 'received'"/>
+                            <field name="received_by_id" invisible="not received_by_id"/>
+                            <field name="received_at" invisible="not received_at"/>
+                            <field name="txn_id" invisible="not txn_id"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Anything the office should know"
+                           readonly="state in ('received', 'cancelled')"/>
+
+                    <notebook>
+                        <page string="Notes Counted" name="lines">
+                            <button name="action_fill_denominations" type="object"
+                                    string="Count the notes" class="btn-link"
+                                    icon="fa-list-ol" invisible="state != 'draft'"/>
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="denomination"/>
+                                    <field name="count"/>
+                                    <field name="subtotal" sum="Total"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                            <p class="text-muted small mt-2">
+                                Optional. Count the notes and the amount above fills itself.
+                                If the sheet is filled in, it has to add up to the amount —
+                                it is the executive's own count, and the office counts
+                                against it.
+                            </p>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- The phone: opened from My Day as a dialog. Amount, notes, one button. -->
+    <record id="view_cash_handover_quick" model="ir.ui.view">
+        <field name="name">lab.cash.handover.quick</field>
+        <field name="model">lab.cash.handover</field>
+        <field name="priority" eval="30"/>
+        <field name="arch" type="xml">
+            <form string="Hand Over Cash" class="o_fw_form">
+                <group>
+                    <field name="available" readonly="1"/>
+                    <field name="amount" class="o_fw_big_amount"/>
+                    <field name="date"/>
+                    <field name="user_id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                </group>
+                <field name="note" placeholder="Anything the office should know"/>
+                <div class="text-muted small mt-2">
+                    Everything you are holding, unless you change the figure. You get a
+                    six-letter code; the office counts the envelope against it and the
+                    money comes off your cash in hand when they confirm.
+                </div>
+                <footer>
+                    <button name="action_declare" type="object" string="Hand Over"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cash_handover_list" model="ir.ui.view">
+        <field name="name">lab.cash.handover.list</field>
+        <field name="model">lab.cash.handover</field>
+        <field name="arch" type="xml">
+            <list string="Cash Handovers"
+                  decoration-warning="state == 'declared'"
+                  decoration-muted="state == 'cancelled'"
+                  decoration-danger="difference &lt; 0">
+                <field name="date"/>
+                <field name="name"/>
+                <field name="user_id"/>
+                <field name="code" optional="show"/>
+                <field name="amount" sum="Declared"/>
+                <field name="counted_amount" sum="Counted" optional="show"/>
+                <field name="difference" optional="show"/>
+                <field name="received_by_id" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'declared'"
+                       decoration-success="state == 'received'"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Cards, for the phone. -->
+    <record id="view_cash_handover_kanban" model="ir.ui.view">
+        <field name="name">lab.cash.handover.kanban</field>
+        <field name="model">lab.cash.handover</field>
+        <field name="arch" type="xml">
+            <kanban class="o_fw_kanban" default_order="date desc, id desc"
+                    quick_create="false">
+                <field name="state"/>
+                <field name="currency_id"/>
+                <field name="difference"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="fs-6"><field name="date" widget="date"/></strong>
+                            <strong><field name="amount" widget="monetary"/></strong>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            <field name="name"/>
+                            <t t-if="record.code.raw_value"> · <field name="code"/></t>
+                        </div>
+                        <div t-if="record.difference.raw_value" class="small text-danger">
+                            Counted <field name="counted_amount" widget="monetary"/>
+                        </div>
+                        <div class="mt-2"><field name="state" widget="badge"
+                             decoration-warning="state == 'declared'"
+                             decoration-success="state == 'received'"/></div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_cash_handover_search" model="ir.ui.view">
+        <field name="name">lab.cash.handover.search</field>
+        <field name="model">lab.cash.handover</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="code"/>
+                <field name="user_id"/>
+                <field name="name"/>
+                <filter name="to_receive" string="To Count"
+                        domain="[('state', '=', 'declared')]"/>
+                <filter name="received" string="Received"
+                        domain="[('state', '=', 'received')]"/>
+                <filter name="short" string="Counted Short"
+                        domain="[('difference', '&lt;', 0)]"/>
+                <separator/>
+                <filter name="this_month" string="This Month" date="date"/>
+                <group>
+                    <filter name="g_user" string="Executive"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="g_date" string="Date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- The executive: their own slips, and a new one. -->
+    <record id="action_cash_handover_my" model="ir.actions.act_window">
+        <field name="name">My Handovers</field>
+        <field name="res_model">lab.cash.handover</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_cash_handover_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing handed over yet</p>
+            <p>Tap <b>Hand over cash</b> on My Day when you bring collected cash
+               to the office. You get a code; the office counts against it.</p>
+        </field>
+    </record>
+
+    <!-- From My Day: the dialog, amount already filled in. -->
+    <record id="action_cash_handover_new" model="ir.actions.act_window">
+        <field name="name">Hand Over Cash</field>
+        <field name="res_model">lab.cash.handover</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_cash_handover_quick"/>
+        <field name="target">new</field>
+    </record>
+
+    <!-- The office: what is waiting to be counted, and everything after. -->
+    <record id="action_cash_handover_all" model="ir.actions.act_window">
+        <field name="name">Cash Handovers</field>
+        <field name="res_model">lab.cash.handover</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_cash_handover_search"/>
+        <field name="context">{'search_default_to_receive': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No cash handovers</p>
+            <p>When an executive hands collected cash to the office it appears here
+               with a code. Count the envelope, confirm against the code, and the
+               money comes off their float.</p>
+        </field>
+    </record>
+
+    <!-- Receive by code. -->
+    <record id="view_cash_receive_form" model="ir.ui.view">
+        <field name="name">lab.cash.receive.form</field>
+        <field name="model">lab.cash.receive</field>
+        <field name="arch" type="xml">
+            <form string="Receive Field Cash">
+                <group>
+                    <field name="code" placeholder="ABC-DEF" class="o_fw_code_input"/>
+                    <field name="not_found" invisible="1"/>
+                </group>
+                <div class="alert alert-warning" role="alert" invisible="not not_found">
+                    No handover waiting to be counted carries that code. Check the
+                    letters with the executive — O and 0, I and 1 are never used.
+                </div>
+                <group invisible="not handover_id">
+                    <group>
+                        <field name="handover_id"/>
+                        <field name="user_id"/>
+                        <field name="date"/>
+                    </group>
+                    <group>
+                        <field name="amount"/>
+                        <field name="counted_amount"/>
+                        <field name="difference_reason"
+                               placeholder="Only when the count differs"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted small" invisible="not handover_id">
+                    Confirming takes the counted amount off the executive's float. A
+                    count that is short stays on their float, with your reason, until it
+                    is settled.
+                </p>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirm Receipt"
+                            class="btn-primary" data-hotkey="q"
+                            invisible="not handover_id"/>
+                    <button string="Close" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cash_receive" model="ir.actions.act_window">
+        <field name="name">Receive Field Cash</field>
+        <field name="res_model">lab.cash.receive</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menus. The executive's tree stays flat; the office gets it twice - on the
+         operational desk, where cash rides with travel, and in the Petty Cash app,
+         where the accountant already lives. -->
+    <menuitem id="menu_fw_my_handovers" name="My Handovers"
+              parent="menu_fieldwork_root" sequence="32"
+              action="action_cash_handover_my"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <menuitem id="menu_fw_ops_handovers" name="Cash Handovers"
+              parent="menu_fw_ops" sequence="32"
+              action="action_cash_handover_all"
+              groups="lab_fieldwork.group_fieldwork_ops_manager"/>
+    <menuitem id="menu_fw_ops_receive_cash" name="Receive Cash by Code"
+              parent="menu_fw_ops" sequence="33"
+              action="action_cash_receive"
+              groups="lab_fieldwork.group_fieldwork_ops_manager"/>
+
+    <menuitem id="menu_pc_field_handovers" name="Field Cash Handovers"
+              parent="petty_cash.menu_petty_cash" sequence="40"
+              action="action_cash_handover_all"
+              groups="petty_cash.group_petty_cash_officer"/>
+    <menuitem id="menu_pc_receive_field_cash" name="Receive Field Cash"
+              parent="petty_cash.menu_petty_cash" sequence="41"
+              action="action_cash_receive"
+              groups="petty_cash.group_petty_cash_officer"/>
+</odoo>

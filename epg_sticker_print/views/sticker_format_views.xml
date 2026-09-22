@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_sticker_format_list" model="ir.ui.view">
+        <field name="name">epg.sticker.format.list</field>
+        <field name="model">epg.sticker.format</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="width_mm"/><field name="height_mm"/>
+                <field name="columns"/><field name="rows"/>
+                <field name="page_width_mm" string="Page W"/><field name="page_height_mm" string="Page H"/>
+                <field name="is_default" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_sticker_format_form" model="ir.ui.view">
+        <field name="name">epg.sticker.format.form</field>
+        <field name="model">epg.sticker.format</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title"><h1><field name="name" placeholder="e.g. Roll 100 x 60 mm"/></h1></div>
+                    <group>
+                        <group string="Label">
+                            <field name="width_mm"/><field name="height_mm"/><field name="margin_mm"/>
+                            <field name="is_default"/><field name="active" invisible="1"/>
+                        </group>
+                        <group string="Page">
+                            <field name="columns"/><field name="rows"/><field name="gap_mm"/>
+                            <field name="page_width_mm" readonly="1"/><field name="page_height_mm" readonly="1"/>
+                            <field name="dpi" groups="base.group_no_one"/>
+                            <field name="paperformat_id" groups="base.group_no_one"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Printer / stock notes…"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_sticker_format" model="ir.actions.act_window">
+        <field name="name">Sticker Formats</field>
+        <field name="res_model">epg.sticker.format</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <menuitem id="menu_sticker_format" name="Sticker Formats" parent="sale.menu_sale_config" sequence="90"
+              action="action_sticker_format" groups="sales_team.group_sale_manager"/>
+</odoo>

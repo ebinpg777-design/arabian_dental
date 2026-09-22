@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_workorder_form_scan" model="ir.ui.view">
+        <field name="name">mrp.workorder.form.scan</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="mrp.mrp_production_workorder_form_view_inherit"/>
+        <field name="arch" type="xml">
+            <field name="workcenter_id" position="after">
+                <widget name="wc_scan_button"/>
+                <!-- Both names, where the bench records both: who did the work
+                     and who finished it. Hidden at a work centre that does not
+                     ask - most of them. (client, 2026-09-09) -->
+                <field name="bench_user_id" readonly="state in ('done', 'cancel')"
+                       options="{'no_create': True}"/>
+                <field name="workcenter_is_finisher" invisible="1"/>
+                <field name="finisher_user_id" invisible="not workcenter_is_finisher"
+                       readonly="state in ('done', 'cancel')"
+                       options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    <!--
+        A work order named by its CASE, not by its bench.
+
+        The drill-downs from the floor board (a station's queue, one technician's
+        day) both arrive from a screen whose title already says which station or
+        which person this is - so the Work Centre column repeated the heading,
+        while the three things this lab actually says a job out loud by, the
+        sales order, the doctor and the patient, were nowhere on the row.
+        (client, 2026-09-09)
+    -->
+    <record id="view_workorder_list_case" model="ir.ui.view">
+        <field name="name">mrp.workorder.list.case</field>
+        <field name="model">mrp.workorder</field>
+        <field name="arch" type="xml">
+            <list string="Work Orders" create="false"
+                  decoration-muted="state == 'cancel'"
+                  decoration-success="state == 'done'">
+                <field name="name" string="Operation"/>
+                <field name="sale_order_id" string="Case" optional="show"/>
+                <field name="order_date" string="Ordered" optional="show"/>
+                <field name="clinic_id" string="Customer" optional="show"/>
+                <field name="patient" string="Patient" optional="show"/>
+                <field name="production_id" string="Job" optional="show"/>
+                <field name="product_id" string="Product" optional="hide"/>
+                <!-- Who did it, and who finished it where the bench records both. -->
+                <field name="bench_user_id" string="Technician" optional="show"/>
+                <field name="workcenter_is_finisher" column_invisible="1"/>
+                <field name="finisher_user_id" string="Finished by" optional="hide"/>
+                <!-- The bench is what the drill was filtered BY; available, not shown. -->
+                <field name="workcenter_id" string="Work Centre" optional="hide"/>
+                <field name="accepted_at" string="Started" optional="hide"/>
+                <field name="handed_over_at" string="Handed on" optional="show"/>
+                <field name="duration_expected" string="Expected" widget="float_time"
+                       sum="Expected" optional="hide"/>
+                <field name="duration" string="Real" widget="float_time"
+                       sum="Real" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-info="state == 'progress'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- The over-time drill's own list: the same columns, except that Expected
+         is SHOWN. A list of steps that ran past their expected time which does
+         not print the expected time is asking the reader to take it on trust -
+         "55:00" means nothing until you can see it was meant to be 30:00.
+         A separate view rather than flipping the shared one, because optional
+         columns are remembered per view and per person, and every other drill
+         is right to keep it out of the way. (client, 2026-09-19) -->
+    <record id="view_workorder_list_over_time" model="ir.ui.view">
+        <field name="name">mrp.workorder.list.over.time</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="view_workorder_list_case"/>
+        <field name="mode">primary</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <field name="duration_expected" position="attributes">
+                <attribute name="optional">show</attribute>
+            </field>
+            <field name="duration" position="attributes">
+                <attribute name="optional">show</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

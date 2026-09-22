@@ -1,0 +1,77 @@
+// The thumb-reachable Save / Discard bar.
+//
+// Three things make the stock control unusable on a phone, and this fixes all three:
+// the target is ~16px (here: 48px minimum, the accepted floor for a fingertip), it is
+// icon-only (here: labelled in words), and it sits at the top of the screen (here: at
+// the bottom, the only zone a hand holding a phone reaches without regripping).
+//
+// Desktop is untouched — the breakpoint hides this entirely and the breadcrumb icons
+// keep working exactly as they do today.
+
+$fwsb-primary: #0e7c86;
+$fwsb-deep:    #0a3542;
+$fwsb-muted:   #5b7079;
+$fwsb-danger:  #dc2626;
+// Tablets in portrait have the same reach problem as phones, so the bar covers them
+// too; 992px is Bootstrap's lg, the point at which Odoo stops being a mobile layout.
+$fwsb-max:     991.98px;
+
+.o_fw_savebar { display: none; }
+
+@media (max-width: $fwsb-max) {
+    .o_fw_savebar {
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        z-index: 1045;                       // over the form, under modals (1055)
+        display: flex;
+        gap: .5rem;
+        padding: .5rem .75rem;
+        // Respect the iPhone home indicator; 0 everywhere else.
+        padding-bottom: calc(.5rem + env(safe-area-inset-bottom, 0px));
+        background: rgba(255, 255, 255, .97);
+        border-top: 1px solid rgba(10, 53, 66, .12);
+        box-shadow: 0 -6px 24px rgba(10, 53, 66, .14);
+
+        // Off-screen rather than display:none — it slides in, so it is noticed the
+        // first time it appears instead of being mistaken for part of the chrome.
+        transform: translateY(110%);
+        transition: transform .18s ease-out;
+        visibility: hidden;
+
+        &.o_fw_savebar_shown { transform: translateY(0); visibility: visible; }
+
+        button {
+            min-height: 48px;
+            border-radius: .7rem;
+            border: 0;
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        // Save takes roughly two thirds: it is the action, and the wider target is the
+        // one pressed in a hurry. Discard stays deliberately plainer — losing an
+        // afternoon's slip to a mis-tap is the expensive mistake here, not a re-save.
+        .o_fw_savebar_save {
+            flex: 2 1 0;
+            background: $fwsb-primary; color: #fff;
+            &:disabled { background: rgba(14, 124, 134, .45); }
+        }
+        .o_fw_savebar_discard {
+            flex: 1 1 0;
+            background: transparent; color: $fwsb-muted;
+            box-shadow: inset 0 0 0 1px rgba(10, 53, 66, .18);
+        }
+
+        // The stock icons are kept for anyone who already knows them, but they must
+        // not be the only way in.
+        i { font-size: 1rem; }
+    }
+
+    // Nothing must sit under the bar. :has() keeps the space reserved only while the
+    // bar is actually up, so a clean form does not end in a strip of dead screen.
+    .o_form_view:has(.o_fw_savebar_shown) .o_content { padding-bottom: 5.5rem; }
+}
+
+// Printing a form should never include a screen control.
+@media print { .o_fw_savebar { display: none !important; } }

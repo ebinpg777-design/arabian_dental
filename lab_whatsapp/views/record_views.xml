@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- WhatsApp on the record itself, for the person who is not a WhatsApp
+         specialist: a green button in the header that opens the composer with the
+         record's own moment filled in (a posted invoice: Invoice Ready; overdue:
+         the reminder; a confirmed order: Case Registered), an "Add WhatsApp
+         number" button when the doctor has none, a stat button that tells the
+         story ("Opened 2 h ago") and opens the chat with this record's messages
+         picked out, a WhatsApp icon on every list row, and a list action that
+         puts a whole selection on the Desk. (client, 2026-09-17) -->
+
+    <!-- Sale order -->
+    <record id="view_order_form_whatsapp" model="ir.ui.view">
+        <field name="name">sale.order.form.whatsapp</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="whatsapp_to" invisible="1"/>
+                <button name="action_whatsapp_quick" type="object" string="WhatsApp"
+                        icon="fa-whatsapp" class="btn-success" invisible="not whatsapp_to"
+                        groups="epg_whatsapp.group_whatsapp_user"
+                        help="Send this order to the doctor on WhatsApp."/>
+                <button name="action_whatsapp_add_number" type="object"
+                        string="Add WhatsApp number" icon="fa-whatsapp" invisible="whatsapp_to"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+            <div name="button_box" position="inside">
+                <button name="action_whatsapp_chat" type="object" class="oe_stat_button"
+                        icon="fa-whatsapp" groups="epg_whatsapp.group_whatsapp_user">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value"><field name="whatsapp_status"/></span>
+                        <span class="o_stat_text">WhatsApp · <field name="whatsapp_message_count"/></span>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+
+    <record id="view_order_tree_whatsapp" model="ir.ui.view">
+        <field name="name">sale.order.list.whatsapp</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <button name="action_whatsapp_send" type="object" icon="fa-whatsapp"
+                        title="Send on WhatsApp" groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- The Due for Invoicing list belongs to sale_custom, which knows nothing
+         about WhatsApp; the button is added from here, where the method lives.
+         (client, 2026-09-18) -->
+    <record id="view_order_due_list_whatsapp" model="ir.ui.view">
+        <field name="name">sale.order.list.due.whatsapp</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale_custom.view_order_due_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <button name="action_whatsapp_quick" type="object" icon="fa-whatsapp"
+                        title="Tell the doctor on WhatsApp"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_sale_order_whatsapp_batch" model="ir.actions.server">
+        <field name="name">Send on WhatsApp</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">list</field>
+        <field name="group_ids" eval="[(4, ref('epg_whatsapp.group_whatsapp_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_whatsapp_send_batch()</field>
+    </record>
+
+    <!-- Invoice -->
+    <record id="view_move_form_whatsapp" model="ir.ui.view">
+        <field name="name">account.move.form.whatsapp</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="whatsapp_to" invisible="1"/>
+                <button name="action_whatsapp_quick" type="object" string="WhatsApp"
+                        icon="fa-whatsapp" class="btn-success"
+                        invisible="not whatsapp_to or move_type not in ('out_invoice', 'out_refund')"
+                        groups="epg_whatsapp.group_whatsapp_user"
+                        help="Send this invoice to the doctor on WhatsApp - the reminder, once it is overdue."/>
+                <button name="action_whatsapp_add_number" type="object"
+                        string="Add WhatsApp number" icon="fa-whatsapp"
+                        invisible="whatsapp_to or move_type not in ('out_invoice', 'out_refund')"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+            <div name="button_box" position="inside">
+                <button name="action_whatsapp_chat" type="object" class="oe_stat_button"
+                        icon="fa-whatsapp" groups="epg_whatsapp.group_whatsapp_user"
+                        invisible="move_type not in ('out_invoice', 'out_refund')">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value"><field name="whatsapp_status"/></span>
+                        <span class="o_stat_text">WhatsApp · <field name="whatsapp_message_count"/></span>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+
+    <record id="view_out_invoice_tree_whatsapp" model="ir.ui.view">
+        <field name="name">account.move.out.invoice.list.whatsapp</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_out_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <button name="action_whatsapp_send" type="object" icon="fa-whatsapp"
+                        title="Send on WhatsApp" groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_account_move_whatsapp_batch" model="ir.actions.server">
+        <field name="name">Send on WhatsApp</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_view_types">list</field>
+        <field name="group_ids" eval="[(4, ref('epg_whatsapp.group_whatsapp_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_whatsapp_send_batch()</field>
+    </record>
+
+    <!-- Delivery -->
+    <record id="view_picking_form_whatsapp" model="ir.ui.view">
+        <field name="name">stock.picking.form.whatsapp</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="whatsapp_to" invisible="1"/>
+                <button name="action_whatsapp_quick" type="object" string="WhatsApp"
+                        icon="fa-whatsapp" class="btn-success" invisible="not whatsapp_to"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+                <button name="action_whatsapp_add_number" type="object"
+                        string="Add WhatsApp number" icon="fa-whatsapp" invisible="whatsapp_to"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+            <div name="button_box" position="inside">
+                <button name="action_whatsapp_chat" type="object" class="oe_stat_button"
+                        icon="fa-whatsapp" groups="epg_whatsapp.group_whatsapp_user">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value"><field name="whatsapp_status"/></span>
+                        <span class="o_stat_text">WhatsApp · <field name="whatsapp_message_count"/></span>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+
+    <!-- Payment -->
+    <record id="view_payment_form_whatsapp" model="ir.ui.view">
+        <field name="name">account.payment.form.whatsapp</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="whatsapp_to" invisible="1"/>
+                <button name="action_whatsapp_quick" type="object" string="WhatsApp"
+                        icon="fa-whatsapp" class="btn-success" invisible="not whatsapp_to"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+                <button name="action_whatsapp_add_number" type="object"
+                        string="Add WhatsApp number" icon="fa-whatsapp" invisible="whatsapp_to"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+            <div name="button_box" position="inside">
+                <button name="action_whatsapp_chat" type="object" class="oe_stat_button"
+                        icon="fa-whatsapp" groups="epg_whatsapp.group_whatsapp_user">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value"><field name="whatsapp_status"/></span>
+                        <span class="o_stat_text">WhatsApp · <field name="whatsapp_message_count"/></span>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+</odoo>

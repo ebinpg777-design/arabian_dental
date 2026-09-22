@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Manufacturing Order: show carried-over Sale Order / Colour / U-L -->
+    <record id="mrp_production_form_view_sale_custom" model="ir.ui.view">
+        <field name="name">mrp.production.form.sale.custom</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <field name="bom_id" position="after">
+                <field name="sale_id" readonly="1"/>
+                <field name="color_scheme" readonly="1"/>
+                <field name="ul" readonly="1"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Work centre: technicians -->
+    <record id="mrp_workcenter_view_sale_custom" model="ir.ui.view">
+        <field name="name">mrp.workcenter.form.sale.custom</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Technicians">
+                    <field name="users" widget="many2many_tags"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Work order: technician assignment -->
+    <record id="mrp_workorder_form_view_sale_custom" model="ir.ui.view">
+        <field name="name">mrp.workorder.form.sale.custom</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="mrp.mrp_production_workorder_form_view_inherit"/>
+        <field name="arch" type="xml">
+            <field name="workcenter_id" position="after">
+                <field name="user_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

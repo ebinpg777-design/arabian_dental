@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hold_wizard_form" model="ir.ui.view">
+        <field name="name">lab.hold.wizard.form</field>
+        <field name="model">lab.hold.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Put On Hold">
+                <group>
+                    <field name="order_id" invisible="1"/>
+                    <field name="hold_reason"/>
+                    <field name="next_followup_date"/>
+                </group>
+                <field name="hold_note" placeholder="What exactly is missing?"/>
+                <footer>
+                    <button string="Put On Hold" name="action_confirm" type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Doctor-call banner + hold controls on the order. -->
+    <record id="view_order_form_hold" model="ir.ui.view">
+        <field name="name">sale.order.form.lab.hold</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_log_doctor_call" type="object" string="Log Doctor Call"
+                        class="btn-secondary" invisible="state in ('done','cancel')"/>
+                <button name="action_resolve_doctor_call" type="object"
+                        string="Mark Query Resolved" class="btn-primary"
+                        invisible="not call_pending"
+                        groups="lab_order_control.group_lab_order_checker"/>
+                <button name="action_put_on_hold" type="object" string="Put On Hold"
+                        invisible="verification_state not in ('to_verify','draft','verified')"
+                        groups="lab_order_control.group_lab_order_checker"/>
+                <button name="action_resume_from_hold" type="object" string="Resume"
+                        class="btn-primary"
+                        invisible="verification_state != 'on_hold'"
+                        groups="lab_order_control.group_lab_order_checker"/>
+            </xpath>
+
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-danger m-0 rounded-0" role="alert"
+                     invisible="not call_pending">
+                    <strong>⚠ Doctor call pending</strong>
+                    — <field name="call_doctor_reason" nolabel="1" readonly="1"
+                             class="oe_inline"/>.
+                    Do not proceed until this is resolved.
+                    <field name="doctor_call_count" nolabel="1" readonly="1"
+                           class="oe_inline"/> attempt(s) logged.
+                </div>
+                <div class="alert alert-warning m-0 rounded-0" role="alert"
+                     invisible="verification_state != 'on_hold'">
+                    <strong>Pending information</strong>
+                    — <field name="hold_reason" nolabel="1" readonly="1" class="oe_inline"/>,
+                    on hold <field name="days_on_hold" nolabel="1" readonly="1"
+                                   class="oe_inline"/> day(s).
+                    Next follow-up <field name="next_followup_date" nolabel="1" readonly="1"
+                                          class="oe_inline"/>.
+                </div>
+            </xpath>
+
+            <xpath expr="//field[@name='payment_term_id']" position="after">
+                <field name="call_doctor_required" widget="boolean_toggle"/>
+                <field name="call_status" widget="badge"
+                       decoration-danger="call_status == 'pending'"
+                       decoration-success="call_status == 'done'"
+                       decoration-muted="call_status == 'none'"/>
+                <field name="call_doctor_reason" invisible="not call_doctor_required"
+                       required="call_doctor_required"/>
+                <field name="call_doctor_resolved" invisible="not call_doctor_required"
+                       readonly="1"/>
+                <field name="call_pending" invisible="1"/>
+                <field name="days_on_hold" invisible="1"/>
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Doctor Calls" name="doctor_calls"
+                      invisible="doctor_call_count == 0 and not call_doctor_required">
+                    <field name="call_doctor_note" placeholder="What needs asking?"/>
+                    <field name="call_log_ids" readonly="1">
+                        <list>
+                            <field name="call_datetime"/>
+                            <field name="response" widget="badge"
+                                   decoration-success="response == 'answered'"
+                                   decoration-warning="response != 'answered'"/>
+                            <field name="called_by_id"/>
+                            <field name="next_call_datetime"/>
+                            <field name="remarks"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- The two queues (D9); their KPI tiles are filter.tile records in data/filter_tiles.xml. -->
+    <record id="view_order_list_verification" model="ir.ui.view">
+        <field name="name">sale.order.list.lab.verification</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="call_pending or days_on_hold &gt; 5"
+                  decoration-warning="verification_state == 'on_hold'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="patient" optional="show"/>
+                <field name="entered_by_id" optional="show"/>
+                <field name="date_order"/>
+                <field name="days_waiting" string="Waiting (days)" optional="show"/>
+                <field name="days_on_hold" string="On hold (days)" optional="show"/>
+                <field name="hold_reason" optional="hide"/>
+                <field name="call_status" string="Doctor Call" widget="badge"
+                       decoration-danger="call_status == 'pending'"
+                       decoration-success="call_status == 'done'"
+                       decoration-muted="call_status == 'none'" optional="show"/>
+                <field name="verification_state" widget="badge"
+                       decoration-success="verification_state == 'verified'"
+                       decoration-warning="verification_state in ('to_verify','on_hold')"
+                       decoration-danger="verification_state == 'rejected'"/>
+                <field name="amount_total" sum="Total"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_orders_pending_info" model="ir.actions.act_window">
+        <field name="name">Pending Information</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_order_list_verification"/>
+        <field name="domain">[('verification_state','=','on_hold')]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing is waiting on missing information</p>
+            <p>Orders held for a doctor's answer or missing details live here, ageing
+               visibly, instead of drowning among the drafts.</p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        The Management menu's own dashboards.
+
+        These replace four tile boards that were configured by hand in the database on a
+        third-party dashboard engine. They are built on Odoo's own analysis models and
+        views instead, for three reasons that matter on this database:
+
+        * They are LIVE. The engine they replace cached its tiles and kept 44 snapshot
+          rows; these read the ledger every time they are opened.
+        * They are SLICEABLE. A pivot the reader can regroup answers the next question
+          too, which a fixed tile never does.
+        * They can be TRUSTED. Two of the old tiles could not be: "Received" counted
+          account.payment, of which this database has 2 rows because receipts here are
+          journal entries; and the production tiles counted every open manufacturing
+          order, 89.6% of which were delivered months ago and never closed.
+        (client, 2026-08-27)
+    -->
+
+    <!-- ============================================================ SALES & CASES -->
+    <record id="action_mgmt_sales" model="ir.actions.act_window">
+        <field name="name">Sales &amp; Cases</field>
+        <field name="res_model">sale.report</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="context">{'search_default_filter_confirmed': 1,
+                               'search_default_group_by_date': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No confirmed work in this period</p>
+            <p>Every case the lab has booked, by month, route, clinic and appliance.
+               Regroup it from the search panel — the question after the first one is
+               usually "by whom" or "by which clinic".</p>
+        </field>
+    </record>
+
+    <!-- ============================================================== FIELD FORCE -->
+    <record id="view_visit_graph_mgmt" model="ir.ui.view">
+        <field name="name">lab.visit.graph.management</field>
+        <field name="model">lab.visit</field>
+        <field name="arch" type="xml">
+            <graph string="Visits" type="bar" sample="1">
+                <field name="date" interval="week"/>
+                <field name="user_id"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_visit_pivot_mgmt" model="ir.ui.view">
+        <field name="name">lab.visit.pivot.management</field>
+        <field name="model">lab.visit</field>
+        <field name="arch" type="xml">
+            <pivot string="Visits" sample="1">
+                <field name="user_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_mgmt_field_force" model="ir.actions.act_window">
+        <field name="name">Field Force</field>
+        <field name="res_model">lab.visit</field>
+        <field name="view_mode">graph,pivot,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No visits recorded yet</p>
+            <p>Rounds walked, by executive and by week. This fills in as the executives
+               use My Day — there is nothing here until they do.</p>
+        </field>
+    </record>
+
+    <!-- =================================================================== MONEY -->
+    <record id="action_mgmt_money" model="ir.actions.act_window">
+        <field name="name">Money</field>
+        <field name="res_model">account.invoice.report</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="domain">[('move_type', 'in', ('out_invoice', 'out_refund'))]</field>
+        <field name="context">{'search_default_group_by_date': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing invoiced in this period</p>
+            <p>What the lab billed, by month, clinic and route.<br/>
+               For what is still <b>owed</b>, use <b>Collections</b> on this menu: this
+               database has no reconciliation behind it, so an invoice's residual is not
+               a reliable figure and Collections works it out by oldest-first countback
+               instead.</p>
+        </field>
+    </record>
+
+    <!-- ============================================== THE PULSE, PER TAB -->
+    <!-- The widget the three entries land on now. The act_windows above survive as
+         the "Full analysis" drill inside it: the pivot answers the next question,
+         it just no longer greets the reader. (client, 2026-08-27) -->
+    <record id="action_pulse_sales" model="ir.actions.client">
+        <field name="name">Sales &amp; Cases</field>
+        <field name="tag">lab_mgmt_pulse</field>
+        <field name="params" eval="{'section': 'sales'}"/>
+    </record>
+    <record id="action_pulse_field" model="ir.actions.client">
+        <field name="name">Field Force</field>
+        <field name="tag">lab_mgmt_pulse</field>
+        <field name="params" eval="{'section': 'field'}"/>
+    </record>
+    <!-- What the hub's Field Force tile actually opens (2026-08-31): a switcher
+         over whichever screens this user's field work role earns - Command
+         Center / Ops Desk / Marketing Desk - with the analysis pulse above kept
+         as the last tab for everyone. A reader with no field work role sees the
+         pulse alone, exactly as before. -->
+    <record id="action_field_command" model="ir.actions.client">
+        <field name="name">Field Force</field>
+        <field name="tag">lab_field_command</field>
+    </record>
+    <record id="action_pulse_money" model="ir.actions.client">
+        <field name="name">Money</field>
+        <field name="tag">lab_mgmt_pulse</field>
+        <field name="params" eval="{'section': 'money'}"/>
+    </record>
+
+    <!-- No menu entries. The screens above are opened from the hub's launchers
+         (lab.ceo.dashboard.LAUNCHERS); the client asked for the navigation bar
+         to carry only the incentive screens. (client, 2026-08-28) -->
+</odoo>

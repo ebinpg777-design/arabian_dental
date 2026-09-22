@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Delivery board tiles (dynamic_filter_tiles; replaces the former list_view_dashboard block). -->
+    <data noupdate="1">
+        <record id="tile_delivery_out_today" model="filter.tile">
+            <field name="name">Out Today</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_delivery.model_lab_delivery"/>
+            <field name="domain">[('state','=','out'),('out_datetime','&gt;=', context_today().strftime('%Y-%m-%d'))]</field>
+            <field name="color">teal</field>
+            <field name="icon">fa-truck</field>
+        </record>
+
+        <record id="tile_delivery_delayed" model="filter.tile">
+            <field name="name">Delayed</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_delivery.model_lab_delivery"/>
+            <field name="domain">[('is_delayed','=',True)]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-clock-o</field>
+        </record>
+
+        <record id="tile_delivery_emergency" model="filter.tile">
+            <field name="name">Emergency</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_delivery.model_lab_delivery"/>
+            <field name="domain">[('is_emergency','=',True),('state','not in',['delivered','cancel'])]</field>
+            <field name="color">orange</field>
+            <field name="icon">fa-bolt</field>
+        </record>
+
+        <record id="tile_delivery_delivered_today" model="filter.tile">
+            <field name="name">Delivered Today</field>
+            <field name="sequence">40</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_delivery.model_lab_delivery"/>
+            <field name="domain">[('state','=','delivered'),('delivered_datetime','&gt;=', context_today().strftime('%Y-%m-%d'))]</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-check-circle</field>
+        </record>
+        <record id="row_delivery_1" model="filter.tile.row">
+            <field name="model_id" ref="lab_delivery.model_lab_delivery"/><field name="number">1</field><field name="name">Deliveries</field>
+        </record>
+    </data>
+</odoo>

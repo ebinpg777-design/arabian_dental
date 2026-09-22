@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_lab_daybook_wizard_form" model="ir.ui.view">
+        <field name="name">lab.daybook.wizard.form</field>
+        <field name="model">lab.daybook.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Daybook">
+                <group>
+                    <group>
+                        <field name="book_type" widget="radio"/>
+                        <field name="journal_ids" widget="many2many_tags"
+                               domain="[('company_id', '=', company_id)]"/>
+                    </group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="target_move"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                </group>
+                <group string="Balances">
+                    <group>
+                        <field name="opening_balance"/>
+                        <field name="period_debit"/>
+                    </group>
+                    <group>
+                        <field name="period_credit"/>
+                        <field name="closing_balance"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_view_daybook" type="object" string="Open Daybook"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_lab_daybook" model="ir.actions.act_window">
+        <field name="name">Daybook</field>
+        <field name="res_model">lab.daybook.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The list behind the Open receivable / Overdue / ageing figures. Its Open
+         column sums to exactly the card that opened it. -->
+    <record id="view_collection_open_item_list" model="ir.ui.view">
+        <field name="name">lab.collection.open.item.list</field>
+        <field name="model">lab.collection.open.item</field>
+        <field name="arch" type="xml">
+            <!--
+                Ordered by what is OPEN, not by age.
+
+                Grouped by customer — which is how this list now opens — Odoo orders the
+                groups by the same term as the rows, and for an aggregatable column that
+                means SUM(open_amount): the clinic that owes most is the first thing on
+                the screen, which is the order the money is chased in. Age stays as the
+                tiebreak, so two clinics owing the same are still oldest-first.
+                (client, 2026-08-27)
+            -->
+            <list string="Open Items" create="false" edit="false" delete="false"
+                  sample="0" default_order="open_amount desc, days desc">
+                <field name="date" string="Item Date"/>
+                <field name="move_id" string="Document"/>
+                <field name="description" string="Description"/>
+                <field name="partner_id" string="Customer"/>
+                <field name="patient" string="Patient" optional="show"/>
+                <field name="product_names" string="Products" optional="show"/>
+                <field name="team_id" string="Sales Route" optional="show"/>
+                <field name="days" string="Age (days)" avg="Avg age"/>
+                <field name="billed_amount" string="Billed" sum="Billed"
+                       optional="show"/>
+                <field name="open_amount" string="Open" sum="Open"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="move_type" column_invisible="1"/>
+                <!-- One tap each: the document itself (skipped on a journal entry -
+                     there is nothing to print), and this customer's Statement of
+                     Account - the dialog, so the period is the reader's to choose.
+                     (client, 2026-09-18) -->
+                <button name="action_print_invoice" type="object" string="Invoice"
+                        icon="fa-file-pdf-o" title="Print this invoice"
+                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
+                <button name="action_print_statement" type="object" string="Statement"
+                        icon="fa-file-text-o" title="Open this customer's Statement of Account"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_collection_open_item_search" model="ir.ui.view">
+        <field name="name">lab.collection.open.item.search</field>
+        <field name="model">lab.collection.open.item</field>
+        <field name="arch" type="xml">
+            <search string="Open Items">
+                <field name="partner_id" string="Customer"/>
+                <field name="team_id" string="Sales Route"/>
+                <field name="move_id" string="Document"/>
+                <field name="description" string="Description"/>
+                <field name="patient" string="Patient"/>
+                <field name="product_names" string="Products"/>
+                <filter name="overdue" string="Overdue"
+                        domain="[('days', '&gt;', 30)]"/>
+                <filter name="age_current" string="0–30 days"
+                        domain="[('days', '&lt;=', 30)]"/>
+                <filter name="age_90" string="Over 90 days"
+                        domain="[('days', '&gt;', 90)]"/>
+                <group name="group_by">
+                    <filter name="group_team" string="Sales Route"
+                            context="{'group_by': 'team_id'}"/>
+                    <filter name="group_partner" string="Customer"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_date" string="Item Date"
+                            context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+</odoo>

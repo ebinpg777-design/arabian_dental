@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_payment_form_direct" model="ir.ui.view">
+        <field name="name">account.payment.form.direct.contra</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <field name="payment_type" position="before">
+                <field name="payment_kind" widget="radio" options="{'horizontal': True}"
+                       readonly="state != 'draft'"/>
+            </field>
+            <!-- The two partner_id fields (Customer / Vendor) only make sense once
+                 there is a partner at all - the base invisible conditions already
+                 pick customer vs vendor, this only adds "and there is one".
+                 Odoo 19 refuses `string` as an inheritance selector, so these are
+                 told apart by position: Customer is the first partner_id in the
+                 base arch, Vendor the second. -->
+            <xpath expr="//field[@name='partner_id'][1]" position="attributes">
+                <attribute name="invisible">payment_kind != 'partner' or partner_type != 'customer'</attribute>
+            </xpath>
+            <xpath expr="//field[@name='partner_id'][2]" position="attributes">
+                <attribute name="invisible">payment_kind != 'partner' or partner_type != 'supplier'</attribute>
+            </xpath>
+            <label for="amount" position="before">
+                <field name="destination_account_id" string="Expense/Income Account"
+                       invisible="payment_kind != 'direct'"
+                       required="payment_kind == 'direct'"
+                       readonly="state != 'draft'"
+                       domain="[('account_type', 'in', ['expense', 'expense_other',
+                                 'expense_depreciation', 'expense_direct_cost',
+                                 'income', 'income_other'])]"/>
+                <field name="destination_journal_id"
+                       invisible="payment_kind != 'contra'"
+                       required="payment_kind == 'contra'"
+                       readonly="state != 'draft'"/>
+            </label>
+        </field>
+    </record>
+
+    <record id="view_account_payment_tree_direct" model="ir.ui.view">
+        <field name="name">account.payment.list.direct.contra</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_tree"/>
+        <field name="arch" type="xml">
+            <field name="journal_id" position="after">
+                <field name="payment_kind" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_payment_search_direct" model="ir.ui.view">
+        <field name="name">account.payment.search.direct.contra</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_search"/>
+        <field name="arch" type="xml">
+            <filter name="outbound_filter" position="after">
+                <filter string="Direct Payments" name="direct_filter"
+                        domain="[('payment_kind', '=', 'direct')]"/>
+                <filter string="Contra Payments" name="contra_filter"
+                        domain="[('payment_kind', '=', 'contra')]"/>
+            </filter>
+            <filter name="journal" position="after">
+                <filter string="Pay Against" name="groupby_payment_kind" domain="[]"
+                        context="{'group_by': 'payment_kind'}"/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="action_direct_payment" model="ir.actions.act_window">
+        <field name="name">Direct Payments</field>
+        <field name="res_model">account.payment</field>
+        <field name="view_mode">list,kanban,form,graph</field>
+        <field name="domain">[('payment_kind', '=', 'direct')]</field>
+        <field name="context">{'default_payment_kind': 'direct', 'default_move_journal_types': ('bank', 'cash')}</field>
+        <field name="view_id" ref="account.view_account_payment_tree"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Record a direct payment</p>
+            <p>Petty cash, bank charges, interest received - posted straight against
+               an Expense or Income account, no partner needed.</p>
+        </field>
+    </record>
+
+    <record id="action_contra_payment" model="ir.actions.act_window">
+        <field name="name">Contra Payments</field>
+        <field name="res_model">account.payment</field>
+        <field name="view_mode">list,kanban,form,graph</field>
+        <field name="domain">[('payment_kind', '=', 'contra')]</field>
+        <field name="context">{'default_payment_kind': 'contra', 'default_move_journal_types': ('bank', 'cash')}</field>
+        <field name="view_id" ref="account.view_account_payment_tree"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Record a contra payment</p>
+            <p>A transfer between two of the company's own Bank/Cash accounts.
+               Posting one leg raises its mirror on the other journal automatically.</p>
+        </field>
+    </record>
+</odoo>

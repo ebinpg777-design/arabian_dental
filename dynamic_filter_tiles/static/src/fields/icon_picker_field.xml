@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="dynamic_filter_tiles.FaIconPickerField">
+        <div class="o_dft_icon_field">
+            <Dropdown state="dropdown" menuClass="'o_dft_icon_menu'" disabled="props.readonly">
+                <button class="o_dft_icon_toggle btn btn-outline-secondary"
+                        t-att-disabled="props.readonly" title="Pick an icon">
+                    <i t-att-class="iconClass(currentIcon)"/>
+                    <span class="o_dft_icon_name" t-out="currentIcon"/>
+                    <i class="fa fa-caret-down ms-auto"/>
+                </button>
+                <t t-set-slot="content">
+                    <div class="o_dft_icon_search">
+                        <i class="fa fa-search"/>
+                        <input type="text" class="form-control form-control-sm"
+                               placeholder="Search icons…" autocomplete="off"
+                               t-model="state.query"/>
+                    </div>
+                    <div class="o_dft_icon_grid">
+                        <button t-foreach="icons" t-as="icon" t-key="icon"
+                                class="o_dft_icon_cell"
+                                t-att-class="{ o_dft_icon_current: icon === currentIcon }"
+                                t-att-title="icon"
+                                t-on-click="() => this.select(icon)">
+                            <i t-att-class="iconClass(icon)"/>
+                        </button>
+                    </div>
+                    <div class="o_dft_icon_empty" t-if="!icons.length">
+                        No icon matches “<t t-esc="state.query"/>”.
+                    </div>
+                    <div class="o_dft_icon_manual">
+                        <input type="text" class="form-control form-control-sm"
+                               placeholder="…or type any class, e.g. fa-cutlery"
+                               t-att-value="props.record.data[props.name] or ''"
+                               t-on-change="onManualInput"/>
+                    </div>
+                </t>
+            </Dropdown>
+        </div>
+    </t>
+
+</templates>

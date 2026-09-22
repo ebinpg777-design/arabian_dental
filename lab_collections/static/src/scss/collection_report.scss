@@ -1,0 +1,52 @@
+// Collections PDF — extends the invoice design language (.lab-invoice base).
+.lab-invoice.ocl {
+    $navy: #1f3a5f;
+    $card: #eef3f7;
+    $muted: #4d5c6b;
+    $line: #dfe5ea;
+
+    table, thead, tbody, tfoot, tr, th, td { border-style: none; border-width: 0; }
+    table.ocl-title { margin-bottom: 10px; }
+    .ocl-sub { font-size: 9.4pt; color: $muted; margin-top: 2px; }
+    .ocl-period { font-size: 12pt; font-weight: 700; color: $navy; line-height: 1.2; }
+
+    table.ocl-kpis { table-layout: fixed; border-collapse: separate; border-spacing: 8px 0;
+        margin: 0 -8px 12px; width: 100%; }
+    .ocl-card { border: 1px solid $line; border-radius: 6px; padding: 8px 12px;
+        vertical-align: top;
+        .ocl-card-value { font-size: 14pt; font-weight: 700; color: $navy; margin-top: 1px;
+            white-space: nowrap; }
+        &.ocl-card-due { background: $navy; border-color: $navy;
+            .oi-label { color: rgba(255,255,255,.9); }
+            .ocl-card-value { color: #fff; } }
+    }
+
+    table.ocl-lines {
+        width: 100%; border-collapse: collapse; font-size: 10.5pt;
+        thead th { background: $card; color: $muted; font-weight: 700; font-size: 8.2pt;
+            text-transform: uppercase; letter-spacing: .5px; padding: 6px 8px;
+            text-align: left; border-bottom: 1px solid $line; }
+        thead th.num { text-align: right; }
+        tbody td { padding: 6px 8px; border-bottom: 1px solid $line; vertical-align: top; }
+        .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .ocl-label { font-weight: 700; color: #2b3238; }
+        .ocl-hot { color: #b42318; font-weight: 700; }
+        tr.ocl-total td { background: $navy; color: #fff; font-weight: 700; border-bottom: none;
+            padding: 8px; font-size: 11.5pt; }
+        .ocl-empty { text-align: center; color: $muted; font-style: italic; padding: 22px 0; }
+    }
+}
+
+/* Leaderboards and targets on the printed report (2026-08-21) */
+.ocl-boards { width: 100%; border-collapse: separate; border-spacing: 6px 0;
+    margin: 0 0 10px; }
+.ocl-board { width: 33.33%; vertical-align: top; border: 1px solid #dfe3e8;
+    border-radius: 4px; padding: 6px 8px; background: #fbfcfd; }
+.ocl-board-rows { width: 100%; border-collapse: collapse; margin-top: 3px; }
+.ocl-board-rows td { padding: 1px 0; font-size: 8.5pt; border: none; }
+.ocl-rank { width: 14px; color: #1f3a5f; font-weight: 700; }
+.ocl-board-name { padding-left: 4px !important; }
+.ocl-card-note { font-size: 7.5pt; color: #6c757d; }
+.ocl-ach { font-size: 7pt; color: #6c757d; }
+
+.ocl-unranked { font-size: 7.5pt; color: #6c757d; font-weight: 400; }

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="group_whatsapp_user" model="res.groups">
+            <field name="name">WhatsApp: send</field>
+            <field name="comment">Can send WhatsApp messages and read the log.</field>
+        </record>
+        <record id="group_whatsapp_admin" model="res.groups">
+            <field name="name">WhatsApp: configure</field>
+            <field name="implied_ids" eval="[(4, ref('group_whatsapp_user'))]"/>
+            <field name="comment">Owns the senders and the templates. The access token is
+                a paid credential, so configuring is deliberately separate from sending.</field>
+        </record>
+        <!-- WHOSE MESSAGES ARE WHOSE. There were no rules on the message at all,
+             so anybody with "WhatsApp: send" could read every message the lab had
+             ever sent, for every doctor. A sender sees the ones that are theirs;
+             configuring sees the lot. (client, 2026-09-19)
+
+             "Theirs" is three things, because the model already means three:
+             user_id is who SHOULD send it (empty meaning anybody with the right,
+             which is the shared queue and must stay visible or nobody sends it),
+             and sent_by_id is who actually DID. -->
+        <record id="rule_whatsapp_message_own" model="ir.rule">
+            <field name="name">WhatsApp: messages that are yours to send</field>
+            <field name="model_id" ref="model_epg_whatsapp_message"/>
+            <field name="domain_force">['|', '|',
+                ('user_id', '=', user.id),
+                ('sent_by_id', '=', user.id),
+                ('user_id', '=', False)]</field>
+            <field name="groups" eval="[(4, ref('group_whatsapp_user'))]"/>
+        </record>
+
+        <record id="rule_whatsapp_message_all" model="ir.rule">
+            <field name="name">WhatsApp: every message</field>
+            <field name="model_id" ref="model_epg_whatsapp_message"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_whatsapp_admin'))]"/>
+        </record>
+
+        <record id="base.user_admin" model="res.users">
+            <field name="group_ids" eval="[(4, ref('group_whatsapp_admin'))]"/>
+        </record>
+    </data>
+</odoo>

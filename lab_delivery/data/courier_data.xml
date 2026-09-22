@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        A starting list of the couriers a Kerala lab typically uses.
+
+        noupdate="1" on purpose: these URLs are the couriers' own and they move them
+        without warning. Once the office corrects one, a module upgrade must not put
+        the broken one back.
+    -->
+    <!-- awb_pattern: what each courier's numbers look like. These are the lab's
+         observations, not the couriers' specifications, and they are used to RANK
+         what a scanned receipt yields and to warn on a typed number - never to
+         refuse one. Edit them on the courier when a format changes.
+         (client, 2026-08-28) -->
+    <data noupdate="1">
+
+        <record id="courier_dtdc" model="lab.courier">
+            <field name="name">DTDC</field>
+            <field name="code">DTDC</field>
+            <field name="sequence">10</field>
+            <field name="transit_days">2</field>
+            <field name="website">https://www.dtdc.in</field>
+            <field name="tracking_url">https://www.dtdc.in/tracking.asp?strCnno={awb}</field>
+            <field name="awb_pattern">^(?=.*[A-Z])[A-Z0-9]{9,12}$</field>
+            <field name="awb_example">D12345678</field>
+        </record>
+
+        <record id="courier_bluedart" model="lab.courier">
+            <field name="name">Blue Dart</field>
+            <field name="code">BD</field>
+            <field name="sequence">20</field>
+            <field name="transit_days">1</field>
+            <field name="website">https://www.bluedart.com</field>
+            <field name="tracking_url">https://www.bluedart.com/web/guest/trackdartresult?trackFor=0&amp;trackNo={awb}</field>
+            <field name="awb_pattern">^[0-9]{8,11}$</field>
+            <field name="awb_example">12345678901</field>
+        </record>
+
+        <record id="courier_professional" model="lab.courier">
+            <field name="name">The Professional Couriers</field>
+            <field name="code">TPC</field>
+            <field name="sequence">30</field>
+            <field name="transit_days">2</field>
+            <field name="website">https://www.tpcindia.com</field>
+            <field name="tracking_url">https://www.tpcindia.com/Tracking2014.aspx?id={awb}</field>
+            <field name="awb_pattern">^[A-Z]{2,4}[0-9]{6,10}$</field>
+            <field name="awb_example">KLM123456</field>
+        </record>
+
+        <record id="courier_delhivery" model="lab.courier">
+            <field name="name">Delhivery</field>
+            <field name="code">DLV</field>
+            <field name="sequence">40</field>
+            <field name="transit_days">3</field>
+            <field name="website">https://www.delhivery.com</field>
+            <field name="tracking_url">https://www.delhivery.com/track/package/{awb}</field>
+            <field name="awb_pattern">^[0-9]{12,14}$</field>
+            <field name="awb_example">1234567890123</field>
+        </record>
+
+        <record id="courier_indiapost" model="lab.courier">
+            <field name="name">India Post (Speed Post)</field>
+            <field name="code">IPOST</field>
+            <field name="sequence">50</field>
+            <field name="transit_days">4</field>
+            <field name="website">https://www.indiapost.gov.in</field>
+            <field name="tracking_url">https://www.indiapost.gov.in/_layouts/15/DOP.Portal.Tracking/TrackConsignment.aspx?logisticsRefNo={awb}</field>
+            <field name="awb_pattern">^[A-Z]{2}[0-9]{9}IN$</field>
+            <field name="awb_example">EK123456789IN</field>
+            <field name="awb_s10" eval="True"/>
+        </record>
+
+    </data>
+
+    <!-- The stalled-consignment watch. Once a day is the right cadence: a courier scan
+         is not a live feed, and hourly nagging about a parcel nobody can hurry is how
+         a notification channel gets muted. -->
+    <record id="cron_courier_stale" model="ir.cron">
+        <field name="name">Lab: chase stalled consignments</field>
+        <field name="model_id" ref="model_lab_delivery"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_courier_stale_check()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,356 @@
+// The doctor's portal. Frontend bundle, so Bootstrap variables ARE available here —
+// unlike the backend, where Odoo 19 defines no --bs-* custom properties.
+//
+// Mobile-first throughout: this is read on a phone, in a surgery, between patients.
+$case-lab:  #0d7c8a;
+$case-done: #0f9d58;
+$case-wait: #b45309;
+
+.o_case_list { display: grid; gap: .75rem; }
+
+.o_case_card {
+    display: block;
+    padding: .875rem 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: .75rem;
+    background: #fff;
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow .15s ease, transform .15s ease;
+
+    &:hover {
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 .35rem 1rem rgba(0, 0, 0, .09);
+        transform: translateY(-1px);
+    }
+}
+
+.o_case_top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: .5rem;
+}
+
+.o_case_patient { font-size: 1.0625rem; font-weight: 700; }
+.o_case_meta { font-size: .8125rem; color: #6c757d; margin-top: .125rem; }
+
+// Every stage carries its own word. Colour alone tells a colour-blind doctor nothing,
+// and this is the one thing on the page they came for.
+.o_case_chip {
+    font-size: .6875rem;
+    font-weight: 700;
+    padding: .1875rem .625rem;
+    border-radius: 1rem;
+    white-space: nowrap;
+    background: #e9ecef;
+    color: #495057;
+}
+
+.o_case_chip_in_lab    { background: rgba(13, 124, 138, .15); color: $case-lab; }
+.o_case_chip_ready     { background: rgba(15, 157, 88, .15); color: $case-done; }
+.o_case_chip_sent      { background: rgba(180, 83, 9, .15); color: $case-wait; }
+.o_case_chip_delivered { background: rgba(15, 157, 88, .18); color: $case-done; }
+.o_case_chip_cancel    { background: rgba(220, 53, 69, .13); color: #dc3545; }
+
+.o_case_track {
+    height: 5px;
+    border-radius: 3px;
+    background: #e9ecef;
+    margin-top: .625rem;
+    overflow: hidden;
+}
+
+.o_case_track_fill {
+    height: 100%;
+    background: linear-gradient(90deg, lighten($case-lab, 18%), $case-lab);
+}
+
+.o_case_now { font-size: .8125rem; color: $case-lab; margin-top: .5rem; font-weight: 600; }
+
+.o_case_head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+// The five stages. Horizontal on a desk, a vertical list on a phone — squeezing five
+// labels into 360px makes all five unreadable.
+.o_case_stages {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.o_case_stage {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .625rem;
+    border-radius: .5rem;
+    background: #f8f9fa;
+    color: #6c757d;
+    font-size: .8125rem;
+}
+
+.o_case_stage_on { background: rgba(13, 124, 138, .10); color: $case-lab; font-weight: 700; }
+
+.o_case_dot {
+    width: .5rem;
+    height: .5rem;
+    border-radius: 50%;
+    background: currentColor;
+    flex: 0 0 auto;
+}
+
+.o_case_now_big {
+    padding: .75rem 1rem;
+    border-left: 4px solid $case-lab;
+    background: rgba(13, 124, 138, .07);
+    border-radius: .5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.o_case_panel {
+    border: 1px solid #dee2e6;
+    border-radius: .75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #fff;
+
+    h5 { font-size: .9375rem; font-weight: 700; margin-bottom: .75rem; }
+}
+
+.o_case_line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem 0;
+    border-top: 1px solid #f1f3f5;
+    flex-wrap: wrap;
+
+    &:first-of-type { border-top: 0; }
+}
+
+.o_case_line_n { font-weight: 600; }
+.o_case_line_m { display: flex; align-items: center; gap: .375rem; }
+
+.o_case_pill {
+    font-size: .6875rem;
+    font-weight: 700;
+    padding: .125rem .5rem;
+    border-radius: 1rem;
+    background: #eef2f7;
+    color: #3b4a5a;
+}
+
+.o_case_step {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    padding: .4375rem 0;
+    color: #adb5bd;
+    font-size: .875rem;
+}
+
+.o_case_step_done     { color: $case-done; }
+.o_case_step_progress { color: $case-lab; font-weight: 700; }
+
+.o_case_step_tag {
+    font-size: .625rem;
+    font-weight: 700;
+    padding: .0625rem .5rem;
+    border-radius: 1rem;
+    background: rgba(13, 124, 138, .15);
+}
+
+.o_case_foot { font-size: .8125rem; margin-top: 1.25rem; }
+
+@media (max-width: 575.98px) {
+    .o_case_stages { flex-direction: column; gap: .25rem; }
+    .o_case_stage { flex: 1 1 auto; }
+}
+
+// ---------------------------------------------------------------- 2026-08 refresh
+// Everything below is sized for a phone first and allowed to grow, because that is
+// where this is read: a doctor between patients, one-handed, on a 360px screen.
+
+$oc-lab:    #4f46e5;
+$oc-ready:  #0f9d58;
+$oc-sent:   #0d7c8a;
+$oc-done:   #64748b;
+$oc-late:   #c2410c;
+
+// --- summary tiles, which are also the filters
+.o_case_tiles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);   // two-up on a phone, never a squeezed row
+    gap: .5rem;
+    margin: 0 0 .75rem;
+
+    @media (min-width: 576px) { grid-template-columns: repeat(4, 1fr); }
+}
+
+.o_case_tile {
+    display: flex;
+    flex-direction: column;
+    padding: .6rem .75rem;
+    border-radius: .75rem;
+    background: rgba(0, 0, 0, .035);
+    border: 1px solid transparent;
+    text-decoration: none;
+    color: inherit;
+    min-height: 62px;               // a comfortable thumb target
+    transition: transform .12s ease, border-color .12s ease;
+
+    &:hover, &:focus { text-decoration: none; transform: translateY(-1px); }
+    &.o_tile_active { border-color: currentColor; }
+
+    .o_tile_n { font-size: 1.35rem; font-weight: 700; line-height: 1.1; }
+    .o_tile_l { font-size: .75rem; opacity: .75; }
+
+    &.o_tile_lab   { color: $oc-lab; }
+    &.o_tile_ready { color: $oc-ready; }
+    &.o_tile_sent  { color: $oc-sent; }
+    &.o_tile_done  { color: $oc-done; }
+}
+
+// --- stage chips as a scrolling filter bar
+.o_case_filterbar {
+    display: flex;
+    gap: .4rem;
+    overflow-x: auto;
+    padding-bottom: .5rem;
+    margin-bottom: .5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+}
+
+.o_case_fchip {
+    flex: 0 0 auto;
+    border: 1px solid rgba(0, 0, 0, .15);
+    background: transparent;
+    border-radius: 999px;
+    padding: .3rem .8rem;
+    font-size: .8rem;
+    white-space: nowrap;
+    &.active { background: var(--bs-primary, #{$oc-lab}); border-color: transparent; color: #fff; }
+}
+
+// --- the progress ring on each card
+.o_case_card { display: flex; align-items: center; gap: .75rem; }
+.o_case_body { flex: 1 1 auto; min-width: 0; }   // min-width:0 lets long names ellipsis
+.o_case_go   { opacity: .35; flex: 0 0 auto; }
+
+.o_case_ring {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: .72rem;
+    font-weight: 700;
+    color: $oc-lab;
+    // A conic gradient keeps this to one element — no SVG, no JS, and it degrades to a
+    // plain disc on anything that cannot render it.
+    background: conic-gradient(currentColor calc(var(--pct) * 1%),
+                               rgba(0, 0, 0, .08) 0);
+    position: relative;
+
+    &::after {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        background: var(--bs-body-bg, #fff);
+    }
+    > * { position: relative; z-index: 1; }
+    small { font-size: .55rem; font-weight: 600; }
+
+    &.o_ring_ready     { color: $oc-ready; }
+    &.o_ring_sent      { color: $oc-sent; }
+    &.o_ring_delivered { color: $oc-done; }
+}
+
+// --- due dates
+.o_case_due, .o_case_promise { font-size: .78rem; opacity: .8; margin-top: .15rem; }
+.o_case_promise {
+    padding: .6rem .8rem;
+    border-radius: .6rem;
+    background: rgba(0, 0, 0, .04);
+    margin: .5rem 0;
+    font-size: .85rem;
+    opacity: 1;
+}
+.o_due_soon { color: darken($oc-sent, 5%); }
+.o_due_late { color: $oc-late; font-weight: 600; }
+
+// --- per-appliance job blocks
+.o_case_job {
+    padding: .7rem 0;
+    & + .o_case_job { border-top: 1px solid rgba(0, 0, 0, .08); }
+}
+.o_case_job_head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: .5rem;
+    margin-bottom: .4rem;
+    flex-wrap: wrap;
+}
+.o_case_job_n { font-weight: 600; }
+.o_case_job_meta { margin-top: .25rem; }
+
+// The station rail scrolls sideways instead of wrapping: the order of the stations is
+// the information, and a wrapped rail reads as a list of unrelated words.
+.o_case_rail {
+    display: flex;
+    gap: .35rem;
+    overflow-x: auto;
+    padding: .5rem 0 .25rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+.o_case_railstep {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    font-size: .75rem;
+    padding: .3rem .6rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .05);
+    white-space: nowrap;
+
+    &.o_case_step_done     { color: $oc-ready; }
+    &.o_case_step_progress { background: rgba(79, 70, 229, .12); color: $oc-lab; font-weight: 600; }
+    &.o_case_step_todo     { opacity: .6; }
+}
+.o_case_step_tag {
+    font-size: .6rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    background: $oc-lab;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0 .4rem;
+}
+
+// --- tablet and up: let the cards breathe into two columns
+@media (min-width: 768px) {
+    .o_case_list { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+    .o_case_card { height: 100%; }
+}
+@media (min-width: 1200px) {
+    .o_case_list { grid-template-columns: repeat(3, 1fr); }
+}

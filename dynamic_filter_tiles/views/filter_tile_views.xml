@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_filter_tile_form" model="ir.ui.view">
+        <field name="name">filter.tile.form</field>
+        <field name="model">filter.tile</field>
+        <field name="arch" type="xml">
+            <form string="Filter Tile">
+                <header>
+                    <button name="action_publish" type="object" string="Publish to Everyone"
+                            class="btn-primary" invisible="not owner_id"
+                            groups="dynamic_filter_tiles.group_tile_manager"
+                            help="Turn this private tile into one everybody sees."/>
+                    <button name="action_copy_to_me" type="object" string="Copy to My Tiles"
+                            invisible="owner_id"
+                            help="Take a private copy you can bend to your own taste."/>
+                    <button name="action_capture_snapshot" type="object" string="Record a Point Now"
+                            invisible="trend_source != 'history'"
+                            help="Store today's value straight away instead of waiting for tonight."/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Private" bg_color="text-bg-info"
+                            invisible="not owner_id"/>
+                    <!-- Renders the real tile with the real count, live. -->
+                    <field name="preview" widget="filter_tile_preview" nolabel="1"/>
+                    <group>
+                        <group string="What it counts" name="counts">
+                            <field name="name" placeholder="e.g. Late Receipts"/>
+                            <field name="model_id" options="{'no_create': True}"
+                                   placeholder="e.g. Contact, Sales Order, Task"/>
+                            <field name="model_name" invisible="1"/>
+                            <field name="domain" widget="domain"
+                                   options="{'model': 'model_name', 'allow_expressions': True}"/>
+                            <field name="ignore_filters"/>
+                            <field name="only_mine"/>
+                            <field name="user_field_name" invisible="1"/>
+                            <field name="user_field_id" invisible="not only_mine"
+                                   required="only_mine" options="{'no_create': True}"/>
+                            <div colspan="2" class="alert alert-info py-2 mb-0" role="alert"
+                                 invisible="not only_mine">
+                                Each person sees their own count, and clicking filters to
+                                their own records.
+                                <span invisible="owner_id">A shared per-person tile keeps
+                                no history and sends no alerts — there is no single number
+                                to record.</span>
+                            </div>
+                        </group>
+                        <group string="How it looks" name="look">
+                            <field name="icon" widget="fa_icon_picker"/>
+                            <field name="color" widget="tile_color_picker"/>
+                            <field name="custom_color" placeholder="#1f8fff"/>
+                            <field name="tooltip" placeholder="Shown on hover"/>
+                            <label for="width"/>
+                            <div class="o_row">
+                                <field name="width" class="oe_inline"/>
+                                <span class="text-muted">px — 0 for the standard width</span>
+                            </div>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Value" name="value">
+                            <group>
+                                <group string="Measure">
+                                    <field name="measure_field_id" options="{'no_create': True}"
+                                           placeholder="Record count"/>
+                                    <field name="measure_name" invisible="1"/>
+                                    <field name="aggregate" invisible="not measure_field_id"/>
+                                    <field name="symbol" placeholder="e.g. €"/>
+                                </group>
+                                <group string="Trend &amp; goal">
+                                    <field name="show_trend"/>
+                                    <field name="trend_source" invisible="not show_trend"
+                                           widget="radio"/>
+                                    <field name="trend_field_id"
+                                           invisible="not show_trend or trend_source != 'field'"
+                                           options="{'no_create': True}" placeholder="Auto-detected"/>
+                                    <field name="trend_field_name" invisible="1"/>
+                                    <field name="target_value"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Breakdown">
+                                    <field name="breakdown_field_id" options="{'no_create': True}"
+                                           placeholder="Picked automatically"/>
+                                    <field name="breakdown_field_name" invisible="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Alert" name="alert">
+                            <group>
+                                <group string="Threshold">
+                                    <field name="alert_operator"/>
+                                    <field name="alert_value" invisible="alert_operator == 'none'"/>
+                                    <field name="alert_message" invisible="alert_operator == 'none'"
+                                           placeholder="Shown on the alerting tile"/>
+                                    <field name="alert_notify" invisible="alert_operator == 'none'"/>
+                                </group>
+                                <group string="Status" invisible="alert_operator == 'none'">
+                                    <field name="alert_triggered" widget="boolean_toggle" readonly="1"/>
+                                    <field name="alert_triggered_on" readonly="1"/>
+                                </group>
+                            </group>
+                            <div class="text-muted" invisible="alert_operator == 'none'">
+                                The threshold is checked every hour by the server, and again every
+                                time the tile is drawn. A notification is sent when the number
+                                <em>crosses</em> the threshold, not for every hour it stays there.
+                            </div>
+                        </page>
+                        <page string="History" name="history" invisible="trend_source != 'history'">
+                            <field name="snapshot_count" readonly="1"/>
+                            <field name="snapshot_ids" nolabel="1" readonly="1">
+                                <list string="Recorded points" default_order="captured_on desc">
+                                    <field name="captured_on"/>
+                                    <field name="value"/>
+                                    <field name="record_count"/>
+                                </list>
+                            </field>
+                            <div class="text-muted mt8">
+                                One point per day, recorded by the nightly job. Shared tiles are
+                                measured without record rules (it is a company-wide number);
+                                a private tile is measured through its owner's eyes.
+                            </div>
+                        </page>
+                        <page string="Visibility" name="visibility">
+                            <group>
+                                <group string="Where">
+                                    <field name="action_candidate_ids" invisible="1"/>
+                                    <field name="action_id" options="{'no_create': True}"
+                                           domain="[('id', 'in', action_candidate_ids)]"
+                                           placeholder="Every view of this model"/>
+                                    <field name="view_types" widget="radio"/>
+                                    <label for="row"/>
+                                    <div class="o_row">
+                                        <field name="row" class="oe_inline"/>
+                                        <span class="text-muted">of the ribbon (1 = the top row)</span>
+                                    </div>
+                                    <field name="sequence"/>
+                                    <field name="active" widget="boolean_toggle"/>
+                                </group>
+                                <group string="Who">
+                                    <field name="owner_id" options="{'no_create': True}"
+                                           placeholder="Shared with everybody"/>
+                                    <field name="group_ids" widget="many2many_tags"
+                                           invisible="owner_id" placeholder="Everyone"/>
+                                    <field name="company_id" groups="base.group_multi_company"
+                                           placeholder="All companies"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_filter_tile_list" model="ir.ui.view">
+        <field name="name">filter.tile.list</field>
+        <field name="model">filter.tile</field>
+        <field name="arch" type="xml">
+            <list string="Filter Tiles" multi_edit="1"
+                  decoration-warning="alert_triggered" decoration-muted="not active">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="row" optional="hide"/>
+                <field name="action_id" optional="hide" placeholder="Every view"/>
+                <field name="domain"/>
+                <field name="only_mine" optional="hide"/>
+                <field name="measure_field_id" optional="hide"/>
+                <field name="icon" optional="show"/>
+                <field name="color" optional="show"/>
+                <field name="owner_id" optional="show" placeholder="Shared"/>
+                <field name="alert_operator" optional="hide"/>
+                <field name="alert_triggered" optional="hide" widget="boolean_toggle" readonly="1"/>
+                <field name="trend_source" optional="hide"/>
+                <field name="view_types" optional="hide"/>
+                <field name="group_ids" widget="many2many_tags" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                <field name="active" widget="boolean_toggle" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_filter_tile_search" model="ir.ui.view">
+        <field name="name">filter.tile.search</field>
+        <field name="model">filter.tile</field>
+        <field name="arch" type="xml">
+            <search string="Filter Tiles">
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="domain"/>
+                <field name="owner_id"/>
+                <filter name="filter_mine" string="My Tiles"
+                        domain="[('owner_id', '=', uid)]"/>
+                <filter name="filter_shared" string="Shared"
+                        domain="[('owner_id', '=', False)]"/>
+                <separator/>
+                <filter name="filter_scoped" string="Scoped to a Menu"
+                        domain="[('action_id', '!=', False)]"/>
+                <separator/>
+                <filter name="filter_alerting" string="Alerting"
+                        domain="[('alert_triggered', '=', True)]"/>
+                <filter name="filter_watched" string="With a Threshold"
+                        domain="[('alert_operator', '!=', 'none')]"/>
+                <separator/>
+                <filter name="filter_measures" string="Measures"
+                        domain="[('measure_field_id', '!=', False)]"/>
+                <filter name="filter_counts" string="Counts"
+                        domain="[('measure_field_id', '=', False)]"/>
+                <separator/>
+                <filter name="filter_inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_by_model" string="Model" domain="[]"
+                            context="{'group_by': 'model_id'}"/>
+                    <filter name="group_by_owner" string="Owner" domain="[]"
+                            context="{'group_by': 'owner_id'}"/>
+                    <filter name="group_by_color" string="Colour" domain="[]"
+                            context="{'group_by': 'color'}"/>
+                </group>
+
+                <!--
+                    Search panel: a persistent sidebar rather than the search bar's
+                    autocomplete, for the two questions that come up the moment a
+                    database has tiles on more than a handful of models.
+
+                    "category" (select="one", the default) drills the whole list down
+                    to one model at a time - the same pattern the enterprise data
+                    cleaning list uses for its cleaning rules. "filter" (select="multi")
+                    are independent checkbox facets, OR-ed within a facet and AND-ed
+                    across them, each with a live record count.
+
+                    Left out on purpose: every relational facet below drops unset
+                    values from its image (Odoo's `_search_panel_domain_image`
+                    excludes False), so a facet on owner_id could list each user's
+                    private tiles but could never surface the shared ones (owner_id
+                    unset there) - "shared vs private" stays a regular <filter>
+                    toggle above, where an unset value is not lost. Booleans such as
+                    alerting aren't a search-panel field type at all, so that stays
+                    a toggle too.
+                -->
+                <searchpanel>
+                    <field name="model_id" string="Model" icon="fa-cube"
+                           enable_counters="1"/>
+                    <field name="owner_id" select="multi" string="Owner"
+                           icon="fa-user-secret" enable_counters="1"/>
+                    <field name="group_ids" select="multi" string="Restricted To"
+                           icon="fa-users" enable_counters="1"/>
+                    <field name="trend_source" select="multi" string="Trend From"
+                           icon="fa-line-chart" enable_counters="1"/>
+                    <field name="company_id" select="multi" string="Company"
+                           icon="fa-building" enable_counters="1"
+                           groups="base.group_multi_company"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_filter_tile_snapshot_list" model="ir.ui.view">
+        <field name="name">filter.tile.snapshot.list</field>
+        <field name="model">filter.tile.snapshot</field>
+        <field name="arch" type="xml">
+            <list string="Tile History" create="0">
+                <field name="captured_on"/>
+                <field name="tile_id"/>
+                <field name="value" sum="Total"/>
+                <field name="record_count" sum="Records"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_filter_tile_snapshot_graph" model="ir.ui.view">
+        <field name="name">filter.tile.snapshot.graph</field>
+        <field name="model">filter.tile.snapshot</field>
+        <field name="arch" type="xml">
+            <graph string="Tile History" type="line" sample="1">
+                <field name="captured_on" interval="day"/>
+                <field name="tile_id"/>
+                <field name="value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_filter_tile" model="ir.actions.act_window">
+        <field name="name">Filter Tiles</field>
+        <field name="res_model">filter.tile</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_filter_tile_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Build your first filter tile</p>
+            <p>
+                A tile is a label, a live number and a filter: it sits above any list
+                or kanban view, and one click filters that view down to what it counts.
+            </p>
+            <p>
+                The fastest way to make one: open the view you want them on, filter it
+                the way you like, then hit the <b>+</b> tile at the end of the bar. The
+                current filter is captured for you.
+            </p>
+        </field>
+    </record>
+
+    <record id="view_filter_tile_snapshot_search" model="ir.ui.view">
+        <field name="name">filter.tile.snapshot.search</field>
+        <field name="model">filter.tile.snapshot</field>
+        <field name="arch" type="xml">
+            <search string="Tile History">
+                <field name="tile_id"/>
+                <filter name="filter_today" string="Today"
+                        domain="[('captured_on', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter name="group_by_tile" string="Tile" domain="[]"
+                            context="{'group_by': 'tile_id'}"/>
+                    <filter name="group_by_day" string="Day" domain="[]"
+                            context="{'group_by': 'captured_on'}"/>
+                </group>
+                <!-- One tile can accumulate a year of daily points; a plain list of
+                     everybody's history is not something you scroll through, it is
+                     something you drill into one tile at a time. -->
+                <searchpanel>
+                    <field name="tile_id" string="Tile" icon="fa-bolt"
+                           enable_counters="1" limit="200"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_filter_tile_snapshot" model="ir.actions.act_window">
+        <field name="name">Tile History</field>
+        <field name="res_model">filter.tile.snapshot</field>
+        <field name="view_mode">graph,list</field>
+        <field name="search_view_id" ref="view_filter_tile_snapshot_search"/>
+    </record>
+
+    <menuitem id="menu_filter_tile_root"
+              name="Filter Tiles"
+              parent="base.next_id_2"
+              sequence="35"/>
+
+    <menuitem id="menu_filter_tile"
+              name="Tiles"
+              parent="menu_filter_tile_root"
+              action="action_filter_tile"
+              sequence="10"/>
+
+    <menuitem id="menu_filter_tile_snapshot"
+              name="History"
+              parent="menu_filter_tile_root"
+              action="action_filter_tile_snapshot"
+              sequence="30"/>
+
+</odoo>

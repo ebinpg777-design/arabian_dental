@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_label_root"
+              name="Labels"
+              web_icon="epg_product_label,static/description/icon.png"
+              sequence="95"
+              groups="epg_product_label.group_label_user"/>
+
+    <menuitem id="menu_label_print"
+              name="Print Labels"
+              parent="menu_label_root"
+              action="action_epg_label_print"
+              sequence="10"/>
+
+    <menuitem id="menu_label_history"
+              name="Print History"
+              parent="menu_label_root"
+              action="action_epg_label_print_log"
+              sequence="20"/>
+
+    <menuitem id="menu_label_configuration"
+              name="Configuration"
+              parent="menu_label_root"
+              sequence="90"
+              groups="epg_product_label.group_label_designer"/>
+
+    <menuitem id="menu_label_templates"
+              name="Label Templates"
+              parent="menu_label_configuration"
+              action="action_epg_label_template"
+              sequence="10"/>
+
+    <menuitem id="menu_label_stock"
+              name="Label Stock"
+              parent="menu_label_configuration"
+              action="action_epg_label_stock"
+              sequence="15"/>
+
+    <menuitem id="menu_label_elements"
+              name="All Elements"
+              parent="menu_label_configuration"
+              action="action_epg_label_element"
+              sequence="20"
+              groups="base.group_no_one"/>
+
+    <menuitem id="menu_label_import"
+              name="Import Templates"
+              parent="menu_label_configuration"
+              action="action_epg_label_import"
+              sequence="30"/>
+
+    <!-- Reachable from Inventory too, where product labels are usually printed. -->
+    <menuitem id="menu_label_templates_stock"
+              name="Label Templates"
+              parent="stock.menu_stock_config_settings"
+              action="action_epg_label_template"
+              sequence="45"
+              groups="epg_product_label.group_label_designer"/>
+
+</odoo>

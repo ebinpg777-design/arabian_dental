@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        The Field Work Administrator's own settings page.
+
+        Laid out as three questions rather than nine fields, because the person changing
+        the visit radius is deciding a policy, not filling in a form: what counts as
+        proof, when a clinic counts as neglected, and what travel is worth.
+    -->
+    <record id="view_fieldwork_settings_form" model="ir.ui.view">
+        <field name="name">lab.fieldwork.settings.form</field>
+        <field name="model">lab.fieldwork.settings</field>
+        <field name="arch" type="xml">
+            <form string="Field Work Settings" class="o_fw_form">
+                <sheet>
+                    <div class="oe_title mb-3">
+                        <h1>Field Work Settings</h1>
+                        <p class="text-muted">
+                            These rules bind the whole field force, which is why they
+                            live with the administrator and not with the manager they
+                            constrain.
+                        </p>
+                    </div>
+
+                    <group string="Proof of Visit"
+                           name="proof">
+                        <field name="fw_visit_radius_m"/>
+                        <field name="fw_require_odo_photo"/>
+                        <field name="fw_require_visit_photo"/>
+                        <field name="fw_require_attendance"/>
+                        <field name="fw_auto_close_day"/>
+                        <field name="fw_auto_close_hour"
+                               invisible="not fw_auto_close_day"/>
+                    </group>
+                    <div class="text-muted small mb-3 ps-1">
+                        People forget. At the end of the day anyone still on duty is
+                        signed out, and visits and trips that only lack the final tap are
+                        closed. A visit with no outcome, or a trip with no closing
+                        odometer, is <b>left open on purpose</b> — closing those would
+                        mean writing down an outcome nobody gave or a distance nobody
+                        drove. The hour is read in each executive's own timezone.
+                    </div>
+                    <div class="text-muted small mb-3 ps-1">
+                        With attendance required, an executive cannot check in at a clinic
+                        or start their travel until they have started their day on My Day.
+                        It is marked on Odoo's own attendance record, so payroll and HR
+                        reporting see it without anything being copied across.
+                    </div>
+                    <div class="text-muted small mb-3 ps-1">
+                        A check-in outside the radius is recorded and must be explained
+                        before the visit can be closed — never refused. Blocking it would
+                        only mean the visit goes unrecorded, which is worse.
+                    </div>
+
+                    <group string="Coverage Policy" name="coverage">
+                        <field name="fw_due_days"/>
+                        <field name="fw_overdue_days"/>
+                        <field name="fw_at_risk_days"/>
+                    </group>
+
+                    <div class="text-muted small mb-3 ps-1">
+                        These bands drive the Clinic Coverage report, the Marketing
+                        Desk's rescue list and the suggestions offered on My Day.
+                        Saving them rebuilds the report immediately.
+                    </div>
+
+                    <group string="Duplicate Cases" name="dup">
+                        <field name="fw_duplicate_days"/>
+                        <field name="fw_backdate_days"/>
+                    </group>
+                    <div class="text-muted small mb-3 ps-1">
+                        When an executive registers a case, the same patient at the same
+                        clinic within this many days is flagged. The slip cannot become an
+                        order until they confirm it is genuinely a different case — never
+                        silently dropped and never silently duplicated, because the person
+                        at the counter is the only one who can tell which it is.
+                    </div>
+
+                    <group string="Travel Reimbursement" name="travel">
+                        <field name="fw_rate_bike"/>
+                        <field name="fw_rate_car"/>
+                        <field name="fw_rate_public"/>
+                    </group>
+                    <div class="text-muted small ps-1">
+                        A rate set here is policy. An executive sees what they are paid
+                        per kilometre on their trip but cannot change it.
+                    </div>
+
+                    <group string="Cash in the Field" name="cash">
+                        <field name="fw_auto_float"/>
+                        <field name="fw_cash_max_days"/>
+                        <field name="fw_cash_ceiling"/>
+                    </group>
+                    <div class="text-muted small mb-3 ps-1">
+                        Cash an executive takes at a clinic goes into a petty cash float
+                        in their name at check-out, and comes off it when they hand the
+                        envelope to the office and the office counts it against the
+                        handover code. The float is a <b>custody</b> record — it never
+                        touches the ledger; accounts still books the receipt against the
+                        doctor's account. Cash held longer, or more, than these limits is
+                        chased on My Day and the Ops Desk.
+                    </div>
+
+                    <group string="Day Sheets &amp; Approvals" name="flow">
+                        <field name="fw_auto_submit_day_sheet"/>
+                        <field name="fw_approval_sla_days"/>
+                    </group>
+                    <div class="text-muted small ps-1">
+                        Each executive's day assembles itself into a sheet at day close
+                        and crosses two desks in order — the Operational Manager vouches
+                        the day happened as recorded, then the Marketing Manager judges
+                        the activities. A sheet that outstays the SLA on either desk is
+                        raised with the administrators, once.
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_save" type="object" string="Save"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Discard" special="cancel" class="btn-secondary"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_fieldwork_settings_own" model="ir.actions.act_window">
+        <field name="name">Field Work Settings</field>
+        <field name="res_model">lab.fieldwork.settings</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_fieldwork_settings_form"/>
+        <field name="target">new</field>
+    </record>
+</odoo>

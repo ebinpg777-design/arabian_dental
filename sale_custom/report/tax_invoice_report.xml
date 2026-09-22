@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Tax Invoice. Laid out to the approved design: navy headings on light cards, the
+        line table as the centrepiece, one bold total, then how to pay and who signed.
+        Tables everywhere (wkhtmltopdf's WebKit has no flexbox), sizes in the report
+        stylesheet (static/src/scss/invoice_report.scss).
+    -->
+    <template id="report_dental_invoice_document">
+        <t t-call="sale_custom.external_layout_lab">
+            <t t-set="o" t-value="o.with_context(lang=o.partner_id.lang)"/>
+            <t t-set="cur" t-value="o.currency_id"/>
+            <t t-set="mo" t-value="{'widget': 'monetary', 'display_currency': cur}"/>
+            <t t-set="stamp" t-value="o._dental_payment_state_label()"/>
+            <t t-set="stamp" t-value="stamp if stamp[1] in ('draft', 'cancel') else ('', '')"/>
+            <t t-set="lines" t-value="o.invoice_line_ids.filtered(lambda l: l.display_type == 'product')"/>
+            <t t-set="show_disc" t-value="any(l.discount for l in lines)"/>
+            <t t-set="show_hsn" t-value="any((l.product_id.hsn_number or '') for l in lines)"/>
+            <!-- One patient for the whole invoice? Name it once under the sales code
+                 instead of repeating it on every row. -->
+            <t t-set="patients" t-value="o._dental_patients()"/>
+            <t t-set="show_patient" t-value="len(patients) > 1"/>
+            <t t-set="show_ul" t-value="any(l.ul for l in lines)"/>
+            <t t-set="show_tax" t-value="bool(o.amount_tax) or any(l.tax_ids for l in lines)"/>
+            <t t-set="paid" t-value="o.amount_total - o.amount_residual"/>
+            <t t-set="footer_note">Thank you for your business.</t>
+            <t t-set="hide_letterhead" t-value="True"/>
+            <div class="page lab-invoice">
+
+                <!-- letterhead, in the body: the design puts it in a card at the top of
+                     the page, and a body block cannot be clipped by the header band -->
+                <div class="oi-letterhead">
+                    <table>
+                        <tr>
+                            <td style="vertical-align:middle;">
+                                <div class="oi-logobox" t-if="o.company_id.logo1">
+                                    <img class="oi-logo" t-att-src="image_data_uri(o.company_id.logo1)"/>
+                                </div>
+                            </td>
+                            <td style="text-align:right;vertical-align:middle;">
+                                <div class="oi-logobox" t-if="o.company_id.logo2">
+                                    <img class="oi-cert" t-att-src="image_data_uri(o.company_id.logo2)"/>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="oi-company">
+                        <t t-set="sparts" t-value="[' '.join(x.split()).replace(' ,', ',').strip(' ,') for x in [o.company_id.street or '', o.company_id.street2 or ''] if x.strip(' ,')]"/>
+                        <div t-out="', '.join(sparts)"/>
+                        <div>
+                            <t t-set="cparts" t-value="[x.strip() for x in [o.company_id.city or '', o.company_id.state_id.name or ''] if x and x.strip()]"/>
+                            <span t-out="', '.join(cparts)"/><t t-if="o.company_id.zip"> - <span t-field="o.company_id.zip"/></t>
+                        </div>
+                    </div>
+                    <div class="oi-ids">
+                        <span t-if="o.company_id.pan_number">PAN: <span t-field="o.company_id.pan_number"/></span>
+                        <span t-if="o.company_id.pan_number and o.company_id.gst_number">&#160;&#160;&#160;</span>
+                        <span t-if="o.company_id.gst_number">GSTIN: <span t-field="o.company_id.gst_number"/></span>
+                    </div>
+                </div>
+                <div class="oi-rule"/>
+
+                <!-- ── title ─────────────────────────────────────────────── -->
+                <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
+                    <tr>
+                        <td style="border:none;padding:0;vertical-align:bottom;">
+                            <div class="oi-title">
+                                <t t-if="o.move_type == 'out_invoice'">INVOICE</t>
+                                <t t-elif="o.move_type == 'out_refund'">CREDIT NOTE</t>
+                                <t t-elif="o.move_type == 'in_invoice'">VENDOR BILL</t>
+                                <t t-elif="o.move_type == 'in_refund'">DEBIT NOTE</t>
+                                <t t-else="">INVOICE</t>
+                            </div>
+                        </td>
+                        <td style="border:none;padding:0;text-align:right;vertical-align:bottom;">
+                            <div class="oi-numlabel">Invoice No.</div>
+                            <div class="oi-number"><span t-field="o.name"/></div>
+                            <div t-if="stamp[0]" t-attf-class="oi-stamp {{stamp[1]}}"><t t-out="stamp[0]"/></div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- ── address, then the invoice meta ────────────────────
+                     Client layout (2026-08-18): the sales code sits under the Bill To
+                     address and the dates/source card runs below the block. The gap the
+                     code used to leave above the card is kept (see .oi-billcard). -->
+                <div class="oi-billcard">
+                    <div class="oi-label">Bill to</div>
+                    <div class="oi-partyname" t-field="o.partner_id.name"/>
+                    <div class="oi-partyline"
+                         t-field="o.partner_id"
+                         t-options='{"widget": "contact", "fields": ["address"], "no_marker": True}'/>
+                    <div class="oi-partysub">
+                        <t t-set="gstin" t-value="o.partner_id.gst_number or (o.partner_id.parent_id and o.partner_id.parent_id.gst_number)"/>
+                        <span t-if="gstin">GSTIN: <t t-out="gstin"/></span>
+                        <span t-if="gstin and o.partner_id.pan_number"> &#160;·&#160; </span>
+                        <span t-if="o.partner_id.pan_number">PAN: <span t-field="o.partner_id.pan_number"/></span>
+                        <span t-if="(gstin or o.partner_id.pan_number) and o.partner_id.dci_number"> &#160;·&#160; </span>
+                        <span t-if="o.partner_id.dci_number">DCI No: <span t-field="o.partner_id.dci_number"/></span>
+                    </div>
+
+                    <!-- white chip on the card's tint (approved design): sales code and
+                         patient side by side, a light divider between them -->
+                    <div class="oi-codechip" t-if="('team_id' in o._fields and o.team_id) or len(patients) == 1">
+                        <table>
+                            <tr>
+                                <td t-if="'team_id' in o._fields and o.team_id">
+                                    <span class="oi-label">Sales code</span>
+                                    <span class="oi-codeval"><span t-field="o.team_id.name"/></span>
+                                </td>
+                                <td t-if="len(patients) == 1" class="oi-chip-patient">
+                                    <span class="oi-label">Patient</span>
+                                    <span class="oi-codeval"><t t-out="patients[0]"/></span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── the scan strip ──────────────────────────────────────
+                     Just the barcode, on the left, under the address block. No
+                     caption, no frame, no number under the bars: the invoice
+                     number is already printed twice on this sheet, and a scanner
+                     needs none of it. (client, 2026-08-28) -->
+                <!-- 96 x 17 mm, rendered at 1800 px: a field printer with a tired
+                     drum DROPS the thin bars outright - a captured failure photo
+                     showed 27-47 of the 68 elements surviving on paper, which no
+                     scanner can ever read back. At this width a thin element is
+                     ~1.07 mm instead of 0.80, wide enough to outlive toner
+                     starvation and a fit-to-page shrink. (client, 2026-08-28) -->
+                <div class="oi-scanstrip">
+                    <span t-field="o.name"
+                          t-options="{'widget': 'barcode',
+                                      'symbology': 'Code128',
+                                      'humanreadable': 0,
+                                      'quiet': 1,
+                                      'width': 1800,
+                                      'height': 240,
+                                      'img_style': 'width:96mm; height:17mm; display:block;'}"/>
+                </div>
+
+                <div class="oi-metacard" style="width:60%;">
+                    <table>
+                        <tr>
+                            <td style="width:25%;" t-if="o.name">
+                                <div class="oi-label">Invoice No.</div>
+                                <div class="oi-metaval"><span t-field="o.name"/></div>
+                            </td>
+                            <td style="width:25%;" t-if="o.invoice_origin">
+                                <div class="oi-label">Source</div>
+                                <div class="oi-metaval"><span t-field="o.invoice_origin"/></div>
+                            </td>
+                            <td style="width:25%;">
+                                <div class="oi-label">Invoice date</div>
+                                <div class="oi-metaval"><span t-field="o.invoice_date"/></div>
+                            </td>
+                            <td t-if="o.invoice_date_due">
+                                <div class="oi-label">Due date</div>
+                                <div class="oi-metaval"><span t-field="o.invoice_date_due"/></div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- ── lines ─────────────────────────────────────────────── -->
+                <table class="oi-lines">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th t-if="show_hsn" style="width:8%">HSN</th>
+                            <th t-if="show_patient" style="width:14%">Patient</th>
+                            <th t-if="show_ul" class="mid" style="width:6%">U/L</th>
+                            <th class="num" style="width:8%">Qty</th>
+                            <th class="num" style="width:13%">Unit Price</th>
+                            <th t-if="show_disc" class="num" style="width:7%">Disc %</th>
+                            <th t-if="show_tax" class="num" style="width:9%">Tax</th>
+                            <th class="num" style="width:14%">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="lines" t-as="l">
+                            <td><span t-field="l.name"/></td>
+                            <td t-if="show_hsn"><span t-field="l.product_id.hsn_number"/></td>
+                            <td t-if="show_patient"><span t-field="l.patient"/></td>
+                            <td t-if="show_ul" class="mid"><span t-field="l.ul"/></td>
+                            <td class="num">
+                                <span t-field="l.quantity"/>
+                                <span t-field="l.product_uom_id" groups="uom.group_uom"/>
+                            </td>
+                            <td class="num"><span t-out="o._dental_money(l.price_unit)"/></td>
+                            <td t-if="show_disc" class="num"><span t-if="l.discount" t-out="l.discount"/></td>
+                            <td t-if="show_tax" class="num"><span t-out="', '.join(t.name for t in l.tax_ids)"/></td>
+                            <td class="num"><span t-out="o._dental_money(l.price_subtotal)"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- ── words + totals ────────────────────────────────────── -->
+                <table style="width:100%;border-collapse:collapse;margin-top:14px;page-break-inside:avoid;">
+                    <tr>
+                        <td style="width:55%;border:none;padding:0 16px 0 0;vertical-align:top;">
+                            <t t-if="show_hsn and o._dental_hsn_summary()">
+                                <div class="oi-label" style="margin-top:10px;">HSN summary</div>
+                                <table class="oi-lines" style="margin-top:3px;font-size:9pt;">
+                                    <thead>
+                                        <tr><th>HSN</th><th class="num">Taxable</th><th class="num">GST %</th>
+                                            <th class="num">Tax</th><th class="num">Total</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="o._dental_hsn_summary()" t-as="h">
+                                            <td><t t-out="h['hsn']"/></td>
+                                            <td class="num"><span t-out="o._dental_money(h['taxable'])"/></td>
+                                            <td class="num"><t t-out="h['rate']"/></td>
+                                            <td class="num"><span t-out="o._dental_money(h['tax'])"/></td>
+                                            <td class="num"><span t-out="o._dental_money(h['total'])"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </t>
+                        </td>
+                        <td style="border:none;padding:0;vertical-align:top;">
+                            <table class="oi-totals">
+                                <tr class="sub">
+                                    <td class="k">Subtotal</td>
+                                    <td class="v"><span t-out="o._dental_money(o.amount_untaxed)"/></td>
+                                </tr>
+                                <tr t-foreach="o._dental_tax_groups()" t-as="group">
+                                    <td class="k"><t t-out="group[0]"/></td>
+                                    <td class="v"><span t-out="o._dental_money(group[1])"/></td>
+                                </tr>
+                                <tr class="total">
+                                    <td>TOTAL</td>
+                                    <td class="v"><span t-out="o._dental_money(o.amount_total)"/></td>
+                                </tr>
+                                <tr t-if="o.move_type == 'out_invoice' and paid">
+                                    <td class="k">Paid</td>
+                                    <td class="v">- <span t-out="o._dental_money(paid)"/></td>
+                                </tr>
+                                <tr class="due" t-if="o.move_type == 'out_invoice' and o.state == 'posted' and o.amount_residual and paid">
+                                    <td class="k">Amount due</td>
+                                    <td class="v"><span t-out="o._dental_money(o.amount_residual)"/></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width:55%;border:none;padding:0 16px 0 0;vertical-align:top;">
+                            <div class="oi-label">Amount in words</div>
+                            <div class="oi-words"><strong t-out="o.convert(o.amount_total, cur.name)"/></div>
+                            
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- ── bank details ──────────────────────────────────────── -->
+                <t t-if="o.company_id.partner_id.bank_ids">
+                    <div class="oi-section">Bank Details</div>
+                    <table class="oi-bank">
+                        <tr t-foreach="o.company_id.partner_id.bank_ids" t-as="b">
+                            <td style="width:25%;">
+                                <div class="oi-label">Bank name</div>
+                                <div class="oi-bankval"><span t-field="b.bank_id.name"/></div>
+                            </td>
+                            <td style="width:28%;">
+                                <div class="oi-label">Account number</div>
+                                <div class="oi-bankval"><span t-field="b.acc_number"/></div>
+                            </td>
+                            <td style="width:24%;">
+                                <div class="oi-label">Branch</div>
+                                <div class="oi-bankval"><span t-field="b.bank_id.city"/></div>
+                            </td>
+                            <td>
+                                <div class="oi-label">IFSC code</div>
+                                <div class="oi-bankval"><span t-field="b.bank_id.bic"/></div>
+                            </td>
+                        </tr>
+                    </table>
+                </t>
+
+                <!-- ── pay / sign ────────────────────────────────────────── -->
+                <table style="width:100%;border-collapse:collapse;margin-top:8px;page-break-inside:avoid;">
+                    <tr>
+                        <td style="width:44%;border:none;padding:0;vertical-align:top;">
+                            <div class="oi-paycard" t-if="o.company_id.payment_qr">
+                                <table style="width:100%;border-collapse:collapse;">
+                                    <tr>
+                                        <td class="oi-qr" style="border:none;padding:0;width:40mm;">
+                                            <img t-att-src="image_data_uri(o.company_id.payment_qr)"/>
+                                        </td>
+                                        <td style="border:none;padding:0 0 0 10px;vertical-align:middle;">
+                                            <div class="oi-qrtitle">SCAN TO PAY</div>
+                                            <div class="oi-qrnote">Quick payment<br/>using the QR code.</div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </td>
+                        <td style="border:none;padding:0 0 0 10px;vertical-align:bottom;">
+                            <div class="oi-sign">
+                                <div class="oi-label">Authorised signatory</div>
+                                <img t-if="o.invoice_signature" t-att-src="image_data_uri(o.invoice_signature)"/>
+                                <img t-if="not o.invoice_signature and o.company_id.invoice_signature"
+                                     t-att-src="image_data_uri(o.company_id.invoice_signature)"/>
+                                <div class="oi-signfor">For <span t-field="o.company_id.name"/></div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="oi-terms" t-if="o.invoice_payment_term_id.note or o.fiscal_position_id.note or o.narration">
+                    <span t-if="o.invoice_payment_term_id.note" t-field="o.invoice_payment_term_id.note"/>
+                    <span t-if="o.fiscal_position_id.note" t-field="o.fiscal_position_id.note"/>
+                    <span t-if="o.narration" t-field="o.narration"/>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_dental_invoice">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="sale_custom.report_dental_invoice_document" t-lang="o.partner_id.lang"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- Standard invoice print (Invoice PDF / Send &amp; Print / portal) uses this layout. -->
+    <template id="report_invoice_dental_dispatch" inherit_id="account.report_invoice">
+        <xpath expr="//t[@t-call='account.report_invoice_document']" position="after">
+            <t t-elif="o._get_name_invoice_report() == 'sale_custom.report_dental_invoice_document'"
+               t-call="sale_custom.report_dental_invoice_document" t-lang="lang"/>
+        </xpath>
+    </template>
+</odoo>

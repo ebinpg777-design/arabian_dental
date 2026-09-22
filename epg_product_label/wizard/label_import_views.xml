@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_epg_label_import_form" model="ir.ui.view">
+        <field name="name">epg.label.import.form</field>
+        <field name="model">epg.label.import</field>
+        <field name="arch" type="xml">
+            <form string="Import Label Templates">
+                <group>
+                    <field name="file_data" filename="filename" widget="binary"/>
+                    <field name="filename" invisible="1"/>
+                    <field name="overwrite"/>
+                </group>
+                <div class="text-muted">
+                    Upload a file produced by <b>Export XML</b> on a label template.
+                    Templates are matched on their reference, so give a template a
+                    reference before exporting it if you intend to update it later.
+                </div>
+                <footer>
+                    <button name="action_import" type="object" string="Import"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_epg_label_import" model="ir.actions.act_window">
+        <field name="name">Import Label Templates</field>
+        <field name="res_model">epg.label.import</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

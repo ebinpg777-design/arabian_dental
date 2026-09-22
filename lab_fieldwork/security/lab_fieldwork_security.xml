@@ -1,0 +1,637 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="privilege_fieldwork" model="res.groups.privilege">
+            <field name="name">Field Work</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="sequence">20</field>
+        </record>
+
+        <!--
+            Three roles, and each is a different application rather than the same one
+            with pieces greyed out. An executive who can see a menu they may not use
+            learns to ignore menus.
+
+            THE ROLES DO NOT INHERIT EACH OTHER'S MENUS. A manager is not "an executive
+            with extra powers" — they never work a beat, so "My Day", "My Visits" and
+            "My Travel" are noise on their screen, and worse, they invite a manager to
+            record field work as if it were their own. Odoo has no way to hide a menu
+            from a group, only to show it, so the roles are kept PARALLEL and each is
+            granted its access directly. That is the whole reason Manager does not
+            imply Executive.
+
+            Administrator still implies Manager: an administrator genuinely is a
+            manager who can also change the rules, and nothing on the manager's screen
+            misleads them.
+        -->
+        <record id="group_fieldwork_executive" model="res.groups">
+            <field name="name">Executive</field>
+            <field name="privilege_id" ref="privilege_fieldwork"/>
+            <field name="comment">Works a beat: sees their own visits, trips and target,
+                and nothing else.</field>
+        </record>
+
+        <!-- The manager role was SPLIT on 2026-08-29 into the two questions one
+             person used to answer alone. This group stays as the shared base the
+             two specialisations imply - every rule, ACL and menu keyed on it
+             keeps working for both - but it is no longer a pickable role: the
+             privilege_id is deliberately absent, so the user form offers
+             Executive / Operational Manager / Marketing Manager / Administrator
+             and nothing in between. -->
+        <record id="group_fieldwork_manager" model="res.groups">
+            <field name="name">Manager (base)</field>
+            <field name="privilege_id" eval="False"/>
+            <field name="comment">Technical shared base of the two manager roles.
+                Sees the whole team. Assigned only through Operational Manager,
+                Marketing Manager or Administrator — never directly.</field>
+        </record>
+
+        <record id="group_fieldwork_ops_manager" model="res.groups">
+            <field name="name">Operational Manager</field>
+            <field name="privilege_id" ref="privilege_fieldwork"/>
+            <field name="implied_ids" eval="[(4, ref('group_fieldwork_manager'))]"/>
+            <field name="comment">First desk of the day sheet: did the day
+                physically happen as recorded — attendance, kilometres, GPS at
+                the door, visits closed. Approves daily updates and travel.</field>
+        </record>
+
+        <record id="group_fieldwork_marketing_manager" model="res.groups">
+            <field name="name">Marketing Manager</field>
+            <field name="privilege_id" ref="privilege_fieldwork"/>
+            <field name="implied_ids" eval="[(4, ref('group_fieldwork_manager'))]"/>
+            <field name="comment">Second desk of the day sheet: was the day worth
+                anything — activities, new clinics, the relationships moved.
+                Approves activities only on days operations has vouched for.</field>
+        </record>
+
+        <record id="group_fieldwork_admin" model="res.groups">
+            <field name="name">Administrator</field>
+            <field name="privilege_id" ref="privilege_fieldwork"/>
+            <field name="implied_ids" eval="[(4, ref('group_fieldwork_manager')),
+                                             (4, ref('group_fieldwork_ops_manager')),
+                                             (4, ref('group_fieldwork_marketing_manager'))]"/>
+            <field name="comment">Owns the configuration and receives the weekly
+                report of activities and approvals. Implies both manager desks, so
+                an administrator can unblock either. The person a rule constrains
+                should not be the person who can relax it.</field>
+        </record>
+
+        <!-- ==================== record rules ==================== -->
+        <!--
+            The pattern throughout: an executive sees their own records, a manager sees
+            everything.
+
+            The roles being parallel makes these rules SHARPER, not weaker. A manager
+            now matches the "all" rule only, so there is no longer a moment where two
+            rules are OR-ed and the reader has to work out which one wins. Each role
+            has exactly one rule per model.
+        -->
+        <record id="rule_visit_own" model="ir.rule">
+            <field name="name">Visit: own</field>
+            <field name="model_id" ref="model_lab_visit"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_visit_all" model="ir.rule">
+            <field name="name">Visit: all</field>
+            <field name="model_id" ref="model_lab_visit"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_visit_company" model="ir.rule">
+            <field name="name">Visit: company</field>
+            <field name="model_id" ref="model_lab_visit"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Cash collected away from a visit is read exactly like a visit:
+             your own, the manager's all, and never across companies. -->
+        <record id="rule_cash_collection_own" model="ir.rule">
+            <field name="name">Cash collection: own</field>
+            <field name="model_id" ref="model_lab_cash_collection"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_cash_collection_all" model="ir.rule">
+            <field name="name">Cash collection: all</field>
+            <field name="model_id" ref="model_lab_cash_collection"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_cash_collection_company" model="ir.rule">
+            <field name="name">Cash collection: company</field>
+            <field name="model_id" ref="model_lab_cash_collection"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- A handover is read like the collection it returns: your own, the
+             desk's all - and the petty cash officer's all, because counting the
+             envelope is their job even though they never work a beat. -->
+        <record id="rule_cash_handover_own" model="ir.rule">
+            <field name="name">Cash handover: own</field>
+            <field name="model_id" ref="model_lab_cash_handover"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_cash_handover_all" model="ir.rule">
+            <field name="name">Cash handover: all</field>
+            <field name="model_id" ref="model_lab_cash_handover"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('petty_cash.group_petty_cash_officer')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_cash_handover_company" model="ir.rule">
+            <field name="name">Cash handover: company</field>
+            <field name="model_id" ref="model_lab_cash_handover"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cash_handover_line_own" model="ir.rule">
+            <field name="name">Cash handover line: own</field>
+            <field name="model_id" ref="model_lab_cash_handover_line"/>
+            <field name="domain_force">[('handover_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_cash_handover_line_all" model="ir.rule">
+            <field name="name">Cash handover line: all</field>
+            <field name="model_id" ref="model_lab_cash_handover_line"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('petty_cash.group_petty_cash_officer')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+
+        <record id="rule_trip_own" model="ir.rule">
+            <field name="name">Trip: own</field>
+            <field name="model_id" ref="model_lab_trip"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_trip_all" model="ir.rule">
+            <field name="name">Trip: all</field>
+            <field name="model_id" ref="model_lab_trip"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_trip_company" model="ir.rule">
+            <field name="name">Trip: company</field>
+            <field name="model_id" ref="model_lab_trip"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_target_own" model="ir.rule">
+            <field name="name">Target: own</field>
+            <field name="model_id" ref="model_lab_target"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_target_all" model="ir.rule">
+            <field name="name">Target: all</field>
+            <field name="model_id" ref="model_lab_target"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_target_company" model="ir.rule">
+            <field name="name">Target: company</field>
+            <field name="model_id" ref="model_lab_target"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- A beat is a work instruction: an executive reads their own, a manager
+             writes anyone's. -->
+        <record id="rule_beat_own" model="ir.rule">
+            <field name="name">Beat: own</field>
+            <field name="model_id" ref="model_lab_beat"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_beat_all" model="ir.rule">
+            <field name="name">Beat: all</field>
+            <field name="model_id" ref="model_lab_beat"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_beat_company" model="ir.rule">
+            <field name="name">Beat: company</field>
+            <field name="model_id" ref="model_lab_beat"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+
+        <!-- A case slip follows its visit: an executive sees their own, a manager the
+             team's. Unlink is granted to the executive on purpose — deleting a slip
+             entered by mistake is the intended way to resolve a duplicate, and it is
+             only ever possible before check-out because the lock closes it after. -->
+        <record id="rule_case_own" model="ir.rule">
+            <field name="name">Case: own</field>
+            <field name="model_id" ref="model_lab_case"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_case_all" model="ir.rule">
+            <field name="name">Case: all</field>
+            <field name="model_id" ref="model_lab_case"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_case_company" model="ir.rule">
+            <field name="name">Case: company</field>
+            <field name="model_id" ref="model_lab_case"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Clinic coverage was the one report with no rule at all, so an executive
+             could read every clinic in the lab — including what other people's rounds
+             are worth. Scoped through the beats they actually work, which also keeps
+             the "worth a stop" suggestions on My Day pointing at their own round.
+
+             Matched on the clinics of their beats rather than on coverage.beat_id: a
+             clinic that has never been visited has no beat stamped on it yet, and those
+             are exactly the ones the suggestion list is for. -->
+        <record id="rule_coverage_own" model="ir.rule">
+            <field name="name">Coverage: own round</field>
+            <field name="model_id" ref="model_lab_coverage"/>
+            <field name="domain_force">[('partner_id', 'in', user.fw_clinic_ids.ids)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_coverage_all" model="ir.rule">
+            <field name="name">Coverage: all</field>
+            <field name="model_id" ref="model_lab_coverage"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+
+        <!-- An executive sees their OWN scorecard, which is motivating; without this
+             rule the read access granted below would show them the whole team's, which
+             is somebody else's business. -->
+        <record id="rule_perf_own" model="ir.rule">
+            <field name="name">Performance: own</field>
+            <field name="model_id" ref="model_lab_performance"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_perf_all" model="ir.rule">
+            <field name="name">Performance: all</field>
+            <field name="model_id" ref="model_lab_performance"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+
+        <!-- A day sheet is the executive's own day; both manager desks and the
+             administrator read the team's. Same own/all pattern as everything
+             above — the "all" rule rides on the shared manager base, so both
+             specialised roles get it through implication. -->
+        <record id="rule_daily_update_own" model="ir.rule">
+            <field name="name">Day sheet: own</field>
+            <field name="model_id" ref="model_lab_daily_update"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_daily_update_all" model="ir.rule">
+            <field name="name">Day sheet: all</field>
+            <field name="model_id" ref="model_lab_daily_update"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_daily_update_company" model="ir.rule">
+            <field name="name">Day sheet: company</field>
+            <field name="model_id" ref="model_lab_daily_update"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_weekly_report_company" model="ir.rule">
+            <field name="name">Weekly report: company</field>
+            <field name="model_id" ref="model_lab_weekly_report"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- ==================== desk cover ====================
+             A manager arranges cover for their own desk and sees the cover they
+             have been asked to work; the administrator sees every desk's, which
+             is the whole point of the Command Center's cover board. Writing
+             somebody else's is refused in write() as well, so a rule switched
+             off on a database cannot quietly hand out the right to sign.        -->
+        <record id="rule_desk_cover_own" model="ir.rule">
+            <field name="name">Desk cover: mine</field>
+            <field name="model_id" ref="model_lab_desk_cover"/>
+            <field name="domain_force">['|', ('manager_id', '=', user.id),
+                                             ('delegate_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager'))]"/>
+        </record>
+        <record id="rule_desk_cover_all" model="ir.rule">
+            <field name="name">Desk cover: all</field>
+            <field name="model_id" ref="model_lab_desk_cover"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_admin')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+<!-- A field work manager verifies the day sheet's attendance line from its
+             smart button. Read only (the CSV row grants no write), and the rule is
+             needed because hr_attendance's own rules stop at "your own records"
+             for anyone who is not an attendance officer. -->
+        <record id="rule_hr_attendance_fw_manager" model="ir.rule">
+            <field name="name">Attendance: field work managers read all</field>
+            <field name="model_id" ref="hr_attendance.model_hr_attendance"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager'))]"/>
+        </record>
+
+        <record id="rule_desk_cover_company" model="ir.rule">
+            <field name="name">Desk cover: company</field>
+            <field name="model_id" ref="model_lab_desk_cover"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- ==================== favourite clinics ====================
+             A star is personal. Everybody who walks a round keeps their own,
+             and nobody - manager included - writes somebody else's: a
+             favourites list you did not choose is not a favourites list.
+        -->
+        <record id="rule_clinic_fav_own" model="ir.rule">
+            <field name="name">Favourite clinics: your own</field>
+            <field name="model_id" ref="model_lab_clinic_favourite"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive')),
+                                        (4, ref('group_fieldwork_manager'))]"/>
+        </record>
+
+        <!-- ==================== petty cash, seen from the field ====================
+             An executive carries a float but does not hold the Petty Cash application,
+             and a field manager needs to see the team's cash without being made an
+             accountant. Both are granted READ ONLY: money is moved by the button on the
+             visit, which is auditable, never by typing into a transaction.
+        -->
+        <record id="rule_pc_alloc_fw_own" model="ir.rule">
+            <field name="name">Petty cash float: own (field work)</field>
+            <field name="model_id" ref="petty_cash.model_petty_cash_allocation"/>
+            <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+        <record id="rule_pc_alloc_fw_all" model="ir.rule">
+            <field name="name">Petty cash float: team (field work)</field>
+            <field name="model_id" ref="petty_cash.model_petty_cash_allocation"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager'))]"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_pc_txn_fw_own" model="ir.rule">
+            <field name="name">Petty cash movement: own (field work)</field>
+            <field name="model_id" ref="petty_cash.model_petty_cash_transaction"/>
+            <field name="domain_force">[('petty_cash_partner_id', '=', user.partner_id.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+        <record id="rule_pc_txn_fw_all" model="ir.rule">
+            <field name="name">Petty cash movement: team (field work)</field>
+            <field name="model_id" ref="petty_cash.model_petty_cash_transaction"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager'))]"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+    </data>
+
+        <!-- ==================== what an executive may reach ====================
+
+             Two rules that were missing, and without which "an executive sees their
+             own work" was only ever true of the field-work models themselves:
+
+             * CLINICS. res.partner had no rule at all, so an executive could read all
+               6,763 contacts in the database. The picker domain added on 2026-08-22
+               narrowed what field work OFFERS them; this narrows what they can READ.
+             * MENUS. A user with nothing but the Executive group still saw 25 root
+               menus - Accounting, Purchase, Inventory, Settings, Backups and the rest
+               - because a menu shows whenever its action's model is readable. A rule
+               on ir.ui.menu is the one contained way to say "this role has one menu".
+        -->
+        <record id="rule_partner_executive_route" model="ir.rule">
+            <field name="name">Executives: clinics on their own route</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <!-- Beyond the route: the people the SYSTEM speaks as. Every chatter
+                 message has an author - a colleague, OdooBot, the company - and the
+                 mail layer reads those partners on every screen load. Blocking them
+                 threw "no read access to Contact" the moment an executive opened
+                 anything with a thread. partner_share=False is the internal users;
+                 the company partner and OdooBot are named directly. (2026-08-24) -->
+            <field name="domain_force">['|','|','|','|',
+                ('team_id', 'in', user.fw_route_ids.ids),
+                ('commercial_partner_id.team_id', 'in', user.fw_route_ids.ids),
+                ('id', '=', user.partner_id.id),
+                ('partner_share', '=', False),
+                ('id', 'in', user.company_ids.partner_id.ids)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- The clinics an executive has actually been to. A visit can be to a
+             clinic off their own route (covering a colleague, carrying a box
+             there), and the visit rule shows them that visit - so the route rule
+             alone refused the clinic on their own visit form. Read only, with the
+             clinic's doctors. (client, 2026-09-15) -->
+        <record id="rule_partner_executive_visited" model="ir.rule">
+            <field name="name">Executives: clinics they have visited</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain_force">['|',
+                ('visit_ids.user_id', '=', user.id),
+                ('parent_id.visit_ids.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!--
+            The other half of each pair, and NOT optional. Record rules from different
+            groups are OR-ed, so a person who is both an Executive and a Manager needs
+            a permissive rule to union with the restrictive one - without it the
+            restriction simply wins and they are locked out.
+
+            This is not hypothetical: the admin login held the Executive group, and the
+            moment the rules above went live it could see one app and one contact.
+            Every other model in this file already ships an own/all pair for exactly
+            this reason; these two were missing theirs. (client, 2026-08-24)
+        -->
+        <!-- Paired against real authority, not just the field-work role.
+
+                 A restrictive rule is OR-ed across the groups a user holds, so a rule
+                 attached only to the Executive group becomes the WHOLE answer for
+                 anybody who happens to hold it — including an administrator who was
+                 given it to see the app. Twinning only with Field Work Manager left
+                 that hole open: a system administrator holding Executive was still
+                 stripped of every contact and every menu. Third occurrence of this
+                 bug, so the twin now covers the two groups that mean "runs this
+                 system". (client, 2026-08-27) -->
+        <record id="rule_partner_manager_all" model="ir.rule">
+            <field name="name">Managers: every clinic</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Paired against real authority, not just the field-work role.
+
+                 A restrictive rule is OR-ed across the groups a user holds, so a rule
+                 attached only to the Executive group becomes the WHOLE answer for
+                 anybody who happens to hold it — including an administrator who was
+                 given it to see the app. Twinning only with Field Work Manager left
+                 that hole open: a system administrator holding Executive was still
+                 stripped of every contact and every menu. Third occurrence of this
+                 bug, so the twin now covers the two groups that mean "runs this
+                 system". (client, 2026-08-27) -->
+        <record id="rule_menu_manager_all" model="ir.rule">
+            <field name="name">Managers: every menu</field>
+            <field name="model_id" ref="base.model_ir_ui_menu"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_menu_executive_fieldwork_only" model="ir.rule">
+            <field name="name">Executives: the Field Work menu only</field>
+            <field name="model_id" ref="base.model_ir_ui_menu"/>
+            <field name="domain_force">[('id', 'in', user.fw_menu_ids.ids)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- ==================== orders, seen from the field ====================
+             A field executive must be able to READ the confirmed orders of the lab.
+
+             These two rules and their ACL rows lived in `lab_delivery` until
+             2026-09-12, because the handover feature was the first thing that
+             needed them. That was the wrong module: THIS one's visit form carries
+             an Orders page bound to `lab.visit.order_ids`, and an x2many is read
+             whether or not its page is visible, so installing lab_fieldwork on
+             its own gave every executive an AccessError on every visit they opened
+             — the central record of the application, unusable by its primary role.
+             lab_delivery depends on lab_fieldwork, so the dependency could not
+             be declared the other way round; the grant belongs here, with the form
+             that needs it. lab_delivery keeps working because it depends on this.
+
+             Read only, and only once the work is confirmed — draft quotations and
+             the pricing behind them stay out of sight. Odoo ORs record rules across
+             groups, so this widens reading without touching what they may change:
+             writing an order still needs their own name on it.
+        -->
+        <!--
+            The permissive half of the pair, and NOT optional. Record rules from
+            different groups are OR-ed, so the restrictive executive rule below is
+            the ONLY active rule on sale.order - and a person who is both an
+            Executive and a Manager gets the restriction with nothing to union it
+            against. The admin login (AJITH) holds Executive, Manager and
+            Administrator but works no route, so `user.fw_route_ids` was empty and
+            the rule matched nothing: 0 orders of 20,988, on the account that runs
+            the lab.
+
+            This is the third time this pairing has been missed on this project
+            (partners and menus were the first two, 2026-08-24). Every restrictive
+            rule here needs its "all" twin - see tests/test_rule_pairing.py, which
+            now covers this pair in this module's own test run. (client, 2026-08-26)
+        -->
+        <record id="rule_sale_order_manager_all" model="ir.rule">
+            <field name="name">Field managers read every order</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_sale_order_executive_read" model="ir.rule">
+            <field name="name">Field executives read confirmed orders</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <!--
+                Their route's confirmed work, PLUS the orders they raised
+                themselves.
+
+                An executive standing in a clinic writes a case slip, which creates
+                the order — and then could not open it: their own new order is on a
+                clinic whose route may not be theirs (a locum, a clinic reassigned
+                that morning, a slip written while covering someone else), so the
+                route test alone shut them out of the record they had just made.
+                (client, 2026-08-27)
+            -->
+            <field name="domain_force">['|',
+                ('create_uid', '=', user.id),
+                '&amp;', ('state','in',('sale','done')),
+                    '|', ('partner_id.team_id', 'in', user.fw_route_ids.ids),
+                         ('partner_id.commercial_partner_id.team_id', 'in', user.fw_route_ids.ids)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- The orders of a clinic the executive has been to. Handing work over
+             on a visit to a clinic off their route listed that clinic's orders
+             and then could not show them. Confirmed orders only, read only.
+             (client, 2026-09-15) -->
+        <record id="rule_sale_order_executive_visited" model="ir.rule">
+            <field name="name">Field executives read confirmed orders of clinics they visited</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain_force">['&amp;', ('state', 'in', ('sale', 'done')),
+                '|', ('partner_id.visit_ids.user_id', '=', user.id),
+                     ('partner_id.commercial_partner_id.visit_ids.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+</odoo>

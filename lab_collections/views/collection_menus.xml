@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- One door, in Accounting (client, 2026-08-21: "move the menu to under
+         accounting"). Collections is a money conversation, so it lives in the
+         Finance Ops dropdown - the lab's own finance desk - right after the two
+         collection screens (Cheque Register 10, Payments to Approve 20) and before
+         the day's reports (30+). Gated the same way as the rest of that dropdown:
+         a parent's groups do not cascade in Odoo, so the leaf repeats one. -->
+    <menuitem id="menu_collections_account" name="Collections"
+              parent="lab_finance_ops.menu_lab_finance_ops_root"
+              action="action_collection_dashboard" sequence="25"
+              groups="account.group_account_readonly,lab_fieldwork.group_fieldwork_executive"/>
+
+    <!-- The old second door under Sales, retired the house way: switched off, not
+         deleted, so the xml id and anyone's saved link keep resolving. -->
+    <menuitem id="menu_collections_sale" name="Collections"
+              parent="sale.sale_menu_root" action="action_collection_dashboard"
+              sequence="46" active="False"/>
+
+    <!-- An executive has exactly one menu - Field Work - because a record rule hides
+         the rest. The collections widget therefore hangs there rather than under
+         Accounting, which they cannot see. Same action; the server scopes what it
+         returns to the routes the viewer works. This menu lives in THIS module, not
+         in lab_fieldwork: the dependency runs collections -> fieldwork, and
+         declaring it the other way round would make the two circular.
+         (client, 2026-08-24) -->
+    <menuitem id="menu_collections_fieldwork" name="My Collections"
+              parent="lab_fieldwork.menu_fieldwork_root" sequence="60"
+              action="action_collection_dashboard"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+</odoo>

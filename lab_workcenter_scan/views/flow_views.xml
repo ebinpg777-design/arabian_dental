@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_flow_board" model="ir.actions.client">
+        <field name="name">Production Flow</field>
+        <field name="tag">lab_flow</field>
+    </record>
+
+    <menuitem id="menu_flow_board" name="Production Flow"
+              parent="mrp.menu_mrp_root" action="action_flow_board"
+              sequence="1" groups="mrp.group_mrp_manager"/>
+</odoo>

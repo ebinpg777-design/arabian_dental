@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_statement_wizard" model="ir.ui.view">
+        <field name="name">epg.partner.statement.wizard.form</field>
+        <field name="model">epg.partner.statement.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Statement of Account">
+                <group>
+                    <group string="Who">
+                        <field name="team_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Every route"/>
+                        <field name="include_empty" invisible="not team_ids or all_with_balance"/>
+                        <field name="all_with_balance"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="min_outstanding"/>
+                        <field name="partner_ids" widget="many2many_tags" invisible="all_with_balance"
+                               options="{'no_create': True}"
+                               placeholder="Pick one or many partners…"/>
+                        <field name="partner_count" string="Partners selected"/>
+                        <field name="email_count" string="…with an e-mail"/>
+                    </group>
+                    <group string="What">
+                        <field name="statement_type"/>
+                        <field name="period"/>
+                        <label for="date_from" string="Dates"/>
+                        <div class="o_row">
+                            <field name="date_from" class="oe_inline"/> <span>→</span>
+                            <field name="date_to" class="oe_inline"/>
+                        </div>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="open_items_only"/>
+                        <field name="show_ageing" invisible="open_items_only"/>
+                        <!-- WHEN IT WAS TYPED, kept apart from the period above:
+                             on this ledger a migrated document is dated years
+                             before the moment it entered Odoo, and the office
+                             needs to ask both questions. Empty = no bound. -->
+                        <label for="created_from" string="Entered between"/>
+                        <div class="o_row">
+                            <field name="created_from" class="oe_inline"
+                                   placeholder="any time"/> <span>→</span>
+                            <field name="created_to" class="oe_inline"
+                                   placeholder="any time"/>
+                        </div>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_print" type="object" string="Print PDF" class="btn-primary" data-hotkey="q"/>
+                    <button name="action_export_xlsx" type="object" string="Export Excel"/>
+                    <button name="action_send_email" type="object" string="Send by E-mail"
+                            confirm="E-mail the statement (PDF attached) to every selected partner that has an e-mail address?"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_partner_statement_wizard" model="ir.actions.act_window">
+        <field name="name">Statement of Account</field>
+        <field name="res_model">epg.partner.statement.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_partner_statement_wizard"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form,kanban</field>
+    </record>
+</odoo>

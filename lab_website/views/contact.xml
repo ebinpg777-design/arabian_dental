@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Odoo's contact page carries a literal "My Company / 3575 Fake Buena Vista Avenue /
+         +1 555-555-5556" sidebar — it is typed into the page, not read from the company.
+         The thank-you page has the same block but is a website.page record whose xmlid
+         is the page, not the view, so it cannot be inherited here; the hook rewrites it. -->
+    <template id="contactus_lab" inherit_id="website.contactus" name="Contact: Arabian Dental Lab">
+        <xpath expr="//h5[text()='My Company']/parent::div" position="replace">
+            <div class="col-lg-4 offset-lg-1 mt-4 mt-lg-0">
+                <h5>Arabian Dental Lab</h5>
+                <ul class="list-unstyled mb-0 ps-2">
+                    <li><i class="fa fa-map-marker fa-fw me-2"/><span class="o_force_ltr">Nilambur – Malappuram Road, Melakkam, Manjeri, Kerala 676123</span></li>
+                    <li><i class="fa fa-phone fa-fw me-2"/><a href="tel:+919447849858"><span class="o_force_ltr">+91 94478 49858</span></a></li>
+                    <li><i class="fa fa-phone fa-fw me-2"/><a href="tel:+918078102515"><span class="o_force_ltr">+91 80781 02515</span></a></li>
+                    <li><i class="fa fa-clock-o fa-fw me-2"/><span>Mon – Sat, 9:00 AM – 6:00 PM · Sunday closed</span></li>
+                    <li><i class="fa fa-instagram fa-fw me-2"/><a href="https://www.instagram.com/arabiandentallab_uae_kerala" target="_blank" rel="noopener">@arabiandentallab_uae_kerala</a></li>
+                    <li><i class="fa fa-external-link fa-fw me-2"/><a href="https://www.google.com/maps/search/?api=1&amp;query=Arabian+Dental+Lab+Manjeri" target="_blank" rel="noopener">Open in Google Maps</a></li>
+                </ul>
+                <p class="mt-3 mb-0 small text-muted">Already sending us cases? <a href="/my/cases">Log in</a> to track them.</p>
+            </div>
+        </xpath>
+    </template>
+</odoo>

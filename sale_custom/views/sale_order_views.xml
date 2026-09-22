@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sale order form: patient / clinical data, priority, emergency button -->
+    <record id="view_order_form_sale_custom" model="ir.ui.view">
+        <field name="name">sale.order.form.sale.custom</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- The flag as a technician actually meets it. A ticked box on the ninth
+                 row of a notebook page is not a production gate; this is the first thing
+                 on the order and it says what to do. -->
+            <!-- Amber banner when the same clinic + patient + amount was registered a
+                 few days ago: a warning, never a block - the lab does repeat work.
+                 (client, 2026-08-21) -->
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-warning m-0 mb-2 rounded d-flex align-items-center"
+                     role="alert" invisible="not lab_duplicate_warning">
+                    <i class="fa fa-clone me-2" title="Possible duplicate"/>
+                    <span class="flex-grow-1"><b>Possible duplicate</b> —
+                        <field name="lab_duplicate_warning" readonly="1" nolabel="1"
+                               class="oe_inline"/>
+                    </span>
+                    <span class="text-nowrap ms-2">
+                        <field name="lab_duplicate_ack" nolabel="1" class="oe_inline"
+                               widget="boolean_toggle"/>
+                        <span class="ms-1">Checked</span>
+                    </span>
+                    <field name="lab_duplicate_ids" invisible="1"/>
+                </div>
+            </xpath>
+
+            <!-- Green banner once the case is fully invoiced: which invoice(s), paid or not. -->
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-success m-0 mb-2 rounded d-flex align-items-center"
+                     role="alert" invisible="invoice_status != 'invoiced'">
+                    <i class="fa fa-check-circle me-2" title="Invoiced"/>
+                    <span><b>Invoiced</b> — <field name="invoice_banner" readonly="1" nolabel="1" class="oe_inline"/></span>
+                </div>
+            </xpath>
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-warning m-0 mb-2 rounded d-flex align-items-center"
+                     role="alert" invisible="not is_pending_work">
+                    <i class="fa fa-phone me-2" title="Call the doctor"/>
+                    <span>
+                        <b>Call the doctor before starting this case.</b>
+                        <span invisible="not instruction"> — <field name="instruction"
+                              readonly="1" nolabel="1" class="oe_inline"/></span>
+                    </span>
+                </div>
+            </xpath>
+
+            <!-- Confirm is what the counter does with a registered case; Send (e-mail
+                 the quotation) is not this lab's flow. So Confirm goes FIRST and is the one
+                 highlighted button, in both draft and sent states; Send steps back. -->
+            <xpath expr="//header/*[1]" position="before">
+                <xpath expr="//header/button[@name='action_confirm'][not(@id)]" position="move"/>
+                <xpath expr="//header/button[@id='action_confirm']" position="move"/>
+            </xpath>
+            <xpath expr="//header/button[@name='action_confirm'][not(@id)]" position="attributes">
+                <attribute name="class">btn-primary</attribute>
+            </xpath>
+            <xpath expr="//header/button[@id='quotation_send_primary']" position="attributes">
+                <attribute name="class"/>
+            </xpath>
+
+            <button name="action_quotation_send" position="after">
+                <button name="compute_emergency" type="object" class="btn-primary"
+                        icon="fa-calculator" string="Compute Emergency Charge"
+                        invisible="priority != 'urgent'"/>
+                <!-- Hand the case over without opening Inventory: validates every open
+                     transfer of this order, Done filled from Demand. -->
+                <button name="action_lab_validate_transfers" type="object"
+                        class="btn-primary" icon="fa-truck" string="Validate Transfers"
+                        confirm="Validate the delivery of this order with the ordered quantities?"
+                        invisible="state != 'sale' or lab_open_transfer_count == 0"/>
+                <!-- one button for Create Invoice + Confirm + Print -->
+                <button name="action_lab_invoice_delivered" type="object"
+                        class="btn-primary" icon="fa-file-text-o" string="Invoice &amp; Print"
+                        confirm="Create and confirm the invoice for the delivered items, and print it?"
+                        invisible="not lab_has_delivered_to_invoice"/>
+                <field name="lab_has_delivered_to_invoice" invisible="1"/>
+                <field name="lab_open_transfer_count" invisible="1"/>
+            </button>
+
+            <field name="partner_id" position="after">
+                <field name="patient"/>
+                <field name="priority"/>
+                <!-- What the case IS, under the priority. Answered while the order
+                     is still being registered: required on the draft state, so the
+                     desk cannot save without it and a case already confirmed is not
+                     dragged back to be classified. (client, 2026-09-09) -->
+                <field name="appliance_type" required="state == 'draft'"/>
+                <field name="is_3d_model_print"/>
+                <!-- Courier straight to the patient: the address box only appears when
+                     the box is ticked, and it is required then - the sticker has
+                     nothing to print otherwise. (client, 2026-08-21) -->
+                <field name="deliver_to_patient" widget="boolean_toggle"/>
+                <field name="patient_address" invisible="not deliver_to_patient"
+                       required="deliver_to_patient" placeholder="House, street, town, PIN"
+                       nolabel="0"/>
+                <!-- A third destination: neither the clinic nor the patient's home.
+                     The label carries the address ALONE - naming the doctor or the
+                     patient on a parcel to a hostel desk or a courier counter tells a
+                     stranger who is being treated. (client, 2026-08-28) -->
+                <field name="deliver_to_custom" widget="boolean_toggle"
+                       invisible="deliver_to_patient"/>
+                <field name="custom_address" invisible="not deliver_to_custom"
+                       required="deliver_to_custom"
+                       placeholder="Exactly what the label should say — no names"
+                       nolabel="0"/>
+                <div class="text-muted small" colspan="2"
+                     invisible="not deliver_to_custom">
+                    The label will print this address only — no doctor name, no
+                    patient name.
+                </div>
+            </field>
+            <!-- Salesperson and Sales Route come from the selected clinic and the counter
+                 needs to see them at a glance, so they are MOVED out of Other Info into
+                 the main header group — salesperson first, route under it. -->
+            <field name="payment_term_id" position="after">
+                <xpath expr="//page[@name='other_information']//field[@name='user_id']" position="move"/>
+                <xpath expr="//page[@name='other_information']//field[@name='team_id']" position="move"/>
+            </field>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Registration Details" name="registration_details">
+                    <group>
+                        <group string="Patient">
+                            <field name="age"/>
+                            <field name="gender"/>
+                            <field name="send_through"/>
+                            <field name="modification"/>
+                            <field name="instruction"/>
+                            <field name="register_person_id"/>
+                        </group>
+                        <group string="Work">
+                            <field name="is_rework"/>
+                            <field name="is_edit_number"/>
+                            <field name="is_pending_work"/>
+                        </group>
+                        <group string="Appliance">
+                            <field name="is_screw"/>
+                            <field name="is_bite"/>
+                            <field name="is_bands"/>
+                            <field name="is_wires"/>
+                            <field name="is_teeth"/>
+                            <field name="is_facebow"/>
+                            <field name="is_dd_cheque"/>
+                            <field name="is_others"/>
+                            <field name="is_3d_model_print"/>
+                        </group>
+                        <group string="Impression">
+                            <field name="impression_type"/>
+                            <field name="scanned_impression"/>
+                            <field name="impression_tray"/>
+                            <field name="wax_bite"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- Once a case is confirmed its lines are frozen (client, 2026-08-17): the
+                 job cards, work orders and stock moves were made from them, and a
+                 quantity or product changed on the order alone silently disagrees with
+                 the floor. Corrections go through "Set to Draft" (lab_order_control) —
+                 which cancels the production documents — or a Rework. -->
+            <xpath expr="//field[@name='order_line']" position="attributes">
+                <attribute name="readonly">state not in ('draft', 'sent') or locked</attribute>
+            </xpath>
+
+            <!-- Sale order line: Colour + U/L.
+                 The order_line field holds <form>, <list> and <kanban> sub-views, and an
+                 xpath is applied to its FIRST match only. `//field[@name='product_uom_qty']`
+                 therefore lands in the line pop-up form (unlabelled, next to Qty) and never
+                 in the editable list. Target each sub-view explicitly. -->
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="before">
+                <field name="ul" optional="show"/>
+                <field name="cast" optional="show"/>
+                <field name="color_scheme" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/form//div[@name='ordered_qty']" position="after">
+                <field name="ul"/>
+                <field name="cast"/>
+                <field name="color_scheme"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Show patient on the order/quotation lists -->
+    <!-- Both order lists: patient column, Invoice Status shown, invoiced rows in green. -->
+    <record id="view_order_tree_sale_custom" model="ir.ui.view">
+        <field name="name">sale.order.list.sale.custom</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="decoration-success">invoice_status == 'invoiced'</attribute>
+            </list>
+            <field name="partner_id" position="after">
+                <field name="patient" optional="show"/>
+                <field name="date_due" string="Due" optional="show"/>
+                <field name="appliance_type" optional="show"/>
+                <field name="product_names" string="Products" optional="show"/>
+                <field name="is_3d_model_print" string="3D Print" optional="hide" widget="boolean_toggle" readonly="1"/>
+            </field>
+            <!-- How much of this order has actually been billed. The list
+                 already colours an invoiced row green and carries the status,
+                 but "partially invoiced" was a word with no number behind it -
+                 and on this lab's orders a part-billed case is the normal one.
+                 Core's own field, not a new compute: it is not stored, so it
+                 carries no `sum` (a grouped list would have to aggregate it in
+                 SQL and cannot). Measured at 37 ms for a page of 80 orders.
+                 (client, 2026-09-02) -->
+            <field name="amount_total" position="after">
+                <field name="amount_invoiced" string="Invoiced" optional="show"/>
+            </field>
+            <!-- Activities are not part of how this lab works; the column only took
+                 width from the case data. (client, 2026-08-19) -->
+            <field name="activity_ids" position="replace"/>
+        </field>
+    </record>
+
+    <record id="view_quotation_tree_sale_custom" model="ir.ui.view">
+        <field name="name">sale.quotation.list.sale.custom</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="decoration-success">invoice_status == 'invoiced'</attribute>
+            </list>
+            <field name="partner_id" position="after">
+                <field name="patient" optional="show"/>
+                <field name="date_due" string="Due" optional="show"/>
+                <field name="appliance_type" optional="show"/>
+                <field name="product_names" string="Products" optional="show"/>
+                <field name="is_3d_model_print" string="3D Print" optional="hide" widget="boolean_toggle" readonly="1"/>
+            </field>
+            <!-- How much of this order has actually been billed. The list
+                 already colours an invoiced row green and carries the status,
+                 but "partially invoiced" was a word with no number behind it -
+                 and on this lab's orders a part-billed case is the normal one.
+                 Core's own field, not a new compute: it is not stored, so it
+                 carries no `sum` (a grouped list would have to aggregate it in
+                 SQL and cannot). Measured at 37 ms for a page of 80 orders.
+                 (client, 2026-09-02) -->
+            <field name="amount_total" position="after">
+                <field name="amount_invoiced" string="Invoiced" optional="show"/>
+            </field>
+            <field name="activity_ids" position="replace"/>
+            <!-- core hides it on the quotation list; the Register screen is where this lab
+                 lives, so the invoice status is a visible column here as well -->
+            <field name="invoice_status" position="attributes">
+                <attribute name="optional">show</attribute>
+            </field>
+        </field>
+    </record>
+
+    <!-- Search patient -->
+    <record id="view_sales_order_filter_sale_custom" model="ir.ui.view">
+        <field name="name">sale.order.search.sale.custom</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="patient"/>
+            </field>
+            <filter name="my_sale_orders_filter" position="before">
+                <filter string="3D Model Print" name="filter_3d_model_print" domain="[('is_3d_model_print', '=', True)]"/>
+                <separator/>
+            </filter>
+            <!-- Who registered the case: search box field + Group By (Register and Orders
+                 menus share this search view). -->
+            <field name="patient" position="after">
+                <field name="create_uid" string="Created by"/>
+            </field>
+            <filter name="salesperson" position="after">
+                <!-- "How many clear retainers went out last month" was a question
+                     nothing on this screen could answer. (client, 2026-09-09) -->
+                <filter name="group_appliance_type" string="Appliance Type"
+                        context="{'group_by': 'appliance_type'}"/>
+                <filter name="group_create_uid" string="Created by" context="{'group_by': 'create_uid'}"/>
+                <filter name="group_team" string="Sales Route" context="{'group_by': 'team_id'}"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

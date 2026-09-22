@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <!-- Reproduces the Odoo 10 invoice paperformat ("European A4": top 40,
+             bottom 23, header-spacing 35). The tall dual-logo letterhead needs a
+             large top margin + header spacing or wkhtmltopdf pushes it off-page. -->
+        <record id="paperformat_lab" model="report.paperformat">
+            <field name="name">Lab A4</field>
+            <field name="default" eval="False"/>
+            <!-- A4 by name, not "custom 210x297": custom page sizes need the patched-qt
+                 wkhtmltopdf; on a stock distro build they can come out as blank pages
+                 (server report, 2026-08-17). Named A4 renders on every build. -->
+            <field name="format">A4</field>
+            <!-- explicit zero: the record used to be custom 210x297 and Odoo refuses a
+                 named format together with a page width/height -->
+            <field name="page_height">0</field>
+            <field name="page_width">0</field>
+            <field name="orientation">Portrait</field>
+            <!-- the letterhead card (logos + address + ids) needs ~45 mm; the band is
+                 margin_top - header_spacing, so 50/5 leaves it room and starts the body
+                 cleanly below the card instead of printing over it. -->
+            <field name="margin_top">40</field>
+            <!-- the footer is now one 7.6pt line, so it no longer needs 23 mm -->
+            <field name="margin_bottom">9</field>
+            <field name="margin_left">7</field>
+            <field name="margin_right">7</field>
+            <field name="header_line" eval="False"/>
+            <!-- wkhtmltopdf draws the header inside the top margin: the band is
+                 margin_top - header_spacing tall. At 35 that left 5 mm and the letterhead
+                 was clipped to its last line; 6 gives the logos + address ~34 mm. -->
+            <field name="header_spacing">6</field>
+            <!-- 96, not 90: at 90 Odoo adds a zoom of 96/90, which scales the footer document
+                 too and left it floating ~19 mm above the page foot. -->
+            <field name="dpi">96</field>
+        </record>
+    </data>
+    <!-- The invoice draws its own letterhead card as the first thing on the page (the
+         approved design), so it needs no header band - just a small top margin. -->
+    <record id="paperformat_lab_invoice" model="report.paperformat">
+        <field name="name">Lab A4 (letterhead in body)</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">8</field>
+        <!-- the footer is two 7.2pt lines now, so the band needs less room -->
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">8</field>
+        <field name="margin_right">8</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">3</field>
+        <field name="dpi">96</field>
+    </record>
+    <!-- Landscape twin of the letterhead-in-body format, for anything genuinely too
+         wide for a portrait page. The order list moved back to portrait
+         (client, 2026-08-21); this stays for future wide reports. -->
+    <!-- Eight production slips to a sheet: A4 cut into 2 x 4. Margins are as small
+         as the printer will honour, because every millimetre of margin comes out of
+         the slips. No header or footer - a slip is a bench label, not a document.
+         (client, 2026-08-28) -->
+    <record id="paperformat_lab_slips" model="report.paperformat">
+        <field name="name">Lab A4 (8 slips)</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">5</field>
+        <field name="margin_bottom">5</field>
+        <field name="margin_left">5</field>
+        <field name="margin_right">5</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="paperformat_lab_landscape" model="report.paperformat">
+        <field name="name">Lab A4 landscape (letterhead in body)</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">8</field>
+        <field name="margin_bottom">14</field>
+        <field name="margin_left">8</field>
+        <field name="margin_right">8</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">3</field>
+        <field name="dpi">96</field>
+    </record>
+</odoo>

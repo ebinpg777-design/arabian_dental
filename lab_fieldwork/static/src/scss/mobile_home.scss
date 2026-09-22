@@ -1,0 +1,52 @@
+// Back and Home on the phone's navigation bar. Each is a thumb-sized target
+// (44px), and the app name is the label, so "home" means the app the person is
+// in, not the Odoo apps grid. (client, 2026-08-28)
+.o_main_navbar .o_fw_mobile_nav {
+    gap: .125rem;
+    padding-left: .25rem;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.o_main_navbar .o_fw_mobile_btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 .5rem;
+    border: 0;
+    border-radius: .5rem;
+    background: transparent;
+    color: inherit;
+    font-weight: 600;
+    font-size: .9375rem;
+
+    &:active { background: rgba(255, 255, 255, .18); }
+}
+
+.o_main_navbar .o_fw_mobile_home {
+    min-width: 0;
+    .o_fw_mobile_app {
+        max-width: 40vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+// The bottom of an auto-loading list or board on a phone. The sentinel is a
+// zero-height marker; the line under it exists so the reader knows more is coming
+// rather than thinking they have reached the end. (client, 2026-08-28)
+.o_fw_more_sentinel { height: 1px; }
+
+.o_fw_more_note {
+    display: none;
+    padding: .75rem;
+    text-align: center;
+    font-size: .8125rem;
+    color: $o-gray-600;
+}
+
+@media (max-width: 767.98px) {
+    .o_fw_more_note { display: block; }
+}

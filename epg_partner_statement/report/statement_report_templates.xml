@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_statement">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="st" t-value="statements.get(o.id)"/>
+                <t t-set="blocks" t-value="st and st['blocks'] or []"/>
+                <t t-set="open_mode" t-value="options['open_items_only']"/>
+                <t t-call="{{layout}}">
+                    <!-- The letterhead is drawn here, not in the page header band: it is
+                         too tall for the band and used to overlap the first lines of the
+                         statement (2026-08-18). -->
+                    <t t-set="hide_letterhead" t-value="True"/>
+                    <div class="page epg-statement">
+                        <t t-call="sale_custom.letterhead_block"/>
+                        <!-- head: title + period on the left, the partner on the right -->
+                        <div class="row">
+                            <div class="col-7">
+                                <h2 class="epg-title">
+                                    <t t-if="open_mode">Open Items Statement</t>
+                                    <t t-else="">Statement of Account</t>
+                                </h2>
+                                <div class="epg-subtitle">Printed <span t-out="printed_on" t-options="{'widget': 'date'}"/></div>
+                                <span class="epg-meta"><b>Type</b> <span t-out="statement_type_label"/></span>
+                                <span class="epg-meta"><b>Period</b>
+                                    <span t-out="date_from" t-options="{'widget': 'date'}"/> → <span t-out="date_to" t-options="{'widget': 'date'}"/></span>
+                                <span class="epg-meta" t-if="o.ref"><b>Ref</b> <span t-field="o.ref"/></span>
+                            </div>
+                            <div class="col-5">
+                                <div class="epg-partner">
+                                    <div class="epg-partner-name" t-field="o.name"/>
+                                    <div t-foreach="st and st['address'] or []" t-as="aline" t-out="aline"/>
+                                    <div t-if="o.phone">Ph: <span t-field="o.phone"/></div>
+                                    <div t-if="o.email" t-field="o.email"/>
+                                    <div class="epg-ident" t-foreach="st and st['identifiers'] or []" t-as="ident">
+                                        <span t-out="ident[0]"/>: <span t-out="ident[1]"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <t t-if="not blocks or not st['has_data']">
+                            <p class="epg-empty">No entries for this period.</p>
+                        </t>
+
+                        <t t-foreach="blocks if (st and st['has_data']) else []" t-as="block">
+                            <t t-set="cur" t-value="block['currency']"/>
+                            <t t-set="mo" t-value="{'widget': 'monetary', 'display_currency': cur}"/>
+                            <h5 t-if="len(blocks) > 1" class="mt-2">Currency: <span t-out="cur.name"/></h5>
+
+                            <!-- summary strip -->
+                            <table class="epg-summary">
+                                <tr>
+                                <t t-if="not open_mode">
+                                    <td class="epg-card"><div class="epg-card-label">Opening balance</div><div class="epg-card-value" t-out="block['opening']" t-options="mo"/></td>
+                                    <td class="epg-card"><div class="epg-card-label" t-out="labels['debit_total']"/><div class="epg-card-value" t-out="block['total_debit']" t-options="mo"/></td>
+                                    <td class="epg-card"><div class="epg-card-label" t-out="labels['credit_total']"/><div class="epg-card-value" t-out="block['total_credit']" t-options="mo"/></td>
+                                    <td class="epg-card epg-card-due"><div class="epg-card-label"><span t-out="labels['due']"/> on <span t-out="date_to" t-options="{'widget': 'date'}"/></div><div class="epg-card-value" t-out="block['closing']" t-options="mo"/></td>
+                                </t>
+                                <t t-else="">
+                                    <td class="epg-card"><div class="epg-card-label">Open documents</div><div class="epg-card-value" t-out="block['open_count']"/></td>
+                                    <td t-attf-class="epg-card #{'epg-card-danger' if block['overdue_amount'] else ''}"><div class="epg-card-label">Overdue</div><div class="epg-card-value" t-out="block['overdue_amount']" t-options="mo"/></td>
+                                    <td class="epg-card" t-if="block['credits_open']"><div class="epg-card-label">Unallocated credits</div><div class="epg-card-value" t-out="block['credits_open']" t-options="mo"/></td>
+                                    <td class="epg-card epg-card-due"><div class="epg-card-label">Total <span t-out="labels['due']"/></div><div class="epg-card-value" t-out="block['ageing_total']" t-options="mo"/></td>
+                                </t>
+                                </tr>
+                            </table>
+
+                            <!-- ledger -->
+                            <table class="epg-ledger">
+                                <thead>
+                                    <tr>
+                                        <!--
+                                            Widths rebalanced for what the columns
+                                            actually hold. Document was 16% for an
+                                            eight-character invoice number while
+                                            Description — now carrying the item names
+                                            and the patients — had 22% and wrapped every
+                                            other row. The five percent comes off
+                                            Document and Type, which had it spare; the
+                                            money columns are untouched because they are
+                                            nowrap and already fit their longest figure.
+                                            (client, 2026-08-27)
+                                        -->
+                                        <th style="width:9%">Date</th>
+                                        <th style="width:11%">Document</th>
+                                        <th style="width:7%">Type</th>
+                                        <th style="width:25%">Description</th>
+                                        <th style="width:10%">Due</th>
+                                        <th class="num" style="width:12%" t-out="labels['debit']"/>
+                                        <th class="num" style="width:13%" t-out="labels['credit']"/>
+                                        <th class="num" style="width:13%"><t t-if="open_mode"><span t-out="labels['open']"/></t><t t-else="">Balance</t></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-if="not open_mode" class="epg-row-open">
+                                        <td><span t-out="date_from" t-options="{'widget': 'date'}"/></td>
+                                        <td colspan="4">Opening balance</td>
+                                        <td class="num"/><td class="num"/>
+                                        <td class="num"><span t-out="block['opening']" t-options="mo"/></td>
+                                    </tr>
+                                    <tr t-if="not block['lines'] and not open_mode">
+                                        <td colspan="8" class="epg-sub text-center">No transactions in this period.</td>
+                                    </tr>
+                                    <tr t-foreach="block['lines']" t-as="l">
+                                        <td><span t-out="l['doc_date']" t-options="{'widget': 'date'}"/></td>
+                                        <td class="epg-doc">
+                                            <span t-out="l['move']"/>
+                                            <!-- The clinic's own number is what the cell
+                                                 shows; the journal entry it was booked on
+                                                 is only of interest to the lab. -->
+                                            <div t-if="l.get('old_number')" class="epg-sub" t-out="l['entry']"/>
+                                        </td>
+                                        <td><span t-attf-class="epg-kind #{'epg-kind-inv' if l['kind'] == 'Invoice' else 'epg-kind-pay' if l['kind'] in ('Payment', 'Bank') else 'epg-kind-cn' if l['kind'] == 'Credit Note' else ''}" t-out="l['kind']"/></td>
+                                        <td>
+                                            <span t-out="l['name']"/>
+                                            <div t-if="l['patient']" class="epg-sub">Patients: <span t-out="l['patient']"/></div>
+                                        </td>
+                                        <td class="epg-due">
+                                            <span t-out="l['due']" t-options="{'widget': 'date'}"/>
+                                            <span t-if="l['days_overdue']" class="epg-overdue"><span t-out="l['days_overdue']"/>d</span>
+                                        </td>
+                                        <td class="num"><span t-if="l['debit']" t-out="l['debit']" t-options="mo"/></td>
+                                        <td class="num"><span t-if="l['credit']" t-out="l['credit']" t-options="mo"/></td>
+                                        <td class="num"><span t-out="l['residual'] if open_mode else l['balance']" t-options="mo"/></td>
+                                    </tr>
+                                    <tr class="epg-row-total">
+                                        <td><span t-out="date_to" t-options="{'widget': 'date'}"/></td>
+                                        <td colspan="4"><t t-if="open_mode">Total <span t-out="labels['due']"/></t><t t-else="">Closing balance — <span t-out="labels['due']"/></t></td>
+                                        <td class="num"><span t-out="block['total_debit']" t-options="mo"/></td>
+                                        <td class="num"><span t-out="block['total_credit']" t-options="mo"/></td>
+                                        <td class="num"><span t-out="block['ageing_total'] if open_mode else block['closing']" t-options="mo"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- ageing -->
+                            <t t-if="options.get('show_ageing') and (block['ageing_gross'] or block['credits_open'])">
+                                <div class="epg-ageing-title">Ageing of open items by due date — as of&#160;<span t-out="date_to" t-options="{'widget': 'date'}"/></div>
+                                <div class="epg-ageing">
+                                    <t t-foreach="block['ageing_rows']" t-as="a">
+                                        <div t-attf-class="epg-bucket #{'epg-bucket-hot' if a[2] and a[1] else ''}">
+                                            <div class="epg-bucket-label" t-out="a[0]"/>
+                                            <div class="epg-bucket-value" t-out="a[1]" t-options="mo"/>
+                                        </div>
+                                    </t>
+                                    <div class="epg-bucket epg-bucket-total">
+                                        <div class="epg-bucket-label">Total open</div>
+                                        <div class="epg-bucket-value" t-out="block['ageing_total']" t-options="mo"/>
+                                    </div>
+                                </div>
+                                <div t-if="block['credits_open']" class="epg-credits">
+                                    Buckets show what is owed (<span t-out="block['ageing_gross']" t-options="mo"/>); unallocated payments / credits of
+                                    <span t-out="block['credits_open']" t-options="mo"/> are deducted in the total.
+                                </div>
+                            </t>
+                        </t>
+
+                        <!-- footer: bank, QR, signature -->
+                        <t t-if="st and st['has_data']">
+                            <!-- table, not flex: wkhtmltopdf's WebKit ignores flexbox and
+                                 silently dropped the QR image inside it. -->
+                            <table class="epg-footer" style="width:100%; page-break-inside:avoid;">
+                                <tr>
+                                    <td style="width:44%; vertical-align:top;">
+                                        <t t-if="company.partner_id.bank_ids">
+                                            <div class="epg-bank-title">Pay to</div>
+                                            <table class="epg-bank-table">
+                                                <thead><tr><th>Bank</th><th>A/c No.</th><th>Branch</th><th>IFSC / BIC</th></tr></thead>
+                                                <tbody>
+                                                    <tr t-foreach="company.partner_id.bank_ids" t-as="b">
+                                                        <td><span t-field="b.bank_id.name"/></td>
+                                                        <td><span t-field="b.acc_number"/></td>
+                                                        <td><span t-field="b.bank_id.city"/></td>
+                                                        <td><span t-field="b.bank_id.bic"/></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </t>
+                                    </td>
+                                    <td class="epg-qr" style="width:28%; text-align:center; vertical-align:top;">
+                                        <t t-if="payment_qr">
+                                            <img t-att-src="image_data_uri(payment_qr)" width="170" height="170"/>
+                                            <div>Scan to pay</div>
+                                        </t>
+                                    </td>
+                                    <td class="epg-sign" style="width:28%; text-align:right; vertical-align:top;">
+                                        <div class="epg-sign-for">For <span t-field="company.name"/></div>
+                                        <img t-if="signature" t-att-src="image_data_uri(signature)"/>
+                                        <div><span class="epg-sign-line">Authorised Signatory</span></div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div class="epg-note">Please quote the document numbers when paying. Figures come from posted entries as of the statement date — tell us if anything does not match your records.</div>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

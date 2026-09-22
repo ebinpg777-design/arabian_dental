@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        One page per rendered sheet.  Every label is already absolutely positioned
+        inside the page by the template model, so nothing here does layout: the page
+        div only has to carry the exact paper size and force the page break.
+    -->
+    <template id="report_label">
+        <t t-call="web.html_container">
+            <t t-foreach="pages" t-as="page">
+                <div class="page epg_label_page"
+                     t-att-style="page_style + ('' if page_last else 'page-break-after:always;')">
+                    <t t-out="page"/>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Raw ZPL, served as plain text for print servers that poll the report URL. -->
+    <template id="report_label_zpl">
+        <t t-out="zpl"/>
+    </template>
+
+</odoo>

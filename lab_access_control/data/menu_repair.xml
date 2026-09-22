@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Menus that lost their groups on this database.
+
+        A menu with NO groups is visible to every internal user, so a group that was
+        dropped at some point in this database's life reads as "everyone may". Odoo
+        ships `base.menu_management` (the Apps screen, which installs and uninstalls
+        modules) restricted to Settings/base.group_system; on lab_live it carried no
+        groups at all, which is how a bench technician holding only Manufacturing/User
+        found "Apps" in their app switcher. Re-declaring the record here restores the
+        stock restriction and keeps it restored, because a `-u base` did not.
+
+        Kept in this module because access is what it is for, and because a repair that
+        lives in the database only ("someone will set it back by hand") is a repair that
+        is lost at the next restore. (client, 2026-08-29)
+    -->
+    <record id="base.menu_management" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_system')])]"/>
+    </record>
+
+    <!-- The base "Tests" root is a developer fixture; stock Odoo keeps it out of the
+         way behind Technical Features, and it should never greet an ordinary user. -->
+    <record id="base.menu_tests" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+    </record>
+</odoo>

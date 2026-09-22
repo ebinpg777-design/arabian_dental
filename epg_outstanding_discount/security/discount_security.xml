@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_discount_user" model="res.groups">
+        <field name="name">Outstanding Discounts</field>
+        <field name="privilege_id" ref="account.res_groups_privilege_accounting"/>
+        <field name="implied_ids" eval="[(4, ref('account.group_account_invoice'))]"/>
+        <field name="comment">Can grant discounts on a customer's outstanding balance.</field>
+    </record>
+
+    <record id="rule_discount_company" model="ir.rule">
+        <field name="name">Outstanding discount: own companies</field>
+        <field name="model_id" ref="model_epg_outstanding_discount"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

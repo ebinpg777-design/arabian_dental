@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.ScanButton">
+    <button type="button" class="btn btn-secondary o_wc_scan_btn ms-2"
+            t-on-click="() => this.onScan()"
+            title="Scan a station label to move this job">
+        <i t-att-class="canScan ? 'fa fa-qrcode' : 'fa fa-keyboard-o'"
+           t-att-title="canScan ? 'Scan' : 'Type the code'"/>
+        <span class="ms-2">Move by Scan</span>
+    </button>
+</t>
+
+<t t-name="lab_workcenter_scan.ScanPrompt">
+    <Dialog title="'Move to station'" size="'sm'">
+        <div class="o_wc_prompt">
+            <p class="text-muted">
+                Type the code printed under the QR on the station label.
+            </p>
+            <input type="text" class="form-control o_wc_prompt_input"
+                   placeholder="WC-0001" autofocus="autofocus"
+                   t-on-input="onInput" t-on-keydown="onKeydown"/>
+        </div>
+        <t t-set-slot="footer">
+            <button class="btn btn-primary" t-on-click="() => this.onConfirm()">
+                Move
+            </button>
+            <button class="btn btn-secondary" t-on-click="() => this.props.close()">
+                Cancel
+            </button>
+        </t>
+    </Dialog>
+</t>
+
+</templates>

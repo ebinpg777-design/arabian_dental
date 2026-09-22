@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_daily_update_form" model="ir.ui.view">
+        <field name="name">lab.daily.update.form</field>
+        <field name="model">lab.daily.update</field>
+        <field name="arch" type="xml">
+            <form string="Day Sheet">
+                <header>
+                    <button name="action_submit" type="object" string="Submit"
+                            class="btn-primary"
+                            invisible="state not in ('draft', 'sent_back')"/>
+                    <button name="action_refresh" type="object" string="Refresh Facts"
+                            invisible="state not in ('draft', 'sent_back')"/>
+                    <field name="is_clean" invisible="1"/>
+                    <!-- A day with issues is not approved: the desk writes what it
+                         checked and it moves on as checked. (client, 2026-09-15) -->
+                    <button name="action_ops_approve" type="object"
+                            string="Approve (Operations)" class="btn-primary"
+                            invisible="not can_ops_approve or not is_clean"/>
+                    <button name="action_ops_check" type="object"
+                            string="Mark Checked (Issues Noted)" class="btn-primary"
+                            invisible="not can_ops_approve or is_clean"
+                            help="The day moves on as checked, not approved. A note under Checked, Issues Noted is optional."/>
+                    <button name="action_marketing_approve" type="object"
+                            string="Approve Activities" class="btn-primary"
+                            invisible="not can_marketing_approve or not is_clean"/>
+                    <button name="action_marketing_check" type="object"
+                            string="Mark Checked (Issues Noted)" class="btn-primary"
+                            invisible="not can_marketing_approve or is_clean"
+                            help="The day moves on as checked, not approved. A note under Checked, Issues Noted is optional."/>
+                    <!-- Take back your own signature while the day is still
+                         unjudged. Sending it back to the executive for an
+                         approver's own slip blames the wrong person. -->
+                    <button name="action_ops_unapprove" type="object"
+                            string="Unapprove (Operations)"
+                            invisible="state not in ('ops_approved', 'ops_checked')"
+                            confirm="Take back the operational approval? The sheet returns to the operational desk."
+                            groups="lab_fieldwork.group_fieldwork_ops_manager"/>
+                    <button name="action_send_back" type="object" string="Send Back"
+                            invisible="state not in ('submitted', 'ops_approved', 'ops_checked')"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <!-- UP, not back. Send Back returns the day to the person
+                         who wrote it; this keeps it and puts it in front of the
+                         administrator. (client, 2026-09-05) -->
+                    <button name="action_open_flag" type="object"
+                            string="Raise to Admin" class="btn-secondary"
+                            invisible="state not in ('submitted', 'ops_approved', 'ops_checked')"
+                            groups="lab_fieldwork.group_fieldwork_manager"
+                            help="Put this day on the administrator's desk with a reason. It does not go back to the executive."/>
+                    <button name="action_flag_return" type="object"
+                            string="Answer and Return" class="btn-primary"
+                            invisible="state != 'flagged'"
+                            groups="lab_fieldwork.group_fieldwork_admin"/>
+                    <button name="action_flag_to_executive" type="object"
+                            string="Send to the Executive"
+                            invisible="state != 'flagged'"
+                            groups="lab_fieldwork.group_fieldwork_admin"/>
+                    <button name="action_nudge" type="object" string="Ask a Question"
+                            invisible="state not in ('submitted', 'ops_approved', 'ops_checked')"
+                            groups="lab_fieldwork.group_fieldwork_manager"
+                            help="Notify the executive to check this day. The sheet stays on the desk."/>
+                    <button name="action_open_prev_day" type="object"
+                            icon="fa-chevron-left" string=" Previous day"
+                            help="This executive's previous day sheet"/>
+                    <button name="action_open_next_day" type="object"
+                            icon="fa-chevron-right" string=" Next day"
+                            help="This executive's next day sheet"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,ops_approved,approved"/>
+                </header>
+                <sheet>
+                    <field name="can_ops_approve" invisible="1"/>
+                    <field name="can_marketing_approve" invisible="1"/>
+                    <!-- The records behind the numbers. The figures on the
+                         sheet are a snapshot from submission; these open what
+                         the database holds NOW, so an approver can check any
+                         number they doubt - and a mismatch means something
+                         moved after submission, which is worth seeing too. -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_visits" type="object"
+                                class="oe_stat_button" icon="fa-map-marker">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="visit_count"/></span>
+                                <span class="o_stat_text">Visits</span>
+                            </div>
+                        </button>
+                        <button name="action_open_trips" type="object"
+                                class="oe_stat_button" icon="fa-road">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="km"/> km</span>
+                                <span class="o_stat_text">Travel</span>
+                            </div>
+                        </button>
+                        <button name="action_open_orders" type="object"
+                                class="oe_stat_button" icon="fa-shopping-bag"
+                                invisible="not order_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="order_count"/></span>
+                                <span class="o_stat_text">Orders</span>
+                            </div>
+                        </button>
+                        <button name="action_open_cases" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="not case_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="case_count"/></span>
+                                <span class="o_stat_text">Case Slips</span>
+                            </div>
+                        </button>
+                        <button name="action_open_dispatches" type="object"
+                                class="oe_stat_button" icon="fa-truck"
+                                invisible="not dispatch_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="dispatch_count"/></span>
+                                <span class="o_stat_text">Dispatches</span>
+                            </div>
+                        </button>
+                        <!-- What never came back. Red on purpose: at sign-off
+                             this is the only dispatch number that is a problem. -->
+                        <button name="action_open_undelivered" type="object"
+                                class="oe_stat_button" icon="fa-exclamation-triangle"
+                                invisible="not undelivered_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value text-danger">
+                                    <field name="undelivered_count"/>
+                                </span>
+                                <span class="o_stat_text">Undelivered</span>
+                            </div>
+                        </button>
+                        <button name="action_open_visit_map" type="object"
+                                class="oe_stat_button" icon="fa-location-arrow"
+                                invisible="not located_visit_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="located_visit_count"/></span>
+                                <span class="o_stat_text">Located</span>
+                            </div>
+                        </button>
+                        <button name="action_open_cash_visits" type="object"
+                                class="oe_stat_button" icon="fa-money"
+                                invisible="not cash_visit_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="collected" widget="monetary"/>
+                                </span>
+                                <span class="o_stat_text">Cash Collected</span>
+                            </div>
+                        </button>
+                        <button name="action_open_attendance" type="object"
+                                class="oe_stat_button" icon="fa-clock-o"
+                                invisible="not attendance_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="attendance_count"/></span>
+                                <span class="o_stat_text">Attendance</span>
+                            </div>
+                        </button>
+                        <button name="action_open_new_clinics" type="object"
+                                class="oe_stat_button" icon="fa-hospital-o"
+                                invisible="not new_clinic_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="new_clinic_count"/></span>
+                                <span class="o_stat_text">New Clinics</span>
+                            </div>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="CLEAN DAY" bg_color="text-bg-success"
+                            invisible="not is_clean"/>
+                    <div class="alert alert-warning m-0 mb-2 rounded" role="alert"
+                         invisible="state != 'sent_back'">
+                        <b>Sent back</b> — <field name="send_back_reason" readonly="1"
+                              nolabel="1" class="oe_inline"/>
+                    </div>
+                    <div class="alert alert-info m-0 mb-2 rounded" role="alert"
+                         invisible="state != 'flagged'">
+                        <b>Raised to the administrator</b>
+                        by <field name="flagged_by_id" readonly="1" nolabel="1"
+                                  class="oe_inline"/>
+                        (<field name="flagged_desk" readonly="1" nolabel="1"
+                                class="oe_inline"/> desk) —
+                        <field name="flag_kind" readonly="1" nolabel="1"
+                               class="oe_inline"/>
+                        <div><field name="flag_reason" readonly="1" nolabel="1"/></div>
+                    </div>
+                    <div class="alert alert-danger m-0 mb-2 rounded" role="alert"
+                         invisible="is_clean or not anomaly_note">
+                        <b>Exceptions on this day</b>
+                        <field name="anomaly_note" readonly="1" nolabel="1"/>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="display_name" readonly="1"/></h1>
+                    </div>
+                    <!-- The day as tiles, against this executive's own usual
+                         day, with the approval trail - numbers first, like
+                         every screen in this module. -->
+                    <field name="summary_html" nolabel="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                    <field name="is_clean" invisible="1"/>
+                    <group string="How the Day Went" name="timeline">
+                        <field name="timeline_html" nolabel="1" colspan="2"/>
+                    </group>
+                    <!-- The three write-in blocks used to stack under the
+                         timeline: two tall empty textareas and a score, each
+                         with its own heading, on every sheet whether or not
+                         anyone was going to type in them. They are tabs now, so
+                         they cost one row of height instead of three screens,
+                         and the approval buttons stay reachable without a
+                         scroll. Nothing was dropped. (client, 2026-09-05) -->
+                    <notebook>
+                        <page string="Notes &amp; Sign-off" name="notes">
+                            <group>
+                                <group string="Executive's Note">
+                                    <field name="note" nolabel="1" colspan="2"
+                                           readonly="state not in ('draft', 'sent_back')"
+                                           placeholder="What the figures cannot say…"/>
+                                </group>
+                                <group string="Marketing Assessment"
+                                       invisible="state not in ('ops_approved', 'ops_checked', 'approved', 'checked')"
+                                       groups="lab_fieldwork.group_fieldwork_marketing_manager">
+                                    <field name="marketing_score" widget="priority"
+                                           readonly="state in ('approved', 'checked')"/>
+                                    <field name="marketing_remark"
+                                           readonly="state in ('approved', 'checked')"
+                                           placeholder="What made this day good or poor…"/>
+                                </group>
+                            </group>
+                            <group string="Checked, Issues Noted"
+                                   invisible="is_clean and not ops_check_note and not check_note"
+                                   groups="lab_fieldwork.group_fieldwork_manager">
+                                <field name="ops_check_note"
+                                       readonly="state != 'submitted'"
+                                       placeholder="What Operations checked, e.g. GPS far at two visits - confirmed with the clinic by phone…"/>
+                                <field name="check_note"
+                                       invisible="state not in ('ops_approved', 'ops_checked', 'checked')"
+                                       readonly="state not in ('ops_approved', 'ops_checked')"
+                                       placeholder="What Marketing checked…"/>
+                            </group>
+                            <group string="Raised to the Administrator"
+                                   invisible="not flagged_at">
+                                <field name="flag_kind" readonly="1"/>
+                                <field name="flag_reason" readonly="1"/>
+                                <field name="flagged_by_id" readonly="1"/>
+                                <field name="flagged_at" readonly="1"/>
+                                <field name="flag_answer"
+                                       readonly="state != 'flagged'"
+                                       placeholder="What you decided, and what the desk should do now…"/>
+                                <field name="flag_closed_by_id" readonly="1"
+                                       invisible="not flag_closed_by_id"/>
+                                <field name="flag_closed_at" readonly="1"
+                                       invisible="not flag_closed_at"/>
+                            </group>
+                            <group string="Send Back"
+                                   invisible="state not in ('submitted', 'ops_approved', 'ops_checked')"
+                                   groups="lab_fieldwork.group_fieldwork_manager">
+                                <field name="send_back_reason" nolabel="1" colspan="2"
+                                       placeholder="What must be fixed before this is signed…"/>
+                            </group>
+                        </page>
+                        <page string="All Figures" name="figures">
+                            <group>
+                                <group string="The Day">
+                                    <field name="user_id" readonly="state != 'draft'"
+                                           options="{'no_create': True}"/>
+                                    <!-- The day as the desk writes it, always; the
+                                         date itself only while the sheet can still
+                                         be dated. The raw field renders as "Sep 11"
+                                         on this database's language - an American
+                                         short date, and without the year.
+                                         (client, 2026-09-11) -->
+                                    <field name="date_label"/>
+                                    <field name="date" string="Set the day"
+                                           invisible="state != 'draft'"/>
+                                    <field name="attendance_in"/>
+                                    <field name="attendance_out"/>
+                                    <field name="km"/>
+                                    <field name="minutes_at_clinics"/>
+                                </group>
+                                <group string="The Work">
+                                    <field name="visit_done_count" string="Visits Completed"/>
+                                    <field name="visit_count" string="Visits Planned"/>
+                                    <field name="gps_ok_count"/>
+                                    <field name="gps_far_count"/>
+                                    <field name="gps_nopin_count"/>
+                                    <field name="case_count"/>
+                                    <field name="cases_counted"/>
+                                    <field name="reworks_collected"/>
+                                    <field name="order_count"/>
+                                    <field name="order_value"/>
+                                    <field name="collected"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Approvals">
+                                    <field name="submitted_at"/>
+                                    <field name="ops_approved_by_id"/>
+                                    <field name="ops_approved_at"/>
+                                    <field name="approved_by_id"/>
+                                    <field name="approved_at"/>
+                                    <field name="nudge_count"
+                                           invisible="not nudge_count"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- The raise-it dialog. Small on purpose: the desk is mid-approval, and
+         the two things it must not be possible to skip are what kind of problem
+         this is and what was actually seen. (client, 2026-09-05) -->
+    <record id="view_daily_update_flag_form" model="ir.ui.view">
+        <field name="name">lab.daily.update.flag.form</field>
+        <field name="model">lab.daily.update</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <form string="Raise to the Administrator">
+                <div class="alert alert-info" role="alert">
+                    This puts <field name="display_name" readonly="1" nolabel="1"
+                                     class="oe_inline"/>
+                    on the administrator's desk. It does <b>not</b> go back to the
+                    executive, and the approval trail is kept.
+                </div>
+                <group>
+                    <field name="flag_kind" required="1"
+                           help="Already guessed from this sheet's own numbers - change it if the guess is wrong."/>
+                    <field name="flag_reason" required="1" nolabel="1" colspan="2"
+                           placeholder="What you saw, in a sentence. e.g. every visit stamped between 14:14 and 14:15, and no GPS on any of them."/>
+                    <field name="flag_history_count" readonly="1"
+                           string="Times this executive was raised in 90 days"
+                           invisible="not flag_history_count"/>
+                </group>
+                <footer>
+                    <button name="action_flag" type="object" string="Raise It"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_daily_update_list" model="ir.ui.view">
+        <field name="name">lab.daily.update.list</field>
+        <field name="model">lab.daily.update</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state in ('approved', 'checked')"
+                  decoration-warning="state == 'sent_back'"
+                  decoration-info="state == 'flagged'"
+                  sample="1">
+                <header>
+                    <button name="action_approve_clean" type="object"
+                            string="Approve All Clean" display="always"
+                            groups="lab_fieldwork.group_fieldwork_ops_manager"/>
+                </header>
+                <field name="date"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="is_clean" string="Clean" widget="boolean_toggle"
+                       readonly="1"/>
+                <field name="visit_done_count" string="Visits" sum="Visits"/>
+                <field name="gps_far_count" string="GPS ⚠" optional="show"
+                       sum="GPS exceptions"/>
+                <!-- Beside the exception count, never instead of it: a zero in
+                     "GPS ⚠" means nothing until you know whether the check ran. -->
+                <field name="gps_nopin_count" string="GPS not checked" optional="show"
+                       sum="Not checked"/>
+                <field name="case_count" optional="show" sum="Cases"/>
+                <field name="cases_counted" optional="show" sum="Counted"/>
+                <field name="reworks_collected" optional="hide" sum="Reworks"/>
+                <field name="order_value" sum="Orders" optional="show"/>
+                <field name="collected" sum="Collected"/>
+                <field name="km" optional="show" sum="km"/>
+                <field name="new_clinic_count" string="New Clinics" optional="show"/>
+                <field name="marketing_score" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'submitted'"
+                       decoration-warning="state in ('sent_back', 'ops_approved', 'ops_checked')"
+                       decoration-success="state == 'approved'"
+                       decoration-primary="state == 'checked'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_daily_update_search" model="ir.ui.view">
+        <field name="name">lab.daily.update.search</field>
+        <field name="model">lab.daily.update</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="date"/>
+                <filter name="mine" string="My Sheets"
+                        domain="[('user_id', '=', uid)]"/>
+                <separator/>
+                <filter name="to_ops" string="On the Ops Desk"
+                        domain="[('state', '=', 'submitted')]"/>
+                <filter name="to_marketing" string="On the Marketing Desk"
+                        domain="[('state', 'in', ('ops_approved', 'ops_checked'))]"/>
+                <filter name="approved" string="Approved"
+                        domain="[('state', '=', 'approved')]"/>
+                <filter name="checked" string="Checked · Issues Noted"
+                        domain="['|', ('state', 'in', ('ops_checked', 'checked')), ('ops_check_note', '!=', False)]"/>
+                <filter name="sent_back" string="Sent Back"
+                        domain="[('state', '=', 'sent_back')]"/>
+                <filter name="flagged" string="Raised to Admin"
+                        domain="[('state', '=', 'flagged')]"/>
+                <filter name="flag_history" string="Ever Raised"
+                        domain="[('flagged_at', '!=', False)]"/>
+                <separator/>
+                <filter name="clean" string="Clean Days"
+                        domain="[('is_clean', '=', True)]"/>
+                <filter name="exceptions" string="Exceptions"
+                        domain="[('is_clean', '=', False)]"/>
+                <separator/>
+                <!-- Monday of this week through relativedelta, never weekday(): the
+                     browser's python-like interpreter has neither weekday() nor
+                     replace() on a date, and a filter that calls one kills the whole
+                     screen at render time. days=-6 then forward to Monday lands on the
+                     same Monday every day of the week, Sunday included.
+                     (client, 2026-09-10) -->
+                <filter name="this_week" string="This Week"
+                        domain="[('date', '&gt;=', (context_today() + relativedelta(weekday=0, days=-6)).strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter name="group_user" string="Executive"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter name="group_flag_kind" string="Issue Raised"
+                            context="{'group_by': 'flag_kind'}"/>
+                    <filter name="group_state" string="Stage"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_date" string="Date"
+                            context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- The executive's own sheets: submit, read what came back, resubmit. -->
+    <record id="action_daily_update_my" model="ir.actions.act_window">
+        <field name="name">My Day Sheets</field>
+        <field name="res_model">lab.daily.update</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('user_id', '=', uid)]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No day sheets yet</p>
+            <p>At the end of each working day your sheet assembles itself from
+               your visits, travel and attendance — nothing to type but a note.</p>
+        </field>
+    </record>
+
+    <!-- The operational desk: what is waiting for the FIRST signature. -->
+    <record id="action_daily_update_ops" model="ir.actions.act_window">
+        <field name="name">Daily Updates — Operations</field>
+        <field name="res_model">lab.daily.update</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_to_ops': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing waiting</p>
+            <p>Executives' day sheets arrive here at day close. Clean days can be
+               approved together; the exceptions deserve the reading time this
+               saves.</p>
+        </field>
+    </record>
+
+    <!-- The marketing desk: only what operations has vouched for. -->
+    <record id="action_daily_update_marketing" model="ir.actions.act_window">
+        <field name="name">Activity Approvals — Marketing</field>
+        <field name="res_model">lab.daily.update</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_to_marketing': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing waiting</p>
+            <p>Days appear here once the Operational Manager has vouched that they
+               happened as recorded. Score the activities and approve, or send
+               back with a reason.</p>
+        </field>
+    </record>
+
+    <record id="action_daily_update_all" model="ir.actions.act_window">
+        <field name="name">Day Sheets</field>
+        <field name="res_model">lab.daily.update</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

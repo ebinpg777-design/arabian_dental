@@ -1,0 +1,476 @@
+// Track a Work.
+//
+// Read under pressure — someone is on the phone. So: one clear headline, generous type,
+// and every section already open. Nothing here hides behind an accordion.
+//
+// SCSS variables, not --bs-* custom properties: the Odoo 19 backend defines none.
+
+$trk-deep:    #0a3542;
+$trk-primary: #0e7c86;
+$trk-accent:  #4f46e5;
+$trk-ok:      #0f9d58;
+$trk-warn:    #d99441;
+$trk-danger:  #dc2626;
+$trk-muted:   #5b7079;
+$trk-line:    rgba(10, 53, 66, .10);
+
+.o_trk {
+    padding: 1rem 1.25rem 2.5rem;
+    background: linear-gradient(180deg, #f7fbfb, #ffffff 320px);
+    min-height: 100%;
+
+    h5 { color: $trk-deep; font-weight: 700; font-size: .95rem; margin-bottom: .75rem; }
+
+    // ---------------------------------------------------------------- search
+    .o_trk_searchbar { max-width: 900px; margin: 0 auto 1.25rem; }
+    .o_trk_searchbox {
+        display: flex; align-items: center; gap: .5rem;
+        background: #fff;
+        border: 1px solid $trk-line;
+        border-radius: 999px;
+        padding: .35rem .35rem .35rem 1rem;
+        box-shadow: 0 8px 28px rgba(10, 53, 66, .10);
+    }
+    .o_trk_search_icon { color: $trk-muted; }
+    .o_trk_input {
+        flex: 1 1 auto;
+        border: 0; outline: none; background: transparent;
+        font-size: 1rem; padding: .5rem 0;
+        &::placeholder { color: rgba(91, 112, 121, .7); }
+    }
+    .o_trk_clear {
+        border: 0; background: transparent; color: $trk-muted;
+        padding: .25rem .5rem; border-radius: 50%;
+        &:hover { background: rgba(10, 53, 66, .06); }
+    }
+    .o_trk_go {
+        border: 0; border-radius: 999px;
+        background: $trk-primary; color: #fff;
+        font-weight: 600; padding: .55rem 1.4rem;
+        &:hover { background: darken($trk-primary, 6%); }
+    }
+    .o_trk_loading { text-align: center; color: $trk-muted; margin-top: .6rem; font-size: .875rem; }
+
+    // ---------------------------------------------------------------- cold start
+    .o_trk_recent { max-width: 900px; margin: 0 auto; }
+    .o_trk_recent_h { color: $trk-muted; font-weight: 600; }
+    .o_trk_recent_grid {
+        display: grid; gap: .6rem;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .o_trk_recent_card {
+        display: flex; flex-direction: column; align-items: flex-start; gap: .2rem;
+        text-align: left;
+        background: #fff; border: 1px solid $trk-line; border-radius: .9rem;
+        padding: .8rem .9rem;
+        transition: transform .12s ease, box-shadow .12s ease;
+        &:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(10,53,66,.12); }
+    }
+    // Doctor, patient and what's being made are what a case is recognised by on the
+    // phone — the SO number is what gets typed to FIND the card, not what it is
+    // read out as. So the number is the small, muted line here; the other three
+    // carry the weight. (client, 2026-08-29)
+    .o_trk_recent_doctor { font-weight: 700; color: $trk-deep; font-size: .95rem;
+        display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        max-width: 100%; }
+    .o_trk_recent_patient { font-weight: 600; color: $trk-primary; }
+    .o_trk_recent_product { font-size: .82rem; color: $trk-deep; font-weight: 500;
+        display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        max-width: 100%; }
+    .o_trk_recent_name { font-size: .78rem; color: $trk-muted; font-weight: 400; }
+
+    // ---------------------------------------------------------------- matches
+    .o_trk_matches { max-width: 900px; margin: 0 auto; }
+    .o_trk_match {
+        display: grid; gap: .75rem; width: 100%; text-align: left;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        align-items: center;
+        background: #fff; border: 1px solid $trk-line; border-radius: .75rem;
+        padding: .7rem .9rem; margin-bottom: .5rem;
+        &:hover { border-color: $trk-primary; }
+    }
+
+    // ---------------------------------------------------------------- hero
+    .o_trk_hero {
+        display: flex; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;
+        background: #fff;
+        border: 1px solid $trk-line;
+        border-radius: 1.1rem;
+        padding: 1.25rem 1.4rem;
+        box-shadow: 0 12px 34px rgba(10, 53, 66, .10);
+        margin-bottom: 1rem;
+    }
+    .o_trk_hero_main { flex: 1 1 420px; min-width: 0; }
+    .o_trk_hero_top {
+        display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+        margin-bottom: .35rem;
+    }
+    .o_trk_patient {
+        margin: 0; color: $trk-deep; font-weight: 800;
+        font-size: clamp(1.3rem, calc(1rem + 1vw), 1.9rem);
+    }
+    .o_trk_hero_meta {
+        display: flex; gap: .4rem; flex-wrap: wrap; align-items: center;
+        color: $trk-muted; font-size: .875rem;
+    }
+    .o_trk_hero_side { text-align: right; }
+
+    // "as of 12:28   Refresh" - the reading, and the way to take it again.
+    .o_trk_read {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .5rem;
+        margin-top: .4rem;
+    }
+
+    .o_trk_read_at { font-size: .75rem; color: $o-gray-600; }
+
+    .o_trk_refresh {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.25rem;
+        border: 0;
+        border-radius: 1.2rem;
+        padding: .3rem .8rem;
+        background: rgba(13, 110, 253, .08);
+        color: #0d6efd;
+        font-size: .8rem;
+        font-weight: 600;
+
+        &:hover { background: rgba(13, 110, 253, .16); }
+        &:disabled { opacity: .6; }
+    }
+    .o_trk_amount { font-size: 1.5rem; font-weight: 800; color: $trk-primary; }
+    .o_trk_badges { display: flex; gap: .35rem; justify-content: flex-end; flex-wrap: wrap; margin-top: .4rem; }
+
+    .o_trk_progress {
+        height: 8px; border-radius: 999px; background: rgba(10, 53, 66, .09);
+        overflow: hidden; margin-top: .8rem;
+        &.o_trk_progress_sm { height: 5px; margin-top: .45rem; }
+    }
+    .o_trk_progress_fill {
+        height: 100%; border-radius: 999px;
+        background: linear-gradient(90deg, $trk-primary, $trk-accent);
+    }
+
+    // ---------------------------------------------------------------- chips
+    .o_trk_chip {
+        display: inline-block; font-size: .72rem; font-weight: 700;
+        padding: .18rem .55rem; border-radius: 999px;
+        background: rgba(10, 53, 66, .07); color: $trk-deep;
+        white-space: nowrap;
+        &.o_trk_chip_lg { font-size: .8rem; padding: .28rem .8rem; }
+    }
+    .o_trk_chip_danger { background: rgba(220, 38, 38, .12); color: $trk-danger; }
+    .o_trk_chip_warn   { background: rgba(217, 148, 65, .16); color: darken($trk-warn, 12%); }
+    .o_trk_chip_ok     { background: rgba(15, 157, 88, .14);  color: $trk-ok; }
+    .o_trk_chip_info   { background: rgba(79, 70, 229, .12);  color: $trk-accent; }
+    .o_trk_chip_soft   { background: rgba(14, 124, 134, .10); color: $trk-primary; }
+
+    .o_trk_stage_registered { background: rgba(91,112,121,.14); color: $trk-muted; }
+    .o_trk_stage_lab        { background: rgba(79,70,229,.13);  color: $trk-accent; }
+    .o_trk_stage_ready      { background: rgba(15,157,88,.14);  color: $trk-ok; }
+    .o_trk_stage_sent       { background: rgba(14,124,134,.14); color: $trk-primary; }
+    .o_trk_stage_delivered  { background: rgba(15,157,88,.18);  color: darken($trk-ok, 8%); }
+    .o_trk_stage_cancel     { background: rgba(220,38,38,.12);  color: $trk-danger; }
+
+    // ---------------------------------------------------------------- cards
+    .o_trk_grid {
+        display: grid; gap: 1rem;
+        // minmax(0, 1fr), never 1fr: a grid item's min-width is `auto`, so a
+        // column sized 1fr refuses to shrink below the widest thing inside it.
+        // The station rail is twelve benches long on a two-arch case, so the
+        // card grew to fit it, pushed the page off the right of the screen and
+        // the rail's own overflow-x never had anything to scroll.
+        // (client, 2026-09-12)
+        grid-template-columns: minmax(0, 1fr);
+        @media (min-width: 992px) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    }
+    .o_trk_card {
+        background: #fff; border: 1px solid $trk-line; border-radius: 1rem;
+        padding: 1.1rem 1.2rem;
+        // Same rule one level in: the card is itself a grid item.
+        min-width: 0;
+    }
+    // The journey reads top to bottom; give it the full width on wide screens.
+    .o_trk_timeline_card { @media (min-width: 992px) { grid-column: 1 / -1; } }
+    .o_trk_empty { color: $trk-muted; font-size: .875rem; }
+
+    // ---------------------------------------------------------------- timeline
+    .o_trk_timeline {
+        display: grid; gap: .1rem;
+        @media (min-width: 992px) {
+            grid-auto-flow: column;
+            // Columns that can shrink, and a rail that scrolls when they can
+            // shrink no further - the journey ran off the screen edge too.
+            grid-auto-columns: minmax(0, 1fr);
+            gap: .5rem;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+    }
+    .o_trk_event {
+        display: flex; align-items: flex-start; gap: .6rem;
+        padding: .5rem 0;
+        @media (min-width: 992px) { flex-direction: column; text-align: center; align-items: center; }
+    }
+    .o_trk_event_dot {
+        flex: 0 0 auto;
+        width: 34px; height: 34px; border-radius: 50%;
+        display: grid; place-items: center;
+        background: rgba(10, 53, 66, .07); color: $trk-muted;
+    }
+    .o_trk_event_done .o_trk_event_dot { background: rgba(15, 157, 88, .15); color: $trk-ok; }
+    .o_trk_event_open .o_trk_event_dot { background: rgba(217, 148, 65, .18); color: darken($trk-warn, 10%); }
+    .o_trk_event_label { font-weight: 600; color: $trk-deep; font-size: .875rem; }
+    .o_trk_event_meta  { font-size: .78rem; color: $trk-muted; }
+
+    // ---------------------------------------------------------------- rows
+    .o_trk_row {
+        padding: .6rem 0;
+        & + .o_trk_row { border-top: 1px solid $trk-line; }
+        &.o_trk_row_late { background: rgba(220, 38, 38, .04); border-radius: .5rem; padding-inline: .5rem; }
+    }
+    .o_trk_row_main { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .o_trk_row_meta { font-size: .8rem; color: $trk-muted; margin-top: .15rem; }
+    .o_trk_money { font-weight: 700; color: $trk-deep; }
+    .o_trk_owed  { color: $trk-danger; }
+    .o_trk_near  { color: $trk-primary; font-weight: 600; }
+
+    .o_trk_link {
+        border: 0; background: transparent; padding: 0;
+        color: $trk-primary; font-weight: 700;
+        &:hover { text-decoration: underline; }
+    }
+    // The same name on the read-only tracker: said, not offered.
+    .o_trk_ref { color: $o-gray-900; font-weight: 700; }
+    .o_trk_back {
+        border: 0; background: transparent; color: $trk-muted;
+        padding: .25rem .5rem; border-radius: 999px;
+        &:hover { color: $trk-primary; background: rgba(10, 53, 66, .06); }
+    }
+    .o_trk_readonly_hint { padding: 1.5rem .25rem; text-align: center; }
+
+    // ---------------------------------------------------------------- production
+    .o_trk_mo { padding: .6rem 0; & + .o_trk_mo { border-top: 1px solid $trk-line; } }
+    .o_trk_mo_head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .o_trk_mo_product { color: $trk-muted; font-size: .85rem; }
+
+    // Stations scroll sideways rather than wrapping: the ORDER of the benches is the
+    // information, and a wrapped rail reads as unrelated words.
+    .o_trk_stations {
+        display: flex; gap: .35rem; overflow-x: auto;
+        padding: .5rem 0 .25rem;
+        scrollbar-width: thin;
+        // A phone drags this rail; a trackpad swipes it. Both need the chain to
+        // stop here rather than turning into a page swipe half way along.
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+    }
+    .o_trk_station {
+        flex: 0 0 auto;
+        display: flex; flex-direction: column; gap: .05rem;
+        border-radius: .6rem; padding: .35rem .6rem;
+        background: rgba(10, 53, 66, .05);
+        min-width: 108px;
+    }
+    .o_trk_station_name  { font-size: .78rem; font-weight: 700; color: $trk-deep; white-space: nowrap; }
+    // U or L, carried on the bench's own name so the two chains of a UL case
+    // can be told apart at a glance rather than counted through.
+    .o_trk_arch {
+        display: inline-block; margin-right: .3rem;
+        padding: 0 .3rem; border-radius: .35rem;
+        background: rgba(10, 53, 66, .12); color: $trk-deep;
+        font-size: .68rem; font-weight: 700; line-height: 1.35;
+    }
+    .o_trk_chip_ul { background: rgba(10, 53, 66, .1); color: $trk-deep; font-weight: 700; }
+    .o_trk_station_state { font-size: .7rem; color: $trk-muted; }
+    .o_trk_station_who   { font-size: .7rem; color: $trk-primary; display: block; }
+    // When the step happened, and how long it took or has been sitting.
+    .o_trk_station_time  { font-size: .68rem; color: $trk-muted; display: block; margin-top: .1rem; }
+    // The finisher reads as the second name, not a repeat of the first.
+    .o_trk_station_fin   { color: $trk-ok; }
+    .o_trk_wo_done  { background: rgba(15, 157, 88, .13); }
+    .o_trk_wo_now   { background: rgba(79, 70, 229, .15); box-shadow: inset 0 0 0 1px rgba(79,70,229,.35); }
+    .o_trk_wo_ready { background: rgba(14, 124, 134, .10); }
+    .o_trk_wo_todo  { opacity: .65; }
+}
+
+// ---------------------------------------------------------------------------
+// Live search: stage filter chips (2026-08-24)
+// ---------------------------------------------------------------------------
+.o_trk {
+    .o_trk_filters { display: flex; flex-wrap: wrap; gap: .45rem;
+        max-width: 1140px; margin: .6rem auto 0; padding: 0 .25rem; }
+    .o_trk_filter { border: 1px solid transparent; border-radius: 999px;
+        padding: .18rem .75rem; font-size: .78rem; font-weight: 600;
+        opacity: .55; cursor: pointer;
+        &.o_trk_filter_on { opacity: 1; border-color: currentColor; }
+        &:hover { opacity: .85; } }
+    // Receipts sit under the invoices they cannot be tied to, so they are set apart
+    // rather than listed as if they were payments OF those invoices.
+    .o_trk_pay {
+        margin-top: .75rem;
+        padding-top: .6rem;
+        border-top: 1px dashed $trk-line;
+    }
+    .o_trk_pay_h {
+        font-size: .75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: $trk-muted;
+        margin-bottom: .35rem;
+    }
+    // A receipt that landed after this order was raised is the one the person on the
+    // phone is usually asking about.
+    .o_trk_row_new { background: rgba(15, 157, 88, .06); border-radius: .4rem; }
+
+}
+
+
+// ---------------------------------------------------------------------------
+// The screen must scroll.
+//
+// Its root did not carry `o_action` at all, so the web client never gave it a
+// height and `.o_action_manager` (overflow:hidden) simply clipped everything below
+// the fold — the wheel did nothing on a tracked order with several jobs. Adding
+// `o_action` to the root is half the fix; the other half is this selector, because
+// `html .o_web_client > .o_action_manager > .o_action { height:100%; overflow:hidden }`
+// is four compound selectors declared after ours and wins against anything shorter.
+// `min-height: 0` matters alongside: a flex child never shrinks below its content,
+// and the overflow would never engage. `display: block` keeps the card stack laid
+// out exactly as before, rather than as flex column children.
+//
+// The same fix the flow board, My Day and the CEO board each needed.
+// (client, 2026-08-29)
+// ---------------------------------------------------------------------------
+html .o_web_client > .o_action_manager > .o_action.o_trk {
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+// ---------------------------------------------------------------------------
+// The floor as it stands: one line per station, the cases behind it on a tap.
+// Cards per station repeated the same backlog twelve times and read as twelve
+// unrelated lists; a table is one thing to scan. (client, 2026-09-09)
+.o_trk {
+    .o_trk_floor_head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-bottom: .6rem;
+
+        h5 { margin: 0; }
+    }
+
+    .o_trk_floor_day { font-size: .85rem; color: $trk-muted; }
+    .o_trk_floor_day + .o_trk_read_at { margin-left: auto; }
+
+    .o_trk_floor_wrap {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        gap: .75rem;
+        align-items: start;
+
+        @media (max-width: 991px) { grid-template-columns: 1fr; }
+    }
+
+    // The station table
+    .o_trk_st_head,
+    .o_trk_st_row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 4.5rem 4.5rem 5.5rem;
+        align-items: center;
+        gap: .5rem;
+        width: 100%;
+        text-align: left;
+    }
+
+    .o_trk_st_head {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: $trk-muted;
+        padding: 0 .25rem .3rem;
+        border-bottom: 1px solid $trk-line;
+    }
+
+    .o_trk_st_row {
+        border: 0;
+        border-bottom: 1px solid $trk-line;
+        background: transparent;
+        padding: .5rem .25rem;
+        font-size: .9rem;
+        color: $trk-deep;
+
+        &:hover { background: rgba(0, 0, 0, .03); }
+        &.o_trk_st_open { background: rgba(0, 0, 0, .04); font-weight: 600; }
+    }
+
+    .o_trk_st_caret { color: $trk-muted; font-size: .7rem; }
+    .o_trk_st_name { display: flex; align-items: center; min-width: 0; gap: .1rem; }
+
+    // What share of the floor is standing at this bench, drawn rather than
+    // written: twelve numbers get compared one pair at a time, twelve bars are
+    // one glance.
+    .o_trk_st_bar {
+        flex: 0 0 4.5rem;
+        height: .35rem;
+        margin-left: .6rem;
+        border-radius: .2rem;
+        background: rgba(0, 0, 0, .08);
+        overflow: hidden;
+    }
+
+    .o_trk_st_fill { display: block; height: 100%; background: $trk-primary; }
+
+    .o_trk_st_n { text-align: right; font-variant-numeric: tabular-nums; }
+    .o_trk_st_doing { color: $trk-ok; font-weight: 600; }
+    .o_trk_st_old { font-size: .8rem; color: $trk-muted; }
+
+    .o_trk_st_jobs {
+        padding: .1rem .25rem .5rem 1.4rem;
+        border-bottom: 1px solid $trk-line;
+        background: rgba(0, 0, 0, .015);
+    }
+
+    .o_trk_floor_none { font-size: .78rem; color: $trk-muted; padding: .35rem .1rem; }
+
+    .o_trk_floor_row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: .6rem;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        padding: .35rem .1rem;
+
+        & + .o_trk_floor_row { border-top: 1px solid $trk-line; }
+        &:hover { background: rgba(0, 0, 0, .03); }
+        &:disabled { cursor: default; opacity: .8; }
+    }
+
+    .o_trk_floor_main { min-width: 0; }
+    .o_trk_floor_who {
+        display: block;
+        font-weight: 600;
+        color: $trk-deep;
+        font-size: .85rem;
+    }
+    .o_trk_floor_meta { display: block; font-size: .74rem; color: $trk-muted; }
+    // The sales order, set apart: the number the office quotes on the phone.
+    .o_trk_floor_so { font-weight: 700; color: $trk-primary; }
+    .o_trk_floor_side { text-align: right; white-space: nowrap; }
+    .o_trk_floor_tech { display: block; font-size: .74rem; color: $trk-primary; font-weight: 600; }
+    .o_trk_floor_since { display: block; font-size: .72rem; color: $trk-muted; }
+    .o_trk_floor_old { color: $trk-danger; font-weight: 600; }
+}

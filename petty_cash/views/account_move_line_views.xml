@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Journal Items: the petty cash holder as a column, a search field and a Group By.
+         The field is on the line so a holder's spend can be read straight off the
+         accounting screens, without going move by move. (client, 2026-08-21) -->
+    <record id="view_move_line_tree_petty_cash" model="ir.ui.view">
+        <field name="name">account.move.line.list.petty.cash</field>
+        <field name="model">account.move.line</field>
+        <field name="inherit_id" ref="account.view_move_line_tree"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="petty_cash_holder_id" string="Petty Cash Holder"
+                       optional="hide" readonly="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_move_line_filter_petty_cash" model="ir.ui.view">
+        <field name="name">account.move.line.search.petty.cash</field>
+        <field name="model">account.move.line</field>
+        <field name="inherit_id" ref="account.view_account_move_line_filter"/>
+        <field name="arch" type="xml">
+            <field name="account_id" position="after">
+                <field name="petty_cash_holder_id" string="Petty Cash Holder"/>
+            </field>
+            <filter name="group_by_partner" position="after">
+                <filter string="Petty Cash Holder" name="group_by_petty_cash_holder"
+                        context="{'group_by': 'petty_cash_holder_id'}"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

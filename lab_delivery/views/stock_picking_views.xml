@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The same receipt reader on the stock transfer's Courier Details tab. The
+         transfer's courier fields are sale_custom's plain text; the widget fills
+         the consignment number and courier name from the photographed receipt and
+         keeps the receipt as proof. (client, 2026-08-28) -->
+    <record id="view_picking_form_courier_receipt" model="ir.ui.view">
+        <field name="name">stock.picking.form.courier.receipt</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="sale_custom.view_picking_form_sale_custom"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='courier_details']/group" position="before">
+                <field name="courier_receipt_image" widget="courier_receipt_scan"
+                       nolabel="1" colspan="2"
+                       options="{'awb': 'consignment_number',
+                                 'courier_name': 'courier_company',
+                                 'source': 'consignment_source'}"/>
+            </xpath>
+            <xpath expr="//page[@name='courier_details']//field[@name='consignment_number']"
+                   position="after">
+                <field name="consignment_source" readonly="1"
+                       invisible="not consignment_number"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

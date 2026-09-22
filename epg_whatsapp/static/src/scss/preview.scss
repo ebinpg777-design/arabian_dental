@@ -1,0 +1,141 @@
+// A WhatsApp-looking preview. SCSS variables only — Odoo 19's backend defines no
+// --bs-* custom properties, so var(--bs-body-bg) silently resolves to nothing.
+//
+// The greens are literal rather than themed: this is a picture OF WhatsApp, and it
+// stops looking like WhatsApp the moment it follows our palette.
+$o-wa-green: #005c4b;
+$o-wa-bar: #075e54;
+$o-wa-canvas: #ece5dd;
+
+.o_epg_wa_phone {
+    max-width: 22rem;
+    border: 1px solid $border-color;
+    border-radius: .875rem;
+    overflow: hidden;
+    box-shadow: 0 .25rem 1rem rgba($o-gray-900, .12);
+}
+
+.o_epg_wa_bar {
+    display: flex;
+    align-items: center;
+    padding: .5rem .75rem;
+    background-color: $o-wa-bar;
+    color: #fff;
+    font-size: .8125rem;
+    font-weight: 600;
+}
+
+.o_epg_wa_bar_note { font-size: .6875rem; opacity: .75; font-weight: 400; }
+
+.o_epg_wa_canvas {
+    padding: .875rem .75rem;
+    background-color: $o-wa-canvas;
+    min-height: 8rem;
+}
+
+.o_epg_wa_bubble {
+    position: relative;
+    margin-left: auto;
+    max-width: 92%;
+    padding: .5rem .625rem .375rem;
+    border-radius: .5rem;
+    background-color: #d9fdd3;      // the outgoing bubble
+    color: #111b21;
+    font-size: .8125rem;
+    line-height: 1.45;
+    word-break: break-word;
+
+    // The tail, so it reads as a message rather than a panel.
+    &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: -7px;
+        border: 7px solid transparent;
+        border-top-color: #d9fdd3;
+        border-left-color: #d9fdd3;
+    }
+}
+
+.o_epg_wa_doc {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem;
+    margin-bottom: .375rem;
+    border-radius: .375rem;
+    background-color: rgba(#000, .06);
+}
+
+.o_epg_wa_doc_icon { font-size: 1.5rem; color: #d93025; }
+.o_epg_wa_doc_name { font-weight: 600; font-size: .75rem; }
+.o_epg_wa_doc_sub  { font-size: .6875rem; opacity: .65; }
+
+.o_epg_wa_header { font-weight: 700; margin-bottom: .25rem; }
+.o_epg_wa_body strong { font-weight: 700; }
+.o_epg_wa_gap { height: .5rem; }
+
+// A placeholder stays visible as a chip: the author needs to see WHICH field lands
+// there, and a resolved sample would hide a wrong field path.
+.o_epg_wa_var {
+    display: inline-block;
+    padding: 0 .25rem;
+    border-radius: .25rem;
+    background-color: rgba(#0a7cff, .14);
+    color: #0a5dc2;
+    font-family: monospace;
+    font-size: .75rem;
+}
+
+.o_epg_wa_footer { margin-top: .375rem; font-size: .6875rem; opacity: .6; }
+
+.o_epg_wa_time {
+    text-align: right;
+    font-size: .625rem;
+    opacity: .55;
+    margin-top: .125rem;
+
+    .fa-check { color: #53bdeb; }
+}
+
+// The source textarea sits next to the preview, so it needs room to breathe.
+.o_epg_wa_source textarea { min-height: 14rem; font-family: monospace; font-size: .8125rem; }
+
+// The field picker beside the message. (client, 2026-08-28)
+.o_epg_wa_picker_panel {
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    padding: .5rem;
+    margin-top: .375rem;
+    background: $body-bg;
+}
+.o_epg_wa_picker_list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    max-height: 180px;
+    overflow-y: auto;
+}
+.o_epg_wa_picker_item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .35rem;
+    border: 1px solid $border-color;
+    border-radius: 1rem;
+    padding: .2rem .6rem;
+    background: $o-gray-100;
+    font-size: .8125rem;
+    min-height: 32px;
+
+    &:hover { background: rgba($primary, .12); border-color: $primary; }
+}
+.o_epg_wa_picker_path { font-size: .6875rem; color: $o-gray-600; }
+.o_epg_wa_warnings textarea, .o_epg_wa_warnings { font-family: $font-family-monospace; font-size: .8125rem; }
+
+// What the doctor can tap, under the text; and the 1st/2nd/3rd-time switch.
+.o_epg_wa_taps { margin-top: .4rem; display: flex; flex-direction: column; gap: .2rem; }
+.o_epg_wa_tap { font-size: .8rem; color: #027eb5; }
+.o_epg_wa_tap_page { font-weight: 600; }
+.o_epg_wa_stages { display: flex; gap: .25rem; padding: .35rem .5rem 0; background: #e5ddd5; }
+
+.o_epg_wa_phone .o_wa_var i { font-style: normal; opacity: .6; font-size: .85em; }

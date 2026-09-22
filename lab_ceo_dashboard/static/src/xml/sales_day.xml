@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!-- Sales & Cases by day. Today as it happens, tomorrow as an outlook, any day of
+     the last fortnight from the rail, and the month of bars one tap away.
+     (client, 2026-09-17) -->
+
+<t t-name="lab_ceo_dashboard.SalesDaySwitch">
+    <t t-set="dd" t-value="state.dayData"/>
+    <div class="o_sd_top">
+        <div class="o_mp_lens o_sd_view">
+            <button class="o_mp_lensbtn" t-att-class="{ o_mp_lensbtn_on: state.salesView === 'day' }"
+                    t-on-click="() => this.setSalesView('day')">
+                <i class="fa fa-sun-o me-1"/>Day
+            </button>
+            <button class="o_mp_lensbtn" t-att-class="{ o_mp_lensbtn_on: state.salesView === 'month' }"
+                    t-on-click="() => this.setSalesView('month')">
+                <i class="fa fa-calendar me-1"/>Month
+            </button>
+        </div>
+        <t t-if="state.salesView === 'day' and dd">
+            <div class="o_sd_quick">
+                <button class="o_sd_qbtn" t-att-class="{ o_sd_qbtn_on: dd.is_today }"
+                        t-on-click="() => this.jumpDay(0)">Today</button>
+                <button class="o_sd_qbtn o_sd_qbtn_next" t-att-class="{ o_sd_qbtn_on: dd.is_tomorrow }"
+                        t-on-click="() => this.jumpDay(1)">
+                    <i class="fa fa-magic me-1"/>Tomorrow
+                </button>
+                <input type="date" class="o_sd_pick" t-att-value="dd.day"
+                       t-on-change="(ev) => this.onPickDay(ev)" title="Any day"/>
+            </div>
+        </t>
+    </div>
+</t>
+
+<t t-name="lab_ceo_dashboard.SalesDay">
+    <t t-set="dd" t-value="state.dayData"/>
+    <div t-if="!dd" class="text-center text-muted py-5">
+        <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+    </div>
+    <div t-else="" class="o_sd" t-att-class="{ o_sd_busy: state.dayLoading }">
+
+        <!-- The fortnight as a rail: a picker that is also a chart. Tomorrow sits
+             at the end, drawn as a promise rather than a bar. -->
+        <div class="o_sd_rail" role="tablist" t-ref="rail">
+            <button t-foreach="dd.rail" t-as="r" t-key="r.day" role="tab"
+                    class="o_sd_day"
+                    t-att-class="{ o_sd_day_on: r.day === dd.day, o_sd_day_today: r.is_today,
+                                   o_sd_day_future: r.future, o_sd_day_sun: r.sunday }"
+                    t-att-title="r.future ? 'Outlook' : (r.orders + ' cases · ' + money(r.value))"
+                    t-on-click="() => this.selectDay(r.day)">
+                <span class="o_sd_day_bar">
+                    <span t-if="!r.future" class="o_sd_day_fill" t-attf-style="height: {{ railPct(r) }}%"/>
+                    <i t-else="" class="fa fa-magic o_sd_day_magic" title="Outlook"/>
+                </span>
+                <span class="o_sd_day_n" t-esc="r.future ? '?' : r.orders"/>
+                <span class="o_sd_day_dow" t-esc="r.is_today ? 'Today' : r.dow"/>
+                <span class="o_sd_day_num" t-esc="r.num"/>
+            </button>
+        </div>
+
+        <div class="o_sd_title">
+            <span class="o_sd_title_l" t-esc="dd.label"/>
+            <span class="o_sd_title_d" t-esc="dd.long_label"/>
+            <span t-if="dd.mode === 'outlook'" class="o_sd_badge">Outlook · built from the last 4 <t t-esc="dd.weekday"/>s</span>
+            <span t-elif="dd.is_today" class="o_sd_badge o_sd_badge_live"><span class="o_sd_pulse"/>Live</span>
+        </div>
+
+        <!-- ============================================ A DAY THAT HAPPENED -->
+        <t t-if="dd.mode === 'booked'">
+            <t t-set="b" t-value="dd.booked"/>
+            <div class="o_mp_cards">
+                <div class="o_mp_card o_mp_card_click o_sd_hero" t-on-click="() => this.openDayOrders(dd.label + ' — cases')">
+                    <div class="o_mp_card_v"><t t-esc="b.orders"/></div>
+                    <div class="o_mp_card_l">cases booked</div>
+                    <div t-if="pctDelta(b.orders, b.last_week.orders) !== null" class="o_mp_delta"
+                         t-att-class="{ o_mp_up: b.orders >= b.last_week.orders, o_mp_down: b.orders &lt; b.last_week.orders }">
+                        <t t-esc="pctDelta(b.orders, b.last_week.orders)"/>% vs <t t-esc="b.last_week.label"/><t t-if="b.last_week.by_now"> by this time</t>
+                        (<t t-esc="b.last_week.orders"/>)
+                    </div>
+                    <div t-elif="b.last_week.by_now" class="o_sd_sub">
+                        <t t-esc="b.last_week.label"/> had <t t-esc="b.last_week.orders"/> by this time
+                    </div>
+                </div>
+                <div class="o_mp_card">
+                    <div class="o_mp_card_v"><t t-esc="money(b.value)"/></div>
+                    <div class="o_mp_card_l">case value</div>
+                    <div t-if="pctDelta(b.value, b.last_week.value) !== null" class="o_mp_delta"
+                         t-att-class="{ o_mp_up: b.value >= b.last_week.value, o_mp_down: b.value &lt; b.last_week.value }">
+                        <t t-esc="pctDelta(b.value, b.last_week.value)"/>% vs <t t-esc="b.last_week.label"/><t t-if="b.last_week.by_now"> by this time</t>
+                    </div>
+                </div>
+                <div class="o_mp_card">
+                    <div class="o_mp_card_v"><t t-esc="money(b.avg)"/></div>
+                    <div class="o_mp_card_l">average case</div>
+                </div>
+                <div class="o_mp_card" t-att-class="{ o_sd_card_new: b.first_timers.length }">
+                    <div class="o_mp_card_v"><t t-esc="b.first_timers.length"/></div>
+                    <div class="o_mp_card_l">first-ever case from a clinic</div>
+                    <div t-if="b.first_timers.length" class="o_sd_sub o_sd_names">
+                        <t t-foreach="b.first_timers.slice(0, 3)" t-as="ft" t-key="ft.id">
+                            <span class="o_sd_chip" t-esc="ft.name"/>
+                        </t>
+                        <span t-if="b.first_timers.length > 3">+<t t-esc="b.first_timers.length - 3"/></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Through the day, hour by hour, over the same weekday last week. -->
+            <div class="o_mp_panel">
+                <div class="o_mp_panel_head">
+                    <div class="o_mp_panel_h">Through the day</div>
+                    <div class="o_sd_legend">
+                        <span class="o_mp_key o_sd_key_now"/> <t t-esc="dd.label"/>
+                        <span class="o_mp_key o_mp_key_ghost ms-2"/> <t t-esc="b.last_week.label"/> (<t t-esc="b.last_week.whole_orders"/>)
+                    </div>
+                </div>
+                <div class="o_sd_hours">
+                    <div t-foreach="b.hours" t-as="h" t-key="h.hour" class="o_sd_hour"
+                         t-att-class="{ o_sd_hour_now: b.now_hour === h.hour, o_sd_hour_later: b.now_hour !== null and h.hour > b.now_hour }"
+                         t-att-title="h.label + ':00 — ' + h.orders + ' cases, ' + money(h.value) + ' · last week ' + h.ghost">
+                        <div class="o_sd_hour_track">
+                            <div t-if="h.ghost" class="o_sd_hour_ghost" t-attf-style="height: {{ hourPct(b.hours, h.ghost) }}%"/>
+                            <div t-if="h.orders" class="o_sd_hour_bar" t-attf-style="height: {{ hourPct(b.hours, h.orders) }}%"/>
+                        </div>
+                        <div class="o_sd_hour_v" t-esc="h.orders or ''"/>
+                        <div class="o_sd_hour_x" t-esc="h.label"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_sd_split">
+                <!-- The day as it came in, newest first. -->
+                <div class="o_mp_panel o_sd_feed">
+                    <div class="o_mp_panel_h">
+                        <t t-if="dd.is_today">Just in</t><t t-else="">Booked that day</t>
+                    </div>
+                    <div t-if="!b.feed.length" class="o_mp_none">No cases booked<t t-if="dd.is_today"> yet today</t>.</div>
+                    <div t-foreach="b.feed" t-as="o" t-key="o.id" class="o_sd_feedrow"
+                         t-on-click="() => this.openOrder(o.id)">
+                        <span class="o_sd_time" t-esc="o.time"/>
+                        <span class="o_sd_feed_main">
+                            <span class="o_sd_feed_clinic">
+                                <t t-esc="o.clinic"/>
+                                <span t-if="o.rework" class="o_sd_chip o_sd_chip_warn">Rework</span>
+                            </span>
+                            <span class="o_sd_feed_meta">
+                                <t t-esc="o.name"/><t t-if="o.patient"> · <t t-esc="o.patient"/></t><t t-if="o.route"> · <t t-esc="o.route"/></t>
+                            </span>
+                            <span t-if="o.products" class="o_sd_feed_prod" t-esc="o.products"/>
+                        </span>
+                        <span class="o_sd_feed_v" t-esc="money(o.value)"/>
+                    </div>
+                    <button t-if="b.more" class="o_sd_more" t-on-click="() => this.openDayOrders(dd.label + ' — cases')">
+                        and <t t-esc="b.more"/> more <i class="fa fa-arrow-right ms-1"/>
+                    </button>
+                </div>
+
+                <!-- Today only: the regulars who have not sent their usual case yet. -->
+                <div t-if="dd.is_today" class="o_mp_panel o_sd_nudge">
+                    <div class="o_mp_panel_h">
+                        <i class="fa fa-phone me-1"/>Usually book on <t t-esc="dd.weekday"/>s — not yet today
+                    </div>
+                    <div t-if="!b.not_yet.length" class="o_mp_none">Every regular for a <t t-esc="dd.weekday"/> has booked.</div>
+                    <t t-foreach="b.not_yet" t-as="rg" t-key="rg.id">
+                        <t t-call="lab_ceo_dashboard.SalesDayRegular"/>
+                    </t>
+                </div>
+                <div t-else="" class="o_mp_panel">
+                    <div class="o_mp_panel_h">Routes</div>
+                    <div t-if="!b.routes.length" class="o_mp_none">Nothing booked.</div>
+                    <div t-foreach="b.routes" t-as="r" t-key="r.id" class="o_mp_row"
+                         t-on-click="() => this.openDayOrders(r.name, [['team_id', '=', r.id]])">
+                        <span class="o_mp_row_n"><t t-esc="r.name"/></span>
+                        <div class="o_mp_row_bar"><div class="o_mp_row_fill" t-attf-style="width: {{ barPct(b.routes, 'value', r.value) }}%"/></div>
+                        <span class="o_mp_row_v"><t t-esc="r.orders"/> · <t t-esc="money(r.value)"/></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_mp_grid">
+                <div t-if="dd.is_today" class="o_mp_panel">
+                    <div class="o_mp_panel_h">Routes</div>
+                    <div t-if="!b.routes.length" class="o_mp_none">Nothing booked yet.</div>
+                    <div t-foreach="b.routes" t-as="r" t-key="r.id" class="o_mp_row"
+                         t-on-click="() => this.openDayOrders(r.name, [['team_id', '=', r.id]])">
+                        <span class="o_mp_row_n"><t t-esc="r.name"/></span>
+                        <div class="o_mp_row_bar"><div class="o_mp_row_fill" t-attf-style="width: {{ barPct(b.routes, 'value', r.value) }}%"/></div>
+                        <span class="o_mp_row_v"><t t-esc="r.orders"/> · <t t-esc="money(r.value)"/></span>
+                    </div>
+                </div>
+                <div class="o_mp_panel">
+                    <div class="o_mp_panel_h">Clinics</div>
+                    <div t-if="!b.clinics.length" class="o_mp_none">Nothing booked.</div>
+                    <div t-foreach="b.clinics" t-as="c" t-key="c.id" class="o_mp_row"
+                         t-on-click="() => this.openDayOrders(c.name, [['partner_id', '=', c.id]])">
+                        <span class="o_mp_row_n"><t t-esc="c.name"/></span>
+                        <div class="o_mp_row_bar"><div class="o_mp_row_fill" t-attf-style="width: {{ barPct(b.clinics, 'value', c.value) }}%"/></div>
+                        <span class="o_mp_row_v"><t t-esc="c.orders"/> · <t t-esc="money(c.value)"/></span>
+                    </div>
+                </div>
+                <div class="o_mp_panel">
+                    <div class="o_mp_panel_h">Appliances</div>
+                    <div t-if="!b.appliances.length" class="o_mp_none">Nothing booked.</div>
+                    <div t-foreach="b.appliances" t-as="a" t-key="a.id" class="o_mp_row o_mp_row_flat">
+                        <span class="o_mp_row_n"><t t-esc="a.name"/></span>
+                        <div class="o_mp_row_bar"><div class="o_mp_row_fill" t-attf-style="width: {{ barPct(b.appliances, 'value', a.value) }}%"/></div>
+                        <span class="o_mp_row_v"><t t-esc="a.qty"/> · <t t-esc="money(a.value)"/></span>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- ================================================ A DAY TO COME -->
+        <t t-else="">
+            <t t-set="o" t-value="dd.outlook"/>
+            <div class="o_sd_outlook">
+                <!-- The forecast, said as a range with its evidence beside it. -->
+                <div class="o_mp_panel o_sd_expect">
+                    <div class="o_sd_expect_l">Expect about</div>
+                    <div class="o_sd_expect_v">
+                        <t t-esc="o.expected"/> <span class="o_sd_expect_u">cases</span>
+                    </div>
+                    <div class="o_sd_range">
+                        <span t-esc="o.low"/>
+                        <div class="o_sd_range_bar">
+                            <span class="o_sd_range_mark" t-attf-style="left: {{ expectedMarker }}%"/>
+                        </div>
+                        <span t-esc="o.high"/>
+                    </div>
+                    <div class="o_sd_sub">worth about <b t-esc="money(o.expected_value)"/></div>
+                    <div class="o_sd_weeks">
+                        <div t-foreach="o.weeks" t-as="w" t-key="w.day" class="o_sd_week"
+                             t-att-title="w.label + ' — ' + w.orders + ' cases, ' + money(w.value)"
+                             t-on-click="() => this.selectDay(w.day)">
+                            <div class="o_sd_week_track">
+                                <div class="o_sd_week_bar" t-attf-style="height: {{ weekPct(o.weeks, w.orders) }}%"/>
+                            </div>
+                            <div class="o_sd_week_v" t-esc="w.orders"/>
+                            <div class="o_sd_week_x" t-esc="w.label"/>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="o_sd_side">
+                    <div class="o_mp_card" t-att-class="{ o_mp_card_click: o.followups.count or o.followups.overdue, o_mp_card_warn: o.followups.overdue }"
+                         t-on-click="() => (o.followups.count or o.followups.overdue) and this.openFollowups()">
+                        <div class="o_mp_card_v"><t t-esc="o.followups.count"/></div>
+                        <div class="o_mp_card_l">held orders to follow up</div>
+                        <div t-if="o.followups.overdue" class="o_mp_delta o_mp_down">
+                            + <t t-esc="o.followups.overdue"/> follow-ups already missed
+                        </div>
+                    </div>
+                    <div class="o_mp_card">
+                        <div class="o_mp_card_v"><t t-esc="o.visits.count"/></div>
+                        <div class="o_mp_card_l">field visits planned</div>
+                        <div t-if="o.visits.people.length" class="o_sd_sub o_sd_names">
+                            <t t-foreach="o.visits.people" t-as="p" t-key="p.id">
+                                <span class="o_sd_chip"><t t-esc="p.name"/> · <t t-esc="p.visits"/></span>
+                            </t>
+                        </div>
+                    </div>
+                    <div class="o_mp_card">
+                        <div class="o_mp_card_v"><t t-esc="o.regulars_total"/></div>
+                        <div class="o_mp_card_l">regular clinics for a <t t-esc="dd.weekday"/></div>
+                        <div class="o_sd_sub">usually worth <b t-esc="money(o.regulars_value)"/> together</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_sd_split">
+                <div class="o_mp_panel o_sd_nudge">
+                    <div class="o_mp_panel_h">
+                        <i class="fa fa-phone me-1"/>Likely to send cases
+                        <span class="o_sd_hint">booked on 3 or 4 of the last 4 <t t-esc="dd.weekday"/>s</span>
+                    </div>
+                    <div t-if="!o.regulars.length" class="o_mp_none">No clinic books on a <t t-esc="dd.weekday"/> regularly.</div>
+                    <t t-foreach="o.regulars" t-as="rg" t-key="rg.id">
+                        <t t-call="lab_ceo_dashboard.SalesDayRegular"/>
+                    </t>
+                </div>
+                <div class="o_sd_stack">
+                    <div class="o_mp_panel">
+                        <div class="o_mp_panel_h">Expected appliance mix</div>
+                        <div t-if="!o.appliances.length" class="o_mp_none">Nothing to go on.</div>
+                        <div t-foreach="o.appliances" t-as="a" t-key="a.id" class="o_mp_row o_mp_row_flat">
+                            <span class="o_mp_row_n"><t t-esc="a.name"/></span>
+                            <div class="o_mp_row_bar"><div class="o_mp_row_fill" t-attf-style="width: {{ barPct(o.appliances, 'value', a.value) }}%"/></div>
+                            <span class="o_mp_row_v">~<t t-esc="round1(a.qty)"/></span>
+                        </div>
+                    </div>
+                    <div t-if="o.followups.rows.length" class="o_mp_panel">
+                        <div class="o_mp_panel_h">Follow-ups due</div>
+                        <div t-foreach="o.followups.rows" t-as="f" t-key="f.id" class="o_mp_row"
+                             t-on-click="() => this.openOrder(f.id)">
+                            <span class="o_mp_row_n"><t t-esc="f.clinic"/></span>
+                            <span class="o_sd_reason" t-esc="f.reason"/>
+                            <span class="o_mp_row_v"><t t-esc="money(f.value)"/></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </div>
+</t>
+
+<!-- One regular clinic: four dots for four weeks, filled where it booked. -->
+<t t-name="lab_ceo_dashboard.SalesDayRegular">
+    <div class="o_sd_reg" t-on-click="() => this.openPartnerOrders(rg)">
+        <span class="o_sd_reg_n">
+            <span class="o_sd_reg_name" t-esc="rg.name"/>
+            <span t-if="rg.route" class="o_sd_reg_route" t-esc="rg.route"/>
+        </span>
+        <span class="o_sd_dots" t-att-title="'Booked on ' + rg.weeks + ' of the last 4'">
+            <span t-foreach="rg.dots" t-as="dot" t-key="dot_index" class="o_sd_dot"
+                  t-att-class="{ o_sd_dot_on: dot }"/>
+        </span>
+        <span class="o_sd_reg_v">
+            <t t-esc="money(rg.avg_value)"/>
+            <span class="o_sd_reg_sub"><t t-esc="rg.avg_orders"/> cases</span>
+        </span>
+    </div>
+</t>
+
+</templates>

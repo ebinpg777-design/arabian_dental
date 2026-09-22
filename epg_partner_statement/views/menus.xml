@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Accounting > Customers > Statements of Account (opens the wizard) -->
+    <menuitem id="menu_partner_statement" name="Statements of Account"
+              parent="account.menu_finance_receivables" sequence="30"
+              action="action_partner_statement_wizard"
+              groups="account.group_account_invoice"/>
+</odoo>

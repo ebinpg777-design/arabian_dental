@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="lab_incentive.SlabWidget">
+        <div class="o_incentive_slab_widget">
+            <div t-if="!slabs.length" class="text-muted small">
+                No incentive rule is active for this period — nothing to show.
+            </div>
+            <t t-else="">
+                <div class="o_incentive_slab_summary mb-2">
+                    <span class="o_incentive_slab_base">
+                        Base: <b t-esc="data.currency_symbol"/><b t-esc="data.base &amp;&amp; data.base.toLocaleString()"/>
+                    </span>
+                    <span class="o_incentive_slab_amount">
+                        → Incentive: <b t-esc="data.currency_symbol"/><b t-esc="data.amount &amp;&amp; data.amount.toLocaleString()"/>
+                    </span>
+                </div>
+                <div class="o_incentive_slab_rows">
+                    <div t-foreach="slabs" t-as="slab" t-key="slab.from"
+                         t-attf-class="o_incentive_slab_row #{slab.current ? 'o_current' : ''} #{slab.reached ? 'o_reached' : 'o_pending'}">
+                        <div class="o_incentive_slab_label">
+                            <span t-esc="slab.from.toLocaleString()"/>
+                            <span t-if="slab.to"> – <t t-esc="slab.to.toLocaleString()"/></span>
+                            <span t-else="">+</span>
+                            <b class="o_incentive_slab_pct" t-esc="slab.label"/>
+                        </div>
+                        <div class="o_incentive_slab_bar">
+                            <div class="o_incentive_slab_fill"
+                                 t-attf-style="width: #{barWidth(slab)}%"/>
+                        </div>
+                    </div>
+                </div>
+                <div t-if="data.next_gap" class="o_incentive_slab_next text-muted small mt-1">
+                    <i class="fa fa-arrow-up me-1"/>
+                    <t t-esc="data.currency_symbol"/><t t-esc="Math.round(data.next_gap).toLocaleString()"/>
+                    more sales reaches the next slab.
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

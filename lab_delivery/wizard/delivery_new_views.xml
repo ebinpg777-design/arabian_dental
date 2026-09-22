@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_delivery_new_wizard_form" model="ir.ui.view">
+        <field name="name">lab.delivery.new.wizard.form</field>
+        <field name="model">lab.delivery.new.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Hand Over Work">
+                <field name="candidate_order_ids" invisible="1"/>
+                <field name="candidate_count" invisible="1"/>
+                <field name="candidate_case_ids" invisible="1"/>
+                <field name="waiting_partner_ids" invisible="1"/>
+                <field name="waiting_partner_count" invisible="1"/>
+                <div class="mb-2">
+                    <field name="direction" widget="radio"
+                           options="{'horizontal': true}"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="visit_id" invisible="not visit_id"/>
+                        <!-- Handing over: only clinics with work waiting. Collecting:
+                             the whole route, because an impression can come from
+                             anywhere. (client, 2026-08-28) -->
+                        <field name="partner_id" options="{'no_create': True}"
+                               readonly="visit_id != False"
+                               domain="direction == 'out'
+                                       and [('lab_on_my_route', '=', True),
+                                            ('id', 'in', waiting_partner_ids)]
+                                       or [('lab_on_my_route', '=', True)]"/>
+                        <field name="executive_id" options="{'no_create': True}"/>
+                    </group>
+                    <group>
+                        <field name="scheduled_date"/>
+                        <field name="delivery_mode" widget="radio"/>
+                        <field name="mode_note"
+                               invisible="delivery_mode != 'other'"
+                               placeholder="Bus, parcel office, who is driving…"/>
+                    </group>
+                </group>
+
+                <!-- Checkboxes rather than a picker: this is answered standing up, and
+                     tapping a name is one action where "Add a line" is four. -->
+                <t invisible="direction == 'in'">
+                    <separator string="What are you handing over?"
+                               invisible="direction == 'in'"/>
+                    <!-- The invoice number beside the case number: that is what a
+                         doctor quotes down the phone. -->
+                    <field name="order_ids" nolabel="1"
+                           widget="many2many_checkboxes"
+                           context="{'lab_with_invoice': 1}"
+                           invisible="direction == 'in' or candidate_count == 0"/>
+                    <div class="alert alert-info mb-0" role="status"
+                         invisible="direction == 'in' or candidate_count != 0 or not partner_id">
+                        Nothing is waiting for this clinic. Work appears here once its order
+                        is confirmed and no one is already carrying it.
+                    </div>
+                </t>
+                <t invisible="direction == 'out'">
+                    <separator string="What are you collecting?"
+                               invisible="direction == 'out'"/>
+                    <field name="case_ids" nolabel="1"
+                           widget="many2many_checkboxes"
+                           invisible="direction == 'out'"/>
+                    <field name="parcel_note"
+                           invisible="direction == 'out'"
+                           placeholder="No slip yet? Say what is in the parcel."/>
+                </t>
+                <div class="text-muted" invisible="partner_id or direction == 'in'">
+                    Pick the clinic to see what is ready for it —
+                    <b><field name="waiting_partner_count" class="oe_inline" readonly="1"/></b>
+                    have work waiting.
+                </div>
+                <div class="text-muted" invisible="partner_id or direction == 'out'">
+                    Pick the clinic you are collecting from.
+                </div>
+
+                <footer>
+                    <button string="Hand Over" name="action_create" type="object"
+                            class="btn-primary" data-hotkey="q"
+                            invisible="direction == 'in'"/>
+                    <button string="Collect for Lab" name="action_create" type="object"
+                            class="btn-primary" data-hotkey="q"
+                            invisible="direction == 'out'"/>
+                    <!-- Everything waiting, whichever clinic it is for; each row there
+                         raises its own delivery. (client, 2026-08-28) -->
+                    <button string="See all work waiting" name="action_open_worklist"
+                            type="object" class="btn-secondary" data-hotkey="w"
+                            invisible="direction == 'in'"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_delivery_new_wizard" model="ir.actions.act_window">
+        <field name="name">Hand Over Work</field>
+        <field name="res_model">lab.delivery.new.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

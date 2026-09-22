@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_lab_cheque_user,lab.cheque.user,model_lab_cheque,group_lab_cheque_user,1,1,1,0
+access_lab_cheque_approver,lab.cheque.approver,model_lab_cheque,group_lab_payment_approver,1,1,1,1
+access_lab_cheque_alloc_user,lab.cheque.allocation.user,model_lab_cheque_allocation,group_lab_cheque_user,1,1,1,1
+access_lab_outstanding_user,lab.outstanding.report.user,model_lab_outstanding_report,group_lab_cheque_user,1,0,0,0
+access_lab_outstanding_sales,lab.outstanding.report.sales,model_lab_outstanding_report,sales_team.group_sale_manager,1,0,0,0
+access_lab_daybook_wizard,lab.daybook.wizard,model_lab_daybook_wizard,account.group_account_invoice,1,1,1,1
+access_lab_eod_report,lab.eod.report,model_lab_eod_report,base.group_user,1,1,1,1

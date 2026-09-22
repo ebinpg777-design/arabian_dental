@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Audiences anyone starts from. -->
+        <record id="audience_everyone" model="epg.whatsapp.audience">
+            <field name="name">Everyone with a WhatsApp number</field>
+            <field name="description">Every contact the lab can reach on WhatsApp.</field>
+            <field name="domain">[]</field>
+            <field name="sequence">1</field>
+        </record>
+        <record id="audience_engaged" model="epg.whatsapp.audience">
+            <field name="name">Engaged doctors</field>
+            <field name="description">Read a document, tapped a link or answered in the last 90 days.</field>
+            <field name="domain">[('whatsapp_engagement', '=', 'engaged')]</field>
+            <field name="sequence">2</field>
+        </record>
+        <record id="audience_quiet" model="epg.whatsapp.audience">
+            <field name="name">Quiet doctors</field>
+            <field name="description">Messaged in the last 90 days, nothing back - worth a different message.</field>
+            <field name="domain">[('whatsapp_engagement', '=', 'quiet')]</field>
+            <field name="exclude_quiet" eval="False"/>
+            <field name="sequence">3</field>
+        </record>
+        <record id="audience_never" model="epg.whatsapp.audience">
+            <field name="name">Never messaged on WhatsApp</field>
+            <field name="description">Contacts with a number who have had no WhatsApp from the lab yet.</field>
+            <field name="domain">[('whatsapp_engagement', '=', 'never')]</field>
+            <field name="sequence">4</field>
+        </record>
+
+        <!-- Ideas: campaigns written in advance. -->
+        <record id="idea_new_year" model="epg.whatsapp.idea">
+            <field name="name">New Year greetings</field>
+            <field name="category">greeting</field>
+            <field name="note">The last week of December.</field>
+            <field name="headline">Happy New Year 🎉</field>
+            <field name="body">Dear Dr. {{name}},
+
+Thank you for working with us this year. 🙏
+
+Wishing you and your team a *happy and healthy New Year*. We look forward to more great cases together.</field>
+            <field name="quick_replies">🎉 Thank you, same to you</field>
+        </record>
+        <record id="idea_festival" model="epg.whatsapp.idea">
+            <field name="name">Festival greetings</field>
+            <field name="category">greeting</field>
+            <field name="note">Any festival - change the name and the dates.</field>
+            <field name="headline">Festival wishes 🌼</field>
+            <field name="body">Dear Dr. {{name}},
+
+*Warm wishes for the festival* from all of us. 🌼
+
+Please note the lab is closed from [date] to [date]; cases received before then go out on [date].</field>
+            <field name="quick_replies">🙏 Thank you</field>
+        </record>
+        <record id="idea_new_service" model="epg.whatsapp.idea">
+            <field name="name">New service or product</field>
+            <field name="category">news</field>
+            <field name="note">Something new the lab now offers.</field>
+            <field name="headline">Now available</field>
+            <field name="body">Dear Dr. {{name}},
+
+We now offer *[the new service]*. 🆕
+
+[One line on why it matters to your patients.]
+
+Tap below and we will send you the details and prices.</field>
+            <field name="quick_replies">👍 Send me the details
+📞 Call me about it</field>
+            <field name="lead_reply">👍 Send me the details</field>
+        </record>
+        <record id="idea_offer" model="epg.whatsapp.idea">
+            <field name="name">Limited-time offer</field>
+            <field name="category">offer</field>
+            <field name="note">A price or a bonus, for a short while.</field>
+            <field name="headline">This month only</field>
+            <field name="body">Dear Dr. {{name}},
+
+Until *[date]*: [the offer, in one line]. 🎁
+
+Tap below to take it up, or reply with any question.</field>
+            <field name="quick_replies">👍 I'm interested
+❓ Tell me more</field>
+            <field name="lead_reply">👍 I'm interested</field>
+        </record>
+        <record id="idea_miss_you" model="epg.whatsapp.idea">
+            <field name="name">We miss you</field>
+            <field name="category">reengage</field>
+            <field name="note">To a doctor who has gone quiet.</field>
+            <field name="headline">We're here when you need us</field>
+            <field name="body">Dear Dr. {{name}},
+
+It has been a while since your last case with us, and we would love to help again. 😊
+
+Anything we could do better? Tap below, or simply reply.</field>
+            <field name="quick_replies">👍 Send a pickup
+📞 Call me
+💬 I have feedback</field>
+            <field name="lead_reply">👍 Send a pickup</field>
+        </record>
+        <record id="idea_referral" model="epg.whatsapp.idea">
+            <field name="name">Refer a colleague</field>
+            <field name="category">feedback</field>
+            <field name="note">To engaged doctors, a few times a year.</field>
+            <field name="headline">Know a colleague who would like us?</field>
+            <field name="body">Dear Dr. {{name}},
+
+Thank you for your trust. 🙏 If a colleague could use a lab like ours, we would be glad of an introduction - just share their name, or forward this message to them.</field>
+            <field name="quick_replies">👍 I'll share a name</field>
+            <field name="lead_reply">👍 I'll share a name</field>
+        </record>
+        <record id="idea_feedback" model="epg.whatsapp.idea">
+            <field name="name">How are we doing?</field>
+            <field name="category">feedback</field>
+            <field name="note">A quick rating from everyone, once a quarter.</field>
+            <field name="headline">Two seconds of your time</field>
+            <field name="body">Dear Dr. {{name}},
+
+How are we doing lately? Tap one answer - it helps us more than you would think. 🙏</field>
+            <field name="quick_replies">⭐⭐⭐⭐⭐ Excellent
+⭐⭐⭐⭐ Good
+⭐⭐⭐ Average
+⭐⭐ Needs improvement</field>
+        </record>
+        <record id="idea_hours" model="epg.whatsapp.idea">
+            <field name="name">Hours, pickup and contact details</field>
+            <field name="category">info</field>
+            <field name="note">Whenever something practical changes.</field>
+            <field name="headline">Good to know</field>
+            <field name="body">Dear Dr. {{name}},
+
+A few practical notes from the lab:
+
+• *Hours*: [days and times]
+• *Pickups*: [how to ask for one]
+• *Reach us*: reply here, or call [number]
+
+Save this message for when you need it. 📌</field>
+            <field name="quick_replies">👍 Noted</field>
+        </record>
+    </data>
+</odoo>

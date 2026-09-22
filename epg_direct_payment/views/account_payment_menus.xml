@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Neither a customer nor a vendor screen - these sit under Accounting
+         itself, alongside Journal Entries, where every other document that
+         isn't tied to a partner already lives. -->
+    <menuitem id="menu_action_direct_payment" name="Direct Payments"
+              action="action_direct_payment"
+              parent="account.menu_finance_entries" sequence="11"/>
+    <menuitem id="menu_action_contra_payment" name="Contra Payments"
+              action="action_contra_payment"
+              parent="account.menu_finance_entries" sequence="12"/>
+</odoo>

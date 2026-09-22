@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Seven ready-made product templates.  noupdate keeps a module update from
+        undoing edits made in the designer: they are starting points, not fixtures.
+    -->
+    <data noupdate="1">
+
+        <!-- ============================================================
+             57 x 38 mm - the default thermal shelf label
+             ============================================================ -->
+        <record id="label_product_57x38" model="epg.label.template">
+            <field name="name">Product Label 57 x 38 mm</field>
+            <field name="code">epg_product_57x38</field>
+            <field name="sequence">10</field>
+            <field name="label_type">product</field>
+            <field name="unit">mm</field>
+            <field name="label_width">57</field>
+            <field name="label_height">38</field>
+            <field name="layout_mode">roll</field>
+            <field name="margin_top">0</field>
+            <field name="margin_bottom">0</field>
+            <field name="margin_left">0</field>
+            <field name="margin_right">0</field>
+            <field name="output_type">both</field>
+            <field name="is_predefined" eval="True"/>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="el_57x38_name" model="epg.label.element">
+            <field name="template_id" ref="label_product_57x38"/>
+            <field name="name">Product Name</field>
+            <field name="element_type">field</field>
+            <field name="field_path">name</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">2</field><field name="pos_y">1.5</field>
+            <field name="width">53</field><field name="height">9</field>
+            <field name="font_size">9</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+            <field name="max_length">60</field>
+        </record>
+        <record id="el_57x38_price" model="epg.label.element">
+            <field name="template_id" ref="label_product_57x38"/>
+            <field name="name">Price</field>
+            <field name="element_type">price</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">2</field><field name="pos_y">11</field>
+            <field name="width">53</field><field name="height">9</field>
+            <field name="font_size">17</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_57x38_barcode" model="epg.label.element">
+            <field name="template_id" ref="label_product_57x38"/>
+            <field name="name">Barcode</field>
+            <field name="element_type">barcode</field>
+            <field name="sequence">30</field>
+            <field name="pos_x">4</field><field name="pos_y">21</field>
+            <field name="width">49</field><field name="height">15</field>
+            <field name="barcode_source">barcode</field>
+            <field name="barcode_humanreadable" eval="True"/>
+            <field name="condition">object.barcode</field>
+        </record>
+        <record id="el_57x38_code" model="epg.label.element">
+            <field name="template_id" ref="label_product_57x38"/>
+            <field name="name">Internal Reference (no barcode)</field>
+            <field name="element_type">field</field>
+            <field name="field_path">default_code</field>
+            <field name="sequence">40</field>
+            <field name="pos_x">4</field><field name="pos_y">24</field>
+            <field name="width">49</field><field name="height">8</field>
+            <field name="font_size">10</field>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+            <field name="condition">not object.barcode</field>
+        </record>
+
+        <!-- ============================================================
+             52 x 30 mm
+             ============================================================ -->
+        <record id="label_product_52x30" model="epg.label.template">
+            <field name="name">Product Label 52 x 30 mm</field>
+            <field name="code">epg_product_52x30</field>
+            <field name="sequence">20</field>
+            <field name="label_type">product</field>
+            <field name="label_width">52</field>
+            <field name="label_height">30</field>
+            <field name="layout_mode">roll</field>
+            <field name="margin_top">0</field><field name="margin_bottom">0</field>
+            <field name="margin_left">0</field><field name="margin_right">0</field>
+            <field name="output_type">both</field>
+            <field name="is_predefined" eval="True"/>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="el_52x30_name" model="epg.label.element">
+            <field name="template_id" ref="label_product_52x30"/>
+            <field name="name">Product Name</field>
+            <field name="element_type">field</field>
+            <field name="field_path">name</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">1.5</field><field name="pos_y">1</field>
+            <field name="width">49</field><field name="height">7</field>
+            <field name="font_size">8</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+            <field name="max_length">45</field>
+        </record>
+        <record id="el_52x30_price" model="epg.label.element">
+            <field name="template_id" ref="label_product_52x30"/>
+            <field name="name">Price</field>
+            <field name="element_type">price</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">1.5</field><field name="pos_y">8</field>
+            <field name="width">49</field><field name="height">8</field>
+            <field name="font_size">14</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_52x30_barcode" model="epg.label.element">
+            <field name="template_id" ref="label_product_52x30"/>
+            <field name="name">Barcode</field>
+            <field name="element_type">barcode</field>
+            <field name="sequence">30</field>
+            <field name="pos_x">3</field><field name="pos_y">16.5</field>
+            <field name="width">46</field><field name="height">12</field>
+            <field name="barcode_humanreadable" eval="True"/>
+        </record>
+
+        <!-- ============================================================
+             99 x 38 mm - wide shelf-edge label
+             ============================================================ -->
+        <record id="label_product_99x38" model="epg.label.template">
+            <field name="name">Product Label 99 x 38 mm</field>
+            <field name="code">epg_product_99x38</field>
+            <field name="sequence">30</field>
+            <field name="label_type">product</field>
+            <field name="label_width">99</field>
+            <field name="label_height">38</field>
+            <field name="layout_mode">roll</field>
+            <field name="margin_top">0</field><field name="margin_bottom">0</field>
+            <field name="margin_left">0</field><field name="margin_right">0</field>
+            <field name="output_type">both</field>
+            <field name="is_predefined" eval="True"/>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="el_99x38_name" model="epg.label.element">
+            <field name="template_id" ref="label_product_99x38"/>
+            <field name="name">Product Name</field>
+            <field name="element_type">field</field>
+            <field name="field_path">name</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">2</field><field name="pos_y">1.5</field>
+            <field name="width">62</field><field name="height">9</field>
+            <field name="font_size">10</field>
+            <field name="font_bold" eval="True"/>
+            <field name="max_length">70</field>
+        </record>
+        <record id="el_99x38_code" model="epg.label.element">
+            <field name="template_id" ref="label_product_99x38"/>
+            <field name="name">Internal Reference</field>
+            <field name="element_type">field</field>
+            <field name="field_path">default_code</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">2</field><field name="pos_y">10.5</field>
+            <field name="width">62</field><field name="height">4.5</field>
+            <field name="font_size">7.5</field>
+            <field name="prefix">Ref. </field>
+        </record>
+        <record id="el_99x38_barcode" model="epg.label.element">
+            <field name="template_id" ref="label_product_99x38"/>
+            <field name="name">Barcode</field>
+            <field name="element_type">barcode</field>
+            <field name="sequence">30</field>
+            <field name="pos_x">2</field><field name="pos_y">16</field>
+            <field name="width">62</field><field name="height">19</field>
+            <field name="barcode_humanreadable" eval="True"/>
+        </record>
+        <record id="el_99x38_price" model="epg.label.element">
+            <field name="template_id" ref="label_product_99x38"/>
+            <field name="name">Price</field>
+            <field name="element_type">price</field>
+            <field name="sequence">40</field>
+            <field name="pos_x">66</field><field name="pos_y">2</field>
+            <field name="width">31</field><field name="height">14</field>
+            <field name="font_size">19</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">right</field>
+            <field name="vertical_align">center</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_99x38_price_uom" model="epg.label.element">
+            <field name="template_id" ref="label_product_99x38"/>
+            <field name="name">Price per Unit</field>
+            <field name="element_type">price_uom</field>
+            <field name="sequence">50</field>
+            <field name="pos_x">66</field><field name="pos_y">16.5</field>
+            <field name="width">31</field><field name="height">4.5</field>
+            <field name="font_size">7</field>
+            <field name="text_align">right</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_99x38_qr" model="epg.label.element">
+            <field name="template_id" ref="label_product_99x38"/>
+            <field name="name">QR Code</field>
+            <field name="element_type">qrcode</field>
+            <field name="sequence">60</field>
+            <field name="pos_x">83</field><field name="pos_y">21.5</field>
+            <field name="width">14</field><field name="height">14</field>
+            <field name="barcode_source">barcode</field>
+            <field name="condition">object.barcode</field>
+        </record>
+
+        <!-- ============================================================
+             50 x 89 mm - portrait, with the product photo
+             ============================================================ -->
+        <record id="label_product_50x89" model="epg.label.template">
+            <field name="name">Product Label 50 x 89 mm</field>
+            <field name="code">epg_product_50x89</field>
+            <field name="sequence">40</field>
+            <field name="label_type">product</field>
+            <field name="label_width">50</field>
+            <field name="label_height">89</field>
+            <field name="layout_mode">roll</field>
+            <field name="margin_top">0</field><field name="margin_bottom">0</field>
+            <field name="margin_left">0</field><field name="margin_right">0</field>
+            <field name="output_type">both</field>
+            <field name="is_predefined" eval="True"/>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="el_50x89_image" model="epg.label.element">
+            <field name="template_id" ref="label_product_50x89"/>
+            <field name="name">Product Image</field>
+            <field name="element_type">image</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">5</field><field name="pos_y">3</field>
+            <field name="width">40</field><field name="height">30</field>
+            <field name="image_source">record</field>
+            <field name="image_fit">contain</field>
+        </record>
+        <record id="el_50x89_name" model="epg.label.element">
+            <field name="template_id" ref="label_product_50x89"/>
+            <field name="name">Product Name</field>
+            <field name="element_type">field</field>
+            <field name="field_path">name</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">2</field><field name="pos_y">35</field>
+            <field name="width">46</field><field name="height">12</field>
+            <field name="font_size">9</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+        </record>
+        <record id="el_50x89_attributes" model="epg.label.element">
+            <field name="template_id" ref="label_product_50x89"/>
+            <field name="name">Attributes</field>
+            <field name="element_type">attributes</field>
+            <field name="sequence">30</field>
+            <field name="pos_x">2</field><field name="pos_y">47</field>
+            <field name="width">46</field><field name="height">6</field>
+            <field name="font_size">7</field>
+            <field name="text_align">center</field>
+        </record>
+        <record id="el_50x89_price" model="epg.label.element">
+            <field name="template_id" ref="label_product_50x89"/>
+            <field name="name">Price</field>
+            <field name="element_type">price</field>
+            <field name="sequence">40</field>
+            <field name="pos_x">2</field><field name="pos_y">54</field>
+            <field name="width">46</field><field name="height">12</field>
+            <field name="font_size">18</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_50x89_barcode" model="epg.label.element">
+            <field name="template_id" ref="label_product_50x89"/>
+            <field name="name">Barcode</field>
+            <field name="element_type">barcode</field>
+            <field name="sequence">50</field>
+            <field name="pos_x">3</field><field name="pos_y">68</field>
+            <field name="width">44</field><field name="height">18</field>
+            <field name="barcode_humanreadable" eval="True"/>
+        </record>
+
+        <!-- ============================================================
+             50 x 25 mm - the smallest useful price sticker
+             ============================================================ -->
+        <record id="label_product_50x25" model="epg.label.template">
+            <field name="name">Product Label 50 x 25 mm</field>
+            <field name="code">epg_product_50x25</field>
+            <field name="sequence">50</field>
+            <field name="label_type">product</field>
+            <field name="label_width">50</field>
+            <field name="label_height">25</field>
+            <field name="layout_mode">roll</field>
+            <field name="margin_top">0</field><field name="margin_bottom">0</field>
+            <field name="margin_left">0</field><field name="margin_right">0</field>
+            <field name="output_type">both</field>
+            <field name="is_predefined" eval="True"/>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="el_50x25_name" model="epg.label.element">
+            <field name="template_id" ref="label_product_50x25"/>
+            <field name="name">Product Name</field>
+            <field name="element_type">field</field>
+            <field name="field_path">name</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">1</field><field name="pos_y">0.5</field>
+            <field name="width">48</field><field name="height">6</field>
+            <field name="font_size">7</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+            <field name="max_length">40</field>
+        </record>
+        <record id="el_50x25_price" model="epg.label.element">
+            <field name="template_id" ref="label_product_50x25"/>
+            <field name="name">Price</field>
+            <field name="element_type">price</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">1</field><field name="pos_y">6.5</field>
+            <field name="width">48</field><field name="height">7</field>
+            <field name="font_size">12</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">center</field>
+            <field name="vertical_align">center</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_50x25_barcode" model="epg.label.element">
+            <field name="template_id" ref="label_product_50x25"/>
+            <field name="name">Barcode</field>
+            <field name="element_type">barcode</field>
+            <field name="sequence">30</field>
+            <field name="pos_x">2</field><field name="pos_y">13.5</field>
+            <field name="width">46</field><field name="height">10</field>
+            <field name="barcode_humanreadable" eval="True"/>
+        </record>
+
+        <!-- ============================================================
+             101 x 50 mm / 4" x 2" - 10 per Letter sheet, 2 x 5
+             ============================================================ -->
+        <record id="label_product_101x50_sheet" model="epg.label.template">
+            <field name="name">Product Label 101 x 50 mm (10 per Letter sheet)</field>
+            <field name="code">epg_product_101x50_letter</field>
+            <field name="sequence">60</field>
+            <field name="label_type">product</field>
+            <field name="label_width">101</field>
+            <field name="label_height">50</field>
+            <field name="layout_mode">sheet</field>
+            <field name="page_format">Letter</field>
+            <field name="orientation">Portrait</field>
+            <field name="margin_top">14.7</field>
+            <field name="margin_bottom">14.7</field>
+            <field name="margin_left">4.95</field>
+            <field name="margin_right">4.95</field>
+            <field name="column_gap">4</field>
+            <field name="row_gap">0</field>
+            <field name="auto_grid" eval="False"/>
+            <field name="columns">2</field>
+            <field name="rows">5</field>
+            <field name="output_type">pdf</field>
+            <field name="is_predefined" eval="True"/>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="el_101x50_name" model="epg.label.element">
+            <field name="template_id" ref="label_product_101x50_sheet"/>
+            <field name="name">Product Name</field>
+            <field name="element_type">field</field>
+            <field name="field_path">name</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">3</field><field name="pos_y">3</field>
+            <field name="width">60</field><field name="height">10</field>
+            <field name="font_size">11</field>
+            <field name="font_bold" eval="True"/>
+        </record>
+        <record id="el_101x50_code" model="epg.label.element">
+            <field name="template_id" ref="label_product_101x50_sheet"/>
+            <field name="name">Internal Reference</field>
+            <field name="element_type">field</field>
+            <field name="field_path">default_code</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">3</field><field name="pos_y">13</field>
+            <field name="width">60</field><field name="height">5</field>
+            <field name="font_size">8</field>
+            <field name="prefix">Ref. </field>
+        </record>
+        <record id="el_101x50_attributes" model="epg.label.element">
+            <field name="template_id" ref="label_product_101x50_sheet"/>
+            <field name="name">Attributes</field>
+            <field name="element_type">attributes</field>
+            <field name="sequence">30</field>
+            <field name="pos_x">3</field><field name="pos_y">18</field>
+            <field name="width">60</field><field name="height">5</field>
+            <field name="font_size">7.5</field>
+        </record>
+        <record id="el_101x50_barcode" model="epg.label.element">
+            <field name="template_id" ref="label_product_101x50_sheet"/>
+            <field name="name">Barcode</field>
+            <field name="element_type">barcode</field>
+            <field name="sequence">40</field>
+            <field name="pos_x">3</field><field name="pos_y">25</field>
+            <field name="width">60</field><field name="height">21</field>
+            <field name="barcode_humanreadable" eval="True"/>
+        </record>
+        <record id="el_101x50_price" model="epg.label.element">
+            <field name="template_id" ref="label_product_101x50_sheet"/>
+            <field name="name">Price</field>
+            <field name="element_type">price</field>
+            <field name="sequence">50</field>
+            <field name="pos_x">66</field><field name="pos_y">4</field>
+            <field name="width">32</field><field name="height">16</field>
+            <field name="font_size">21</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">right</field>
+            <field name="vertical_align">center</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_101x50_price_uom" model="epg.label.element">
+            <field name="template_id" ref="label_product_101x50_sheet"/>
+            <field name="name">Price per Unit</field>
+            <field name="element_type">price_uom</field>
+            <field name="sequence">60</field>
+            <field name="pos_x">66</field><field name="pos_y">20.5</field>
+            <field name="width">32</field><field name="height">5</field>
+            <field name="font_size">7</field>
+            <field name="text_align">right</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_101x50_qr" model="epg.label.element">
+            <field name="template_id" ref="label_product_101x50_sheet"/>
+            <field name="name">QR Code</field>
+            <field name="element_type">qrcode</field>
+            <field name="sequence">70</field>
+            <field name="pos_x">78</field><field name="pos_y">27</field>
+            <field name="width">20</field><field name="height">20</field>
+            <field name="barcode_source">barcode</field>
+            <field name="condition">object.barcode</field>
+        </record>
+
+        <!-- ============================================================
+             100 x 100 mm - carton / shipping-style product label
+             ============================================================ -->
+        <record id="label_product_100x100" model="epg.label.template">
+            <field name="name">Product Label 100 x 100 mm</field>
+            <field name="code">epg_product_100x100</field>
+            <field name="sequence">70</field>
+            <field name="label_type">product</field>
+            <field name="label_width">100</field>
+            <field name="label_height">100</field>
+            <field name="layout_mode">roll</field>
+            <field name="margin_top">0</field><field name="margin_bottom">0</field>
+            <field name="margin_left">0</field><field name="margin_right">0</field>
+            <field name="output_type">both</field>
+            <field name="is_predefined" eval="True"/>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="el_100x100_border" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Frame</field>
+            <field name="element_type">box</field>
+            <field name="sequence">5</field>
+            <field name="z_index">0</field>
+            <field name="pos_x">1</field><field name="pos_y">1</field>
+            <field name="width">98</field><field name="height">98</field>
+            <field name="border_width">0.4</field>
+            <field name="border_radius">2</field>
+        </record>
+        <record id="el_100x100_logo" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Company Logo</field>
+            <field name="element_type">image</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">5</field><field name="pos_y">4</field>
+            <field name="width">32</field><field name="height">12</field>
+            <field name="image_source">company_logo</field>
+            <field name="image_fit">contain</field>
+        </record>
+        <record id="el_100x100_date" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Print Date</field>
+            <field name="element_type">date</field>
+            <field name="sequence">15</field>
+            <field name="pos_x">60</field><field name="pos_y">6</field>
+            <field name="width">35</field><field name="height">6</field>
+            <field name="font_size">8</field>
+            <field name="text_align">right</field>
+        </record>
+        <record id="el_100x100_name" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Product Name</field>
+            <field name="element_type">field</field>
+            <field name="field_path">name</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">5</field><field name="pos_y">18</field>
+            <field name="width">90</field><field name="height">14</field>
+            <field name="font_size">14</field>
+            <field name="font_bold" eval="True"/>
+        </record>
+        <record id="el_100x100_attributes" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Attributes</field>
+            <field name="element_type">attributes</field>
+            <field name="sequence">30</field>
+            <field name="pos_x">5</field><field name="pos_y">32</field>
+            <field name="width">90</field><field name="height">7</field>
+            <field name="font_size">9</field>
+        </record>
+        <record id="el_100x100_code" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Internal Reference</field>
+            <field name="element_type">field</field>
+            <field name="field_path">default_code</field>
+            <field name="sequence">40</field>
+            <field name="pos_x">5</field><field name="pos_y">40</field>
+            <field name="width">45</field><field name="height">7</field>
+            <field name="font_size">9</field>
+            <field name="prefix">Ref. </field>
+        </record>
+        <record id="el_100x100_price" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Price</field>
+            <field name="element_type">price</field>
+            <field name="sequence">50</field>
+            <field name="pos_x">55</field><field name="pos_y">38</field>
+            <field name="width">40</field><field name="height">14</field>
+            <field name="font_size">22</field>
+            <field name="font_bold" eval="True"/>
+            <field name="text_align">right</field>
+            <field name="vertical_align">center</field>
+            <field name="price_tax">included</field>
+        </record>
+        <record id="el_100x100_barcode" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Barcode</field>
+            <field name="element_type">barcode</field>
+            <field name="sequence">60</field>
+            <field name="pos_x">5</field><field name="pos_y">56</field>
+            <field name="width">60</field><field name="height">28</field>
+            <field name="barcode_humanreadable" eval="True"/>
+        </record>
+        <record id="el_100x100_qr" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">QR Code</field>
+            <field name="element_type">qrcode</field>
+            <field name="sequence">70</field>
+            <field name="pos_x">70</field><field name="pos_y">56</field>
+            <field name="width">25</field><field name="height">25</field>
+            <field name="barcode_source">barcode</field>
+            <field name="condition">object.barcode</field>
+        </record>
+        <record id="el_100x100_uom" model="epg.label.element">
+            <field name="template_id" ref="label_product_100x100"/>
+            <field name="name">Unit of Measure</field>
+            <field name="element_type">field</field>
+            <field name="field_path">uom_id.name</field>
+            <field name="sequence">80</field>
+            <field name="pos_x">5</field><field name="pos_y">88</field>
+            <field name="width">45</field><field name="height">6</field>
+            <field name="font_size">8</field>
+            <field name="prefix">Unit: </field>
+        </record>
+
+    </data>
+</odoo>

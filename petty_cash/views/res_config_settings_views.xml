@@ -1,0 +1,103 @@
+<odoo>
+    <record id="res_config_settings_view_form_petty_cash" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.petty.cash</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Petty Cash" string="Petty Cash" name="petty_cash"
+                     logo="/petty_cash/static/description/icon.png">
+                    <block title="Balance Health" name="petty_cash_health">
+                        <setting string="Low Balance Threshold"
+                                 help="Remaining balance percentage at or below which an allocation is flagged 'Low Balance'.">
+                            <div class="content-group">
+                                <div class="mt16">
+                                    <field name="petty_cash_warning_threshold" class="oe_inline"/> %
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Critical Threshold"
+                                 help="Remaining balance percentage at or below which an allocation is flagged 'Critical'.">
+                            <div class="content-group">
+                                <div class="mt16">
+                                    <field name="petty_cash_critical_threshold" class="oe_inline"/> %
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Automation" name="petty_cash_automation">
+                        <setting string="Low-Balance Alerts"
+                                 help="Send the daily low-balance email and to-do activity to cash holders.">
+                            <field name="petty_cash_alerts_enabled"/>
+                        </setting>
+                        <setting string="Auto Replenish by Default"
+                                 help="New allocations enable automatic top-up requests when critical.">
+                            <field name="petty_cash_auto_replenish_default"/>
+                        </setting>
+                    </block>
+                    <block title="Expense Policy" name="petty_cash_expense_policy">
+                        <setting string="Maximum Expense Amount"
+                                 help="Maximum total amount allowed per expense. Submissions above this amount are blocked. Set to 0 for no limit.">
+                            <field name="petty_cash_max_expense_amount" class="oe_inline"/>
+                        </setting>
+                        <setting string="Require Receipts"
+                                 help="Block submission of expenses without an attached receipt above the threshold.">
+                            <field name="petty_cash_expense_attachment_required"/>
+                            <div class="content-group mt16" invisible="not petty_cash_expense_attachment_required">
+                                <label for="petty_cash_expense_attachment_min" string="Required above"/>
+                                <field name="petty_cash_expense_attachment_min" class="oe_inline"/>
+                            </div>
+                        </setting>
+                        <setting string="Auto-approve Small Expenses"
+                                 help="Expenses at or below this amount are approved automatically on submission. Set 0 to disable.">
+                            <field name="petty_cash_expense_auto_approve_max" class="oe_inline"/>
+                        </setting>
+                    </block>
+                    <block title="Allocation Requests" name="petty_cash_requests">
+                        <setting string="Self-service Request Limit"
+                                 help="Maximum amount a non-manager user may request for themselves. Set 0 for no limit.">
+                            <field name="petty_cash_self_request_limit" class="oe_inline"/>
+                        </setting>
+                    </block>
+                    <block title="Closure &amp; Write-off" name="petty_cash_closure">
+                        <setting string="Auto-close at Zero Balance"
+                                 help="Automatically close an allocation when a return brings its balance to exactly zero.">
+                            <field name="petty_cash_auto_close"/>
+                        </setting>
+                        <setting string="Default Write-off Account"
+                                 help="Expense account used when writing off a small unrecoverable petty cash balance on closure.">
+                            <field name="petty_cash_write_off_account_id" class="oe_inline"
+                                   options="{'no_create': True, 'no_create_edit': True}"/>
+                        </setting>
+                        <setting string="Write-off Threshold"
+                                 help="Maximum remaining balance that may be written off. Set 0 to allow any amount.">
+                            <field name="petty_cash_write_off_threshold" class="oe_inline"/>
+                        </setting>
+                    </block>
+                    <block title="Fraud &amp; Compliance" name="petty_cash_fraud">
+                        <setting string="Category Budget Warnings"
+                                 help="Post a chatter warning when an expense approval exceeds a per-category budget set on the allocation.">
+                            <field name="petty_cash_category_budget_warning"/>
+                        </setting>
+                        <setting string="Duplicate Receipt Detection"
+                                 help="Flag submitted expenses that look like duplicates (same vendor, same amount) within the detection window.">
+                            <field name="petty_cash_duplicate_detection"/>
+                            <div class="content-group mt16" invisible="not petty_cash_duplicate_detection">
+                                <label for="petty_cash_duplicate_window_days" string="Detection window (days)"/>
+                                <field name="petty_cash_duplicate_window_days" class="oe_inline"/>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_petty_cash_config_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{'module': 'petty_cash'}</field>
+    </record>
+</odoo>

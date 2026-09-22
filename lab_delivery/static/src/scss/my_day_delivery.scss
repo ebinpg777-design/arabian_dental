@@ -1,0 +1,313 @@
+// Deliveries on My Day. Reuses the field-work card language deliberately — a second
+// visual system on the same screen reads as a second app.
+
+$dlv-danger: #dc2626;
+$dlv-warn:   #d99441;
+$dlv-line:   rgba(10, 53, 66, .10);
+
+.o_fw_day {
+    .o_fw_deliv { margin: .75rem 0 1rem; }
+
+    .o_fw_deliv_head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: .5rem; flex-wrap: wrap;
+        font-weight: 700; color: #0a3542;
+        margin-bottom: .5rem;
+    }
+    .o_fw_deliv_counts { display: flex; gap: .35rem; }
+
+    // A left edge that states the exception, so a bag full of ordinary deliveries
+    // stays quiet and the late one does not.
+    .o_fw_card_deliv { border-left: 3px solid transparent; }
+    .o_fw_card_deliv_late { border-left-color: $dlv-danger; }
+    .o_fw_card_deliv_emg  { border-left-color: $dlv-warn; }
+
+    .o_fw_deliv_hint { color: #0e7c86; font-weight: 600; }
+}
+
+// ── The Scan Station ────────────────────────────────────────────────────
+// A full-screen hand-over counter: stage on top, running feed of the visit
+// underneath, one thumb-height action at the foot. Everything is sized for a
+// gloved thumb in a corridor, not a cursor. (client, 2026-08-28)
+.o_fws_content {
+    border-radius: 0 !important;
+}
+.o_fws {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100dvh;
+    background: #f6f7f9;
+
+    // header
+    .o_fws_top {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .9rem 1rem .7rem;
+        background: #fff;
+        border-bottom: 1px solid $o-gray-200;
+    }
+    .o_fws_head { flex: 1; min-width: 0; }
+    .o_fws_title { font-size: 1.15rem; font-weight: 700; }
+    .o_fws_sub {
+        font-size: .78rem; color: $o-gray-600;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .o_fws_tally {
+        text-align: center;
+        min-width: 3.2rem;
+        padding: .25rem .5rem;
+        border-radius: .75rem;
+        background: $o-gray-100;
+        color: $o-gray-500;
+        transition: background .3s, color .3s;
+
+        .o_fws_tally_n { font-size: 1.3rem; font-weight: 800; line-height: 1.1; }
+        .o_fws_tally_l { font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; }
+    }
+    .o_fws_tally_live { background: #e7f6ec; color: #1a7f37; }
+    .o_fws_close {
+        border: 0; background: $o-gray-100; color: $o-gray-700;
+        width: 2.6rem; height: 2.6rem; border-radius: 50%;
+        font-size: 1.1rem; flex: 0 0 auto;
+        &:active { background: $o-gray-300; }
+    }
+
+    // stage
+    .o_fws_stage { padding: .9rem 1rem 0; }
+    .o_fws_viewport {
+        position: relative;
+        border-radius: 1rem;
+        overflow: hidden;
+        background: #111;
+        // A barcode-shaped window, not a photo-shaped one: the strip on the
+        // invoice is wide and short, and a viewfinder the same shape makes the
+        // aim obvious - fill the slot with the bars. The camera still captures
+        // its full frame underneath; only the stage is letterboxed.
+        // (client, 2026-08-28)
+        aspect-ratio: 5 / 2;
+        max-height: 200px;
+        width: 100%;
+
+        video { width: 100%; height: 100%; object-fit: cover; }
+    }
+    .o_fws_frame {
+        position: absolute; inset: 10% 5%;
+        pointer-events: none;
+
+        .o_fws_c {
+            position: absolute; width: 26px; height: 26px;
+            border: 3px solid rgba(255, 255, 255, .95); border-radius: 2px;
+        }
+        .o_fws_c_tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+        .o_fws_c_tr { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+        .o_fws_c_bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+        .o_fws_c_br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+        .o_fws_beam {
+            position: absolute; left: 4%; right: 4%; height: 2px;
+            background: linear-gradient(90deg, transparent, #6fe07f, transparent);
+            animation: o-fws-beam 2.2s ease-in-out infinite;
+        }
+    }
+
+    .o_fws_shutter {
+        width: 100%;
+        border: 0;
+        border-radius: 1rem;
+        padding: 1.6rem 1rem;
+        background: linear-gradient(150deg, #4e3d78, #6f42c1);
+        color: #fff;
+        display: flex; flex-direction: column; align-items: center; gap: .7rem;
+        box-shadow: 0 6px 18px rgba(111, 66, 193, .35);
+        &:active { filter: brightness(.93); transform: translateY(1px); }
+        &:disabled { opacity: .75; }
+
+        .o_fws_shutter_ring {
+            width: 4.2rem; height: 4.2rem; border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, .85);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem;
+        }
+        .o_fws_shutter_label { font-size: 1.05rem; font-weight: 600; }
+    }
+
+    .o_fws_camhint {
+        margin-top: .5rem;
+        font-size: .78rem;
+        color: $o-gray-600;
+        text-align: center;
+    }
+    .o_fws_camhint_warn { color: #b45309; font-weight: 600; }
+    .o_fws_torch {
+        position: absolute; left: .5rem; bottom: .5rem;
+        width: 2.4rem; height: 2.4rem; border-radius: 50%;
+        border: 0; background: rgba(255, 255, 255, .9); color: #2f2440; font-size: 1.1rem;
+    }
+    .o_fws_torch_on { background: #ffd54a; }
+    // The two meters: aim by them, not by guessing.
+    .o_fws_meters {
+        display: flex; align-items: center; gap: 1rem;
+        margin-top: .55rem; padding: 0 .25rem;
+        font-size: .75rem; color: $o-gray-600;
+    }
+    .o_fws_meter { display: flex; align-items: center; gap: .4rem; }
+    .o_fws_meter_l { text-transform: uppercase; letter-spacing: .06em; font-weight: 700; font-size: .66rem; }
+    .o_fws_dots { display: inline-flex; gap: .25rem; }
+    .o_fws_dot {
+        width: .6rem; height: .6rem; border-radius: 50%;
+        background: $o-gray-300; transition: background .15s;
+    }
+    .o_fws_dot_on { background: #1a7f37; }
+    .o_fws_zoom {
+        flex: 1; display: flex; align-items: center; gap: .4rem;
+        input[type="range"] { flex: 1; accent-color: #6f42c1; min-width: 0; }
+    }
+    // Deterministic read on demand: hold the sheet steady, tap. Thumb-height,
+    // directly under the viewfinder, the one control the loop cannot replace.
+    .o_fws_readnow {
+        width: 100%;
+        margin-top: .6rem;
+        border: 0; border-radius: .8rem;
+        min-height: 50px;
+        background: #6f42c1; color: #fff;
+        font-size: 1rem; font-weight: 700;
+        box-shadow: 0 4px 12px rgba(111, 66, 193, .3);
+        &:active { filter: brightness(.92); }
+        &:disabled { opacity: .65; box-shadow: none; }
+    }
+    // A front camera shows the world mirrored, as a mirror would; aiming a sheet
+    // at an un-mirrored preview is a two-hands-and-a-guess job. The decoder
+    // always reads the raw frame, never the preview.
+    .o_fws_mirror { transform: scaleX(-1); }
+    .o_fws_flip {
+        position: absolute; right: .5rem; bottom: .5rem;
+        width: 2.4rem; height: 2.4rem; border-radius: 50%;
+        border: 0; background: rgba(255, 255, 255, .9); color: #2f2440;
+        font-size: 1rem;
+        &:active { background: #fff; }
+    }
+    .o_fws_typebox {
+        display: flex; gap: .5rem;
+    }
+    .o_fws_manual {
+        flex: 1;
+        border: 1px solid $o-gray-300; border-radius: .75rem;
+        padding: .9rem 1rem;
+        font-family: $font-family-monospace;
+        font-size: 1.15rem; letter-spacing: .06em; text-transform: uppercase;
+        min-height: 56px;
+        &:focus { outline: 2px solid #6f42c1; border-color: transparent; }
+    }
+    .o_fws_go {
+        border: 0; border-radius: .75rem; width: 56px; min-height: 56px;
+        background: #6f42c1; color: #fff; font-size: 1.2rem;
+        &:disabled { opacity: .4; }
+    }
+    .o_fws_typehint { margin-top: .5rem; font-size: .78rem; color: $o-gray-600; }
+    .o_fws_busyline { margin-top: .6rem; font-size: .85rem; color: $o-gray-700; }
+
+    // mode switch
+    .o_fws_modes {
+        display: flex; gap: .5rem;
+        padding: .8rem 1rem .2rem;
+    }
+    .o_fws_mode {
+        flex: 1;
+        border: 1px solid $o-gray-300;
+        background: #fff; color: $o-gray-700;
+        border-radius: 2rem;
+        padding: .5rem .25rem;
+        font-size: .85rem; font-weight: 600;
+        min-height: 42px;
+    }
+    .o_fws_mode_on {
+        background: #2f2440; border-color: #2f2440; color: #fff;
+    }
+
+    // the visit feed
+    .o_fws_feed {
+        flex: 1;
+        overflow-y: auto;
+        padding: .8rem 1rem;
+        display: flex; flex-direction: column; gap: .6rem;
+    }
+    .o_fws_feed_empty {
+        margin: auto;
+        text-align: center;
+        color: $o-gray-500;
+        font-size: .85rem;
+        max-width: 22rem;
+
+        .fa { font-size: 2.2rem; margin-bottom: .6rem; opacity: .4; }
+    }
+    .o_fws_card {
+        display: flex; gap: .6rem;
+        background: #fff;
+        border-radius: .9rem;
+        padding: .75rem .85rem;
+        border-left: 5px solid $o-gray-300;
+        box-shadow: 0 1px 3px rgba(20, 20, 40, .07);
+        animation: o-fws-land .25s ease-out;
+    }
+    .o_fws_card_ok   { border-left-color: #1a7f37; }
+    .o_fws_card_new  { border-left-color: #0d7c8a; }
+    .o_fws_card_warn { border-left-color: #d97706; background: #fffaf1; }
+    .o_fws_card_bad  { border-left-color: #d33131; background: #fff6f6; }
+    .o_fws_card_info { border-left-color: #5a76c9; }
+    .o_fws_card_main { flex: 1; min-width: 0; }
+    .o_fws_card_title { font-weight: 700; font-size: .95rem; }
+    .o_fws_card_detail { font-size: .82rem; color: $o-gray-700; margin-top: .1rem; }
+    .o_fws_card_loaded { border-left-color: #6f42c1; background: #f7f4fd; }
+    .o_fws_card_choice { display: flex; gap: .5rem; margin-top: .6rem; }
+    .o_fws_btn {
+        flex: 1;
+        border: 0; border-radius: .6rem;
+        min-height: 46px;
+        font-size: .9rem; font-weight: 700;
+        &:disabled { opacity: .5; }
+    }
+    .o_fws_btn_load { background: #efe9fb; color: #5a34a5; }
+    .o_fws_btn_deliver { background: #1a7f37; color: #fff; }
+    .o_fws_card_codes { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .5rem; }
+    .o_fws_chip {
+        border: 1px solid #6f42c1; color: #6f42c1; background: #fff;
+        border-radius: 2rem; padding: .35rem .8rem;
+        font-family: $font-family-monospace; font-weight: 600;
+        min-height: 40px;
+    }
+    .o_fws_card_side {
+        display: flex; flex-direction: column; align-items: flex-end;
+        justify-content: space-between; gap: .4rem; flex: 0 0 auto;
+    }
+    .o_fws_card_at { font-size: .72rem; color: $o-gray-500; }
+    .o_fws_card_open {
+        border: 1px solid $o-gray-300; background: #fff; color: $o-gray-800;
+        border-radius: .5rem; padding: .3rem .7rem; font-size: .8rem; font-weight: 600;
+    }
+
+    // foot
+    .o_fws_foot {
+        padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom, 0px));
+        background: #fff;
+        border-top: 1px solid $o-gray-200;
+    }
+    .o_fws_done {
+        width: 100%;
+        border: 0; border-radius: .8rem;
+        min-height: 52px;
+        background: #1f2937; color: #fff;
+        font-size: 1rem; font-weight: 700;
+        &:active { filter: brightness(.9); }
+    }
+}
+
+@keyframes o-fws-beam {
+    0%, 100% { top: 6%; opacity: .2; }
+    50% { top: 92%; opacity: 1; }
+}
+@keyframes o-fws-land {
+    from { transform: translateY(-6px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+}
+

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="lab_fieldwork.GeoButton">
+        <button type="button" class="btn me-1"
+                t-att-class="props.btn_class || 'btn-primary'"
+                t-on-click="onClick">
+            <i t-if="props.icon" t-att-class="'fa ' + props.icon + ' me-1'"
+               t-att-title="label"/>
+            <t t-esc="label"/>
+        </button>
+    </t>
+</templates>

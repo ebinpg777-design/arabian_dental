@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The route's own target, next to the rest of its settings. -->
+    <record id="crm_team_view_form_target" model="ir.ui.view">
+        <field name="name">crm.team.form.collection.target</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_form"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="lab_collection_target" string="Collection Target (%)"
+                       widget="float"
+                       help="Share of this route's invoicing that should be collected.
+                             Leave at zero to follow the company-wide target."/>
+            </field>
+        </field>
+    </record>
+
+    <record id="crm_team_view_tree_target" model="ir.ui.view">
+        <field name="name">crm.team.list.collection.target</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="lab_collection_target" string="Collection Target (%)"
+                       optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- The company-wide default, in Accounting settings. -->
+    <record id="res_config_settings_view_form_collections" model="ir.ui.view">
+        <field name="name">res.config.settings.collections</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='accounting_reports']" position="before">
+                <block title="Collections" id="lab_collections_block">
+                    <setting id="lab_collection_target_setting"
+                             string="Collection Target"
+                             help="The share of a month's invoicing the lab expects to
+                                   collect. Applies to every Sales Route that has not
+                                   been given a target of its own.">
+                        <div class="content-group">
+                            <div class="mt16">
+                                <field name="lab_collection_target" class="o_light_label"
+                                       style="width: 5rem;"/>
+                                <span class="ms-1">%</span>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

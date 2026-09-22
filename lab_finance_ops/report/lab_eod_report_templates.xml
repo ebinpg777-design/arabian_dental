@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_lab_eod_document">
+        <t t-call="web.external_layout">
+            <t t-set="doc" t-value="doc.with_context(lang=user.lang)"/>
+            <div class="page">
+                <h2 class="mb-0">End-of-Day Report</h2>
+                <p class="text-muted">
+                    <span t-field="doc.company_id.name"/> —
+                    <span t-field="doc.date" t-options='{"widget": "date"}'/>
+                </p>
+
+                <h4 class="mt-4">Cases</h4>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>Cases registered</td>
+                            <td class="text-end"><span t-field="doc.registered_count"/></td>
+                            <td class="text-end">
+                                <span t-field="doc.registered_amount"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Orders confirmed</td>
+                            <td class="text-end"><span t-field="doc.confirmed_count"/></td>
+                            <td class="text-end">
+                                <span t-field="doc.confirmed_amount"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Urgent cases</td>
+                            <td class="text-end"><span t-field="doc.urgent_count"/></td>
+                            <td/>
+                        </tr>
+                        <tr>
+                            <td>Cases dispatched</td>
+                            <td class="text-end"><span t-field="doc.dispatched_count"/></td>
+                            <td/>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4 class="mt-4">Invoicing</h4>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>Invoices raised</td>
+                            <td class="text-end"><span t-field="doc.invoice_count"/></td>
+                            <td class="text-end">
+                                <span t-field="doc.invoice_amount"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Credit notes</td>
+                            <td class="text-end"><span t-field="doc.credit_note_count"/></td>
+                            <td class="text-end">
+                                <span t-field="doc.credit_note_amount"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4 class="mt-4">Collections</h4>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>Cash</td>
+                            <td class="text-end">
+                                <span t-field="doc.collection_cash"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Bank / online</td>
+                            <td class="text-end">
+                                <span t-field="doc.collection_bank"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr class="fw-bold border-top">
+                            <td>Total collected</td>
+                            <td class="text-end">
+                                <span t-field="doc.collection_total"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Cheques received (<span t-field="doc.cheque_count"/>)</td>
+                            <td class="text-end">
+                                <span t-field="doc.cheque_amount"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Cheques cleared</td>
+                            <td class="text-end">
+                                <span t-field="doc.cheque_cleared_amount"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4 class="mt-4">Receivables (as at report time)</h4>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>Total outstanding</td>
+                            <td class="text-end">
+                                <span t-field="doc.outstanding_total"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Of which overdue</td>
+                            <td class="text-end">
+                                <span t-field="doc.overdue_total"
+                                      t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_lab_eod">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="lab_finance_ops.report_lab_eod_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

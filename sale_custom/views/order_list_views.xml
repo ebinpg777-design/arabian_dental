@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_list_report_form" model="ir.ui.view">
+        <field name="name">sale.order.list.report.form</field>
+        <field name="model">sale.order.list.report</field>
+        <field name="arch" type="xml">
+            <form string="Order List">
+                <field name="order_ids" invisible="1"/>
+                <field name="order_count" invisible="1"/>
+                <!-- Opened from a selection in the list: the list is exactly those
+                     orders, so only the grouping is asked. -->
+                <div class="alert alert-info d-flex align-items-center gap-2" role="status"
+                     invisible="not order_count">
+                    <i class="fa fa-check-square-o fa-lg" title="Selection"/>
+                    <span>Printing the <b><field name="order_count" class="oe_inline"/> orders</b>
+                        ticked in the list. Choose how to group them; the period and the
+                        filters do not apply.</span>
+                </div>
+                <group>
+                    <group string="Period" invisible="order_count">
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group string="Filters" invisible="order_count">
+                        <field name="invoice_filter" widget="radio"/>
+                        <field name="state_filter"/>
+                    </group>
+                    <group name="grouping">
+                        <field name="group_by"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </group>
+                </group>
+                <!-- The kind of appliance, as tick-boxes: two kinds at once is an
+                     ordinary question. Nothing ticked means every kind. -->
+                <group string="Appliance Type" name="appliance" invisible="order_count">
+                    <div colspan="2" class="d-flex flex-wrap align-items-center gap-4">
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="type_fixed" nolabel="1"/><label for="type_fixed" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="type_removable" nolabel="1"/><label for="type_removable" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="type_clear_retainer" nolabel="1"/><label for="type_clear_retainer" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="type_other" nolabel="1"/><label for="type_other" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="type_unset" nolabel="1"/><label for="type_unset" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="text-muted small">Nothing ticked: every kind.</span>
+                    </div>
+                </group>
+                <!-- How urgent, the same way. Nothing ticked means every priority.
+                     (client, 2026-09-19) -->
+                <group string="Priority" name="priority" invisible="order_count">
+                    <div colspan="2" class="d-flex flex-wrap align-items-center gap-4">
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="prio_emergency" nolabel="1"/><label for="prio_emergency" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="prio_urgent" nolabel="1"/><label for="prio_urgent" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="prio_normal" nolabel="1"/><label for="prio_normal" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1">
+                            <field name="prio_low" nolabel="1"/><label for="prio_low" class="mb-0 fw-normal"/>
+                        </span>
+                        <span class="text-muted small">Nothing ticked: every priority.</span>
+                    </div>
+                </group>
+                <group invisible="order_count">
+                    <field name="partner_ids" widget="many2many_tags"
+                           options="{'no_create': True}" placeholder="Every clinic"/>
+                    <field name="team_ids" widget="many2many_tags"
+                           options="{'no_create': True}" placeholder="Every route"/>
+                    <field name="product_ids" widget="many2many_tags"
+                           options="{'no_create': True}" placeholder="Every product"/>
+                </group>
+                <footer>
+                    <button name="action_print" string="Print List" type="object"
+                            class="btn-primary" data-hotkey="q" icon="fa-print"/>
+                    <!-- Same filter, the bench's own paperwork instead of the office's:
+                         one slip per manufacturing order (or per work line where none
+                         exists yet) for every CONFIRMED order the filter selects.
+                         (client, 2026-08-29) -->
+                    <button name="action_print_production_orders"
+                            string="Print Production Orders" type="object"
+                            class="btn-primary" icon="fa-industry"
+                            data-hotkey="p"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tick orders in the list, Action ▸ Print Order List. -->
+    <record id="action_print_order_list_selection" model="ir.actions.server">
+        <field name="name">Print Order List</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">list</field>
+        <field name="group_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_print_order_list()</field>
+    </record>
+
+    <record id="action_order_list_report" model="ir.actions.act_window">
+        <field name="name">Order List</field>
+        <field name="res_model">sale.order.list.report</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_order_list_report"
+              name="Order List"
+              parent="sale.sale_menu_root"
+              action="action_order_list_report"
+              sequence="16"
+              groups="sales_team.group_sale_salesman"/>
+</odoo>

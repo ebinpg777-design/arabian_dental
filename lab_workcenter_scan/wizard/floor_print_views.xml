@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_callover_wizard_form" model="ir.ui.view">
+        <field name="name">lab.callover.wizard.form</field>
+        <field name="model">lab.callover.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Aged Case Callover">
+                <group>
+                    <group>
+                        <field name="older_than"/>
+                        <field name="limit"/>
+                    </group>
+                    <group>
+                        <field name="team_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Every route"/>
+                    </group>
+                </group>
+                <div class="text-muted">
+                    Cases already delivered to the doctor are excluded — on this database
+                    that is the difference between a sheet of fourteen cases the lab
+                    shipped months ago and a sheet worth holding a huddle about.
+                </div>
+                <footer>
+                    <button string="Print" name="action_print" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Open on screen" name="action_open_list" type="object"
+                            class="btn-secondary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_callover_wizard" model="ir.actions.act_window">
+        <field name="name">Aged Case Callover</field>
+        <field name="res_model">lab.callover.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_manifest_wizard_form" model="ir.ui.view">
+        <field name="name">lab.packing.manifest.wizard.form</field>
+        <field name="model">lab.packing.manifest.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Packing Manifest">
+                <field name="scope" widget="radio"/>
+                <group>
+                    <field name="team_ids" widget="many2many_tags"
+                           options="{'no_create': True}" placeholder="Every route"/>
+                </group>
+                <div class="text-muted">
+                    One page per route, with a line to sign the boxes out to the driver.
+                </div>
+                <footer>
+                    <button string="Print" name="action_print" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_manifest_wizard" model="ir.actions.act_window">
+        <field name="name">Packing Manifest</field>
+        <field name="res_model">lab.packing.manifest.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_closeout_wizard_form" model="ir.ui.view">
+        <field name="name">lab.closeout.wizard.form</field>
+        <field name="model">lab.closeout.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Close-out Worklist">
+                <div class="alert alert-warning" role="status">
+                    Nine out of ten manufacturing orders that look open on this database
+                    have already been delivered to the doctor — they were simply never
+                    closed. Until they are, every production figure the lab reads is
+                    inflated. This is the list to work through.
+                </div>
+                <group>
+                    <group><field name="limit"/></group>
+                    <group>
+                        <field name="team_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Every route"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Print" name="action_print" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Open on screen" name="action_open_list" type="object"
+                            class="btn-secondary"/>
+                    <!-- Starts a background job rather than doing the work in the
+                         request: it is hours of it. -->
+                    <button string="Close them automatically" name="action_start_closing"
+                            type="object" class="btn-secondary"
+                            confirm="This closes every manufacturing order whose case has already been delivered — around 21,000 of them — in the background over several hours. Deliveries from now on close their own jobs immediately either way. Start?"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_closeout_wizard" model="ir.actions.act_window">
+        <field name="name">Close-out Worklist</field>
+        <field name="res_model">lab.closeout.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_clinic_work_wizard_form" model="ir.ui.view">
+        <field name="name">lab.clinic.work.wizard.form</field>
+        <field name="model">lab.clinic.work.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Work in Hand">
+                <group>
+                    <group>
+                        <field name="partner_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Every clinic with live work"/>
+                    </group>
+                    <group>
+                        <field name="team_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Every route"/>
+                    </group>
+                </group>
+                <div class="text-muted">
+                    This sheet leaves the building, so it lists live work only. A clinic
+                    with nothing live is skipped rather than printed empty.
+                </div>
+                <footer>
+                    <button string="Print" name="action_print" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_clinic_work_wizard" model="ir.actions.act_window">
+        <field name="name">Clinic Work in Hand</field>
+        <field name="res_model">lab.clinic.work.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Printable paper lives together, under Reporting, in the order a day uses it. -->
+    <menuitem id="menu_floor_print" name="Print"
+              parent="mrp.menu_mrp_reporting" sequence="20"/>
+    <menuitem id="menu_callover_wizard" name="Aged Case Callover"
+              parent="menu_floor_print" action="action_callover_wizard"
+              sequence="10" groups="mrp.group_mrp_user"/>
+    <menuitem id="menu_manifest_wizard" name="Packing Manifest"
+              parent="menu_floor_print" action="action_manifest_wizard"
+              sequence="20" groups="mrp.group_mrp_user"/>
+    <menuitem id="menu_clinic_work_wizard" name="Clinic Work in Hand"
+              parent="menu_floor_print" action="action_clinic_work_wizard"
+              sequence="30" groups="mrp.group_mrp_user"/>
+    <menuitem id="menu_closeout_wizard" name="Close-out Worklist"
+              parent="menu_floor_print" action="action_closeout_wizard"
+              sequence="40" groups="mrp.group_mrp_user"/>
+
+</odoo>

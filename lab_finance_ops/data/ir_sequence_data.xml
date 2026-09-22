@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_lab_cheque" model="ir.sequence">
+            <field name="name">Cheque Register</field>
+            <field name="code">lab.cheque</field>
+            <field name="prefix">CHQ/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="cron_lab_cheque_due" model="ir.cron">
+            <field name="name">Cheque Register: flag cheques due for deposit</field>
+            <field name="model_id" ref="model_lab_cheque"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_notify_due_cheques()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

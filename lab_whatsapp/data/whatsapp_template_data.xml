@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- The lab's messages, as the doctor reads them on the phone: a heading
+             with its emoji, the facts in two aligned lines, one sentence of what
+             happens next - and one link that says what it opens.
+
+             WhatsApp draws no buttons for a message typed from the app or the Web;
+             only Meta's paid templates do. So each message here carries a single
+             tappable link to its own page, where the document, the payment, the
+             answers and the chat ARE real buttons, and WhatsApp shows that link as
+             a card. Three raw addresses under every message is what it replaces.
+             (client, 2026-09-18)
+
+             Placeholders are the record's own fields, with a format where the
+             default would not do: {{date_order|date}} for a date without the time,
+             {{partner_id.name|doctor}} for "Dr." said once; money and dates read
+             well on their own.
+
+             The seed is noupdate: once installed these are the lab's to edit. A
+             version upgrade refreshes only a message still carrying a previous
+             seed's words (see _refresh_seeded_templates). -->
+
+        <!-- Case registered (sale.order) -->
+        <record id="tmpl_order_confirm" model="epg.whatsapp.template">
+            <field name="name">Case Registered</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="event">order_confirm</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">🦷 *Case registered*
+
+Dear {{partner_id.name|doctor}},
+
+*{{patient}}* is with us and the work has started.
+
+📋 *Case*      {{name}}
+📅 *Received*  {{date_order|date}}
+
+You will hear from us again the moment it is dispatched. Thank you for trusting us with it.</field>
+            <!-- No acknowledgement PDF here any more: the doctor who can sign in
+                 gets their own order list on the portal instead, which is always
+                 current. A doctor with no login gets no button at all - an empty
+                 address drops the line. (client, 2026-09-18) -->
+            <field name="buttons">📋 My orders | {{partner_id.portal_orders_url}}</field>
+            <field name="quick_replies">👍 Noted
+✏️ Something to add</field>
+            <field name="alert_replies">✏️ Something to add</field>
+            <field name="button_style">page</field>
+            <field name="page_label">📋 Open case</field>
+            <field name="footer_text">Arabian Dental Lab · reply to this message to reach us</field>
+        </record>
+
+        <!-- The generic ones are a FRAME, not a finished message: the greeting, what
+             the doctor needs to recognise it by, and room for the line the person
+             sending actually wants to write. They are what the WhatsApp button
+             offers when the record is at no particular lab moment - a quotation, a
+             draft invoice - and the composer opens with them ready to edit.
+             (client, 2026-09-18) -->
+        <!-- Generic frame (sale.order) -->
+        <record id="tmpl_sale_order_manual" model="epg.whatsapp.template">
+            <field name="name">Case Update (Generic)</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="event">manual</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">🦷 *Case {{name}}*
+
+Dear {{partner_id.name|doctor}},
+
+Patient: *{{patient}}*
+</field>
+            <field name="footer_text">Arabian Dental Lab · reply here to reach us</field>
+        </record>
+
+        <!-- Feedback request (sale.order): the day after, not the minute it is
+             scanned - a doctor rates work they have seated, not a parcel. -->
+        <record id="tmpl_feedback" model="epg.whatsapp.template">
+            <field name="name">Feedback Request</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="event">feedback</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="delay_hours">20</field>
+            <field name="body">Dear {{partner_id.name|doctor}},
+
+*{{name}}* for {{patient}} has been delivered. Was everything as it should be?
+
+One tap is all it takes - and it shapes how we work.</field>
+            <field name="quick_replies">⭐⭐⭐⭐⭐ Excellent
+⭐⭐⭐⭐ Good
+⭐⭐⭐ Average
+⭐⭐ Needs improvement</field>
+            <field name="alert_replies">⭐⭐ Needs improvement</field>
+            <field name="button_style">page</field>
+            <field name="page_label">⭐ Rate this case</field>
+            <field name="footer_text">Arabian Dental Lab · every rating is read by the lab</field>
+        </record>
+
+        <!-- Dispatched (stock.picking) -->
+        <record id="tmpl_dispatch" model="epg.whatsapp.template">
+            <field name="name">Work Dispatched</field>
+            <field name="model_id" ref="stock.model_stock_picking"/>
+            <field name="event">dispatch</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">📦 *On its way*
+
+Dear {{partner_id.name|doctor}},
+
+Your work for *{{origin}}* has been dispatched.
+
+🚚 *Courier*       {{courier_company}}
+🔖 *Consignment*   {{consignment_number}}
+
+Please check the contents on arrival and tell us how it reached you.</field>
+            <field name="report_id" ref="sale_custom.action_report_dental_delivery_slip"/>
+            <field name="quick_replies">✅ Received, all fine
+⚠️ Something is missing
+📞 Please call me</field>
+            <field name="alert_replies">⚠️ Something is missing
+📞 Please call me</field>
+            <field name="button_style">page</field>
+            <field name="page_label">📦 Delivery slip &amp; confirm</field>
+            <field name="footer_text">Arabian Dental Lab · reply here if anything is missing</field>
+        </record>
+
+        <!-- Generic frame (stock.picking) -->
+        <record id="tmpl_stock_picking_manual" model="epg.whatsapp.template">
+            <field name="name">Delivery Update (Generic)</field>
+            <field name="model_id" ref="stock.model_stock_picking"/>
+            <field name="event">manual</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">📦 *About your delivery*
+
+Dear {{partner_id.name|doctor}},
+
+Work for *{{origin}}*.
+
+🚚 *Courier*       {{courier_company}}
+🔖 *Consignment*   {{consignment_number}}
+</field>
+            <field name="footer_text">Arabian Dental Lab · reply here if anything is missing</field>
+        </record>
+
+        <!-- Invoice ready (account.move) -->
+        <record id="tmpl_invoice" model="epg.whatsapp.template">
+            <field name="name">Invoice Ready</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="event">invoice</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">🧾 *Invoice {{name}}*
+
+Dear {{partner_id.name|doctor}},
+
+💰 *Amount*  {{amount_total}}
+📅 *Due by*  {{invoice_date_due}}
+
+Thank you for your continued trust.</field>
+            <!-- THIS is what "send the invoice on WhatsApp" means: the Tax Invoice PDF
+                 travels with the message. Without a report the doctor gets a number and
+                 still has to ask for the document. -->
+            <field name="report_id" ref="sale_custom.action_report_dental_invoice"/>
+            <field name="quick_replies">👍 Noted
+❓ I have a question</field>
+            <field name="add_payment_link" eval="True"/>
+            <field name="payment_amount_field">amount_total</field>
+            <field name="payment_reference_field">name</field>
+            <field name="alert_replies">❓ I have a question</field>
+            <field name="button_style">page</field>
+            <field name="page_label">🧾 Invoice, pay now &amp; reply</field>
+            <field name="nudge_after_hours">48</field>
+            <field name="nudge_text">Dear {{partner_id.name|doctor}}, a gentle reminder: invoice *{{name}}* ({{amount_total}}) is waiting for you.</field>
+            <field name="footer_text">Arabian Dental Lab · reply here for any query</field>
+        </record>
+
+        <!-- Payment reminder (account.move): firmer each time the cron comes back
+             to the same invoice, with Pay now on the balance and an answer that
+             tells accounts where it stands. -->
+        <record id="tmpl_reminder" model="epg.whatsapp.template">
+            <field name="name">Payment Reminder</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="event">reminder</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">⏰ *Payment reminder*
+
+Dear {{partner_id.name|doctor}},
+
+Invoice *{{name}}* is still open.
+
+💰 *Outstanding*  {{amount_residual}}
+📅 *Was due*      {{invoice_date_due}}
+
+If the payment has already gone out, one tap tells us and we will match it - thank you.</field>
+            <field name="body_2">⏰ *Second reminder*
+
+Dear {{partner_id.name|doctor}},
+
+Invoice *{{name}}* ({{amount_residual}}) was due on {{invoice_date_due}} and is still open.
+
+Could you arrange it this week? A tap below tells us where it stands.</field>
+            <field name="body_3">❗ *Payment overdue*
+
+Dear {{partner_id.name|doctor}},
+
+Invoice *{{name}}* for {{amount_residual}} has been open since {{invoice_date_due}} despite our reminders.
+
+Please clear it at the earliest, or tap "Call me" and our accounts team will reach you today.</field>
+            <field name="report_id" ref="sale_custom.action_report_dental_invoice"/>
+            <field name="quick_replies">✅ Paid already
+📅 Will pay this week
+📞 Call me</field>
+            <field name="add_payment_link" eval="True"/>
+            <field name="payment_amount_field">amount_residual</field>
+            <field name="payment_reference_field">name</field>
+            <field name="alert_replies">✅ Paid already
+📞 Call me</field>
+            <field name="button_style">page</field>
+            <field name="page_label">💳 Pay now or tell us</field>
+            <field name="footer_text">Arabian Dental Lab · reply here if already paid</field>
+        </record>
+
+        <!-- Generic frame (account.move) -->
+        <record id="tmpl_account_move_manual" model="epg.whatsapp.template">
+            <field name="name">Invoice Update (Generic)</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="event">manual</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">🧾 *Invoice {{name}}*
+
+Dear {{partner_id.name|doctor}},
+
+💰 *Amount*  {{amount_total}}
+📅 *Due by*  {{invoice_date_due}}
+</field>
+            <field name="footer_text">Arabian Dental Lab · reply here for any query</field>
+        </record>
+
+        <!-- Payment received (account.payment): the receipt travels with the thanks. -->
+        <record id="tmpl_payment" model="epg.whatsapp.template">
+            <field name="name">Payment Received</field>
+            <field name="model_id" ref="account.model_account_payment"/>
+            <field name="event">payment</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">✅ *Payment received*
+
+Dear {{partner_id.name|doctor}},
+
+Thank you - *{{amount}}* has reached us.
+
+🔖 *Reference*  {{name}}
+📅 *Date*       {{date}}</field>
+            <field name="report_id" ref="account.action_report_payment_receipt"/>
+            <field name="button_style">page</field>
+            <field name="page_label">🧾 Open your receipt</field>
+            <field name="footer_text">Arabian Dental Lab · thank you for the prompt payment</field>
+        </record>
+
+        <!-- More information needed (res.partner): a case has arrived and something
+             about it is missing. Asked from the doctor's contact in one click, with
+             the answers that get the lab moving again. (client, 2026-09-18) -->
+        <record id="tmpl_more_info" model="epg.whatsapp.template">
+            <field name="name">Enquiry: Case Details</field>
+            <field name="sequence">10</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="event">more_info</field>
+            <field name="phone_field">whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">❓ *A question about your new case*
+
+Dear {{name|doctor}},
+
+We have your case in hand, but we need one thing before the work can start:
+
+• the *shade*
+• the *bite / occlusion* notes
+• the *date you need it by*
+
+Reply here with the details, or send a photo - whichever is quickest. The moment we have it, the work goes on the bench.</field>
+            <!-- No answers and no page: this one is a question, and the doctor
+                 answers it by writing back in the chat - a link to tap would only
+                 stand between them and the reply. (client, 2026-09-18) -->
+            <field name="footer_text">Arabian Dental Lab · just reply here and the case moves</field>
+        </record>
+
+        <!-- Impression / scan not usable (res.partner) -->
+        <record id="tmpl_ask_impression" model="epg.whatsapp.template">
+            <field name="name">Enquiry: Impression / Scan</field>
+            <field name="sequence">20</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="event">ask_impression</field>
+            <field name="phone_field">whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">🦷 *About the impression*
+
+Dear {{name|doctor}},
+
+The impression we have cannot be worked on as it is - the detail we need has not come through cleanly.
+
+Could you send a fresh one, or a scan? We will start the moment it reaches us, and the case keeps its place in the queue.</field>
+            <field name="footer_text">Arabian Dental Lab · tell us here if you would like us to collect it</field>
+        </record>
+
+        <!-- Shade (res.partner) -->
+        <record id="tmpl_ask_shade" model="epg.whatsapp.template">
+            <field name="name">Enquiry: Shade</field>
+            <field name="sequence">30</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="event">ask_shade</field>
+            <field name="phone_field">whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">🎨 *The shade, please*
+
+Dear {{name|doctor}},
+
+We are ready to finish this case but the shade is not with us.
+
+Send the shade here - a photo of the tab against the tooth, in daylight, tells us more than a name does.</field>
+            <field name="footer_text">Arabian Dental Lab · a photo in daylight is the safest shade</field>
+        </record>
+
+        <!-- Anything to collect (res.partner) -->
+        <record id="tmpl_ask_pickup" model="epg.whatsapp.template">
+            <field name="name">Enquiry: Anything to Collect</field>
+            <field name="sequence">40</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="event">ask_pickup</field>
+            <field name="phone_field">whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">🚗 *Our man is on your side today*
+
+Dear {{name|doctor}},
+
+Is there anything at the clinic for us to collect - an impression, a case to remake, a model?
+
+Tell us here and he will stop by.</field>
+            <field name="footer_text">Arabian Dental Lab · collections until 5 PM</field>
+        </record>
+
+        <!-- Approval to proceed (res.partner) -->
+        <record id="tmpl_ask_approval" model="epg.whatsapp.template">
+            <field name="name">Enquiry: Approval to Proceed</field>
+            <field name="sequence">50</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="event">ask_approval</field>
+            <field name="phone_field">whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">✋ *One word before we go on*
+
+Dear {{name|doctor}},
+
+The case is at a point where we would rather ask than assume - the design can go either way and we do not want to guess at your chair.
+
+Reply with how you would like it, and the bench carries on.</field>
+            <field name="footer_text">Arabian Dental Lab · nothing is cut until you say</field>
+        </record>
+
+        <!-- ON HOLD (sale.order). The case the bench has put down: it cannot be
+             picked up again until the doctor says something, and until now nobody
+             told them it was waiting. Four ways of asking the same question -
+             the counter picks the one that fits who they are writing to and how
+             long it has been. All four are on the order, so the case number, the
+             patient and the days it has waited fill themselves in.
+             (client, 2026-09-19) -->
+
+        <!-- 1. The plain ask. -->
+        <record id="tmpl_hold_ask" model="epg.whatsapp.template">
+            <field name="name">On Hold: Can We Start?</field>
+            <field name="sequence">60</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="event">hold_ask</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">⏸️ *Your case is waiting*
+
+Dear {{partner_id.name|doctor}},
+
+*{{patient}}* is on our bench and we have stopped, waiting to hear from you.
+
+📋 *Case*     {{name}}
+⏳ *Waiting*  {{days_on_hold}} day(s)
+
+May we start? One word from you and it moves today.</field>
+            <field name="quick_replies">✅ Yes, go ahead
+✋ Not yet</field>
+            <field name="alert_replies">✅ Yes, go ahead
+✋ Not yet</field>
+            <field name="footer_text">Arabian Dental Lab · reply here and the bench picks it up</field>
+        </record>
+
+        <!-- 2. The same question with the case laid out - for a doctor with several
+             cases with us, who cannot be expected to know which one this is. -->
+        <record id="tmpl_hold_details" model="epg.whatsapp.template">
+            <field name="name">On Hold: With the Case Details</field>
+            <field name="sequence">61</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="event">hold_details</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">⏸️ *Paused - and we would rather ask than guess*
+
+Dear {{partner_id.name|doctor}},
+
+The work for *{{patient}}* has been held since {{hold_date|date}}.
+
+📋 *Case*      {{name}}
+🦷 *Work*      {{appliance_type}}
+📌 *Held for*  {{hold_reason}}
+⏳ *Waiting*   {{days_on_hold}} day(s)
+
+Shall we go ahead? Tell us and it is back on the bench the same day.</field>
+            <field name="quick_replies">✅ Go ahead
+✏️ Something has changed
+📞 Call me</field>
+            <field name="alert_replies">✏️ Something has changed
+📞 Call me</field>
+            <field name="footer_text">Arabian Dental Lab · nothing is cut until you say</field>
+        </record>
+
+        <!-- 3. The soft one. For a doctor the lab knows well, or a case where the
+             delay is nobody's fault and a chasing tone would be wrong. -->
+        <record id="tmpl_hold_nudge" model="epg.whatsapp.template">
+            <field name="name">On Hold: A Gentle Nudge</field>
+            <field name="sequence">62</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="event">hold_nudge</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">👋 *A gentle reminder*
+
+Dear {{partner_id.name|doctor}},
+
+Hope the clinic is well. *{{patient}}*'s case ({{name}}) is still with us, waiting to be told to go.
+
+Nothing is wrong at our end - we simply do not want to start it without you.
+
+Whenever it suits, just say the word.</field>
+            <field name="quick_replies">✅ Please start
+📅 Give me a few days</field>
+            <field name="alert_replies">📅 Give me a few days</field>
+            <field name="footer_text">Arabian Dental Lab · no hurry, just so it is not forgotten</field>
+        </record>
+
+        <!-- 4. The one that answers itself. A doctor at a chair taps once and the
+             counter knows what to do without a conversation. -->
+        <record id="tmpl_hold_options" model="epg.whatsapp.template">
+            <field name="name">On Hold: Ask With Choices</field>
+            <field name="sequence">63</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="event">hold_options</field>
+            <field name="phone_field">partner_id.whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">⏸️ *Can we start?*
+
+Dear {{partner_id.name|doctor}},
+
+*{{patient}}* - case *{{name}}* - has been on hold {{days_on_hold}} day(s).
+
+Tap the one that fits and we will do exactly that.</field>
+            <field name="quick_replies">✅ Start it now
+📅 Start after my next visit
+✋ Keep holding it
+❌ Cancel the case</field>
+            <field name="alert_replies">📅 Start after my next visit
+✋ Keep holding it
+❌ Cancel the case</field>
+            <field name="footer_text">Arabian Dental Lab · whichever you tap, we act on it today</field>
+        </record>
+
+        <!-- Generic frame (res.partner): a greeting and a blank page. -->
+        <record id="tmpl_res_partner_manual" model="epg.whatsapp.template">
+            <field name="name">Message (Generic)</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="event">manual</field>
+            <field name="phone_field">whatsapp_number</field>
+            <field name="account_id" ref="account_default"/>
+            <field name="body">Dear {{name|doctor}},
+
+</field>
+            <field name="footer_text">Arabian Dental Lab · reply here to reach us</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The patient is what the clinic's staff recognise an invoice by, so it belongs
+         in the invoice list next to the number. (client, 2026-08-18) -->
+    <record id="view_invoice_tree_patients" model="ir.ui.view">
+        <field name="name">account.move.list.patients</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_invoice_tree"/>
+        <field name="arch" type="xml">
+            <!-- two partner columns exist (Vendor / Customer): anchor on the customer
+                 one, and keep the column off purchase documents -->
+            <xpath expr="//field[@name='invoice_partner_display_name'][2]" position="after">
+                <field name="patient_names" string="Patients" optional="show"
+                       column_invisible="context.get('default_move_type') not in ('out_invoice', 'out_refund', 'out_receipt')"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!--
+        The patient on each invoice LINE, and editable.
+
+        The column already existed and was already being filled — `_prepare_invoice_line`
+        copies it off the sale order (sale_custom/models/sale_order.py:623), so 28,852 of
+        the 29,299 invoice product lines on this database already carry a patient. It was
+        simply never shown, so nobody could read it on the invoice or correct one that
+        came through wrong. (client, 2026-08-27)
+
+        Left editable on purpose: a patient name typed wrong at order entry is corrected
+        on the invoice the clinic actually receives, and the printed invoice reads from
+        the line. `work_number` and `U/L` ride along as optional columns for the same
+        reason — they are line facts the office occasionally has to fix.
+    -->
+    <record id="view_move_form_line_patient" model="ir.ui.view">
+        <field name="name">account.move.form.line.patient</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='name']"
+                   position="after">
+                <field name="patient" string="Patient" optional="show"
+                       column_invisible="parent.move_type not in ('out_invoice', 'out_refund', 'out_receipt')"/>
+                <field name="work_number" string="Work No." optional="hide"
+                       column_invisible="parent.move_type not in ('out_invoice', 'out_refund', 'out_receipt')"/>
+                <field name="ul" string="U/L" optional="hide"
+                       column_invisible="parent.move_type not in ('out_invoice', 'out_refund', 'out_receipt')"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- The same column on the standalone Journal Items list, where the accounts office
+         reconciles and chases: without it a line is a product code and an amount. -->
+    <record id="view_move_line_list_patient" model="ir.ui.view">
+        <field name="name">account.move.line.list.patient</field>
+        <field name="model">account.move.line</field>
+        <field name="inherit_id" ref="account.view_move_line_tree"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="patient" string="Patient" optional="show"/>
+            </field>
+        </field>
+    </record>
+</odoo>

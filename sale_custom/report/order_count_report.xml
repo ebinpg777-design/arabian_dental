@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Order Count Summary. Portrait: it is a totals sheet, not a register. The chosen
+        group levels nest as indented rows; unbilled value carries the accent because
+        collecting it is why this sheet is printed.
+    -->
+    <template id="report_order_count">
+        <t t-call="web.html_container">
+            <t t-set="o" t-value="wizard"/>
+            <t t-set="hide_letterhead" t-value="True"/>
+            <t t-set="footer_note">Order count summary</t>
+            <t t-call="sale_custom.external_layout_lab">
+                <div class="page lab-invoice occ">
+                    <t t-call="sale_custom.letterhead_block"/>
+
+                    <table class="occ-title">
+                        <tr>
+                            <td style="vertical-align:bottom;">
+                                <div class="oi-title">ORDER COUNT</div>
+                                <div class="occ-sub">
+                                    By <t t-out="' › '.join(levels)"/> · printed <t t-out="printed_on"/>
+                                </div>
+                            </td>
+                            <td style="text-align:right;vertical-align:bottom;">
+                                <div class="oi-numlabel">Period</div>
+                                <div class="occ-period">
+                                    <span t-field="wizard.date_from"/> — <span t-field="wizard.date_to"/>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="occ-criteria" t-if="criteria">
+                        <t t-foreach="criteria" t-as="c">
+                            <span class="occ-crit"><span class="occ-crit-k"><t t-out="c[0]"/></span>
+                                <t t-out="c[1]"/></span>
+                        </t>
+                    </div>
+
+                    <!-- headline tiles -->
+                    <table class="occ-summary">
+                        <tr>
+                            <td class="occ-card"><div class="oi-label">Total count</div>
+                                <div class="occ-card-value" t-out="root['count']"/></td>
+                            <td class="occ-card"><div class="oi-label">Invoices</div>
+                                <div class="occ-card-value" t-out="root['billed_count']"/></td>
+                            <td class="occ-card"><div class="oi-label">Unbilled orders</div>
+                                <div class="occ-card-value" t-out="root['unbilled_count']"/></td>
+                            <td class="occ-card"><div class="oi-label">Billed amount</div>
+                                <div class="occ-card-value" t-out="money(root['billed'])"/></td>
+                            <td class="occ-card occ-card-due"><div class="oi-label">Unbilled amount</div>
+                                <div class="occ-card-value" t-out="money(root['unbilled'])"/></td>
+                            <td class="occ-card"><div class="oi-label">Total amount</div>
+                                <div class="occ-card-value" t-out="money(root['value'])"/></td>
+                        </tr>
+                    </table>
+
+                    <!-- where the unbilled money sits -->
+                    <div class="occ-attention" t-if="attention and root['unbilled']">
+                        <div class="occ-attention-title">Most unbilled value</div>
+                        <t t-foreach="attention" t-as="a">
+                            <table class="occ-bar" t-if="a['unbilled']">
+                                <tr>
+                                    <td class="occ-bar-label"><t t-out="a['label']"/></td>
+                                    <td class="occ-bar-track">
+                                        <div class="occ-bar-fill"
+                                             t-attf-style="width: {{'{:.1f}'.format(max(pct(a['unbilled'], attention[0]['unbilled']), 2))}}%;"/>
+                                    </td>
+                                    <td class="occ-bar-value"><t t-out="money(a['unbilled'])"/></td>
+                                </tr>
+                            </table>
+                        </t>
+                        <div class="occ-attention-note">
+                            These <t t-out="len([a for a in attention if a['unbilled']])"/> hold
+                            <t t-out="'{:.0f}%'.format(concentration)"/> of everything unbilled.
+                        </div>
+                    </div>
+
+                    <p t-if="not rows" class="occ-empty">Nothing billed or unbilled in this period.</p>
+
+                    <table class="occ-lines" t-if="rows">
+                        <thead>
+                            <tr>
+                                <th><t t-out="' › '.join(levels)"/></th>
+                                <th class="num" style="width:10%">Count</th>
+                                <th class="num" style="width:10%">Invoices</th>
+                                <th class="num" style="width:10%">Unbilled</th>
+                                <th class="num" style="width:15%">Billed amount</th>
+                                <th class="num" style="width:15%">Unbilled amount</th>
+                                <th class="num" style="width:15%">Total amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="rows" t-as="r"
+                                t-attf-class="occ-l{{r['depth']}}">
+                                <td><span t-attf-style="padding-left: {{r['depth'] * 16}}px;"
+                                          t-out="r['label']"/></td>
+                                <td class="num" t-out="r['count']"/>
+                                <td class="num" t-out="r['billed_count']"/>
+                                <td t-attf-class="num {{'occ-hot' if r['unbilled_count'] else ''}}"
+                                    t-out="r['unbilled_count']"/>
+                                <td class="num" t-out="money(r['billed'])"/>
+                                <td t-attf-class="num {{'occ-hot' if r['unbilled'] else ''}}"
+                                    t-out="money(r['unbilled'])"/>
+                                <td class="num fw-bold" t-out="money(r['value'])"/>
+                            </tr>
+                            <tr class="occ-total">
+                                <td>TOTAL</td>
+                                <td class="num" t-out="root['count']"/>
+                                <td class="num" t-out="root['billed_count']"/>
+                                <td class="num" t-out="root['unbilled_count']"/>
+                                <td class="num" t-out="money(root['billed'])"/>
+                                <td class="num" t-out="money(root['unbilled'])"/>
+                                <td class="num" t-out="money(root['value'])"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_order_count" model="ir.actions.report">
+        <field name="name">Order Count</field>
+        <field name="model">sale.order.count.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_order_count</field>
+        <field name="report_file">sale_custom.report_order_count</field>
+        <field name="print_report_name">'Order Count %s to %s' % (object.date_from or '', object.date_to or '')</field>
+        <field name="paperformat_id" ref="paperformat_lab_invoice"/>
+    </record>
+</odoo>

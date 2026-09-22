@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_sticker" model="ir.ui.view">
+        <field name="name">stock.picking.form.epg.sticker</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_print_sticker" type="object" string="Sticker" icon="fa-tag"
+                        invisible="not sale_id or state == 'cancel'"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="action_sticker_from_picking" model="ir.actions.server">
+        <field name="name">Print Stickers</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_print_sticker()</field>
+    </record>
+</odoo>

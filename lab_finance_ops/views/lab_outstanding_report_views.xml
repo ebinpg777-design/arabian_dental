@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_lab_outstanding_list" model="ir.ui.view">
+        <field name="name">lab.outstanding.report.list</field>
+        <field name="model">lab.outstanding.report</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false"
+                  decoration-danger="age_bucket == 'b_90_plus'"
+                  decoration-warning="age_bucket == 'b_61_90'"
+                  decoration-muted="age_bucket == 'not_due'">
+                <field name="partner_id"/>
+                <field name="move_name"/>
+                <field name="date_invoice"/>
+                <field name="date_due"/>
+                <field name="days_overdue"/>
+                <field name="age_bucket" widget="badge"
+                       decoration-danger="age_bucket == 'b_90_plus'"
+                       decoration-warning="age_bucket in ('b_31_60', 'b_61_90')"
+                       decoration-success="age_bucket == 'not_due'"/>
+                <field name="amount_total" sum="Invoiceed"/>
+                <field name="amount_paid" sum="Paid" optional="show"/>
+                <field name="amount_residual" sum="Outstanding"/>
+                <field name="user_id" optional="hide"/>
+                <field name="team_id" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_lab_outstanding_pivot" model="ir.ui.view">
+        <field name="name">lab.outstanding.report.pivot</field>
+        <field name="model">lab.outstanding.report</field>
+        <field name="arch" type="xml">
+            <pivot string="Outstanding">
+                <field name="partner_id" type="row"/>
+                <field name="age_bucket" type="col"/>
+                <field name="amount_residual" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_lab_outstanding_graph" model="ir.ui.view">
+        <field name="name">lab.outstanding.report.graph</field>
+        <field name="model">lab.outstanding.report</field>
+        <field name="arch" type="xml">
+            <graph string="Outstanding" type="bar">
+                <field name="partner_id"/>
+                <field name="amount_residual" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_lab_outstanding_search" model="ir.ui.view">
+        <field name="name">lab.outstanding.report.search</field>
+        <field name="model">lab.outstanding.report</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="move_name"/>
+                <field name="user_id"/>
+                <filter name="overdue" string="Overdue"
+                        domain="[('age_bucket', '!=', 'not_due')]"/>
+                <filter name="critical" string="90+ Days"
+                        domain="[('age_bucket', '=', 'b_90_plus')]"/>
+                <separator/>
+                <filter name="this_month" string="Invoiceed This Month"
+                        domain="[('date_invoice', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <group>
+                    <filter name="group_partner" string="Clinic" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_bucket" string="Ageing" context="{'group_by': 'age_bucket'}"/>
+                    <filter name="group_month" string="Invoice Month" context="{'group_by': 'invoice_month'}"/>
+                    <filter name="group_due" string="Due Date" context="{'group_by': 'date_due'}"/>
+                    <filter name="group_user" string="Salesperson" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_team" string="Sales Team" context="{'group_by': 'team_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_lab_outstanding_report" model="ir.actions.act_window">
+        <field name="name">Doctor-wise Outstanding</field>
+        <field name="res_model">lab.outstanding.report</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_lab_outstanding_search"/>
+        <field name="context">{'search_default_group_partner': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing outstanding</p>
+            <p>Every open invoice, per clinic, with its ageing bucket and days overdue.</p>
+        </field>
+    </record>
+</odoo>

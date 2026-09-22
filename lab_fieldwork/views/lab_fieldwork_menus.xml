@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Menus are the whole difference between "simple" and "complicated", so each role
+        gets its own tree rather than one tree with pieces greyed out.
+
+        Since 2026-08-29 the manager is TWO roles - Operational and Marketing - and the
+        tree says so. What both desks need (the tower, the team's records, the analysis)
+        is gated on the shared base group their roles imply; what belongs to one desk is
+        gated on that desk alone, so each manager opens an application that is about
+        THEIR job, with the other desk's queue simply absent.
+
+        Two rules followed throughout, as before:
+
+        1. Every child repeats its group. A parent's groups do not cascade in Odoo, so a
+           child left ungated is reachable by anyone who can see the app at all.
+        2. The executive's tree is FLAT and the managers' are grouped. Five items a person
+           uses every hour should be one tap, not two.
+    -->
+
+    <menuitem id="menu_fieldwork_root" name="Field Work" sequence="15"
+              web_icon="lab_fieldwork,static/description/icon.png"
+              groups="lab_fieldwork.group_fieldwork_executive,lab_fieldwork.group_fieldwork_manager"/>
+
+    <!-- ==================================================================
+         EXECUTIVE — the whole application, flat. No submenus.
+         ================================================================== -->
+    <menuitem id="menu_fw_my_day" name="My Day"
+              parent="menu_fieldwork_root" sequence="1"
+              action="action_my_day"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <!-- The day, signed off: what was assembled for them, what came back and
+         why, and the submit button when auto-submit is off. -->
+    <menuitem id="menu_fw_my_sheets" name="My Day Sheets"
+              parent="menu_fieldwork_root" sequence="5"
+              action="action_daily_update_my"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <menuitem id="menu_fw_my_visits" name="My Visits"
+              parent="menu_fieldwork_root" sequence="10"
+              action="action_visit_my"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <menuitem id="menu_fw_my_cases" name="My Cases"
+              parent="menu_fieldwork_root" sequence="15"
+              action="action_case_my"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <menuitem id="menu_fw_my_travel" name="My Travel"
+              parent="menu_fieldwork_root" sequence="20"
+              action="action_trip_my"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <menuitem id="menu_fw_my_cash" name="My Cash"
+              parent="menu_fieldwork_root" sequence="30"
+              action="action_my_cash"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <menuitem id="menu_fw_my_target" name="My Target"
+              parent="menu_fieldwork_root" sequence="40"
+              action="action_target_my"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <!-- The doors this round opened. -->
+    <record id="action_new_clinics" model="ir.actions.client">
+        <field name="name">New Clinics</field>
+        <field name="tag">lab_new_clinics</field>
+    </record>
+
+    <menuitem id="menu_fw_new_clinics" name="My New Clinics"
+              parent="menu_fieldwork_root" sequence="45"
+              action="action_new_clinics"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <!-- ==================================================================
+         EACH DESK'S OWN SCREEN — first item on its owner's menu. Fresh
+         xmlids on purpose: a reused id would drag the old menu's stale group
+         links along (menuitem groups are Command.link, never a replace).
+         ================================================================== -->
+    <menuitem id="menu_fw_ops_desk" name="Ops Desk"
+              parent="menu_fieldwork_root" sequence="1"
+              action="action_ops_desk"
+              groups="lab_fieldwork.group_fieldwork_ops_manager"/>
+
+    <menuitem id="menu_fw_marketing_desk" name="Marketing Desk"
+              parent="menu_fieldwork_root" sequence="1"
+              action="action_marketing_desk"
+              groups="lab_fieldwork.group_fieldwork_marketing_manager"/>
+
+    <menuitem id="menu_fw_admin_desk" name="Command Center"
+              parent="menu_fieldwork_root" sequence="2"
+              action="action_admin_desk"
+              groups="lab_fieldwork.group_fieldwork_admin"/>
+
+    <!-- ==================================================================
+         APPROVALS — the two desks side by side, each seeing its own queue.
+         The parent is shared so the section exists for both; the children
+         are what make the desks different.
+         ================================================================== -->
+    <menuitem id="menu_fw_approvals" name="Approvals" sequence="5"
+              parent="menu_fieldwork_root"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_fw_approvals_daily" name="Daily Updates"
+              parent="menu_fw_approvals" sequence="10"
+              action="action_daily_update_ops"
+              groups="lab_fieldwork.group_fieldwork_ops_manager"/>
+
+    <menuitem id="menu_fw_approvals_activities" name="Activities"
+              parent="menu_fw_approvals" sequence="15"
+              action="action_daily_update_marketing"
+              groups="lab_fieldwork.group_fieldwork_marketing_manager"/>
+
+    <!-- Travel money is an operational question - it rides the same desk as the
+         daily updates. Same xmlid as before the split, so bookmarks survive.
+
+         The leading `-` is load-bearing on every menu that EXISTED before the
+         split: menuitem applies its groups with Command.link, so the old
+         base-manager link survives an upgrade and the marketing desk would keep
+         seeing an operational menu it never should. Unlinking the base group
+         explicitly is the only way to narrow an existing menu. Harmless on a
+         fresh install, where there is no such link to remove. -->
+    <menuitem id="menu_fw_ops_approvals" name="Travel"
+              parent="menu_fw_approvals" sequence="20" action="action_trip_approve"
+              groups="-lab_fieldwork.group_fieldwork_manager,lab_fieldwork.group_fieldwork_ops_manager"/>
+
+    <menuitem id="menu_fw_approvals_all" name="All Day Sheets"
+              parent="menu_fw_approvals" sequence="30"
+              action="action_daily_update_all"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <!-- ==================================================================
+         OPERATIONS — the team's records, shared; the cash, operational.
+         ================================================================== -->
+    <menuitem id="menu_fw_ops" name="Operations" sequence="10"
+              parent="menu_fieldwork_root"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_fw_ops_visits" name="Visits"
+              parent="menu_fw_ops" sequence="10" action="action_visit_all"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_fw_ops_cases" name="Case Slips"
+              parent="menu_fw_ops" sequence="15" action="action_case_all"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_fw_ops_cash" name="Field Cash"
+              parent="menu_fw_ops" sequence="30" action="action_field_cash"
+              groups="-lab_fieldwork.group_fieldwork_manager,lab_fieldwork.group_fieldwork_ops_manager"/>
+
+    <!-- ==================================================================
+         PLANNING — beats and targets are the operational desk's levers; the
+         clinic book is shared; the new doors belong to marketing.
+         ================================================================== -->
+    <menuitem id="menu_fw_plan" name="Planning" sequence="20"
+              parent="menu_fieldwork_root"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_fw_plan_beats" name="Beats"
+              parent="menu_fw_plan" sequence="10" action="action_beat"
+              groups="-lab_fieldwork.group_fieldwork_manager,lab_fieldwork.group_fieldwork_ops_manager"/>
+
+    <menuitem id="menu_fw_plan_targets" name="Targets"
+              parent="menu_fw_plan" sequence="20" action="action_target_all"
+              groups="-lab_fieldwork.group_fieldwork_manager,lab_fieldwork.group_fieldwork_ops_manager"/>
+
+    <menuitem id="menu_fw_plan_clinics" name="Clinics"
+              parent="menu_fw_plan" sequence="30" action="action_clinics"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <!-- The company's new doors: marketing's own scoreboard. -->
+    <menuitem id="menu_fw_plan_new_clinics" name="New Clinics"
+              parent="menu_fw_plan" sequence="35" action="action_new_clinics"
+              groups="-lab_fieldwork.group_fieldwork_manager,lab_fieldwork.group_fieldwork_marketing_manager"/>
+
+    <!-- ==================================================================
+         ANALYSIS — how it is going. Both desks read the same truth.
+         ================================================================== -->
+    <menuitem id="menu_fw_analyse" name="Analysis" sequence="30"
+              parent="menu_fieldwork_root"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_fw_perf" name="Executive Performance"
+              parent="menu_fw_analyse" sequence="10" action="action_performance"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_fw_perf_team" name="Team Performance"
+              parent="menu_fw_analyse" sequence="20" action="action_performance_team"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_fw_coverage" name="Clinic Coverage"
+              parent="menu_fw_analyse" sequence="30" action="action_coverage"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <!-- ==================================================================
+         ADMINISTRATOR — the rules, and the record of whether the split is
+         working: the Command Center above, and the weekly report both desks
+         feed.
+         ================================================================== -->
+    <menuitem id="menu_fw_weekly" name="Weekly Reports"
+              parent="menu_fieldwork_root" sequence="3"
+              action="action_weekly_report"
+              groups="lab_fieldwork.group_fieldwork_admin"/>
+
+    <menuitem id="menu_fw_config" name="Configuration" sequence="90"
+              parent="menu_fieldwork_root"
+              groups="lab_fieldwork.group_fieldwork_admin"/>
+
+    <menuitem id="menu_fw_config_settings" name="Settings"
+              parent="menu_fw_config" sequence="10"
+              action="action_fieldwork_settings_own"
+              groups="lab_fieldwork.group_fieldwork_admin"/>
+
+    <menuitem id="menu_fw_config_people" name="Field Roles"
+              parent="menu_fw_config" sequence="20"
+              action="action_fieldwork_users"
+              groups="lab_fieldwork.group_fieldwork_admin"/>
+</odoo>

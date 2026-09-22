@@ -1,0 +1,23 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_account_user,account read,model_epg_whatsapp_account,group_whatsapp_user,1,0,0,0
+access_account_admin,account admin,model_epg_whatsapp_account,group_whatsapp_admin,1,1,1,1
+access_template_user,template read,model_epg_whatsapp_template,group_whatsapp_user,1,0,0,0
+access_template_admin,template admin,model_epg_whatsapp_template,group_whatsapp_admin,1,1,1,1
+access_message_user,message user,model_epg_whatsapp_message,group_whatsapp_user,1,1,1,0
+access_message_admin,message admin,model_epg_whatsapp_message,group_whatsapp_admin,1,1,1,1
+access_message_read_everyone,message read (everyone),model_epg_whatsapp_message,base.group_user,1,0,0,0
+access_composer_user,composer,model_epg_whatsapp_composer,group_whatsapp_user,1,1,1,1
+access_conversation_user,conversation user,model_epg_whatsapp_conversation,group_whatsapp_user,1,1,1,0
+access_conversation_admin,conversation admin,model_epg_whatsapp_conversation,group_whatsapp_admin,1,1,1,1
+access_desk_user,desk,model_epg_whatsapp_desk,group_whatsapp_user,1,0,0,0
+access_campaign_user,campaign user,model_epg_whatsapp_campaign,group_whatsapp_user,1,1,1,0
+access_campaign_admin,campaign admin,model_epg_whatsapp_campaign,group_whatsapp_admin,1,1,1,1
+access_snippet_user,snippet user,model_epg_whatsapp_snippet,group_whatsapp_user,1,0,0,0
+access_snippet_admin,snippet admin,model_epg_whatsapp_snippet,group_whatsapp_admin,1,1,1,1
+access_chat_import_user,chat import,model_epg_whatsapp_chat_import,group_whatsapp_user,1,1,1,1
+access_audience_user,audience user,model_epg_whatsapp_audience,group_whatsapp_user,1,1,1,0
+access_audience_admin,audience admin,model_epg_whatsapp_audience,group_whatsapp_admin,1,1,1,1
+access_idea_user,idea user,model_epg_whatsapp_idea,group_whatsapp_user,1,0,0,0
+access_idea_admin,idea admin,model_epg_whatsapp_idea,group_whatsapp_admin,1,1,1,1
+access_automation_user,automation user,model_epg_whatsapp_automation,group_whatsapp_user,1,0,0,0
+access_automation_admin,automation admin,model_epg_whatsapp_automation,group_whatsapp_admin,1,1,1,1

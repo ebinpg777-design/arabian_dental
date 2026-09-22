@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_my_day" model="ir.actions.client">
+        <field name="name">My Day</field>
+        <field name="tag">lab_my_day</field>
+    </record>
+</odoo>

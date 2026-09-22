@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- noupdate: without it every module upgrade rewrites number_next back to 1,
+         so the counters restart and hand out references that already exist —
+         two different records end up sharing e.g. PC/TRX/26/08/0004. -->
+    <data noupdate="1">
+    <record id="sequence_petty_cash_allocation" model="ir.sequence">
+        <field name="name">Petty Cash Allocation</field>
+        <field name="code">petty.cash.allocation.sequence</field>
+        <field name="active">TRUE</field>
+        <field name="prefix">PC/ALLOC/%(y)s/%(month)s/</field>
+        <field name="padding">4</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+    <record id="sequence_petty_cash_transaction" model="ir.sequence">
+        <field name="name">Petty Cash Transaction</field>
+        <field name="code">petty.cash.transaction.sequence</field>
+        <field name="active">TRUE</field>
+        <field name="prefix">PC/TRX/%(y)s/%(month)s/</field>
+        <field name="padding">4</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+    <record id="sequence_petty_cash_expense" model="ir.sequence">
+        <field name="name">Petty Cash Expense</field>
+        <field name="code">petty.cash.expense.sequence</field>
+        <field name="active">TRUE</field>
+        <field name="prefix">PC/EXP/%(y)s/%(month)s/</field>
+        <field name="padding">4</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+    </data>
+</odoo>

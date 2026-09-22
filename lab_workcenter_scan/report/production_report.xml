@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Borders are declared on the cells themselves rather than left to Bootstrap's
+        table classes: wkhtmltopdf renders `table-bordered` as hairlines that appear
+        and disappear between rows, which reads as a printing fault.
+    -->
+    <template id="report_production_summary_document">
+        <t t-call="web.external_layout">
+            <t t-set="data" t-value="summary[doc.id]"/>
+            <div class="page" style="font-size:12px;">
+                <h2 style="margin-bottom:0;">Production Summary</h2>
+                <div style="color:#555;margin-bottom:14px;">
+                    <span t-esc="doc.date_from" t-options="{'widget': 'date'}"/>
+                    to
+                    <span t-esc="doc.date_to" t-options="{'widget': 'date'}"/>
+                    <t t-if="doc.workcenter_ids">
+                        · <t t-esc="', '.join(doc.workcenter_ids.mapped('display_name'))"/>
+                    </t>
+                    <t t-if="doc.user_ids">
+                        · <t t-esc="', '.join(doc.user_ids.mapped('name'))"/>
+                    </t>
+                </div>
+
+                <!-- The headline. Waiting sits beside hands-on on purpose: read alone,
+                     a small hands-on figure looks like a slow bench when it is usually
+                     a queue nobody handed out. -->
+                <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+                    <tr>
+                        <td style="border:1px solid #ddd;padding:8px;width:25%;">
+                            <div style="color:#666;font-size:10px;text-transform:uppercase;">Jobs handed on</div>
+                            <div style="font-size:20px;font-weight:bold;"
+                                 t-esc="data['totals']['jobs']"/>
+                        </td>
+                        <td style="border:1px solid #ddd;padding:8px;width:25%;">
+                            <div style="color:#666;font-size:10px;text-transform:uppercase;">Average waiting</div>
+                            <div style="font-size:20px;font-weight:bold;">
+                                <t t-esc="data['totals']['waiting_hours']"/> h
+                            </div>
+                        </td>
+                        <td style="border:1px solid #ddd;padding:8px;width:25%;">
+                            <div style="color:#666;font-size:10px;text-transform:uppercase;">Average on the bench</div>
+                            <div style="font-size:20px;font-weight:bold;">
+                                <t t-esc="data['totals']['working_hours']"/> h
+                            </div>
+                        </td>
+                        <td style="border:1px solid #ddd;padding:8px;width:25%;">
+                            <div style="color:#666;font-size:10px;text-transform:uppercase;">Average hands-on</div>
+                            <div style="font-size:20px;font-weight:bold;">
+                                <t t-esc="data['totals']['clocked_minutes']"/> min
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <t t-if="data['slowest']">
+                    <div style="border-left:3px solid #b45309;background:#fdf6ec;padding:8px 10px;margin-bottom:16px;">
+                        <b>Slowest step:</b>
+                        &#160;<t t-esc="data['slowest']['name']"/> —
+                        <t t-esc="data['slowest']['total_hours']"/> h from arriving at the
+                        bench to being handed on, of which
+                        <t t-esc="data['slowest']['waiting_hours']"/> h was spent waiting
+                        to be picked up.
+                    </div>
+                </t>
+
+                <h4 style="margin-bottom:4px;">By station</h4>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
+                    <thead>
+                        <tr style="background:#f2f2f2;">
+                            <th style="border:1px solid #ddd;padding:5px;text-align:left;">Station</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Jobs</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Waiting (h)</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">On the bench (h)</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Total (h)</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Hands-on (min)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="data['stations']" t-as="row">
+                            <td style="border:1px solid #ddd;padding:5px;" t-esc="row['name']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['jobs']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['waiting_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['working_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['total_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['clocked_minutes']"/>
+                        </tr>
+                        <tr t-if="not data['stations']">
+                            <td colspan="6" style="border:1px solid #ddd;padding:8px;color:#777;">
+                                Nothing was handed on in this period. Figures appear once the
+                                floor is accepting and handing over jobs on the station board.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4 style="margin-bottom:4px;">By technician</h4>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
+                    <thead>
+                        <tr style="background:#f2f2f2;">
+                            <th style="border:1px solid #ddd;padding:5px;text-align:left;">Technician</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Jobs finished</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Hands-on (min/job)</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">On the bench (h/job)</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Waiting before start (h)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="data['people']" t-as="row">
+                            <td style="border:1px solid #ddd;padding:5px;" t-esc="row['name']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['jobs']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['clocked_minutes']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['working_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['waiting_hours']"/>
+                        </tr>
+                        <tr t-if="not data['people']">
+                            <td colspan="5" style="border:1px solid #ddd;padding:8px;color:#777;">
+                                No job in this period had a technician's name on it. Give work
+                                out on the station board and these lines fill themselves in.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="color:#777;font-size:10px;margin-top:-12px;margin-bottom:16px;">
+                    Hands-on is what the timers recorded between starting and finishing.
+                    Read it beside the waiting column: a bench with a long queue and a
+                    short hands-on time is not slow, it is under-fed.
+                </div>
+
+                <!-- A period report that counts only finished work flatters a floor
+                     that is quietly filling up. -->
+                <h4 style="margin-bottom:4px;">
+                    Still open right now
+                    <span style="font-weight:normal;color:#666;">
+                        — <t t-esc="data['open_total']"/> jobs on the floor as this was printed
+                    </span>
+                </h4>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+                    <thead>
+                        <tr style="background:#f2f2f2;">
+                            <th style="border:1px solid #ddd;padding:5px;text-align:left;">Station</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Open jobs</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Average wait so far (h)</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Longest wait (h)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="data['open_rows']" t-as="row">
+                            <td style="border:1px solid #ddd;padding:5px;" t-esc="row['name']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['jobs']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['avg_waiting']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['worst_waiting']"/>
+                        </tr>
+                        <tr t-if="not data['open_rows']">
+                            <td colspan="4" style="border:1px solid #ddd;padding:8px;color:#777;">
+                                Nothing is open. Every job has been handed on.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <t t-if="data['oldest']">
+                    <h4 style="margin-bottom:4px;">The jobs to chase first</h4>
+                    <table style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:#f2f2f2;">
+                                <th style="border:1px solid #ddd;padding:5px;text-align:right;">Waiting (h)</th>
+                                <th style="border:1px solid #ddd;padding:5px;text-align:left;">Patient</th>
+                                <th style="border:1px solid #ddd;padding:5px;text-align:left;">Order</th>
+                                <th style="border:1px solid #ddd;padding:5px;text-align:left;">Station</th>
+                                <th style="border:1px solid #ddd;padding:5px;text-align:left;">Operation</th>
+                                <th style="border:1px solid #ddd;padding:5px;text-align:left;">With</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="data['oldest']" t-as="row">
+                                <td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:bold;"
+                                    t-esc="int(row.waiting_hours or 0)"/>
+                                <td style="border:1px solid #ddd;padding:5px;"
+                                    t-esc="row.patient or row.production_id.name"/>
+                                <td style="border:1px solid #ddd;padding:5px;"
+                                    t-esc="row.sale_id.name or ''"/>
+                                <td style="border:1px solid #ddd;padding:5px;"
+                                    t-esc="row.workcenter_id.display_name"/>
+                                <td style="border:1px solid #ddd;padding:5px;"
+                                    t-esc="row.workorder_name"/>
+                                <td style="border:1px solid #ddd;padding:5px;"
+                                    t-esc="row.bench_user_id.name or 'no technician yet'"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_production_summary">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="lab_workcenter_scan.report_production_summary_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!--
+        The hand-out sheet. This is a work list, not a report: one page per technician,
+        oldest job first, with room to tick things off in pen. It exists because a bench
+        without a tablet still needs to know what it is holding.
+    -->
+    <template id="report_production_handout_document">
+        <t t-set="blocks_for" t-value="blocks[doc.id]"/>
+        <t t-foreach="blocks_for" t-as="block">
+            <!--
+                external_layout is not decoration here. Odoo finds the body of a report
+                by looking for a div.article, which is what this layout supplies; without
+                it the renderer falls back to serialising the raw nodes and skips the
+                wrapper carrying <meta charset>. wkhtmltopdf then reads the UTF-8 as
+                latin-1 and every bullet and tick box prints as mojibake.
+            -->
+            <t t-call="web.external_layout">
+            <div class="page" style="font-size:12px;">
+                <!-- Floats rather than a table: the report stylesheet draws borders on
+                     every table cell, so a table used purely for layout prints a box
+                     around the technician's name that reads as a printing fault. -->
+                <div style="overflow:hidden;margin-bottom:10px;">
+                    <div style="float:left;">
+                        <h2 style="margin:0;" t-esc="block['user'].name"/>
+                        <div style="color:#555;">
+                            Work in hand ·
+                            <t t-esc="len(block['jobs'])"/> of
+                            <t t-esc="block['total']"/> jobs
+                        </div>
+                    </div>
+                    <div style="float:right;text-align:right;color:#555;">
+                        Printed
+                        <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                    </div>
+                </div>
+
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#f2f2f2;">
+                            <th style="border:1px solid #ddd;padding:5px;width:28px;"/>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:left;">Job</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:left;">Patient</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:left;">Order</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:left;">Appliance</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:left;">Operation</th>
+                            <th style="border:1px solid #ddd;padding:5px;text-align:right;">Waiting</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="block['jobs']" t-as="job">
+                            <!-- Somewhere to put a pencil tick. The board is the record;
+                                 this is how a bench keeps its place until it reaches one. -->
+                            <td style="border:1px solid #ddd;padding:5px;text-align:center;">
+                                <span style="display:inline-block;width:11px;height:11px;border:1px solid #999;"/>
+                            </td>
+                            <td style="border:1px solid #ddd;padding:5px;font-family:monospace;"
+                                t-esc="job.production_id.name"/>
+                            <td style="border:1px solid #ddd;padding:5px;"
+                                t-esc="job.sale_id.patient or ''"/>
+                            <td style="border:1px solid #ddd;padding:5px;font-family:monospace;"
+                                t-esc="job.sale_id.name or ''"/>
+                            <td style="border:1px solid #ddd;padding:5px;">
+                                <t t-esc="job.production_id.product_id.display_name"/>
+                                <t t-if="job.color_scheme"> · <t t-esc="job.color_scheme"/></t>
+                                <t t-if="job.ul"> · <t t-esc="job.ul"/></t>
+                            </td>
+                            <td style="border:1px solid #ddd;padding:5px;" t-esc="job.name"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;">
+                                <t t-if="job.create_date">
+                                    <t t-esc="int((datetime.datetime.now() - job.create_date).total_seconds() // 3600)"/> h
+                                </t>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top:8px;color:#777;font-size:10px;">
+                    Ticking this sheet does not move anything. Scan the job card at the
+                    station board when the work is done, or the next bench never learns
+                    it is coming.
+                </div>
+            </div>
+            </t>
+        </t>
+        <t t-if="not blocks_for">
+            <t t-call="web.external_layout">
+                <div class="page" style="font-size:12px;">
+                    <h3>Nothing to hand out</h3>
+                    <p style="color:#555;">
+                        No open job at these stations has a technician's name on it yet.
+                        Give work out on the station board first — a hand-out sheet is a
+                        printed copy of what the board already knows.
+                    </p>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_production_handout">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="lab_workcenter_scan.report_production_handout_document"/>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_production_summary" model="ir.actions.report">
+        <field name="name">Production Summary</field>
+        <field name="model">lab.production.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_production_summary</field>
+        <field name="report_file">lab_workcenter_scan.report_production_summary</field>
+        <field name="print_report_name">'Production Summary - %s to %s' % (object.date_from, object.date_to)</field>
+    </record>
+
+    <record id="action_report_production_handout" model="ir.actions.report">
+        <field name="name">Hand-out Sheets</field>
+        <field name="model">lab.production.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_production_handout</field>
+        <field name="report_file">lab_workcenter_scan.report_production_handout</field>
+        <field name="print_report_name">'Hand-out Sheets'</field>
+    </record>
+
+</odoo>

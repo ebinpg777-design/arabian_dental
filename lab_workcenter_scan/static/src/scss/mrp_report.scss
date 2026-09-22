@@ -1,0 +1,645 @@
+// Production, by week and by person.
+// SCSS variables only — Odoo 19's backend defines no --bs-* custom properties.
+$mr-accent: #1f6f8b;
+$mr-warm:   #b45309;
+// The ageing ladder, green through red. Four steps, not a gradient: the bands are
+// categories a lead acts on differently, not a continuum.
+$mr-age-fresh: #15803d;
+$mr-age-week:  #65a30d;
+$mr-age-month: #d97706;
+$mr-age-old:   #b91c1c;
+
+.o_mr {
+    padding: 1rem; max-width: 1400px; margin: 0 auto;
+
+    .o_mr_head { display: flex; align-items: flex-start; justify-content: space-between;
+                 gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .o_mr_eyebrow { font-size: .8125rem; color: $o-gray-600; }
+    .o_mr_title { margin: 0; font-size: 1.5rem; font-weight: 700; color: $o-gray-900; }
+
+    // Two halves. The switch is a segmented control rather than pills, so it does not
+    // read as the hub's own tab strip sitting directly above it.
+    .o_mr_halves {
+        display: inline-flex; border: 1px solid $border-color; border-radius: .625rem;
+        overflow: hidden; background: $body-bg;
+    }
+    .o_mr_half {
+        border: 0; background: transparent; color: $o-gray-700; font-weight: 600;
+        font-size: .875rem; padding: 0 .9rem; min-height: 40px;
+        &:hover { background: $o-gray-100; }
+        & + & { border-left: 1px solid $border-color; }
+    }
+    .o_mr_half_on {
+        background: $mr-accent; color: #fff;
+        &:hover { background: $mr-accent; }
+    }
+
+    .o_mr_range { display: flex; gap: .25rem; }
+    .o_mr_rangebtn {
+        min-height: 40px; padding: 0 .75rem; border: 1px solid $border-color;
+        border-radius: .5rem; background: $body-bg; font-weight: 600;
+        color: $o-gray-700;
+        &.o_mr_rangebtn_on { background: $mr-accent; border-color: $mr-accent; color: #fff; }
+    }
+
+    // Said, not implied: an empty chart reads as "the lab did nothing".
+    .o_mr_notice {
+        display: flex; align-items: flex-start; gap: .25rem;
+        border: 1px dashed rgba($mr-warm, .5); background: rgba($mr-warm, .07);
+        color: darken($mr-warm, 6%); border-radius: .625rem;
+        padding: .75rem .875rem; margin-bottom: 1rem; font-size: .9375rem;
+    }
+
+    .o_mr_cards { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .o_mr_card { flex: 1 1 9rem; border: 1px solid $border-color; border-radius: .75rem;
+                 background: $body-bg; padding: .75rem 1rem; }
+    .o_mr_v { font-size: 1.75rem; font-weight: 700; color: $o-gray-900; line-height: 1.1;
+              font-variant-numeric: tabular-nums; }
+    .o_mr_l { font-size: .8125rem; color: $o-gray-600; }
+    .o_mr_sub { font-size: .8125rem; color: $o-gray-600; }
+    // A station name is a card value too, but it is words, not a figure.
+    .o_mr_v_sm { font-size: 1.0625rem; line-height: 1.25; }
+    .o_mr_card_click {
+        cursor: pointer;
+        &:hover { border-color: $mr-accent; box-shadow: 0 .125rem .5rem rgba($mr-accent, .15); }
+    }
+    .o_mr_card_warn { border-color: rgba($mr-age-old, .45); background: rgba($mr-age-old, .04); }
+    .o_mr_hot { color: $mr-age-old; }
+
+    .o_mr_panel { border: 1px solid $border-color; border-radius: .75rem;
+                  background: $body-bg; padding: .875rem 1rem; margin-bottom: 1rem; }
+    .o_mr_panel_h { font-weight: 700; color: $o-gray-900; margin-bottom: .75rem; }
+    .o_mr_empty { color: $o-gray-600; }
+    .o_mr_note { margin-top: .625rem; font-size: .8125rem; color: $o-gray-600; }
+
+    .o_mr_weeks { display: flex; gap: .5rem; align-items: flex-end; }
+    .o_mr_week { flex: 1; text-align: center; cursor: pointer;
+                 &:hover .o_mr_wfill { background: darken($mr-accent, 8%); } }
+    .o_mr_wwrap { height: 110px; display: flex; align-items: flex-end; }
+    .o_mr_wfill { width: 100%; background: rgba($mr-accent, .7); min-height: 2px;
+                  border-radius: .25rem .25rem 0 0; }
+    .o_mr_wn { font-weight: 700; font-size: .875rem; font-variant-numeric: tabular-nums; }
+    .o_mr_wl { font-size: .75rem; color: $o-gray-600; white-space: nowrap; }
+
+    .o_mr_tbl {
+        width: 100%; border-collapse: collapse;
+        th { text-align: left; font-size: .75rem; text-transform: uppercase;
+             letter-spacing: .04em; color: $o-gray-600; padding: .25rem .5rem;
+             border-bottom: 1px solid $border-color; }
+        td { padding: .5rem; border-bottom: 1px solid $border-color;
+             vertical-align: middle; }
+        tbody tr { cursor: pointer; &:hover td { background: $o-gray-100; } }
+    }
+    .o_mr_num { text-align: right; font-variant-numeric: tabular-nums;
+                white-space: nowrap; }
+    .o_mr_strong { font-weight: 700; color: $o-gray-900; }
+    .o_mr_soft { color: $mr-warm; }
+    .o_mr_person { font-weight: 600; color: $o-gray-900; }
+    .o_mr_pbar { height: 6px; background: $o-gray-200; border-radius: 999px;
+                 overflow: hidden; margin-top: .25rem; max-width: 15rem; }
+    .o_mr_pfill { height: 100%; background: $mr-accent; }
+
+    // --------------------------------------------------------------- ageing ladder
+    // One bar, four bands: the SHAPE of the backlog is the point. Four separate
+    // numbers make the reader do the division themselves.
+    .o_mr_ageband {
+        display: flex; height: 26px; border-radius: .5rem; overflow: hidden;
+        background: $o-gray-200;
+    }
+    .o_mr_ageseg {
+        display: flex; align-items: center; justify-content: center; cursor: pointer;
+        color: #fff; font-size: .6875rem; font-weight: 700; min-width: 0;
+        transition: filter .12s ease;
+        &:hover { filter: brightness(1.12); }
+    }
+    .o_mr_age_fresh { background: $mr-age-fresh; }
+    .o_mr_age_week  { background: $mr-age-week; }
+    .o_mr_age_month { background: $mr-age-month; }
+    .o_mr_age_old   { background: $mr-age-old; }
+
+    .o_mr_agelegend { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .625rem; }
+    .o_mr_agekey {
+        display: inline-flex; align-items: center; gap: .375rem; border: 0;
+        background: none; font-size: .8125rem; color: $o-gray-700; min-height: 32px;
+        padding: 0;
+        b { color: $o-gray-900; font-variant-numeric: tabular-nums; }
+        &:disabled { opacity: .45; }
+        &:not(:disabled):hover { color: $o-gray-900; text-decoration: underline; }
+    }
+    .o_mr_agedot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+    // --------------------------------------------------------------- pace
+    .o_mr_pacebar {
+        display: flex; height: 20px; border-radius: .5rem; overflow: hidden;
+        background: $o-gray-200;
+    }
+    .o_mr_pace_under { background: $mr-age-fresh; }
+    .o_mr_pace_over  { background: $mr-warm; }
+
+    .o_mr_station { display: flex; align-items: center; gap: .75rem; min-height: 36px; }
+    .o_mr_station_click {
+        cursor: pointer; border-radius: .375rem; padding: .125rem .25rem;
+        margin: 0 -.25rem;
+        &:hover { background: $o-gray-100; }
+    }
+    .o_mr_sfill_warn { background: $mr-warm; }
+    .o_mr_sage { flex: 0 0 6rem; text-align: right; font-size: .75rem;
+                 color: $o-gray-600; white-space: nowrap; }
+    .o_mr_sname { flex: 0 0 12rem; font-weight: 600; font-size: .9375rem; }
+    .o_mr_sbar { flex: 1; height: 10px; background: $o-gray-200; border-radius: 999px;
+                 overflow: hidden; }
+    .o_mr_sfill { height: 100%; background: $mr-accent; }
+    .o_mr_sn { flex: 0 0 3rem; text-align: right; font-weight: 700;
+               font-variant-numeric: tabular-nums; }
+    .o_mr_sm { flex: 0 0 5rem; text-align: right; font-size: .8125rem;
+               color: $o-gray-600; }
+}
+
+@media (max-width: 767.98px) {
+    .o_mr {
+        padding: .75rem;
+        .o_mr_head { gap: .5rem; }
+        .o_mr_half { padding: 0 .7rem; font-size: .8125rem; }
+        .o_mr_card { flex: 1 1 7.5rem; padding: .625rem .75rem; }
+        .o_mr_v { font-size: 1.375rem; }
+        .o_mr_sname { flex: 0 0 7rem; font-size: .8125rem; }
+        .o_mr_sage { display: none; }
+        // A five-column table on a phone is a column of ellipses.
+        .o_mr_tbl th:nth-child(4), .o_mr_tbl td:nth-child(4) { display: none; }
+    }
+}
+
+// The board must scroll — its root carries `o_action`. (client, 2026-08-27)
+html .o_web_client > .o_action_manager > .o_action {
+    &.o_mr { overflow-y: auto; overflow-x: hidden; min-height: 0;
+             -webkit-overflow-scrolling: touch; }
+}
+
+// --------------------------------------------------- 2026-09-02 additions
+.o_mr {
+    .o_mr_card_good { border-color: rgba(15, 157, 88, .45);
+                      background: rgba(15, 157, 88, .06); }
+    .o_mr_copy {
+        align-self: center; border: 1px solid $border-color; background: #fff;
+        border-radius: .55rem; padding: .4rem .9rem; font-weight: 600;
+        cursor: pointer;
+        &:hover { background: $o-gray-100; }
+    }
+    // The remake overlay rides the same axis as the finished bar.
+    .o_mr_wwrap { position: relative; }
+    .o_mr_wredo {
+        position: absolute; bottom: 0; left: 15%; width: 70%;
+        background: rgba(220, 38, 38, .75); border-radius: 2px 2px 0 0;
+    }
+    .o_mr_wredo_n { font-size: .7rem; color: #b91c1c; font-weight: 700; }
+
+    .o_mr_activity .o_mr_wwrap_sm { height: 56px; display: flex; gap: 2px;
+                                    align-items: flex-end; justify-content: center; }
+    .o_mr_activity .o_mr_wfill { width: 8px; position: static; }
+    .o_mr_wfill_accept { background: #0d7c8a; }
+    .o_mr_wfill_handed { background: #7c3aed; }
+    .o_mr_week_off { opacity: .5; }
+    .o_mr_legend { font-size: .78rem; margin-top: .35rem;
+                   display: flex; align-items: center; gap: .4rem; }
+    .o_mr_dot { width: .65rem; height: .65rem; border-radius: .2rem;
+                display: inline-block; }
+    .o_mr_dot_accept { background: #0d7c8a; }
+    .o_mr_dot_handed { background: #7c3aed; }
+
+    .o_mr_flowlane { display: flex; align-items: center; padding: .4rem .2rem;
+                     border-bottom: 1px solid $border-color; font-size: .9rem;
+                     &:last-child { border-bottom: 0; } }
+    .o_mr_flowfrom, .o_mr_flowto { font-weight: 600; }
+
+    .o_mr_sparkcell { width: 90px; }
+    .o_mr_spark { width: 80px; height: 22px; display: block;
+                  polyline { fill: none; stroke: #0d7c8a; stroke-width: 2;
+                             vector-effect: non-scaling-stroke; } }
+}
+
+// ---------------------------------------------------------------------------
+// Against target: the heat strip. One cell per person per day - green met,
+// amber short, blue done with no target, grey nothing - with the day's fill
+// rising inside the cell, so a week reads as a shape and not a total.
+// (client, 2026-09-09)
+.o_mr {
+    .o_mr_tbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .35rem;
+        margin: .25rem 0 .75rem;
+    }
+    .o_mr_tstep { display: inline-flex; align-items: center; gap: .3rem; margin-left: .5rem; }
+    .o_mr_tperiod { font-size: .82rem; color: $o-gray-700; font-variant-numeric: tabular-nums; }
+
+    .o_mr_heat { display: flex; flex-direction: column; overflow-x: auto; }
+
+    .o_mr_heat_row {
+        display: grid;
+        grid-template-columns: minmax(11rem, 1.4fr) minmax(0, 4fr) 6rem 5rem 4.5rem 4.5rem;
+        align-items: center;
+        gap: .5rem;
+        padding: .3rem .25rem;
+        border-bottom: 1px solid $o-gray-200;
+        min-width: 44rem;
+    }
+
+    .o_mr_heat_head {
+        font-size: .66rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: $o-gray-600;
+        border-bottom: 1px solid $o-gray-300;
+    }
+
+    .o_mr_heat_days { display: flex; gap: .2rem; min-width: 0; }
+    .o_mr_heat_day {
+        flex: 1 1 0;
+        text-align: center;
+        font-size: .62rem;
+        color: $o-gray-600;
+        white-space: nowrap;
+        &.o_mr_heat_today { color: $o-gray-900; font-weight: 800; }
+        &.o_mr_heat_wknd { opacity: .6; }
+    }
+
+    .o_mr_heat_name { text-align: left; min-width: 0; }
+    .o_mr_link { border: 0; background: transparent; padding: 0; cursor: pointer; }
+    .o_mr_heat_pname { display: block; font-weight: 600; color: $o-gray-900; }
+    .o_mr_heat_pct { display: block; font-size: .72rem; color: $o-gray-600; }
+    .o_mr_good { color: #0b6b3a; font-weight: 700; }
+    .o_mr_warn { color: #b45309; font-weight: 700; }
+
+    .o_mr_cell {
+        position: relative;
+        flex: 1 1 0;
+        min-width: 1.6rem;
+        height: 2rem;
+        border: 0;
+        border-radius: .3rem;
+        padding: 0;
+        overflow: hidden;
+        background: $o-gray-200;
+        color: $o-gray-900;
+        font-size: .72rem;
+        font-weight: 700;
+        cursor: pointer;
+
+        .o_mr_cell_n { position: relative; z-index: 1; line-height: 2rem; }
+        .o_mr_cell_fill {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            background: rgba(15, 157, 88, .35);
+        }
+        &.o_mr_cell_met { background: rgba(15, 157, 88, .18); .o_mr_cell_fill { background: rgba(15, 157, 88, .45); } }
+        &.o_mr_cell_short { background: rgba(217, 155, 0, .16); .o_mr_cell_fill { background: rgba(217, 155, 0, .45); } }
+        &.o_mr_cell_free { background: rgba(14, 124, 134, .14); }
+        &.o_mr_cell_none { background: $o-gray-100; border: 1px solid $o-gray-200; cursor: default; }
+        &.o_mr_cell_future { background: transparent; border: 1px dashed $o-gray-300; cursor: default; }
+    }
+
+    .o_mr_heat_num { text-align: right; font-variant-numeric: tabular-nums; font-size: .85rem; }
+    .o_mr_streak { color: #c2410c; font-weight: 700; }
+    .o_mr_sfill_good { background: #0f9d58 !important; }
+
+    @media (max-width: 767px) {
+        .o_mr_heat_row { grid-template-columns: minmax(8rem, 1fr) minmax(0, 3fr) 5rem; min-width: 0; }
+        .o_mr_heat_num:nth-child(n+4) { display: none; }
+    }
+}
+
+// "N finished for others" under a name: part of their count, and said so.
+.o_mr .o_mr_psub { font-size: .72rem; color: $o-gray-600; }
+
+// ---------------------------------------------------------------------------
+// Right now, made actionable: capacity beside the queue, in against out, the
+// cases later than the lab's own standard, and a move tried on paper.
+// (client, 2026-09-10)
+.o_mr {
+    .o_mr_scap { flex: 0 0 6.5rem; text-align: right; font-size: .75rem; color: $o-gray-600;
+                 white-space: nowrap; }
+    .o_mr_sdays { flex: 0 0 5.5rem; text-align: right; font-weight: 700;
+                  font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.1; }
+    .o_mr_spacev { display: block; font-size: .68rem; font-weight: 400; color: $o-gray-600; }
+
+    .o_mr_link_btn { float: right; border: 0; background: transparent; color: #0e7c86;
+                     font-size: .8125rem; font-weight: 600; }
+    .o_mr_soft { color: $o-gray-600; }
+
+    @media (max-width: 767.98px) {
+        .o_mr_scap, .o_mr_spacev { display: none; }
+        .o_mr_sdays { flex: 0 0 3.5rem; font-size: .8125rem; }
+        .o_mr_what_name { flex: 1 1 100%; }
+    }
+}
+
+// ===========================================================================
+// CHARTS, not lists. A column of numbers makes the reader do the comparing;
+// a ring, a bar and a calendar do it for them. Everything here is SVG or
+// flexbox - no chart library, nothing to load. (client, 2026-09-10)
+// ===========================================================================
+.o_mr {
+    // --------------------------------------------------------------- donut
+    .o_mr_donutwrap {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .o_mr_donut {
+        flex: 0 0 auto;
+        width: 11rem;
+        height: 11rem;
+        transform: rotate(-90deg);       // start the first segment at twelve o'clock
+    }
+
+    .o_mr_donut_track { fill: none; stroke: $o-gray-200; stroke-width: 14; }
+
+    .o_mr_donut_seg {
+        fill: none;
+        stroke-width: 14;
+        cursor: pointer;
+        transition: stroke-width .12s ease;
+        &:hover { stroke-width: 17; }
+    }
+
+    // The two texts sit inside a rotated svg, so they are rotated back.
+    .o_mr_donut_n, .o_mr_donut_l {
+        transform: rotate(90deg);
+        transform-origin: 50px 50px;
+        text-anchor: middle;
+        fill: $o-gray-900;
+    }
+    .o_mr_donut_n { font-size: 15px; font-weight: 800; }
+    .o_mr_donut_l { font-size: 7px; fill: $o-gray-600; }
+
+    .o_mr_donut_legend, .o_mr_agelegend_col {
+        flex: 1 1 14rem;
+        display: flex;
+        flex-direction: column;
+        gap: .3rem;
+        margin-top: 0;
+    }
+    .o_mr_donut_key {
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        font-size: .82rem;
+        b { font-variant-numeric: tabular-nums; }
+    }
+    .o_mr_donut_kname { flex: 1 1 auto; min-width: 0; color: $o-gray-800;
+                        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    // A station palette: distinct, and calm enough to sit behind numbers.
+    .o_mr_c0 { stroke: #0e7c86; background: #0e7c86; }
+    .o_mr_c1 { stroke: #0f9d58; background: #0f9d58; }
+    .o_mr_c2 { stroke: #d99b00; background: #d99b00; }
+    .o_mr_c3 { stroke: #7c3aed; background: #7c3aed; }
+    .o_mr_c4 { stroke: #b45309; background: #b45309; }
+    .o_mr_c5 { stroke: #2563eb; background: #2563eb; }
+    .o_mr_c6 { stroke: #be185d; background: #be185d; }
+    .o_mr_c7 { stroke: #64748b; background: #64748b; }
+    // The age bands keep their own meaning-carrying colours in both roles.
+    circle.o_mr_age_fresh { stroke: $mr-age-fresh; }
+    circle.o_mr_age_week  { stroke: $mr-age-week; }
+    circle.o_mr_age_month { stroke: $mr-age-month; }
+    circle.o_mr_age_old   { stroke: $mr-age-old; }
+
+    // --------------------------------------------------------------- bench bars
+    .o_mr_sbar_tall { height: 18px; }
+    .o_mr_sfill_lbl {
+        display: block;
+        padding: 0 .4rem;
+        font-size: .68rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    .o_mr_bench_ok   { background: #0f9d58; }
+    .o_mr_bench_warn { background: #d99b00; }
+    .o_mr_bench_hot  { background: #b3261e; }
+    .o_mr_bench_none { background: repeating-linear-gradient(45deg, $o-gray-400,
+                        $o-gray-400 5px, $o-gray-300 5px, $o-gray-300 10px); }
+
+    // --------------------------------------------------------------- people bars
+    .o_mr_people { display: flex; flex-direction: column; }
+    .o_mr_people_head, .o_mr_people_row {
+        display: grid;
+        grid-template-columns: minmax(9rem, 1fr) minmax(0, 2.4fr) 6rem 6.5rem 6rem;
+        align-items: center;
+        gap: .6rem;
+        width: 100%;
+        text-align: left;
+    }
+    .o_mr_people_head {
+        font-size: .66rem; text-transform: uppercase; letter-spacing: .03em;
+        color: $o-gray-600; padding-bottom: .3rem; border-bottom: 1px solid $o-gray-300;
+    }
+    .o_mr_people_row {
+        border: 0; border-bottom: 1px solid $o-gray-200; background: transparent;
+        padding: .35rem .15rem; cursor: pointer;
+        &:hover { background: $o-gray-100; }
+    }
+    .o_mr_people_name { min-width: 0; }
+    .o_mr_people_bar {
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 16px;
+        border-radius: 999px;
+        background: $o-gray-200;
+        overflow: hidden;
+    }
+    .o_mr_people_own { height: 100%; background: $mr-accent; }
+    .o_mr_people_oth { height: 100%; background: #7c3aed; }
+    .o_mr_people_n { position: absolute; right: .4rem; font-size: .7rem; color: $o-gray-900; }
+
+    // --------------------------------------------------------------- daily target
+    .o_mr_daily { display: flex; align-items: flex-end; gap: .4rem; min-height: 9rem; }
+    .o_mr_daily_day { flex: 1 1 0; display: flex; flex-direction: column; align-items: center;
+                      min-width: 0; }
+    .o_mr_daily_future { opacity: .45; }
+    .o_mr_daily_wknd .o_mr_daily_l { opacity: .6; }
+    .o_mr_daily_pct { font-size: .68rem; font-weight: 700; min-height: 1em; }
+    .o_mr_daily_bars { display: flex; align-items: flex-end; justify-content: center;
+                       gap: 2px; height: 6.5rem; width: 100%; }
+    .o_mr_daily_t, .o_mr_daily_d { width: 40%; max-width: 20px; border-radius: .2rem .2rem 0 0; }
+    .o_mr_daily_t { background: $o-gray-300; }
+    .o_mr_daily_d { background: #d99b00; }
+    .o_mr_daily_met { background: #0f9d58; }
+    .o_mr_daily_l { font-size: .62rem; color: $o-gray-600; white-space: nowrap; }
+
+    .o_mr_pbar_sm { display: block; height: 3px; width: 4.5rem; margin-top: .15rem;
+                    border-radius: 2px; background: $o-gray-200; overflow: hidden; }
+    .o_mr_pfill_short { background: #d99b00; }
+
+    // legend dots
+    .o_mr_dot_bar { background: #0e7c86; }
+    .o_mr_dot_over { background: #b3261e; }
+    .o_mr_dot_mark { background: $o-gray-900; }
+    .o_mr_dot_own { background: $mr-accent; }
+    .o_mr_dot_oth { background: #7c3aed; }
+    .o_mr_dot_target { background: $o-gray-300; }
+    .o_mr_dot_done { background: #0f9d58; }
+
+    @media (max-width: 767.98px) {
+        .o_mr_donut { width: 8rem; height: 8rem; }
+        .o_mr_gantt_row { grid-template-columns: minmax(7rem, 1fr) minmax(0, 2fr); }
+        .o_mr_gantt_at { display: none; }
+        .o_mr_people_head, .o_mr_people_row { grid-template-columns: minmax(6rem, 1fr) minmax(0, 2fr); }
+        .o_mr_people_row > :nth-child(n+3), .o_mr_people_head > :nth-child(n+3) { display: none; }
+    }
+}
+
+// ===========================================================================
+// THE FLOOR AS DECISIONS. A promise clock, a bench radar, a rot matrix and the
+// doctors kept waiting - four questions, each with the drill that acts on it.
+// (client, 2026-09-10)
+// ===========================================================================
+.o_mr {
+    // --------------------------------------------------------- promise clock
+    .o_mr_clock {
+        display: flex;
+        gap: 3px;
+        height: 4.25rem;
+        border-radius: .5rem;
+        overflow: hidden;
+    }
+    .o_mr_clock_seg {
+        flex: 1 1 0;
+        min-width: 4.5rem;
+        border: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        cursor: pointer;
+        transition: filter .12s ease;
+        &:hover:not(:disabled) { filter: brightness(1.1); }
+        &:disabled { opacity: .5; cursor: default; }
+    }
+    .o_mr_clock_n { font-size: 1.35rem; font-weight: 800; line-height: 1.1;
+                    font-variant-numeric: tabular-nums; }
+    .o_mr_clock_l { font-size: .68rem; opacity: .95; }
+    .o_mr_clock_overdue  { background: #b3261e; }
+    .o_mr_clock_today    { background: #d99b00; }
+    .o_mr_clock_tomorrow { background: #0e7c86; }
+    .o_mr_clock_week     { background: #4b8b3b; }
+    .o_mr_clock_later    { background: #7c8b8f; }
+
+    // --------------------------------------------------------- bench radar
+    .o_mr_radar { display: flex; flex-direction: column; }
+    .o_mr_radar_row {
+        display: grid;
+        grid-template-columns: minmax(10rem, 2fr) 4.5rem 5rem 4.5rem 3.5rem 3.5rem minmax(7rem, 1.2fr) 5rem;
+        align-items: center;
+        gap: .5rem;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid $o-gray-200;
+        background: transparent;
+        padding: .35rem .25rem;
+        font-size: .875rem;
+        color: $o-gray-900;
+        &:hover { background: $o-gray-100; }
+    }
+    .o_mr_radar_head {
+        font-size: .66rem; text-transform: uppercase; letter-spacing: .03em;
+        color: $o-gray-600; border-bottom: 1px solid $o-gray-300;
+        &:hover { background: transparent; }
+    }
+    .o_mr_radar_name { font-weight: 600; min-width: 0; }
+    .o_mr_radar_floor { float: right; font-size: .8rem; color: $o-gray-700; font-weight: 400; }
+    .o_mr_tagred {
+        display: inline-block; margin-left: .35rem; padding: 0 .3rem;
+        border-radius: .25rem; background: rgba(179, 38, 30, .12); color: #b3261e;
+        font-size: .62rem; font-weight: 700; text-transform: uppercase;
+    }
+
+    // in minus out, as a bar that grows either side of the middle
+    .o_mr_netbar { position: relative; height: 1.15rem; background: $o-gray-100;
+                   border-radius: .25rem; }
+    .o_mr_netbar_mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+                       background: $o-gray-400; }
+    .o_mr_netbar_fill { position: absolute; top: 3px; bottom: 3px; border-radius: .2rem; }
+    .o_mr_netbar_up { background: rgba(179, 38, 30, .55); }
+    .o_mr_netbar_down { background: rgba(15, 157, 88, .55); }
+    .o_mr_netbar_n { position: absolute; right: .3rem; top: 0; font-size: .72rem;
+                     font-weight: 700; line-height: 1.15rem; }
+
+    // --------------------------------------------------------- rot matrix
+    .o_mr_matrix { display: flex; flex-direction: column; overflow-x: auto; }
+    .o_mr_matrix_row {
+        display: grid;
+        grid-template-columns: minmax(9rem, 1.6fr) repeat(4, minmax(4.5rem, 1fr)) 4rem;
+        gap: .25rem;
+        align-items: stretch;
+        min-width: 34rem;
+        padding: .15rem 0;
+    }
+    .o_mr_matrix_head {
+        font-size: .66rem; text-transform: uppercase; letter-spacing: .03em;
+        color: $o-gray-600; align-items: end; padding-bottom: .25rem;
+    }
+    .o_mr_matrix_name { font-size: .82rem; font-weight: 600; align-self: center;
+                        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_mr_matrix_cell { text-align: center; }
+    .o_mr_matrix_total { display: block; font-weight: 700; color: $o-gray-800; }
+    .o_mr_matrix_box {
+        border: 0;
+        border-radius: .3rem;
+        min-height: 2rem;
+        font-weight: 700;
+        font-size: .85rem;
+        font-variant-numeric: tabular-nums;
+        color: $o-gray-900;
+        // The square's weight in the grid: the eye lands on the worst one.
+        background: $o-gray-100;
+        &:disabled { opacity: .45; }
+        &:hover:not(:disabled) { outline: 2px solid $o-gray-500; }
+    }
+    .o_mr_heatmap_fresh { background: color-mix(in srgb, $mr-age-fresh var(--heat), $o-gray-100); }
+    .o_mr_heatmap_week  { background: color-mix(in srgb, $mr-age-week var(--heat), $o-gray-100); }
+    .o_mr_heatmap_month { background: color-mix(in srgb, $mr-age-month var(--heat), $o-gray-100); }
+    .o_mr_heatmap_old   { background: color-mix(in srgb, $mr-age-old var(--heat), $o-gray-100);
+                          color: #fff; }
+
+    // --------------------------------------------------------- doctors
+    .o_mr_docs { display: flex; flex-direction: column; }
+    .o_mr_docs_row {
+        display: grid;
+        grid-template-columns: minmax(12rem, 3fr) 4rem 6rem 5rem 6rem;
+        align-items: center;
+        gap: .5rem;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid $o-gray-200;
+        background: transparent;
+        padding: .35rem .25rem;
+        font-size: .875rem;
+        &:hover { background: $o-gray-100; }
+    }
+    .o_mr_docs_head {
+        font-size: .66rem; text-transform: uppercase; letter-spacing: .03em;
+        color: $o-gray-600; border-bottom: 1px solid $o-gray-300;
+        &:hover { background: transparent; }
+    }
+    .o_mr_docs_name { font-weight: 600; min-width: 0; overflow: hidden;
+                      text-overflow: ellipsis; white-space: nowrap; }
+
+    @media (max-width: 767.98px) {
+        .o_mr_radar_row { grid-template-columns: minmax(8rem, 2fr) 3.5rem 3.5rem 4.5rem; }
+        .o_mr_radar_row > :nth-child(n+5):nth-child(-n+7) { display: none; }
+        .o_mr_docs_row { grid-template-columns: minmax(8rem, 2fr) 3rem 4rem; }
+        .o_mr_docs_row > :nth-child(n+4) { display: none; }
+        .o_mr_clock_l { display: none; }
+    }
+}

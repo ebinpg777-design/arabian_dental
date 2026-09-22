@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- One privilege groups every Lab role together in Settings > Users. -->
+        <record id="privilege_lab_access" model="res.groups.privilege">
+            <field name="name">Lab Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="sequence">5</field>
+        </record>
+
+        <!--
+            Configuration manager.
+
+            Every Lab settings block used to be visible to anyone holding
+            base.group_system, which in a lab means the same handful of people who can
+            also change the geo-fence radius, the credit policy and the payment-approval
+            threshold. Those are business controls, not technical ones: the point of a
+            credit block is that the person it constrains cannot lift it. This group owns
+            them, and is deliberately NOT implied by group_system.
+        -->
+        <record id="group_lab_config_manager" model="res.groups">
+            <field name="name">Lab Configuration Manager</field>
+            <field name="privilege_id" ref="privilege_lab_access"/>
+            <field name="comment">Allowed to change the Lab policy settings: geo-fence
+                enforcement, order-verification requirement, credit-limit policy and the
+                payment-approval threshold.</field>
+        </record>
+
+    </data>
+</odoo>

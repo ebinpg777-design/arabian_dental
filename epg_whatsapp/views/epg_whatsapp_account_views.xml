@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.account.form</field>
+        <field name="model">epg.whatsapp.account</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_messages" type="object"
+                                class="oe_stat_button" icon="fa-whatsapp">
+                            <field name="message_count" widget="statinfo" string="Messages"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Simulation" bg_color="text-bg-warning"
+                            invisible="not simulation_mode or channel == 'link'"/>
+                    <widget name="web_ribbon" title="Free" bg_color="text-bg-success"
+                            invisible="channel != 'link'"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Lab main number"/></h1>
+                    </div>
+                    <!-- The choice that decides everything below, and the bill. -->
+                    <field name="channel" widget="radio" options="{'horizontal': true}"
+                           class="mb-2"/>
+                    <div class="alert alert-success" role="status" invisible="channel != 'link'">
+                        <b>Free: sent from your own WhatsApp.</b> Odoo writes every message and
+                        puts it on the <b>WhatsApp Desk</b>; somebody opens it in WhatsApp Web,
+                        the desktop app or on a phone, presses Send, and confirms. It is logged
+                        on the record's chatter. Documents go as a private link - Odoo sees when
+                        the doctor opens it - and quick replies come back the same way.
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="channel != 'link' or not link_problem">
+                        <i class="fa fa-chain-broken me-1" title="Links"/>
+                        <field name="link_problem" readonly="1" nolabel="1" class="oe_inline"/>
+                    </div>
+                    <group name="link" invisible="channel != 'link'">
+                        <group string="Sending">
+                            <field name="whatsapp_number" placeholder="+91 98470 12345"/>
+                            <field name="desk_user_id" options="{'no_create': True}"
+                                   placeholder="Everyone with WhatsApp rights"/>
+                            <field name="expire_hours"/>
+                        </group>
+                        <group string="Links and savings">
+                            <field name="link_base_url" placeholder="https://arabiandentallab.com"/>
+                            <field name="link_valid_days"/>
+                            <field name="api_cost_per_message"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <!-- The `name` attributes are load-bearing: view inheritance may not
+                         use `string` as a selector, so a group without one cannot be
+                         extended by another module. -->
+                    <group name="settings">
+                        <group name="api" string="Meta Cloud API" invisible="channel == 'link'">
+                            <field name="phone_number_id"/>
+                            <field name="business_account_id"/>
+                            <field name="access_token" password="True"
+                                   groups="base.group_system"/>
+                            <field name="api_version"/>
+                        </group>
+                        <group name="behaviour" string="Behaviour">
+                            <field name="simulation_mode" invisible="channel == 'link'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="status"
+                         invisible="not simulation_mode or channel == 'link'">
+                        <b>Nothing is being sent.</b> Every message is recorded exactly as
+                        it would go out, so templates and triggers can be tested against
+                        real records without messaging a single customer. Untick this only
+                        once the number is verified with Meta.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_account_list" model="ir.ui.view">
+        <field name="name">epg.whatsapp.account.list</field>
+        <field name="model">epg.whatsapp.account</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="channel" widget="badge"
+                       decoration-success="channel == 'link'" decoration-warning="channel == 'cloud_api'"/>
+                <field name="phone_number_id" optional="hide"/>
+                <field name="simulation_mode" widget="boolean_toggle" optional="hide"/>
+                <field name="message_count"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_account" model="ir.actions.act_window">
+        <field name="name">Senders</field>
+        <field name="res_model">epg.whatsapp.account</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Add the number you send from</p>
+            <p>Choose <b>WhatsApp app / Web</b> to send free from your own WhatsApp, or the
+               Meta Cloud API for fully automatic (paid) sending.</p>
+        </field>
+    </record>
+</odoo>

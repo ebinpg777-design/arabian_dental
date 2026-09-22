@@ -1,0 +1,6 @@
+<odoo>
+    <record id="action_petty_cash_dashboard_kpi" model="ir.actions.client">
+        <field name="name">Petty Cash Dashboard</field>
+        <field name="tag">petty_cash_dashboard</field>
+    </record>
+</odoo>

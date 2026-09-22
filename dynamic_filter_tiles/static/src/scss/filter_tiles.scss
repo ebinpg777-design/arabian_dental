@@ -1,0 +1,1397 @@
+// Dynamic Filter Tiles
+// ---------------------------------------------------------------------------
+// Everything is expressed against Bootstrap's CSS variables and the per-tile
+// `--dft-color`, so the ribbon follows the user's theme (light or dark) without
+// a second palette, and any CSS colour a manager types keeps working.
+//
+// Note the names: Odoo builds Bootstrap with an EMPTY variable prefix, so the
+// backend exposes `--danger` / `--body-bg` / `--border-color`, and *not* the
+// `--bs-*` names Bootstrap uses out of the box. A `--bs-` name here does not
+// error - it silently resolves to nothing, which takes the whole declaration
+// with it (an invalid `var()` makes the property unset, not defaulted).
+
+// The column the ribbon and the records share, inside `.o_content`.
+// It has to carry the sizing the renderer used to get from `.o_content`
+// itself: fill the row, be allowed to shrink (min-*: 0), and let the renderer
+// keep its own scrolling.
+.o_dft_layout {
+
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+
+    // Whatever the renderer is, it takes the space the ribbon leaves.
+    > :not(.o_dft_bar) {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+}
+
+.o_dft_bar {
+    // Never stretch: the ribbon is exactly as tall as its tiles, wherever it
+    // is dropped - including inside the row layout of a search-panel view.
+    flex: 0 0 auto;
+    align-self: stretch;
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 6px 8px 7px;
+    background-color: var(--body-bg);
+    border-bottom: 1px solid var(--border-color);
+
+    &.o_dft_bar_resizing {
+        user-select: none;
+
+        .o_dft_row_resize {
+            opacity: 1;
+        }
+    }
+
+    // The rows are stacked; each keeps its own scroll and its own height.
+    .o_dft_rows {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .o_dft_row {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    // The row caption: a narrow pane down the left of the row, reading normally
+    // and wrapping over two or three lines. It costs a fixed strip of width
+    // once, rather than a line of height on every row.
+    .o_dft_row_name {
+        position: relative;
+        flex: 0 0 78px;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+
+        // Deleting a row is rare and slightly destructive: it hides until the
+        // row is hovered, and sits out of the way of the name itself.
+        .o_dft_row_delete {
+            position: absolute;
+            top: -1px;
+            right: 0;
+            padding: 0 3px;
+            border: 0;
+            border-radius: 4px;
+            background: none;
+            font-size: 0.62rem;
+            line-height: 1.2;
+            color: var(--secondary-color);
+            opacity: 0;
+            transition: opacity 0.12s ease;
+
+            &:hover {
+                color: var(--danger);
+            }
+        }
+        font-size: 0.66rem;
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--secondary-color);
+
+        span,
+        textarea {
+            width: 100%;
+            // Never taller than the row it labels, and never the reason the row
+            // is that tall in the first place.
+            max-height: 100%;
+            min-height: 0;
+            padding: 2px 5px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            background: none;
+            font: inherit;
+            letter-spacing: inherit;
+            text-transform: inherit;
+            color: inherit;
+            overflow: hidden;
+            // Long words break rather than spill out of the pane.
+            overflow-wrap: anywhere;
+        }
+
+        textarea {
+            resize: none;
+
+            &::placeholder {
+                color: var(--secondary-color);
+                opacity: 0.4;
+            }
+
+            &:hover {
+                border-color: var(--border-color);
+            }
+
+            &:focus {
+                outline: none;
+                border-color: var(--primary);
+                background-color: var(--body-bg);
+            }
+        }
+    }
+
+    // Row height: set by dragging the bottom edge of that row, remembered per
+    // model and per row. `--dft-row-height` is only present once somebody has
+    // chosen one.
+    .o_dft_strip_sized {
+        height: var(--dft-row-height);
+    }
+
+    // The grab strip along the bottom edge of a row. Invisible until the bar is
+    // hovered, so it never reads as a second border.
+    .o_dft_row_resize {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -5px;
+        height: 9px;
+        cursor: ns-resize;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+        z-index: 1;
+
+        &::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 3px;
+            width: 40px;
+            height: 3px;
+            border-radius: 2px;
+            transform: translateX(-50%);
+            background-color: var(--secondary-color);
+        }
+    }
+
+    &:hover .o_dft_row_resize {
+        opacity: 0.4;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    .o_dft_row:hover .o_dft_row_delete {
+        opacity: 0.55;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    // The line under the last row: adding a row, and the selection state.
+    .o_dft_row_tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px;
+        margin-top: 1px;
+    }
+
+    .o_dft_add_row,
+    .o_dft_multi {
+        padding: 2px 10px;
+        border: 1px dashed var(--border-color);
+        border-radius: 8px;
+        background: none;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+
+        &:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+    }
+
+    // Multi-select is a mode: while it is on, its chip is solid rather than
+    // dashed, so the ribbon looks different from the one you clicked in before.
+    .o_dft_multi {
+        border-style: solid;
+        border-color: color-mix(in srgb, var(--primary) 40%, var(--border-color));
+        color: var(--primary);
+    }
+
+    .o_dft_multi_mode {
+        font-weight: 600;
+        text-transform: lowercase;
+    }
+
+    // The multi-select checkbox: styled to sit on the same line, in the same
+    // voice, as "Add a row" - a quiet dashed chip that turns solid when on.
+    .o_dft_multi_toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        padding: 2px 10px 2px 8px;
+        border: 1px dashed var(--border-color);
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--secondary-color);
+        cursor: pointer;
+        user-select: none;
+
+        input {
+            margin: 0;
+            width: 13px;
+            height: 13px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        &:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        &.o_dft_multi_toggle_on {
+            border-style: solid;
+            border-color: color-mix(in srgb, var(--primary) 40%, var(--border-color));
+            background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+            color: var(--primary);
+            font-weight: 600;
+        }
+    }
+
+    &.o_dft_bar_collapsed {
+        padding: 3px 8px;
+        align-items: center;
+    }
+
+    &.o_dft_bar_empty {
+        padding: 5px 8px;
+    }
+
+    // The two bar controls line up with the *first* row, not with the middle of
+    // the bar: on a two-row ribbon, centring left them floating in the gap
+    // between the rows, belonging to neither.
+    .o_dft_collapse,
+    .o_dft_gear,
+    .o_dft_dismiss {
+        flex: 0 0 auto;
+        align-self: flex-start;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 28px;
+        padding: 0;
+        color: var(--secondary-color);
+        text-decoration: none;
+
+        &:hover {
+            color: var(--emphasis-color);
+        }
+    }
+
+    // Collapsed, there is only the summary line to line up with.
+    &.o_dft_bar_collapsed {
+        .o_dft_collapse,
+        .o_dft_gear,
+        .o_dft_dismiss {
+            align-self: center;
+            height: auto;
+        }
+    }
+
+    .o_dft_summary {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+
+        .o_dft_summary_active {
+            color: var(--primary);
+        }
+
+        .o_dft_summary_rows {
+            color: var(--secondary-color);
+        }
+    }
+}
+
+// One horizontal, scrollable row - tiles keep their size instead of squeezing,
+// so a narrow screen scrolls the row rather than shrinking every tile.
+.o_dft_strip {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--border-color);
+        border-radius: 3px;
+    }
+}
+
+.o_dft_tile {
+    --dft-color: var(--primary);
+
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    // A tile that was given a width keeps it; the rest use the standard one
+    // (which compact mode narrows further, below).
+    width: var(--dft-width, 186px);
+    padding: 6px 9px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--body-bg);
+    background-image: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--dft-color) 10%, transparent),
+        color-mix(in srgb, var(--dft-color) 3%, transparent)
+    );
+    cursor: pointer;
+    overflow: hidden;
+    scroll-snap-align: start;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--dft-color) 45%, var(--border-color));
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--dft-color);
+        outline-offset: 2px;
+    }
+
+    // Applied: solid accent edge + a ring, so "which tiles am I filtered on"
+    // is answerable at a glance.
+    &.o_dft_active {
+        border-color: var(--dft-color);
+        box-shadow: inset 3px 0 0 var(--dft-color), 0 2px 10px rgba(0, 0, 0, 0.07);
+        background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--dft-color) 22%, transparent),
+            color-mix(in srgb, var(--dft-color) 8%, transparent)
+        );
+    }
+
+    &.o_dft_error {
+        border-style: dashed;
+        opacity: 0.75;
+    }
+
+    &.o_dft_loading .o_dft_value {
+        opacity: 0.35;
+    }
+
+    // Every part of the tile has to be allowed to shrink: the row height is
+    // set by the user, and `overflow: hidden` on the tile would otherwise cut
+    // the value in half rather than give the content less room.
+    .o_dft_body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .o_dft_head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .o_dft_icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        color: var(--dft-color);
+        background-color: color-mix(in srgb, var(--dft-color) 18%, transparent);
+    }
+
+    .o_dft_label {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
+        color: var(--secondary-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    // Neutral on purpose: only the reader knows whether "more" is good news.
+    .o_dft_delta {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 0 5px;
+        border-radius: 8px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+        background-color: var(--tertiary-bg);
+    }
+
+    .o_dft_value_row {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    .o_dft_value {
+        flex: 0 0 auto;
+        min-width: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.15;
+        color: var(--emphasis-color);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    // The record count behind a measure is the first thing to give way when the
+    // value row runs out of room - a shrink factor far above the value's, so
+    // the number itself is never the part that gets an ellipsis.
+    .o_dft_sub {
+        flex: 0 20 auto;
+        min-width: 0;
+        font-size: 0.68rem;
+        color: var(--secondary-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .o_dft_check {
+        margin-left: auto;
+        font-size: 0.8rem;
+        color: var(--dft-color);
+    }
+
+    &.o_dft_selectable .o_dft_sub {
+        display: none;
+    }
+
+    // In multi-select mode an unselected tile carries an empty box, so it is
+    // clear that clicking adds to a selection rather than replacing it.
+    .o_dft_unchecked {
+        color: var(--secondary-color);
+        opacity: 0.55;
+    }
+
+    &.o_dft_selectable:hover .o_dft_unchecked {
+        opacity: 1;
+        color: var(--dft-color);
+    }
+
+    // --- sparkline ---------------------------------------------------
+    .o_dft_spark {
+        position: relative;
+        flex: 0 1 26px;
+        min-height: 0;
+        height: 26px;
+        margin-top: 2px;
+        overflow: hidden;
+
+        svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .o_dft_spark_area {
+            fill: color-mix(in srgb, var(--dft-color) 16%, transparent);
+            stroke: none;
+        }
+
+        .o_dft_spark_line {
+            fill: none;
+            stroke: var(--dft-color);
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .o_dft_spark_dot {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            margin: -2.5px 0 0 -2.5px;
+            border-radius: 50%;
+            background-color: var(--dft-color);
+            box-shadow: 0 0 0 2px var(--body-bg);
+        }
+    }
+
+    // --- goal ring ---------------------------------------------------
+    .o_dft_ring {
+        position: relative;
+        flex: 0 0 auto;
+        width: 44px;
+        align-self: center;
+
+        svg {
+            width: 100%;
+            transform: rotate(0deg);
+        }
+
+        circle {
+            fill: none;
+            stroke-width: 3.5;
+        }
+
+        .o_dft_ring_track {
+            stroke: var(--border-color);
+        }
+
+        .o_dft_ring_value {
+            stroke: var(--dft-color);
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .o_dft_ring_label {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--dft-color);
+        }
+    }
+
+    // --- share bar ---------------------------------------------------
+    .o_dft_share {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 3px;
+        background-color: var(--tertiary-bg);
+
+        .o_dft_share_fill {
+            display: block;
+            height: 100%;
+            background-color: var(--dft-color);
+            transition: width 0.45s ease;
+        }
+    }
+
+    // --- studio affordances ------------------------------------------
+    .o_dft_grip,
+    .o_dft_actions {
+        position: absolute;
+        top: 2px;
+        opacity: 0;
+        color: var(--secondary-color);
+        transition: opacity 0.12s ease;
+    }
+
+    .o_dft_grip {
+        left: 2px;
+        padding: 2px 4px;
+        font-size: 0.7rem;
+        cursor: grab;
+    }
+
+    .o_dft_actions {
+        right: 0;
+        display: flex;
+        align-items: center;
+
+        .o_dft_split,
+        .o_dft_edit,
+        .o_dft_remove {
+            padding: 2px 5px;
+            font-size: 0.72rem;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        // Removing a tile is the one destructive thing in the ribbon; the
+        // button says so on hover rather than sitting there in red.
+        .o_dft_remove:hover {
+            color: var(--danger);
+        }
+    }
+
+    // Hover reveals what you can do with the tile - the breakdown for
+    // everybody, the pencil and the grip only for whoever may edit it.
+    &:hover .o_dft_actions,
+    &.o_dft_manageable:hover .o_dft_grip {
+        opacity: 0.65;
+
+        &:hover {
+            opacity: 1;
+            color: var(--emphasis-color);
+        }
+    }
+
+    // Keyboard hint, bottom-right: Alt + n applies this tile.
+    .o_dft_kbd {
+        position: absolute;
+        right: 5px;
+        bottom: 6px;
+        min-width: 15px;
+        padding: 0 3px;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        font-size: 0.6rem;
+        line-height: 1.3;
+        text-align: center;
+        color: var(--secondary-color);
+        opacity: 0;
+        transition: opacity 0.12s ease;
+    }
+
+    &:hover .o_dft_kbd {
+        opacity: 0.75;
+    }
+
+    // --- private tile --------------------------------------------------
+    .o_dft_private {
+        font-size: 0.62rem;
+        color: var(--secondary-color);
+    }
+
+    &.o_dft_personal {
+        border-style: dashed;
+    }
+
+    // --- alerting ------------------------------------------------------
+    // Past its threshold the tile stops being decorative: it borrows the
+    // warning colour outright, so it is the first thing read in the ribbon.
+    &.o_dft_alerting {
+        --dft-color: var(--danger);
+
+        border-color: color-mix(in srgb, var(--danger) 55%, var(--border-color));
+        animation: o_dft_alert_pulse 2.4s ease-in-out infinite;
+
+        .o_dft_bell {
+            color: var(--danger);
+            font-size: 0.7rem;
+        }
+    }
+
+    // --- resize handle -------------------------------------------------
+    // A grab strip on the right edge, mirroring the row grip at the bottom of
+    // the bar. Only rendered for tiles the user may actually write.
+    // Inside the tile, never hanging off it: the tile clips its overflow, and a
+    // handle sticking out would be both invisible and unclickable there.
+    .o_dft_resize {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 9px;
+        cursor: ew-resize;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+        z-index: 1;
+
+        &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: 3px;
+            width: 3px;
+            height: 26px;
+            border-radius: 2px;
+            transform: translateY(-50%);
+            background-color: var(--secondary-color);
+        }
+    }
+
+    // ...which puts it under the corner buttons, so those stay on top.
+    .o_dft_actions,
+    .o_dft_grip {
+        z-index: 2;
+    }
+
+    &:hover .o_dft_resize {
+        opacity: 0.4;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    // --- compact density ---------------------------------------------
+    &.o_dft_compact {
+        // `--dft-width` still wins when the tile carries its own width: an
+        // explicit choice outranks the density preference.
+        width: var(--dft-width, 132px);
+        padding: 6px 8px 8px;
+
+        .o_dft_value {
+            font-size: 1.15rem;
+        }
+
+        .o_dft_icon {
+            width: 16px;
+            height: 16px;
+            font-size: 0.62rem;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Density: what a tile drops when the row it sits on gets shorter.
+//
+// The order is deliberate - the sparkline is decoration, the sub-label is a
+// detail, the delta is a nicety; the label and the number are the tile. Nothing
+// is ever clipped: it is dropped, or it steps down a size.
+// ---------------------------------------------------------------------------
+.o_dft_strip.o_dft_row_sm .o_dft_tile {
+    padding: 6px 9px 8px;
+
+    .o_dft_spark {
+        display: none;
+    }
+
+    .o_dft_value {
+        font-size: 1.25rem;
+    }
+
+    .o_dft_ring {
+        width: 36px;
+    }
+}
+
+.o_dft_strip.o_dft_row_xs .o_dft_tile {
+    padding: 4px 9px 6px;
+
+    .o_dft_body {
+        gap: 0;
+    }
+
+    .o_dft_spark,
+    .o_dft_sub,
+    .o_dft_delta {
+        display: none;
+    }
+
+    .o_dft_value {
+        font-size: 1.05rem;
+        line-height: 1.1;
+    }
+
+    .o_dft_icon {
+        width: 16px;
+        height: 16px;
+        font-size: 0.6rem;
+    }
+
+    .o_dft_ring {
+        width: 30px;
+    }
+
+    .o_dft_kbd {
+        display: none;
+    }
+}
+
+// A tall row has room to breathe: the number leads, and the sparkline takes
+// what is left rather than staying a fixed 26px sliver.
+.o_dft_strip.o_dft_row_lg .o_dft_tile {
+    .o_dft_value {
+        font-size: 1.75rem;
+    }
+
+    .o_dft_spark {
+        flex: 1 1 auto;
+        height: auto;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Density: what a tile does with the width it was given.
+// ---------------------------------------------------------------------------
+.o_dft_tile.o_dft_tile_narrow {
+    .o_dft_value {
+        font-size: 1.2rem;
+    }
+
+    .o_dft_sub {
+        display: none;
+    }
+}
+
+// Wide enough for a second line: the label wraps instead of being cut off,
+// which is the whole point of having made the tile wider.
+.o_dft_tile.o_dft_tile_wide {
+    .o_dft_label {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .o_dft_value {
+        font-size: 1.7rem;
+    }
+}
+
+// ...but a wide tile on a short row has no room for that second line.
+.o_dft_strip.o_dft_row_xs .o_dft_tile.o_dft_tile_wide .o_dft_label,
+.o_dft_strip.o_dft_row_sm .o_dft_tile.o_dft_tile_wide .o_dft_label {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+}
+
+.o_dft_strip.o_dft_row_xs .o_dft_tile.o_dft_tile_wide .o_dft_value {
+    font-size: 1.15rem;
+}
+
+// The tile being dragged leaves this behind.
+.o_dft_tile_placeholder {
+    flex: 0 0 auto;
+    width: 186px;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    background-color: var(--tertiary-bg);
+}
+
+// "+" ghost tile - the entry point of the whole studio.
+.o_dft_add {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 40px;
+    padding: 0 14px;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    background-color: transparent;
+    color: var(--secondary-color);
+    font-size: 0.78rem;
+    white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+        color: var(--primary);
+        border-color: var(--primary);
+        background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Editor: live preview
+// ---------------------------------------------------------------------------
+.o_dft_preview {
+    margin-bottom: 16px;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--tertiary-bg);
+
+    .o_dft_preview_stage {
+        display: flex;
+        justify-content: center;
+
+        .o_dft_tile {
+            cursor: default;
+
+            &:hover {
+                transform: none;
+                box-shadow: none;
+                border-color: var(--border-color);
+            }
+        }
+    }
+
+    .o_dft_preview_placeholder {
+        padding: 18px;
+        color: var(--secondary-color);
+        font-size: 0.85rem;
+    }
+
+    .o_dft_preview_caption {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 0.72rem;
+        color: var(--secondary-color);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Editor: icon picker
+// ---------------------------------------------------------------------------
+.o_dft_icon_field {
+    .o_dft_icon_toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 190px;
+
+        .o_dft_icon_name {
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+        }
+    }
+}
+
+.o_dft_icon_menu {
+    width: 288px;
+    padding: 8px;
+
+    .o_dft_icon_search {
+        position: relative;
+        margin-bottom: 8px;
+
+        .fa-search {
+            position: absolute;
+            top: 50%;
+            left: 8px;
+            transform: translateY(-50%);
+            font-size: 0.72rem;
+            color: var(--secondary-color);
+            pointer-events: none;
+        }
+
+        input {
+            padding-left: 26px;
+        }
+    }
+
+    .o_dft_icon_grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 2px;
+        max-height: 216px;
+        overflow-y: auto;
+
+        .o_dft_icon_cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--body-color);
+
+            &:hover {
+                background-color: var(--tertiary-bg);
+            }
+
+            &.o_dft_icon_current {
+                color: var(--primary);
+                background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+            }
+        }
+    }
+
+    .o_dft_icon_empty {
+        padding: 10px 4px;
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+    }
+
+    .o_dft_icon_manual {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-color);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Editor: colour swatches
+// ---------------------------------------------------------------------------
+.o_dft_swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .o_dft_swatch {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 2px solid transparent;
+        border-radius: 50%;
+        background-color: var(--dft-color);
+        color: #fff;
+        font-size: 0.6rem;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+        .fa-check {
+            opacity: 0;
+        }
+
+        &:hover {
+            transform: scale(1.12);
+        }
+
+        &.o_dft_swatch_current {
+            box-shadow: 0 0 0 2px var(--body-bg), 0 0 0 4px var(--dft-color);
+
+            .fa-check {
+                opacity: 1;
+            }
+        }
+    }
+
+    &.o_dft_swatches_readonly .o_dft_swatch {
+        pointer-events: none;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Generator dialog
+// ---------------------------------------------------------------------------
+.o_dft_gen_fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 46vh;
+    overflow-y: auto;
+
+    .o_dft_gen_field {
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: border-color 0.12s ease, background-color 0.12s ease;
+
+        &:hover {
+            border-color: var(--primary);
+        }
+
+        &.o_dft_gen_selected {
+            border-color: var(--primary);
+            background-color: color-mix(in srgb, var(--primary) 7%, transparent);
+        }
+    }
+
+    .o_dft_gen_field_head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+
+        .o_dft_gen_field_name {
+            font-weight: 600;
+        }
+
+        .o_dft_gen_field_tech,
+        .o_dft_gen_field_count {
+            font-size: 0.72rem;
+            color: var(--secondary-color);
+        }
+
+        .o_dft_gen_field_count {
+            margin-left: auto;
+        }
+    }
+
+    .o_dft_gen_chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+
+        .o_dft_gen_chip {
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            color: var(--dft-color);
+            background-color: color-mix(in srgb, var(--dft-color) 15%, transparent);
+        }
+    }
+}
+
+// Which row the generated set lands on.
+.o_dft_gen_rows {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+
+    .o_dft_gen_rows_label {
+        font-size: 0.78rem;
+        color: var(--secondary-color);
+        margin-right: 2px;
+    }
+
+    .o_dft_gen_row {
+        padding: 3px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 999px;
+        background: none;
+        font-size: 0.78rem;
+        color: var(--body-color);
+
+        &:hover {
+            border-color: var(--primary);
+        }
+
+        &.o_dft_gen_row_active {
+            border-color: var(--primary);
+            color: var(--primary);
+            background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+            font-weight: 600;
+        }
+    }
+}
+
+
+// While a resize is in progress the pointer owns the page: no text selection,
+// and the cursor stays the resize one even when it runs ahead of the handle.
+body.o_dft_resizing {
+    cursor: ew-resize;
+    user-select: none;
+}
+
+body.o_dft_resizing_row {
+    cursor: ns-resize;
+    user-select: none;
+}
+
+// ---------------------------------------------------------------------------
+// Alerting tiles: a slow breath rather than a blink - noticeable in the corner
+// of the eye, ignorable while you work.
+// ---------------------------------------------------------------------------
+@keyframes o_dft_alert_pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 32%, transparent);
+    }
+    50% {
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 0%, transparent);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Breakdown popover: what is inside a tile, one clickable row per slice.
+// ---------------------------------------------------------------------------
+.o_dft_breakdown_popover {
+    max-width: 320px;
+}
+
+.o_dft_breakdown {
+    min-width: 250px;
+    padding: 6px 0;
+
+    .o_dft_breakdown_head {
+        padding: 2px 12px 6px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--secondary-color);
+    }
+
+    .o_dft_breakdown_loading,
+    .o_dft_breakdown_empty,
+    .o_dft_breakdown_others {
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        color: var(--secondary-color);
+    }
+
+    .o_dft_breakdown_row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0 8px;
+        width: 100%;
+        padding: 4px 12px;
+        border: 0;
+        background: none;
+        text-align: left;
+        font-size: 0.82rem;
+        color: var(--body-color);
+
+        &:hover {
+            background-color: var(--tertiary-bg);
+        }
+
+        .o_dft_breakdown_label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .o_dft_breakdown_value {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .o_dft_breakdown_bar {
+            display: block;
+            grid-column: 1 / -1;
+            height: 3px;
+            margin-top: 3px;
+            border-radius: 2px;
+            background-color: var(--tertiary-bg);
+
+            .o_dft_breakdown_fill {
+                display: block;
+                height: 100%;
+                border-radius: 2px;
+                background-color: var(--primary);
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The Tile Wall: every ribbon in the database, grouped by model.
+// ---------------------------------------------------------------------------
+.o_dft_wall {
+    height: 100%;
+    padding: 16px 20px 32px;
+    overflow: auto;
+    background-color: var(--body-bg);
+
+    .o_dft_wall_head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: baseline;
+        justify-content: space-between;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-color);
+
+        h2 {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+
+        .o_dft_wall_title {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .o_dft_wall_alerts {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .o_dft_wall_tools {
+            display: flex;
+            gap: 6px;
+        }
+    }
+
+    .o_dft_wall_loading,
+    .o_dft_wall_empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 64px 0;
+        color: var(--secondary-color);
+    }
+
+    .o_dft_wall_section {
+        margin-top: 20px;
+
+        .o_dft_wall_section_head {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+
+            .btn-link {
+                padding: 0;
+                font-size: 0.95rem;
+                font-weight: 600;
+                text-decoration: none;
+            }
+        }
+    }
+
+    // A grid here, not a scrolling strip: the wall is meant to be read whole.
+    .o_dft_wall_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+        gap: 10px;
+        margin-top: 8px;
+
+        .o_dft_tile {
+            width: auto;
+        }
+    }
+}
+
+.o_dft_import {
+    .o_dft_import_drop {
+        border-style: dashed;
+    }
+
+    textarea {
+        font-size: 0.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .o_dft_tile,
+    .o_dft_tile .o_dft_share_fill,
+    .o_dft_tile .o_dft_ring_value,
+    .o_dft_add,
+    .o_dft_swatch {
+        transition: none;
+    }
+
+    .o_dft_tile.o_dft_alerting {
+        animation: none;
+    }
+}
+
+// Phones get the VIEW, not the tile workshop. "Capture this filter as a tile" and
+// "Multi-select" are office tools - on a 412px screen the bar sat between the search
+// bar and the first record, costing 75px of every field-work list an executive opens,
+// and neither control is usable with a thumb. Only the BAR is hidden: `.o_dft_layout`
+// wraps the records themselves, so it must never be display:none. (client, 2026-08-24)
+@media (max-width: 767.98px) {
+    .o_dft_bar {
+        display: none !important;
+    }
+}

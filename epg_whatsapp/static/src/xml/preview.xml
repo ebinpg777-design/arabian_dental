@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="epg_whatsapp.Preview">
+    <div class="o_epg_wa_phone">
+        <div class="o_epg_wa_bar">
+            <i class="fa fa-whatsapp me-2" title="WhatsApp"/>
+            <span class="flex-grow-1">
+                <t t-if="sampled">To <t t-esc="data.sample_number or '?'"/></t>
+                <t t-else="">Preview</t>
+            </span>
+            <span class="o_epg_wa_bar_note" t-att-class="{ 'text-danger fw-bold': overBudget }">
+                <t t-esc="bodyLength"/>/1024
+            </span>
+        </div>
+
+        <div t-if="stages.length > 1" class="o_epg_wa_stages">
+            <t t-foreach="stages" t-as="stage" t-key="stage.n">
+                <button type="button" class="btn btn-sm" t-att-class="{ 'btn-primary': state.stage === stage.n, 'btn-light': state.stage !== stage.n }" t-on-click="() => state.stage = stage.n"><t t-esc="stage.label"/> time</button>
+            </t>
+        </div>
+        <div class="o_epg_wa_canvas">
+            <div class="o_epg_wa_bubble">
+                <!-- A document header is the whole point of an invoice message, so it
+                     is shown as the attachment chip WhatsApp actually renders. -->
+                <div t-if="hasDocument" class="o_epg_wa_doc">
+                    <i class="fa fa-file-pdf-o o_epg_wa_doc_icon" title="Attached document"/>
+                    <div class="o_epg_wa_doc_meta">
+                        <div class="o_epg_wa_doc_name" t-esc="documentName"/>
+                        <div class="o_epg_wa_doc_sub">PDF · attached to this message</div>
+                    </div>
+                </div>
+                <div t-if="headerText" class="o_epg_wa_header" t-esc="headerText"/>
+
+                <div class="o_epg_wa_body">
+                    <t t-foreach="lines" t-as="line" t-key="line_index">
+                        <div t-if="line.blank" class="o_epg_wa_gap"/>
+                        <div t-else="" t-out="line.html"/>
+                    </t>
+                    <div t-if="!lines.length" class="text-muted fst-italic">
+                        Write the message and it appears here.
+                    </div>
+                </div>
+
+                <!-- What the doctor can tap, the way the sent message shows it:
+                     a line per thing, or one line to a page with real buttons. -->
+                <div t-if="asPage" class="o_epg_wa_taps">
+                    <div class="o_epg_wa_tap o_epg_wa_tap_page">👉 Tap here to open</div>
+                </div>
+                <div t-else="" class="o_epg_wa_taps">
+                    <div t-if="data.add_payment_link" class="o_epg_wa_tap">💳 Pay now (UPI)</div>
+                    <t t-foreach="replies" t-as="reply" t-key="reply_index">
+                        <div class="o_epg_wa_tap"><t t-esc="reply"/> →</div>
+                    </t>
+                    <t t-foreach="buttons" t-as="button" t-key="button_index">
+                        <div class="o_epg_wa_tap">🔗 <t t-esc="button"/></div>
+                    </t>
+                </div>
+                <div t-if="data.footer_text" class="o_epg_wa_footer" t-esc="data.footer_text"/>
+
+                <div class="o_epg_wa_time">
+                    <t t-esc="now"/>
+                    <i class="fa fa-check ms-1" title="Delivered"/>
+                    <i class="fa fa-check" title="Read"/>
+                </div>
+            </div>
+        </div>
+    </div>
+</t>
+
+</templates>

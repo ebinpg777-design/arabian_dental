@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Opened from Collections by somebody without an accounting role: the
+         clinic is fixed and the ways of selecting other clinics are not offered.
+         The print itself is scope-checked in any case. (client, 2026-09-18) -->
+    <record id="view_partner_statement_wizard_scoped" model="ir.ui.view">
+        <field name="name">epg.partner.statement.wizard.form.scoped</field>
+        <field name="model">epg.partner.statement.wizard</field>
+        <field name="inherit_id" ref="epg_partner_statement.view_partner_statement_wizard"/>
+        <field name="arch" type="xml">
+            <field name="team_ids" position="before">
+                <field name="scoped_to_round" invisible="1"/>
+            </field>
+            <field name="team_ids" position="attributes">
+                <attribute name="invisible">scoped_to_round</attribute>
+            </field>
+            <field name="all_with_balance" position="attributes">
+                <attribute name="invisible">scoped_to_round</attribute>
+            </field>
+            <field name="min_outstanding" position="attributes">
+                <attribute name="invisible">scoped_to_round</attribute>
+            </field>
+            <field name="partner_ids" position="attributes">
+                <attribute name="readonly">scoped_to_round</attribute>
+            </field>
+            <field name="email_count" position="attributes">
+                <attribute name="invisible">scoped_to_round</attribute>
+            </field>
+            <button name="action_send_email" position="attributes">
+                <attribute name="invisible">scoped_to_round</attribute>
+            </button>
+        </field>
+    </record>
+</odoo>

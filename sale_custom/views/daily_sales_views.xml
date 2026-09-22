@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- daily.sales analytics -->
+    <record id="view_daily_sales_calendar" model="ir.ui.view">
+        <field name="name">daily.sales.calendar</field>
+        <field name="model">daily.sales</field>
+        <field name="arch" type="xml">
+            <calendar string="Sales Report" date_start="date" mode="month">
+                <field name="sales_person_id"/>
+                <field name="work_collected"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_daily_sales_graph" model="ir.ui.view">
+        <field name="name">daily.sales.graph</field>
+        <field name="model">daily.sales</field>
+        <field name="arch" type="xml">
+            <graph string="Sales Report">
+                <field name="date"/>
+                <field name="work_collected" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_daily_sales_pivot" model="ir.ui.view">
+        <field name="name">daily.sales.pivot</field>
+        <field name="model">daily.sales</field>
+        <field name="arch" type="xml">
+            <pivot string="Sales Report">
+                <field name="date" type="row"/>
+                <field name="work_delivered" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_daily_sales_kanban" model="ir.ui.view">
+        <field name="name">daily.sales.kanban</field>
+        <field name="model">daily.sales</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" quick_create="false" sample="1">
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <field name="sales_person_id" class="fw-bold"/>
+                            <field name="date"/>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1 text-muted small">
+                            <span>Collected: <field name="work_collected"/></span>
+                            <span>Delivered: <field name="work_delivered"/></span>
+                        </div>
+                        <div class="mt-1">
+                            <field name="payment_amount" widget="monetary" class="fw-bold"/>
+                            <field name="currency_id" invisible="1"/>
+                        </div>
+                        <div class="text-muted small" t-if="record.team_id.raw_value">
+                            <field name="team_id"/>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_daily_sales_list" model="ir.ui.view">
+        <field name="name">daily.sales.list</field>
+        <field name="model">daily.sales</field>
+        <field name="arch" type="xml">
+            <list string="Sales" decoration-muted="state in ('cancel', 'rejected')">
+                <field name="sales_person_id"/>
+                <field name="date"/>
+                <field name="work_collected" sum="Total Collected"/>
+                <field name="work_delivered" sum="Total Delivered"/>
+                <field name="payment_amount" sum="Total Payment"/>
+                <field name="team_id"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="company_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-info="state in ('draft', 'submitted')"
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state == 'rejected'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_daily_sales_form" model="ir.ui.view">
+        <field name="name">daily.sales.form</field>
+        <field name="model">daily.sales</field>
+        <field name="arch" type="xml">
+            <form string="Sales Report">
+                <header>
+                    <button name="action_submit" type="object" string="Submit"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve"
+                            class="btn-primary" invisible="state != 'submitted'"
+                            groups="sales_team.group_sale_manager"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state != 'submitted'"
+                            groups="sales_team.group_sale_manager"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state not in ('draft', 'submitted')"/>
+                    <button name="action_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('cancel', 'rejected')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="sales_person_id"/></h1>
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="state != 'rejected' or not manager_note">
+                        <field name="manager_note" readonly="1" nolabel="1"/>
+                    </div>
+                    <group col="4">
+                        <field name="date"/>
+                        <field name="work_collected" readonly="1"/>
+                        <field name="work_delivered" readonly="1"/>
+                        <field name="payment_amount" readonly="1"/>
+                        <field name="team_id"
+                               domain="[('member_ids', 'in', [sales_person_id])]"
+                               options="{'no_create': True, 'no_open': True}"/>
+                        <field name="approved_by_id" invisible="not approved_by_id"/>
+                        <field name="approved_date" invisible="not approved_date"/>
+                        <field name="manager_note" invisible="state != 'submitted'"
+                               groups="sales_team.group_sale_manager"
+                               placeholder="Reason if rejecting..."/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="company_id" invisible="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Sales">
+                            <field name="sales_line_ids">
+                                <list string="Sales" editable="bottom">
+                                    <field name="sales_person_id" column_invisible="1"/>
+                                    <field name="is_new_clinic"/>
+                                    <field name="partner_id" required="1"
+                                           options="{'no_quick_create': True}"
+                                           context="{'default_is_clinic': True}"
+                                           domain="[('parent_id', '=', False)]"/>
+                                    <field name="contact_id" required="1"
+                                           options="{'no_quick_create': True}"
+                                           context="{'default_is_doctor': True, 'default_parent_id': partner_id}"
+                                           domain="[('parent_id', '=', partner_id)]"/>
+                                    <field name="work_collected" required="1"/>
+                                    <field name="work_delivered" required="1"/>
+                                    <field name="payment_amount"/>
+                                    <field name="team_id" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="company_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_daily_sales_search" model="ir.ui.view">
+        <field name="name">daily.sales.search</field>
+        <field name="model">daily.sales</field>
+        <field name="arch" type="xml">
+            <search string="Search Sales Report">
+                <field name="sales_person_id"/>
+                <field name="date"/>
+                <field name="team_id"/>
+                <filter string="My Sales" name="my_daily_sales_filter"
+                        domain="[('sales_person_id', '=', uid)]"/>
+                <filter string="To Approve" name="to_approve"
+                        domain="[('state', '=', 'submitted')]"/>
+                <filter string="Today" name="today"
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="This Week" name="this_week"
+                        domain="['&amp;', ('date', '&lt;=', context_today().strftime('%Y-%m-%d')), ('date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Current Month" name="this_month"
+                        domain="[('date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <separator/>
+                <group>
+                    <filter string="Month" name="month" domain="[]" context="{'group_by': 'date:month'}"/>
+                    <filter string="Date" name="date_group" domain="[]" context="{'group_by': 'date:day'}"/>
+                    <filter string="Sales Person" name="salesperson" domain="[]" context="{'group_by': 'sales_person_id'}"/>
+                    <filter string="Sales Team" name="team" domain="[]" context="{'group_by': 'team_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_daily_reports_user" model="ir.actions.act_window">
+        <field name="name">Daily Sales</field>
+        <field name="res_model">daily.sales</field>
+        <field name="view_mode">kanban,list,form,calendar,pivot,graph</field>
+        <field name="search_view_id" ref="view_daily_sales_search"/>
+    </record>
+    <record id="action_daily_sales_kanban_view" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">kanban</field>
+        <field name="view_id" ref="view_daily_sales_kanban"/>
+        <field name="act_window_id" ref="action_daily_reports_user"/>
+    </record>
+
+    <!-- daily.sales.line detailed report -->
+    <record id="view_daily_sales_line_list" model="ir.ui.view">
+        <field name="name">daily.sales.line.list</field>
+        <field name="model">daily.sales.line</field>
+        <field name="arch" type="xml">
+            <list string="Detailed Sales" edit="false" create="false" delete="false">
+                <field name="sales_person_id"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="contact_id"/>
+                <field name="is_new_clinic"/>
+                <field name="work_collected" sum="Total Collected"/>
+                <field name="work_delivered" sum="Total Delivered"/>
+                <field name="payment_amount" sum="Total Payment"/>
+                <field name="team_id"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="company_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_daily_sales_line_search" model="ir.ui.view">
+        <field name="name">daily.sales.line.search</field>
+        <field name="model">daily.sales.line</field>
+        <field name="arch" type="xml">
+            <search string="Search Detailed Sales">
+                <field name="sales_person_id"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="contact_id"/>
+                <field name="team_id"/>
+                <filter string="Today" name="today"
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Current Month" name="this_month"
+                        domain="[('date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <separator/>
+                <group>
+                    <filter string="Month" name="month" domain="[]" context="{'group_by': 'date:month'}"/>
+                    <filter string="Sales Person" name="salesperson" domain="[]" context="{'group_by': 'sales_person_id'}"/>
+                    <filter string="Clinic" name="clinic" domain="[]" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Doctor" name="doctor" domain="[]" context="{'group_by': 'contact_id'}"/>
+                    <filter string="Sales Team" name="team" domain="[]" context="{'group_by': 'team_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_detailed_daily_reports" model="ir.actions.act_window">
+        <field name="name">Detailed Sales Report</field>
+        <field name="res_model">daily.sales.line</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_this_month': 1, 'search_default_salesperson': 1}</field>
+        <field name="search_view_id" ref="view_daily_sales_line_search"/>
+    </record>
+
+    <!--
+        The Daily Sales menu was removed on request — the lab does not use it, and a
+        whole app tile for an unused report is a permanent distraction in the switcher.
+
+        The MODEL, its records and the actions are deliberately left in place: removing
+        them would destroy `daily.sales` history and break the Daily Sales Summary
+        report that still points at them. Only the way in is gone; the data and the
+        actions can still be reached, and restoring the menu is three lines.
+    -->
+</odoo>

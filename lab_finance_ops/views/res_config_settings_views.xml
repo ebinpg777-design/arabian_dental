@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_finance_ops" model="ir.ui.view">
+        <field name="name">res.config.settings.form.finance.ops</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@name='integration']" position="after">
+                <block title="Finance Operations" name="lab_finance_ops_setting_container"
+                       groups="lab_access_control.group_lab_config_manager">
+                    <setting id="lab_payment_approval_setting"
+                             string="Payment Approval"
+                             help="Payments at or above the threshold must be approved before posting.">
+                        <field name="lab_require_payment_approval"/>
+                        <div class="content-group mt-2"
+                             invisible="not lab_require_payment_approval">
+                            <div class="row">
+                                <label for="lab_payment_approval_threshold"
+                                       class="col-lg-6 o_light_label"/>
+                                <field name="lab_payment_approval_threshold"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

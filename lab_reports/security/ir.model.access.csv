@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_wizard_print_partner,wizard.print.partner,model_wizard_print_partner,base.group_user,1,1,1,1
+access_wizard_print_order,wizard.print.order,model_wizard_print_order,base.group_user,1,1,1,1
+access_wizard_print_jobcard,wizard.print.jobcard,model_wizard_print_jobcard,base.group_user,1,1,1,1

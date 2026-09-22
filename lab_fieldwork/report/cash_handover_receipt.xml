@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The slip that goes in the cash box with the envelope: who, how much,
+         the code, and two signatures. The QR opens the same slip in Odoo. -->
+    <template id="report_cash_handover_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Cash Handover Receipt
+                            <span t-field="doc.name"/></h2>
+
+                        <table style="width:100%; margin-top:12px;">
+                            <tr>
+                                <td style="width:62%; vertical-align:top;">
+                                    <table class="table table-sm table-borderless">
+                                        <tr><td style="width:40%; color:#666;">Handed over by</td>
+                                            <td><strong t-field="doc.user_id"/></td></tr>
+                                        <tr><td style="color:#666;">On</td>
+                                            <td><span t-field="doc.date"/></td></tr>
+                                        <tr><td style="color:#666;">Amount declared</td>
+                                            <td><strong style="font-size:1.25em;"
+                                                        t-field="doc.amount"
+                                                        t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td></tr>
+                                        <tr><td style="color:#666;">Float</td>
+                                            <td><span t-field="doc.allocation_id"/></td></tr>
+                                        <tr t-if="doc.note"><td style="color:#666;">Note</td>
+                                            <td><span t-field="doc.note"/></td></tr>
+                                    </table>
+                                </td>
+                                <td style="width:38%; text-align:center; vertical-align:top;">
+                                    <div t-if="doc.code">
+                                        <span t-out="doc._deep_link()"
+                                              t-options="{'widget': 'barcode', 'symbology': 'QR', 'width': 300, 'height': 300, 'img_style': 'width:110px;height:110px;'}"/>
+                                        <div style="font-family:monospace; font-size:1.6em; letter-spacing:.15em; margin-top:4px;"
+                                             t-field="doc.code"/>
+                                        <div style="color:#666; font-size:.8em;">handover code</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <t t-if="doc.line_ids">
+                            <h4 style="margin-top:8px;">Notes counted by the executive</h4>
+                            <table class="table table-sm">
+                                <thead><tr><th>Note</th><th class="text-end">How many</th>
+                                           <th class="text-end">Amount</th></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="doc.line_ids" t-as="line">
+                                        <td><t t-out="'%d' % line.denomination"/></td>
+                                        <td class="text-end"><span t-field="line.count"/></td>
+                                        <td class="text-end"><span t-field="line.subtotal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <h4 style="margin-top:8px;">The office's count</h4>
+                        <table class="table table-sm table-borderless" style="width:62%;">
+                            <t t-if="doc.state == 'received'">
+                                <tr><td style="width:40%; color:#666;">Counted</td>
+                                    <td><strong t-field="doc.counted_amount"
+                                                t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td></tr>
+                                <tr><td style="color:#666;">By</td><td><span t-field="doc.received_by_id"/></td></tr>
+                                <tr><td style="color:#666;">At</td><td><span t-field="doc.received_at"/></td></tr>
+                                <tr t-if="doc.difference"><td style="color:#666;">Difference</td>
+                                    <td><span t-field="doc.difference"
+                                              t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                        — <span t-field="doc.difference_reason"/></td></tr>
+                            </t>
+                            <t t-else="">
+                                <tr><td style="width:40%; color:#666;">Counted</td>
+                                    <td style="border-bottom:1px solid #999;">&#160;</td></tr>
+                                <tr><td style="color:#666;">By</td>
+                                    <td style="border-bottom:1px solid #999;">&#160;</td></tr>
+                            </t>
+                        </table>
+
+                        <table style="width:100%; margin-top:36px;">
+                            <tr>
+                                <td style="width:45%; border-top:1px solid #333; padding-top:4px;">
+                                    Handed over — <span t-field="doc.user_id"/></td>
+                                <td style="width:10%;"/>
+                                <td style="width:45%; border-top:1px solid #333; padding-top:4px;">
+                                    Received for the office</td>
+                            </tr>
+                        </table>
+                        <p style="color:#666; font-size:.8em; margin-top:16px;">
+                            A custody record. The receipt against the doctor's account is
+                            booked by accounts separately.
+                        </p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="report_cash_handover" model="ir.actions.report">
+        <field name="name">Cash Handover Receipt</field>
+        <field name="model">lab.cash.handover</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_fieldwork.report_cash_handover_document</field>
+        <field name="report_file">lab_fieldwork.report_cash_handover_document</field>
+        <field name="binding_model_id" ref="model_lab_cash_handover"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Cash Handover %s' % object.name</field>
+    </record>
+</odoo>

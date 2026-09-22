@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_production_report_wizard_form" model="ir.ui.view">
+        <field name="name">lab.production.report.wizard.form</field>
+        <field name="model">lab.production.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Production Report">
+                <field name="report_kind" widget="radio"/>
+                <group>
+                    <group>
+                        <field name="date_from" invisible="report_kind == 'handout'"/>
+                        <field name="date_to" invisible="report_kind == 'handout'"/>
+                    </group>
+                    <group>
+                        <field name="workcenter_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="The whole floor"/>
+                        <field name="user_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Everybody"/>
+                    </group>
+                </group>
+                <div class="text-muted" invisible="report_kind != 'handout'">
+                    A hand-out sheet is what one technician is holding <i>right now</i>,
+                    so it ignores the dates. One page each, oldest job first.
+                </div>
+                <footer>
+                    <button string="Print" name="action_print" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Open on screen" name="action_open_analysis"
+                            type="object" class="btn-secondary"
+                            invisible="report_kind == 'handout'"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_production_report_wizard" model="ir.actions.act_window">
+        <field name="name">Print Production Report</field>
+        <field name="res_model">lab.production.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_production_report_wizard" name="Print Production Report"
+              parent="mrp.menu_mrp_reporting"
+              action="action_production_report_wizard" sequence="15"
+              groups="mrp.group_mrp_user"/>
+
+</odoo>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="epg_product_label.LayoutPickerField">
+    <div class="epg_layout_picker">
+        <t t-foreach="options" t-as="option" t-key="option.value">
+            <button type="button"
+                    t-att-class="'epg_layout_card' + (isSelected(option) ? ' epg_layout_card_selected' : '')"
+                    t-att-disabled="props.readonly"
+                    t-on-click="() => this.select(option)">
+                <span class="epg_layout_frame">
+                    <t t-foreach="option.shapes" t-as="shape" t-key="shape_index">
+                        <span t-att-class="blockClass(shape)"
+                              t-att-style="blockStyle(shape)"/>
+                    </t>
+                </span>
+                <span class="epg_layout_name" t-esc="option.label"/>
+                <span class="epg_layout_tick" t-if="isSelected(option)">
+                    <i class="fa fa-check"/>
+                </span>
+            </button>
+        </t>
+    </div>
+</t>
+
+<t t-name="epg_product_label.FieldPathField">
+    <div class="epg_field_path" t-ref="root">
+        <div class="epg_field_path_input">
+            <input type="text" class="o_input"
+                   t-att-id="props.id"
+                   t-att-value="pathValue"
+                   t-att-readonly="props.readonly"
+                   t-att-placeholder="props.placeholder"
+                   t-on-change="(ev) => this.props.record.update({ [props.name]: ev.target.value })"
+                   t-on-blur="onInputBlur"/>
+            <button type="button" class="btn btn-sm btn-secondary"
+                    title="Browse the fields of this model"
+                    t-att-disabled="props.readonly"
+                    t-on-click.stop="togglePicker">
+                <i class="fa fa-sitemap"/>
+            </button>
+        </div>
+
+        <small t-if="pickerState.status" t-att-class="'d-block mt-1 ' + statusClass">
+            <i t-att-class="'fa me-1 ' + (pickerState.status.valid ? 'fa-check' : 'fa-times')"/>
+            <t t-if="pickerState.status.valid">
+                <t t-esc="pickerState.status.label"/>
+                <span class="text-muted">(<t t-esc="pickerState.status.type"/>)</span>
+            </t>
+            <t t-else="" t-esc="pickerState.status.error"/>
+        </small>
+
+        <div class="epg_field_path_popover" t-if="pickerState.open">
+            <div class="epg_field_path_head">
+                <button type="button" class="btn btn-sm btn-link px-1"
+                        t-att-disabled="!pickerState.browsePath"
+                        t-on-click.stop="browseUp">
+                    <i class="fa fa-level-up"/>
+                </button>
+                <span class="epg_field_path_crumbs">
+                    <span class="epg_field_path_model" t-esc="pickerState.model"/>
+                    <t t-foreach="breadcrumbs" t-as="crumb" t-key="crumb_index">
+                        <i class="fa fa-angle-right mx-1 text-muted"/>
+                        <span t-esc="crumb"/>
+                    </t>
+                </span>
+                <button type="button" class="btn btn-sm btn-link px-1 ms-auto"
+                        t-on-click.stop="() => this.pickerState.open = false">
+                    <i class="fa fa-times"/>
+                </button>
+            </div>
+            <input type="text" class="o_input epg_field_path_search"
+                   placeholder="Search fields…"
+                   t-att-value="pickerState.query"
+                   t-on-input="onQueryInput"/>
+            <div class="epg_field_path_results">
+                <div t-if="pickerState.loading" class="text-muted p-2">
+                    <i class="fa fa-circle-o-notch fa-spin me-1"/>Loading…
+                </div>
+                <t t-else="">
+                    <div t-if="!pickerState.suggestions.length" class="text-muted p-2">
+                        No field matches.
+                    </div>
+                    <t t-foreach="pickerState.suggestions" t-as="suggestion"
+                       t-key="suggestion.path">
+                        <div class="epg_field_path_row">
+                            <button type="button" class="epg_field_path_pick"
+                                    t-on-click.stop="() => this.choose(suggestion)">
+                                <span class="epg_field_path_label" t-esc="suggestion.label"/>
+                                <span class="epg_field_path_tech" t-esc="suggestion.name"/>
+                                <span class="epg_field_path_type" t-esc="suggestion.type"/>
+                            </button>
+                            <button type="button" class="epg_field_path_into"
+                                    t-if="suggestion.relational"
+                                    t-att-title="'Browse ' + suggestion.comodel"
+                                    t-on-click.stop="() => this.browseInto(suggestion)">
+                                <i class="fa fa-angle-right"/>
+                            </button>
+                        </div>
+                    </t>
+                </t>
+            </div>
+        </div>
+    </div>
+</t>
+
+<t t-name="epg_product_label.BarcodeStatusField">
+    <div class="epg_barcode_status">
+        <span t-att-class="'badge ' + look.css">
+            <i t-att-class="'fa me-1 ' + look.icon"/>
+            <t t-esc="message"/>
+        </span>
+        <div class="epg_barcode_sample" t-if="sample">
+            <span class="text-muted me-1">Encodes:</span>
+            <code t-esc="sample"/>
+        </div>
+    </div>
+</t>
+
+</templates>

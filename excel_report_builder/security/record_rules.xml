@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Report templates belong to the user who saved them.
+        A user reads their own templates and the shared ones, and changes only
+        their own. Settings administrators manage every template.
+    -->
+    <record id="rule_dynamic_export_template_read" model="ir.rule">
+        <field name="name">Report templates: my own and shared ones</field>
+        <field name="model_id" ref="model_dynamic_export_template"/>
+        <field name="domain_force">['|', ('user_id', '=', user.id), ('is_shared', '=', True)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_dynamic_export_template_own" model="ir.rule">
+        <field name="name">Report templates: only my own are editable</field>
+        <field name="model_id" ref="model_dynamic_export_template"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <record id="rule_dynamic_export_template_admin" model="ir.rule">
+        <field name="name">Report templates: administrators manage all</field>
+        <field name="model_id" ref="model_dynamic_export_template"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+    </record>
+</odoo>

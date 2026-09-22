@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_outstanding_discount_form" model="ir.ui.view">
+        <field name="name">epg.outstanding.discount.form</field>
+        <field name="model">epg.outstanding.discount</field>
+        <field name="arch" type="xml">
+            <form string="Outstanding Discount">
+                <header>
+                    <button name="action_post" type="object" string="Post Discount"
+                            class="btn-primary" invisible="state != 'draft'"
+                            confirm="Post the discount entry and set it against the oldest open invoices?"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state == 'cancel'"
+                            confirm="Cancel this discount? A posted entry is reversed."/>
+                    <button name="action_reset_to_draft" type="object" string="Reset to Draft"
+                            invisible="state != 'cancel'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_move" type="object" class="oe_stat_button"
+                                icon="fa-book" invisible="not move_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Journal</span>
+                                <span class="o_stat_text">Entry</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="state != 'draft'"
+                                   options="{'no_create': True}"/>
+                            <field name="computation_mode" widget="radio"
+                                   options="{'horizontal': true}"
+                                   readonly="state != 'draft'"/>
+                            <field name="period_from" string="Start Date"
+                                   invisible="computation_mode != 'period'"
+                                   required="computation_mode == 'period'"
+                                   readonly="state != 'draft'"/>
+                            <field name="period_to" string="End Date"
+                                   invisible="computation_mode != 'period'"
+                                   required="computation_mode == 'period'"
+                                   readonly="state != 'draft'"/>
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="reason" readonly="state != 'draft'"/>
+                            <field name="note" placeholder="Agreed with… on the phone / at the clinic…"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="company_id" invisible="1"/>
+                            <field name="outstanding_total"/>
+                            <field name="open_invoice_count" string="Open invoices"/>
+                            <field name="account_id" readonly="state != 'draft'"
+                                   options="{'no_create': True}"/>
+                            <field name="journal_id" readonly="state != 'draft'"
+                                   options="{'no_create': True}" groups="account.group_account_user"/>
+                        </group>
+                    </group>
+                    <group string="Discount">
+                        <group>
+                            <field name="mode" widget="radio" options="{'horizontal': true}"
+                                   readonly="state != 'draft'"/>
+                            <field name="percent" invisible="mode != 'percent'"
+                                   readonly="state != 'draft'"/>
+                            <field name="amount_input" invisible="mode != 'amount'"
+                                   readonly="state != 'draft'"/>
+                            <field name="target_amount" invisible="mode != 'target'"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="discount_amount" class="fw-bold"/>
+                            <field name="after_amount"/>
+                        </group>
+                    </group>
+                    <group string="What it will clear (oldest first)" invisible="state != 'draft'">
+                        <field name="allocation_preview" nolabel="1" colspan="2"/>
+                    </group>
+                    <field name="move_id" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_outstanding_discount_list" model="ir.ui.view">
+        <field name="name">epg.outstanding.discount.list</field>
+        <field name="model">epg.outstanding.discount</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancel'" decoration-info="state == 'draft'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="reason" optional="show"/>
+                <field name="discount_amount" sum="Total"/>
+                <field name="after_amount" optional="show"/>
+                <field name="move_id" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'posted'"
+                       decoration-info="state == 'draft'"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_outstanding_discount_search" model="ir.ui.view">
+        <field name="name">epg.outstanding.discount.search</field>
+        <field name="model">epg.outstanding.discount</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Posted" name="posted" domain="[('state', '=', 'posted')]"/>
+                <separator/>
+                <filter string="This month" name="this_month"
+                        domain="[('date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <!-- A bare <group>: Odoo 19 dropped both `expand` and `string` from
+                     the search-view group element, and the RelaxNG failure aborts the
+                     whole registry load, not just this view. -->
+                <group>
+                    <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Reason" name="group_reason" context="{'group_by': 'reason'}"/>
+                    <filter string="Month" name="group_month" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_outstanding_discount" model="ir.actions.act_window">
+        <field name="name">Outstanding Discounts</field>
+        <field name="res_model">epg.outstanding.discount</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Grant the first discount</p>
+            <p>Pick the customer, choose a percentage, an amount, or the figure they
+               should settle to — the journal entry and the invoice allocation are
+               handled for you.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_outstanding_discount"
+              name="Outstanding Discounts"
+              parent="account.menu_finance_receivables"
+              action="action_outstanding_discount"
+              sequence="40"
+              groups="epg_outstanding_discount.group_discount_user"/>
+</odoo>

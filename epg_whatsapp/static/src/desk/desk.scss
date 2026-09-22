@@ -1,0 +1,549 @@
+// The WhatsApp Desk and send dialog. SCSS variables only (Odoo 19 has no --bs-*).
+// The greens are WhatsApp's own: this is a picture of WhatsApp. (client, 2026-09-17)
+$wa-green: #25d366;
+$wa-dark: #075e54;
+$wa-teal: #128c7e;
+$wa-bubble: #d9fdd3;
+$wa-canvas: #efeae2;
+$wa-blue: #53bdeb;
+
+// ------------------------------------------------------------------ send dialog
+.o_wa_send {
+    .o_wa_send_to { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .o_wa_avatar {
+        width: 44px; height: 44px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: $wa-green; color: #fff; font-size: 1.5rem; flex: 0 0 auto;
+    }
+    .o_wa_send_name { font-weight: 700; font-size: 1.05rem; color: $o-gray-900; }
+    .o_wa_send_meta { font-size: .8rem; color: $o-gray-600; }
+
+    .o_wa_chat {
+        background: $wa-canvas;
+        border-radius: .75rem;
+        padding: .9rem;
+        max-height: 46vh;
+        overflow-y: auto;
+    }
+    .o_wa_bubble {
+        background: $wa-bubble;
+        border-radius: .6rem .1rem .6rem .6rem;
+        padding: .55rem .7rem;
+        margin-left: auto;
+        max-width: 92%;
+        font-size: .875rem;
+        line-height: 1.35;
+        color: #111b21;
+        box-shadow: 0 1px .5px rgba(#0b141a, .13);
+        word-break: break-word;
+    }
+    .o_wa_gap { height: .6rem; }
+    .o_wa_link { color: #027eb5; text-decoration: underline; }
+
+    .o_wa_facts { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0; }
+    .o_wa_fact {
+        font-size: .75rem; color: $wa-dark; background: rgba($wa-teal, .08);
+        border-radius: 2rem; padding: .15rem .6rem;
+    }
+
+    .o_wa_modes { display: flex; flex-wrap: wrap; gap: .35rem; margin: .5rem 0 .25rem; }
+    .o_wa_mode {
+        border: 1px solid $border-color; background: $body-bg; color: $o-gray-700;
+        border-radius: 2rem; padding: .3rem .8rem; font-size: .8rem; font-weight: 600;
+        &:hover { border-color: $wa-teal; }
+    }
+    .o_wa_mode_on { background: $wa-dark; border-color: $wa-dark; color: #fff; }
+    .o_wa_hint { font-size: .75rem; color: $o-gray-600; margin-top: .25rem; }
+
+    .o_wa_actions {
+        display: flex; justify-content: flex-end; align-items: center; gap: .5rem;
+        flex-wrap: wrap; margin-top: 1rem;
+    }
+    .o_wa_go { background: $wa-green; border-color: $wa-green; color: #fff; font-weight: 700; }
+
+    .o_wa_confirm {
+        text-align: center; padding: 1.5rem 1rem; border-radius: .75rem;
+        background: rgba($wa-teal, .06); transition: background .3s;
+    }
+    .o_wa_confirm_back { background: rgba($wa-green, .16); }
+    .o_wa_confirm_icon {
+        width: 64px; height: 64px; margin: 0 auto .75rem; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: $wa-teal; color: #fff; font-size: 1.6rem;
+    }
+    .o_wa_confirm_back .o_wa_confirm_icon { animation: o_wa_pop .6s ease-out; background: $wa-green; }
+    .o_wa_confirm_q { font-size: 1.1rem; font-weight: 700; color: $o-gray-900; }
+    .o_wa_confirm_sub { font-size: .8rem; color: $o-gray-600; margin-top: .3rem; }
+
+    .o_wa_qr { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; justify-content: center; }
+    .o_wa_qr_code {
+        width: 220px; max-width: 100%; background: #fff; padding: .5rem; border-radius: .5rem;
+        border: 1px solid $border-color;
+        svg { width: 100%; height: auto; display: block; }
+    }
+    .o_wa_qr_help { flex: 1 1 200px; font-size: .875rem; color: $o-gray-700; }
+}
+
+@keyframes o_wa_pop {
+    0% { transform: scale(.6); }
+    60% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+// ------------------------------------------------------------------ desk
+.o_wa_desk {
+    overflow-y: auto;
+    .o_wa_desk_inner { padding: 1rem; max-width: 1200px; margin: 0 auto; }
+
+    .o_wa_desk_head {
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+    }
+    .o_wa_desk_title { display: flex; align-items: center; gap: .75rem; h2 { margin: 0; font-weight: 800; } }
+    .o_wa_desk_logo {
+        width: 48px; height: 48px; border-radius: 14px;
+        background: linear-gradient(135deg, $wa-green, $wa-teal); color: #fff;
+        display: flex; align-items: center; justify-content: center; font-size: 1.75rem;
+    }
+    .o_wa_desk_sub { font-size: .8rem; color: $o-gray-600; }
+    .o_wa_desk_controls { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+
+    .o_wa_seg {
+        display: inline-flex; border: 1px solid $border-color; border-radius: 2rem; overflow: hidden;
+        button { border: 0; background: $body-bg; padding: .35rem .9rem; font-weight: 600; font-size: .8125rem; color: $o-gray-700; }
+        .o_wa_seg_on { background: $wa-dark; color: #fff; }
+    }
+    .o_wa_openwith {
+        display: inline-flex; align-items: center; font-size: .8125rem; color: $o-gray-600;
+        border: 1px solid $border-color; border-radius: 2rem; padding: 0 .6rem; background: $body-bg;
+        select { border: 0; background: transparent; padding: .35rem 0; max-width: 16rem; color: $o-gray-800; }
+    }
+
+    .o_wa_stats {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr));
+        gap: .75rem;
+        margin-bottom: 1rem;
+    }
+    .o_wa_stat {
+        border: 1px solid $border-color; border-radius: .9rem; background: $body-bg;
+        padding: .8rem 1rem; min-width: 0;
+    }
+    .o_wa_stat_click { cursor: pointer; &:hover { box-shadow: 0 .25rem .75rem rgba($o-gray-900, .08); } }
+    .o_wa_stat_main {
+        background: linear-gradient(135deg, $wa-dark, $wa-teal); color: #fff; border: 0;
+        display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 1rem; align-items: center;
+        .o_wa_stat_v { color: #fff; font-size: 2.25rem; grid-row: 1 / span 2; }
+        .o_wa_stat_l { color: rgba(#fff, .85); }
+    }
+    .o_wa_sendall { background: $wa-green; border-color: $wa-green; font-weight: 700; justify-self: start; margin-top: .35rem; }
+    .o_wa_stat_save { background: rgba($wa-green, .08); border-color: rgba($wa-green, .35); }
+    .o_wa_stat_v { font-size: 1.5rem; font-weight: 800; color: $o-gray-900; line-height: 1.1; }
+    .o_wa_stat_l { font-size: .75rem; color: $o-gray-600; }
+
+    .o_wa_tabs {
+        display: flex; gap: .25rem; border-bottom: 1px solid $border-color; margin-bottom: .75rem;
+        button {
+            border: 0; background: none; padding: .5rem .9rem; font-weight: 600; color: $o-gray-600;
+            border-bottom: 3px solid transparent; margin-bottom: -1px;
+        }
+        .o_wa_tab_on { color: $wa-dark; border-bottom-color: $wa-green; }
+    }
+    .o_wa_badge {
+        display: inline-block; min-width: 1.4rem; padding: 0 .4rem; border-radius: 1rem;
+        background: $wa-green; color: #fff; font-size: .7rem; text-align: center; margin-left: .25rem;
+    }
+    .o_wa_badge_soft { background: $o-gray-300; color: $o-gray-800; }
+
+    .o_wa_list { display: flex; flex-direction: column; gap: .6rem; }
+    .o_wa_card {
+        display: flex; gap: .8rem; align-items: flex-start;
+        border: 1px solid $border-color; border-radius: .9rem; background: $body-bg;
+        padding: .8rem .9rem;
+    }
+    .o_wa_card_opened { border-color: rgba($warning, .6); background: rgba($warning, .05); }
+    .o_wa_card_late { border-left: 4px solid $danger; }
+    .o_wa_card_av {
+        width: 42px; height: 42px; border-radius: 50%; flex: 0 0 auto;
+        background: rgba($wa-teal, .15); color: $wa-dark; font-weight: 800;
+        display: flex; align-items: center; justify-content: center; font-size: .9rem;
+    }
+    .o_wa_card_main { flex: 1 1 auto; min-width: 0; }
+    .o_wa_card_top { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+    .o_wa_card_name { font-weight: 700; color: $o-gray-900; }
+    .o_wa_card_age { margin-left: auto; font-size: .75rem; color: $o-gray-600; white-space: nowrap; }
+    .o_wa_card_meta { font-size: .75rem; color: $o-gray-600; margin: .1rem 0 .35rem; }
+    .o_wa_card_body {
+        white-space: pre-line; font-size: .8125rem; color: $o-gray-800;
+        background: $wa-canvas; border-radius: .5rem; padding: .45rem .6rem;
+        max-height: 7.5rem; overflow: hidden;
+        -webkit-mask-image: linear-gradient(180deg, #000 75%, transparent);
+        mask-image: linear-gradient(180deg, #000 75%, transparent);
+    }
+    .o_wa_card_sent .o_wa_card_body { display: none; }
+    .o_wa_edit { font-size: .8125rem; }
+    .o_wa_card_replies { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+    .o_wa_reply_chip {
+        font-size: .7rem; border: 1px solid rgba($wa-teal, .45); color: $wa-dark;
+        border-radius: 2rem; padding: .05rem .55rem;
+    }
+    .o_wa_card_answer {
+        display: inline-block; margin-top: .25rem; font-size: .8125rem; font-weight: 600;
+        background: rgba($wa-green, .12); color: $wa-dark; border-radius: .5rem; padding: .15rem .55rem;
+    }
+    .o_wa_card_acts {
+        flex: 0 0 auto; display: flex; flex-direction: column; align-items: stretch; gap: .25rem;
+        .btn-success { background: $wa-green; border-color: $wa-green; font-weight: 700; min-width: 7rem; }
+    }
+    .o_wa_card_small { display: flex; justify-content: center; }
+    .o_wa_chip {
+        font-size: .7rem; font-weight: 600; background: $o-gray-100; color: $o-gray-700;
+        border-radius: 2rem; padding: .05rem .55rem; white-space: nowrap;
+        max-width: 18rem; overflow: hidden; text-overflow: ellipsis;
+    }
+    .o_wa_chip_warn { background: rgba($warning, .2); color: darken($warning, 30%); }
+    .o_wa_chip_doc { background: rgba($danger, .08); color: $danger; }
+    .o_wa_ticks { color: $o-gray-500; font-size: .8rem; letter-spacing: -.35em; margin-right: .35em; }
+    .o_wa_ticks_seen { color: $wa-blue; }
+
+    .o_wa_empty {
+        text-align: center; color: $o-gray-600; padding: 3rem 1rem;
+        border: 1px dashed $border-color; border-radius: .9rem;
+        > .fa { font-size: 2.5rem; color: $wa-green; margin-bottom: .5rem; }
+    }
+    .o_wa_empty_h { font-weight: 700; color: $o-gray-900; font-size: 1.05rem; }
+}
+
+// The Desk is the action's content under Odoo's control panel: it scrolls itself.
+html .o_web_client .o_action_manager main.o_content.o_wa_desk {
+    overflow-y: auto;
+    flex: 1 1 auto; height: 100%; min-height: 0;
+}
+
+@media (max-width: 991.98px) {
+    .o_wa_desk .o_wa_stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .o_wa_desk .o_wa_stat_main { grid-column: 1 / -1; }
+}
+
+@media (max-width: 575.98px) {
+    .o_wa_desk .o_wa_desk_inner { padding: .75rem; }
+    .o_wa_desk .o_wa_card { flex-wrap: wrap; }
+    .o_wa_desk .o_wa_card_acts { flex-direction: row; width: 100%; justify-content: space-between; }
+    .o_wa_desk .o_wa_card_age { margin-left: 0; }
+}
+
+// ------------------------------------------------------------------ systray
+.o_wa_systray_btn {
+    position: relative; border: 0; background: none; padding: 0 .5rem; height: 100%;
+    color: inherit; font-size: 1.15rem;
+    .fa-whatsapp { color: $wa-teal; }
+}
+.o_wa_systray_badge {
+    position: absolute; top: .35rem; right: 0; font-size: .6rem;
+    background: $wa-green; color: #fff;
+}
+
+// ------------------------------------------------------------------ smarter sending
+// Doctor groups, snoozes, reminders, campaigns, history. (client, 2026-09-17)
+.o_wa_send {
+    .o_wa_warn {
+        background: rgba($warning, .14); border: 1px solid rgba($warning, .45);
+        color: darken($warning, 35%); border-radius: .5rem; padding: .45rem .7rem;
+        font-size: .8rem; margin-bottom: .6rem;
+        > div + div { margin-top: .2rem; }
+    }
+    .o_wa_fact_bundle { background: rgba($wa-green, .16); font-weight: 600; }
+    .o_wa_hist { margin-top: .35rem; }
+    .o_wa_hist_list {
+        border: 1px solid $border-color; border-radius: .5rem; padding: .35rem .5rem;
+        max-height: 11rem; overflow-y: auto; font-size: .78rem;
+    }
+    .o_wa_hist_row { display: flex; gap: .5rem; padding: .2rem 0; border-top: 1px dashed $border-color;
+        &:first-child { border-top: 0; } }
+    .o_wa_hist_in .o_wa_hist_text { color: $wa-dark; font-weight: 600; }
+    .o_wa_hist_when { flex: 0 0 auto; color: $o-gray-500; font-variant-numeric: tabular-nums; }
+    .o_wa_hist_text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: $o-gray-700; }
+    .o_wa_snooze { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .6rem; }
+}
+
+.o_wa_desk {
+    .o_wa_group {
+        border: 1px solid rgba($wa-green, .45); border-radius: .9rem;
+        background: linear-gradient(180deg, rgba($wa-green, .07), $body-bg 4rem);
+        padding: .8rem .9rem; display: flex; flex-direction: column; gap: .5rem;
+    }
+    .o_wa_group_head { display: flex; gap: .8rem; align-items: flex-start; }
+    .o_wa_card_sub {
+        margin-left: 3.3rem; padding: .55rem .7rem; border-style: dashed;
+        .o_wa_card_body { max-height: 4.5rem; }
+    }
+    .o_wa_card_later { opacity: .9; }
+    .o_wa_chip_bundle { background: rgba($wa-green, .18); color: $wa-dark; }
+    .o_wa_chip_time { background: rgba($wa-blue, .15); color: darken($wa-blue, 30%); }
+    .o_wa_chip_nudge { background: rgba($warning, .2); color: darken($warning, 35%); }
+    .o_wa_chip_camp { background: rgba(#7c3aed, .1); color: #6d28d9; }
+    .o_wa_snooze { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .45rem; }
+    .o_wa_camp_btn { border-radius: 2rem; font-weight: 600; }
+}
+
+@media (max-width: 575.98px) {
+    .o_wa_desk .o_wa_card_sub { margin-left: 0; }
+    .o_wa_desk .o_wa_group_head { flex-wrap: wrap; }
+}
+
+// A campaign's message, shown as the bubble the first recipient gets.
+.o_wa_campaign_preview {
+    flex: 0 0 22rem; max-width: 100%;
+    background: $wa-canvas; border-radius: .75rem; padding: .75rem;
+    .o_field_text, .o_field_widget { display: block; }
+    span, div.o_field_text > span {
+        display: block; white-space: pre-wrap; background: $wa-bubble; border-radius: .6rem .1rem .6rem .6rem;
+        padding: .55rem .7rem; font-size: .85rem; color: #111b21; box-shadow: 0 1px .5px rgba(#0b141a, .13);
+    }
+}
+
+// ------------------------------------------------------------------ desk: find, meter, phone bar
+.o_wa_desk {
+    .o_wa_find {
+        margin-left: auto; display: inline-flex; align-items: center; gap: .4rem;
+        color: $o-gray-500; padding: 0 .25rem .25rem;
+        input { border: 0; border-bottom: 1px solid $border-color; background: transparent; padding: .25rem 0; width: 12rem; font-size: .8125rem; outline: 0;
+            &:focus { border-bottom-color: $wa-teal; } }
+    }
+    .o_wa_meter {
+        display: flex; align-items: center; gap: .75rem; margin: -.25rem 0 .75rem;
+        font-size: .75rem; color: $o-gray-600;
+    }
+    .o_wa_meter_bar { flex: 1 1 auto; height: 6px; border-radius: 3px; background: $o-gray-200; overflow: hidden; max-width: 22rem; }
+    .o_wa_meter_fill { height: 100%; border-radius: 3px; background: $wa-green; transition: width .4s; }
+    .o_wa_meter_mid .o_wa_meter_fill { background: $warning; }
+    .o_wa_meter_high .o_wa_meter_fill { background: $danger; }
+    .o_wa_meter_high .o_wa_meter_l { color: $danger; font-weight: 600; }
+    .o_wa_mobilebar { display: none; }
+    .o_wa_chip_stop { background: rgba($danger, .1); color: $danger; }
+}
+
+@media (max-width: 575.98px) {
+    .o_wa_desk { padding-bottom: 5rem; }
+    .o_wa_desk .o_wa_tabs { flex-wrap: wrap; button { white-space: nowrap; padding: .5rem .6rem; font-size: .8125rem; } }
+    .o_wa_desk .o_wa_find { margin-left: 0; flex-basis: 100%; padding-top: .35rem; input { width: 100%; } }
+    .o_wa_desk .o_wa_stat_main .o_wa_sendall { display: none; }
+    .o_wa_desk .o_wa_mobilebar {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+        display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+        padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom, 0px));
+        background: $body-bg; border-top: 1px solid $border-color; box-shadow: 0 -.25rem 1rem rgba($o-gray-900, .08);
+        .btn { background: $wa-green; border-color: $wa-green; font-weight: 700; padding: .55rem 1.4rem; }
+    }
+}
+
+// ------------------------------------------------------------------ send dialog: fallbacks, hints
+.o_wa_send {
+    .o_wa_alt { font-size: .8125rem; }
+    .o_wa_kbd { margin-top: .5rem; text-align: right; font-size: .7rem; color: $o-gray-500;
+        kbd { font-size: .65rem; padding: .05rem .3rem; background: $o-gray-100; color: $o-gray-700; border: 1px solid $border-color; border-radius: .2rem; } }
+}
+@media (hover: none) { .o_wa_send .o_wa_kbd { display: none; } }
+
+// ------------------------------------------------------------------ chats
+.o_wa_chats {
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    min-height: 0;
+    background: $body-bg;
+
+    .o_wa_chats_list { border-right: 1px solid $border-color; overflow-y: auto; display: flex; flex-direction: column; }
+    .o_wa_chats_search {
+        position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: .5rem;
+        padding: .6rem .75rem; background: $body-bg; border-bottom: 1px solid $border-color; color: $o-gray-500;
+        input { flex: 1 1 auto; border: 0; background: $o-gray-100; border-radius: 2rem; padding: .4rem .8rem; outline: 0; font-size: .875rem;
+            &:focus { background: $o-gray-200; } }
+    }
+    .o_wa_chats_empty { padding: 2.5rem 1rem; text-align: center; color: $o-gray-600; font-size: .875rem;
+        > .fa { display: block; font-size: 2rem; color: $wa-green; margin-bottom: .5rem; } }
+    .o_wa_chat {
+        display: flex; gap: .7rem; align-items: center; width: 100%; text-align: left;
+        border: 0; border-bottom: 1px solid $border-color; background: transparent; padding: .65rem .75rem;
+        &:hover { background: $o-gray-100; }
+    }
+    .o_wa_chat_on { background: rgba($wa-teal, .1); &:hover { background: rgba($wa-teal, .14); } }
+    .o_wa_chat_main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+    .o_wa_chat_top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+    .o_wa_chat_name { font-weight: 700; color: $o-gray-900; font-size: .875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o_wa_chat_when { font-size: .7rem; color: $o-gray-500; flex: 0 0 auto; }
+    .o_wa_chat_last { font-size: .78rem; color: $o-gray-600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o_wa_chat_wait .o_wa_chat_last { color: $o-gray-900; font-weight: 600; }
+    .o_wa_chat_badge { width: 22px; height: 22px; border-radius: 50%; background: $wa-green; color: #fff; font-size: .65rem; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+
+    .o_wa_chats_pane { display: flex; flex-direction: column; min-height: 0; background: $wa-canvas; }
+    .o_wa_chats_pick { margin: auto; text-align: center; color: $o-gray-600; padding: 2rem; max-width: 26rem; }
+    .o_wa_chats_pick_logo { width: 72px; height: 72px; margin: 0 auto 1rem; border-radius: 50%; background: rgba($wa-teal, .12); color: $wa-teal; font-size: 2.2rem; display: flex; align-items: center; justify-content: center; }
+    .o_wa_chats_pick_h { font-weight: 800; font-size: 1.15rem; color: $o-gray-900; margin-bottom: .25rem; }
+
+    .o_wa_thread_head {
+        display: flex; align-items: center; gap: .7rem; padding: .55rem .9rem;
+        background: $body-bg; border-bottom: 1px solid $border-color;
+    }
+    .o_wa_back { display: none; border: 0; background: transparent; color: $o-gray-700; font-size: 1.1rem; padding: .25rem .4rem; }
+    .o_wa_thread_who { flex: 1 1 auto; min-width: 0; }
+    .o_wa_thread_name { font-weight: 700; color: $o-gray-900; a { color: inherit; } }
+    .o_wa_thread_meta { font-size: .75rem; color: $o-gray-600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .o_wa_thread { flex: 1 1 auto; overflow-y: auto; padding: 1rem .9rem; display: flex; flex-direction: column; gap: .35rem; }
+    .o_wa_day { text-align: center; margin: .5rem 0; span { display: inline-block; background: rgba(#fff, .9); color: $o-gray-600; font-size: .7rem; font-weight: 600; border-radius: .5rem; padding: .2rem .6rem; box-shadow: 0 1px .5px rgba(#0b141a, .13); } }
+    .o_wa_msg { display: flex; flex-direction: column; max-width: 78%; }
+    .o_wa_msg_in { align-self: flex-start; align-items: flex-start; }
+    .o_wa_msg_out { align-self: flex-end; align-items: flex-end; }
+    .o_wa_msg_bubble {
+        border-radius: .6rem; padding: .45rem .6rem .3rem; font-size: .875rem; line-height: 1.35; color: #111b21;
+        box-shadow: 0 1px .5px rgba(#0b141a, .13); word-break: break-word; background: #fff;
+    }
+    .o_wa_msg_in .o_wa_msg_bubble { border-top-left-radius: .1rem; }
+    .o_wa_msg_out .o_wa_msg_bubble { background: $wa-bubble; border-top-right-radius: .1rem; }
+    .o_wa_msg_cancel .o_wa_msg_bubble { opacity: .55; text-decoration: line-through; }
+    .o_wa_msg_tpl { font-size: .68rem; font-weight: 700; color: $wa-teal; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .15rem; }
+    .o_wa_msg_doc { margin-top: .35rem; font-size: .78rem; font-weight: 600; background: rgba($wa-teal, .1); border-radius: .4rem; padding: .25rem .5rem; color: $wa-dark; }
+    .o_wa_msg_replies { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
+    .o_wa_msg_time { text-align: right; font-size: .65rem; color: $o-gray-500; margin-top: .2rem; a { color: $wa-teal; font-weight: 600; } }
+    .o_wa_msg_wait { color: $warning; font-weight: 700; margin-right: .35rem; }
+    .o_wa_msg_send { margin-top: .3rem; background: $wa-green; border-color: $wa-green; font-weight: 700; }
+    .o_wa_msg_events { font-size: .7rem; color: $o-gray-600; margin: .2rem .2rem 0; display: flex; flex-wrap: wrap; gap: .6rem;
+        span { background: rgba(#fff, .8); border-radius: .5rem; padding: .1rem .45rem; } }
+    .o_wa_gap { height: .5rem; }
+    .o_wa_link { color: #027eb5; text-decoration: underline; }
+    .o_wa_link_short { text-decoration: none; background: rgba(#027eb5, .1); border-radius: .3rem; padding: 0 .3rem; font-size: .75rem; }
+
+    .o_wa_compose { background: $body-bg; border-top: 1px solid $border-color; padding: .5rem .75rem calc(.5rem + env(safe-area-inset-bottom, 0px)); }
+    .o_wa_compose_stop { font-size: .8125rem; color: $danger; padding: .3rem 0; }
+    .o_wa_compose_reply { display: flex; gap: .4rem; margin-bottom: .5rem; }
+    .o_wa_compose_row { display: flex; gap: .5rem; align-items: flex-end; }
+    .o_wa_compose_snip { border: 1px solid $border-color; border-radius: 2rem; background: $body-bg; font-size: .78rem; padding: .4rem .5rem; max-width: 9rem; color: $o-gray-700; height: 40px; }
+    .o_wa_compose_in { flex: 1 1 0; min-width: 0; width: 100%; border: 1px solid $border-color; border-radius: 1.25rem; padding: .55rem .9rem; font-size: .9rem; resize: none; max-height: 9rem; min-height: 40px; outline: 0; field-sizing: content;
+        &:focus { border-color: $wa-teal; } }
+    .o_wa_compose_reply_btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid $border-color; background: $body-bg; color: $o-gray-600; flex: 0 0 auto; }
+    .o_wa_compose_send { width: 44px; height: 44px; border-radius: 50%; border: 0; background: $wa-green; color: #fff; font-size: 1.05rem; flex: 0 0 auto;
+        &:disabled { background: $o-gray-300; } }
+}
+
+// The web client lays an action out as a flex column, the control panel on top;
+// the chat's content needs its two panes and no scrolling of its own.
+html .o_web_client .o_action_manager main.o_content.o_wa_chats {
+    display: grid; grid-template-columns: 340px minmax(0, 1fr); overflow: hidden;
+    // The control panel sits above: the chat takes whatever is left, no more.
+    flex: 1 1 auto; height: 100%; min-height: 0;
+}
+
+@media (max-width: 767.98px) {
+    html .o_web_client .o_action_manager main.o_content.o_wa_chats { grid-template-columns: minmax(0, 1fr); }
+    .o_wa_chats .o_wa_chats_pane { display: none; }
+    .o_wa_chats.o_wa_chats_thread .o_wa_chats_list { display: none; }
+    .o_wa_chats.o_wa_chats_thread .o_wa_chats_pane { display: flex; }
+    .o_wa_chats .o_wa_back { display: inline-block; }
+    .o_wa_chats .o_wa_msg { max-width: 88%; }
+    // The picker is a small pill on a phone: the box to type in is what matters.
+    .o_wa_chats .o_wa_compose_snip { max-width: 5.6rem; font-size: .72rem; padding: .4rem .3rem; }
+}
+
+// ------------------------------------------------------------------ marketing
+// The audience count, the editor and the Desk's kind switch. (client, 2026-09-17)
+.o_wa_audience_count {
+    display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+    border: 1px solid rgba($wa-green, .45); background: rgba($wa-green, .07);
+    border-radius: .9rem; padding: .6rem 1rem; margin-bottom: 1rem;
+    .o_wa_audience_n .o_field_widget, .o_wa_audience_n span { font-size: 1.75rem; font-weight: 800; color: $wa-dark; }
+    .o_wa_audience_l { color: $o-gray-700; font-size: .875rem; }
+}
+.o_wa_audience_row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.o_wa_recency_field { min-width: 16rem; }
+.o_wa_recency_days .o_field_widget, .o_wa_recency_days input { width: 4rem !important; }
+.o_wa_flyer_image { flex: 0 0 auto; }
+
+.o_wa_editor {
+    border: 1px solid $border-color; border-radius: .6rem; overflow: hidden; background: $body-bg;
+    &:focus-within { border-color: $wa-teal; }
+    .o_wa_editor_bar { display: flex; align-items: center; gap: .25rem; padding: .3rem .4rem; border-bottom: 1px solid $border-color; background: $o-gray-100; flex-wrap: wrap; }
+    .o_wa_editor_btn {
+        border: 1px solid transparent; background: transparent; border-radius: .4rem; padding: .2rem .55rem;
+        font-size: .875rem; color: $o-gray-800; min-width: 2rem;
+        &:hover { background: $body-bg; border-color: $border-color; }
+    }
+    .o_wa_editor_btn_on { background: $body-bg; border-color: $wa-teal; color: $wa-dark; }
+    .o_wa_editor_count { margin-left: auto; font-size: .7rem; color: $o-gray-500; }
+    .o_wa_editor_fields { padding: .5rem; border-bottom: 1px solid $border-color; }
+    .o_wa_editor_fieldlist { display: flex; flex-wrap: wrap; gap: .3rem; max-height: 9rem; overflow-y: auto; }
+    .o_wa_editor_field {
+        border: 1px solid $border-color; background: $body-bg; border-radius: 2rem; padding: .15rem .6rem;
+        font-size: .75rem; display: inline-flex; gap: .4rem; align-items: baseline;
+        code { font-size: .65rem; color: $o-gray-500; }
+        &:hover { border-color: $wa-teal; }
+    }
+    .o_wa_editor_ta { display: block; width: 100%; border: 0; padding: .6rem .75rem; font-size: .9rem; line-height: 1.4; resize: vertical; outline: 0; background: transparent; min-height: 9rem; }
+}
+.o_wa_editor_ro .o_wa_editor_ta { background: $o-gray-100; }
+
+.o_wa_ideas .o_wa_idea { padding: .25rem; }
+.o_wa_idea_body { white-space: pre-line; font-size: .78rem; color: $o-gray-700; background: $wa-canvas; border-radius: .5rem; padding: .4rem .5rem; margin-top: .4rem; max-height: 6.5rem; overflow: hidden; }
+
+.o_wa_desk {
+    .o_wa_kind {
+        display: inline-flex; border: 1px solid $border-color; border-radius: 2rem; overflow: hidden; margin-left: .5rem; align-self: center;
+        button { border: 0; background: $body-bg; padding: .3rem .7rem; font-size: .75rem; font-weight: 600; color: $o-gray-600; }
+        .o_wa_kind_on { background: $wa-dark; color: #fff; }
+    }
+}
+@media (max-width: 575.98px) {
+    .o_wa_desk .o_wa_kind { margin-left: 0; }
+}
+
+// The template gallery, and a record's own messages picked out in a chat.
+.o_wa_tpl_gallery .o_wa_tpl_card { padding: .25rem; }
+.o_wa_tpl_head { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; margin-bottom: .35rem; }
+.o_wa_tpl_stats { font-size: .7rem; color: $o-gray-600; white-space: nowrap; }
+.o_wa_tpl_bubble {
+    background: $wa-bubble; border-radius: .6rem .1rem .6rem .6rem; padding: .5rem .65rem;
+    font-size: .78rem; color: #111b21; box-shadow: 0 1px .5px rgba(#0b141a, .13);
+}
+.o_wa_tpl_doc { font-size: .72rem; font-weight: 600; background: rgba($wa-teal, .12); border-radius: .4rem; padding: .2rem .45rem; margin-bottom: .35rem; color: $wa-dark; }
+.o_wa_tpl_text { white-space: pre-line; max-height: 7rem; overflow: hidden; }
+.o_wa_tpl_replies { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .4rem; }
+.o_wa_tpl_more { border: 1px dashed $border-color; border-radius: .6rem; padding: .6rem .75rem; }
+.o_wa_chats .o_wa_msg_focus .o_wa_msg_bubble { box-shadow: 0 0 0 2px $wa-green; }
+.o_wa_chats .o_wa_focus_note { font-size: .75rem; color: $wa-dark; background: rgba($wa-green, .12); padding: .35rem .9rem; }
+
+// The editor is a block the width of its column, wherever the form puts it.
+.o_field_wa_editor { display: block; width: 100%; }
+
+// The document in the send dialog: its name, its size, a download.
+.o_wa_docs { margin: .5rem 0 0; padding: .5rem .75rem; border: 1px dashed $border-color; border-radius: .6rem; background: rgba($wa-teal, .04); }
+.o_wa_doc_row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.o_wa_doc_name { font-weight: 600; word-break: break-all; }
+
+// Editing the words in the send dialog.
+.o_wa_send .o_wa_chat { position: relative; }
+.o_wa_send .o_wa_edit_btn { position: absolute; right: .5rem; bottom: .35rem; padding: 0 .25rem; }
+.o_wa_edit_box { padding: .5rem 0; }
+
+// The To answer tray: one line per thing a doctor said.
+.o_wa_desk {
+    .o_wa_reply_row {
+        display: flex; gap: .75rem; align-items: flex-start; padding: .7rem .9rem;
+        border: 1px solid $border-color; border-radius: .8rem; background: $body-bg;
+        & + .o_wa_reply_row { margin-top: .5rem; }
+        &:hover { border-color: rgba($wa-teal, .5); }
+    }
+    .o_wa_avatar_in { background: rgba($wa-teal, .14); color: $wa-dark; }
+    .o_wa_reply_main { flex: 1 1 auto; min-width: 0; }
+    .o_wa_reply_head { display: flex; flex-wrap: wrap; gap: .5rem; align-items: baseline; font-size: .8125rem; }
+    .o_wa_reply_rec { color: $wa-dark; font-weight: 600; }
+    .o_wa_reply_about, .o_wa_reply_when { color: $o-gray-600; font-size: .75rem; }
+    .o_wa_reply_when { margin-left: auto; }
+    .o_wa_reply_text {
+        margin-top: .15rem; font-size: .9375rem; color: $o-gray-900; white-space: pre-line;
+        word-break: break-word;
+    }
+    .o_wa_reply_acts { display: flex; align-items: center; gap: .15rem; flex: 0 0 auto; }
+}
+@media (max-width: 575.98px) {
+    .o_wa_desk .o_wa_reply_row { flex-wrap: wrap; }
+    .o_wa_desk .o_wa_reply_acts { width: 100%; justify-content: flex-end; }
+}

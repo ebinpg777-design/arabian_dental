@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_incentive_sheet" model="ir.sequence">
+            <field name="name">Incentive Sheet</field>
+            <field name="code">lab.incentive.sheet</field>
+            <field name="prefix">INC/%(year)s/</field>
+            <field name="padding">4</field>
+        </record>
+    </data>
+</odoo>

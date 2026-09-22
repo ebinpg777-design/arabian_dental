@@ -1,0 +1,113 @@
+<odoo>
+    <!-- ─── Report action ────────────────────────────────────────────────── -->
+    <record id="action_report_petty_cash_statement" model="ir.actions.report">
+        <field name="name">Petty Cash Statement</field>
+        <field name="model">petty.cash.allocation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">petty_cash.report_petty_cash_statement</field>
+        <field name="report_file">petty_cash.report_petty_cash_statement</field>
+        <field name="binding_model_id" ref="model_petty_cash_allocation"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Petty Cash Statement - %s' % object.name</field>
+    </record>
+
+    <!-- ─── Document template ────────────────────────────────────────────── -->
+    <template id="report_petty_cash_statement_document">
+        <t t-call="web.external_layout">
+            <t t-set="o" t-value="o.with_context(lang=o.partner_id.lang or user.lang)"/>
+            <div class="page">
+                <h2 class="mb-0">Petty Cash Statement</h2>
+                <p class="text-muted" t-field="o.name"/>
+
+                <div class="row mt-3 mb-4">
+                    <div class="col-6">
+                        <strong>Cash Holder:</strong> <span t-field="o.partner_id"/><br/>
+                        <strong>Account:</strong> <span t-field="o.account_id"/><br/>
+                        <strong>Journal:</strong> <span t-field="o.journal_id"/>
+                    </div>
+                    <div class="col-6">
+                        <strong>Allocated Date:</strong> <span t-field="o.allocated_date"/><br/>
+                        <strong>Float Amount:</strong>
+                        <span t-esc="o._money(o.float_amount)"/><br/>
+                        <strong>Status:</strong> <span t-field="o.state"/>
+                        <t t-if="o.return_date">
+                            <br/><strong>Return Date:</strong> <span t-field="o.return_date"/>
+                        </t>
+                    </div>
+                </div>
+
+                <t t-set="lines" t-value="o.get_statement_lines()"/>
+                <table class="table table-sm o_main_table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Reference</th>
+                            <th>Type</th>
+                            <th>Details</th>
+                            <th class="text-end">In</th>
+                            <th class="text-end">Out</th>
+                            <th class="text-end">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="lines" t-as="line">
+                            <td><span t-esc="line['date']"/></td>
+                            <td><span t-esc="line['name']"/></td>
+                            <td><span t-esc="line['type_label']"/></td>
+                            <td><span t-esc="line['reference']"/></td>
+                            <td class="text-end">
+                                <span t-if="line['inflow']" t-esc="o._money(line['inflow'])"/>
+                            </td>
+                            <td class="text-end">
+                                <span t-if="line['outflow']" t-esc="o._money(line['outflow'])"/>
+                            </td>
+                            <td class="text-end"><span t-esc="o._money(line['balance'])"/></td>
+                        </tr>
+                        <tr t-if="not lines">
+                            <td colspan="7" class="text-center text-muted">No posted transactions.</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top:2px solid #000;">
+                            <td colspan="4" class="text-end"><strong>Totals</strong></td>
+                            <td class="text-end"><strong t-esc="o._money(o.amount_allocated)"/></td>
+                            <td class="text-end"><strong t-esc="o._money(o.amount_utilized + o.amount_returned)"/></td>
+                            <td class="text-end"><strong t-esc="o._money(o.amount_balance)"/></td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div class="row mt-4">
+                    <div class="col-4 offset-8">
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Total Allocated</td>
+                                <td class="text-end" t-esc="o._money(o.amount_allocated)"/>
+                            </tr>
+                            <tr>
+                                <td>Total Utilized</td>
+                                <td class="text-end" t-esc="o._money(o.amount_utilized)"/>
+                            </tr>
+                            <tr>
+                                <td>Total Returned</td>
+                                <td class="text-end" t-esc="o._money(o.amount_returned)"/>
+                            </tr>
+                            <tr style="border-top:2px solid #000;">
+                                <td><strong>Closing Balance</strong></td>
+                                <td class="text-end"><strong t-esc="o._money(o.amount_balance)"/></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_petty_cash_statement">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="petty_cash.report_petty_cash_statement_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

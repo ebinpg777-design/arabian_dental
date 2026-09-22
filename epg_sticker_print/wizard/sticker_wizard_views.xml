@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_sticker_print_wizard" model="ir.ui.view">
+        <field name="name">epg.sticker.print.wizard.form</field>
+        <field name="model">epg.sticker.print.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Print Stickers">
+                <div class="row">
+                    <div class="col-md-6">
+                        <group>
+                            <field name="partner_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   placeholder="Doctors / clinics going out today…"/>
+                            <field name="order_domain" invisible="1"/>
+                            <field name="available_count" invisible="1"/>
+                            <field name="order_ids" widget="many2many_tags"
+                                   domain="order_domain" options="{'no_create': True}"
+                                   placeholder="Their orders — optional for a customer or route label…"/>
+                            <div colspan="2" class="mb-2" invisible="not partner_ids">
+                                <button name="action_add_partner_orders" type="object"
+                                        class="btn btn-sm btn-link ps-0"
+                                        invisible="available_count == 0">
+                                    <i class="fa fa-plus-circle me-1"/>Add all
+                                    <field name="available_count" class="oe_inline"/>
+                                    open order(s)
+                                </button>
+                                <button name="action_clear_orders" type="object"
+                                        class="btn btn-sm btn-link text-muted"
+                                        invisible="not order_ids">
+                                    <i class="fa fa-times me-1"/>Clear
+                                </button>
+                                <!-- No orders needed at all for a customer / route label: the
+                                     clinic's own address, phone and route print directly. Said
+                                     as a fact, not a "nothing here" dead-end. (client, 2026-08-29) -->
+                                <span class="text-muted small"
+                                      invisible="mode == 'order' or order_ids">
+                                    No orders needed — the clinic's own address will print.
+                                </span>
+                                <span class="text-muted small"
+                                      invisible="mode != 'order' or available_count != 0 or order_ids">
+                                    No open orders for the selected clinic(s).
+                                </span>
+                            </div>
+                            <field name="mode" widget="radio"/>
+                            <field name="format_id" options="{'no_create': True}"/>
+                            <field name="format_hint" nolabel="1" colspan="2" class="text-muted small"/>
+                            <field name="copies"/>
+                            <field name="barcode_type" widget="radio" options="{'horizontal': true}"/>
+                        </group>
+                        <group string="Show on the sticker">
+                            <field name="show_route"/>
+                            <field name="show_phone"/>
+                            <field name="show_patient"/>
+                            <field name="show_lines" invisible="mode != 'order'"/>
+                            <field name="show_sender"/>
+                        </group>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="preview_html" string="Preview" class="fw-bold"/>
+                        <div class="text-muted small mb-1"><field name="sticker_count" class="oe_inline"/> sticker(s) will be printed</div>
+                        <field name="preview_html" nolabel="1" readonly="1"/>
+                    </div>
+                </div>
+                <footer>
+                    <button name="action_print" type="object" string="Print" class="btn-primary" data-hotkey="q"/>
+                    <button name="action_preview_html" type="object" string="Preview all"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_sticker_print_wizard" model="ir.actions.act_window">
+        <field name="name">Print Stickers</field>
+        <field name="res_model">epg.sticker.print.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_sticker_print_wizard"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form,kanban</field>
+    </record>
+
+    <record id="action_sticker_print_partner" model="ir.actions.act_window">
+        <field name="name">Print Stickers</field>
+        <field name="res_model">epg.sticker.print.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_sticker_print_wizard"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form,kanban</field>
+    </record>
+
+    <!-- Reached from the menu the counter starts empty and picks the clinics, so it
+         gets the whole screen: the preview on the right is the point of the page.
+         target MUST be 'current', not 'new' - it was 'new' (a modal) while this
+         comment already said "whole screen", and that mismatch is exactly what broke
+         "Add all open orders": reopening a modal-launched wizard with target='current'
+         (which `_reopen()` does whenever this context flag is set) tore the small
+         dialog open into a jarring full page with a broken breadcrumb/pager - the data
+         updated correctly, but the click looked like it did nothing, or worse, closed
+         the wizard. Both sides now agree. (client, 2026-08-29) -->
+    <record id="action_sticker_print_menu" model="ir.actions.act_window">
+        <field name="name">Print Stickers</field>
+        <field name="res_model">epg.sticker.print.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_sticker_print_wizard"/>
+        <field name="target">current</field>
+        <field name="context">{'epg_sticker_fullpage': True}</field>
+    </record>
+
+    <!-- Grouped for the same reason as every other child of the Sales menu: an
+         ungrouped menuitem is visible to every internal user and pulls the whole
+         Sales app into their switcher. (client, 2026-08-29) -->
+    <menuitem id="menu_sticker_print" name="Print Stickers"
+              parent="sale.sale_order_menu" sequence="26"
+              action="action_sticker_print_menu"
+              groups="sales_team.group_sale_salesman"/>
+</odoo>

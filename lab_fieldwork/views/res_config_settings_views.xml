@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Field Work gets its OWN settings app, not a block bolted onto General Settings.
+
+        A block inside General Settings means the administrator has to scroll a page
+        that is mostly about email servers and languages to find the visit radius, and
+        every other app's settings sit between them and it. As its own app the section
+        opens directly, and the menu below lands on it.
+    -->
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.form.fieldwork</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="80"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <!-- Owned by the administrator role, not by the manager it constrains. -->
+                <app data-string="Field Work" string="Field Work" name="lab_fieldwork"
+                     groups="lab_fieldwork.group_fieldwork_admin">
+
+                    <block title="Proof of Visit" name="fw_proof_block"
+                           help="How the lab satisfies itself that a visit really happened.">
+                        <setting id="fw_radius" string="Visit Radius"
+                                 help="How close an executive must be for a check-in to count as being at the clinic. A check-in outside it is recorded and must be explained — never blocked, because a blocked visit is simply an unrecorded one.">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="fw_visit_radius_m" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_visit_radius_m"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting id="fw_photo" string="Odometer Photos"
+                                 help="Require a photo of the odometer at the start and end of a trip.">
+                            <field name="fw_require_odo_photo"/>
+                        </setting>
+                        <setting id="fw_visit_photo" string="Visit Photo"
+                                 help="Require a proof photo before a visit can be closed.">
+                            <field name="fw_require_visit_photo"/>
+                        </setting>
+                        <setting id="fw_attendance" string="Attendance First"
+                                 help="An executive must mark attendance before checking in at a clinic or starting travel. Marked on Odoo's own hr.attendance, so payroll and HR see it without anything being copied across.">
+                            <field name="fw_require_attendance"/>
+                        </setting>
+                    </block>
+
+                    <block title="Coverage Policy" name="fw_coverage_block"
+                           help="When a clinic counts as neglected. These bands drive the Clinic Coverage report and the suggestions on My Day.">
+                        <setting id="fw_due" string="Coverage Bands">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="fw_due_days" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_due_days"/>
+                                </div>
+                                <div class="row">
+                                    <label for="fw_overdue_days" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_overdue_days"/>
+                                </div>
+                                <div class="row">
+                                    <label for="fw_at_risk_days" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_at_risk_days"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <block title="Duplicate Cases" name="fw_dup_block"
+                           help="How far back to look for the same patient at the same clinic when a case is registered in the field.">
+                        <setting id="fw_dup" string="Duplicate Window">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="fw_duplicate_days" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_duplicate_days"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <block title="Travel Reimbursement" name="fw_travel_block"
+                           help="What the lab pays per kilometre. Set here rather than on the trip, so a rate is a policy and not a negotiation.">
+                        <setting id="fw_rates" string="Mileage Rates">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="fw_rate_bike" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_rate_bike"/>
+                                </div>
+                                <div class="row">
+                                    <label for="fw_rate_car" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_rate_car"/>
+                                </div>
+                                <div class="row">
+                                    <label for="fw_rate_public" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_rate_public"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Cash in the Field" name="fw_cash_block"
+                           help="Cash taken at a clinic goes into the executive's petty cash float at check-out and comes off it when the office counts the handover. A custody record - it never touches the ledger.">
+                        <setting id="fw_auto_float" string="Floats Open Themselves"
+                                 help="The first time an executive takes cash, a float opens in their name - no advance, no journal. Off, accounts opens every float by hand.">
+                            <field name="fw_auto_float"/>
+                        </setting>
+                        <setting id="fw_cash_policy" string="When to Chase Held Cash"
+                                 help="Collected cash older than the days, or at or above the amount, is chased on My Day and the Ops Desk and raises a to-do for the executive. 0 switches either rule off.">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="fw_cash_max_days" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_cash_max_days"/>
+                                </div>
+                                <div class="row">
+                                    <label for="fw_cash_ceiling" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_cash_ceiling"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_fieldwork_settings" model="ir.actions.act_window">
+        <field name="name">Field Work Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <!-- 'module' opens the page on this app's section rather than the top of a
+             page the administrator then has to search. -->
+        <field name="context">{'module': 'lab_fieldwork', 'bin_size': False}</field>
+    </record>
+</odoo>

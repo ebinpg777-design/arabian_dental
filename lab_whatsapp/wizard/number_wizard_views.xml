@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_number_wizard_form" model="ir.ui.view">
+        <field name="name">lab.whatsapp.number.form</field>
+        <field name="model">lab.whatsapp.number</field>
+        <field name="arch" type="xml">
+            <form string="WhatsApp number">
+                <div class="mb-2">
+                    <i class="fa fa-whatsapp text-success me-1" title="WhatsApp"/>
+                    <field name="partner_id" readonly="1" class="fw-bold" nolabel="1"/>
+                    has no WhatsApp number yet. Type it and the message can go.
+                </div>
+                <field name="number" placeholder="e.g. +91 98470 12345" nolabel="1"/>
+                <div class="text-muted small mt-1" invisible="not number or not number_ok">
+                    Taken from the contact's phone - check it is the number they use on WhatsApp.
+                </div>
+                <field name="number_ok" invisible="1"/>
+                <div class="text-danger small mt-1" invisible="not number or number_ok">
+                    Country code and full number, please - e.g. +91 98470 12345.
+                </div>
+                <footer>
+                    <button name="action_save" type="object" string="Save and continue"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The header's text element ships with +1 555-555-5556 and
+         info@yourcompany.example.com typed into every one of its branches (phone+mail,
+         mail, stretched, and the plain phone the default header uses). An xpath replace
+         only touches its first match, so each branch is addressed on its own. The lab
+         has no public email address yet, so the mail slots carry its second number. -->
+    <template id="header_text_element_lab" inherit_id="website.header_text_element" name="Header text: Arabian Dental Lab">
+
+        <xpath expr="//t[contains(@t-elif, 'phone_mail')]//a[starts-with(@href, 'tel:')]" position="replace">
+            <a href="tel:+919447849858" class="nav-link o_nav-link_secondary">
+                <small>
+                    <i class="fa fa-1x fa-fw fa-phone me-1"/>&#847;
+                    <span class="o_force_ltr">+91 94478 49858</span>
+                </small>
+            </a>
+        </xpath>
+        <xpath expr="//t[contains(@t-elif, 'phone_mail')]//a[starts-with(@href, 'mailto:')]" position="replace">
+            <a href="tel:+918078102515" class="nav-link o_nav-link_secondary">
+                <small>
+                    <i class="fa fa-1x fa-fw fa-phone me-1"/>&#847;
+                    <span class="o_force_ltr">+91 80781 02515</span>
+                </small>
+            </a>
+        </xpath>
+
+        <xpath expr="//t[@t-elif=&quot;_txt_elt_content == 'mail'&quot;]//a" position="replace">
+            <a href="tel:+919447849858" class="nav-link o_nav-link_secondary">
+                <small><i class="fa fa-1x fa-fw fa-phone me-1"/> <span class="o_force_ltr">+91 94478 49858</span></small>
+            </a>
+        </xpath>
+
+        <xpath expr="//t[contains(@t-elif, 'mail_stretched')]//a" position="replace">
+            <a href="tel:+919447849858" class="nav-link o_nav-link_secondary p-2 o_navlink_background_hover d-flex align-items-center h-100 text-reset">
+                <i class="fa fa-1x fa-fw fa-phone me-1"/>
+                <span class="o_force_ltr"><small>+91 94478 49858</small></span>
+            </a>
+        </xpath>
+
+        <xpath expr="//t[@t-else]//a[starts-with(@href, 'tel:')]" position="replace">
+            <a href="tel:+919447849858" class="nav-link o_nav-link_secondary p-2">
+                <i class="fa fa-1x fa-fw fa-phone me-1"/>
+                <span class="o_force_ltr"><small>+91 94478 49858</small></span>
+            </a>
+        </xpath>
+    </template>
+</odoo>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- noupdate: the client is expected to rearrange their own menu in the website
+             editor, and an upgrade must not put it back. -->
+        <record id="menu_restorations" model="website.menu">
+            <field name="name">What We Make</field>
+            <field name="url">/restorations</field>
+            <field name="parent_id" ref="website.main_menu"/>
+            <field name="sequence">20</field>
+        </record>
+        <record id="menu_academy" model="website.menu">
+            <field name="name">Academy</field>
+            <field name="url">/academy</field>
+            <field name="parent_id" ref="website.main_menu"/>
+            <field name="sequence">25</field>
+        </record>
+        <record id="menu_about" model="website.menu">
+            <field name="name">About</field>
+            <field name="url">/about-us</field>
+            <field name="parent_id" ref="website.main_menu"/>
+            <field name="sequence">30</field>
+        </record>
+        <record id="menu_portal" model="website.menu">
+            <field name="name">Doctor Login</field>
+            <field name="url">/my/cases</field>
+            <field name="parent_id" ref="website.main_menu"/>
+            <field name="sequence">60</field>
+        </record>
+    </data>
+</odoo>

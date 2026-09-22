@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_root" name="WhatsApp" sequence="72"
+              web_icon="epg_whatsapp,static/description/icon.png"
+              groups="epg_whatsapp.group_whatsapp_user"/>
+    <menuitem id="menu_messages" name="Messages" parent="menu_root"
+              action="action_message" sequence="10"/>
+    <menuitem id="menu_config" name="Configuration" parent="menu_root" sequence="90"
+              groups="epg_whatsapp.group_whatsapp_admin"/>
+    <menuitem id="menu_templates" name="Templates" parent="menu_config"
+              action="action_template" sequence="10"/>
+    <menuitem id="menu_accounts" name="Senders" parent="menu_config"
+              action="action_account" sequence="20"/>
+</odoo>

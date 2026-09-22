@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_station_board" model="ir.actions.client">
+        <field name="name">Station Board</field>
+        <field name="tag">lab_station</field>
+    </record>
+
+    <!-- First item under Manufacturing: for a department head this IS the application,
+         and it is opened far more often than anything else in the menu. -->
+    <menuitem id="menu_station_board" name="Station Board"
+              parent="mrp.menu_mrp_root" action="action_station_board"
+              sequence="0" groups="mrp.group_mrp_user"/>
+
+    <!-- For a technician the Station Board IS Manufacturing. The rest of the menu —
+         MOs, planning, BoMs, reports — is a manager's, and on a phone in an apron it
+         is only a way to tap the wrong thing. Configuration and Production Flow were
+         already administrator-only; these four join them. (client, 2026-08-29) -->
+    <record id="mrp.menu_mrp_manufacturing" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('mrp.group_mrp_manager')])]"/>
+    </record>
+    <record id="mrp.mrp_planning_menu_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('mrp.group_mrp_manager')])]"/>
+    </record>
+    <record id="mrp.menu_mrp_bom" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('mrp.group_mrp_manager')])]"/>
+    </record>
+    <record id="mrp.menu_mrp_reporting" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('mrp.group_mrp_manager')])]"/>
+    </record>
+</odoo>

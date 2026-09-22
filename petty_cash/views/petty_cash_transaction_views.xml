@@ -1,0 +1,247 @@
+<odoo>
+    <!-- ─── LIST VIEW ────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_transaction_tree" model="ir.ui.view">
+        <field name="name">petty.cash.transaction.list</field>
+        <field name="model">petty.cash.transaction</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'posted'"
+                  decoration-warning="state in ('draft', 'submitted', 'approved')"
+                  decoration-muted="state in ('cancelled', 'rejected')">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="allocation_id"/>
+                <field name="petty_cash_partner_id"/>
+                <field name="type" widget="badge"
+                       decoration-primary="type == 'allocation'"
+                       decoration-danger="type == 'expense'"
+                       decoration-success="type == 'return'"/>
+                <field name="partner_id"/>
+                <field name="counter_account_id" optional="hide"/>
+                <field name="amount_signed" string="Amount" sum="Net Amount"/>
+                <field name="move_state" widget="badge" optional="show"
+                       decoration-info="move_state == 'draft'"
+                       decoration-success="move_state == 'posted'"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state in ('submitted', 'approved')"
+                       decoration-success="state == 'posted'"
+                       decoration-danger="state == 'rejected'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ─── FORM VIEW ────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_transaction_form" model="ir.ui.view">
+        <field name="name">petty.cash.transaction.form</field>
+        <field name="model">petty.cash.transaction</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" string="Submit for Approval" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_approve" string="Approve" type="object"
+                            class="oe_highlight"
+                            groups="petty_cash.group_petty_cash_manager"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_post" string="Post" type="object"
+                            class="oe_highlight"
+                            groups="petty_cash.group_petty_cash_officer"
+                            invisible="state != 'approved'"/>
+                    <button name="action_reject" string="Reject" type="object"
+                            groups="petty_cash.group_petty_cash_manager"
+                            invisible="state not in ('submitted', 'approved')"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            groups="petty_cash.group_petty_cash_officer"
+                            invisible="state in ('posted', 'cancelled')"/>
+                    <button name="action_reset_to_draft" string="Reset to Draft" type="object"
+                            groups="petty_cash.group_petty_cash_officer"
+                            invisible="state not in ('cancelled', 'rejected')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,approved,posted"/>
+                </header>
+                <sheet>
+                    <!-- Smart buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_allocation" string="Allocation" type="object"
+                                class="oe_stat_button" icon="fa-exchange"/>
+                        <button name="action_view_payment" string="Payment" type="object"
+                                class="oe_stat_button" icon="fa-money"
+                                invisible="not payment_id"/>
+                        <button name="action_view_move" string="Journal Entry" type="object"
+                                class="oe_stat_button" icon="fa-book"
+                                invisible="not move_id"/>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+
+                    <!-- ── Type + amount hero strip ── -->
+                    <div class="d-flex align-items-center gap-3 rounded border p-3 mb-3 bg-light">
+                        <!-- Type badge with icon -->
+                        <div invisible="type != 'allocation'" class="d-flex flex-column align-items-center">
+                            <span class="badge text-bg-primary fs-6 px-3 py-2">
+                                <i class="fa fa-arrow-down me-1"/>Allocation
+                            </span>
+                        </div>
+                        <div invisible="type != 'expense'" class="d-flex flex-column align-items-center">
+                            <span class="badge text-bg-danger fs-6 px-3 py-2">
+                                <i class="fa fa-arrow-up me-1"/>Expense
+                            </span>
+                        </div>
+                        <div invisible="type != 'return'" class="d-flex flex-column align-items-center">
+                            <span class="badge text-bg-success fs-6 px-3 py-2">
+                                <i class="fa fa-undo me-1"/>Return
+                            </span>
+                        </div>
+                        <div class="vr"/>
+                        <!-- Amount display -->
+                        <div>
+                            <div class="text-muted small">Amount</div>
+                            <div class="h4 mb-0 fw-bold text-primary">
+                                <field name="amount" widget="monetary" nolabel="1"
+                                       readonly="state not in ('draft','submitted')"/>
+                            </div>
+                        </div>
+                        <div class="vr"/>
+                        <!-- Date -->
+                        <div>
+                            <div class="text-muted small">Date</div>
+                            <div class="fw-semibold">
+                                <field name="date" nolabel="1"
+                                       readonly="state not in ('draft','submitted')"/>
+                            </div>
+                        </div>
+                        <!-- Journal entry status -->
+                        <div class="ms-auto" invisible="not move_id">
+                            <div class="text-muted small mb-1">Journal Entry</div>
+                            <field name="move_state" widget="badge"
+                                   decoration-info="move_state == 'draft'"
+                                   decoration-success="move_state == 'posted'"
+                                   readonly="1" nolabel="1"/>
+                        </div>
+                    </div>
+
+                    <!-- ── Main fields ── -->
+                    <group>
+                        <group string="Details">
+                            <field name="allocation_id" readonly="state != 'draft'"/>
+                            <field name="petty_cash_partner_id" readonly="1"/>
+                            <field name="type" readonly="state not in ('draft','submitted')"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" groups="base.group_multi_currency"/>
+                        </group>
+                        <group string="Accounting">
+                            <field name="partner_id"
+                                   required="type != 'expense'"
+                                   readonly="state not in ('draft','submitted')"/>
+                            <field name="petty_cash_account_id" readonly="1"/>
+                            <field name="counter_account_id"
+                                   readonly="state not in ('draft','submitted','approved')"
+                                   required="type in ('allocation', 'return')"
+                                   domain="[('account_type', '=', 'asset_cash')]"
+                                   invisible="type == 'expense'"
+                                   options="{'no_create': True, 'no_create_edit': True}"
+                                   groups="petty_cash.group_petty_cash_manager"/>
+                            <field name="payment_id" readonly="1"/>
+                            <field name="move_id" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Notes" name="notes">
+                            <field name="note" placeholder="Internal notes…"/>
+                        </page>
+                        <page string="Attachments" name="attachments">
+                            <field name="attachment_ids" widget="many2many_binary"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ─── SEARCH ───────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_transaction_search" model="ir.ui.view">
+        <field name="name">petty.cash.transaction.search</field>
+        <field name="model">petty.cash.transaction</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="allocation_id"/>
+                <field name="petty_cash_partner_id"/>
+                <field name="partner_id"/>
+                <filter string="My Transactions" name="my_transactions"
+                        domain="[('petty_cash_partner_id.user_ids', 'in', [uid])]"/>
+                <separator/>
+                <filter string="Allocations" name="type_allocation"
+                        domain="[('type', '=', 'allocation')]"/>
+                <filter string="Expenses" name="type_expense"
+                        domain="[('type', '=', 'expense')]"/>
+                <filter string="Returns" name="type_return"
+                        domain="[('type', '=', 'return')]"/>
+                <separator/>
+                <filter string="Posted" name="posted"
+                        domain="[('state', '=', 'posted')]"/>
+                <group name="group_by">
+                    <filter string="Cash Holder" name="group_user"
+                            context="{'group_by': 'petty_cash_partner_id'}"/>
+                    <filter string="Type" name="group_type"
+                            context="{'group_by': 'type'}"/>
+                    <filter string="State" name="group_state"
+                            context="{'group_by': 'state'}"/>
+                    <filter string="Month" name="group_month"
+                            context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ─── PIVOT ────────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_transaction_pivot" model="ir.ui.view">
+        <field name="name">petty.cash.transaction.pivot</field>
+        <field name="model">petty.cash.transaction</field>
+        <field name="arch" type="xml">
+            <pivot string="Petty Cash Transaction Analysis">
+                <field name="petty_cash_partner_id" type="row"/>
+                <field name="type" type="col"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ─── GRAPH ────────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_transaction_graph" model="ir.ui.view">
+        <field name="name">petty.cash.transaction.graph</field>
+        <field name="model">petty.cash.transaction</field>
+        <field name="arch" type="xml">
+            <graph string="Petty Cash Transactions" type="bar">
+                <field name="petty_cash_partner_id"/>
+                <field name="amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ─── ACTIONS ──────────────────────────────────────────────────────────── -->
+    <record id="action_petty_cash_transaction" model="ir.actions.act_window">
+        <field name="name">Transactions</field>
+        <field name="res_model">petty.cash.transaction</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+    </record>
+
+    <record id="action_petty_cash_allocation_approval" model="ir.actions.act_window">
+        <field name="name">Allocation Approvals</field>
+        <field name="res_model">petty.cash.transaction</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'submitted'), ('type', '=', 'allocation')]</field>
+    </record>
+
+    <record id="action_petty_cash_return_approval" model="ir.actions.act_window">
+        <field name="name">Return Approvals</field>
+        <field name="res_model">petty.cash.transaction</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'submitted'), ('type', '=', 'return')]</field>
+    </record>
+</odoo>

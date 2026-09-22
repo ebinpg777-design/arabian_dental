@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Payments carry their clinic's Sales Route, so collections read route-wise in
+         the standard payment screens. (client, 2026-08-21) -->
+    <record id="view_account_payment_tree_route" model="ir.ui.view">
+        <field name="name">account.payment.list.route</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_tree"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="team_id" string="Sales Route" optional="show"
+                       options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_payment_form_route" model="ir.ui.view">
+        <field name="name">account.payment.form.route</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <!-- Mandatory on money coming IN from a clinic (client, 2026-08-21).
+                     Enforced on the form, the same way the partner's route is: a
+                     schema-level required would reach vendor payments and every
+                     server-side path, and a cashier must never be stopped from
+                     recording money that has arrived.
+
+                     `invisible` matters as much as `required`: position="after" does
+                     not inherit the Customer partner_id's own modifier, so without it
+                     the box renders - editable and meaningless - on vendor payments.
+                     Hiding it there also stops the client validating it there.
+
+                     `state == 'draft'` keeps the rule off payments already posted.
+                     partner_id goes readonly once posted and this must follow it,
+                     otherwise a receipt created without a route by the Register
+                     Payment wizard can never be edited again for any reason. -->
+                <field name="team_id" string="Sales Route" options="{'no_create': True}"
+                       invisible="payment_type != 'inbound' or partner_type != 'customer'"
+                       readonly="state != 'draft'"
+                       required="payment_type == 'inbound' and partner_type == 'customer'
+                                 and state == 'draft'"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_payment_search_route" model="ir.ui.view">
+        <field name="name">account.payment.search.route</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_search"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="team_id" string="Sales Route"/>
+            </field>
+            <filter name="groupby_date" position="before">
+                <filter string="Sales Route" name="group_by_team"
+                        context="{'group_by': 'team_id'}"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_weekly_report_list" model="ir.ui.view">
+        <field name="name">lab.weekly.report.list</field>
+        <field name="model">lab.weekly.report</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false"
+                  decoration-muted="is_interim">
+                <field name="date_from" string="Week From"/>
+                <field name="date_to" string="To"/>
+                <field name="is_interim" string="Interim" optional="show"/>
+                <field name="sheet_total"/>
+                <field name="approved_pct" widget="progressbar" optional="show"/>
+                <field name="sheet_approved"/>
+                <field name="sheet_sent_back" optional="show"/>
+                <field name="clean_days" optional="show"/>
+                <field name="visits_total"/>
+                <field name="order_value" optional="show"/>
+                <field name="collected"/>
+                <field name="delta_collected" optional="show"/>
+                <field name="star_exec" optional="show"/>
+                <field name="new_clinics" optional="show"/>
+                <field name="avg_marketing_score" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_weekly_report_form" model="ir.ui.view">
+        <field name="name">lab.weekly.report.form</field>
+        <field name="model">lab.weekly.report</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <header>
+                    <button name="action_send_again" type="object"
+                            string="Send Again" class="btn-secondary"
+                            groups="lab_fieldwork.group_fieldwork_admin"
+                            help="Put this report back in every administrator's inbox."/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="INTERIM" bg_color="text-bg-warning"
+                            invisible="not is_interim"/>
+                    <field name="is_interim" invisible="1"/>
+                    <!-- The week's own evidence: every day sheet the figures
+                         were added up from, one click away. -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_sheets" type="object"
+                                class="oe_stat_button" icon="fa-inbox">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="sheet_total"/></span>
+                                <span class="o_stat_text">Day Sheets</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <!-- The page IS the report: tiles, chips, bars and one
+                         table, built at filing time. The raw figures live in
+                         their own tab for whoever wants to export or check a
+                         single number - a wall of labelled fields was the
+                         thing the client asked to be rid of. -->
+                    <field name="body_html" nolabel="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                    <notebook>
+                        <page string="Analysis">
+                            <field name="insights_html" nolabel="1"/>
+                        </page>
+                        <page string="All Figures">
+                            <group>
+                                <group>
+                                    <field name="date_from"/>
+                                    <field name="date_to"/>
+                                    <field name="sheet_total"/>
+                                    <field name="sheet_approved"/>
+                                    <field name="sheet_ops_pending"/>
+                                    <field name="sheet_mkt_pending"/>
+                                    <field name="sheet_sent_back"/>
+                                    <field name="approved_pct" widget="progressbar"/>
+                                    <field name="clean_pct" widget="progressbar"/>
+                                </group>
+                                <group>
+                                    <field name="visits_total"/>
+                                    <field name="delta_visits" string="Visits vs last week"/>
+                                    <field name="collected"/>
+                                    <field name="delta_collected" string="Collected vs last week"/>
+                                    <field name="order_value"/>
+                                    <field name="km_total"/>
+                                    <field name="new_clinics"/>
+                                    <field name="clean_days"/>
+                                    <field name="exceptions_total"/>
+                                    <field name="star_exec"/>
+                                    <field name="improved_exec"/>
+                                    <field name="ops_median_h" string="Ops desk speed (h)"/>
+                                    <field name="mkt_median_h" string="Marketing desk speed (h)"/>
+                                    <field name="avg_marketing_score"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Share as Text">
+                            <p class="text-muted">Select all, copy, and paste into
+                               WhatsApp or a mail. Nothing here needs the system
+                               to be read.</p>
+                            <field name="summary_text" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- The month at a glance: every filed week as bars. -->
+    <record id="view_weekly_report_graph" model="ir.ui.view">
+        <field name="name">lab.weekly.report.graph</field>
+        <field name="model">lab.weekly.report</field>
+        <field name="arch" type="xml">
+            <graph type="bar" sample="1">
+                <field name="date_from" interval="week"/>
+                <field name="collected" type="measure"/>
+                <field name="visits_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_weekly_report" model="ir.actions.act_window">
+        <field name="name">Weekly Reports</field>
+        <field name="res_model">lab.weekly.report</field>
+        <field name="view_mode">list,graph,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No weeks reported yet</p>
+            <p>Every Monday the previous week is assembled and filed here — the
+               activities, the approvals from both desks, and who is falling
+               behind on signing. The same report reaches every Field Work
+               Administrator by mail.</p>
+        </field>
+    </record>
+</odoo>

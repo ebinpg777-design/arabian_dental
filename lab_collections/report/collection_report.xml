@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The dashboard's figures, on paper for the route meeting. Same design language
+         as the invoice and the order list: letterhead in the body, navy on light cards. -->
+    <template id="report_collection">
+        <t t-call="web.html_container">
+            <t t-set="hide_letterhead" t-value="True"/>
+            <t t-set="footer_note">Collections</t>
+            <t t-call="sale_custom.external_layout_lab">
+                <div class="page lab-invoice ocl">
+                    <t t-call="sale_custom.letterhead_block"/>
+
+                    <table class="ocl-title">
+                        <tr>
+                            <td style="vertical-align:bottom;">
+                                <div class="oi-title">COLLECTIONS</div>
+                                <div class="ocl-sub">By <t t-out="group_label"/> · printed <t t-out="printed_on"/></div>
+                            </td>
+                            <td style="text-align:right;vertical-align:bottom;">
+                                <div class="oi-numlabel">Invoiced period</div>
+                                <div class="ocl-period">
+                                    <span t-out="dates['sales_from']"/> — <span t-out="dates['sales_to']"/>
+                                </div>
+                                <div class="oi-numlabel" style="margin-top:4px;">Receipts period</div>
+                                <div class="ocl-period">
+                                    <span t-out="dates['pay_from']"/> — <span t-out="dates['pay_to']"/>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table class="ocl-kpis">
+                        <tr>
+                            <td class="ocl-card"><div class="oi-label">Invoiced in period</div>
+                                <div class="ocl-card-value" t-out="money(totals['sales'])"/></td>
+                            <td class="ocl-card"><div class="oi-label">Collected</div>
+                                <div class="ocl-card-value" t-out="money(totals['collected'])"/></td>
+                            <td class="ocl-card ocl-card-due"><div class="oi-label">Still to collect</div>
+                                <div class="ocl-card-value" t-out="money(totals['pending'])"/></td>
+                            <td class="ocl-card"><div class="oi-label">Collection</div>
+                                <div class="ocl-card-value"><t t-out="totals['percent']"/>%</div>
+                                <div class="ocl-card-note">target <t t-out="target"/>%</div></td>
+                        </tr>
+                    </table>
+
+                    <table class="ocl-boards" t-if="boards['top_sales']">
+                        <tr>
+                            <td class="ocl-board">
+                                <div class="oi-label">Top salespeople — by what they invoiced</div>
+                                <table class="ocl-board-rows">
+                                    <tr t-foreach="boards['top_sales']" t-as="e">
+                                        <td class="ocl-rank"><t t-out="e_index + 1"/></td>
+                                        <td class="ocl-board-name"><t t-out="e['label']"/></td>
+                                        <td class="num"><t t-out="money(e['value'])"/></td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class="ocl-board">
+                                <div class="oi-label">Top collectors — by money brought in</div>
+                                <table class="ocl-board-rows">
+                                    <tr t-foreach="boards['top_collectors']" t-as="e">
+                                        <td class="ocl-rank"><t t-out="e_index + 1"/></td>
+                                        <td class="ocl-board-name"><t t-out="e['label']"/></td>
+                                        <td class="num"><t t-out="money(e['value'])"/></td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class="ocl-board">
+                                <div class="oi-label">Best collection rate</div>
+                                <table class="ocl-board-rows">
+                                    <tr t-foreach="boards['top_rate']" t-as="e">
+                                        <td class="ocl-rank"><t t-out="e_index + 1"/></td>
+                                        <td class="ocl-board-name"><t t-out="e['label']"/></td>
+                                        <td class="num"><t t-out="e['value']"/>%</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="ocl-card-note" t-if="excluded_names"
+                         style="margin:-2px 0 6px;">
+                        Not ranked on these boards: <t t-out="excluded_names"/>.
+                        Their figures are included in the totals below.
+                    </div>
+
+                    <table class="ocl-lines">
+                        <thead>
+                            <tr>
+                                <th><t t-out="group_label"/></th>
+                                <th class="num" style="width:8%">Invoices</th>
+                                <th class="num" style="width:15%">Invoiced</th>
+                                <th class="num" style="width:15%">Collected</th>
+                                <th class="num" style="width:15%">Still to collect</th>
+                                <th class="num" style="width:7%">%</th>
+                                <th class="num" style="width:14%">Sales target</th>
+                                <th class="num" style="width:14%">Overdue 30d+</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="rows" t-as="row">
+                                <td class="ocl-label"><t t-out="row['label']"/><span
+                                    t-if="row.get('excluded')" class="ocl-unranked"> · not ranked</span></td>
+                                <td class="num"><t t-out="row['invoices']"/></td>
+                                <td class="num"><t t-out="money(row['sales'])"/></td>
+                                <td class="num"><t t-out="money(row['collected'])"/></td>
+                                <td t-attf-class="num {{'ocl-hot' if row['pending'] > 0 else ''}}"
+                                    t-out="money(row['pending'])"/>
+                                <td class="num"><t t-out="row['percent']"/>%</td>
+                                <td class="num">
+                                    <t t-if="row['sales_target']">
+                                        <t t-out="money(row['sales_target'])"/>
+                                        <div class="ocl-ach"><t t-out="row['sales_pct']"/>% of target</div>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td t-attf-class="num {{'ocl-hot' if row['overdue'] > 0 else ''}}"
+                                    t-out="money(row['overdue'])"/>
+                            </tr>
+                            <tr t-if="not rows">
+                                <td colspan="8" class="ocl-empty">Nothing invoiced or collected in these periods.</td>
+                            </tr>
+                            <tr class="ocl-total" t-if="rows">
+                                <td>TOTAL</td>
+                                <td class="num" t-out="totals['invoices']"/>
+                                <td class="num" t-out="money(totals['sales'])"/>
+                                <td class="num" t-out="money(totals['collected'])"/>
+                                <td class="num" t-out="money(totals['pending'])"/>
+                                <td class="num"><t t-out="totals['percent']"/>%</td>
+                                <td class="num" t-out="money(totals['sales_target'])"/>
+                                <td class="num" t-out="money(totals['overdue'])"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_collection" model="ir.actions.report">
+        <field name="name">Collections</field>
+        <field name="model">lab.collection.performance</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_collections.report_collection</field>
+        <field name="report_file">lab_collections.report_collection</field>
+        <field name="paperformat_id" ref="sale_custom.paperformat_lab_invoice"/>
+    </record>
+</odoo>

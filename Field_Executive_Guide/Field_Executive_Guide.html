@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Work — Guide for Field Executives</title>
+<style>
+  :root {
+    --ink: #1d2025;
+    --soft: #5b6472;
+    --line: #dfe3ea;
+    --brand: #6b3fd4;
+    --brandbg: #f3efff;
+    --mark: #e8590c;
+    --markbg: #fff3ea;
+    --warnbg: #fff8e1;
+    --warnline: #f0c36d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "DejaVu Sans", "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.6;
+    background: #fff;
+  }
+  .page { max-width: 1000px; margin: 0 auto; padding: 32px 28px 64px; }
+
+  /* ---------------------------------------------------------------- cover */
+  .cover {
+    background: linear-gradient(135deg, #6b3fd4 0%, #9b3fd4 100%);
+    color: #fff;
+    border-radius: 18px;
+    padding: 44px 40px;
+    margin-bottom: 34px;
+  }
+  .cover .kicker {
+    text-transform: uppercase; letter-spacing: .16em;
+    font-size: 12px; opacity: .85; margin-bottom: 10px;
+  }
+  .cover h1 { margin: 0 0 10px; font-size: 38px; line-height: 1.15; }
+  .cover p { margin: 0; font-size: 17px; opacity: .95; max-width: 46em; }
+  .cover .meta { margin-top: 22px; font-size: 13px; opacity: .8; }
+
+  h2 {
+    font-size: 24px; margin: 42px 0 6px; padding-top: 16px;
+    border-top: 3px solid var(--brand);
+  }
+  h2 .num {
+    display: inline-block; min-width: 1.9em; color: var(--brand);
+  }
+  h3 { font-size: 18px; margin: 26px 0 6px; }
+  p { margin: 8px 0; }
+  .lead { color: var(--soft); margin-bottom: 14px; }
+
+  /* ------------------------------------------------------------ step grid */
+  .step { display: flex; gap: 26px; align-items: flex-start; margin: 18px 0 8px; }
+  .step .shot { flex: 0 0 268px; }
+  .step .shot img {
+    width: 100%; border: 1px solid var(--line); border-radius: 12px; display: block;
+  }
+  .step .shot .cap {
+    font-size: 12px; color: var(--soft); text-align: center; margin-top: 6px;
+  }
+  .step .says { flex: 1 1 auto; min-width: 0; }
+
+  ol.marks { list-style: none; margin: 0; padding: 0; counter-reset: mark; }
+  ol.marks > li {
+    position: relative; padding-left: 40px; margin-bottom: 12px;
+  }
+  ol.marks > li::before {
+    counter-increment: mark; content: counter(mark);
+    position: absolute; left: 0; top: 1px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--mark); color: #fff;
+    font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.marks b { color: var(--ink); }
+
+  .note, .warn, .tip {
+    border-radius: 10px; padding: 12px 16px; margin: 14px 0;
+    border-left: 5px solid var(--brand); background: var(--brandbg);
+  }
+  .warn { border-left-color: var(--warnline); background: var(--warnbg); }
+  .tip  { border-left-color: var(--mark); background: var(--markbg); }
+  .note p:first-child, .warn p:first-child, .tip p:first-child { margin-top: 0; }
+  .note p:last-child, .warn p:last-child, .tip p:last-child { margin-bottom: 0; }
+  .note > b:first-child, .warn > b:first-child, .tip > b:first-child {
+    display: block; margin-bottom: 2px; }
+
+  .wide img { width: 100%; border: 1px solid var(--line); border-radius: 10px; display: block; }
+
+  table {
+    border-collapse: collapse; width: 100%; margin: 14px 0;
+    font-size: 14px; table-layout: fixed;
+  }
+  td, th { overflow-wrap: anywhere; }
+  th, td { border: 1px solid var(--line); padding: 9px 12px; text-align: left; vertical-align: top; }
+  th { background: #f6f7fa; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+  td.what { width: 34%; font-weight: 600; }
+
+  .daymap { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 6px; }
+  .daymap .box {
+    flex: 1 1 150px; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; background: #fbfbfd;
+  }
+  .daymap .box .n {
+    display: inline-block; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--brand); color: #fff; font-weight: 700; font-size: 13px;
+    text-align: center; line-height: 24px; margin-bottom: 6px;
+  }
+  .daymap .box .t { font-weight: 600; }
+  .daymap .box .s { font-size: 13px; color: var(--soft); }
+
+  .btn {
+    display: inline-block; background: #efe9ff; color: #4a2ba0;
+    border-radius: 6px; padding: 1px 7px; font-weight: 600; font-size: .94em;
+    white-space: nowrap;
+  }
+  .icon {
+    display: inline-block; background: #f1f3f7; border: 1px solid var(--line);
+    border-radius: 6px; padding: 0 6px; font-size: .92em;
+  }
+  footer {
+    margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--soft);
+  }
+
+  @media print {
+    .page { max-width: none; padding: 0 3mm; }
+    h2, h3 { page-break-after: avoid; break-after: avoid; }
+    .step, .note, .warn, .tip, table, .daymap { page-break-inside: avoid; break-inside: avoid; }
+    .cover { page-break-after: always; break-after: page; }
+  }
+  @media (max-width: 640px) {
+    .step { display: block; }
+    .step .shot { margin-bottom: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="cover">
+  <div class="kicker">Arabian Dental Lab · Field Work</div>
+  <h1>Guide for Field Executives</h1>
+  <p>Everything you do in a day — start your day, visit clinics, write down the cases
+     the doctor gives you, collect payment, and close your day. One screen, one button
+     at a time.</p>
+  <div class="meta">For Field Executives only · Works on your phone · Odoo 19</div>
+</div>
+
+<h2><span class="num">A.</span>Before you begin</h2>
+<p class="lead">Three things, once.</p>
+<ul>
+  <li><b>Your login and password.</b> The office gives you these. They are yours — do not share them.</li>
+  <li><b>Location must be ON.</b> The app records where you are when you reach a clinic.
+      If location is off, you cannot start a visit.</li>
+  <li><b>Use your phone's browser</b> (Chrome). You do not need a computer for any of this.</li>
+</ul>
+
+<div class="note">
+  <b>You only see your own work</b>
+  <p>Your visits, your travel, your cases, your money, your target. You cannot see
+     another executive's records, and they cannot see yours.</p>
+</div>
+
+<h2><span class="num">B.</span>Your day, from start to finish</h2>
+<p class="lead">This is the whole loop. Everything else in this guide is one of these eight steps explained.</p>
+<div class="daymap">
+  <div class="box"><span class="n">1</span><div class="t">Start my day</div><div class="s">Mark attendance</div></div>
+  <div class="box"><span class="n">2</span><div class="t">Starting km</div><div class="s">Odometer + photo</div></div>
+  <div class="box"><span class="n">3</span><div class="t">Go to a clinic</div><div class="s">From your list</div></div>
+  <div class="box"><span class="n">4</span><div class="t">I'm Here</div><div class="s">Tap when you arrive</div></div>
+</div>
+<div class="daymap">
+  <div class="box"><span class="n">5</span><div class="t">Write the cases</div><div class="s">One slip per patient</div></div>
+  <div class="box"><span class="n">6</span><div class="t">Finish Visit</div><div class="s">Say what happened</div></div>
+  <div class="box"><span class="n">7</span><div class="t">Next clinic</div><div class="s">Repeat 4 to 6</div></div>
+  <div class="box"><span class="n">8</span><div class="t">End the day</div><div class="s">Closing km, clock out</div></div>
+</div>
+
+<h2><span class="num">1.</span>Sign in</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/01_login.png" alt="The sign-in screen">
+    <div class="cap">The sign-in screen</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Email or username</b> — the one the office gave you.</li>
+      <li><b>Password</b> — tap the eye at the end of the box if you want to check what you typed.</li>
+      <li><b>Log in.</b></li>
+    </ol>
+    <div class="tip">
+      <b>Sign in once</b>
+      <p>Your phone will stay signed in. You do not have to type this every morning.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">2.</span>Find Field Work</h2>
+<p class="lead">After signing in you land in <b>Field Work</b>. These are the only menus
+   you have, and every one of them is about your own work.</p>
+<div class="wide">
+  <img src="images/00_menubar.png" alt="The Field Work menu bar">
+</div>
+<table>
+  <tr><th>Menu</th><th>What it is</th></tr>
+  <tr><td class="what">My Day</td><td>Today's clinics and every button you need. <b>This is the screen you live on.</b></td></tr>
+  <tr><td class="what">My Day Sheets</td><td>Your finished days, after your manager has looked at them.</td></tr>
+  <tr><td class="what">My Visits</td><td>Every clinic visit you have made.</td></tr>
+  <tr><td class="what">My Cases</td><td>Every case slip you have written.</td></tr>
+  <tr><td class="what">My Travel</td><td>Your daily kilometres and travel claim.</td></tr>
+  <tr><td class="what">My Deliveries / My Work to Deliver</td><td>Work you are carrying out to clinics.</td></tr>
+</table>
+<div class="note">
+  <b>On a phone, you do not need the menu</b>
+  <p>Everything above is also a button on <b>My Day</b>. Open My Day in the morning
+     and stay there all day.</p>
+</div>
+
+<h2><span class="num">3.</span>The My Day screen</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/03_myday_cold.png" alt="My Day before the day has started">
+    <div class="cap">My Day, first thing in the morning</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Today's date.</b> Use the arrows beside it to look back at the last few
+          days if you forgot to write something up. You can never move forward to
+          tomorrow.</li>
+      <li><b>Your day so far</b> — visits done, cases registered, case value, money
+          collected. These fill in by themselves as you work. You never type them.</li>
+      <li><b>Start my day.</b> Nothing else works until you press this.</li>
+      <li><b>DO — the things you do at the door:</b> travel, quick entry, track an
+          order, look up a doctor, scan, deliver, collect.</li>
+      <li><b>MY — your own pages:</b> visits, cases, travel, cash, targets, deliveries.</li>
+    </ol>
+  </div>
+</div>
+
+<h2><span class="num">4.</span>Start my day</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/04_on_duty.png" alt="On duty">
+    <div class="cap">After pressing Start my day</div>
+  </div>
+  <div class="says">
+    <p>Press <span class="btn">Start my day</span>. The card turns green.</p>
+    <ol class="marks">
+      <li><b>On duty</b>, with the time you started and how long you have been working.</li>
+      <li>The same button now says <span class="btn">End the day</span>. Press it only
+          when you are finished for the day.</li>
+    </ol>
+    <div class="warn">
+      <b>If it says "Not set up for attendance"</b>
+      <p>Your login is not linked to your employee record. Ask the office or HR to fix
+         it — you cannot do it yourself.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">5.</span>Write down your starting kilometres</h2>
+<p class="lead">Do this before you leave, while the bike is still in front of you.</p>
+<div class="step">
+  <div class="shot">
+    <img src="images/05_travel_blank.png" alt="The travel form">
+    <div class="cap">Tap "Start the day" under DO</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Vehicle</b> — Two Wheeler, Four Wheeler or Public Transport. This decides
+          the rate you are paid per kilometre.</li>
+      <li><b>Start Reading</b> — the number on your odometer right now.</li>
+      <li><b>Start Photo</b> — take a photo of the odometer.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/06_travel_filled.png" alt="Travel form filled in">
+    <div class="cap">Filled in</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>The reading typed in.</li>
+      <li>The photo taken.</li>
+      <li>Press <span class="btn">Save</span> — the big green button at the bottom.</li>
+    </ol>
+    <p>Then press <span class="btn">Start the Day</span> at the top of the form.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/07_travel_saved.png" alt="Trip on the road">
+    <div class="cap">Your travel is now running</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>The status reads <b>On the Road</b>. Your kilometres are being counted from here.</li>
+    </ol>
+    <div class="warn">
+      <b>The photo is not optional</b>
+      <p>If you skip it you will see <b>"A photo of the opening reading is required."</b>
+         Take the photo and press Start the Day again.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">6.</span>Today's clinics</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/08_cards.png" alt="Today's clinic cards">
+    <div class="cap">One card per clinic</div>
+  </div>
+  <div class="says">
+    <p>Scroll down past the buttons. Every clinic on your round today is a card, in order.</p>
+    <ol class="marks">
+      <li><b>The clinic name</b>, the town, and why you are going ("Routine Round").</li>
+      <li><b>The address</b>, and three shortcuts: <b>Navigate</b> opens your map app,
+          <b>Call</b> rings the clinic, <b>Chat</b> opens WhatsApp.</li>
+      <li><b>The button on the right.</b> It always does the one right thing for that
+          card — you never have to choose.</li>
+    </ol>
+    <div class="tip">
+      <b>On a phone the button shows only a picture</b>
+      <p><span class="icon">📍</span> = I'm Here &nbsp;·&nbsp;
+         <span class="icon">✓</span> = Finish &nbsp;·&nbsp;
+         <span class="icon">👁</span> = View (already done)</p>
+    </div>
+    <p>You can also tap the card itself to open the full visit.</p>
+  </div>
+</div>
+<div class="note">
+  <b>"Nothing planned for today."</b>
+  <p>Your round has not been set up. Ask your manager to plan your beat — then your
+     clinics appear here every morning on their own. You never create a visit to say
+     you intend to go somewhere.</p>
+</div>
+
+<h2><span class="num">7.</span>At the clinic — press "I'm Here"</h2>
+<p class="lead">Press it when you are standing at the clinic, not in the car on the way.</p>
+<div class="step">
+  <div class="shot">
+    <img src="images/09_checked_in.png" alt="Checked in at the clinic">
+    <div class="cap">After pressing I'm Here</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>The card now says <b>At clinic</b>.</li>
+      <li>The button has become <b>Finish</b> (<span class="icon">✓</span>) for when
+          you are leaving.</li>
+    </ol>
+    <div class="warn">
+      <b>"Location is off"</b>
+      <p>Turn on Location for your browser, wait a moment for the arrow to appear at
+         the top of your phone, then tap again. A visit cannot be started without it.</p>
+    </div>
+    <div class="note">
+      <b>If you are far from the clinic</b>
+      <p>You are <b>never blocked</b>. The visit records that you checked in away from
+         the clinic, and asks you for a short reason before you can close it — for
+         example "met the doctor at their other branch". Write the truth; it is a note,
+         not a punishment.</p>
+    </div>
+    <div class="note">
+      <b>"GPS not checked — this clinic has no location on the map"</b>
+      <p>You will see this on most clinics today, and it is not your fault: almost
+         none of them have been pinned yet. Your check-in is still recorded — the app
+         simply cannot say how near you were.</p>
+      <p>If you are standing in the clinic, open the visit and press
+         <span class="btn">Pin Clinic Here</span>. That fixes it for you and for
+         everyone who visits after you.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">8.</span>Write the cases the doctor gives you</h2>
+<p class="lead">One slip per patient. Fill it in while the doctor is still in front of you.</p>
+<div class="step">
+  <div class="shot">
+    <img src="images/10_visit_open.png" alt="The open visit">
+    <div class="cap">The visit, now open</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><span class="btn">Finish Visit</span> — do not press this yet.</li>
+      <li><b>The three dots.</b> On a phone the other buttons hide here. Tap it and
+          choose <span class="btn">Add Case</span>.</li>
+      <li><b>Purposes</b> — tap as many as apply: routine round, case collection,
+          delivery, payment, complaint, new doctor, marketing.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/11_case_blank.png" alt="A blank case slip">
+    <div class="cap">A new case slip</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Patient name.</b></li>
+      <li><b>Age</b> — use the − and + buttons, or tap the number and type it.</li>
+      <li><b>Gender.</b></li>
+      <li><b>Priority</b> — leave it on Normal unless the doctor asks for it faster.</li>
+      <li><b>Add a line</b> — this is where you say what is being made.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/12a_work_picker.png" alt="Choosing the appliance">
+    <div class="cap">Choosing the appliance</div>
+  </div>
+  <div class="says">
+    <p>A full-screen list of everything the lab makes opens.</p>
+    <ol class="marks">
+      <li><b>Tap the appliance</b> the doctor asked for. Use the search icon at the top
+          if the list is long.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/13_case_saved.png" alt="The case slip with one line">
+    <div class="cap">The work is on the slip</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>The line.</b> Set <b>U/L</b> (upper arch, lower arch or both), the
+          <b>quantity</b>, and the <b>colour</b> if the doctor chose one.
+          Add another line if there is more than one appliance.</li>
+      <li>When the slip is complete, press <span class="btn">Submit Case</span>.</li>
+    </ol>
+    <div class="warn">
+      <b>"Add what is being made … a case with no work on it cannot be saved."</b>
+      <p>You have not added a line yet. Go back to <b>Add a line</b> and choose the appliance.</p>
+    </div>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/14_case_submitted.png" alt="A submitted case slip">
+    <div class="cap">Submitted</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>The slip now reads <b>Submitted</b>.</li>
+    </ol>
+    <p>Go back to the visit and add the next patient the same way. A doctor who gives
+       you five cases means five slips.</p>
+    <div class="note">
+      <b>Made a mistake?</b>
+      <p>Press <span class="btn">Reopen</span>, correct it, and submit again. You can do
+         this right up until you finish the visit — after that, the office has it.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">9.</span>Say what happened, then finish</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/16_what_happened.png" alt="What happened at the clinic">
+    <div class="cap">What happened at this clinic</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Number of cases</b> — how many cases you are carrying out of this clinic,
+          counted by hand. Use − and +.</li>
+      <li><b>What happened</b> — tap every one that applies: cases collected, reworks
+          collected, delivered, payment received, follow-up needed, doctor not
+          available, complaint logged, or no requirement today.</li>
+    </ol>
+    <div class="tip">
+      <b>If you tap "Rework(s) Collected"</b>
+      <p>A second counter appears for how many reworks you took. Fill it in.</p>
+    </div>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/16b_payment.png" alt="Recording a payment">
+    <div class="cap">Money collected</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Payment collected</b> — tap the quick amounts (+100, +500, +1000, +5000)
+          or type the exact figure.</li>
+      <li><b>Received as</b> — Cash, Cheque or UPI / Online. You must say which.</li>
+    </ol>
+    <p>Then press <span class="btn">Save</span>, and <span class="btn">Finish Visit</span>
+       at the top.</p>
+    <div class="warn">
+      <b>Two things that stop Finish Visit</b>
+      <p>"<b>Record what happened…</b>" — you have not tapped any outcome.<br>
+         "<b>… case(s) have not been submitted</b>" — a slip is still open. Submit it,
+         or delete it if you started it by mistake.</p>
+    </div>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/17_visit_done.png" alt="A completed visit">
+    <div class="cap">Completed</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>The visit is <b>Completed</b>. Your case slips have gone to the office as
+          orders, and they are being checked now.</li>
+    </ol>
+    <div class="note">
+      <b>You can still fix what happened</b>
+      <p>On a completed visit you may still change the number of cases, the outcome
+         chips and the payment — because those are often settled a minute after you
+         walk out. Everything else is locked.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">10.</span>Check your numbers, then move on</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/18_myday_after.png" alt="My Day after one clinic">
+    <div class="cap">After the first clinic</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Your day so far</b> — 1 of 5 visits, 1 case registered, the case value and
+          the money collected. All of it counted for you.</li>
+      <li><b>Your target ring</b> — how much of this month's number you have reached.</li>
+    </ol>
+    <p>Go to the next clinic and repeat steps 7 to 9.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/18b_done_card.png" alt="The finished clinic">
+    <div class="cap">The clinic you have finished</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li>The finished clinic is marked <b>Done</b> and moves to the top of the list,
+          with what it produced — the cases and the money — on the card.</li>
+    </ol>
+  </div>
+</div>
+
+<h2><span class="num">11.</span>The other buttons</h2>
+
+<h3>Track order — "where is my patient's work?"</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/19_track.png" alt="Tracking an order">
+    <div class="cap">Track order</div>
+  </div>
+  <div class="says">
+    <p>The question every doctor asks at the counter. Tap <span class="btn">Track order</span>.</p>
+    <ol class="marks">
+      <li><b>Type anything you know</b> — the patient's name, the clinic, the appliance,
+          or the order number.</li>
+      <li><b>The answer.</b> Tap a row to see the full journey: confirmed, in the lab,
+          work finished, out for delivery, delivered, invoiced — with who made it.</li>
+    </ol>
+    <p>Only work that is still open appears. Finished and invoiced jobs are not listed.</p>
+  </div>
+</div>
+
+<h3>Doctors / Clinics — who else is on this road</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/20_clinics.png" alt="Doctors and clinics on your route">
+    <div class="cap">Doctors / Clinics</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>A clinic on your route</b>, with what it still owes and how many orders are
+          open. Tap the star to keep your regulars at the top.</li>
+      <li><b>New visit</b> adds that clinic to today, even if it was not on your plan.
+          Use this when you make an extra stop.</li>
+    </ol>
+  </div>
+</div>
+
+<h3>Quick entry — many cases at once</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/21_quick_entry.png" alt="Quick case entry">
+    <div class="cap">Quick entry</div>
+  </div>
+  <div class="says">
+    <p>For the evening, when you have eight impressions in the bag from one doctor and
+       do not want to open eight slips.</p>
+    <ol class="marks">
+      <li><b>Doctor / Clinic</b> — choose it once.</li>
+      <li><b>One line per patient</b> — name, appliance, U/L, priority.</li>
+      <li><b>Submit all for verification</b> — leave this ticked.</li>
+      <li>Press <span class="btn">Create Cases</span>.</li>
+    </ol>
+    <div class="tip">
+      <b>Same day, please</b>
+      <p>If you enter cases days later the app asks you to give a reason. Enter them the
+         day you collect them and it never asks.</p>
+    </div>
+  </div>
+</div>
+
+<h3>Cash in — money with no visit behind it</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/30_cash_in_blank.png" alt="Record Cash Collected">
+    <div class="cap">Cash in</div>
+  </div>
+  <div class="says">
+    <p>Money does not always arrive with the paperwork. A doctor settles an old bill
+       while you are there for something else, a receptionist hands you an envelope on
+       the way past, somebody pays for a case another executive delivered last week.</p>
+    <p>Before, the only way to record that was the payment box on a visit — so you had
+       to invent a visit that never happened. Now you do not. Tap
+       <span class="btn">Cash in</span> under DO.</p>
+    <ol class="marks">
+      <li><b>Which doctor or clinic</b> the money came from.</li>
+      <li><b>How much.</b></li>
+      <li><b>How it was paid</b> — Cash, Cheque or UPI / Online.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/31_cash_in_filled.png" alt="Cash in filled in">
+    <div class="cap">Filled in, ready to record</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>The amount.</b> Add a note if it helps — "old bill settled at the door".</li>
+      <li>Press <span class="btn">Record</span>.</li>
+    </ol>
+    <div class="tip">
+      <b>It counts everywhere, straight away</b>
+      <p>The same three facts a visit records, so it counts the same: in today's
+         collected total, on your day sheet, towards your collection target, and in
+         your manager's report. And if it was cash, it goes into your float by itself —
+         you do not need <span class="btn">Cash into My Float</span> as well.</p>
+    </div>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/32_after_cash_in.png" alt="My Day after recording cash">
+    <div class="cap">Back on My Day</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Today's collected total has moved</b> — without a visit being invented to
+          carry it.</li>
+    </ol>
+    <div class="warn">
+      <b>Only for money you actually hold</b>
+      <p>Record it when the payment is in your hand, not when it is promised. A cheque
+         or a UPI payment reaches the bank on its own; only cash goes into your float.</p>
+    </div>
+  </div>
+</div>
+
+<h3>Money you collected — put it in your float</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/17b_cash_to_float.png" alt="Cash taken into the float">
+    <div class="cap">The cash movement</div>
+  </div>
+  <div class="says">
+    <p>When you collected <b>cash</b> at a clinic, tell the system you are carrying it.
+       On the finished visit, tap the three dots and choose
+       <span class="btn">Cash into My Float</span>.</p>
+    <ol class="marks">
+      <li><b>The amount</b> that moved from the clinic into your hands.</li>
+      <li><b>Posted</b> — the office can now see the money is with you.</li>
+    </ol>
+    <p>This does not replace handing the cash over. It records <em>where the money is
+       right now</em>, so nobody has to ring you to ask.</p>
+    <div class="tip">
+      <b>Cash only</b>
+      <p>A cheque or a UPI payment reaches the bank on its own. Only cash goes into
+         your float.</p>
+    </div>
+  </div>
+</div>
+
+<h3>My Cash</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/22_cash.png" alt="My Cash">
+    <div class="cap">My Cash</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>Your float</b> — the cash the office has given you, and what is left.</li>
+    </ol>
+    <p>My Day also shows <b>Cash in hand</b> near the bottom, and warns you when money
+       you collected has not yet been put into your float.</p>
+    <div class="warn">
+      <b>Still hand the cash over</b>
+      <p>Recording it is not the same as giving it back. Hand collected cash to the
+         office in the normal way — do not let it sit in your pocket overnight.</p>
+    </div>
+  </div>
+</div>
+
+<h3>My Target</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/23_target.png" alt="My Target">
+    <div class="cap">My Target</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>This month's target and what you have achieved.</b></li>
+    </ol>
+    <p>You cannot type your achievement, and you are not supposed to. It is counted from
+       the visits you close and the orders they produce. Work the round and the number
+       moves.</p>
+  </div>
+</div>
+
+<h3>My Visits</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/24_visits.png" alt="My Visits">
+    <div class="cap">My Visits</div>
+  </div>
+  <div class="says">
+    <p>Every clinic call you have made, newest first, with what each one produced —
+       the cases collected and the money.</p>
+    <p>Use it when someone asks about a clinic you visited last week, or to check
+       whether you have already been somewhere this month.</p>
+  </div>
+</div>
+
+<h3>My Day Sheets</h3>
+<div class="step">
+  <div class="shot">
+    <img src="images/25_day_sheets.png" alt="My Day Sheets">
+    <div class="cap">My Day Sheets</div>
+  </div>
+  <div class="says">
+    <p><b>You do not write this.</b> At the end of each working day your sheet builds
+       itself from your visits, your travel and your attendance, and goes to your
+       managers — first the Operational Manager, then the Marketing Manager.</p>
+    <p>Look here when a day <b>comes back to you</b>. The sheet will say what needs
+       correcting. Fix it, and it goes back to them.</p>
+    <div class="tip">
+      <b>Empty on your first day</b>
+      <p>"No day sheets yet" simply means no day of yours has been closed and sent up
+         yet. It fills in on its own.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="num">12.</span>Ending the day</h2>
+<div class="step">
+  <div class="shot">
+    <img src="images/26_travel_end.png" alt="Closing odometer">
+    <div class="cap">Closing kilometres</div>
+  </div>
+  <div class="says">
+    <p>Open <span class="btn">Travel</span> under DO one last time.</p>
+    <ol class="marks">
+      <li><b>End Reading</b> — the odometer now.</li>
+      <li><b>End Photo</b> — photograph it, the same as this morning.</li>
+    </ol>
+    <p>Press <span class="btn">Save</span>, then <span class="btn">End the Day</span>.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/27_travel_claim.png" alt="The travel claim">
+    <div class="cap">Your claim, worked out for you</div>
+  </div>
+  <div class="says">
+    <ol class="marks">
+      <li><b>The distance and the money.</b> 48,263 − 48,210 = 53 km, and the claim at
+          your rate. You never calculate this.</li>
+      <li>The status is now <b>Submitted</b> — it is with your manager.</li>
+    </ol>
+  </div>
+</div>
+<div class="step">
+  <div class="shot">
+    <img src="images/29_day_ended.png" alt="Day ended">
+    <div class="cap">Day ended</div>
+  </div>
+  <div class="says">
+    <p>Go back to My Day and press <span class="btn">End the day</span> on the green card.</p>
+    <ol class="marks">
+      <li>It turns back to <b>Not started yet</b> and shows the hours you worked.</li>
+    </ol>
+    <p>That is the whole day. Your day sheet is built for you overnight.</p>
+  </div>
+</div>
+
+<h2><span class="num">13.</span>If something goes wrong</h2>
+<table>
+  <tr><th>What you see</th><th>What to do</th></tr>
+  <tr>
+    <td class="what">"Location is off"</td>
+    <td>Turn on Location for your browser, wait for the arrow at the top of the phone,
+        tap again. Needed for both I'm Here and Finish.</td>
+  </tr>
+  <tr>
+    <td class="what">"This check-in was … m from the clinic. Add a short reason"</td>
+    <td>You checked in away from the clinic. Type a short honest reason and you can
+        close the visit.</td>
+  </tr>
+  <tr>
+    <td class="what">"GPS not checked — this clinic has no location on the map"</td>
+    <td>Nobody has pinned this clinic yet. If you are standing in it, open the visit and
+        use <b>Pin Clinic Here</b>. That helps everybody after you.</td>
+  </tr>
+  <tr>
+    <td class="what">"Record what happened at the clinic before closing the visit."</td>
+    <td>Tap at least one outcome under <b>What happened</b>.</td>
+  </tr>
+  <tr>
+    <td class="what">"… case(s) have not been submitted"</td>
+    <td>A slip is still open. Submit it, or delete it if you started it by mistake.</td>
+  </tr>
+  <tr>
+    <td class="what">"Say how the payment was received."</td>
+    <td>You entered an amount but not Cash / Cheque / UPI. Tap one.</td>
+  </tr>
+  <tr>
+    <td class="what">"A photo of the opening reading is required."</td>
+    <td>Photograph the odometer before starting the day.</td>
+  </tr>
+  <tr>
+    <td class="what">"Nothing planned for today."</td>
+    <td>Your round is not set up. Ask your manager to plan your beat.</td>
+  </tr>
+  <tr>
+    <td class="what">"Not set up for attendance"</td>
+    <td>Your login is not linked to an employee record. Ask HR.</td>
+  </tr>
+  <tr>
+    <td class="what">A clinic is missing from the list</td>
+    <td>You only see clinics on your own route. Ask your manager to add it to your beat.</td>
+  </tr>
+  <tr>
+    <td class="what">You forgot to write up yesterday</td>
+    <td>Use the back arrow beside the date on My Day. You can go back a few days — not
+        further, and never forward.</td>
+  </tr>
+</table>
+
+<h2><span class="num">14.</span>Seven things to remember</h2>
+<ol>
+  <li><b>Start my day first.</b> Nothing counts until you do.</li>
+  <li><b>Press I'm Here at the door</b>, not in the car.</li>
+  <li><b>One slip per patient</b>, and submit each one before you leave.</li>
+  <li><b>Say what happened</b> before you finish a visit — that is what your day is judged on.</li>
+  <li><b>Photograph the odometer</b> twice a day. No photo, no claim.</li>
+  <li><b>Enter cases the same day.</b> Tomorrow morning it is already a question.</li>
+  <li><b>Cash you collected goes into your float</b> the same day, and to the office
+      as soon as you can. Money taken at a door with no visit behind it goes in
+      through <span class="btn">Cash in</span> — never invent a visit to carry it.</li>
+</ol>
+
+<footer>
+  Arabian Dental Lab · Field Work — Guide for Field Executives.<br>
+  Every screenshot in this guide is of the real application, taken while performing the
+  steps described — on a copy of the live database, so the clinics, doctors and jobs
+  shown are the real ones. Treat this document accordingly.
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_whatsapp" model="ir.ui.view">
+        <field name="name">res.partner.form.whatsapp</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_whatsapp_messages" type="object" class="oe_stat_button"
+                        icon="fa-whatsapp">
+                    <field name="whatsapp_message_count" widget="statinfo" string="WhatsApp"/>
+                </button>
+            </div>
+            <!-- A case has come in with something missing: ask the doctor for it
+                 without writing the message again. (client, 2026-09-18) -->
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <field name="whatsapp_number" invisible="1"/>
+                    <button name="action_send_whatsapp" type="object"
+                            string="Send WhatsApp" icon="fa-whatsapp"
+                            class="btn-success" invisible="not whatsapp_number"
+                            groups="epg_whatsapp.group_whatsapp_user"
+                            help="Write to this doctor on WhatsApp - a note of your own, or any template."/>
+                    <button name="action_whatsapp_ask" type="object"
+                            string="Ask the doctor" icon="fa-question-circle"
+                            invisible="not whatsapp_number"
+                            groups="epg_whatsapp.group_whatsapp_user"
+                            help="The questions the lab puts to a doctor - the details a case is missing, the impression, the shade, a collection, a go-ahead."/>
+                    <button name="action_whatsapp_add_number" type="object"
+                            string="Add WhatsApp number" icon="fa-whatsapp"
+                            invisible="whatsapp_number"
+                            groups="epg_whatsapp.group_whatsapp_user"/>
+                </header>
+            </xpath>
+            <!-- Its own row under the phone, with its own icon and a switch that
+                 says what it does - not an unlabelled box and a bare tick inside
+                 the phone row. (client, 2026-09-15) -->
+            <xpath expr="//field[@name='phone']/.." position="after">
+                <div class="d-flex align-items-baseline flex-wrap w-md-50 gap-2">
+                    <i class="fa fa-fw me-1 fa-whatsapp text-success" title="WhatsApp"/>
+                    <field name="whatsapp_number" class="flex-grow-1"
+                           placeholder="WhatsApp number, e.g. +91 98470 12345"/>
+                    <span class="d-inline-flex align-items-center text-nowrap">
+                        <field name="whatsapp_optin" widget="boolean_toggle" nolabel="1"/>
+                        <label for="whatsapp_optin" class="mb-0 fw-normal"
+                               string="Send WhatsApp"/>
+                    </span>
+                    <span class="d-inline-flex align-items-center text-nowrap"
+                          invisible="not whatsapp_optin">
+                        <field name="whatsapp_marketing_optin" widget="boolean_toggle" nolabel="1"/>
+                        <label for="whatsapp_marketing_optin" class="mb-0 fw-normal"
+                               string="Offers &amp; news"/>
+                    </span>
+                </div>
+                <div class="small text-warning w-md-50"
+                     invisible="whatsapp_number or not whatsapp_optin">
+                    <i class="fa fa-exclamation-triangle me-1" title="Warning"/>No WhatsApp number - no WhatsApp messages are sent to this contact.
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_partner_tree_whatsapp" model="ir.ui.view">
+        <field name="name">res.partner.list.whatsapp</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <field name="phone" position="after">
+                <field name="whatsapp_number" optional="show"/>
+                <field name="whatsapp_optin" string="Send WhatsApp" optional="hide"
+                       widget="boolean_toggle" readonly="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_res_partner_filter_whatsapp" model="ir.ui.view">
+        <field name="name">res.partner.search.whatsapp</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <!-- After user_id, as sale_custom does: another installed module
+                 replaces the search view's phone field, so it is no anchor. -->
+            <field name="user_id" position="after">
+                <field name="whatsapp_number"/>
+            </field>
+            <filter name="type_company" position="after">
+                <separator/>
+                <filter string="Has a WhatsApp Number" name="has_whatsapp"
+                        domain="[('whatsapp_number', '!=', False)]"/>
+                <filter string="No WhatsApp Number" name="no_whatsapp"
+                        domain="[('whatsapp_number', '=', False)]"/>
+                <filter string="WhatsApp Switched Off" name="whatsapp_off"
+                        domain="[('whatsapp_optin', '=', False)]"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- Send WhatsApp from the sale.order form: a template, or a quick note. -->
+    <record id="action_sale_order_send_whatsapp" model="ir.actions.server">
+        <field name="name">Send WhatsApp</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">form</field>
+        <field name="group_ids" eval="[(4, ref('epg_whatsapp.group_whatsapp_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records[:1].action_whatsapp_send()</field>
+    </record>
+
+    <!-- Send WhatsApp from the account.move form: a template, or a quick note. -->
+    <record id="action_account_move_send_whatsapp" model="ir.actions.server">
+        <field name="name">Send WhatsApp</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_view_types">form</field>
+        <field name="group_ids" eval="[(4, ref('epg_whatsapp.group_whatsapp_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records[:1].action_whatsapp_send()</field>
+    </record>
+
+    <!-- Send WhatsApp from the stock.picking form: a template, or a quick note. -->
+    <record id="action_stock_picking_send_whatsapp" model="ir.actions.server">
+        <field name="name">Send WhatsApp</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_view_types">form</field>
+        <field name="group_ids" eval="[(4, ref('epg_whatsapp.group_whatsapp_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records[:1].action_whatsapp_send()</field>
+    </record>
+
+    <!-- Send WhatsApp from the account.payment form: a template, or a quick note. -->
+    <record id="action_account_payment_send_whatsapp" model="ir.actions.server">
+        <field name="name">Send WhatsApp</field>
+        <field name="model_id" ref="account.model_account_payment"/>
+        <field name="binding_model_id" ref="account.model_account_payment"/>
+        <field name="binding_view_types">form</field>
+        <field name="group_ids" eval="[(4, ref('epg_whatsapp.group_whatsapp_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records[:1].action_whatsapp_send()</field>
+    </record>
+
+    <record id="action_partner_send_whatsapp" model="ir.actions.server">
+        <field name="name">Send WhatsApp</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">form</field>
+        <field name="state">code</field>
+        <field name="code">action = records[:1].action_send_whatsapp()</field>
+    </record>
+</odoo>

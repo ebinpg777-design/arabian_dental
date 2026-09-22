@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_doctor_call_entry,doctor call entry,model_lab_doctor_call_log,lab_order_control.group_lab_order_entry,1,1,1,0
+access_doctor_call_checker,doctor call checker,model_lab_doctor_call_log,lab_order_control.group_lab_order_checker,1,1,1,1
+access_doctor_call_user,doctor call read,model_lab_doctor_call_log,base.group_user,1,0,0,0
+access_hold_wizard,hold wizard,model_lab_hold_wizard,lab_order_control.group_lab_order_checker,1,1,1,1

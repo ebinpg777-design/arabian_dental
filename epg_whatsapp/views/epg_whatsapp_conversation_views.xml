@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_epg_whatsapp_conversation_list" model="ir.ui.view">
+        <field name="name">epg.whatsapp.conversation.list</field>
+        <field name="model">epg.whatsapp.conversation</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="opt_out" decoration-success="window_state == 'open'">
+                <field name="display_name" string="Contact"/>
+                <field name="number"/>
+                <field name="partner_id" optional="show"/>
+                <field name="last_inbound_at" string="They wrote"/>
+                <field name="last_outbound_at" string="We wrote" optional="hide"/>
+                <field name="window_state" string="Reply window" widget="badge"
+                       decoration-success="window_state == 'open'"
+                       decoration-warning="window_state == 'closed'"
+                       decoration-muted="window_state == 'never'"/>
+                <field name="window_expires_at" string="Open until" optional="hide"/>
+                <field name="message_count" string="Messages"/>
+                <field name="opt_out" widget="boolean_toggle" readonly="1"/>
+                <field name="account_id" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_epg_whatsapp_conversation_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.conversation.form</field>
+        <field name="model">epg.whatsapp.conversation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_reopen" type="object" string="Clear Opt-out"
+                            invisible="not opt_out"
+                            confirm="Only do this if the contact has asked to receive messages again."/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_messages" type="object"
+                                class="oe_stat_button" icon="fa-comments">
+                            <field name="message_count" widget="statinfo" string="Messages"/>
+                        </button>
+                        <button name="action_view_messages" type="object"
+                                class="oe_stat_button" icon="fa-inbox">
+                            <field name="inbound_count" widget="statinfo" string="Received"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Opted out" bg_color="text-bg-danger"
+                            invisible="not opt_out"/>
+                    <div class="oe_title">
+                        <h1><field name="display_name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="number" readonly="1"/>
+                            <field name="partner_id"/>
+                            <field name="account_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="window_state" readonly="1"/>
+                            <field name="window_expires_at" readonly="1"
+                                   invisible="window_state != 'open'"/>
+                            <field name="last_inbound_at" readonly="1"/>
+                            <field name="last_outbound_at" readonly="1"/>
+                            <field name="opt_out_at" readonly="1" invisible="not opt_out"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="window_state == 'open'">
+                        WhatsApp only accepts free-form messages for 24 hours after the
+                        contact's last message. Until they write again, only an approved
+                        template will reach this number.
+                    </div>
+                    <notebook>
+                        <page string="Messages" name="messages">
+                            <field name="message_ids" readonly="1">
+                                <list decoration-muted="direction == 'inbound'"
+                                      decoration-danger="state == 'error'">
+                                    <field name="create_date" string="When"/>
+                                    <field name="direction"/>
+                                    <field name="body"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_epg_whatsapp_conversation_search" model="ir.ui.view">
+        <field name="name">epg.whatsapp.conversation.search</field>
+        <field name="model">epg.whatsapp.conversation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="number"/>
+                <field name="partner_id"/>
+                <filter name="window_open" string="Can reply freely"
+                        domain="[('window_open', '=', True)]"/>
+                <filter name="window_closed" string="Template only"
+                        domain="[('window_open', '=', False)]"/>
+                <separator/>
+                <filter name="opted_out" string="Opted out" domain="[('opt_out', '=', True)]"/>
+                <!-- No <group string=…/expand=…> here: invalid in an Odoo 19 search view. -->
+                <group>
+                    <filter name="by_account" string="Sender"
+                            context="{'group_by': 'account_id'}"/>
+                    <filter name="by_partner" string="Contact"
+                            context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_epg_whatsapp_conversation" model="ir.actions.act_window">
+        <field name="name">Conversations</field>
+        <field name="res_model">epg.whatsapp.conversation</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No conversations yet</p>
+            <p>
+                A conversation appears the first time a number is messaged, and records
+                whether WhatsApp's 24-hour reply window is currently open for it.
+            </p>
+        </field>
+    </record>
+</odoo>

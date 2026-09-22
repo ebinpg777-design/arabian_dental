@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_credit_control" model="ir.ui.view">
+        <field name="name">res.partner.form.credit.control</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="account.view_partner_property_form"/>
+        <field name="arch" type="xml">
+            <field name="credit_limit" position="after">
+                <field name="credit_limit_policy"/>
+                <field name="credit_exposure"/>
+                <field name="credit_uncovered_order_amount"/>
+                <field name="credit_available"
+                       decoration-danger="credit_available &lt; 0"/>
+            </field>
+        </field>
+    </record>
+</odoo>

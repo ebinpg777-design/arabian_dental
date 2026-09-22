@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_incentive_sheet_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Incentive Statement — <span t-field="o.name"/></h2>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Executive:</strong> <span t-field="o.executive_id"/><br/>
+                                <strong>Period:</strong> <span t-field="o.period"
+                                    t-options="{'format': 'MMMM y'}"/>
+                            </div>
+                            <div class="col-6 text-end">
+                                <strong>Status:</strong> <span t-field="o.state"/><br/>
+                                <span t-if="o.paid_reference">
+                                    <strong>Reference:</strong> <span t-field="o.paid_reference"/>
+                                </span>
+                            </div>
+                        </div>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Order</th><th>Product</th>
+                                    <th class="text-end">Sale Amount</th>
+                                    <th class="text-end">Incentive Base</th>
+                                    <th class="text-end">Incentive</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.line_ids" t-as="line">
+                                    <td><span t-field="line.sale_order_id.name"/></td>
+                                    <td><span t-field="line.product_id.name"/></td>
+                                    <td class="text-end"><span t-field="line.sale_amount"/></td>
+                                    <td class="text-end"><span t-field="line.incentive_base"/></td>
+                                    <td class="text-end"><span t-field="line.incentive_amount"/></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td colspan="2">Total</td>
+                                    <td class="text-end"><span t-field="o.total_sales"/></td>
+                                    <td class="text-end"><span t-field="o.total_base"/></td>
+                                    <td class="text-end"><span t-field="o.incentive_amount"/></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,4 @@
+// Track joins Where, Correct, Cancel and Start again: five in the phone row now.
+@media (max-width: 599.98px) {
+    .o_st .o_st_type_acts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}

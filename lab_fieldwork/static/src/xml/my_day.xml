@@ -1,0 +1,703 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_fieldwork.MyDay">
+    <div class="o_fw_day o_action">
+
+        <!-- Header: what today amounts to, in four numbers and a progress ring. -->
+        <div class="o_fw_hero">
+            <div class="o_fw_hero_top">
+                <div>
+                    <div class="o_fw_hero_eyebrow">
+                        <t t-if="state.data">
+                            <t t-esc="state.data.greeting"/><t t-if="state.data.user_name">, <t t-esc="state.data.user_name"/></t>
+                        </t>
+                        <t t-else="">My Day</t>
+                    </div>
+                    <h2 class="o_fw_hero_date">
+                        <t t-esc="state.data and (state.data.date_label or state.data.date)"/>
+                    </h2>
+                    <!-- The day stepper and the month's door count on ONE row:
+                         two stacked control rows ate a third of a phone's
+                         header. They wrap only when they must.
+                         (client, 2026-08-28) -->
+                    <div class="o_fw_hero_controls">
+                        <!-- Step back over the days the office allows, so a round the
+                             phone died on can still be written up. Never past today.
+                             (client, 2026-08-25) -->
+                        <div class="o_fw_daynav"
+                             t-if="state.data and (state.data.backdate_days or state.data.any_day)">
+                            <button class="o_fw_daynav_btn" title="Previous day"
+                                    t-att-disabled="state.data.day &lt;= state.data.earliest"
+                                    t-on-click="() => this.shiftDay(-1)">
+                                <i class="fa fa-chevron-left"/>
+                            </button>
+                            <button class="o_fw_daynav_today" t-if="!state.data.is_today"
+                                    t-on-click="() => this.backToToday()">Today</button>
+                            <button class="o_fw_daynav_btn" title="Next day"
+                                    t-att-disabled="state.data.is_today"
+                                    t-on-click="() => this.shiftDay(1)">
+                                <i class="fa fa-chevron-right"/>
+                            </button>
+                        </div>
+                        <!-- Doors opened this month. An executive is judged on the work they
+                             bring back AND the clinics they open. (client, 2026-08-27) -->
+                        <div class="o_fw_newclinic_line" t-if="state.data"
+                             t-on-click="() => this.openNewClinics()">
+                            <i class="fa fa-hospital-o me-1" title="New clinics"/>
+                            <b t-esc="state.data.new_clinics"/> new clinic(s) this month
+                            <i class="fa fa-chevron-right ms-1"/>
+                        </div>
+                    </div>
+                </div>
+                <div t-if="state.data and state.data.target" class="o_fw_ring_wrap"
+                     t-on-click="() => this.openTarget()">
+                    <!-- A ring, not a bar: it reads as "how far round the month am I"
+                         at a glance and takes no horizontal space on a phone. -->
+                    <div class="o_fw_ring"
+                         t-attf-style="--fw-pct: {{ Math.min(state.data.target.progress, 100) }}">
+                        <span class="o_fw_ring_label">
+                            <t t-esc="Math.round(state.data.target.progress)"/>%
+                        </span>
+                    </div>
+                    <div class="o_fw_ring_caption">of target</div>
+                </div>
+            </div>
+
+            <div t-if="!state.loading" class="o_fw_stats">
+                <div class="o_fw_stat">
+                    <span class="o_fw_stat_v">
+                        <t t-esc="state.data.summary.done"/>/<t t-esc="state.data.summary.planned"/>
+                    </span>
+                    <span class="o_fw_stat_l">visits</span>
+                </div>
+                <div class="o_fw_stat">
+                    <span class="o_fw_stat_v"><t t-esc="state.data.summary.cases"/></span>
+                    <!-- "registered", now that a hand count sits on the next row:
+                         this one is the slips that became orders at check-out. -->
+                    <span class="o_fw_stat_l">cases registered</span>
+                </div>
+                <div class="o_fw_stat">
+                    <span t-att-class="statCls(money(state.data.summary.value))"><t t-esc="money(state.data.summary.value)"/></span>
+                    <span class="o_fw_stat_l">case value</span>
+                </div>
+                <div class="o_fw_stat">
+                    <span t-att-class="statCls(money(state.data.summary.collected))"><t t-esc="money(state.data.summary.collected)"/></span>
+                    <span class="o_fw_stat_l">collected</span>
+                </div>
+                <!-- The lab's money in this person's hands: taken as cash, not yet
+                     counted back by the office, from any day. The same number the
+                     card below and the Ops Desk show. (client, 2026-09-18) -->
+                <div class="o_fw_stat">
+                    <span t-att-class="statCls(money(state.data.summary.cash_in_hand))"><t t-esc="money(state.data.summary.cash_in_hand)"/></span>
+                    <span class="o_fw_stat_l">cash with you</span>
+                </div>
+                <!-- Second row, on purpose: what the executive carried in and out
+                     today, counted at the doors. The strip is a four-column grid,
+                     so these fall under the money stats on a row of their own -
+                     lab_delivery appends the dispatches delivered after them.
+                     (client, 2026-09-08) -->
+                <div class="o_fw_stat">
+                    <span class="o_fw_stat_v"><t t-esc="state.data.summary.cases_collected"/></span>
+                    <span class="o_fw_stat_l">cases collected</span>
+                </div>
+                <div class="o_fw_stat">
+                    <span class="o_fw_stat_v"><t t-esc="state.data.summary.reworks_collected"/></span>
+                    <span class="o_fw_stat_l">reworks collected</span>
+                </div>
+            </div>
+        </div>
+
+        <div t-if="state.loading" class="text-center text-muted py-5">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+
+        <t t-else="">
+            <!--
+                Attendance first, literally: nothing below this works until the day is
+                started, so it is the first thing on the screen and it is the only card
+                that changes colour when it needs attention.
+            -->
+            <div class="o_fw_clock" t-att-class="onDuty ? 'o_fw_clock_on' : 'o_fw_clock_off'">
+                <div class="o_fw_clock_body">
+                    <div class="o_fw_clock_state">
+                        <span class="o_fw_pulse" t-if="onDuty"/>
+                        <t t-if="attendance.state === 'no_employee'">Not set up for attendance</t>
+                        <t t-elif="onDuty">On duty</t>
+                        <t t-else="">Not started yet</t>
+                    </div>
+                    <div class="o_fw_clock_sub">
+                        <t t-if="attendance.state === 'no_employee'">
+                            Ask HR to link your user to an employee record.
+                        </t>
+                        <t t-elif="onDuty">
+                            Since <t t-esc="attendance.since"/> · <t t-esc="hoursToday"/> today
+                        </t>
+                        <t t-elif="attendance.checked_out_at">
+                            Ended <t t-esc="attendance.checked_out_at"/> · <t t-esc="hoursToday"/> today
+                        </t>
+                        <t t-else="">
+                            Mark your attendance to begin. Visits and travel stay locked
+                            until you do.
+                        </t>
+                    </div>
+                </div>
+                <button class="o_fw_clock_btn"
+                        t-att-disabled="state.busy === 'att' or attendance.state === 'no_employee'"
+                        t-on-click="() => this.toggleAttendance()">
+                    <i t-att-class="'fa ' + (onDuty ? 'fa-sign-out' : 'fa-play')"
+                       t-att-title="clockLabel"/>
+                    <span class="ms-2"><t t-esc="clockLabel"/></span>
+                </button>
+            </div>
+
+            <!-- Two kinds of button, kept apart because they are used at different
+                 moments. DO is the doorstep: things done without opening a record -
+                 travel, scan, hand over, collect, a quick note, a search. MINE is the
+                 evening: the executive's own pages - visits, cases, cash, target,
+                 travel, deliveries, incentive. Other modules add their buttons to
+                 whichever grid fits (anchor on the grid, never on "the last button").
+                 (client, 2026-08-28) -->
+            <div class="o_fw_quickbar">
+                <section class="o_fw_sec o_fw_sec_do">
+                    <div class="o_fw_sec_head">
+                        <span class="o_fw_sec_title">
+                            <i class="fa fa-bolt me-1"/>Do
+                        </span>
+                        <span class="o_fw_sec_hint">at the door</span>
+                    </div>
+                    <div class="o_fw_sec_grid">
+                        <button class="o_fw_qa o_fw_qa_trip" t-on-click="() => this.openTrip()">
+                            <i class="fa fa-motorcycle" title="Travel"/>
+                            <span t-if="state.data.trip">Travel</span>
+                            <span t-else="">Start the day</span>
+                        </button>
+                        <button class="o_fw_qa" t-on-click="() => this.openQuickEntry()">
+                            <i class="fa fa-pencil-square-o" title="Quick entry"/>
+                            <span>Quick entry</span>
+                        </button>
+                        <button class="o_fw_qa" t-on-click="() => this.toggleTrack()">
+                            <i class="fa fa-search" title="Track order"/>
+                            <span>Track order</span>
+                        </button>
+                        <!-- Who else is on this road. (client, 2026-09-02) -->
+                        <button class="o_fw_qa o_fw_qa_clinics"
+                                t-att-class="{ o_fw_qa_on: state.clinics.open }"
+                                t-on-click="() => this.toggleClinics()">
+                            <i class="fa fa-hospital-o" title="Doctors on my round"/>
+                            <span>Doctors / Clinics</span>
+                        </button>
+                        <!-- Money arrives ahead of the paperwork: a doctor settles
+                             an old bill while the executive is there for something
+                             else. Recording it used to mean inventing a visit that
+                             never happened. (client, 2026-09-12) -->
+                        <button class="o_fw_qa" t-on-click="() => this.collectCash()">
+                            <i class="fa fa-inr" title="Cash collected, without a visit"/>
+                            <span>Cash in</span>
+                        </button>
+                    </div>
+                </section>
+
+                <section class="o_fw_sec o_fw_sec_mine">
+                    <div class="o_fw_sec_head">
+                        <span class="o_fw_sec_title">
+                            <i class="fa fa-user-circle-o me-1"/>My
+                        </span>
+                        <button class="o_fw_sec_refresh" t-on-click="() => this.reload()"
+                                title="Refresh">
+                            <i class="fa fa-refresh"/>
+                        </button>
+                    </div>
+                    <div class="o_fw_sec_grid">
+                        <button class="o_fw_qa" t-on-click="() => this.openVisits()">
+                            <i class="fa fa-map-marker" title="My visits"/>
+                            <span>Visits</span>
+                        </button>
+                        <button class="o_fw_qa" t-on-click="() => this.openCases()">
+                            <i class="fa fa-file-text-o" title="My cases"/>
+                            <span>Cases</span>
+                        </button>
+                        <button class="o_fw_qa" t-on-click="() => this.openTrips()">
+                            <i class="fa fa-road" title="My travel"/>
+                            <span>Travel</span>
+                        </button>
+                        <button class="o_fw_qa" t-on-click="() => this.openCash()">
+                            <i class="fa fa-money" title="My cash"/>
+                            <span>Cash</span>
+                        </button>
+                        <button class="o_fw_qa" t-on-click="() => this.openTargets()">
+                            <i class="fa fa-bullseye" title="My target"/>
+                            <span>Targets</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- The doctors on this person's routes, as cards. Name, where it is,
+                 what it owes, what is still open - and a star that is theirs
+                 alone. No form view: res.partner opens on accounting fields an
+                 executive cannot read. (client, 2026-09-02) -->
+            <div class="o_fw_clinics" t-if="state.clinics.open" t-ref="clinicsPanel">
+                <div class="o_fw_track_bar">
+                    <i class="fa fa-hospital-o"/>
+                    <input type="search" class="o_fw_track_input"
+                           placeholder="Doctor, town or phone"
+                           t-att-value="state.clinics.query"
+                           t-on-input="(ev) => this.onClinicInput(ev)"/>
+                    <button class="o_fw_clinic_fav_toggle"
+                            t-att-class="{ o_fw_clinic_fav_on: state.clinics.favouritesOnly }"
+                            t-att-title="state.clinics.favouritesOnly ? 'Showing your favourites only' : 'Show only your favourites'"
+                            t-on-click="() => this.toggleFavouritesOnly()">
+                        <i class="fa fa-star"/>
+                        <t t-esc="state.clinics.favourites"/>
+                    </button>
+                    <button class="o_fw_track_close" t-on-click="() => this.toggleClinics()">
+                        <i class="fa fa-times" title="Close"/>
+                    </button>
+                </div>
+
+                <div t-if="state.clinics.busy" class="o_fw_track_busy">
+                    <i class="fa fa-circle-o-notch fa-spin" title="Loading"/>
+                </div>
+
+                <div t-if="state.clinics.noRoute" class="o_fw_track_none">
+                    You are not on a sales route yet, so there are no clinics to show.
+                    Ask your manager to put you on one.
+                </div>
+                <div t-elif="!state.clinics.busy and !state.clinics.rows.length"
+                     class="o_fw_track_none">
+                    <t t-if="state.clinics.favouritesOnly">
+                        You have not starred any clinic yet. Tap a star to keep one here.
+                    </t>
+                    <t t-else="">No clinic on your routes matches that.</t>
+                </div>
+
+                <div class="o_fw_clinic_grid">
+                    <div t-foreach="state.clinics.rows" t-as="c" t-key="c.id"
+                         class="o_fw_clinic_card"
+                         t-att-class="{ o_fw_clinic_fav: c.favourite }">
+                        <div class="o_fw_clinic_top">
+                            <div class="o_fw_clinic_name">
+                                <t t-esc="c.name"/>
+                                <div t-if="c.route" class="o_fw_clinic_route">
+                                    <t t-esc="c.route"/>
+                                </div>
+                            </div>
+                            <button class="o_fw_clinic_star"
+                                    t-att-class="{ o_fw_clinic_star_on: c.favourite }"
+                                    t-att-title="c.favourite ? 'Remove from your favourites' : 'Keep in your favourites'"
+                                    t-on-click="(ev) => this.toggleFavourite(c, ev)">
+                                <i t-att-class="c.favourite ? 'fa fa-star' : 'fa fa-star-o'"/>
+                            </button>
+                        </div>
+
+                        <div t-if="c.address" class="o_fw_clinic_addr">
+                            <i class="fa fa-map-marker me-1"/><t t-esc="c.address"/>
+                        </div>
+
+                        <div class="o_fw_clinic_facts">
+                            <div class="o_fw_clinic_fact">
+                                <span class="o_fw_clinic_fact_v"
+                                      t-att-class="c.open_receivable ? 'o_fw_clinic_owes' : ''">
+                                    <t t-if="c.open_receivable"><t t-esc="money(c.open_receivable)"/></t>
+                                    <t t-else="">—</t>
+                                </span>
+                                <span class="o_fw_clinic_fact_l">open receivable</span>
+                            </div>
+                            <div class="o_fw_clinic_fact">
+                                <span class="o_fw_clinic_fact_v">
+                                    <t t-esc="c.open_orders"/>
+                                </span>
+                                <span class="o_fw_clinic_fact_l">
+                                    <t t-if="c.open_orders === 1">open order</t>
+                                    <t t-else="">open orders</t><t t-if="c.open_order_value">
+                                        · <t t-esc="money(c.open_order_value)"/></t>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="o_fw_clinic_acts">
+                            <button class="o_fw_clinic_go" t-att-disabled="state.busy"
+                                    t-on-click="(ev) => this.newVisitFor(c, ev)">
+                                <i class="fa fa-plus me-1"/>
+                                <t t-if="c.visited_today">On today's round</t>
+                                <t t-else="">New visit</t>
+                            </button>
+                            <a t-if="c.map_url" class="o_fw_clinic_ico"
+                               t-att-href="c.map_url" title="Directions">
+                                <i class="fa fa-location-arrow"/></a>
+                            <a t-if="c.phone" class="o_fw_clinic_ico"
+                               t-attf-href="tel:{{c.phone}}" t-att-title="c.phone">
+                                <i class="fa fa-phone"/></a>
+                            <a t-if="c.whatsapp" class="o_fw_clinic_ico"
+                               t-attf-href="https://wa.me/{{c.whatsapp}}"
+                               target="_blank" title="WhatsApp">
+                                <i class="fa fa-whatsapp"/></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div t-if="state.clinics.more" class="o_fw_track_more">
+                    Showing the first <t t-esc="state.clinics.rows.length"/> — search to narrow it.
+                </div>
+                <div t-elif="state.clinics.rows.length" class="o_fw_track_more">
+                    <t t-esc="state.clinics.rows.length"/>
+                    <t t-if="state.clinics.favouritesOnly"> starred</t>
+                    <t t-elif="state.clinics.query"> matching</t>
+                    <t t-if="state.clinics.rows.length > 1">doctors and clinics</t>
+                    <t t-else="">doctor or clinic</t>
+                    <t t-if="!state.clinics.query and !state.clinics.favouritesOnly"> on your route</t>
+                </div>
+            </div>
+
+            <!-- Track a work: the question asked at the clinic door. Only work that
+                 is still open appears - an invoiced case is finished with - and only
+                 on this person's own routes. (client, 2026-08-24) -->
+            <div class="o_fw_track" t-if="state.track.open" t-ref="trackPanel">
+                <div class="o_fw_track_bar">
+                    <i class="fa fa-search"/>
+                    <input type="text" t-ref="trackInput"
+                           placeholder="Patient, clinic or order number"
+                           t-on-input="(ev) => this.onTrackInput(ev)"/>
+                    <button class="o_fw_track_close" t-on-click="() => this.toggleTrack()">
+                        <i class="fa fa-times"/>
+                    </button>
+                </div>
+                <!-- Standing in a clinic? One tap for everything pending there. -->
+                <div class="o_fw_track_chips" t-if="state.track.here">
+                    <button t-att-class="'o_fw_chip' + (state.track.partnerId ? ' o_fw_chip_on' : '')"
+                            t-on-click="() => this.toggleHere()">
+                        <i class="fa fa-map-marker me-1"/>
+                        At <t t-esc="state.track.here.name"/>
+                    </button>
+                </div>
+                <div t-if="state.track.busy" class="o_fw_track_note">Searching…</div>
+                <div t-elif="state.track.no_route" class="o_fw_track_note">
+                    You are not on a sales route yet — ask your manager to add you.
+                </div>
+                <div t-elif="!state.track.rows.length" class="o_fw_track_note">
+                    <t t-if="state.track.query">Nothing open matches that.</t>
+                    <t t-else="">No work is open on your route or in your bag.</t>
+                </div>
+                <t t-else="">
+                    <t t-foreach="state.track.rows" t-as="r" t-key="r.id">
+                        <div class="o_fw_track_row"
+                             t-on-click="() => this.openTrackDetail(r)">
+                            <div class="o_fw_track_main">
+                                <strong t-esc="r.patient or r.name"/>
+                                <span class="o_fw_track_clinic">
+                                    <t t-if="r.work"><t t-esc="r.work"/> · </t>
+                                    <t t-esc="r.clinic"/>
+                                </span>
+                            </div>
+                            <div class="o_fw_track_side">
+                                <span t-att-class="'o_fw_track_stage o_fw_track_' + r.tone"
+                                      t-esc="r.stage"/>
+                                <small>
+                                    <t t-esc="r.name"/> ·
+                                    <!-- How long the doctor has been waiting is the
+                                         fact that decides the tone of the answer. -->
+                                    <span t-att-class="r.waiting > 14 ? 'o_fw_track_old' : ''">
+                                        <t t-if="r.waiting === 0">today</t>
+                                        <t t-elif="r.waiting === 1">1 day</t>
+                                        <t t-else=""><t t-esc="r.waiting"/> days</t>
+                                    </span>
+                                    <t t-if="r.late"> · <span class="o_fw_track_old">past promise</span></t>
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="o_fw_track_detail" t-if="state.track.openId === r.id">
+                            <t t-set="d" t-value="trackDetail(r.id)"/>
+                            <div t-if="!d" class="o_fw_track_note">Reading the file…</div>
+                            <t t-elif="!d.ok">
+                                <div class="o_fw_track_note">That job is not on your route or in your bag.</div>
+                            </t>
+                            <t t-else="">
+                                <div class="o_fw_track_steps">
+                                    <div t-foreach="d.steps" t-as="s" t-key="s_index"
+                                         t-att-class="'o_fw_step' + (s.done ? ' o_fw_step_done' : '')">
+                                        <i t-att-class="s.done ? 'fa fa-check-circle' : 'fa fa-circle-o'"/>
+                                        <span class="o_fw_step_label" t-esc="s.label"/>
+                                        <small t-esc="s.when"/>
+                                    </div>
+                                </div>
+                                <!-- Who made it, and who finished it. The question a
+                                     doctor asks at the door about a case they are
+                                     unhappy with, and the one an executive could
+                                     only answer by ringing the lab. The two are
+                                     separate people at a finishing bench.
+                                     (client, 2026-09-09) -->
+                                <div t-if="d.people and d.people.length" class="o_fw_track_who">
+                                    <div class="o_fw_track_who_h">Who worked on it</div>
+                                    <div t-foreach="d.people" t-as="w" t-key="w_index"
+                                         class="o_fw_track_who_row">
+                                        <span class="o_fw_track_who_op">
+                                            <t t-esc="w.operation or w.station"/>
+                                        </span>
+                                        <span class="o_fw_track_who_n">
+                                            <t t-if="w.technician">
+                                                <i class="fa fa-user me-1" title="Technician"/>
+                                                <t t-esc="w.technician"/>
+                                            </t>
+                                            <t t-if="w.technician and w.finisher"> · </t>
+                                            <t t-if="w.finisher">
+                                                <i class="fa fa-check-square-o me-1"
+                                                   title="Finishing technician"/>
+                                                finished by <t t-esc="w.finisher"/>
+                                            </t>
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- When the file was read, and the way to read it
+                                     again. Refresh belongs to the timestamp it
+                                     changes, not to Call/WhatsApp/Copy - those act
+                                     on the doctor. It also kept the action row from
+                                     fitting a phone, and wrapped alone onto a line
+                                     of its own. (client, 2026-09-09) -->
+                                <div class="o_fw_track_read">
+                                    <span t-if="d.read_at">as of <t t-esc="d.read_at"/></span>
+                                    <button class="o_fw_track_reread"
+                                            t-att-disabled="state.track.refreshing === r.id"
+                                            t-on-click="(ev) => this.refreshTrack(r, ev)">
+                                        <i t-att-class="'fa fa-refresh me-1'
+                                            + (state.track.refreshing === r.id ? ' fa-spin' : '')"/>
+                                        <t t-if="state.track.refreshing === r.id">Reading…</t>
+                                        <t t-else="">Refresh</t>
+                                    </button>
+                                </div>
+                                <div class="o_fw_track_acts">
+                                    <a t-if="d.phone" class="o_fw_track_act"
+                                       t-attf-href="tel:{{ d.phone }}" t-on-click.stop="">
+                                        <i class="fa fa-phone me-1"/>Call
+                                    </a>
+                                    <a t-if="d.whatsapp" class="o_fw_track_act"
+                                       t-attf-href="https://wa.me/{{ d.whatsapp }}"
+                                       target="_blank" t-on-click.stop="">
+                                        <i class="fa fa-whatsapp me-1"/>WhatsApp
+                                    </a>
+                                    <button class="o_fw_track_act"
+                                            t-on-click="(ev) => this.copyTrackSummary(d, ev)">
+                                        <i class="fa fa-copy me-1"/>Copy status
+                                    </button>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                    <div t-if="state.track.more" class="o_fw_track_note">
+                        Showing the newest 25 — type a name to narrow it.
+                    </div>
+                </t>
+            </div>
+
+            <!-- Travel: one line, because most days it needs no attention. -->
+            <div class="o_fw_trip" t-on-click="() => this.openTrip()">
+                <i class="fa fa-motorcycle me-2" title="Travel"/>
+                <t t-if="state.data.trip">
+                    <span class="flex-grow-1">
+                        Travel — <t t-esc="state.data.trip.distance"/> km
+                    </span>
+                    <strong class="me-2"><t t-esc="money(state.data.trip.amount)"/></strong>
+                    <span class="o_fw_chip" t-esc="state.data.trip.state"/>
+                </t>
+                <t t-else="">
+                    <span class="flex-grow-1 text-muted">
+                        No trip started today — tap to record your odometer
+                    </span>
+                    <i class="fa fa-chevron-right text-muted" title="Open"/>
+                </t>
+            </div>
+
+            <!-- Cash, only when there is some. Money in a pocket is the one thing an
+                 executive must not forget, so it is stated rather than left to be
+                 remembered - with the way to be rid of it on the same card.
+                 (client, 2026-09-18) -->
+            <div t-if="state.data.cash.with_you" class="o_fw_cash"
+                 t-att-class="{ o_fw_cash_overdue: state.data.cash.overdue }">
+                <div class="o_fw_cash_row" t-on-click="() => this.openCash()">
+                    <i class="fa fa-money me-2" title="Cash"/>
+                    <span class="flex-grow-1">
+                        Cash with you — <strong t-esc="money(state.data.cash.available)"/>
+                    </span>
+                    <span t-if="state.data.cash.overdue" class="o_fw_chip o_fw_chip_danger">
+                        <t t-if="state.data.cash.days">oldest <t t-esc="state.data.cash.days"/> day<t t-if="state.data.cash.days > 1">s</t></t>
+                        <t t-else="">hand over today</t>
+                    </span>
+                    <span t-elif="state.data.cash.days > 0" class="o_fw_chip">
+                        oldest <t t-esc="state.data.cash.days"/> day<t t-if="state.data.cash.days > 1">s</t>
+                    </span>
+                    <i t-else="" class="fa fa-chevron-right text-muted" title="Open"/>
+                </div>
+                <!-- On the desk, not yet counted: still yours until they confirm. -->
+                <div t-foreach="state.data.cash.pending_rows" t-as="h" t-key="h.id"
+                     class="o_fw_cash_pending" t-on-click="() => this.openHandover(h)">
+                    <i class="fa fa-inbox me-2" title="Waiting"/>
+                    <span class="flex-grow-1">
+                        <strong t-esc="money(h.amount)"/> handed over <t t-esc="h.date"/>
+                        — waiting for the office to count
+                    </span>
+                    <span class="o_fw_code_chip" t-esc="h.code"/>
+                </div>
+                <button t-if="state.data.cash.available > 0" class="o_fw_cash_btn"
+                        t-on-click="() => this.handOverCash()">
+                    <i class="fa fa-hand-paper-o me-2" title="Hand over"/>
+                    Hand over cash
+                </button>
+            </div>
+
+            <!-- The list. This is the app. -->
+            <div t-if="!state.data.visits.length" class="o_fw_empty">
+                <i class="fa fa-coffee fa-2x mb-2" title="Nothing planned"/>
+                <div class="fw-bold">Nothing planned for today.</div>
+                <!-- Never a dead end: if there is a round to work from, the suggestions
+                     below are the answer; if there is not, say who can fix it. -->
+                <div t-if="state.data.suggestions.length" class="small mt-1">
+                    There are clinics on your round worth a stop — see below.
+                </div>
+                <div t-else="" class="small mt-1">
+                    Ask your manager to plan your beat, and it will appear here each
+                    morning.
+                </div>
+            </div>
+
+            <div t-foreach="state.data.visits" t-as="v" t-key="v.id"
+                 class="o_fw_card" t-att-class="'o_fw_card_' + v.state">
+                <div class="o_fw_card_body" t-on-click="() => this.openVisit(v)">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <strong class="o_fw_clinic"><t t-esc="v.clinic"/></strong>
+                        <span class="o_fw_chip" t-att-class="'o_fw_chip_' + v.state">
+                            <t t-esc="v.state === 'planned' ? 'To do'
+                                     : v.state === 'open' ? 'At clinic' : 'Done'"/>
+                        </span>
+                    </div>
+                    <div class="o_fw_meta">
+                        <span t-if="v.city"><t t-esc="v.city"/> · </span>
+                        <t t-esc="v.purpose"/>
+                    </div>
+
+                    <!-- The address as plain text, not only behind the Navigate link:
+                         the field app is a WebView wrapper with no browser behind it,
+                         and a geo: link it cannot open would otherwise leave the
+                         executive with nothing to act on at all. (client, 2026-08-29) -->
+                    <div t-if="v.map_address" class="o_fw_meta o_fw_addr"
+                         t-esc="v.map_address"/>
+
+                    <!-- Stop the click reaching the card: tapping Navigate must not
+                         also open the visit behind it. -->
+                    <div t-if="v.map_url or v.call" class="o_fw_quick"
+                         t-on-click.stop="() => {}">
+                        <a t-if="v.map_url" t-att-href="v.map_url" target="_blank"
+                           rel="noopener" class="o_fw_quick_btn">
+                            <i class="fa fa-location-arrow" title="Navigate"/>
+                            <span>Navigate</span>
+                        </a>
+                        <a t-if="v.call" t-att-href="'tel:' + v.call"
+                           class="o_fw_quick_btn">
+                            <i class="fa fa-phone" title="Call"/>
+                            <span>Call</span>
+                        </a>
+                        <a t-if="v.whatsapp" t-att-href="'https://wa.me/' + v.whatsapp"
+                           target="_blank" rel="noopener" class="o_fw_quick_btn">
+                            <i class="fa fa-whatsapp" title="WhatsApp"/>
+                            <span>Chat</span>
+                        </a>
+                    </div>
+
+                    <!-- While the visit is open, say what has been taken down so far. -->
+                    <div t-if="v.state !== 'done' and v.cases" class="o_fw_result">
+                        <i class="fa fa-medkit me-1" title="Cases"/>
+                        <t t-esc="v.cases"/> case(s) registered
+                    </div>
+
+                    <div t-if="v.state === 'done'" class="o_fw_result">
+                        <span t-if="v.outcome" class="me-3"><t t-esc="v.outcome"/></span>
+                        <span t-if="v.cases" class="me-3">
+                            <i class="fa fa-medkit me-1" title="Cases"/><t t-esc="v.cases"/>
+                            · <t t-esc="money(v.value)"/>
+                        </span>
+                        <span t-if="v.collected">
+                            <i class="fa fa-money me-1" title="Collected"/>
+                            <t t-esc="money(v.collected)"/>
+                        </span>
+                    </div>
+
+                    <!-- Location trouble is said in words, never colour alone. -->
+                    <div t-if="v.gps === 'far'" class="o_fw_warn">
+                        <i class="fa fa-exclamation-triangle me-1" title="Away from clinic"/>
+                        Checked in away from the clinic
+                    </div>
+                    <div t-if="v.gps === 'nofix'" class="o_fw_warn">
+                        <i class="fa fa-map-marker me-1" title="No location"/>
+                        No location was recorded for this check-in
+                    </div>
+                    <!-- After the check-in the executive is the only person who can
+                         still say where they were, so the fact that nothing could be
+                         verified has to reach them too - not only the manager's sheet.
+                         Previously this hint disappeared the moment they checked in.
+                         (client, 2026-09-05) -->
+                    <div t-if="v.gps === 'nopin'" class="o_fw_warn">
+                        <i class="fa fa-map-o me-1" title="Clinic not pinned"/>
+                        GPS not checked — this clinic has no location on the map
+                    </div>
+                    <div t-if="v.state === 'planned' and !v.pinned" class="o_fw_hint">
+                        <i class="fa fa-map-o me-1" title="Not pinned"/>
+                        This clinic is not pinned on the map
+                    </div>
+                </div>
+
+                <!-- One button. What it does depends on where the visit is, so there is
+                     never a choice to make. -->
+                <button class="o_fw_action" t-att-disabled="state.busy === v.id"
+                        t-on-click="() => this.onPrimary(v)">
+                    <i t-att-class="'fa ' + primaryIcon(v)" t-att-title="primaryLabel(v)"/>
+                    <span class="ms-2"><t t-esc="primaryLabel(v)"/></span>
+                </button>
+            </div>
+
+            <!--
+                Worth a stop. Clinics on this person's own beats that have gone quiet,
+                offered where the work happens rather than in a report somebody else
+                reads once a month. Ordered by what is at stake, so the first card is
+                always the one worth the detour.
+            -->
+            <div t-if="state.data.suggestions.length" class="o_fw_suggest">
+                <div class="o_fw_suggest_head">
+                    <i class="fa fa-lightbulb-o me-2" title="Suggestions"/>
+                    Worth a stop while you are out
+                </div>
+                <div t-foreach="state.data.suggestions" t-as="s" t-key="s.partner_id"
+                     class="o_fw_card o_fw_card_suggest">
+                    <div class="o_fw_card_body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="o_fw_clinic"><t t-esc="s.clinic"/></strong>
+                            <span class="o_fw_chip o_fw_chip_warn"><t t-esc="s.status_label"/></span>
+                        </div>
+                        <div class="o_fw_meta">
+                            <span t-if="s.city"><t t-esc="s.city"/> · </span>
+                            <t t-if="s.days">Not seen for <t t-esc="s.days"/> days</t>
+                            <t t-else="">Never visited</t>
+                        </div>
+                        <div class="o_fw_result">
+                            <span t-if="s.value" class="me-3">
+                                <i class="fa fa-medkit me-1" title="Recent business"/>
+                                <t t-esc="money(s.value)"/> in the last 90 days
+                            </span>
+                            <span t-if="s.declining" class="text-danger">
+                                <i class="fa fa-arrow-down me-1" title="Declining"/>
+                                ordering less than before
+                            </span>
+                        </div>
+                    </div>
+                    <button class="o_fw_action o_fw_action_ghost"
+                            t-att-disabled="state.busy === 's' + s.partner_id"
+                            t-on-click="() => this.addStop(s)">
+                        <i class="fa fa-plus" title="Add to today"/>
+                        <span class="ms-2">Add</span>
+                    </button>
+                </div>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

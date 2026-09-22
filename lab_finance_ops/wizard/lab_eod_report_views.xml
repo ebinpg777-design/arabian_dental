@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_lab_eod_report_form" model="ir.ui.view">
+        <field name="name">lab.eod.report.form</field>
+        <field name="model">lab.eod.report</field>
+        <field name="arch" type="xml">
+            <form string="End-of-Day Report">
+                <group>
+                    <group>
+                        <field name="date"/>
+                    </group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="Cases">
+                        <field name="registered_count"/>
+                        <field name="registered_amount"/>
+                        <field name="confirmed_count"/>
+                        <field name="confirmed_amount"/>
+                        <field name="urgent_count"/>
+                        <field name="dispatched_count"/>
+                    </group>
+                    <group string="Invoicing">
+                        <field name="invoice_count"/>
+                        <field name="invoice_amount"/>
+                        <field name="credit_note_count"/>
+                        <field name="credit_note_amount"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="Collections">
+                        <field name="collection_total"/>
+                        <field name="collection_cash"/>
+                        <field name="collection_bank"/>
+                        <field name="cheque_count"/>
+                        <field name="cheque_amount"/>
+                        <field name="cheque_cleared_amount"/>
+                    </group>
+                    <group string="Receivables">
+                        <field name="outstanding_total"/>
+                        <field name="overdue_total"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_print" type="object" string="Print"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button name="action_view_collections" type="object"
+                            string="View Collections" class="btn-secondary"/>
+                    <button string="Close" special="cancel" class="btn-secondary" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_lab_eod_report" model="ir.actions.act_window">
+        <field name="name">End-of-Day Report</field>
+        <field name="res_model">lab.eod.report</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Purposes. Codes match the legacy Selection keys so the one-way sync and the
+             migration can map by code, not by translated label. -->
+        <record id="purpose_round" model="lab.visit.purpose">
+            <field name="name">Routine Round</field><field name="code">round</field>
+            <field name="sequence">10</field><field name="color">4</field>
+        </record>
+        <record id="purpose_order" model="lab.visit.purpose">
+            <field name="name">Case Collection</field><field name="code">order</field>
+            <field name="sequence">20</field><field name="color">10</field>
+        </record>
+        <record id="purpose_delivery" model="lab.visit.purpose">
+            <field name="name">Delivery</field><field name="code">delivery</field>
+            <field name="sequence">30</field><field name="color">2</field>
+            <field name="is_delivery" eval="True"/>
+        </record>
+        <record id="purpose_payment" model="lab.visit.purpose">
+            <field name="name">Payment Collection</field><field name="code">payment</field>
+            <field name="sequence">40</field><field name="color">3</field>
+        </record>
+        <record id="purpose_complaint" model="lab.visit.purpose">
+            <field name="name">Complaint / Rework Pickup</field><field name="code">complaint</field>
+            <field name="sequence">50</field><field name="color">1</field>
+        </record>
+        <record id="purpose_new" model="lab.visit.purpose">
+            <field name="name">New Doctor Onboarding</field><field name="code">new</field>
+            <field name="sequence">60</field><field name="color">6</field>
+        </record>
+        <record id="purpose_marketing" model="lab.visit.purpose">
+            <field name="name">Marketing / Promotion</field><field name="code">marketing</field>
+            <field name="sequence">70</field><field name="color">5</field>
+        </record>
+
+        <!-- Outcomes -->
+        <record id="outcome_order" model="lab.visit.outcome">
+            <field name="name">Case(s) Collected</field><field name="code">order</field>
+            <field name="sequence">10</field><field name="color">10</field>
+        </record>
+        <!-- Cases coming back for correction; sits next to Case(s) Collected
+             because it is the same act at the counter. New xml id in a noupdate
+             block: created on upgrade, never rewritten. (client, 2026-09-08) -->
+        <record id="outcome_rework" model="lab.visit.outcome">
+            <field name="name">Rework(s) Collected</field><field name="code">rework</field>
+            <field name="sequence">15</field><field name="color">6</field>
+        </record>
+        <record id="outcome_delivered" model="lab.visit.outcome">
+            <field name="name">Delivered</field><field name="code">delivered</field>
+            <field name="sequence">20</field><field name="color">2</field>
+            <field name="is_delivery" eval="True"/>
+        </record>
+        <record id="outcome_partial_delivery" model="lab.visit.outcome">
+            <field name="name">Partially Delivered</field><field name="code">partial_delivery</field>
+            <field name="sequence">30</field><field name="color">2</field>
+            <field name="is_delivery" eval="True"/>
+        </record>
+        <record id="outcome_payment" model="lab.visit.outcome">
+            <field name="name">Payment Received</field><field name="code">payment</field>
+            <field name="sequence">40</field><field name="color">3</field>
+        </record>
+        <record id="outcome_followup" model="lab.visit.outcome">
+            <field name="name">Follow-up Needed / Rescheduled</field><field name="code">followup</field>
+            <field name="sequence">50</field><field name="color">5</field>
+        </record>
+        <record id="outcome_absent" model="lab.visit.outcome">
+            <field name="name">Doctor Not Available</field><field name="code">absent</field>
+            <field name="sequence">60</field><field name="color">1</field>
+        </record>
+        <record id="outcome_complaint" model="lab.visit.outcome">
+            <field name="name">Complaint Logged</field><field name="code">complaint</field>
+            <field name="sequence">70</field><field name="color">1</field>
+        </record>
+        <record id="outcome_none" model="lab.visit.outcome">
+            <field name="name">No Requirement Today</field><field name="code">none</field>
+            <field name="sequence">80</field><field name="color">0</field>
+        </record>
+    </data>
+</odoo>

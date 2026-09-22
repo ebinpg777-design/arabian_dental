@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+<t t-name="epg_whatsapp.Systray">
+    <div t-if="state.allowed" class="o_wa_systray o-dropdown dropdown">
+        <button class="o_wa_systray_btn" t-on-click="() => this.open()"
+                t-att-title="state.count ? state.count + ' WhatsApp messages to send' : 'WhatsApp Desk'">
+            <i class="fa fa-whatsapp" title="WhatsApp Desk"/>
+            <span t-if="state.count" class="o_wa_systray_badge badge rounded-pill" t-esc="state.count"/>
+        </button>
+    </div>
+</t>
+</templates>

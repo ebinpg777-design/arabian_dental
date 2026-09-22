@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_chat_import_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.chat.import.form</field>
+        <field name="model">epg.whatsapp.chat.import</field>
+        <field name="arch" type="xml">
+            <form string="Import a WhatsApp chat">
+                <div class="text-muted mb-3">
+                    In WhatsApp open the chat, then <b>⋮ ▸ More ▸ Export chat ▸ Without
+                    media</b> and save the text file. The contact's messages that Odoo does
+                    not have yet are added to their record; the file is attached to it.
+                </div>
+                <group>
+                    <group>
+                        <field name="partner_id" options="{'no_create': True}"/>
+                        <field name="file" filename="filename"/>
+                        <field name="filename" invisible="1"/>
+                    </group>
+                    <group>
+                        <field name="doctor_name" invisible="not file"/>
+                        <field name="include_ours" invisible="not file"/>
+                    </group>
+                </group>
+                <div class="alert alert-info py-2" role="status" invisible="not file">
+                    <b><field name="line_count" class="oe_inline"/></b> messages found.
+                    Names in the chat: <field name="senders" class="oe_inline" readonly="1"/>
+                </div>
+                <footer>
+                    <button name="action_import" type="object" string="Import" class="btn-primary"
+                            data-hotkey="q" invisible="not file"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_chat_import" model="ir.actions.act_window">
+        <field name="name">Import a WhatsApp chat</field>
+        <field name="res_model">epg.whatsapp.chat.import</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- From a contact: Action ▸ Import WhatsApp chat. -->
+    <record id="action_partner_chat_import" model="ir.actions.server">
+        <field name="name">Import WhatsApp chat</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">form</field>
+        <field name="group_ids" eval="[(4, ref('epg_whatsapp.group_whatsapp_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = {
+    'type': 'ir.actions.act_window', 'name': 'Import a WhatsApp chat',
+    'res_model': 'epg.whatsapp.chat.import', 'view_mode': 'form', 'target': 'new',
+    'context': {'default_partner_id': records[:1].id},
+}</field>
+    </record>
+</odoo>

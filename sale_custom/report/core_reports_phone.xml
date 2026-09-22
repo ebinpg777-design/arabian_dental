@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phone under the customer address on the CORE Quotation/Order and Invoice PDFs
+         (client, 2026-08-17). The lab's own Tax Invoice, Registration Ack and Delivery
+         Slip already print it; these are the stock documents (Send & Print, portal). -->
+    <template id="report_saleorder_document_phone" inherit_id="sale.report_saleorder_document">
+        <xpath expr="//div[@t-field='doc.partner_id']" position="attributes">
+            <attribute name="t-options">{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}</attribute>
+        </xpath>
+    </template>
+
+    <template id="report_invoice_document_phone" inherit_id="account.report_invoice_document">
+        <xpath expr="(//address[@t-field='o.partner_id'])[1]" position="attributes">
+            <attribute name="t-options">{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}</attribute>
+        </xpath>
+        <xpath expr="(//address[@t-field='o.partner_id'])[2]" position="attributes">
+            <attribute name="t-options">{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}</attribute>
+        </xpath>
+        <xpath expr="(//address[@t-field='o.partner_id'])[3]" position="attributes">
+            <attribute name="t-options">{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}</attribute>
+        </xpath>
+    </template>
+</odoo>

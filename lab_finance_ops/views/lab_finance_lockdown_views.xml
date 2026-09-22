@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Many2one create / create-edit / open control on the cheque register.
+
+        See lab_field_force/views/lab_junior_lockdown_views.xml for why these are
+        applied to everyone rather than per-group (v19 forbids group_ids on an inherited
+        view, and the in-arch groups expression cannot express "everyone except a plain
+        junior" once the senior role implies the junior one).
+
+        A cheque register user is a front-desk role. The bank, the journal the money
+        lands in and the clinic being credited are all master data: selecting the wrong
+        one is a mistake, but creating a new one from this form is a control failure -
+        it puts an unreviewed bank or journal into the ledger's master data as a side
+        effect of banking a cheque.
+    -->
+    <record id="view_lab_cheque_form_locked_m2o" model="ir.ui.view">
+        <field name="name">lab.cheque.form.m2o.lockdown</field>
+        <field name="model">lab.cheque</field>
+        <field name="inherit_id" ref="lab_finance_ops.view_lab_cheque_form"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="attributes">
+                <attribute name="options">{'no_create': True, 'no_quick_create': True, 'no_open': True}</attribute>
+            </field>
+            <field name="bank_id" position="attributes">
+                <attribute name="options">{'no_create': True, 'no_quick_create': True, 'no_open': True}</attribute>
+            </field>
+            <field name="journal_id" position="attributes">
+                <attribute name="options">{'no_create': True, 'no_open': True}</attribute>
+            </field>
+            <field name="collected_by_id" position="attributes">
+                <attribute name="options">{'no_create': True, 'no_open': True}</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

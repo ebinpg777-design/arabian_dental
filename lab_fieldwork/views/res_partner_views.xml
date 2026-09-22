@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_clinic" model="ir.ui.view">
+        <field name="name">res.partner.form.clinic</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!--
+                Every group is spelled out rather than relying on inheritance: the three
+                field roles are PARALLEL groups, so "executive" alone would hide these
+                from the manager who most wants them.
+            -->
+            <div name="button_box" position="inside">
+                <button name="action_view_visits" type="object" class="oe_stat_button"
+                        icon="fa-map-marker" 
+                        groups="lab_fieldwork.group_fieldwork_executive,lab_fieldwork.group_fieldwork_manager">
+                    <field name="visit_count" widget="statinfo" string="Visits"/>
+                </button>
+                <button name="action_view_cases" type="object" class="oe_stat_button"
+                        icon="fa-medkit" invisible="not is_clinic or case_count == 0"
+                        groups="lab_fieldwork.group_fieldwork_executive,lab_fieldwork.group_fieldwork_manager">
+                    <div class="o_stat_info">
+                        <field name="case_value" widget="monetary" class="o_stat_value"/>
+                        <span class="o_stat_text">Case Value</span>
+                    </div>
+                </button>
+                <button name="action_view_collections" type="object" class="oe_stat_button"
+                        icon="fa-money" invisible="not is_clinic or collected_total == 0"
+                        groups="lab_fieldwork.group_fieldwork_executive,lab_fieldwork.group_fieldwork_manager">
+                    <div class="o_stat_info">
+                        <field name="collected_total" widget="monetary" class="o_stat_value"/>
+                        <span class="o_stat_text">Collected</span>
+                    </div>
+                </button>
+                <button name="action_view_coverage" type="object" class="oe_stat_button"
+                        icon="fa-heartbeat" 
+                        groups="lab_fieldwork.group_fieldwork_manager">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Coverage</span>
+                    </div>
+                </button>
+            </div>
+            <field name="vat" position="after">
+                <field name="is_clinic" groups="lab_fieldwork.group_fieldwork_manager"/>
+                <field name="visit_radius_m" 
+                       groups="lab_fieldwork.group_fieldwork_admin"/>
+                <field name="is_geolocated" invisible="1"/>
+                <field name="case_count" invisible="1"/>
+                <field name="last_visit" readonly="1" 
+                       groups="lab_fieldwork.group_fieldwork_executive,lab_fieldwork.group_fieldwork_manager"/>
+                <field name="currency_id" invisible="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="action_clinics" model="ir.actions.act_window">
+        <field name="name">Clinics</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_clinic', '=', True), ('lab_on_my_route', '=', True)]</field>
+        <field name="context">{'default_is_clinic': True, 'default_is_company': True}</field>
+    </record>
+</odoo>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        The job card travels with the work, so it is the sheet a bench actually reads and
+        the sheet a station scans. It carries the code twice on purpose: a QR, because
+        that is what a phone camera reads reliably at arm's length and at an angle, and a
+        Code128, because a laser wedge scanner cannot read a QR at all. Both encode the
+        manufacturing reference, which is what the station board resolves first.
+
+        Two to a page, cut down the middle. (client, 2026-08-26)
+    -->
+    <template id="report_dental_jobcard">
+        <t t-call="web.html_container">
+            <!-- class="article" is load-bearing, not decoration: Odoo finds a report's
+                 body by looking for it, and without it the renderer serialises the raw
+                 nodes and skips the wrapper that carries <meta charset>. wkhtmltopdf
+                 then reads the UTF-8 as latin-1 and every separator prints as mojibake.
+                 external_layout would also supply it, but a job card is cut in half and
+                 has no room for a company letterhead. -->
+            <div class="article">
+            <div class="page">
+                <div>
+                    <t t-foreach="docs" t-as="o">
+                        <!-- inline-block rather than Bootstrap columns: two cards to a
+                             page, and never split across a page break. -->
+                        <div style="display:inline-block;width:49%;vertical-align:top;
+                                    box-sizing:border-box;padding:6px 10px;
+                                    page-break-inside:avoid;">
+                            <div class="oe_structure"/>
+
+                            <!-- Scan block. The number is printed large and in a mono
+                                 face underneath because every camera eventually fails —
+                                 a code nobody can read out loud is a job that stops. -->
+                            <!-- Laid out with inline blocks, not a table: the report
+                                 stylesheet draws a border on every table, so a table
+                                 used for layout prints a box the reader takes for part
+                                 of the design. -->
+                            <div style="overflow:hidden;margin-bottom:4px;">
+                                    <div style="float:left;width:92px;">
+                                        <div t-out="o.name"
+                                             t-options="{'widget': 'barcode', 'symbology': 'QR', 'width': 300, 'height': 300, 'img_style': 'width:92px;height:92px;'}"/>
+                                    </div>
+                                    <div style="margin-left:100px;">
+                                        <div style="font-family:monospace;font-size:19px;font-weight:bold;letter-spacing:.5px;"
+                                             t-out="o.name"/>
+                                        <div style="font-size:13px;color:#333;">
+                                            <t t-if="o.sale_id">
+                                                <span style="font-family:monospace;" t-out="o.sale_id.name"/>
+                                                <t t-if="o.sale_id.team_id">
+                                                    · <t t-out="o.sale_id.team_id.name"/>
+                                                </t>
+                                            </t>
+                                        </div>
+                                        <!-- Two things that change what the bench does
+                                             before it touches the job. -->
+                                        <div style="margin-top:3px;">
+                                            <span t-if="o.sale_id.priority == 'urgent'"
+                                                  style="background:#b00020;color:#fff;padding:1px 6px;font-weight:bold;font-size:11px;">URGENT</span>
+                                            <span t-if="o.sale_id.is_pending_work"
+                                                  style="background:#b45309;color:#fff;padding:1px 6px;font-weight:bold;font-size:11px;">CALL DOCTOR</span>
+                                            <span t-if="o.sale_id.is_rework"
+                                                  style="background:#333;color:#fff;padding:1px 6px;font-weight:bold;font-size:11px;">REWORK</span>
+                                        </div>
+                                    </div>
+                            </div>
+
+                            <h4 style="margin:2px 0 6px 0;">
+                                <strong>
+                                    <span t-field="o.product_id.code"/>
+                                    <span t-field="o.product_id.name"/>
+                                </strong>
+                            </h4>
+
+                            <div class="row" style="font-size:13px;">
+                                <div class="col-4">
+                                    <strong>Qty:</strong>
+                                    <span t-field="o.product_qty"/>
+                                    <span t-field="o.product_uom_id.name"/>
+                                </div>
+                                <div class="col-5">
+                                    <strong>Colour:</strong>
+                                    <span t-field="o.color_scheme"/>
+                                </div>
+                                <div class="col-3">
+                                    <strong>U/L:</strong>
+                                    <span t-field="o.ul"/>
+                                </div>
+                            </div>
+
+                            <div t-if="o.sale_id" style="font-size:13px;margin-top:4px;">
+                                <div>
+                                    <strong>Patient:</strong>
+                                    <span t-out="o.sale_id.patient"/>
+                                    <t t-if="o.sale_id.age"> · <t t-out="o.sale_id.age"/></t>
+                                </div>
+                                <div>
+                                    <strong>Customer:</strong>
+                                    <span t-out="o.sale_id.partner_id.name"/>
+                                </div>
+                            </div>
+
+                            <!-- Where this job still has to go. A card that names the
+                                 route is a card a bench can act on without asking, and
+                                 the ticks are how a floor keeps its place between
+                                 scans. -->
+                            <div t-if="o.workorder_ids" style="margin-top:6px;font-size:12px;">
+                                <strong>Route:</strong>
+                                <t t-foreach="o.workorder_ids.sorted(lambda w: (w.sequence, w.id))"
+                                   t-as="step">
+                                    <span style="display:inline-block;margin-right:8px;white-space:nowrap;">
+                                        <span t-if="step.state == 'done'">☑</span>
+                                        <span t-else="" style="display:inline-block;width:9px;height:9px;border:1px solid #999;"/>
+                                        <span t-out="step.workcenter_id.name"/>
+                                    </span>
+                                </t>
+                            </div>
+
+                            <!-- For laser wedge scanners, which cannot read the QR. -->
+                            <div style="margin-top:6px;">
+                                <div t-out="o.name"
+                                     t-options="{'widget': 'barcode', 'symbology': 'Code128', 'width': 600, 'height': 100, 'img_style': 'width:230px;height:38px;'}"/>
+                            </div>
+
+                            <div style="font-size:11px;color:#666;margin-top:4px;">
+                                Printed
+                                <span t-out="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y')"/>
+                                · scan either code at any station board to accept or hand on
+                            </div>
+
+                            <div style="border-bottom:1px dashed #999;margin-top:8px;"/>
+                            <div class="oe_structure"/>
+                        </div>
+                    </t>
+                </div>
+            </div>
+            </div>
+        </t>
+    </template>
+</odoo>

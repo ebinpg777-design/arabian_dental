@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Product template: HSN / GST taxable % / Appliance style -->
+    <record id="product_template_form_view_sale_custom" model="ir.ui.view">
+        <field name="name">product.template.form.sale.custom</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <field name="categ_id" position="after">
+                <field name="hsn_number"/>
+                <field name="taxable_percentage"/>
+                <field name="appliance_style"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Master data forms -->
+    <record id="view_product_colour_form" model="ir.ui.view">
+        <field name="name">product.colour.form</field>
+        <field name="model">product.colour</field>
+        <field name="arch" type="xml">
+            <form string="Colour">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <field name="active"/>
+                    </group>
+                    <notebook>
+                        <page string="Description">
+                            <field name="description"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_product_colour_list" model="ir.ui.view">
+        <field name="name">product.colour.list</field>
+        <field name="model">product.colour</field>
+        <field name="arch" type="xml">
+            <list string="Colour">
+                <field name="name"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_product_colour" model="ir.actions.act_window">
+        <field name="name">Colours</field>
+        <field name="res_model">product.colour</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_send_through_form" model="ir.ui.view">
+        <field name="name">send.through.form</field>
+        <field name="model">send.through</field>
+        <field name="arch" type="xml">
+            <form string="Send Through">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <field name="active"/>
+                    </group>
+                    <notebook>
+                        <page string="Description">
+                            <field name="description"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_send_through_list" model="ir.ui.view">
+        <field name="name">send.through.list</field>
+        <field name="model">send.through</field>
+        <field name="arch" type="xml">
+            <list string="Send Through">
+                <field name="name"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_send_through" model="ir.actions.act_window">
+        <field name="name">Send Through</field>
+        <field name="res_model">send.through</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_appliance_style_form" model="ir.ui.view">
+        <field name="name">product.appliance.style.form</field>
+        <field name="model">product.appliance.style</field>
+        <field name="arch" type="xml">
+            <form string="Appliance Style">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <field name="active"/>
+                    </group>
+                    <notebook>
+                        <page string="Description">
+                            <field name="description"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_appliance_style_list" model="ir.ui.view">
+        <field name="name">product.appliance.style.list</field>
+        <field name="model">product.appliance.style</field>
+        <field name="arch" type="xml">
+            <list string="Appliance Style">
+                <field name="name"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_appliance_style" model="ir.actions.act_window">
+        <field name="name">Appliance Styles</field>
+        <field name="res_model">product.appliance.style</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Configuration menus -->
+    <menuitem id="menu_dental_masters" name="Dental Masters"
+              parent="sale.menu_sale_config" sequence="50"/>
+    <menuitem id="menu_product_colour" parent="menu_dental_masters"
+              action="action_product_colour" sequence="1"/>
+    <menuitem id="menu_send_through" parent="menu_dental_masters"
+              action="action_send_through" sequence="2"/>
+    <menuitem id="menu_appliance_style" parent="menu_dental_masters"
+              action="action_appliance_style" sequence="3"/>
+</odoo>

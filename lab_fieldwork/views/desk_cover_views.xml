@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_desk_cover_list" model="ir.ui.view">
+        <field name="name">lab.desk.cover.list</field>
+        <field name="model">lab.desk.cover</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'running'"
+                  decoration-muted="state == 'over'">
+                <field name="desk"/>
+                <field name="manager_id"/>
+                <field name="delegate_id"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="reason" optional="show"/>
+                <field name="signed_count" string="Signed"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'running'"
+                       decoration-info="state == 'scheduled'"/>
+                <field name="company_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_desk_cover_form" model="ir.ui.view">
+        <field name="name">lab.desk.cover.form</field>
+        <field name="model">lab.desk.cover</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="desk" placeholder="Which desk"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="manager_id"/>
+                            <field name="delegate_id"/>
+                            <field name="reason" placeholder="Leave, travel, training…"/>
+                        </group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="state"/>
+                            <field name="signed_count"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <div class="text-muted">
+                        A cover grants no role. The stand-in can sign this desk on
+                        these dates and nothing else, and every signature carries
+                        their own name.
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_desk_cover_search" model="ir.ui.view">
+        <field name="name">lab.desk.cover.search</field>
+        <field name="model">lab.desk.cover</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="manager_id"/>
+                <field name="delegate_id"/>
+                <filter name="running" string="Running today"
+                        domain="[('state', '=', 'running')]"/>
+                <filter name="scheduled" string="Scheduled"
+                        domain="[('state', '=', 'scheduled')]"/>
+                <separator/>
+                <filter name="mine" string="Mine"
+                        domain="['|', ('manager_id', '=', uid),
+                                      ('delegate_id', '=', uid)]"/>
+                <group>
+                    <filter name="by_desk" string="Desk" context="{'group_by': 'desk'}"/>
+                    <filter name="by_delegate" string="Covered By"
+                            context="{'group_by': 'delegate_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_desk_cover" model="ir.actions.act_window">
+        <field name="name">Desk Cover</field>
+        <field name="res_model">lab.desk.cover</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_running': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Arrange cover for a desk</p>
+            <p>There is one Operational Manager and one Marketing Manager. The day
+               either is away, every day sheet stops where it stands. Name a
+               stand-in for those dates and the queue keeps moving.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_fw_desk_cover" name="Desk Cover"
+              parent="menu_fw_approvals" sequence="50"
+              action="action_desk_cover"
+              groups="lab_fieldwork.group_fieldwork_ops_manager,lab_fieldwork.group_fieldwork_marketing_manager,lab_fieldwork.group_fieldwork_admin"/>
+
+</odoo>

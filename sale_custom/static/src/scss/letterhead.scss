@@ -1,0 +1,50 @@
+// Shared letterhead (header card + footer bar) for the lab's reports.
+//
+// Odoo pads every report header by 11 mm (.o_body_pdf.o_css_margins .header). Our header
+// is a card that already carries its own padding, and the 11 mm pushed it out of the
+// header band and over the top of the page body - so it is cancelled here, for OUR header
+// only (the class is set in report_layout.xml); standard Odoo reports keep their padding.
+.o_body_html .header.lab-header,
+.o_body_pdf.o_css_margins .header.lab-header { padding-top: 0; margin-top: 0; }
+
+$oc-navy: #1f3a5f;
+$oc-card: #eef3f7;
+$oc-muted: #4d5c6b;
+$oc-line: #dde3e9;
+
+// wkhtmltopdf paints Bootstrap's `border-style: solid; border-width: 0` (reboot leaves it
+// on rows and table sections) as a real hairline, which drew a box around the letterhead
+// and the footer bar. Clear the style itself — clearing the width is not enough.
+.lab-letterhead, .lab-footerbar, .lab-header {
+    table, thead, tbody, tfoot, tr, th, td { border-style: none; border-width: 0; }
+}
+
+.lab-letterhead {
+    border: none;
+    font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: $oc-card;
+    border-radius: 6px;
+    padding: 12px 16px 10px;
+    color: #263238;
+
+    .oc-logo { max-height: 72px; }
+    .oc-cert { max-height: 58px; }
+    .oc-addr { font-size: 10.5pt; line-height: 1.3; font-weight: 700; margin-top: 6px; }
+    .oc-ids { font-size: 9.4pt; color: $oc-muted; letter-spacing: .2px; margin-top: 2px; }
+}
+
+// the navy rule that closes the letterhead off from the document body
+.lab-rule { border-bottom: 2px solid $oc-navy; margin: 10px 0 12px; }
+
+.lab-footerbar {
+    font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 7.2pt;
+    color: $oc-muted;
+    border-top: 1px solid $oc-navy;
+    padding-top: 2px;
+
+    .oc-foot-strong { color: $oc-navy; font-weight: 700; }
+    // Two tight lines, so the band takes only the millimetres it needs and the
+    // body keeps the rest of the page. (client, 2026-09-16)
+    td { border: none; padding: 0; line-height: 1.15; }
+}

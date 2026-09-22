@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- One sticker. `sticker` = engine dict (carries its own fit `scale`),
+         `layout` = engine.layout_vars(format).
+
+         Structure is a two-row table of fixed height: everything readable in the top
+         cell, the code pinned to the bottom cell. Nothing is absolutely positioned, so a
+         long address can push the text but can never print on top of the barcode. -->
+    <template id="sticker_body">
+        <t t-set="f" t-value="sticker.get('fit') or layout"/>
+        <t t-set="is_qr" t-value="sticker.get('barcode_type') == 'qr'"/>
+        <div class="epg-sticker"
+             t-attf-style="width:{{f['width']}}mm;height:{{f['height']}}mm;padding:{{f.get('vmargin', f['margin'])}}mm {{f.get('right_pad', f['margin'])}}mm {{f.get('vmargin', f['margin'])}}mm {{f['margin'] + f['lead']}}mm;box-sizing:border-box;overflow:hidden;font-family:'Liberation Sans',Helvetica,Arial,sans-serif;line-height:1.2;color:#000;word-wrap:break-word;overflow-wrap:break-word;">
+            <table t-attf-style="border-collapse:collapse;table-layout:fixed;height:100%;width:{{f['inner_w'] + f['code_gap'] + f['code']}}mm;">
+                <colgroup>
+                    <col t-attf-style="width:{{f['inner_w']}}mm;"/>
+                    <col t-if="f['code']" t-attf-style="width:{{f['code_gap'] + f['code']}}mm;"/>
+                </colgroup>
+                <tr>
+                    <!-- LEFT: everything readable, full height -->
+                    <td t-attf-style="border:none;padding:0;vertical-align:top;width:{{f['inner_w']}}mm;overflow:hidden;">
+
+                        <!-- what this label is -->
+                        <div t-attf-style="height:{{f['head']}}mm;overflow:hidden;font-size:{{f['small']}}pt;color:#555;text-transform:uppercase;letter-spacing:.3px;line-height:1.1;">
+                            <span t-out="sticker['title']"/>
+                            <!-- says out loud that this one leaves the clinic's route -->
+                            <b t-if="sticker.get('to_patient')"> | TO PATIENT</b>
+                            <t t-if="sticker['count'] > 1"> · <t t-out="sticker['count']"/> orders</t>
+                            <span t-if="sticker.get('priority')" t-attf-style="float:right;font-weight:bold;color:#fff;background:#c0392b;padding:0 1.2mm;"><t t-out="sticker['priority']"/></span>
+                            <span t-if="sticker['sender'] and not sticker.get('priority')" style="float:right;">From: <t t-out="sticker['sender']"/></span>
+                        </div>
+
+                        <!-- name + address: the address flows as one paragraph -->
+                        <div t-attf-style="height:{{f['body']}}mm;overflow:hidden;">
+                            <div t-attf-style="font-size:{{f['name']}}pt;font-weight:bold;line-height:1.08;" t-out="sticker['name']"/>
+                            <div t-attf-style="font-size:{{f['address']}}pt;line-height:1.12;" t-out="', '.join(sticker['address'])"/>
+                        </div>
+
+                        <!-- who / what: inline, wrapping only when the line is full -->
+                        <div t-attf-style="height:{{f['meta_h']}}mm;overflow:hidden;font-size:{{f['meta']}}pt;line-height:1.15;">
+                            <div t-if="sticker['phone'] or sticker['route'] or sticker['patient']">
+                                <span t-if="sticker['phone']"><b>Ph</b> <t t-out="sticker['phone']"/></span>
+                                <span t-if="sticker['phone'] and (sticker['route'] or sticker['patient'])"> | </span>
+                                <span t-if="sticker['route']"><b>Route</b> <t t-out="sticker['route']"/></span>
+                                <span t-if="sticker['route'] and sticker['patient']"> | </span>
+                                <span t-if="sticker['patient'] and not sticker.get('to_patient')"><b>Patient</b> <t t-out="sticker['patient']"/></span>
+                                <span t-if="sticker.get('clinic')"><b>From clinic</b> <t t-out="sticker['clinic']"/></span>
+                            </div>
+                            <div t-if="sticker['lines']">
+                                <t t-foreach="sticker['lines']" t-as="l">
+                                    <t t-if="not l_first"> | </t>
+                                    <t t-out="l['product']"/><b t-if="l['ul']"> [<t t-out="l['ul']"/>]</b><t t-if="l['colour']"> <t t-out="l['colour']"/></t><b t-if="l['qty']"> x<t t-out="l['qty']"/></b>
+                                </t>
+                                <span t-if="sticker['more']"> + <t t-out="sticker['more']"/> more</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- RIGHT: the code, turned on its side down the edge -->
+                    <td t-if="f['code']" t-attf-style="border:none;padding:0 0 0 {{f['code_gap']}}mm;width:{{f['code'] + f['code_gap']}}mm;vertical-align:middle;text-align:center;overflow:hidden;">
+                        <t t-if="sticker['barcode'] and not is_qr">
+                            <!-- A wide barcode rotated 90°: drawn at (length × strip width), then turned. The
+                                 wrapper is the rotated box's footprint so the cell keeps its width. -->
+                            <div t-attf-style="position:relative;width:{{f['code']}}mm;height:{{f['barcode_len']}}mm;margin:0 auto;">
+                                <img t-att-src="sticker['barcode']"
+                                     t-attf-style="position:absolute;left:0;top:0;width:{{f['barcode_len']}}mm;height:{{f['code']}}mm;transform:rotate(90deg) translateY(-100%);transform-origin:top left;-webkit-transform:rotate(90deg) translateY(-100%);-webkit-transform-origin:top left;"/>
+                            </div>
+                        </t>
+                        <t t-if="sticker['barcode'] and is_qr">
+                            <img t-att-src="sticker['barcode']" t-attf-style="width:{{f['code']}}mm;height:{{f['code']}}mm;"/>
+                        </t>
+                        <div t-if="sticker['refs'] and not sticker['barcode']" t-attf-style="font-size:{{f['small']}}pt;line-height:1.05;"><t t-out="sticker['refs']"/></div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </template>
+
+    <!-- Wizard preview: the first sticker at label size, framed. -->
+    <template id="sticker_preview">
+        <div class="epg-sticker-preview" style="display:inline-block;border:1px dashed #999;background:#fff;">
+            <t t-call="epg_sticker_print.sticker_body"/>
+        </div>
+        <div class="text-muted small mt-1">Preview of sticker 1 of <t t-out="total"/></div>
+    </template>
+
+    <!-- The PDF: rolls = one label per page; sheets = a fixed grid, one page per N labels. -->
+    <template id="report_sticker">
+        <t t-call="web.html_container">
+            <!-- The label IS the page: the stock wrappers (body / #wrapwrap / main) carry
+                 ~2 mm of margins and whitespace line boxes, which pushed every roll label
+                 onto a blank second page (2026-08-20). Zero them; every element inside
+                 the sticker sets its own font-size and line-height inline. -->
+            <style>
+                html, body, #wrapwrap, main { margin: 0 !important; padding: 0 !important;
+                    font-size: 0; line-height: 0; }
+                .epg-sticker { page-break-inside: avoid; }
+            </style>
+            <t t-foreach="pages" t-as="page">
+                <div class="page" t-attf-style="{{'page-break-after:always;' if not page_last else ''}}margin:0;padding:0;">
+                    <t t-if="layout['per_page'] == 1">
+                        <t t-foreach="page" t-as="sticker"><t t-call="epg_sticker_print.sticker_body"/></t>
+                    </t>
+                    <t t-else="">
+                        <table t-attf-style="border-collapse:collapse;width:{{layout['width']*layout['columns'] + layout['gap']*(layout['columns']-1)}}mm;">
+                            <tr t-foreach="[page[i:i+layout['columns']] for i in range(0, len(page), layout['columns'])]" t-as="row">
+                                <td t-foreach="row" t-as="sticker" t-attf-style="border:none;padding:0;{{'padding-right:%smm;' % layout['gap'] if layout['gap'] else ''}}vertical-align:top;">
+                                    <t t-call="epg_sticker_print.sticker_body"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

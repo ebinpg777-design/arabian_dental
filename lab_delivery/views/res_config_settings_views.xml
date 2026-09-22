@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The delivery settings had fields but no screen: every one of them was only
+         ever its default. This gives them one, and adds the receipt reader's key —
+         which is the reason the screen finally had to exist. (client, 2026-08-28) -->
+    <record id="res_config_settings_view_form_lab_delivery" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.lab.delivery</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="60"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Lab Delivery" string="Lab Delivery"
+                     name="lab_delivery"
+                     groups="lab_fieldwork.group_fieldwork_manager">
+                    <block title="Courier receipts" name="lab_courier_receipt_block">
+                        <setting id="lab_vision_setting"
+                                 string="Read the consignment number off the receipt"
+                                 help="Photograph the courier's booking receipt and the consignment number, courier and booking date are read from it. Barcodes are always read in the browser at no cost; with a key, the printed text is read too.">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="lab_vision_api_key" class="col-lg-4 o_light_label"/>
+                                    <field name="lab_vision_api_key" password="True"
+                                           placeholder="sk-ant-…"/>
+                                </div>
+                                <div class="row mt-1">
+                                    <label for="lab_vision_model" class="col-lg-4 o_light_label"/>
+                                    <field name="lab_vision_model"/>
+                                </div>
+                                <div class="text-muted mt-1">
+                                    <field name="lab_vision_enabled" invisible="1"/>
+                                    <span invisible="lab_vision_enabled">
+                                        Not set: receipts are read by barcode only.
+                                    </span>
+                                    <span invisible="not lab_vision_enabled">
+                                        Set: receipts are read by barcode and by text.
+                                    </span>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Deliveries" name="lab_delivery_block">
+                        <setting id="lab_grace_setting" string="Delivery grace"
+                                 help="How long past the promised time before a delivery counts as delayed.">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="lab_delivery_grace_minutes" class="col-lg-6 o_light_label"/>
+                                    <field name="lab_delivery_grace_minutes" class="col-lg-3"/>
+                                </div>
+                                <div class="row mt-1">
+                                    <label for="lab_emergency_grace_minutes" class="col-lg-6 o_light_label"/>
+                                    <field name="lab_emergency_grace_minutes" class="col-lg-3"/>
+                                </div>
+                                <div class="row mt-1">
+                                    <label for="lab_escalation_after_hours" class="col-lg-6 o_light_label"/>
+                                    <field name="lab_escalation_after_hours" class="col-lg-3"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting id="lab_stale_setting" string="Chase stalled consignments"
+                                 help="A courier parcel with no tracking movement for this many days is flagged and the managers are told.">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="lab_courier_stale_days" class="col-lg-6 o_light_label"/>
+                                    <field name="lab_courier_stale_days" class="col-lg-3"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

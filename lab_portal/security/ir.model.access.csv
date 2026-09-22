@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_case_request_checker,case request office,model_lab_case_request,lab_order_control.group_lab_order_checker,1,1,1,0
+access_case_request_mgr,case request manager,model_lab_case_request,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_case_request_line_checker,case request line office,model_lab_case_request_line,lab_order_control.group_lab_order_checker,1,1,1,1
+access_case_request_line_mgr,case request line manager,model_lab_case_request_line,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_case_request_portal,case request own,model_lab_case_request,base.group_portal,1,0,0,0
+access_case_request_line_portal,case request line own,model_lab_case_request_line,base.group_portal,1,0,0,0

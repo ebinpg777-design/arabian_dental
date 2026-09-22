@@ -1,0 +1,258 @@
+<odoo>
+    <!-- ─── LIST VIEW ────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_expense_list" model="ir.ui.view">
+        <field name="name">petty.cash.expense.list</field>
+        <field name="model">petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state in ('bill_created', 'paid')"
+                  decoration-warning="state in ('submitted', 'approved')"
+                  decoration-muted="state in ('cancelled', 'rejected')">
+                <field name="name"/>
+                <field name="allocation_id"/>
+                <field name="petty_cash_partner_id"/>
+                <field name="partner_id"/>
+                <field name="total_amount" sum="Total"/>
+                <field name="submission_date" string="Submitted On" optional="show"/>
+                <field name="move_state" widget="badge" optional="show"
+                       decoration-info="move_state == 'draft'"
+                       decoration-success="move_state == 'posted'"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state in ('submitted', 'approved')"
+                       decoration-success="state in ('bill_created', 'paid')"
+                       decoration-danger="state == 'rejected'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ─── PIVOT ────────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_expense_pivot" model="ir.ui.view">
+        <field name="name">petty.cash.expense.pivot</field>
+        <field name="model">petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <pivot string="Petty Cash Expense Analysis">
+                <field name="petty_cash_partner_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="total_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ─── GRAPH ────────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_expense_graph" model="ir.ui.view">
+        <field name="name">petty.cash.expense.graph</field>
+        <field name="model">petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <graph string="Petty Cash Expenses" type="bar">
+                <field name="petty_cash_partner_id"/>
+                <field name="total_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ─── FORM VIEW ────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_expense_form" model="ir.ui.view">
+        <field name="name">petty.cash.expense.form</field>
+        <field name="model">petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" string="Submit" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_approve" string="Approve" type="object"
+                            class="oe_highlight"
+                            groups="petty_cash.group_petty_cash_manager"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_register_cash_spend" string="Post Petty Cash Spend"
+                            type="object" class="oe_highlight"
+                            groups="petty_cash.group_petty_cash_manager"
+                            invisible="state not in ('approved', 'bill_created')"/>
+                    <button name="action_create_bill" string="Create Vendor Bill" type="object"
+                            groups="petty_cash.group_petty_cash_manager"
+                            invisible="state != 'approved'"/>
+                    <button name="action_reject" string="Reject" type="object"
+                            groups="petty_cash.group_petty_cash_manager"
+                            invisible="state not in ('submitted', 'approved')"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state in ('paid', 'cancelled', 'rejected')"/>
+                    <button name="action_reset_to_draft" string="Reset to Draft" type="object"
+                            invisible="state not in ('cancelled', 'rejected', 'approved')"
+                            groups="petty_cash.group_petty_cash_officer"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,approved,bill_created,paid"/>
+                </header>
+                <sheet>
+                    <!-- Smart buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_bill" string="Bill" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="not move_id"
+                                groups="petty_cash.group_petty_cash_manager"/>
+                        <button name="action_view_payment" string="Payment" type="object"
+                                class="oe_stat_button" icon="fa-money"
+                                invisible="not payment_id"
+                                groups="petty_cash.group_petty_cash_manager"/>
+                        <button name="action_view_transaction" string="Transaction" type="object"
+                                class="oe_stat_button" icon="fa-exchange"
+                                invisible="not transaction_id"/>
+                    </div>
+
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+
+                    <!-- ── Available balance banner ── -->
+                    <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3"
+                         invisible="state != 'draft' or not allocation_id">
+                        <i class="fa fa-info-circle fa-lg text-primary"/>
+                        <span>
+                            Available balance from allocation:
+                            <strong><field name="balance_available" widget="monetary" readonly="1" nolabel="1"/></strong>
+                        </span>
+                    </div>
+
+                    <!-- ── Warning when total exceeds balance ── -->
+                    <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-3"
+                         invisible="total_amount == 0 or balance_available == 0 or total_amount &lt;= balance_available or state != 'draft'">
+                        <i class="fa fa-exclamation-triangle fa-lg"/>
+                        <span>Expense total exceeds the available allocation balance.</span>
+                    </div>
+
+                    <!-- ── Duplicate suspect banner ── -->
+                    <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3"
+                         invisible="not is_duplicate_suspect"
+                         groups="petty_cash.group_petty_cash_officer">
+                        <i class="fa fa-clone fa-lg mt-1" title="Possible duplicate"/>
+                        <div>
+                            <strong>Possible duplicate receipt detected.</strong><br/>
+                            <field name="duplicate_warning" readonly="1" nolabel="1"/>
+                        </div>
+                    </div>
+
+                    <!-- ── Category budget warning banner ── -->
+                    <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-3"
+                         invisible="not category_budget_warning"
+                         groups="petty_cash.group_petty_cash_officer">
+                        <i class="fa fa-exclamation-circle fa-lg mt-1" title="Budget warning"/>
+                        <div>
+                            <strong>Category budget warning.</strong><br/>
+                            <field name="category_budget_warning" readonly="1" nolabel="1"/>
+                        </div>
+                    </div>
+
+                    <!-- ── Main fields ── -->
+                    <group>
+                        <group string="Allocation">
+                            <field name="allocation_id" readonly="state != 'draft'"/>
+                            <field name="petty_cash_partner_id" readonly="1"/>
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="balance_available" invisible="1"/>
+                            <field name="is_duplicate_suspect" invisible="1"/>
+                            <field name="duplicate_warning" invisible="1"/>
+                            <field name="category_budget_warning" invisible="1"/>
+                        </group>
+                        <group string="Summary">
+                            <field name="total_amount" readonly="1"/>
+                            <field name="submission_date" readonly="1"
+                                   invisible="not submission_date"/>
+                            <field name="move_id" readonly="1"
+                                   groups="petty_cash.group_petty_cash_manager"/>
+                            <field name="move_state" widget="badge" readonly="1"
+                                   decoration-info="move_state == 'draft'"
+                                   decoration-success="move_state == 'posted'"/>
+                            <field name="payment_id" readonly="1"
+                                   groups="petty_cash.group_petty_cash_manager"/>
+                            <field name="transaction_id" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <!-- ── Expense lines ── -->
+                    <notebook>
+                        <page string="Expense Lines" name="lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="product_id"
+                                           options="{'no_create': True, 'no_create_edit': True}"/>
+                                    <field name="name"/>
+                                    <field name="account_id"
+                                           options="{'no_create': True, 'no_create_edit': True}"
+                                           groups="petty_cash.group_petty_cash_manager"/>
+                                    <field name="currency_id" groups="base.group_multi_currency"/>
+                                    <field name="amount" sum="Total"/>
+                                </list>
+                            </field>
+                            <div class="d-flex justify-content-end mt-2 pe-2">
+                                <span class="text-muted me-2 align-self-center">Total:</span>
+                                <strong class="h5 mb-0 text-primary">
+                                    <field name="total_amount" widget="monetary" readonly="1" nolabel="1"/>
+                                </strong>
+                            </div>
+                            <separator string="Attachments"/>
+                            <field name="attachment_ids" widget="many2many_binary"/>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="note" placeholder="Internal notes…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ─── SEARCH ───────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_expense_search" model="ir.ui.view">
+        <field name="name">petty.cash.expense.search</field>
+        <field name="model">petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="allocation_id"/>
+                <field name="petty_cash_partner_id"/>
+                <field name="partner_id"/>
+                <filter string="My Expenses" name="my_expenses"
+                        domain="[('petty_cash_partner_id.user_ids', 'in', [uid])]"/>
+                <separator/>
+                <filter string="To Approve" name="to_approve"
+                        domain="[('state', '=', 'submitted')]"/>
+                <filter string="Approved" name="approved"
+                        domain="[('state', '=', 'approved')]"/>
+                <filter string="Paid" name="paid"
+                        domain="[('state', '=', 'paid')]"/>
+                <group name="group_by">
+                    <filter string="Cash Holder" name="group_holder"
+                            context="{'group_by': 'petty_cash_partner_id'}"/>
+                    <filter string="Vendor" name="group_vendor"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter string="State" name="group_state"
+                            context="{'group_by': 'state'}"/>
+                    <filter string="Month" name="group_month"
+                            context="{'group_by': 'create_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ─── ACTIONS ──────────────────────────────────────────────────────────── -->
+    <record id="action_petty_cash_expense" model="ir.actions.act_window">
+        <field name="name">Expenses</field>
+        <field name="res_model">petty.cash.expense</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="action_petty_cash_expense_approval" model="ir.actions.act_window">
+        <field name="name">Expense Approvals</field>
+        <field name="res_model">petty.cash.expense</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="domain">[('state', '=', 'submitted')]</field>
+    </record>
+
+    <record id="action_petty_cash_reports" model="ir.actions.act_window">
+        <field name="name">Petty Cash Reports</field>
+        <field name="res_model">petty.cash.expense</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_group_holder': 1}</field>
+    </record>
+</odoo>

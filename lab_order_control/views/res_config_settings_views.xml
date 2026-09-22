@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_order_control" model="ir.ui.view">
+        <field name="name">res.config.settings.form.order.control</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@name='integration']" position="after">
+                <block title="Order Control" name="lab_order_control_setting_container"
+                       groups="lab_access_control.group_lab_config_manager">
+                    <setting id="lab_order_verification_setting"
+                             string="Maker / Checker Verification"
+                             help="A registered case must be verified by a second person before it can be confirmed.">
+                        <field name="lab_require_order_verification"/>
+                        <div class="mt-2" invisible="not lab_require_order_verification">
+                            <field name="lab_allow_self_verification" class="me-2"/>
+                            <label for="lab_allow_self_verification"/>
+                        </div>
+                        <div class="mt-2" invisible="not lab_require_order_verification">
+                            <label for="lab_verification_maker_group_ids"
+                                   string="Check orders entered by"/>
+                            <field name="lab_verification_maker_group_ids"
+                                   widget="many2many_tags" class="o_light_label"
+                                   options="{'no_create': True}"/>
+                            <div class="text-muted">
+                                Only orders entered by these roles are held for
+                                checking. Empty means every order is checked.
+                            </div>
+                        </div>
+                    </setting>
+                    <setting id="lab_pending_info_setting"
+                             string="Pending Information"
+                             help="When an unanswered doctor query parks an order, and when managers hear about it.">
+                        <div class="content-group mt-2">
+                            <label for="lab_doctor_call_attempts_before_hold"
+                                   class="o_light_label"/>
+                            <field name="lab_doctor_call_attempts_before_hold"
+                                   class="oe_inline"/>
+                        </div>
+                        <div class="content-group mt-2">
+                            <label for="lab_hold_warning_days" class="o_light_label"/>
+                            <field name="lab_hold_warning_days" class="oe_inline"/>
+                        </div>
+                    </setting>
+                    <setting id="lab_credit_limit_setting"
+                             string="Credit Limit"
+                             help="Default action when confirming an order would take a clinic past its credit limit. Override per clinic on the contact.">
+                        <div class="content-group mt-2">
+                            <field name="lab_credit_limit_policy" class="o_light_label"/>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,655 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.Station">
+    <div class="o_st o_action">
+        <div class="o_st_bar">
+            <!-- WHICH BENCH THIS IS, said the way the floor says it: the bench's
+                 own colour and initials, its name, and the code printed on it.
+                 The whole block is the control that changes station - a name in
+                 a dropdown was not enough to pick between four Wire Bending
+                 benches on a shared terminal. (client, 2026-09-10) -->
+            <div class="o_st_who" t-attf-style="--bench-hue: {{ stationHue }}">
+                <button class="o_st_id" t-att-disabled="!state.data"
+                        t-on-click="() => this.openStationPicker()"
+                        title="Change station">
+                    <span t-if="state.data and state.data.workcenter" class="o_st_id_chip"
+                          t-esc="stationInitials(state.data.workcenter.name)"/>
+                    <span t-else="" class="o_st_id_chip o_st_id_chip_none">
+                        <i class="fa fa-question" title="No station"/>
+                    </span>
+                    <span class="o_st_id_body">
+                        <span class="o_st_eyebrow">
+                            Station
+                            <span t-if="state.seen" class="o_st_seen">· updated <t t-esc="state.seen"/></span>
+                        </span>
+                        <span class="o_st_name">
+                            <t t-if="state.data and state.data.workcenter">
+                                <t t-esc="state.data.workcenter.name"/>
+                            </t>
+                            <t t-else="">Choose your station</t>
+                        </span>
+                        <span t-if="state.data and state.data.workcenter and state.data.workcenter.code"
+                              class="o_st_id_code" t-esc="state.data.workcenter.code"/>
+                    </span>
+                    <i class="fa fa-exchange o_st_id_swap" title="Change station"/>
+                </button>
+            </div>
+            <!-- The picker exists for shared terminals and for a head who runs two
+                 benches. Somebody who runs one lands on it without touching this. -->
+            <div t-if="state.data and state.data.workcenter" class="o_st_scanwrap">
+                <button class="o_st_scan" t-on-click="() => this.scanJob()">
+                    <i t-att-class="canScan ? 'fa fa-qrcode' : 'fa fa-keyboard-o'"
+                       title="Scan a job card"/>
+                    <span>Scan a job</span>
+                </button>
+                <!-- Clearing a tray is twenty scans in a row; re-opening the camera
+                     between each one is most of the time it takes. -->
+                <button t-if="canScan" class="o_st_scan o_st_scan_many"
+                        t-on-click="() => this.scanJob(true)"
+                        title="Keep the camera open and scan one after another">
+                    <i class="fa fa-clone" title="Scan many"/>
+                    <span>Scan many</span>
+                </button>
+                <!-- Typed instead of scanned: a torn label, a card left behind, a
+                     laptop with no camera. Same server rule as a scan. (client, 2026-08-29) -->
+                <div class="o_st_type" role="search">
+                    <i class="fa fa-keyboard-o" title="Type a job number"/>
+                    <input type="text" class="o_st_type_in" t-ref="typed"
+                           t-model="state.typed"
+                           t-on-keydown="onTypedKeydown"
+                           placeholder="MO or SO number"
+                           autocomplete="off" autocapitalize="characters"
+                           spellcheck="false" enterkeyhint="go"
+                           t-att-disabled="state.busy ? 'disabled' : undefined"/>
+                    <button class="o_st_type_go" t-on-click="() => this.typeJob()"
+                            t-att-disabled="!state.typed.trim() or state.busy">
+                        Go
+                    </button>
+                    <!-- The three things done to a TYPED or scanned number, grouped
+                         so they can be a row of proper targets on a phone instead of
+                         three 25px pills crammed beside the field. (client, 2026-09-12) -->
+                    <div class="o_st_type_acts">
+                    <!-- The same number, asked about rather than acted on: which
+                         bench has it right now. Reads, never moves.
+                         (client, 2026-09-09) -->
+                    <button class="o_st_type_find" t-on-click="() => this.findJob()"
+                            t-att-disabled="state.busy"
+                            title="Where is this job right now?">
+                        <i class="fa fa-search me-1" title="Find"/>Where?
+                    </button>
+                    <!-- The wrong name tapped at a hand-over, or a card scanned
+                         twice. Correcting it used to mean doing something else
+                         over again. (client, 2026-09-12) -->
+                    <button class="o_st_type_find o_st_type_fix"
+                            t-on-click="() => this.changeByScan()"
+                            t-att-disabled="state.busy"
+                            title="Scan a job card to correct its technician, finisher or status">
+                        <i class="fa fa-pencil me-1" title="Correct"/>Correct
+                    </button>
+                    <!-- A job that does not belong at this bench: cancel its step
+                         here and the case carries on to its next bench. Only
+                         finds the job; the dialog asks why. (client, 2026-09-14) -->
+                    <button class="o_st_type_find o_st_type_cancel"
+                            t-on-click="() => this.cancelByScan()"
+                            t-att-disabled="state.busy"
+                            title="Scan a job card to cancel its step at this bench">
+                        <i class="fa fa-ban me-1" title="Cancel step"/>Cancel
+                    </button>
+                    <!-- Scanned rather than found in a column: the case being
+                         started again is the one in the operator's hand, and it
+                         may be sitting nine hundredth in the queue. The scan only
+                         finds it - the dialog still asks why. (client, 2026-09-12) -->
+                    <button class="o_st_type_find o_st_type_redo"
+                            t-on-click="() => this.restartByScan()"
+                            t-att-disabled="state.busy"
+                            title="Scan a job card to start that case again">
+                        <i class="fa fa-refresh me-1" title="Start again"/>Start again
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Wears the bench's own colour, so the control that changes station
+                 is visibly the same thing as the chip on the left that names it -
+                 and is not one more grey outline among the scan controls.
+                 (client, 2026-09-10) -->
+            <button t-if="state.data and state.data.stations.length > 1"
+                    class="o_st_pick" t-attf-style="--bench-hue: {{ stationHue }}"
+                    t-on-click="() => this.openStationPicker()">
+                <i class="fa fa-exchange me-1" title="Change station"/>
+                <t t-if="state.data.workcenter">Change station</t>
+                <t t-else="">Choose a station</t>
+                <span class="o_st_pick_n"><t t-esc="state.data.stations.length"/></span>
+            </button>
+        </div>
+
+        <div t-if="state.loading" class="text-center text-muted py-5">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+
+        <t t-elif="!state.data.workcenter">
+            <div class="o_st_empty">
+                <t t-if="state.data.unassigned">
+                    <i class="fa fa-lock fa-2x mb-2" title="Not assigned"/>
+                    <div>You are not assigned to a work centre.</div>
+                    <div class="small">Ask an administrator to add you to one as a
+                        department head or a technician.</div>
+                </t>
+                <!-- Not "pick it above": the choice itself, laid out. A terminal
+                     at a bench opens here every morning, and the first thing it
+                     asks is the one thing it cannot guess. (client, 2026-09-10) -->
+                <t t-else="">
+                    <div class="o_st_empty_h">Which station are you at?</div>
+                    <div class="small mb-3">You are posted to more than one, so the
+                        board cannot choose for you. It remembers nothing - pick the
+                        bench you are standing at.</div>
+                    <div class="o_st_pick_grid">
+                        <button t-foreach="state.data.stations" t-as="s" t-key="s.id"
+                                class="o_st_pick_card"
+                                t-attf-style="--bench-hue: {{ (s.id * 47) % 360 }}"
+                                t-on-click="() => this.goToStation(s.id)">
+                            <!-- HEADER: the bench's colour, its initials and its NAME, which is
+                                 what somebody standing at it recognises. Everything else -
+                                 the code printed on the frame, and where the work is - sits on
+                                 the row beneath, so a long name never has to fight a number for
+                                 the same line. (client, 2026-09-10) -->
+                            <span class="o_st_pick_head">
+                                <span class="o_st_pick_chip" t-esc="stationInitials(s.name)"/>
+                                <span class="o_st_pick_name" t-esc="s.name"/>
+                                <i t-if="false" class="fa fa-check o_st_pick_tick"
+                                   title="You are here"/>
+                            </span>
+                            <span class="o_st_pick_foot">
+                                <span t-if="s.code" class="o_st_pick_code" t-esc="s.code"/>
+                                <span t-if="s.is_lead" class="o_st_pick_lead">
+                                    <i class="fa fa-star" title="You lead this bench"/>
+                                </span>
+                                <!-- Where the work at this bench actually is, for the day being
+                                     read: waiting to be taken, on the bench, passed on. -->
+                                <span class="o_st_pick_counts">
+                                    <span class="o_st_pick_c o_st_pick_c_wait" title="Waiting to be taken">
+                                        <span class="o_st_pick_qn" t-esc="s.waiting"/>
+                                        <span class="o_st_pick_ql">waiting</span>
+                                    </span>
+                                    <span class="o_st_pick_c o_st_pick_c_bench" title="On the bench: accepted, not passed on">
+                                        <span class="o_st_pick_qn" t-esc="s.bench"/>
+                                        <span class="o_st_pick_ql">on bench</span>
+                                    </span>
+                                    <span class="o_st_pick_c o_st_pick_c_done" t-att-title="'Passed on today'">
+                                        <span class="o_st_pick_qn" t-esc="s.finished"/>
+                                        <span class="o_st_pick_ql">finished</span>
+                                    </span>
+                                </span>
+                            </span>
+                        </button>
+                    </div>
+                </t>
+            </div>
+        </t>
+
+        <t t-else="">
+            <!-- Who is at this bench and what each of them is already carrying. The
+                 lead's whole job is spreading work evenly, which is guesswork without
+                 the load beside each name. Tapping a name narrows the board to
+                 theirs — a FILTER, not a hand-over: the actual assignment happens on
+                 each card's own Technician picker below. Solid, button-like chips
+                 here read as "assign to this person" and got tapped expecting that;
+                 dressed as filter chips instead (funnel icon, tinted not filled,
+                 an explicit All to clear) so the two controls stop looking like one.
+                 (client, 2026-08-29) -->
+            <!-- The day the board is being read for. It governs the chip counts
+                 and the finished column together, so it sits at the top rather
+                 than inside one of them - a control that changes two things
+                 must not live in one of them. Today unless stepped back;
+                 forward stops at today. (client, 2026-09-09) -->
+            <div class="o_st_daybar">
+                <span class="o_st_daybar_l">
+                    <i class="fa fa-calendar me-1"/>Day
+                </span>
+                <button class="o_st_done_step" t-att-disabled="state.doneBusy"
+                        t-on-click="() => this.stepDone(-1)" title="The day before">
+                    <i class="fa fa-chevron-left" title="Earlier"/>
+                </button>
+                <input type="date" class="o_st_done_date"
+                       t-att-value="state.data.done_day"
+                       t-att-max="state.data.today"
+                       t-att-disabled="state.doneBusy"
+                       t-on-change="(ev) => this.showDone(ev.target.value)"/>
+                <button class="o_st_done_step"
+                        t-att-disabled="state.doneBusy or state.data.done_is_today"
+                        t-on-click="() => this.stepDone(1)" title="The day after">
+                    <i class="fa fa-chevron-right" title="Later"/>
+                </button>
+                <button t-if="!state.data.done_is_today" class="o_st_done_today"
+                        t-att-disabled="state.doneBusy"
+                        t-on-click="() => this.showDone(state.data.today)">
+                    Back to today
+                </button>
+                <span t-if="!state.data.done_is_today" class="o_st_daybar_note">
+                    showing what the bench did on this day
+                </span>
+            </div>
+
+            <!-- The bench's day as one line: done against the targets set, and a
+                 tick where the shift is. A head reads at ten whether forty by five
+                 is still on without adding up the chips. (client, 2026-09-09) -->
+            <t t-set="bd" t-value="state.data.bench_day"/>
+            <div t-if="bd and bd.people" class="o_st_bench">
+                <span class="o_st_bench_l"><i class="fa fa-bullseye me-1"/>Bench <t t-esc="doneLabel"/></span>
+                <t t-if="bd.target">
+                    <span class="o_st_bench_bar"
+                          t-att-title="bd.shift === null ? 'No working hours on this day' : bd.shift + '% of the working day gone'">
+                        <span class="o_st_bench_fill"
+                              t-att-class="{ o_st_bench_fill_met: bd.pct >= 100,
+                                             o_st_bench_fill_behind: bd.ahead !== null and bd.ahead &lt; 0 }"
+                              t-attf-style="width: {{ bd.pct }}%"/>
+                        <span t-if="bd.shift !== null and bd.shift &lt; 100" class="o_st_bench_now"
+                              t-attf-style="left: {{ bd.shift }}%"/>
+                    </span>
+                    <span class="o_st_bench_n"><b t-esc="bd.done_against"/> / <t t-esc="bd.target"/></span>
+                    <span class="o_st_bench_m">
+                        <t t-esc="bd.met"/> of <t t-esc="bd.with_target"/> on target
+                        <t t-if="bd.shift === 0">
+                            · <span class="text-muted">the bench's day has not started</span>
+                        </t>
+                        <t t-elif="bd.ahead !== null and bd.shift !== null and bd.shift &lt; 100 and bd.pct &lt; 100">
+                            · <span t-if="bd.ahead > 0" class="o_st_bench_ahead">ahead by <t t-esc="bd.ahead"/> for the hour</span>
+                            <span t-elif="bd.ahead &lt; 0" class="o_st_bench_behind">behind by <t t-esc="-bd.ahead"/> for the hour</span>
+                            <span t-else="" class="o_st_bench_ahead">on pace</span>
+                        </t>
+                        <t t-if="bd.done > bd.done_against">
+                            · <t t-esc="bd.done - bd.done_against"/> more by people with no target
+                        </t>
+                    </span>
+                </t>
+                <span t-else="" class="o_st_bench_m">
+                    <b t-esc="bd.done"/> taken or finished · no target set for this day
+                </span>
+                <!-- Set where the day is read. Only for whoever may write targets. -->
+                <button t-if="state.data.can_set_targets" class="o_st_bench_set"
+                        t-on-click="() => this.setTargets()"
+                        title="Set this bench's targets for the day">
+                    <i class="fa fa-pencil me-1"/>Set targets
+                </button>
+            </div>
+
+            <div t-if="state.data.can_assign and state.data.bench_people.length"
+                 class="o_st_people">
+                <span class="o_st_people_l">
+                    <i class="fa fa-filter me-1"/>Filter by bench
+                </span>
+                <button class="o_st_person o_st_person_all"
+                        t-att-class="{ 'o_st_person_on': state.person === false }"
+                        t-on-click="() => this.showPerson({ id: false })">
+                    <span class="o_st_person_n">All</span>
+                </button>
+                <button t-foreach="state.data.bench_people" t-as="p" t-key="p.id"
+                        class="o_st_person"
+                        t-att-class="{
+                            'o_st_person_on': state.person === p.id,
+                            'o_st_person_free': p.id === 'none',
+                            'o_st_person_lead': p.is_lead }"
+                        t-on-click="() => this.showPerson(p)">
+                    <i class="fa fa-check o_st_person_check"/>
+                    <span class="o_st_person_n" t-esc="p.name"/>
+                    <!-- The day's work, not the pile: what this person took or
+                         finished on the day being looked at. The pile is still
+                         what the who-did-it popup spreads by. (client, 2026-09-09) -->
+                    <span class="o_st_person_c"
+                          t-att-class="{ 'o_st_person_met': p.target_met,
+                                         'o_st_person_short': p.target and !p.target_met }"
+                          t-att-title="p.id === 'none' ? 'Waiting to be given out' : (
+                              p.all_benches
+                              ? p.day_count + ' of ' + p.target + ' taken or finished '
+                                + doneLabel + ' across every bench (' + p.bench_count
+                                + ' of them here). Their target is set for the whole day,'
+                                + ' not for this bench.'
+                              : (p.target
+                                 ? p.day_count + ' of ' + p.target + ' taken or finished ' + doneLabel
+                                 : 'Taken or finished ' + doneLabel))">
+                        <!-- Say when the number is not this bench's alone. A count
+                             that quietly includes other benches is worse than a
+                             wrong one: nothing on the chip would say which it is.
+                             Before the number, so it is read first. (client, 2026-09-14) -->
+                        <i t-if="p.all_benches" class="fa fa-globe o_st_person_floor"
+                           title="Counted across every bench"/>
+                        <t t-esc="p.id === 'none' ? p.load : p.day_count"/>
+                        <!-- The target only appears where somebody set one, so a
+                             bench that does not work this way sees the count it
+                             always saw. (client, 2026-09-09) -->
+                        <t t-if="p.id !== 'none' and p.target">
+                            <span class="o_st_person_t">/<t t-esc="p.target"/></span>
+                        </t>
+                    </span>
+                    <!-- The day's progress drawn along the chip's foot, so a row
+                         of chips reads as a row of bars from across the bench. -->
+                    <span t-if="p.id !== 'none' and p.target" class="o_st_person_bar"
+                          t-att-class="{ o_st_person_bar_met: p.target_met }"
+                          t-attf-style="width: {{ Math.min(100, Math.round(p.day_count * 100 / p.target)) }}%"/>
+                </button>
+            </div>
+
+            <!-- A station with nobody posted cannot have work given out at all, and the
+                 board would otherwise just look empty of people for no stated reason. -->
+            <div t-if="state.data.can_assign and !state.data.staffed"
+                 class="o_st_nudge">
+                <i class="fa fa-users me-2" title="Nobody posted"/>
+                Nobody is posted to this station yet, so jobs cannot be given to anyone.
+                Add technicians and a production lead on the work centre
+                (<b>Configuration → Work Centres</b>) and they will appear here.
+            </div>
+
+            <!-- FIND A JOB AT THIS BENCH. Each column shows forty cards and the
+                 deepest bench here has nine hundred behind them, so a job that is
+                 not in the first forty could only be found by scanning it. Say a
+                 patient, a doctor or a number instead - the search runs over the
+                 whole queue, not over the page. (client, 2026-09-10) -->
+            <div class="o_st_findbar">
+                <span class="o_st_find">
+                    <i class="fa fa-search" title="Find"/>
+                    <input type="text" class="o_st_find_in" t-ref="find"
+                           t-att-value="state.data.query"
+                           t-on-input="(ev) => this.findJobs(ev.target.value)"
+                           placeholder="Find at this bench: patient, doctor, MO or SO"
+                           autocomplete="off" spellcheck="false"/>
+                    <button t-if="state.data.query" class="o_st_find_clear"
+                            t-on-click="() => this.findJobs('')" title="Clear">
+                        <i class="fa fa-times"/>
+                    </button>
+                </span>
+                <span class="o_st_sorts" role="group" aria-label="Order the queue">
+                    <button t-foreach="state.data.sorts" t-as="s" t-key="s.key"
+                            class="o_st_sort"
+                            t-att-class="{ o_st_sort_on: state.data.sort === s.key }"
+                            t-on-click="() => this.sortQueue(s.key)">
+                        <t t-esc="s.label"/>
+                    </button>
+                </span>
+                <span t-if="state.data.query" class="o_st_find_note">
+                    <t t-esc="matchTotal"/> job(s) match “<t t-esc="state.data.query"/>”
+                    across the whole bench
+                </span>
+            </div>
+
+            <div class="o_st_cols">
+                <!-- Incoming: sent here by somebody else and not yet taken on. This
+                     column is the reason the board exists. -->
+                <section class="o_st_col o_st_col_in">
+                    <header class="o_st_col_h">
+                        <span>Arrived</span>
+                        <span class="o_st_count" t-esc="state.data.totals.incoming"/>
+                    </header>
+                    <div t-if="!state.data.incoming.length" class="o_st_none">
+                        Nothing waiting.
+                    </div>
+                    <div t-foreach="state.data.incoming" t-as="c" t-key="c.id"
+                         class="o_st_card"
+                         t-att-class="isPicked(c) ? 'o_st_card_picked' : ''">
+                        <t t-call="lab_workcenter_scan.StationCardBody"/>
+                        <!-- Work is given out BEFORE it is accepted: that is the whole
+                             of a lead's morning, and doing it only after somebody has
+                             already started is doing it too late. -->
+                        <div class="o_st_actions">
+                            <!-- No Accept here: a job is taken by SCANNING it, which
+                                 is the act the bench performs anyway, and a button
+                                 beside the card invited taking work without ever
+                                 picking it up. (client, 2026-09-12) -->
+                            <!-- No redo here: starting a case again is reached from
+                                 the header now, where it is a deliberate act rather
+                                 than an icon beside the tick box a thumb is already
+                                 near. (client, 2026-09-12) -->
+                            <!-- Arrived here by a scan that should not have happened:
+                                 the hand-over that sent it can still be taken back,
+                                 until this bench accepts it. -->
+                            <button t-if="c.can_undo" class="o_st_alt o_st_alt_undo"
+                                    t-att-disabled="state.busy === c.id"
+                                    t-on-click="() => this.undoScan(c)"
+                                    title="Scanned by mistake? Take the last scan back">
+                                <i class="fa fa-undo" title="Undo the scan"/>
+                            </button>
+                        </div>
+                    </div>
+                    <div t-if="state.data.totals.incoming > state.data.incoming.length"
+                         class="o_st_more">
+                        Showing <t t-esc="state.data.incoming.length"/> of
+                        <t t-esc="state.data.totals.incoming"/> — <t t-esc="sortLabel"/>.
+                        <span class="o_st_more_hint">Use Find above to reach the rest.</span>
+                    </div>
+                </section>
+
+                <!-- Working: accepted here, clock running. -->
+                <section class="o_st_col o_st_col_work">
+                    <header class="o_st_col_h">
+                        <span>On the bench</span>
+                        <span class="o_st_count" t-esc="state.data.totals.working"/>
+                    </header>
+                    <div t-if="!state.data.working.length" class="o_st_none">
+                        Nothing accepted yet.
+                    </div>
+                    <div t-foreach="state.data.working" t-as="c" t-key="c.id"
+                         class="o_st_card"
+                         t-att-class="isPicked(c) ? 'o_st_card_picked' : ''">
+                        <t t-call="lab_workcenter_scan.StationCardBody"/>
+                        <div class="o_st_actions">
+                            <!-- A job leaves the bench with a name on it. With nobody
+                                 named the button still works: it asks "who did this?"
+                                 and one tap on a name assigns and hands on. The amber
+                                 dot says so before the tap. (client, 2026-08-29) -->
+                            <button class="o_st_go o_st_go_hand"
+                                    t-att-class="c.bench_user_id ? '' : 'o_st_go_ask'"
+                                    t-att-disabled="state.busy === c.id"
+                                    t-attf-title="Hand on to {{ c.next_station or 'the last step' }}{{ c.bench_user_id ? '' : ' — no technician named yet, you will be asked who did it' }}"
+                                    t-on-click="() => this.handover(c)">
+                                <i class="fa fa-share" title="Hand over"/>
+                                <!-- "Hand to Wire Bending / Labial Bow" has no room in
+                                     a narrow column: it wrapped to six lines, and cut
+                                     to one it read "Hand t...". The destination is
+                                     dropped where it does not fit, never the verb.
+                                     (client, 2026-09-12) -->
+                                <span>
+                                    Hand on<span class="o_st_go_dest">
+                                        to <t t-esc="c.next_station or 'finish'"/></span>
+                                </span>
+                                <span t-if="!c.bench_user_id" class="o_st_go_dot" title="Who did it?"/>
+                            </button>
+                            <button class="o_st_alt" t-on-click="() => this.sendElsewhere(c)"
+                                    title="Send to a different station">
+                                <i t-att-class="canScan ? 'fa fa-qrcode' : 'fa fa-keyboard-o'"
+                                   title="Send elsewhere"/>
+                            </button>
+                            <!-- The wrong card gets scanned with gloves on. This puts
+                                 the job back where it was and says so on the case.
+                                 (client, 2026-09-09) -->
+                            <button t-if="c.can_undo" class="o_st_alt o_st_alt_undo"
+                                    t-att-disabled="state.busy === c.id"
+                                    t-on-click="() => this.undoScan(c)"
+                                    title="Scanned by mistake? Take the acceptance back">
+                                <i class="fa fa-undo" title="Undo the scan"/>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sent from here and not yet taken on. Handing a job over does not end
+                     the sending head's responsibility — that ends when somebody at the
+                     other bench accepts it, and between those two moments the job is in
+                     nobody's hands. -->
+                <section t-if="state.data.awaiting.length"
+                         class="o_st_col o_st_col_wait">
+                    <header class="o_st_col_h">
+                        <span>Waiting to be taken</span>
+                        <span class="o_st_count o_st_count_warn"
+                              t-esc="state.data.awaiting.length"/>
+                    </header>
+                    <div t-foreach="state.data.awaiting" t-as="c" t-key="c.id"
+                         class="o_st_card o_st_card_wait"
+                         t-on-click="() => this.openWorkorder(c)">
+                        <div class="o_st_title">
+            <span class="o_st_mo" t-esc="c.production or c.name"/>
+            <span t-if="c.order" class="o_st_ref" t-esc="c.order"/>
+        </div>
+        <div t-if="c.patient or c.clinic" class="o_st_case">
+            <span t-if="c.patient" class="o_st_patient" t-esc="c.patient"/>
+            <span t-if="c.patient and c.clinic"> · </span>
+            <span t-if="c.clinic" class="o_st_clinic" t-esc="c.clinic"/>
+        </div>
+                        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-esc="c.product_name"/></div>
+                        <div class="o_st_meta">
+                            <t t-esc="c.operation"/> · sent to
+                            <strong t-esc="c.at_station"/>
+                        </div>
+                        <div class="o_st_sub">
+                            Nobody there has accepted it yet — it is still yours.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Passed on: the head's own record of what left the bench, on the
+                     day being looked at. Today unless they step back. -->
+                <section class="o_st_col o_st_col_done">
+                    <header class="o_st_col_h">
+                        <span>Passed on <t t-esc="doneLabel"/></span>
+                        <span class="o_st_count" t-esc="state.data.done_total"/>
+                    </header>
+                    <div t-if="state.doneBusy" class="o_st_none">Reading that day…</div>
+                    <div t-elif="!state.data.done_today.length" class="o_st_none">
+                        <t t-if="state.data.done_is_today">Nothing has left the bench yet today.</t>
+                        <t t-else="">Nothing left the bench that day.</t>
+                    </div>
+                    <div t-foreach="state.data.done_today" t-as="c" t-key="c.id"
+                         class="o_st_card o_st_card_done"
+                         t-on-click="() => this.openWorkorder(c)">
+                        <!-- The commonest mis-scan of all: the card handed on that
+                             should not have been. Reachable while the next bench has
+                             not taken it. (client, 2026-09-09) -->
+                        <button t-if="c.can_undo" class="o_st_undo_done"
+                                t-att-disabled="state.busy === c.id"
+                                t-on-click.stop="() => this.undoScan(c)"
+                                title="Handed on by mistake? Bring it back to this bench">
+                            <i class="fa fa-undo" title="Undo the scan"/>
+                        </button>
+                        <div class="o_st_title">
+            <span class="o_st_mo" t-esc="c.production or c.name"/>
+            <span t-if="c.order" class="o_st_ref" t-esc="c.order"/>
+        </div>
+        <div t-if="c.patient or c.clinic" class="o_st_case">
+            <span t-if="c.patient" class="o_st_patient" t-esc="c.patient"/>
+            <span t-if="c.patient and c.clinic"> · </span>
+            <span t-if="c.clinic" class="o_st_clinic" t-esc="c.clinic"/>
+        </div>
+                        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-esc="c.product_name"/></div>
+                        <div class="o_st_meta">
+                            <t t-esc="c.operation"/>
+                            <span t-if="c.handed_over_at"> · <t t-esc="c.handed_over_at"/></span>
+                            <span t-if="c.next_station"> → <t t-esc="c.next_station"/></span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Sticky, because the jobs being ticked are further up the page than the
+                 control that hands them out. -->
+            <div t-if="state.picked.length" class="o_st_bulk">
+                <span class="o_st_bulk_n">
+                    <t t-esc="state.picked.length"/> picked
+                </span>
+                <select class="form-select form-select-sm o_st_bulk_pick"
+                        t-on-change="assignPicked">
+                    <option value="">give all of them to…</option>
+                    <option t-foreach="benchPeople" t-as="p" t-key="p.id"
+                            t-att-value="p.id">
+                        <t t-esc="p.name"/> (<t t-esc="p.load"/>)
+                    </option>
+                </select>
+                <button class="o_st_bulk_x" t-on-click="() => (state.picked = [])">
+                    Clear
+                </button>
+            </div>
+        </t>
+    </div>
+</t>
+
+<!--
+    Who does this job. Only a production lead may change it — a technician sees the
+    name, because knowing whose job it is is the point of naming it, but cannot move
+    work onto a colleague. (client, 2026-08-26)
+-->
+<!-- The job, in the lab's own words. -->
+<t t-name="lab_workcenter_scan.StationCardBody">
+    <div class="o_st_body" t-on-click="() => this.openWorkorder(c)">
+        <!-- Ticking several and naming one person once is how a queue gets handed out
+             in a morning rather than a job at a time. -->
+        <button t-if="state.data.can_assign and benchPeople.length" class="o_st_tick"
+                t-att-class="isPicked(c) ? 'o_st_tick_on' : ''"
+                t-on-click.stop="() => this.togglePick(c)">
+            <i t-att-class="isPicked(c) ? 'fa fa-check-square' : 'fa fa-square-o'"
+               title="Pick for handing out"/>
+        </button>
+        <div class="o_st_flags">
+            <span t-if="c.urgent" class="o_st_flag o_st_flag_urgent">URGENT</span>
+            <!-- When it is due out, by the lab's own standard for this appliance -
+                 the same promise the Production Reports board reads.
+                 (client, 2026-09-12) -->
+            <span t-if="c.due_label" class="o_st_flag o_st_flag_due"
+                  t-attf-class="o_st_due_{{ c.due_state }}"
+                  t-attf-title="Due out {{ c.due }}">
+                <i class="fa fa-flag-checkered me-1" title="Due"/><t t-esc="c.due_label"/>
+            </span>
+            <!-- How long it has stood at this bench. A queue this deep is not read
+                 by date; it is read by what is going stale. (client, 2026-09-10) -->
+            <span t-if="c.here_days !== null" class="o_st_flag o_st_flag_age"
+                  t-att-class="{ o_st_flag_stale: c.stale }"
+                  t-attf-title="Here {{ c.here_days }} day(s){{ c.case_days !== null ? '; in the lab ' + c.case_days + ' day(s)' : '' }}">
+                <i class="fa fa-clock-o me-1" title="Standing"/><t t-esc="c.here_days"/>d here
+            </span>
+            <span t-elif="c.case_days !== null" class="o_st_flag o_st_flag_age"
+                  t-att-class="{ o_st_flag_stale: c.stale }"
+                  t-attf-title="In the lab {{ c.case_days }} day(s)">
+                <i class="fa fa-clock-o me-1" title="In the lab"/><t t-esc="c.case_days"/>d in lab
+            </span>
+            <span t-if="c.redo_count" class="o_st_flag o_st_flag_redo"
+                  t-att-title="c.redo_reason">
+                <i class="fa fa-refresh me-1" title="Done again"/>AGAIN ×<t t-esc="c.redo_count"/>
+            </span>
+            <span t-if="c.call_doctor" class="o_st_flag o_st_flag_call">
+                <i class="fa fa-phone me-1" title="Call the doctor"/>CALL DOCTOR
+            </span>
+        </div>
+        <div class="o_st_title">
+            <span class="o_st_mo" t-esc="c.production or c.name"/>
+            <span t-if="c.order" class="o_st_ref" t-esc="c.order"/>
+        </div>
+        <div t-if="c.patient or c.clinic" class="o_st_case">
+            <span t-if="c.patient" class="o_st_patient" t-esc="c.patient"/>
+            <span t-if="c.patient and c.clinic"> · </span>
+            <span t-if="c.clinic" class="o_st_clinic" t-esc="c.clinic"/>
+        </div>
+        <!-- What the appliance is. A bench recognises a job by the patient and
+             by the thing in the tray, and the tile named only the first.
+             (client, 2026-09-14) -->
+        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-esc="c.product_name"/></div>
+        <div class="o_st_meta">
+            <t t-esc="c.operation"/>
+            <span t-if="c.ul"> · <t t-esc="c.ul"/></span>
+            <span t-if="c.colour"> · <t t-esc="c.colour"/></span>
+        </div>
+        <div class="o_st_sub">
+            <span t-if="c.bench_user" class="o_st_with">
+                <i class="fa fa-user me-1" title="Technician"/><t t-esc="c.bench_user"/>
+            </span>
+            <!-- The second name, where the bench records one. It lives on the
+                 line that already carries the first rather than in a block of
+                 its own, which printed the technician twice and cost the tile
+                 a whole row. (client, 2026-09-12) -->
+            <span t-if="c.finisher" class="o_st_with o_st_with_fin">
+                <t t-if="c.bench_user"> · </t>
+                <i class="fa fa-check-square-o me-1" title="Finished by"/><t t-esc="c.finisher"/>
+            </span>
+            <span t-if="c.accepted_by"><t t-if="c.bench_user or c.finisher"> · </t>taken by <t t-esc="c.accepted_by"/>
+                <t t-if="c.accepted_at"> at <t t-esc="c.accepted_at"/></t>
+            </span>
+        </div>
+    </div>
+</t>
+
+</templates>

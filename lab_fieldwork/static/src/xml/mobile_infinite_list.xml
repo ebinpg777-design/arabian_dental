@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!-- A sentinel at the end of the records. When it scrolls into view on a phone the
+     view grows itself. Rendered always; the renderer decides whether to watch it,
+     so there is no arch-level condition to keep in step. (client, 2026-08-28) -->
+<t t-name="lab_fieldwork.ListRenderer" t-inherit="web.ListRenderer"
+   t-inherit-mode="extension">
+    <!-- Anchored on the ref, not on a class: the table's class is built with
+         t-attf-class, and hasclass() only sees a static class attribute - an xpath
+         on it matches nothing and breaks every list view in the database.
+         (client, 2026-08-28) -->
+    <xpath expr="//table[@t-ref='table']" position="after">
+        <div class="o_fw_more_sentinel" aria-hidden="true"/>
+        <div t-if="fwCanAutoLoad" class="o_fw_more_note">
+            <i class="fa fa-circle-o-notch fa-spin me-1" aria-hidden="true"/>
+            Loading <t t-esc="fwRemaining"/> more…
+        </div>
+    </xpath>
+</t>
+
+<t t-name="lab_fieldwork.KanbanRenderer" t-inherit="web.KanbanRenderer"
+   t-inherit-mode="extension">
+    <xpath expr="//t[@t-if='showNoContentHelper']" position="before">
+        <div t-if="!props.list.isGrouped" class="o_fw_more_sentinel w-100"
+             aria-hidden="true"/>
+        <div t-if="fwCanAutoLoad" class="o_fw_more_note w-100">
+            <i class="fa fa-circle-o-notch fa-spin me-1" aria-hidden="true"/>
+            Loading <t t-esc="fwRemaining"/> more…
+        </div>
+    </xpath>
+</t>
+
+</templates>

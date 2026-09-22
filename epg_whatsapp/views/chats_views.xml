@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Chats: every conversation as a chat app shows it. Second in the app. -->
+    <record id="action_chats" model="ir.actions.client">
+        <field name="name">WhatsApp Chats</field>
+        <field name="tag">epg_whatsapp_chats</field>
+    </record>
+    <menuitem id="menu_chats" name="Chats" parent="menu_root" action="action_chats" sequence="2"/>
+
+    <!-- The contact: how they stand on WhatsApp, and their chat one tap away. -->
+    <record id="view_partner_form_whatsapp_engagement" model="ir.ui.view">
+        <field name="name">res.partner.form.whatsapp.engagement</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_whatsapp_chat" type="object" class="oe_stat_button"
+                        icon="fa-comments-o" groups="epg_whatsapp.group_whatsapp_user">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value"><field name="whatsapp_engagement_label"/></span>
+                        <span class="o_stat_text">WhatsApp chat</span>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+
+    <record id="view_partner_search_whatsapp_engagement" model="ir.ui.view">
+        <field name="name">res.partner.search.whatsapp.engagement</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <filter name="type_company" position="after">
+                <separator/>
+                <filter string="Engaged on WhatsApp" name="wa_engaged"
+                        domain="[('whatsapp_engagement', '=', 'engaged')]"/>
+                <filter string="Quiet on WhatsApp" name="wa_quiet"
+                        domain="[('whatsapp_engagement', '=', 'quiet')]"/>
+                <filter string="Never messaged on WhatsApp" name="wa_never"
+                        domain="[('whatsapp_engagement', '=', 'never')]"/>
+                <filter string="WhatsApp marketing off" name="wa_marketing_off"
+                        domain="[('whatsapp_marketing_optin', '=', False)]"/>
+                <filter string="Stopped WhatsApp" name="wa_stopped"
+                        domain="[('whatsapp_engagement', '=', 'stopped')]"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- The sender: UPI for Pay now, and the comfortable daily limit. -->
+    <record id="view_account_form_payments" model="ir.ui.view">
+        <field name="name">epg.whatsapp.account.form.payments</field>
+        <field name="model">epg.whatsapp.account</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_account_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='link']" position="inside">
+                <group string="Pay now (UPI)">
+                    <field name="upi_id" placeholder="arabiandentallab@upi"/>
+                    <field name="upi_payee_name" placeholder="Arabian Dental Lab"/>
+                    <div colspan="2" class="text-muted small">
+                        With a UPI ID, an invoice template can add a <b>Pay now</b> link: the
+                        doctor's UPI app opens with the amount filled in, and "I've paid"
+                        lands on the invoice. No gateway, no fee.
+                    </div>
+                </group>
+                <group string="Number safety">
+                    <field name="daily_send_limit"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- The template: Pay now, beside the reminder. -->
+    <record id="view_template_form_payment" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.form.payment</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_template_form_nudge"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='nudge_text']" position="after">
+                <div class="mt-3 p-2 rounded border">
+                    <div class="d-flex align-items-center gap-2">
+                        <field name="add_payment_link" nolabel="1"/>
+                        <label for="add_payment_link" class="fw-bold mb-0"><i class="fa fa-credit-card me-1" title="Pay now"/>Add a Pay now link (UPI)</label>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2 flex-wrap mt-1" invisible="not add_payment_link">
+                        <span class="text-muted small">amount from</span>
+                        <field name="payment_amount_field" class="oe_inline" placeholder="amount_total"/>
+                        <span class="text-muted small">reference from</span>
+                        <field name="payment_reference_field" class="oe_inline" placeholder="name"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- The message: the payment facts. -->
+    <record id="view_message_form_payment" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.form.payment</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_message_form_smart"/>
+        <field name="arch" type="xml">
+            <field name="opted_out_at" position="after">
+                <field name="pay_amount" invisible="not pay_amount"/>
+                <field name="pay_opened_at" invisible="not pay_opened_at"/>
+                <field name="paid_claimed_at" invisible="not paid_claimed_at"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_message_search_payment" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.search.payment</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_message_search_smart"/>
+        <field name="arch" type="xml">
+            <filter name="unopened" position="after">
+                <filter name="says_paid" string="Says paid" domain="[('paid_claimed_at', '!=', False)]"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- The campaign: leave out the quiet and the stopped. -->
+    <record id="view_campaign_form_engagement" model="ir.ui.view">
+        <field name="name">epg.whatsapp.campaign.form.engagement</field>
+        <field name="model">epg.whatsapp.campaign</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_campaign_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='recipients']" position="inside">
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-2" invisible="state != 'draft' or not recipient_count">
+                    <span class="text-muted small">
+                        <field name="engaged_count" class="oe_inline"/> engaged ·
+                        <field name="quiet_count" class="oe_inline"/> quiet ·
+                        <field name="stopped_count" class="oe_inline"/> stopped
+                    </span>
+                    <button name="action_drop_unengaged" type="object" class="btn btn-sm btn-outline-secondary"
+                            string="Keep only engaged doctors" icon="fa-filter"
+                            invisible="not quiet_count and not stopped_count"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

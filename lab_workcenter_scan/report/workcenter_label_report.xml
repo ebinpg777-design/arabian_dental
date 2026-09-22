@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_workcenter_label" model="ir.actions.report">
+        <field name="name">Work Centre Label</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_workcenter_label</field>
+        <field name="report_file">lab_workcenter_scan.report_workcenter_label</field>
+        <field name="print_report_name">'Station Labels'</field>
+    </record>
+
+    <template id="report_workcenter_label">
+        <!--
+            One label per page, sized to be read across a workshop. The QR is embedded
+            as a base64 PNG rather than through /report/barcode: that route renders via
+            reportlab's renderPM, which cannot produce a raster on this server, so the
+            label would look right on screen and print blank.
+        -->
+        <t t-call="web.basic_layout">
+            <t t-foreach="docs" t-as="wc">
+                <div class="page" style="text-align:center; padding-top:18mm;">
+                    <h1 style="margin-bottom:2mm; font-size:34px;"
+                        t-esc="wc.name"/>
+                    <div t-if="wc.code" style="font-size:16px; color:#666;"
+                         t-esc="wc.code"/>
+                    <img t-if="wc.qr_image"
+                         t-att-src="'data:image/png;base64,%s' % wc.qr_image.decode()"
+                         style="width:78mm; height:78mm; margin:8mm auto;"/>
+                    <div style="font-size:26px; letter-spacing:.12em; font-weight:bold;"
+                         t-esc="wc.scan_code"/>
+                    <div style="font-size:13px; color:#666; margin-top:4mm;">
+                        Scan this label to move a job to this station.
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

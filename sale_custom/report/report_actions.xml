@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_dental_invoice" model="ir.actions.report">
+        <field name="name">Tax Invoice</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_dental_invoice</field>
+        <field name="report_file">sale_custom.report_dental_invoice</field>
+        <field name="print_report_name">'Invoice - %s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_lab_invoice"/>
+        <!-- Printed invoices are NOT stored as attachments (client, 2026-08-28).
+             They used to be: a posted invoice cannot change, so the first render was
+             kept and every reprint served instantly instead of a 3-5 s wkhtmltopdf
+             run. The cost was that the stored copy outlived the layout - the scan
+             barcode reached new invoices only, and 9,999 already-printed ones kept
+             coming out without it. Every print now re-renders, and is current. -->
+    </record>
+
+    <record id="action_report_dental_jobcard" model="ir.actions.report">
+        <field name="name">Job Card</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_dental_jobcard</field>
+        <field name="report_file">sale_custom.report_dental_jobcard</field>
+        <field name="print_report_name">'Job Card - %s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_lab"/>
+    </record>
+
+    <record id="action_report_dental_delivery_slip" model="ir.actions.report">
+        <field name="name">Delivery Slip</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_dental_delivery_slip</field>
+        <field name="report_file">sale_custom.report_dental_delivery_slip</field>
+        <field name="print_report_name">'Delivery Slip - %s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_lab"/>
+    </record>
+
+    <record id="action_report_dental_registration_ack" model="ir.actions.report">
+        <field name="name">Registration Acknowledgement</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_dental_registration_ack</field>
+        <field name="report_file">sale_custom.report_dental_registration_ack</field>
+        <field name="print_report_name">'Registration Ack - %s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_lab"/>
+    </record>
+
+    <record id="action_report_daily_sales_summary" model="ir.actions.report">
+        <field name="name">Daily Sales Summary</field>
+        <field name="model">daily.sales</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_daily_sales_summary</field>
+        <field name="report_file">sale_custom.report_daily_sales_summary</field>
+        <field name="print_report_name">'Daily Sales Summary'</field>
+        <field name="binding_model_id" ref="model_daily_sales"/>
+        <field name="binding_type">report</field>
+        <field name="multi">True</field>
+        <field name="paperformat_id" ref="paperformat_lab"/>
+    </record>
+
+    <!-- The standard invoice prints now render the dental layout (see
+         account.move._get_name_invoice_report), so give them the lab
+         paperformat too. They use the invoice format: the letterhead is drawn in the body,
+         so the page needs no header band and starts 8 mm from the top. -->
+    <record id="account.account_invoices" model="ir.actions.report">
+        <field name="paperformat_id" ref="paperformat_lab_invoice"/>
+        <field name="print_report_name">((object.partner_id.name or '').strip() + ' ' + (object.name or 'Invoice')).replace('/', '_')</field>
+        <!-- Print / Send &amp; Print go through THIS action, so it is the one that has to
+             cache, or every reprint pays for a fresh 3-5 s wkhtmltopdf run. Posted only;
+             account.move.button_draft() drops the copy if the invoice is reopened. -->
+    </record>
+    <record id="account.account_invoices_without_payment" model="ir.actions.report">
+        <field name="paperformat_id" ref="paperformat_lab_invoice"/>
+        <field name="print_report_name">((object.partner_id.name or '').strip() + ' ' + (object.name or 'Invoice')).replace('/', '_')</field>
+    </record>
+</odoo>

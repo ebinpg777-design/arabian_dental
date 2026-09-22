@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_workcenter_form_scan" model="ir.ui.view">
+        <field name="name">mrp.workcenter.form.scan</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Who runs this station" name="station_people">
+                    <!-- Polishing, packing, the last check: benches where the person
+                         who FINISHES a job is a different person from the one who
+                         made it, and the lab wants both names. (client, 2026-09-09) -->
+                    <field name="is_finisher"/>
+                    <field name="head_user_ids" widget="many2many_tags"
+                           options="{'no_create_edit': True}"
+                           help="The production lead of this station. They open its board by default and are the only people who can give a job to a named technician."/>
+                    <div class="text-muted small" colspan="2">
+                        <i class="fa fa-info-circle me-1" title="Access"/>
+                        A lead can only give a job to somebody in <b>Technicians</b>
+                        below — an assignment to a person who does not work here is a job
+                        nobody picks up. These two lists are access, not notes: a user holding
+                        <b>Bench user (own work centres only)</b> sees the work orders and
+                        stations they appear in here, and no others. Technicians accept and
+                        hand on the work; only a production lead decides who does what.
+                        Somebody who must give out work at <i>every</i> station needs the
+                        <b>Production manager</b> group instead.
+                    </div>
+                </group>
+
+                <group string="Scanning" name="scanning">
+                    <group>
+                        <field name="scan_confirm"/>
+                        <field name="scan_code"/>
+                        <button name="action_print_labels" type="object" icon="fa-print"
+                                string="Print Station Label" class="btn-link ps-0"/>
+                    </group>
+                    <group>
+                        <!-- The label as it will be printed. A code you cannot see is a
+                             code nobody checks before sticking it to a machine. -->
+                        <field name="qr_image" widget="image" nolabel="1"
+                               options="{'size': [150, 150]}"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_workcenter_list_scan" model="ir.ui.view">
+        <field name="name">mrp.workcenter.list.scan</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="scan_code" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="action_workcenter_print_labels" model="ir.actions.server">
+        <field name="name">Print Station Labels</field>
+        <field name="model_id" ref="mrp.model_mrp_workcenter"/>
+        <field name="binding_model_id" ref="mrp.model_mrp_workcenter"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_print_labels()</field>
+    </record>
+</odoo>

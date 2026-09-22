@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_mrp_redo_wizard_form" model="ir.ui.view">
+        <field name="name">lab.mrp.redo.wizard.form</field>
+        <field name="model">lab.mrp.redo.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Start This Case Again">
+                <div class="alert alert-warning" role="status">
+                    Every operation on this case goes back to the start — including the
+                    benches that had already finished. An appliance that is wrong at
+                    Polishing is usually wrong from the wire up, and leaving the earlier
+                    steps marked finished is how it goes back out with the same fault.
+                </div>
+                <group>
+                    <group>
+                        <field name="production_id"/>
+                        <field name="stage" string="Currently at"/>
+                    </group>
+                    <group>
+                        <field name="operations"/>
+                        <field name="attempt" string="This will be attempt"/>
+                    </group>
+                </group>
+                <group>
+                    <field name="reason_id" options="{'no_create_edit': True}"/>
+                    <field name="note"
+                           placeholder="Anything the reason alone does not say — the bench reads this before starting again."/>
+                </group>
+                <footer>
+                    <button string="Start Again" name="action_redo" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- The button, and a case that has been redone saying so. -->
+    <record id="view_production_form_redo" model="ir.ui.view">
+        <field name="name">mrp.production.form.redo</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_lab_redo" type="object" string="Start Again"
+                        icon="fa-repeat"
+                        invisible="state in ('done', 'cancel')"
+                        help="Send this case back to the first bench and record why."/>
+            </xpath>
+            <div name="button_box" position="inside">
+                <button name="action_view_redos" type="object" class="oe_stat_button"
+                        icon="fa-repeat" invisible="lab_redo_count == 0">
+                    <field name="lab_redo_count" widget="statinfo" string="Redone"/>
+                </button>
+            </div>
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="lab_is_redo" invisible="1"/>
+                <div class="text-warning fw-bold" invisible="not lab_is_redo">
+                    <i class="fa fa-repeat me-1" title="Redone"/>
+                    Started again <field name="lab_redo_count" class="oe_inline"
+                                         readonly="1"/> time(s) —
+                    <field name="lab_redo_reason_id" class="oe_inline" readonly="1"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ====================================================== THE REDO WORKS LIST -->
+    <record id="view_mrp_redo_list" model="ir.ui.view">
+        <field name="name">lab.mrp.redo.list</field>
+        <field name="model">lab.mrp.redo</field>
+        <field name="arch" type="xml">
+            <list string="Redo Works" create="false" sample="1"
+                  default_order="date desc">
+                <field name="date"/>
+                <field name="production_id" string="Job"/>
+                <field name="patient" optional="show"/>
+                <field name="product_id" string="Appliance" optional="show"/>
+                <field name="reason_id" string="Why"/>
+                <field name="stage_id" string="Sent back from" optional="show"/>
+                <field name="note" string="What happened" optional="show"/>
+                <field name="partner_id" string="Clinic" optional="hide"/>
+                <field name="team_id" string="Route" optional="hide"/>
+                <field name="sale_id" string="Order" optional="hide"/>
+                <field name="attempt" optional="hide"/>
+                <field name="operations_reset" string="Operations reset" optional="hide"/>
+                <field name="user_id" string="Redone by" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mrp_redo_form" model="ir.ui.view">
+        <field name="name">lab.mrp.redo.form</field>
+        <field name="model">lab.mrp.redo</field>
+        <field name="arch" type="xml">
+            <form string="Redo" create="false" edit="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="production_id"/>
+                            <field name="patient"/>
+                            <field name="product_id"/>
+                            <field name="partner_id"/>
+                            <field name="team_id"/>
+                        </group>
+                        <group>
+                            <field name="reason_id"/>
+                            <field name="note"/>
+                            <field name="stage_id"/>
+                            <field name="attempt"/>
+                            <field name="operations_reset"/>
+                            <field name="date"/>
+                            <field name="user_id"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_mrp_redo_search" model="ir.ui.view">
+        <field name="name">lab.mrp.redo.search</field>
+        <field name="model">lab.mrp.redo</field>
+        <field name="arch" type="xml">
+            <search string="Redo Works">
+                <field name="production_id" string="Job"/>
+                <field name="patient"/>
+                <field name="reason_id"/>
+                <field name="partner_id" string="Clinic"/>
+                <field name="product_id" string="Appliance"/>
+                <filter name="this_month" string="This month" date="date"
+                        default_period="month"/>
+                <separator/>
+                <filter name="again" string="Redone more than once"
+                        domain="[('attempt', '&gt;', 1)]"/>
+                <group>
+                    <filter name="by_reason" string="Reason"
+                            context="{'group_by': 'reason_id'}"/>
+                    <filter name="by_stage" string="Sent back from"
+                            context="{'group_by': 'stage_id'}"/>
+                    <filter name="by_appliance" string="Appliance"
+                            context="{'group_by': 'product_id'}"/>
+                    <filter name="by_clinic" string="Clinic"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="by_route" string="Sales Route"
+                            context="{'group_by': 'team_id'}"/>
+                    <filter name="by_month" string="Month"
+                            context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mrp_redo" model="ir.actions.act_window">
+        <field name="name">Redo Works</field>
+        <field name="res_model">lab.mrp.redo</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mrp_redo_search"/>
+        <field name="context">{'create': False, 'search_default_by_reason': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing has been started again</p>
+            <p>Every case sent back to the first bench, and why. Grouped by reason, this
+               answers the question behind the list: which fault is costing the lab the
+               most work, and at which station it is being found.</p>
+        </field>
+    </record>
+
+    <record id="action_redo_reason" model="ir.actions.act_window">
+        <field name="name">Redo Reasons</field>
+        <field name="res_model">lab.redo.reason</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_redo_reason_list" model="ir.ui.view">
+        <field name="name">lab.redo.reason.list</field>
+        <field name="model">lab.redo.reason</field>
+        <field name="arch" type="xml">
+            <list string="Redo Reasons" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="workcenter_id" string="Usually at"/>
+                <field name="redo_count" string="Times used"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <menuitem id="menu_mrp_redo" name="Redo Works"
+              parent="mrp.menu_mrp_reporting" action="action_mrp_redo"
+              sequence="13" groups="mrp.group_mrp_user"/>
+    <menuitem id="menu_redo_reason" name="Redo Reasons"
+              parent="mrp.menu_mrp_configuration" action="action_redo_reason"
+              sequence="90" groups="mrp.group_mrp_manager"/>
+
+</odoo>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Incentive sheet tiles (dynamic_filter_tiles; replaces the former list_view_dashboard block). -->
+    <data noupdate="1">
+        <record id="tile_incentive_computed" model="filter.tile">
+            <field name="name">Awaiting Approval</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_incentive.model_lab_incentive_sheet"/>
+            <field name="domain">[('state','=','computed')]</field>
+            <field name="color">amber</field>
+            <field name="icon">fa-hourglass-half</field>
+        </record>
+
+        <record id="tile_incentive_approved" model="filter.tile">
+            <field name="name">Approved — To Pay</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_incentive.model_lab_incentive_sheet"/>
+            <field name="domain">[('state','=','approved')]</field>
+            <field name="color">teal</field>
+            <field name="icon">fa-check-square-o</field>
+        </record>
+
+        <record id="tile_incentive_paid_month" model="filter.tile">
+            <field name="name">Paid This Month</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_incentive.model_lab_incentive_sheet"/>
+            <field name="domain">[('state','=','paid'),('paid_date','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="measure_field_id" ref="lab_incentive.field_lab_incentive_sheet__incentive_amount"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-inr</field>
+        </record>
+        <record id="row_incentive_1" model="filter.tile.row">
+            <field name="model_id" ref="lab_incentive.model_lab_incentive_sheet"/><field name="number">1</field><field name="name">Incentives</field>
+        </record>
+    </data>
+</odoo>

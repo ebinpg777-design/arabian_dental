@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+      The generated dashboard menus are restricted to Spectrum's own User group, while
+      the Management menu they hang under is restricted to the lab's executive group.
+      Held apart, whoever runs the lab opens Management and finds it empty — the boards
+      exist, they are simply invisible to the one person they were built for.
+
+      Granting it by implication rather than by editing each user keeps the two roles
+      separate: Spectrum still decides what a Spectrum user may do, and this only says
+      that running the lab includes being one.
+
+      Deliberately NOT in a noupdate block. implied_ids added under noupdate is applied
+      once and then never reconciled, so a group added later silently never reaches the
+      users who should have had it.
+    -->
+    <record id="lab_ceo_dashboard.group_lab_executive" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('spectrum_dashboard.spectrum_user'))]"/>
+    </record>
+</odoo>

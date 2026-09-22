@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_query_letter" model="ir.actions.report">
+        <field name="name">Query Letter to the Bank</field>
+        <field name="model">bank.reconciliation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_bank_reconciliation.report_query_letter</field>
+        <field name="report_file">lab_bank_reconciliation.report_query_letter</field>
+        <field name="print_report_name">'Query letter %s %s' % (object.journal_id.name, object.date)</field>
+        <field name="binding_model_id" ref="model_bank_reconciliation"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- The letter to the branch: the entries the books have and the passbook does not
+         show (or the reverse), with what is being asked about each. -->
+    <template id="report_query_letter">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <t t-set="rows" t-value="doc._query_rows()"/>
+                    <t t-set="money" t-value="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                    <div class="page">
+                        <p class="text-end">Date: <span t-esc="time.strftime('%d-%m-%Y')"/></p>
+                        <p>
+                            To<br/>
+                            The Branch Manager<br/>
+                            <strong t-esc="doc._bank_name()"/>
+                        </p>
+                        <p>
+                            <strong>
+                                Subject: Confirmation of entries in our account
+                                <t t-if="doc.journal_id.bank_acc_number">No. <t t-esc="doc.journal_id.bank_acc_number"/></t>
+                            </strong>
+                        </p>
+                        <p>Dear Sir / Madam,</p>
+                        <p>
+                            While reconciling our account with you as on <span t-field="doc.date"/>, we could not
+                            match the following entries with your statement. Kindly confirm whether and on
+                            what date each has been credited or debited to our account.
+                        </p>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th><th>Date</th><th>Our reference</th><th>Particulars</th>
+                                    <th class="text-end">Amount</th><th>Credit / Debit</th><th>Query</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="rows" t-as="line">
+                                    <td t-esc="line_index + 1"/>
+                                    <td><span t-esc="line['date']" t-options="{'widget': 'date'}"/></td>
+                                    <td t-esc="line['move']"/>
+                                    <td>
+                                        <span t-esc="line['label'] or line['ref']"/>
+                                        <t t-if="line['partner']"><br/><small t-esc="line['partner']"/></t>
+                                    </td>
+                                    <td class="text-end"><span t-esc="line['amount']" t-options="money"/></td>
+                                    <td t-esc="'Credit' if line['side'] == 'deposits' else 'Debit'"/>
+                                    <td t-esc="line['query']"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p class="mt-4">Thanking you,</p>
+                        <p>Yours faithfully,<br/>For <strong t-esc="doc.company_id.name"/></p>
+                        <p class="mt-5">Authorised signatory</p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

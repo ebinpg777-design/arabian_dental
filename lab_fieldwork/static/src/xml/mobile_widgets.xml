@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!-- A selection as chips. Big enough to hit while walking, and no keyboard. -->
+<t t-name="lab_fieldwork.FwChoice">
+    <div class="o_fw_choice" t-att-class="props.readonly ? 'o_fw_choice_ro' : ''">
+        <button t-foreach="choices" t-as="c" t-key="c[0]" type="button"
+                class="o_fw_choice_chip"
+                t-att-class="value === c[0] ? 'o_fw_choice_on' : ''"
+                t-att-aria-pressed="value === c[0] ? 'true' : 'false'"
+                t-att-disabled="props.readonly"
+                t-on-click="() => this.onPick(c[0])">
+            <i t-if="value === c[0]" class="fa fa-check me-1" title="Chosen"/>
+            <t t-esc="c[1]"/>
+        </button>
+    </div>
+</t>
+
+<!-- The multi-select twin: several can be on at once, so the check mark is a real
+     state per chip rather than "the one chip that differs from the rest". -->
+<t t-name="lab_fieldwork.FwChoiceMulti">
+    <div class="o_fw_choice" t-att-class="props.readonly ? 'o_fw_choice_ro' : ''">
+        <button t-foreach="choices" t-as="c" t-key="c.id" type="button"
+                class="o_fw_choice_chip"
+                t-att-class="isOn(c.id) ? 'o_fw_choice_on' : ''"
+                t-att-aria-pressed="isOn(c.id) ? 'true' : 'false'"
+                t-att-disabled="props.readonly"
+                t-on-click="() => this.onPick(c.id)">
+            <i t-if="isOn(c.id)" class="fa fa-check me-1" title="Selected"/>
+            <t t-esc="c.display_name"/>
+        </button>
+    </div>
+</t>
+
+<!-- Money. The figure is readable at arm's length; the chips cover almost every real
+     amount; the keyboard is the fallback, not the first move. -->
+<t t-name="lab_fieldwork.FwAmount">
+    <div class="o_fw_amount">
+        <div class="o_fw_amount_now" t-esc="display"/>
+        <t t-if="!props.readonly">
+            <div class="o_fw_amount_steps">
+                <button t-foreach="steps" t-as="s" t-key="s" type="button"
+                        class="o_fw_amount_step" t-on-click="() => this.add(s)">
+                    +<t t-esc="s"/>
+                </button>
+                <button type="button" class="o_fw_amount_step o_fw_amount_clear"
+                        t-on-click="() => this.clear()">
+                    <i class="fa fa-undo me-1" title="Clear"/>Clear
+                </button>
+            </div>
+            <!-- inputmode gives the phone a number pad instead of a full keyboard. -->
+            <input type="text" inputmode="decimal" t-ref="input"
+                   class="o_fw_amount_input" placeholder="or type the exact amount"
+                   t-att-value="value or ''" t-on-change="onInput"/>
+        </t>
+    </div>
+</t>
+
+<!-- Proof photo. `capture` makes the phone open the rear camera directly rather than
+     the gallery, which is the difference between one tap and four. -->
+<t t-name="lab_fieldwork.FwCamera">
+    <div class="o_fw_camera">
+        <div t-if="value" class="o_fw_camera_has">
+            <img t-att-src="src" alt="Proof photo" class="o_fw_camera_img"/>
+            <div t-if="!props.readonly" class="o_fw_camera_actions">
+                <label class="o_fw_camera_btn">
+                    <i class="fa fa-refresh me-1" title="Retake"/>Retake
+                    <input type="file" accept="image/*" capture="environment"
+                           class="d-none" t-on-change="onFile"/>
+                </label>
+                <button type="button" class="o_fw_camera_btn o_fw_camera_del"
+                        t-on-click="() => this.remove()">
+                    <i class="fa fa-trash-o me-1" title="Remove"/>Remove
+                </button>
+            </div>
+        </div>
+        <label t-else="" class="o_fw_camera_drop"
+               t-att-class="props.readonly ? 'o_fw_camera_ro' : ''">
+            <i class="fa fa-camera fa-2x mb-2" title="Take a photo"/>
+            <span t-if="state.busy">Reading the photo…</span>
+            <span t-elif="props.readonly">No photo</span>
+            <span t-else="">Take a photo</span>
+            <input t-if="!props.readonly" type="file" accept="image/*"
+                   capture="environment" class="d-none" t-on-change="onFile"/>
+        </label>
+    </div>
+</t>
+
+<!-- The three things done with a phone rather than in a form. Sticky at the bottom on
+     a small screen, so they stay under the thumb however far the form is scrolled. -->
+<t t-name="lab_fieldwork.FwContactBar">
+    <div class="o_fw_contact_bar">
+        <a t-if="mapUrl" t-att-href="mapUrl" target="_blank" rel="noopener"
+           class="o_fw_contact_btn o_fw_contact_map">
+            <i class="fa fa-location-arrow" title="Navigate"/>
+            <span>Navigate</span>
+        </a>
+        <a t-if="telUrl" t-att-href="telUrl" class="o_fw_contact_btn">
+            <i class="fa fa-phone" title="Call"/>
+            <span>Call</span>
+        </a>
+        <a t-if="waUrl" t-att-href="waUrl" target="_blank" rel="noopener"
+           class="o_fw_contact_btn">
+            <i class="fa fa-whatsapp" title="WhatsApp"/>
+            <span>WhatsApp</span>
+        </a>
+        <span t-if="!mapUrl and !telUrl" class="o_fw_contact_none">
+            No phone number or map pin on this clinic yet.
+        </span>
+    </div>
+</t>
+
+
+<!-- Upper / lower, drawn as the arches. Two toggles that combine into U, L or UL:
+     nobody thinks in three options, they think "is the upper in this job". -->
+<t t-name="lab_fieldwork.FwArch">
+    <div class="o_fw_arch" t-att-class="props.readonly ? 'o_fw_arch_ro' : ''">
+        <button type="button" class="o_fw_arch_btn"
+                t-att-class="has('upper') ? 'o_fw_arch_on' : ''"
+                t-att-aria-pressed="has('upper') ? 'true' : 'false'"
+                t-att-disabled="props.readonly" aria-label="Upper arch"
+                t-on-click="() => this.toggle('upper')">
+            <svg viewBox="0 0 60 34" class="o_fw_arch_svg" aria-hidden="true">
+                <path d="M6 30 A24 26 0 0 1 54 30" fill="none" stroke="currentColor"
+                      stroke-width="7" stroke-linecap="round"/>
+            </svg>
+            <span>Upper</span>
+        </button>
+        <button type="button" class="o_fw_arch_btn"
+                t-att-class="has('lower') ? 'o_fw_arch_on' : ''"
+                t-att-aria-pressed="has('lower') ? 'true' : 'false'"
+                t-att-disabled="props.readonly" aria-label="Lower arch"
+                t-on-click="() => this.toggle('lower')">
+            <svg viewBox="0 0 60 34" class="o_fw_arch_svg" aria-hidden="true">
+                <path d="M6 4 A24 26 0 0 0 54 4" fill="none" stroke="currentColor"
+                      stroke-width="7" stroke-linecap="round"/>
+            </svg>
+            <span>Lower</span>
+        </button>
+        <!-- The shape is not the only carrier: the selection is also written out. -->
+        <span class="o_fw_arch_label" t-esc="label"/>
+    </div>
+</t>
+
+<!-- Two big targets for the small adjustment, and a field for everything else:
+     stepping to an age of 34 would be thirty-four taps. -->
+<t t-name="lab_fieldwork.FwStepper">
+    <div class="o_fw_stepper">
+        <button type="button" class="o_fw_step_btn" aria-label="One less"
+                t-att-disabled="props.readonly" t-on-click="() => this.step(-1)">
+            <i class="fa fa-minus" title="One less"/>
+        </button>
+        <span t-if="props.readonly" class="o_fw_step_v" t-esc="display"/>
+        <input t-else="" type="text" inputmode="numeric" class="o_fw_step_v o_fw_step_in"
+               t-att-value="display" t-on-change="onInput"
+               t-att-aria-label="props.record.fields[props.name].string"/>
+        <button type="button" class="o_fw_step_btn" aria-label="One more"
+                t-att-disabled="props.readonly" t-on-click="() => this.step(1)">
+            <i class="fa fa-plus" title="One more"/>
+        </button>
+    </div>
+</t>
+
+<!-- What came in the bag, as chips. Six checkboxes is six precise taps; six chips is
+     six targets the width of a thumb. -->
+<t t-name="lab_fieldwork.FwToggles">
+    <div class="o_fw_choice">
+        <button t-foreach="items" t-as="item" t-key="item.name" type="button"
+                class="o_fw_choice_chip" t-att-class="item.on ? 'o_fw_choice_on' : ''"
+                t-att-aria-pressed="item.on ? 'true' : 'false'"
+                t-att-disabled="props.readonly"
+                t-on-click="() => this.toggle(item)">
+            <i t-if="item.on" class="fa fa-check me-1" title="Included"/>
+            <t t-esc="item.label"/>
+        </button>
+    </div>
+</t>
+
+
+<!-- A flag that changes what the LAB does, set by somebody standing at a counter. A
+     checkbox in a group of six gets missed both ways: ticked by accident and forgotten
+     when it matters. This is one target, it states the consequence, and it is loud only
+     when it is on. -->
+<t t-name="lab_fieldwork.FwFlag">
+    <div class="o_fw_flag" t-att-class="on ? 'o_fw_flag_on' : ''"
+         role="button" tabindex="0"
+         t-att-aria-pressed="on ? 'true' : 'false'"
+         t-on-click="() => this.toggle()"
+         t-on-keydown="(ev) => ev.key === 'Enter' || ev.key === ' ' ? this.toggle() : null">
+        <i t-att-class="'fa ' + (props.icon or 'fa-phone') + ' o_fw_flag_icon'"
+           t-att-title="field.string"/>
+        <div class="o_fw_flag_body">
+            <div class="o_fw_flag_title" t-esc="field.string"/>
+            <div class="o_fw_flag_help">
+                <t t-if="on">The lab will not start until the doctor has been called.</t>
+                <t t-else="" t-esc="field.help or 'Tap if the lab must call the doctor first.'"/>
+            </div>
+        </div>
+        <span class="o_fw_flag_state"><t t-esc="on ? 'ON' : 'OFF'"/></span>
+    </div>
+</t>
+
+</templates>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_form_sale_custom" model="ir.ui.view">
+        <field name="name">res.company.form.sale.custom</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Dental Lab Settings" name="lab_company">
+                    <group string="Statutory">
+                        <field name="gst_number"/>
+                        <field name="pan_number"/>
+                    </group>
+                    <group string="Emergency Service">
+                        <field name="emergency_service_id"
+                               domain="[('type', '=', 'service')]"/>
+                        <field name="emergency_service_perc"/>
+                        <field name="company_warning"/>
+                    </group>
+                    <group string="Report Logos &amp; Signature">
+                        <field name="logo1" widget="image"/>
+                        <field name="logo2" widget="image"/>
+                        <field name="payment_qr" widget="image" options="{'size': [120, 120]}"/>
+                        <field name="invoice_signature" widget="image"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

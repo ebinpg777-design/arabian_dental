@@ -1,0 +1,208 @@
+.o_coll_dash {
+    // `.o_action` is `overflow: hidden` in the web client, so the page itself must not
+    // grow: the header keeps its height and the body below it is the scroller.
+    height: 100%;
+    min-height: 0;
+
+    .o_coll_head { flex: 0 0 auto; border-bottom: 1px solid var(--border-color, #dee2e6); }
+    .o_coll_body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: auto; }
+
+    .o_coll_period { display: flex; flex-direction: column; font-size: .75rem;
+        color: var(--muted, #6c757d);
+        > span { margin-bottom: .15rem; }
+        input { max-width: 8.5rem; }
+    }
+
+    // ---------------------------------------------------------------- KPI cards
+    .o_coll_kpis { display: flex; flex-wrap: wrap; gap: .75rem; }
+    .o_coll_kpi {
+        flex: 1 1 170px; border: 1px solid var(--border-color, #dee2e6);
+        border-radius: .5rem; padding: .6rem .9rem; background: var(--bs-body-bg, #fff);
+        .o_coll_kpi_label { font-size: .7rem; text-transform: uppercase;
+            letter-spacing: .4px; color: var(--muted, #6c757d); }
+        .o_coll_kpi_value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+        .o_coll_kpi_sub { font-size: .72rem; color: var(--muted, #6c757d); }
+        &.o_coll_kpi_pending .o_coll_kpi_value { color: #b42318; }
+        &.o_coll_kpi_pct .o_coll_kpi_value { color: #1f3a5f; }
+        .o_coll_good { color: #067647; }
+    }
+    .o_coll_clickable { cursor: pointer; transition: box-shadow .12s, border-color .12s;
+        &:hover { border-color: #1f3a5f; box-shadow: 0 2px 6px rgba(31, 58, 95, .15); }
+        .o_coll_hint { opacity: .35; font-size: .7em; }
+        &:hover .o_coll_hint { opacity: .9; }
+    }
+
+    // ---------------------------------------------------------------- ageing strip
+    .o_coll_age_strip {
+        border: 1px solid var(--border-color, #dee2e6); border-radius: .5rem;
+        padding: .6rem .9rem;
+        .o_coll_age_title { font-size: .7rem; text-transform: uppercase;
+            letter-spacing: .4px; color: var(--muted, #6c757d); margin-bottom: .35rem; }
+        .o_coll_age_bar { display: flex; height: 18px; border-radius: 4px;
+            overflow: hidden; background: #eef1f4; }
+        .o_coll_age_seg { cursor: pointer; color: #fff; font-size: .68rem;
+            font-weight: 600; display: flex; align-items: center;
+            justify-content: center; transition: filter .12s;
+            &:hover { filter: brightness(1.15); } }
+        .o_coll_age_legend { display: flex; flex-wrap: wrap; gap: .9rem;
+            margin-top: .4rem; font-size: .72rem; color: var(--muted, #6c757d); }
+    }
+    .o_coll_age_dot { display: inline-block; width: 8px; height: 8px;
+        border-radius: 2px; margin-right: .3rem; }
+    .o_coll_age_current { background: #067647; }
+    .o_coll_age_30 { background: #6b9e2f; }
+    .o_coll_age_60 { background: #b45309; }
+    .o_coll_age_90 { background: #b42318; }
+
+    // ---------------------------------------------------------------- table
+    .o_coll_search { position: relative;
+        .fa-search { position: absolute; left: .55rem; top: 50%;
+            transform: translateY(-50%); color: var(--muted, #6c757d);
+            font-size: .8rem; pointer-events: none; }
+        input { padding-left: 1.8rem; width: 15rem; }
+    }
+    .o_coll_table {
+        thead th { white-space: nowrap; }
+        tbody td { vertical-align: middle; }
+        .o_coll_sortable { cursor: pointer; user-select: none;
+            i { margin-left: .25rem; font-size: .75em; }
+            .o_coll_sort_idle { opacity: .25; }
+            &:hover { color: #1f3a5f; } }
+        .o_coll_row { cursor: pointer;
+            &:hover { background: #f6f8fa; }
+            &.o_coll_row_open { background: #eef2f7; } }
+        .o_coll_link { cursor: pointer;
+            &:hover { text-decoration: underline; } }
+        .o_coll_good { color: #067647; }
+        .o_coll_total_row td { border-top: 2px solid var(--border-color, #dee2e6);
+            background: #f6f8fa; }
+    }
+
+    // The empty part of the track has to READ as a track, otherwise a short bar
+    // plus the target marker looks like two unrelated marks floating in the cell.
+    .o_coll_bar_track { height: 9px; border-radius: 5px; background: #e4e9ee;
+        box-shadow: inset 0 0 0 1px rgba(31, 58, 95, .06); overflow: hidden; }
+    .o_coll_bar { height: 100%; border-radius: 4px; }
+    .o_coll_bar_good { background: #067647; }
+    .o_coll_bar_mid { background: #b45309; }
+    .o_coll_bar_low { background: #b42318; }
+
+    // ---------------------------------------------------------------- sparkline
+    .o_coll_spark { display: flex; align-items: flex-end; justify-content: center;
+        gap: 2px; height: 26px;
+        .o_coll_spark_bar { width: 5px; border-radius: 1px; min-height: 2px;
+            opacity: .85; &:hover { opacity: 1; } } }
+
+    // ---------------------------------------------------------------- breakdown
+    .o_coll_detail_row > td { background: #fbfcfd; padding: .75rem 1rem; }
+    .o_coll_detail { display: flex; flex-wrap: wrap; gap: 1.5rem;
+        .o_coll_detail_col { flex: 1 1 320px; min-width: 0; }
+        .o_coll_detail_title { font-size: .7rem; text-transform: uppercase;
+            letter-spacing: .4px; color: var(--muted, #6c757d); margin-bottom: .4rem; } }
+    .o_coll_age_table { width: 100%; font-size: .82rem;
+        td { padding: .15rem .4rem .15rem 0; white-space: nowrap; }
+        .o_coll_age_track { width: 45%; }
+        .o_coll_age_fill { height: 7px; border-radius: 3px; min-width: 1px; } }
+    .o_coll_debtors { font-size: .82rem;
+        td { padding: .2rem .4rem; }
+        tr:hover td { background: #eef2f7; } }
+    .o_coll_days { font-size: .72rem; padding: .05rem .35rem; border-radius: 3px;
+        background: #eef1f4; color: #475467;
+        &.o_coll_days_bad { background: #fde8e6; color: #b42318; font-weight: 600; } }
+}
+
+// ---------------------------------------------------------------------------
+// Target flag, leaderboards and achievement — added 2026-08-21
+// ---------------------------------------------------------------------------
+.o_coll_dash {
+    // The flag beside the headline percentage. A PILL, not a filled bar: reusing
+    // the bar-fill classes painted a solid block of colour behind the text.
+    .o_coll_flag {
+        display: inline-block; margin-left: .5rem; padding: .1rem .45rem;
+        border-radius: 10px; font-size: .68rem; font-weight: 600;
+        letter-spacing: .2px; vertical-align: middle; white-space: nowrap;
+        &.o_coll_flag_good { background: #e7f6ee; color: #067647; }
+        &.o_coll_flag_mid  { background: #fdf3e6; color: #b45309; }
+        &.o_coll_flag_low  { background: #fdeceb; color: #b42318; }
+    }
+
+    // Marker showing where the target sits on a row's collection bar.
+    .o_coll_bar_track { position: relative; }
+    // Sits INSIDE the track: the track is `overflow: hidden` for the fill's rounded
+    // corners, so an overhanging marker would simply be clipped away.
+    .o_coll_bar_goal {
+        position: absolute; top: 0; bottom: 0; width: 2px;
+        background: #1f3a5f; opacity: .7;
+    }
+
+    // ---------------------------------------------------------------- boards
+    .o_coll_boards { display: flex; flex-wrap: wrap; gap: .75rem; }
+    .o_coll_board {
+        flex: 1 1 260px; min-width: 0;
+        border: 1px solid var(--border-color, #dee2e6); border-radius: .5rem;
+        background: var(--bs-body-bg, #fff); padding: .55rem .75rem;
+        .o_coll_board_head { display: flex; align-items: baseline;
+            margin-bottom: .35rem; color: #1f3a5f; }
+        .o_coll_board_title { font-size: .78rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .3px; }
+        .o_coll_board_sub { font-size: .68rem; color: var(--muted, #6c757d);
+            margin-left: .4rem; }
+        .o_coll_board_row { display: flex; align-items: center; gap: .5rem;
+            padding: .18rem .15rem; border-radius: .25rem; font-size: .82rem;
+            &:hover { background: #f6f8fa; } }
+        .o_coll_board_name { flex: 1 1 auto; min-width: 0; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap; }
+        .o_coll_board_value { font-weight: 700; white-space: nowrap; }
+        .o_coll_board_empty { font-size: .78rem; color: var(--muted, #6c757d);
+            padding: .3rem 0; }
+    }
+    .o_coll_medal {
+        flex: 0 0 auto; width: 17px; height: 17px; border-radius: 50%;
+        font-size: .64rem; font-weight: 700; color: #fff;
+        display: inline-flex; align-items: center; justify-content: center;
+        &.o_coll_medal_1 { background: #c9971b; }
+        &.o_coll_medal_2 { background: #9aa4ad; }
+        &.o_coll_medal_3 { background: #b06a34; }
+        &.o_coll_medal_n { background: #ccd3d9; color: #475467; }
+    }
+
+    // ---------------------------------------------------------------- targets
+    .o_coll_target_cell { cursor: pointer; white-space: nowrap; }
+    .o_coll_target_edit:hover { text-decoration: underline; }
+    .o_coll_target_input { width: 6.5rem; display: inline-block; text-align: right; }
+    .o_coll_ach { display: block; font-size: .68rem; font-weight: 600;
+        &.o_coll_ach_good { color: #067647; }
+        &.o_coll_ach_mid  { color: #b45309; }
+        &.o_coll_ach_low  { color: #b42318; } }
+}
+
+.o_coll_dash {
+    // Bar and percentage on one line: the figure used to sit under the bar and
+    // stretched every row of the table a line taller than it needed to be.
+    .o_coll_barcell { display: flex; align-items: center; gap: .5rem;
+        .o_coll_bar_track { flex: 1 1 auto; }
+        .o_coll_barpct { flex: 0 0 auto; width: 3.2rem; text-align: right;
+            font-size: .74rem; color: var(--muted, #6c757d); } }
+
+    // A target inherited from the company, not set on the row itself.
+    .o_coll_inherited { color: var(--muted, #6c757d); opacity: .75; }
+
+    // Salesperson review strip inside the expanded row.
+    .o_coll_stats { display: flex; flex-wrap: wrap; gap: 1.25rem; width: 100%;
+        padding: .1rem 0 .6rem; margin-bottom: .5rem;
+        border-bottom: 1px solid var(--border-color, #dee2e6);
+        .o_coll_stat { display: flex; flex-direction: column; }
+        .o_coll_stat_label { font-size: .66rem; text-transform: uppercase;
+            letter-spacing: .4px; color: var(--muted, #6c757d); }
+        .o_coll_stat_value { font-size: 1.05rem; font-weight: 700; color: #1f3a5f; } }
+}
+
+.o_coll_dash {
+    // A login left off the boards: still a row, still clickable, visibly quieter.
+    .o_coll_row_excluded > td { opacity: .62; }
+    .o_coll_flag_off { background: #eef1f4; color: #475467; }
+    .o_coll_rank_btn { padding: 0 .25rem; line-height: 1; vertical-align: baseline;
+        color: var(--muted, #6c757d); opacity: .45;
+        &:hover { opacity: 1; color: #1f3a5f; } }
+    .o_coll_boards_note { font-size: .74rem; color: var(--muted, #6c757d); }
+}

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_message_list" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.list</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="arch" type="xml">
+            <list create="false" decoration-danger="state == 'error'"
+                  decoration-muted="state == 'cancel'">
+                <field name="create_date" string="Queued"/>
+                <field name="partner_id" optional="show"/>
+                <field name="number"/>
+                <field name="template_id" optional="show"/>
+                <field name="body" optional="hide"/>
+                <field name="channel" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-success="state in ('sent', 'simulated', 'read', 'delivered')"
+                       decoration-info="state in ('ready', 'opened')"
+                       decoration-danger="state == 'error'"/>
+                <field name="sent_by_id" optional="hide"/>
+                <field name="seen_count" string="Opened" optional="show"/>
+                <field name="reply_summary" string="Reply" optional="show"/>
+                <field name="error" optional="show"/>
+                <button name="action_open_in_whatsapp" type="object" icon="fa-whatsapp"
+                        title="Open in WhatsApp" invisible="state not in ('ready', 'opened')"/>
+                <button name="action_retry" type="object" icon="fa-refresh"
+                        title="Try again" invisible="state != 'error' or channel == 'link'"/>
+                <button name="action_open_document" type="object" icon="fa-external-link"
+                        title="Open the record" invisible="not res_model"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_message_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.form</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="arch" type="xml">
+            <form create="false">
+                <header>
+                    <button name="action_open_in_whatsapp" type="object" string="Open in WhatsApp"
+                            class="btn-success" icon="fa-whatsapp"
+                            invisible="state not in ('ready', 'opened')"/>
+                    <button name="action_mark_sent" type="object" string="Mark as sent"
+                            invisible="state not in ('ready', 'opened')"/>
+                    <button name="action_cancel" type="object" string="Don't send"
+                            invisible="state not in ('draft', 'ready', 'opened')"/>
+                    <button name="action_retry" type="object" string="Try again"
+                            class="btn-primary" invisible="state != 'error' or channel == 'link'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="ready,opened,sent,read"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger" role="alert" invisible="state != 'error'">
+                        <b>Not delivered.</b> <field name="error" nolabel="1" readonly="1"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="number"/>
+                            <field name="partner_id"/>
+                            <field name="template_id"/>
+                            <field name="account_id"/>
+                        </group>
+                        <group>
+                            <field name="channel"/>
+                            <field name="user_id" invisible="channel != 'link'"/>
+                            <field name="sent_at"/>
+                            <field name="sent_by_id" invisible="not sent_by_id"/>
+                            <field name="seen_at" invisible="not seen_at"/>
+                            <field name="seen_count" invisible="not seen_count"/>
+                            <field name="link_expires_at" invisible="not link_expires_at"/>
+                            <field name="external_id" invisible="channel == 'link'"/>
+                            <field name="attachment_id"/>
+                            <field name="reply_to_id" invisible="not reply_to_id"/>
+                            <field name="res_model" invisible="1"/>
+                        </group>
+                    </group>
+                    <separator string="Message"/>
+                    <field name="body" readonly="state not in ('draft', 'ready')"/>
+                    <separator string="Text handed to WhatsApp" invisible="not final_text"/>
+                    <field name="final_text" invisible="not final_text"/>
+                    <separator string="Replies" invisible="not reply_ids"/>
+                    <field name="reply_ids" invisible="not reply_ids" readonly="1">
+                        <list>
+                            <field name="create_date" string="When"/>
+                            <field name="body"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_message_search" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.search</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="number"/>
+                <field name="partner_id"/>
+                <field name="body"/>
+                <filter name="to_send" string="To send" domain="[('state', 'in', ('ready', 'opened'))]"/>
+                <filter name="seen" string="Opened by the recipient" domain="[('seen_at', '!=', False)]"/>
+                <filter name="replies" string="Replies" domain="[('direction', '=', 'inbound')]"/>
+                <filter name="failed" string="Failed" domain="[('state', '=', 'error')]"/>
+                <filter name="sent" string="Sent"
+                        domain="[('state', 'in', ('sent', 'simulated', 'delivered', 'read'))]"/>
+                <separator/>
+                <filter name="this_month" string="This Month" date="create_date"/>
+                <group>
+                    <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="g_partner" string="Contact" context="{'group_by': 'partner_id'}"/>
+                    <filter name="g_template" string="Template" context="{'group_by': 'template_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_message" model="ir.actions.act_window">
+        <field name="name">Messages</field>
+        <field name="res_model">epg.whatsapp.message</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_g_state': 1}</field>
+    </record>
+</odoo>

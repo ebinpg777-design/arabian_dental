@@ -1,0 +1,54 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_visit_exec,visit executive,model_lab_visit,group_fieldwork_executive,1,1,1,0
+access_visit_mgr,visit manager,model_lab_visit,group_fieldwork_manager,1,1,1,1
+access_trip_exec,trip executive,model_lab_trip,group_fieldwork_executive,1,1,1,0
+access_trip_mgr,trip manager,model_lab_trip,group_fieldwork_manager,1,1,1,1
+access_beat_exec,beat executive,model_lab_beat,group_fieldwork_executive,1,0,0,0
+access_beat_mgr,beat manager,model_lab_beat,group_fieldwork_manager,1,1,1,1
+access_target_exec,target executive,model_lab_target,group_fieldwork_executive,1,0,0,0
+access_target_mgr,target manager,model_lab_target,group_fieldwork_manager,1,1,1,1
+access_coverage_exec,coverage executive,model_lab_coverage,group_fieldwork_executive,1,0,0,0
+access_coverage_mgr,coverage manager,model_lab_coverage,group_fieldwork_manager,1,0,0,0
+access_perf_mgr,performance manager,model_lab_performance,group_fieldwork_manager,1,0,0,0
+
+access_perf_exec,performance own,model_lab_performance,group_fieldwork_executive,1,0,0,0
+access_pc_alloc_fw_exec,petty cash float read (field),petty_cash.model_petty_cash_allocation,group_fieldwork_executive,1,0,0,0
+access_pc_alloc_fw_mgr,petty cash float read (field mgr),petty_cash.model_petty_cash_allocation,group_fieldwork_manager,1,0,0,0
+access_pc_txn_fw_exec,petty cash movement read (field),petty_cash.model_petty_cash_transaction,group_fieldwork_executive,1,0,0,0
+access_pc_txn_fw_mgr,petty cash movement read (field mgr),petty_cash.model_petty_cash_transaction,group_fieldwork_manager,1,0,0,0
+access_fw_settings,field work settings,model_lab_fieldwork_settings,group_fieldwork_admin,1,1,1,0
+access_case_exec,case executive,model_lab_case,group_fieldwork_executive,1,1,1,1
+access_case_mgr,case manager,model_lab_case,group_fieldwork_manager,1,1,1,1
+access_case_line_exec,case line executive,model_lab_case_line,group_fieldwork_executive,1,1,1,1
+access_case_line_mgr,case line manager,model_lab_case_line,group_fieldwork_manager,1,1,1,1
+access_visit_purpose_all,visit purpose read,model_lab_visit_purpose,base.group_user,1,0,0,0
+access_visit_purpose_mgr,visit purpose manage,model_lab_visit_purpose,lab_fieldwork.group_fieldwork_admin,1,1,1,1
+access_visit_outcome_all,visit outcome read,model_lab_visit_outcome,base.group_user,1,0,0,0
+access_visit_outcome_mgr,visit outcome manage,model_lab_visit_outcome,lab_fieldwork.group_fieldwork_admin,1,1,1,1
+access_quick_entry,quick entry,model_lab_case_quick_entry,lab_fieldwork.group_fieldwork_executive,1,1,1,1
+access_quick_entry_line,quick entry line,model_lab_case_quick_entry_line,lab_fieldwork.group_fieldwork_executive,1,1,1,1
+access_quick_entry_mgr,quick entry mgr,model_lab_case_quick_entry,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_quick_entry_line_mgr,quick entry line mgr,model_lab_case_quick_entry_line,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_res_partner_fw_executive,res.partner field executive create,base.model_res_partner,lab_fieldwork.group_fieldwork_executive,1,0,1,0
+access_daily_update_exec,day sheet executive,model_lab_daily_update,lab_fieldwork.group_fieldwork_executive,1,1,1,0
+access_daily_update_mgr,day sheet manager,model_lab_daily_update,lab_fieldwork.group_fieldwork_manager,1,1,1,1
+access_weekly_report_admin,weekly report admin,model_lab_weekly_report,lab_fieldwork.group_fieldwork_admin,1,0,0,1
+access_desk_cover_mgr,desk cover manager,model_lab_desk_cover,lab_fieldwork.group_fieldwork_manager,1,1,1,0
+access_desk_cover_admin,desk cover admin,model_lab_desk_cover,lab_fieldwork.group_fieldwork_admin,1,1,1,1
+access_hr_attendance_fw_mgr,hr attendance fieldwork manager read,hr_attendance.model_hr_attendance,lab_fieldwork.group_fieldwork_manager,1,0,0,0
+access_clinic_fav_exec,clinic favourite executive,model_lab_clinic_favourite,group_fieldwork_executive,1,1,1,1
+access_clinic_fav_mgr,clinic favourite manager,model_lab_clinic_favourite,group_fieldwork_manager,1,1,1,1
+access_sale_order_fw_executive,sale.order fieldwork exec read,sale.model_sale_order,lab_fieldwork.group_fieldwork_executive,1,0,0,0
+access_sale_order_fw_manager,sale.order fieldwork manager read,sale.model_sale_order,lab_fieldwork.group_fieldwork_manager,1,0,0,0
+access_collect_cash_exec,record cash collected executive,model_lab_collect_cash,group_fieldwork_executive,1,1,1,0
+access_collect_cash_mgr,record cash collected manager,model_lab_collect_cash,group_fieldwork_manager,1,1,1,0
+access_cash_collection_exec,cash collection executive,model_lab_cash_collection,group_fieldwork_executive,1,1,1,0
+access_cash_collection_mgr,cash collection manager,model_lab_cash_collection,group_fieldwork_manager,1,1,1,1
+access_cash_handover_exec,cash handover executive,model_lab_cash_handover,group_fieldwork_executive,1,1,1,0
+access_cash_handover_mgr,cash handover manager,model_lab_cash_handover,group_fieldwork_manager,1,1,1,1
+access_cash_handover_pc,cash handover petty cash officer,model_lab_cash_handover,petty_cash.group_petty_cash_officer,1,1,1,0
+access_cash_handover_line_exec,cash handover line executive,model_lab_cash_handover_line,group_fieldwork_executive,1,1,1,1
+access_cash_handover_line_mgr,cash handover line manager,model_lab_cash_handover_line,group_fieldwork_manager,1,1,1,1
+access_cash_handover_line_pc,cash handover line petty cash officer,model_lab_cash_handover_line,petty_cash.group_petty_cash_officer,1,1,1,1
+access_cash_receive_mgr,receive field cash manager,model_lab_cash_receive,group_fieldwork_manager,1,1,1,0
+access_cash_receive_pc,receive field cash petty cash officer,model_lab_cash_receive,petty_cash.group_petty_cash_officer,1,1,1,0

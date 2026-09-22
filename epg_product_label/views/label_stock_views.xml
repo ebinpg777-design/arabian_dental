@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_epg_label_stock_kanban" model="ir.ui.view">
+        <field name="name">epg.label.stock.kanban</field>
+        <field name="model">epg.label.stock</field>
+        <field name="arch" type="xml">
+            <kanban class="epg_stock_kanban" sample="1">
+                <field name="labels_per_page"/>
+                <field name="layout_mode"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="epg_stock_card">
+                            <!--
+                                The card draws the sheet to scale: recognising the
+                                stock you are holding is a visual job, not a
+                                reading job.
+                            -->
+                            <div class="epg_stock_visual">
+                                <div class="epg_stock_sheet"
+                                     t-attf-style="aspect-ratio: #{record.label_width.raw_value} / #{record.label_height.raw_value};">
+                                    <span class="epg_stock_dims">
+                                        <field name="display_size"/>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="epg_stock_body">
+                                <strong class="epg_stock_name"><field name="name"/></strong>
+                                <div class="text-muted small"><field name="note"/></div>
+                                <div class="mt-1">
+                                    <span class="badge text-bg-secondary me-1">
+                                        <field name="vendor"/>
+                                    </span>
+                                    <span class="badge text-bg-light"
+                                          invisible="layout_mode == 'roll'">
+                                        <field name="labels_per_page"/> per sheet
+                                    </span>
+                                    <span class="badge text-bg-light"
+                                          invisible="layout_mode != 'roll'">Roll</span>
+                                </div>
+                            </div>
+                            <button name="action_create_template" type="object"
+                                    class="btn btn-sm btn-primary w-100 mt-2">
+                                <i class="fa fa-magic me-1" title="Use this stock"/>Use this stock
+                            </button>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_epg_label_stock_list" model="ir.ui.view">
+        <field name="name">epg.label.stock.list</field>
+        <field name="model">epg.label.stock</field>
+        <field name="arch" type="xml">
+            <list string="Label Stock">
+                <field name="sequence" widget="handle"/>
+                <field name="vendor"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="display_size" string="Label Size"/>
+                <field name="layout_mode"/>
+                <field name="page_format" optional="show"/>
+                <field name="columns" optional="hide"/>
+                <field name="rows" optional="hide"/>
+                <field name="labels_per_page" string="Per Sheet"/>
+                <field name="template_count" string="Templates"/>
+                <button name="action_create_template" type="object"
+                        string="Use" icon="fa-magic" class="btn-link"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_epg_label_stock_form" model="ir.ui.view">
+        <field name="name">epg.label.stock.form</field>
+        <field name="model">epg.label.stock</field>
+        <field name="arch" type="xml">
+            <form string="Label Stock">
+                <header>
+                    <button name="action_create_template" type="object"
+                            string="Create Template" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_templates" type="object"
+                                class="oe_stat_button" icon="fa-tags">
+                            <field name="template_count" widget="statinfo"
+                                   string="Templates"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Avery L7160"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identification">
+                            <field name="vendor"/>
+                            <field name="code"/>
+                            <field name="note"/>
+                            <field name="sequence"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Label">
+                            <field name="unit"/>
+                            <label for="label_width" string="Size (W × H)"/>
+                            <div class="o_row">
+                                <field name="label_width" class="oe_inline"/>
+                                <span class="mx-1">×</span>
+                                <field name="label_height" class="oe_inline"/>
+                            </div>
+                            <field name="layout_mode"/>
+                        </group>
+                    </group>
+                    <group invisible="layout_mode == 'roll'">
+                        <group string="Sheet">
+                            <field name="page_format"/>
+                            <field name="orientation"/>
+                            <label for="columns" string="Grid (Cols × Rows)"/>
+                            <div class="o_row">
+                                <field name="columns" class="oe_inline"/>
+                                <span class="mx-1">×</span>
+                                <field name="rows" class="oe_inline"/>
+                                <span class="ms-2 text-muted">
+                                    = <field name="labels_per_page" nolabel="1"
+                                             readonly="1" class="oe_inline"/> per sheet
+                                </span>
+                            </div>
+                            <field name="auto_grid"/>
+                        </group>
+                        <group string="Offsets">
+                            <field name="margin_top"/>
+                            <field name="margin_bottom"/>
+                            <field name="margin_left"/>
+                            <field name="margin_right"/>
+                            <field name="column_gap"/>
+                            <field name="row_gap"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_epg_label_stock_search" model="ir.ui.view">
+        <field name="name">epg.label.stock.search</field>
+        <field name="model">epg.label.stock</field>
+        <field name="arch" type="xml">
+            <search string="Label Stock">
+                <field name="name"
+                       filter_domain="['|', ('name', 'ilike', self), ('code', 'ilike', self)]"/>
+                <field name="vendor"/>
+                <filter name="filter_sheet" string="Sheets"
+                        domain="[('layout_mode', '=', 'sheet')]"/>
+                <filter name="filter_roll" string="Rolls"
+                        domain="[('layout_mode', '=', 'roll')]"/>
+                <separator/>
+                <filter name="filter_a4" string="A4" domain="[('page_format', '=', 'A4')]"/>
+                <filter name="filter_letter" string="Letter"
+                        domain="[('page_format', '=', 'Letter')]"/>
+                <group>
+                    <filter name="group_vendor" string="Vendor"
+                            context="{'group_by': 'vendor'}"/>
+                    <filter name="group_layout" string="Layout"
+                            context="{'group_by': 'layout_mode'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_epg_label_stock" model="ir.actions.act_window">
+        <field name="name">Label Stock</field>
+        <field name="res_model">epg.label.stock</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_epg_label_stock_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Pick the stock you print on</p>
+            <p>
+                Choosing a stock fills every size, margin and gap on a new template
+                from the manufacturer's own specification, so the first sheet comes
+                out aligned instead of the third.
+            </p>
+        </field>
+    </record>
+
+</odoo>

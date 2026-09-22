@@ -1,0 +1,120 @@
+// The install bar. Bottom of the screen on a phone, out of the way of the
+// content and of the browser's own chrome at the top.
+.o_pwa_bar {
+    position: fixed;
+    z-index: 1040;
+    left: .75rem;
+    right: .75rem;
+    bottom: .75rem;
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    padding: .625rem .75rem;
+    border-radius: .6rem;
+    background: #10233a;
+    color: #fff;
+    box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .25);
+    font-size: .9rem;
+
+    @media (min-width: 768px) {
+        left: auto;
+        max-width: 26rem;
+    }
+}
+
+.o_pwa_text { flex: 1 1 auto; }
+
+.o_pwa_btn {
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: .4rem;
+    padding: .35rem .8rem;
+    font-weight: 600;
+    background: #fff;
+    color: #10233a;
+}
+
+.o_pwa_close {
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, .75);
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0 .25rem;
+}
+
+// The icon is injected into markup the website builder owns, so it inherits
+// whatever font that column happens to set - and on this lab's footer that is
+// not FontAwesome, so \f10b arrived as a tofu box beside the words while the
+// theme's own icons rendered fine. Naming the family on our own element is the
+// only way to be sure of it wherever the item is dropped. (client, 2026-09-05)
+.o_pwa_install > .fa {
+    font-family: FontAwesome !important;
+    font-weight: normal;
+    font-style: normal;
+}
+
+// The menu / footer entry, and the help sheet behind it (spec §7).
+.o_pwa_nav_item .o_pwa_install {
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.o_pwa_foot_item {
+    margin-top: .25rem;
+
+    .o_pwa_foot_link {
+        color: inherit;
+        text-decoration: none;
+        cursor: pointer;
+        opacity: .85;
+
+        &:hover, &:focus-visible { opacity: 1; text-decoration: underline; }
+    }
+}
+
+// Shown only when the browser has withheld its own prompt, which is most of
+// the time — so it has to read as help, not as an error.
+.o_pwa_sheet_backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(16, 35, 58, .55);
+}
+
+.o_pwa_sheet {
+    background: #fff;
+    color: #10233a;
+    border-radius: .75rem;
+    padding: 1.25rem;
+    max-width: 26rem;
+    width: 100%;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, .3);
+}
+
+.o_pwa_sheet_title { margin: 0 0 .75rem; font-weight: 700; }
+
+.o_pwa_sheet_steps {
+    margin: 0 0 1rem;
+    padding-left: 1.1rem;
+    font-size: .9rem;
+    line-height: 1.5;
+
+    li + li { margin-top: .4rem; }
+}
+
+.o_pwa_sheet_close {
+    width: 100%;
+    border: 0;
+    border-radius: .4rem;
+    padding: .5rem;
+    font-weight: 600;
+    background: var(--primary, #714b67);
+    color: #fff;
+}

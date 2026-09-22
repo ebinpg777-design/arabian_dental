@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!--
+    Save / Discard for a thumb.
+
+    Odoo's own control is a pair of 16px icons in the breadcrumb: no labels, at the top
+    of the screen, which on a 6" phone is the one place a hand holding the phone cannot
+    reach. An executive standing at a clinic counter loses work to that control.
+
+    This adds a second presentation of the SAME control rather than a second control —
+    it inherits the existing component's `save`, `discard` and `indicatorMode`, so there
+    is no duplicated state to drift and no way for the bar to disagree with the icons.
+    Shown only below the desktop breakpoint (see the SCSS), and only while there is
+    something to save.
+-->
+<t t-name="lab_fieldwork.MobileSaveBar"
+   t-inherit="web.FormStatusIndicator" t-inherit-mode="extension">
+    <xpath expr="//div[hasclass('o_form_status_indicator')]" position="inside">
+        <div class="o_fw_savebar"
+             t-att-class="{ o_fw_savebar_shown: props.model.root.isNew or displayButtons }">
+            <button type="button"
+                    class="o_fw_savebar_discard"
+                    t-on-click.stop="discard"
+                    aria-label="Discard all changes">
+                <i class="fa fa-undo me-2" title="Discard"/>
+                <span>Discard</span>
+            </button>
+            <button type="button"
+                    class="o_fw_savebar_save"
+                    t-att-disabled="indicatorMode === 'invalid' and !props.model.root.isNew"
+                    t-on-click.stop="save"
+                    aria-label="Save">
+                <i class="fa fa-check me-2" title="Save"/>
+                <span t-if="indicatorMode === 'invalid'">Check the form</span>
+                <span t-else="">Save</span>
+            </button>
+        </div>
+    </xpath>
+</t>
+
+</templates>

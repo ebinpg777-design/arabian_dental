@@ -1,0 +1,158 @@
+// The Management workspace: a strip of launchers that never leaves the screen,
+// and the chosen screen under it. Compact on purpose - the strip is furniture,
+// the screen is the point. (client, 2026-08-28)
+$hub-ink: #1f1a3d;
+$hub-brand-a: #3730a3;
+$hub-brand-b: #0d7c8a;
+
+.o_ceo_dash {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    background: $o-gray-100;
+}
+
+.o_ceo_dash .o_ceo_strip {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    // brand | tabs (may wrap) | full-screen: the button stays on the first row
+    // however many rows the tabs take.
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: .5rem .75rem;
+    padding: .5rem .875rem;
+    background: linear-gradient(120deg, $hub-brand-a, $hub-brand-b);
+    color: #fff;
+    box-shadow: 0 .125rem .5rem rgba($hub-ink, .18);
+}
+
+.o_ceo_dash .o_ceo_strip_brand {
+    display: inline-flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: .9375rem;
+    letter-spacing: .01em;
+    padding-right: .5rem;
+    border-right: 1px solid rgba(255, 255, 255, .25);
+}
+
+.o_ceo_dash .o_ceo_tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+// One launcher. Small: icon, name, its figure as a chip, its key.
+.o_ceo_dash .o_ceo_tab {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    min-height: 34px;
+    padding: .25rem .7rem .25rem .6rem;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 2rem;
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+    font-size: .8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background-color .12s ease, transform .12s ease;
+
+    &:hover { background: rgba(255, 255, 255, .24); transform: translateY(-1px); }
+    &:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+}
+
+.o_ceo_dash .o_ceo_tab_on {
+    background: #fff;
+    border-color: #fff;
+    color: $hub-brand-a;
+
+    &:hover { background: #fff; transform: none; }
+    .o_ceo_tab_fig { background: rgba($hub-brand-a, .1); color: $hub-brand-a; }
+}
+
+.o_ceo_dash .o_ceo_tab_icon { font-size: .875rem; opacity: .9; }
+.o_ceo_dash .o_ceo_tab_name { line-height: 1; }
+
+.o_ceo_dash .o_ceo_tab_fig {
+    font-size: .6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    padding: .1rem .45rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, .22);
+    color: #fff;
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.o_ceo_dash .o_ceo_full {
+    margin-top: .0625rem;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: .5rem;
+    background: transparent;
+    color: #fff;
+    font-size: .75rem;
+    padding: .3rem .6rem;
+    min-height: 32px;
+
+    &:hover { background: rgba(255, 255, 255, .18); }
+}
+
+// The chosen screen. Its own root carries `o_action` too; nested like this it
+// escapes the web client's height:100%/overflow:hidden rule, so it simply flows
+// and the page scrolls as one.
+.o_ceo_dash .o_ceo_stage {
+    flex: 1 1 auto;
+    min-height: 0;
+
+    > * { min-height: 0; }
+}
+
+.o_ceo_dash .o_ceo_stage_note {
+    padding: 2rem;
+    color: $o-gray-600;
+    text-align: center;
+}
+
+// Embedded, the Pulse's own three tabs sit right under the strip's Sales /
+// Field Force / Money - the same names twice. The strip is the switcher here.
+.o_ceo_dash .o_ceo_stage .o_mp_tabs { display: none; }
+
+// A phone: one row that scrolls sideways, not four stacked rows of a sticky
+// header eating a third of the screen. Figures go; the screen shows them.
+@media (max-width: 767.98px) {
+    .o_ceo_dash .o_ceo_strip { grid-template-columns: minmax(0, 1fr); padding: .4rem .5rem; }
+    .o_ceo_dash .o_ceo_strip_brand { display: none; }
+    .o_ceo_dash .o_ceo_tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: .125rem;
+        &::-webkit-scrollbar { display: none; }
+    }
+    .o_ceo_dash .o_ceo_tab { flex: 0 0 auto; font-size: .75rem; padding: .2rem .6rem; min-height: 36px; }
+    .o_ceo_dash .o_ceo_tab_fig,
+    .o_ceo_dash .o_ceo_full { display: none; }
+}
+
+// ---------------------------------------------------------------------------
+// The board must scroll. Its root carries `o_action`, and the web client styles
+// `html .o_web_client > .o_action_manager > .o_action { height: 100%; overflow: hidden }`
+// - four compound selectors - so anything shorter loses and the content below the
+// fold is simply unreachable. `min-height: 0` matters alongside, or a flex child
+// never shrinks below its content and the overflow never engages.
+// ---------------------------------------------------------------------------
+html .o_web_client > .o_action_manager > .o_action.o_ceo_dash {
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+}

@@ -1,0 +1,595 @@
+// The Management menu's Business Pulse. SCSS variables only — Odoo 19 exposes no
+// --bs-* custom properties in the backend. (client, 2026-08-27)
+
+.o_mp {
+    padding: 1rem;
+    max-width: 1400px;
+    margin: 0 auto;
+
+    .o_mp_head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .o_mp_tabs { display: flex; gap: .375rem; flex-wrap: wrap; }
+
+    .o_mp_tab {
+        border: 1px solid $border-color;
+        border-radius: 2rem;
+        padding: .45rem 1.05rem;
+        font-weight: 600;
+        font-size: .875rem;
+        background-color: $body-bg;
+        color: $o-gray-700;
+        min-height: 38px;
+
+        &:hover { background-color: $o-gray-100; }
+    }
+
+    .o_mp_tab_on {
+        background-color: $primary;
+        border-color: $primary;
+        color: #fff;
+
+        &:hover { background-color: $primary; }
+    }
+
+    .o_mp_full {
+        border: 0;
+        background: none;
+        color: $primary;
+        font-weight: 600;
+        font-size: .8125rem;
+        min-height: 38px;
+    }
+
+    // ------------------------------------------------------------- headline cards
+    .o_mp_cards {
+        display: flex;
+        gap: .75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .o_mp_card {
+        flex: 1 1 200px;
+        border: 1px solid $border-color;
+        border-radius: .75rem;
+        background-color: $body-bg;
+        padding: .875rem 1rem;
+    }
+
+    .o_mp_card_click {
+        cursor: pointer;
+        &:hover { box-shadow: 0 .25rem .75rem rgba($o-gray-900, .10); }
+    }
+
+    .o_mp_card_warn { border-color: rgba($danger, .5); }
+
+    .o_mp_card_v { font-size: 1.375rem; font-weight: 700; color: $o-gray-900; }
+    .o_mp_card_l { font-size: .75rem; color: $o-gray-600; }
+
+    .o_mp_delta { font-size: .75rem; font-weight: 600; margin-top: .25rem; }
+    .o_mp_up { color: $success; }
+    .o_mp_down { color: $danger; }
+
+    // ------------------------------------------------------------------- panels
+    .o_mp_panel {
+        border: 1px solid $border-color;
+        border-radius: .75rem;
+        background-color: $body-bg;
+        padding: .875rem 1rem;
+        margin-bottom: 1rem;
+        min-width: 0;
+    }
+
+    .o_mp_panel_h { font-weight: 700; color: $o-gray-900; margin-bottom: .625rem; }
+
+    .o_mp_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1rem;
+
+        .o_mp_panel { margin-bottom: 0; }
+    }
+
+    // ------------------------------------------------------------ column charts
+    .o_mp_bars {
+        display: flex;
+        align-items: flex-end;
+        gap: .375rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: .25rem;
+    }
+
+    .o_mp_col { flex: 1 0 44px; min-width: 44px; }
+
+    .o_mp_track { height: 96px; display: flex; align-items: flex-end; }
+
+    .o_mp_bar {
+        width: 100%;
+        border-radius: .3rem .3rem 0 0;
+        background: linear-gradient(180deg, lighten($primary, 16%), $primary);
+        min-height: 2px;
+    }
+
+    .o_mp_x {
+        margin-top: .25rem;
+        font-size: .6875rem;
+        text-align: center;
+        color: $o-gray-600;
+        white-space: nowrap;
+    }
+
+    .o_mp_xv {
+        font-size: .6875rem;
+        text-align: center;
+        font-weight: 700;
+        color: $o-gray-900;
+        font-variant-numeric: tabular-nums;
+    }
+
+    // -------------------------------------------------------------- ranked rows
+    .o_mp_row {
+        display: flex;
+        align-items: center;
+        gap: .625rem;
+        padding: .4rem .25rem;
+        border-top: 1px solid $border-color;
+        cursor: pointer;
+        min-height: 40px;
+
+        &:first-of-type { border-top: 0; }
+        &:hover { background-color: $o-gray-100; }
+    }
+
+    .o_mp_row_flat { cursor: default; &:hover { background-color: transparent; } }
+
+    .o_mp_row_n {
+        flex: 0 0 32%;
+        min-width: 0;
+        font-weight: 600;
+        color: $o-gray-900;
+        font-size: .8125rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .o_mp_row_bar {
+        flex: 1 1 auto;
+        height: 8px;
+        border-radius: 4px;
+        background-color: $o-gray-200;
+        overflow: hidden;
+    }
+
+    .o_mp_row_fill {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, lighten($primary, 12%), $primary);
+    }
+
+    .o_mp_fill_warn { background: linear-gradient(90deg, lighten($danger, 12%), $danger); }
+
+    .o_mp_row_v {
+        flex: 0 0 auto;
+        font-size: .8125rem;
+        font-weight: 600;
+        color: $o-gray-700;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .o_mp_none { padding: 1rem .25rem; color: $o-gray-600; font-size: .8125rem; }
+
+    .o_mp_none_big {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        border: 1px dashed $border-color;
+        border-radius: .75rem;
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .o_mp { padding: .75rem; }
+    .o_mp .o_mp_row_n { flex-basis: 40%; }
+}
+
+// The same `.o_action { overflow: hidden }` trap every board here has hit: the web
+// client's own four-part selector wins unless matched, and the page then simply
+// refuses to scroll. (client, 2026-08-27)
+html .o_web_client > .o_action_manager > .o_action.o_mp {
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+// ---------------------------------------------------------------------------
+// The lens switch, the same-days ghost, and the ageing ladder.
+// (client, 2026-08-28)
+// ---------------------------------------------------------------------------
+$mp-age-30:  #15803d;
+$mp-age-60:  #65a30d;
+$mp-age-90:  #d97706;
+$mp-age-old: #b91c1c;
+
+.o_mp {
+    .o_mp_panel_head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: .75rem;
+        flex-wrap: wrap;
+    }
+
+    // Two lenses on one chart. A segmented control, not pills: it switches what a
+    // single thing is measured in, it does not navigate anywhere.
+    .o_mp_lens {
+        display: inline-flex;
+        border: 1px solid $border-color;
+        border-radius: .5rem;
+        overflow: hidden;
+        background: $body-bg;
+    }
+    .o_mp_lensbtn {
+        border: 0;
+        background: transparent;
+        color: $o-gray-700;
+        font-size: .75rem;
+        font-weight: 600;
+        padding: 0 .7rem;
+        min-height: 30px;
+
+        &:hover { background: $o-gray-100; }
+        & + & { border-left: 1px solid $border-color; }
+    }
+    .o_mp_lensbtn_on {
+        background: $primary;
+        color: #fff;
+        &:hover { background: $primary; }
+    }
+
+    .o_mp_col { cursor: pointer; }
+    .o_mp_track { position: relative; }
+
+    // The ghost sits BEHIND the real bar, so the month in progress is never read
+    // as a collapse - it is a fraction of a month beside eleven whole ones.
+    .o_mp_ghost {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: .25rem .25rem 0 0;
+        background: repeating-linear-gradient(
+            45deg, rgba($primary, .18), rgba($primary, .18) 3px,
+            transparent 3px, transparent 6px);
+        border-top: 1px dashed rgba($primary, .5);
+    }
+    .o_mp_bar_now { opacity: .95; }
+
+    .o_mp_foot {
+        margin-top: .5rem;
+        font-size: .75rem;
+        color: $o-gray-600;
+    }
+    .o_mp_key {
+        display: inline-block;
+        width: 14px;
+        height: 8px;
+        border-radius: 2px;
+        margin-right: .25rem;
+        vertical-align: baseline;
+    }
+    .o_mp_key_ghost {
+        background: repeating-linear-gradient(
+            45deg, rgba($primary, .18), rgba($primary, .18) 3px,
+            transparent 3px, transparent 6px);
+        border: 1px dashed rgba($primary, .5);
+    }
+
+    // The ageing ladder. Same shape as the Production Reports one, deliberately:
+    // a reader who has learned one reads the other.
+    .o_mp_ageband {
+        display: flex;
+        height: 26px;
+        border-radius: .5rem;
+        overflow: hidden;
+        background: $o-gray-200;
+    }
+    .o_mp_ageseg {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #fff;
+        font-size: .6875rem;
+        font-weight: 700;
+        min-width: 0;
+        transition: filter .12s ease;
+
+        &:hover { filter: brightness(1.12); }
+    }
+    // Keyed on the countback's own bucket keys since 2026-08-31 - the bands are
+    // built from lab.collection.performance now, and its keys are these.
+    .o_mp_age_current  { background: $mp-age-30; }
+    .o_mp_age_d30      { background: $mp-age-60; }
+    .o_mp_age_d60      { background: $mp-age-90; }
+    .o_mp_age_d90      { background: $mp-age-old; }
+
+    .o_mp_agelegend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-top: .625rem;
+    }
+    .o_mp_agekey {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+        border: 0;
+        background: none;
+        font-size: .8125rem;
+        color: $o-gray-700;
+        min-height: 32px;
+        padding: 0;
+
+        b { color: $o-gray-900; font-variant-numeric: tabular-nums; }
+        &:disabled { opacity: .45; }
+        &:not(:disabled):hover { color: $o-gray-900; text-decoration: underline; }
+    }
+    .o_mp_agedot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        display: inline-block;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .o_mp .o_mp_lensbtn { padding: 0 .55rem; }
+    .o_mp .o_mp_agelegend { gap: .5rem; }
+}
+
+// The salesperson selector in the header. A native select on purpose: it is a
+// filter over a long list, and a phone's own picker beats any dropdown we could
+// draw. (client, 2026-08-28)
+.o_mp .o_mp_who {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: 0;
+    margin-left: auto;
+}
+.o_mp .o_mp_who_l {
+    font-size: .75rem;
+    color: $o-gray-600;
+    white-space: nowrap;
+}
+.o_mp .o_mp_who_sel {
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    background: $body-bg;
+    color: $o-gray-900;
+    font-size: .8125rem;
+    font-weight: 600;
+    padding: 0 1.6rem 0 .6rem;
+    min-height: 34px;
+    max-width: 14rem;
+}
+
+@media (max-width: 767.98px) {
+    .o_mp .o_mp_who { margin-left: 0; width: 100%; }
+    .o_mp .o_mp_who_sel { flex: 1 1 auto; max-width: none; }
+}
+
+// ------------------------------------------------- the Money tab (2026-09-02)
+// Period chips, the received/ratio cards, paired billed-vs-received bars, the
+// route table, receipt mix and the quiet-debtor list.
+.o_mp {
+    .o_mp_periods {
+        display: flex;
+        align-items: center;
+        gap: .375rem;
+        flex-wrap: wrap;
+        margin-bottom: .875rem;
+    }
+
+    .o_mp_period {
+        border: 1px solid $border-color;
+        background-color: $body-bg;
+        color: $o-gray-700;
+        border-radius: 999px;
+        padding: .25rem .75rem;
+        font-size: .8125rem;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:hover { border-color: $primary; color: $primary; }
+    }
+
+    .o_mp_period_on {
+        background-color: $primary;
+        border-color: $primary;
+        color: #fff;
+
+        &:hover { color: #fff; }
+    }
+
+    .o_mp_period_span {
+        margin-left: .25rem;
+        font-size: .75rem;
+        color: $o-gray-600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .o_mp_card_cash { position: relative; overflow: hidden; }
+
+    .o_mp_spark {
+        position: absolute;
+        right: .625rem;
+        bottom: .5rem;
+        width: 84px;
+        height: 24px;
+        opacity: .9;
+
+        polyline {
+            fill: none;
+            stroke: #0e9f6e;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    }
+
+    .o_mp_refunds {
+        margin-top: .25rem;
+        font-size: .75rem;
+        color: #c2410c;
+        font-weight: 600;
+    }
+
+    .o_mp_chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-top: .75rem;
+    }
+
+    .o_mp_chip {
+        border: 1px solid $border-color;
+        border-radius: 999px;
+        padding: .25rem .75rem;
+        font-size: .8125rem;
+        color: $o-gray-700;
+        background-color: rgba($primary, .04);
+
+        b { color: $o-gray-900; }
+    }
+
+    .o_mp_chip_warn {
+        border-color: rgba(#c2410c, .45);
+        background-color: rgba(#c2410c, .07);
+    }
+
+    .o_mp_track_pair {
+        gap: 2px;
+
+        .o_mp_bar2 {
+            flex: 1 1 50%;
+            border-radius: .25rem .25rem 0 0;
+            min-height: 2px;
+        }
+
+        .o_mp_bar2_billed {
+            background: linear-gradient(180deg, lighten($primary, 16%), $primary);
+        }
+
+        .o_mp_bar2_cash { background: linear-gradient(180deg, #34d399, #0e9f6e); }
+
+        // The opening month's receipts are migration entries, not cash flow:
+        // the bar is a dashed stub whose tooltip says so.
+        .o_mp_bar2_open {
+            background: repeating-linear-gradient(
+                45deg, $o-gray-400, $o-gray-400 3px, transparent 3px, transparent 6px);
+            height: 10px !important;
+        }
+    }
+
+    .o_mp_key_billed { background: $primary; }
+    .o_mp_key_cash { background: #0e9f6e; }
+
+    .o_mp_labtag {
+        margin-left: .5rem;
+        font-size: .6875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: $o-gray-600;
+        border: 1px dashed $border-color;
+        border-radius: .375rem;
+        padding: .0625rem .375rem;
+        vertical-align: middle;
+    }
+
+    .o_mp_tablewrap { overflow-x: auto; }
+
+    .o_mp_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .875rem;
+
+        th {
+            text-align: left;
+            font-size: .6875rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: $o-gray-600;
+            padding: .25rem .5rem;
+            border-bottom: 1px solid $border-color;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: .375rem .5rem;
+            border-bottom: 1px solid rgba($border-color, .55);
+            white-space: nowrap;
+        }
+
+        .o_mp_num { text-align: right; font-variant-numeric: tabular-nums; }
+
+        .o_mp_trow { cursor: pointer; }
+
+        .o_mp_trow:hover td { background-color: rgba($primary, .05); }
+
+        .o_mp_bad { color: #b91c1c; font-weight: 700; }
+    }
+
+    .o_mp_grid_2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+
+    .o_mp_mixbar {
+        display: flex;
+        height: 14px;
+        border-radius: 999px;
+        overflow: hidden;
+        margin-bottom: .625rem;
+        background-color: rgba($border-color, .4);
+    }
+
+    .o_mp_mixseg { min-width: 2px; }
+
+    .o_mp_mix_bank { background-color: #2563eb; }
+    .o_mp_mix_cash { background-color: #0e9f6e; }
+    .o_mp_mix_other { background-color: $o-gray-500; }
+
+    .o_mp_mixrow {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .25rem 0;
+
+        .o_mp_row_v { margin-left: auto; }
+    }
+
+    .o_mp_quiet_when {
+        margin-left: auto;
+        margin-right: .75rem;
+        font-size: .75rem;
+        color: $o-gray-600;
+        white-space: nowrap;
+    }
+
+    .o_mp_share {
+        margin-left: .375rem;
+        font-size: .6875rem;
+        font-weight: 700;
+        color: $o-gray-600;
+    }
+}

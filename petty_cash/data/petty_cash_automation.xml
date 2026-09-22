@@ -1,0 +1,58 @@
+<odoo>
+    <!-- ─── Low-balance alert email ──────────────────────────────────────── -->
+    <record id="mail_template_petty_cash_low_balance" model="mail.template">
+        <field name="name">Petty Cash: Low Balance Alert</field>
+        <field name="model_id" ref="model_petty_cash_allocation"/>
+        <field name="subject">Petty cash balance low — {{ object.name }}</field>
+        <field name="email_from">{{ (object.company_id.email or user.email_formatted) }}</field>
+        <field name="email_to">{{ object.partner_id.email or '' }}</field>
+        <field name="body_html" type="html">
+            <div style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;">
+                <p>Dear <t t-out="object.partner_id.name or 'Cash Holder'"/>,</p>
+                <p>
+                    Your petty cash allocation <strong t-out="object.name"/> is running low.
+                </p>
+                <table style="border-collapse:collapse;margin:12px 0;">
+                    <tr>
+                        <td style="padding:4px 12px;color:#888;">Allocated</td>
+                        <td style="padding:4px 12px;"><t t-out="format_amount(object.amount_allocated, object.currency_id)"/></td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px 12px;color:#888;">Utilized</td>
+                        <td style="padding:4px 12px;"><t t-out="format_amount(object.amount_utilized, object.currency_id)"/></td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px 12px;color:#888;">Remaining balance</td>
+                        <td style="padding:4px 12px;color:#c0392b;font-weight:bold;"><t t-out="format_amount(object.amount_balance, object.currency_id)"/></td>
+                    </tr>
+                </table>
+                <p>Please reconcile your expenses or request a replenishment.</p>
+            </div>
+        </field>
+        <field name="lang">{{ object.partner_id.lang or user.lang }}</field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <!-- ─── Scheduled jobs ───────────────────────────────────────────────── -->
+    <record id="ir_cron_petty_cash_low_balance" model="ir.cron">
+        <field name="name">Petty Cash: Low Balance Alerts</field>
+        <field name="model_id" ref="model_petty_cash_allocation"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_low_balance()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="ir_cron_petty_cash_auto_replenish" model="ir.cron">
+        <field name="name">Petty Cash: Auto Replenishment</field>
+        <field name="model_id" ref="model_petty_cash_allocation"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_auto_replenish()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+
+
+</odoo>

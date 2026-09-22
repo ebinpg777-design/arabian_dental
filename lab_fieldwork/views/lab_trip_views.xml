@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_trip_form" model="ir.ui.view">
+        <field name="name">lab.trip.form</field>
+        <field name="model">lab.trip</field>
+        <field name="arch" type="xml">
+            <form class="o_fw_form">
+                <header>
+                    <button name="action_start" type="object" string="Start the Day"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_close" type="object" string="End the Day"
+                            class="btn-primary" invisible="state != 'open'"/>
+                    <button name="action_approve" type="object" string="Approve"
+                            class="btn-primary" invisible="state != 'closed'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <button name="action_reject" type="object" string="Send Back"
+                            invisible="state != 'closed'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('approved', 'cancel')"/>
+                    <button name="action_reset" type="object" string="Reset"
+                            invisible="state == 'draft'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,open,closed,approved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning m-0 mb-3 rounded d-flex align-items-center"
+                         role="alert" invisible="not lock_is_locked or lock_can_edit">
+                        <i class="fa fa-lock me-2" title="Locked"/>
+                        <field name="lock_message" nolabel="1" readonly="1" class="mb-0"/>
+                    </div>
+                    <field name="lock_is_locked" invisible="1"/>
+                    <field name="lock_can_edit" invisible="1"/>
+
+                    <widget name="web_ribbon" title="Approved" bg_color="text-bg-success"
+                            invisible="state != 'approved'"/>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger"
+                            invisible="state != 'cancel'"/>
+
+                    <!-- What the day's travel produced, next to what it cost. A trip
+                         that brought back eleven cases and one that brought back none
+                         should not look identical on the form a manager approves. -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_visits" type="object"
+                                class="oe_stat_button" icon="fa-map-marker"
+                                invisible="visit_count == 0">
+                            <field name="visit_count" widget="statinfo" string="Visits"/>
+                        </button>
+                        <button name="action_view_cases" type="object"
+                                class="oe_stat_button" icon="fa-medkit"
+                                invisible="case_count == 0">
+                            <field name="case_count" widget="statinfo" string="Cases"/>
+                        </button>
+                        <button name="action_view_cases" type="object"
+                                class="oe_stat_button" icon="fa-line-chart"
+                                invisible="case_value == 0">
+                            <div class="o_stat_info">
+                                <field name="case_value" widget="monetary" class="o_stat_value"/>
+                                <span class="o_stat_text">Case Value</span>
+                            </div>
+                        </button>
+                        <button name="action_view_collections" type="object"
+                                class="oe_stat_button" icon="fa-money"
+                                invisible="collected_total == 0">
+                            <div class="o_stat_info">
+                                <field name="collected_total" widget="monetary" class="o_stat_value"/>
+                                <span class="o_stat_text">Collected</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                        <h2 class="text-muted mt-0">
+                            <field name="distance" readonly="1" nolabel="1" class="oe_inline"/> km
+                            &#8226;
+                            <field name="amount" readonly="1" nolabel="1" class="oe_inline"/>
+                        </h2>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="allowed_user_ids" invisible="1"/>
+                            <field name="user_id" readonly="state != 'draft'"
+                                   domain="[('id', 'in', allowed_user_ids)]"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="vehicle" widget="fw_choice"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <!-- The rate is policy: everyone sees what is paid per km,
+                                 only the configuration role may override it here. -->
+                            <field name="can_edit_rate" invisible="1"/>
+                            <field name="rate" readonly="not can_edit_rate"/>
+                            <field name="company_id" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <group string="Odometer">
+                        <group>
+                            <field name="odo_start" readonly="state not in ('draft',)"/>
+                            <field name="photo_start" widget="fw_camera"
+                                   readonly="state not in ('draft',)"/>
+                        </group>
+                        <group>
+                            <field name="odo_end" readonly="state not in ('open',)"/>
+                            <field name="photo_end" widget="fw_camera"
+                                   readonly="state not in ('open',)"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group>
+                            <field name="distance" readonly="1"/>
+                            <field name="amount" readonly="1" class="fw-bold"/>
+                        </group>
+                        <group>
+                            <field name="approved_by" readonly="1"
+                                   invisible="state != 'approved'"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Anything worth noting about today…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_trip_list" model="ir.ui.view">
+        <field name="name">lab.trip.list</field>
+        <field name="model">lab.trip</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancel'" decoration-success="state == 'approved'">
+                <field name="date"/>
+                <field name="user_id" groups="lab_fieldwork.group_fieldwork_manager"/>
+                <field name="vehicle" optional="show"/>
+                <field name="distance" sum="km"/>
+                <field name="amount" sum="Claim"/>
+                <field name="visit_count" optional="hide"/>
+                <field name="state" widget="badge"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_trip_search" model="ir.ui.view">
+        <field name="name">lab.trip.search</field>
+        <field name="model">lab.trip</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <filter name="to_approve" string="Waiting for Approval"
+                        domain="[('state', '=', 'closed')]"/>
+                <filter name="mine" string="Mine" domain="[('user_id', '=', uid)]"/>
+                <!-- Odoo's own date filter rather than a hand-rolled domain. It gives
+                     Month / Quarter / Year and their previous periods for free, and it
+                     avoids py_js: a view domain is evaluated by the PYTHON-LIKE
+                     interpreter in the browser, which implements strftime but NOT
+                     date.replace(), so `context_today().replace(day=1)` blows up at
+                     render time with "Function.prototype.apply was called on
+                     undefined". Nothing server-side catches it. -->
+                <filter name="filter_date" date="date" string="Date"/>
+                <group>
+                    <filter name="g_user" string="Executive" context="{'group_by': 'user_id'}"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_trip_kanban" model="ir.ui.view">
+        <field name="name">lab.trip.kanban</field>
+        <field name="model">lab.trip</field>
+        <field name="arch" type="xml">
+            <!-- Cards, because this list is read on a phone. As a list it was
+                 534px wide on a 412px screen, so an executive had to drag the
+                 table sideways to see the figure they came for. (client, 2026-08-24) -->
+            <kanban quick_create="false" class="o_fw_kanban" default_order="date desc, id desc">
+                <field name="state"/>
+                <field name="currency_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="o_fw_edge o_fw_edge_#{record.state.raw_value}"/>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="fs-6"><field name="date" widget="date"/></strong>
+                            <field name="state" widget="badge"
+                                   decoration-success="state == 'approved'"
+                                   decoration-warning="state == 'submitted'"/>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">
+                                <i class="fa fa-motorcycle me-1" title="Distance"/>
+                                <field name="distance"/> km
+                            </span>
+                            <strong><field name="amount" widget="monetary"/></strong>
+                        </div>
+                        <div t-if="record.vehicle.raw_value" class="text-muted small mt-1">
+                            <field name="vehicle"/>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_trip_my" model="ir.actions.act_window">
+        <field name="name">My Travel</field>
+        <field name="res_model">lab.trip</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('user_id', '=', uid)]</field>
+        <field name="context">{'search_default_filter_date': 1}</field>
+    </record>
+
+    <record id="action_trip_approve" model="ir.actions.act_window">
+        <field name="name">Travel Approvals</field>
+        <field name="res_model">lab.trip</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_to_approve': 1, 'search_default_g_user': 1}</field>
+    </record>
+</odoo>

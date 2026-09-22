@@ -1,0 +1,526 @@
+<!--
+  Odoo Apps store page for Dynamic Filter Tiles.
+
+  IMPORTANT - why everything is inline:
+  apps.odoo.com sanitises this file with odoo.tools.mail's cleaner. It strips
+  <style> blocks entirely (classes survive but nothing backs them) and filters
+  inline styles against a whitelist. Every declaration below uses whitelisted
+  properties only: background-color / background-image, border*, border-radius,
+  display, width/height/max-width, margin/padding, object-fit, text-*,
+  line-height, opacity and the table properties. No flex layout, no box-shadow,
+  no position, no overflow, no box-sizing - the sanitiser would silently drop
+  them and break the page (again).
+
+  Layout = inline-block cells with explicit widths; padding lives on inner divs
+  because box-sizing cannot be set. Adjacent inline-block tags are butted
+  together deliberately: whitespace between them becomes a visible gap.
+
+  ENCODING: this file must stay PURE ASCII. The store's ingestion decoded the
+  file as Latin-1 once (it is a fragment, no charset declaration), turning every
+  raw multi-byte character into mojibake on the live page. All special
+  characters - icons, em dashes, quotes, ellipses - are numeric HTML entities
+  (&#9638; etc.), which are ASCII bytes and survive any charset guess. Check
+  with:  python3 -c "open('index.html','rb').read().decode('ascii')"
+-->
+<section style="max-width:1140px; margin:0 auto; padding:8px 14px 40px; color:#12123a; line-height:1.6; font-size:16px;">
+
+    <!-- ============================ HERO ============================ -->
+    <div style="margin-top:16px;">
+        <img src="banner.png" alt="Dynamic Filter Tiles &#8212; turn any Odoo list into an interactive dashboard"
+             style="width:100%; border-radius:16px; border:1px solid #e6e3f0;"/>
+    </div>
+
+    <p style="max-width:880px; margin:26px auto 0; text-align:center; font-size:19px; line-height:1.55; color:#4a4a6a;">
+        Every team asks the same few questions about a list: <b style="color:#12123a;">how many are
+        late</b>, <b style="color:#12123a;">how many are waiting on me</b>,
+        <b style="color:#12123a;">what did we win this month</b>. Today the answer is a filter
+        somebody has to remember, or a dashboard nobody can edit.<br/>
+        <b style="color:#12123a;">This module puts the answers on top of the list itself.</b>
+    </p>
+
+    <!-- badges -->
+    <div style="text-align:center; margin-top:18px;">
+        <span style="display:inline-block; margin:4px 3px; padding:7px 15px; border:1px solid #e6e3f0; border-radius:999px; background-color:#ffffff; color:#43286f; font-size:13px; font-weight:bold;">&#10003; Odoo 19 &#183; Community &#183; Enterprise &#183; Odoo.sh</span><span
+              style="display:inline-block; margin:4px 3px; padding:7px 15px; border:1px solid #e6e3f0; border-radius:999px; background-color:#ffffff; color:#43286f; font-size:13px; font-weight:bold;">&#9670; Every model, every list &amp; kanban</span><span
+              style="display:inline-block; margin:4px 3px; padding:7px 15px; border:1px solid #e6e3f0; border-radius:999px; background-color:#ffffff; color:#43286f; font-size:13px; font-weight:bold;">&#9889; No XML, no code, no upgrade</span><span
+              style="display:inline-block; margin:4px 3px; padding:8px 16px; border-radius:999px; background-image:linear-gradient(135deg,#603e9b,#8b5cf6); color:#ffffff; font-size:13px; font-weight:bold;">&#9733; New in 2.0 &#183; alerts &#183; history &#183; breakdowns</span>
+    </div>
+
+    <!-- stats -->
+    <div style="margin-top:20px; text-align:center;">
+        <div style="display:inline-block; width:24%; min-width:200px; vertical-align:top;"><div style="margin:5px; padding:16px 14px; border:1px solid #e6e3f0; border-radius:14px; background-color:#f4f0fb; text-align:left;">
+            <b style="display:block; font-size:22px; color:#43286f;">0 lines</b>
+            <span style="font-size:13px; color:#71718f;">of XML or Python to add a tile</span>
+        </div></div><div style="display:inline-block; width:24%; min-width:200px; vertical-align:top;"><div style="margin:5px; padding:16px 14px; border:1px solid #e6e3f0; border-radius:14px; background-color:#f4f0fb; text-align:left;">
+            <b style="display:block; font-size:22px; color:#43286f;">1 RPC</b>
+            <span style="font-size:13px; color:#71718f;">for a whole ribbon of values</span>
+        </div></div><div style="display:inline-block; width:24%; min-width:200px; vertical-align:top;"><div style="margin:5px; padding:16px 14px; border:1px solid #e6e3f0; border-radius:14px; background-color:#f4f0fb; text-align:left;">
+            <b style="display:block; font-size:22px; color:#43286f;">2 clicks</b>
+            <span style="font-size:13px; color:#71718f;">from a filter to a saved tile</span>
+        </div></div><div style="display:inline-block; width:24%; min-width:200px; vertical-align:top;"><div style="margin:5px; padding:16px 14px; border:1px solid #e6e3f0; border-radius:14px; background-color:#f4f0fb; text-align:left;">
+            <b style="display:block; font-size:22px; color:#43286f;">Alt + 1&#8230;9</b>
+            <span style="font-size:13px; color:#71718f;">filter without touching the mouse</span>
+        </div></div>
+    </div>
+
+    <!-- ========================= AT A GLANCE ========================= -->
+    <div style="margin-top:44px;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;">Everything it does</div>
+        <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">The whole module, <span style="color:#603e9b;">on one screen</span></h2>
+
+        <div style="margin-top:12px;">
+            <div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#9638;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Tiles on any model</b><br/><span style="font-size:12.5px; color:#71718f;">Contacts, orders, invoices, tickets, your own models.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#9660;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Real search facets</b><br/><span style="font-size:12.5px; color:#71718f;">Removable, combinable, never a dead end.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#8721;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Counts or measures</b><br/><span style="font-size:12.5px; color:#71718f;">Sum, average, max or min of any stored field.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#8776;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Sparklines &amp; deltas</b><br/><span style="font-size:12.5px; color:#71718f;">Six periods under the value, with the change.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#9678;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Goals</b><br/><span style="font-size:12.5px; color:#71718f;">Give a tile a target and it draws a progress ring.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#ffe4e6; color:#e11d48; text-align:center; font-weight:bold; vertical-align:top;">!</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Thresholds &amp; alerts</b><br/><span style="font-size:12.5px; color:#71718f;">The tile warns, and can notify you off-screen.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#9681;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Breakdowns</b><br/><span style="font-size:12.5px; color:#71718f;">Split a tile by status, owner, country, month.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#e0f2fe; color:#2563eb; text-align:center; font-weight:bold; vertical-align:top;">&#8599;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Recorded history</b><br/><span style="font-size:12.5px; color:#71718f;">A nightly job remembers what the number was.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#9636;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Rows, named &amp; sized</b><br/><span style="font-size:12.5px; color:#71718f;">Up to six, each scrolling and sized on its own.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#9745;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Multi-select</b><br/><span style="font-size:12.5px; color:#71718f;">Match <i>any</i> of the selected tiles, or <i>all</i>.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">#</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">The Tile Wall</b><br/><span style="font-size:12.5px; color:#71718f;">Every ribbon in the database on one screen.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#d1fae5; color:#0d9488; text-align:center; font-weight:bold; vertical-align:top;">&#9680;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Private &amp; shared</b><br/><span style="font-size:12.5px; color:#71718f;">Anyone builds their own; managers publish.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#d1fae5; color:#0d9488; text-align:center; font-weight:bold; vertical-align:top;">&#9672;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Scoped to a menu</b><br/><span style="font-size:12.5px; color:#71718f;">Invoices, bills and entries each get their own.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#fef3c7; color:#d97706; text-align:center; font-weight:bold; vertical-align:top;">&#10022;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Generator</b><br/><span style="font-size:12.5px; color:#71718f;">A whole colour-coded ribbon from a status field.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#8644;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Export &amp; import</b><br/><span style="font-size:12.5px; color:#71718f;">Move a ribbon to another database as JSON.</span></div>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:215px; vertical-align:top;"><div style="margin:4px; padding:12px 14px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+                <span style="display:inline-block; width:26px; height:26px; line-height:26px; border-radius:8px; background-color:#f4f0fb; color:#603e9b; text-align:center; font-weight:bold; vertical-align:top;">&#8635;</span>
+                <div style="display:inline-block; width:80%; vertical-align:top; padding-left:8px;"><b style="font-size:14px;">Live &amp; auto-refresh</b><br/><span style="font-size:12.5px; color:#71718f;">Wall-mounted screens keep themselves current.</span></div>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- ========================= SIGNATURE FEATURES ========================= -->
+    <div style="margin-top:40px; padding:30px 22px 34px; border-radius:18px; background-color:#f4f0fb; border:1px solid #e6e3f0;">
+
+        <div>
+            <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">1</span>The ribbon</div>
+            <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">One ribbon, <span style="color:#603e9b;">any model</span></h2>
+            <p style="max-width:860px; color:#4a4a6a;">
+                If it has a list or a kanban view, it can have tiles &#8212; sitting between the control
+                panel and the records, where everybody already looks. Each one is a label, a live
+                number, a trend, and a filter behind it.
+            </p>
+            <img src="shot_ribbon_crop.png" alt="A ribbon of filter tiles above a contact list"
+                 style="width:100%; margin-top:8px; border-radius:12px; border:1px solid #d9d2ea;"/>
+            <p style="margin:8px 2px 0; font-size:13px; color:#71718f;">Two named rows on Contacts:
+                sparklines, a goal ring at 76%, a private tile, and one tile past its threshold.</p>
+        </div>
+
+        <div style="margin-top:36px;">
+            <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">2</span>Filtering</div>
+            <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">A tile is a <span style="color:#603e9b;">filter</span>, not a picture</h2>
+            <p style="max-width:860px; color:#4a4a6a;">
+                Click one and it becomes an ordinary, removable search facet &#8212; every other filter
+                keeps working, and the neighbouring tiles recount themselves against what is left.
+                Select several and choose whether records must match <i>any</i> of them or <i>all</i>.
+            </p>
+            <img src="shot_multiselect.png" alt="Two tiles selected and combined"
+                 style="width:100%; margin-top:8px; border-radius:12px; border:1px solid #d9d2ea;"/>
+            <p style="margin:8px 2px 0; font-size:13px; color:#71718f;">The Multi-select checkbox beside
+                &#8220;Add a row&#8221; is on: every click adds to the selection, and &#8220;match all&#8221; makes both
+                facets apply at once. Ctrl-click does the same without the mode.</p>
+        </div>
+
+        <div style="margin-top:36px;">
+            <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">3</span>Breakdown</div>
+            <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">Break a tile <span style="color:#603e9b;">open</span></h2>
+            <p style="max-width:860px; color:#4a4a6a;">
+                A tile answers <i>how many</i>. One click answers <i>of what</i> &#8212; split by status,
+                salesperson, country or month, in a single grouped read.
+            </p>
+            <div><div style="display:inline-block; width:54%; min-width:290px; vertical-align:middle;">
+                <img src="shot_breakdown.png" alt="The breakdown popover of a tile"
+                     style="width:100%; border-radius:12px; border:1px solid #d9d2ea;"/>
+            </div><div style="display:inline-block; width:45%; min-width:270px; vertical-align:middle;"><div style="padding-left:22px;">
+                <ul style="margin:0; padding-left:18px; color:#4a4a6a; font-size:15px;">
+                    <li style="margin-bottom:8px;"><b style="color:#12123a;">Picks its own field</b> &#8212; status, stage, responsible &#8212; unless you chose one.</li>
+                    <li style="margin-bottom:8px;"><b style="color:#12123a;">Follows the measure</b>: a revenue tile breaks down into revenue.</li>
+                    <li style="margin-bottom:8px;"><b style="color:#12123a;">Click a row</b> and the view narrows to <i>tile + slice</i>, as one removable facet.</li>
+                    <li style="margin-bottom:0;"><b style="color:#12123a;">One query</b>, not one per row.</li>
+                </ul>
+            </div></div></div>
+        </div>
+
+        <div style="margin-top:36px;">
+            <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">4</span>Layout</div>
+            <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">Stack the rows, <span style="color:#603e9b;">size the tiles</span></h2>
+            <p style="max-width:860px; color:#4a4a6a;">
+                One row is rarely enough. Add up to six, name them in the pane down their left, drag
+                tiles between them, and give each row its own height. Drag a tile's edge and it keeps
+                that width for everybody.
+            </p>
+            <div><div style="display:inline-block; width:49.8%; min-width:290px; vertical-align:top;"><div style="margin-right:6px;">
+                <img src="shot_rows.png" alt="Two named rows of tiles"
+                     style="width:100%; border-radius:12px; border:1px solid #d9d2ea;"/>
+            </div></div><div style="display:inline-block; width:49.8%; min-width:290px; vertical-align:top;"><div style="margin-left:6px;">
+                <img src="shot_resize.png" alt="Resizing a tile by its edge"
+                     style="width:100%; border-radius:12px; border:1px solid #d9d2ea;"/>
+            </div></div></div>
+            <p style="margin:8px 2px 0; font-size:13px; color:#71718f;">Nothing is ever clipped: on a
+                short row a tile drops its sparkline, then its sub-label, then the number steps down
+                a size.</p>
+        </div>
+
+        <div style="margin-top:36px;">
+            <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">5</span>Thresholds</div>
+            <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">Tiles that <span style="color:#603e9b;">watch themselves</span></h2>
+            <p style="max-width:860px; color:#4a4a6a;">
+                Give a tile a limit and it stops being decorative: it turns into a warning the moment
+                the number crosses the line, and &#8212; if you ask it to &#8212; tells you even when nobody has
+                the view open.
+            </p>
+            <div><div style="display:inline-block; width:41%; min-width:270px; vertical-align:middle;">
+                <ul style="margin:0; padding-left:18px; color:#4a4a6a; font-size:15px;">
+                    <li style="margin-bottom:8px;"><b style="color:#12123a;">On screen</b> &#8212; the tile takes the warning colour and breathes slowly.</li>
+                    <li style="margin-bottom:8px;"><b style="color:#12123a;">Off screen</b> &#8212; an hourly check pushes a notification with a &#8220;Show me&#8221; button that opens the records.</li>
+                    <li style="margin-bottom:8px;"><b style="color:#12123a;">No spam</b> &#8212; only the crossing notifies, never the state.</li>
+                    <li style="margin-bottom:0;"><b style="color:#12123a;">The right people</b> &#8212; the owner, the restricted groups, or the managers.</li>
+                </ul>
+            </div><div style="display:inline-block; width:58%; min-width:290px; vertical-align:middle;"><div style="padding-left:22px;">
+                <img src="shot_alert_tab.png" alt="Configuring a threshold on a tile"
+                     style="width:100%; border-radius:12px; border:1px solid #d9d2ea;"/>
+            </div></div></div>
+        </div>
+
+        <div style="margin-top:36px;">
+            <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">6</span>The Tile Wall</div>
+            <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">Every ribbon in the database, <span style="color:#603e9b;">on one screen</span></h2>
+            <p style="max-width:860px; color:#4a4a6a;">
+                Tiles live above a view, which makes them invisible until you go looking. The Wall
+                turns them into a morning overview &#8212; grouped by model, alerting tiles first &#8212; and each
+                one still opens its records, filtered. &#8220;Live&#8221; refreshes it every minute.
+            </p>
+            <img src="shot_wall.png" alt="The Tile Wall"
+                 style="width:100%; margin-top:8px; border-radius:12px; border:1px solid #d9d2ea;"/>
+        </div>
+    </div>
+
+    <!-- ========================= BUILDING ========================= -->
+    <div style="margin-top:44px;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">7</span>Building</div>
+        <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">Built from the view you are <span style="color:#603e9b;">already looking at</span></h2>
+        <p style="max-width:860px; color:#4a4a6a;">No developer, no upgrade, no XML. Filter your list the way you always do, then capture it.</p>
+
+        <div style="margin-top:6px;">
+            <div style="display:inline-block; width:33%; min-width:230px; vertical-align:top;"><div style="margin:5px; padding:18px 20px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <span style="display:inline-block; width:30px; height:30px; line-height:30px; border-radius:10px; background-image:linear-gradient(135deg,#603e9b,#8b5cf6); color:#ffffff; text-align:center; font-weight:bold;">1</span>
+                <h4 style="margin:10px 0 4px; font-size:16px; color:#12123a;">Filter as usual</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Search bar, filters, group-bys &#8212; whatever gets you to the records you care about.</p>
+            </div></div><div style="display:inline-block; width:33%; min-width:230px; vertical-align:top;"><div style="margin:5px; padding:18px 20px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <span style="display:inline-block; width:30px; height:30px; line-height:30px; border-radius:10px; background-image:linear-gradient(135deg,#603e9b,#8b5cf6); color:#ffffff; text-align:center; font-weight:bold;">2</span>
+                <h4 style="margin:10px 0 4px; font-size:16px; color:#12123a;">Hit the &#8220;+&#8221; tile</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">The ghost tile at the end of any row. Your tile is born with exactly that domain.</p>
+            </div></div><div style="display:inline-block; width:33%; min-width:230px; vertical-align:top;"><div style="margin:5px; padding:18px 20px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <span style="display:inline-block; width:30px; height:30px; line-height:30px; border-radius:10px; background-image:linear-gradient(135deg,#603e9b,#8b5cf6); color:#ffffff; text-align:center; font-weight:bold;">3</span>
+                <h4 style="margin:10px 0 4px; font-size:16px; color:#12123a;">Name it, colour it, done</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Yours alone, or published to the whole company in one click.</p>
+            </div></div>
+        </div>
+
+        <div style="margin-top:16px;"><div style="display:inline-block; width:58%; min-width:290px; vertical-align:middle;">
+            <img src="shot_editor.png" alt="The tile editor with its live preview"
+                 style="width:100%; border-radius:12px; border:1px solid #e6e3f0;"/>
+        </div><div style="display:inline-block; width:41%; min-width:270px; vertical-align:middle;"><div style="padding-left:22px;">
+            <ul style="margin:0; padding-left:18px; color:#4a4a6a; font-size:15px;">
+                <li style="margin-bottom:8px;"><b style="color:#12123a;">A live preview</b> renders the real tile with the real count from your database, updating as you type the domain.</li>
+                <li style="margin-bottom:8px;"><b style="color:#12123a;">The full domain language</b>, including <span style="font-family:monospace; background-color:#f4f0fb; padding:1px 5px; border-radius:5px;">context_today()</span>, <span style="font-family:monospace; background-color:#f4f0fb; padding:1px 5px; border-radius:5px;">uid</span> and <span style="font-family:monospace; background-color:#f4f0fb; padding:1px 5px; border-radius:5px;">relativedelta</span>.</li>
+                <li style="margin-bottom:8px;"><b style="color:#12123a;">Icon and colour pickers</b> &#8212; a searchable FontAwesome grid, eleven colours, and any CSS colour your brand needs.</li>
+                <li style="margin-bottom:0;"><b style="color:#12123a;">Everything in one form</b>: value, trend, goal, breakdown, threshold, width, row and visibility.</li>
+            </ul>
+        </div></div></div>
+
+        <div style="margin-top:16px;"><div style="display:inline-block; width:49.8%; min-width:290px; vertical-align:top;"><div style="margin-right:6px;">
+            <img src="shot_studio.png" alt="The tile studio menu"
+                 style="width:100%; border-radius:12px; border:1px solid #e6e3f0;"/>
+        </div></div><div style="display:inline-block; width:49.8%; min-width:290px; vertical-align:top;"><div style="margin-left:6px;">
+            <img src="shot_generator.png" alt="Generating a whole tile set from a status field"
+                 style="width:100%; border-radius:12px; border:1px solid #e6e3f0;"/>
+        </div></div></div>
+        <p style="margin:8px 2px 0; font-size:13px; color:#71718f;">The studio menu holds everything a
+            manager needs; the generator builds a whole colour-coded ribbon from a status field, on
+            the row and the menu you choose.</p>
+    </div>
+
+    <!-- ========================= DETAILS GRID ========================= -->
+    <div style="margin-top:40px; padding:30px 22px 34px; border-radius:18px; background-color:#f4f0fb; border:1px solid #e6e3f0;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">8</span>And also</div>
+        <h2 style="margin:6px 0 10px; font-size:28px; line-height:1.2; color:#12123a;">The details that make it <span style="color:#603e9b;">liveable</span></h2>
+
+        <div>
+            <div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_states.png" alt="The faces a tile can take" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">One tile, many faces</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">A count or a measure, a sparkline or a goal ring, a warning, a private badge &#8212; and a share bar showing what slice of the view it holds.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_history.png" alt="A tile's recorded history" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">Two kinds of trend</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Group the records on a date field, or let a nightly job record the tile's own value &#8212; which works on models with no date field at all.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_scope.png" alt="Scoping a tile to one menu" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">One model, many menus</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Customer invoices, vendor bills and journal entries are all <span style="font-family:monospace; background-color:#f4f0fb; padding:1px 5px; border-radius:5px;">account.move</span>. Pin a tile to the menu it belongs to and the others stay clean.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_kanban.png" alt="The ribbon on a kanban view" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">Every view, not just lists</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Kanbans, views with a search panel, dashboards other modules build on the list view, models made with Studio &#8212; the ribbon rides the standard controllers.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_import.png" alt="Importing a tile set" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">Build once, move anywhere</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Export a ribbon as JSON and import it elsewhere. Fields match by name, menus by external id, and anything missing is reported rather than fatal.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_delete.png" alt="Removing a tile" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">Take it apart safely</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Remove a tile behind a confirmation that says who it affects. Delete a row and its tiles are <i>not</i> deleted &#8212; they join the row above.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_compact.png" alt="The ribbon in compact density" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">Your density, remembered</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Compact or comfortable, collapsed or open, auto-refresh off or every 30 seconds &#8212; kept per model, in your browser, without touching what colleagues see.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_keyboard.png" alt="Applying a tile with the keyboard" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">Keyboard first</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;"><span style="font-family:monospace; border:1px solid #cbc4e0; border-radius:5px; padding:0 6px;">Alt</span>+<span style="font-family:monospace; border:1px solid #cbc4e0; border-radius:5px; padding:0 6px;">1</span>&#8230;<span style="font-family:monospace; border:1px solid #cbc4e0; border-radius:5px; padding:0 6px;">9</span> applies a tile, <span style="font-family:monospace; border:1px solid #cbc4e0; border-radius:5px; padding:0 6px;">Alt</span>+<span style="font-family:monospace; border:1px solid #cbc4e0; border-radius:5px; padding:0 6px;">0</span> clears them. The number shows on hover, so it teaches itself.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <img src="shot_tiles_list.png" alt="Managing every tile from a list" style="width:100%; height:120px; object-fit:cover; border-radius:9px; border:1px solid #eeeaf6;"/>
+                <h4 style="margin:12px 0 4px; font-size:15.5px; color:#12123a;">Tiles are records</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Searchable, groupable, multi-editable, archivable, translatable and exportable like anything else in Odoo &#8212; one list manages them all.</p>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- ========================= WHERE IT RUNS ========================= -->
+    <div style="margin-top:44px;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">9</span>Where it runs</div>
+        <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">Community, Enterprise <span style="color:#603e9b;">and Odoo.sh</span></h2>
+        <p style="max-width:860px; color:#4a4a6a;">
+            One package, every deployment. Built entirely on the standard web client: it depends on
+            <span style="font-family:monospace; background-color:#f4f0fb; padding:1px 5px; border-radius:5px;">web</span> and
+            <span style="font-family:monospace; background-color:#f4f0fb; padding:1px 5px; border-radius:5px;">bus</span>
+            &#8212; present in every Odoo installation &#8212; and imports nothing from any Enterprise-only
+            module, so nothing about it changes between editions.
+        </p>
+        <div>
+            <div style="display:inline-block; width:24.9%; min-width:230px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-top-width:3px; border-top-color:#0d9488; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;"><span style="color:#0d9488;">&#10003;</span> Odoo 19 Community</h4>
+                <p style="margin:0; font-size:13.5px; color:#4a4a6a;">Fully supported. Every screenshot on this page was taken on a Community 19 database.</p>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:230px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-top-width:3px; border-top-color:#0d9488; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;"><span style="color:#0d9488;">&#10003;</span> Odoo 19 Enterprise</h4>
+                <p style="margin:0; font-size:13.5px; color:#4a4a6a;">Fully supported. Enterprise ships the same web client, and the ribbon rides the standard list and kanban controllers.</p>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:230px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-top-width:3px; border-top-color:#0d9488; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;"><span style="color:#0d9488;">&#10003;</span> Odoo.sh</h4>
+                <p style="margin:0; font-size:13.5px; color:#4a4a6a;">Push it to your branch like any other addon. No system package, no server flag, no external service, no build step.</p>
+            </div></div><div style="display:inline-block; width:24.9%; min-width:230px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-top-width:3px; border-top-color:#0d9488; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;"><span style="color:#0d9488;">&#10003;</span> On-premise &amp; hosted</h4>
+                <p style="margin:0; font-size:13.5px; color:#4a4a6a;">Drop it in your addons path and install. No core view is modified and no core record is touched.</p>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- ========================= USE CASES ========================= -->
+    <div style="margin-top:44px;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">10</span>Use cases</div>
+        <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">What people put <span style="color:#603e9b;">on the ribbon</span></h2>
+        <p style="max-width:860px; color:#4a4a6a;">A tile is a filter with a number, so the good ones
+            are the questions your team already asks out loud every morning.</p>
+        <div>
+            <div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:15px 17px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 8px; font-size:15px; color:#12123a;"><span style="color:#2563eb;">$</span> Sales</h4>
+                <span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Quotations to follow up</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Won this month (&#931;)</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Expiring this week</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Target &#8364; 100k</span>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:15px 17px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 8px; font-size:15px; color:#12123a;"><span style="color:#d97706;">&#9636;</span> Inventory &amp; Purchase</h4>
+                <span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Late receipts</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Waiting availability</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Backorders</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Alert: late &gt; 10</span>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:15px 17px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 8px; font-size:15px; color:#12123a;"><span style="color:#0d9488;">%</span> Accounting</h4>
+                <span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Overdue (&#931; residual)</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Draft bills</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">To reconcile</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Paid this month</span>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:15px 17px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 8px; font-size:15px; color:#12123a;"><span style="color:#603e9b;">&#9678;</span> Helpdesk &amp; Projects</h4>
+                <span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Assigned to me</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Breaching SLA</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Unassigned</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Closed this week</span>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:15px 17px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 8px; font-size:15px; color:#12123a;"><span style="color:#e11d48;">&#9673;</span> HR</h4>
+                <span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Leave to approve</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Contracts ending</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">New hires</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Open positions</span>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:15px 17px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 8px; font-size:15px; color:#12123a;"><span style="color:#475569;">&#10033;</span> Your own models</h4>
+                <span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Custom models</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Studio models</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Any stored field</span><span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:999px; background-color:#f4f0fb; color:#56567a; font-size:12.5px;">Any domain</span>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- ========================= PERMISSIONS ========================= -->
+    <div style="margin-top:44px;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">11</span>Permissions</div>
+        <h2 style="margin:6px 0 4px; font-size:28px; line-height:1.2; color:#12123a;">Private tiles, <span style="color:#603e9b;">shared tiles</span></h2>
+        <p style="max-width:860px; color:#4a4a6a;">
+            Dashboard modules usually force a choice between &#8220;everybody sees it&#8221; and &#8220;nobody may
+            build one&#8221;. Here both exist &#8212; and it is the record rules, not the interface, that keep
+            them apart.
+        </p>
+        <table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:14.5px; border:1px solid #e6e3f0;">
+            <tr>
+                <th style="width:44%; padding:11px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;"></th>
+                <th style="padding:11px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Any internal user</th>
+                <th style="padding:11px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Filter Tiles / Manager</th>
+            </tr>
+            <tr>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Use the tiles, break them down, set density and row heights</td>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0; color:#0d9488; font-weight:bold;">Yes</td>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0; color:#0d9488; font-weight:bold;">Yes</td>
+            </tr>
+            <tr>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Build tiles only they can see</td>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0; color:#0d9488; font-weight:bold;">Yes</td>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0; color:#0d9488; font-weight:bold;">Yes</td>
+            </tr>
+            <tr>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Take a private copy of a shared tile</td>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0; color:#0d9488; font-weight:bold;">Yes</td>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0; color:#0d9488; font-weight:bold;">Yes</td>
+            </tr>
+            <tr>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Publish a tile to everybody</td>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0; color:#a9a9c0;">No</td>
+                <td style="padding:10px 16px; border-bottom:1px solid #e6e3f0; color:#0d9488; font-weight:bold;">Yes</td>
+            </tr>
+            <tr>
+                <td style="padding:10px 16px;">Edit, resize, reorder, generate and delete the shared ribbon</td>
+                <td style="padding:10px 16px; color:#a9a9c0;">No</td>
+                <td style="padding:10px 16px; color:#0d9488; font-weight:bold;">Yes</td>
+            </tr>
+        </table>
+        <div style="margin-top:14px; padding:13px 18px; border-left-width:4px; border-left-style:solid; border-left-color:#603e9b; background-color:#f4f0fb; color:#3b3b5c; font-size:14px; border-radius:0 10px 10px 0;">
+            Shared tiles can be restricted to user groups, to a company, to list or kanban views, and
+            to a single menu. Nobody's private tile is visible to anybody else &#8212; it does not even
+            appear in the administrator's list.
+        </div>
+    </div>
+
+    <!-- ========================= UNDER THE HOOD ========================= -->
+    <div style="margin-top:40px; padding:30px 22px 34px; border-radius:18px; background-color:#f4f0fb; border:1px solid #e6e3f0;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">12</span>Under the hood</div>
+        <h2 style="margin:6px 0 10px; font-size:28px; line-height:1.2; color:#12123a;">Fast by design, <span style="color:#603e9b;">safe by default</span></h2>
+        <div>
+            <div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;">One RPC for definitions</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Cached once per session. Opening a list view of a model without tiles costs exactly zero extra round-trips.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;">One RPC for values</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Ten tiles are one batched call, debounced against the search bar &#8212; and a stale answer can never overwrite a fresh one.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;">Never blocks a view</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Values load beside the records, never in front of them. If the service fails, the view still opens &#8212; the ribbon simply is not there.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;">Your rights, always</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Every number is counted as <i>you</i>, without sudo. A tile can never surface a record you are not allowed to open.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;">No core data touched</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">Three small models, one technical group, two scheduled actions. No modified views, no patched records &#8212; uninstall and every trace goes with it.</p>
+            </div></div><div style="display:inline-block; width:33.2%; min-width:250px; vertical-align:top;"><div style="margin:5px; padding:16px 18px; border:1px solid #e6e3f0; border-radius:14px; background-color:#ffffff;">
+                <h4 style="margin:0 0 4px; font-size:15.5px; color:#12123a;">Tested</h4>
+                <p style="margin:0; font-size:14px; color:#4a4a6a;">An automated suite ships with the module, covering values, thresholds, history, breakdowns, layout, import/export and the whole permission matrix.</p>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- ========================= SPECS ========================= -->
+    <div style="margin-top:44px;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">13</span>Specifications</div>
+        <h2 style="margin:6px 0 8px; font-size:28px; line-height:1.2; color:#12123a;">The <span style="color:#603e9b;">technical</span> details</h2>
+        <table style="width:100%; border-collapse:collapse; font-size:14.5px; border:1px solid #e6e3f0;">
+            <tr><th style="width:30%; padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Odoo version</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">19.0 &#8212; Community, Enterprise and Odoo.sh</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Dependencies</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">web, bus &#8212; no Enterprise module, no external Python package, no external JS library</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Adds</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">filter.tile, filter.tile.row, filter.tile.snapshot, one technical group, two scheduled actions, one client action</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Views covered</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Every list and kanban view, including inherited ones and models built with Studio</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Values</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Record count, or sum / average / max / min of any stored integer, float or monetary field</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Domains</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">The full Odoo domain language, including context_today(), uid, relativedelta</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Layout</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Up to 6 nameable rows; tile width 120&#8211;520 px; row height 56&#8211;320 px; compact / comfortable density</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Multi-company</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Tiles can be pinned to a company; a global record rule keeps them there</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Translations</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Labels, hints and warning texts are translatable; a .pot template is included</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f; border-bottom:1px solid #e6e3f0;">Accessibility</th><td style="padding:10px 16px; border-bottom:1px solid #e6e3f0;">Keyboard operable, ARIA-labelled, honours prefers-reduced-motion</td></tr>
+            <tr><th style="padding:10px 16px; text-align:left; background-color:#f4f0fb; color:#43286f;">Licence</th><td style="padding:10px 16px;">OPL-1</td></tr>
+        </table>
+    </div>
+
+    <!-- ========================= FAQ ========================= -->
+    <div style="margin-top:44px;">
+        <div style="font-size:12px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#603e9b;"><span style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:7px; background-color:#603e9b; color:#ffffff; text-align:center; font-size:11px; margin-right:6px;">14</span>FAQ</div>
+        <h2 style="margin:6px 0 10px; font-size:28px; line-height:1.2; color:#12123a;">Questions people <span style="color:#603e9b;">actually ask</span></h2>
+
+        <div style="padding:14px 18px; border:1px solid #e6e3f0; border-radius:12px; margin-bottom:8px; background-color:#ffffff;">
+            <h4 style="margin:0 0 4px; font-size:15px; color:#12123a;">Do I need a developer to add a tile?</h4>
+            <p style="margin:0; font-size:14px; color:#4a4a6a;">No. Filter the list the way you normally would, click the &#8220;+&#8221; tile, give it a name and a colour. Everything else &#8212; icon, measure, trend, threshold, width &#8212; is optional.</p>
+        </div>
+        <div style="padding:14px 18px; border:1px solid #e6e3f0; border-radius:12px; margin-bottom:8px; background-color:#ffffff;">
+            <h4 style="margin:0 0 4px; font-size:15px; color:#12123a;">Does it work on Community, Enterprise and Odoo.sh?</h4>
+            <p style="margin:0; font-size:14px; color:#4a4a6a;">All three, from the same package. It depends only on web and bus, which every Odoo installation has, and imports nothing Enterprise-only. On Odoo.sh it is an ordinary addon &#8212; push it to your branch.</p>
+        </div>
+        <div style="padding:14px 18px; border:1px solid #e6e3f0; border-radius:12px; margin-bottom:8px; background-color:#ffffff;">
+            <h4 style="margin:0 0 4px; font-size:15px; color:#12123a;">Will it slow my lists down?</h4>
+            <p style="margin:0; font-size:14px; color:#4a4a6a;">Tile definitions are cached per session, and a whole ribbon of values is one batched call that runs beside the records rather than before them. A model with no tiles costs nothing.</p>
+        </div>
+        <div style="padding:14px 18px; border:1px solid #e6e3f0; border-radius:12px; margin-bottom:8px; background-color:#ffffff;">
+            <h4 style="margin:0 0 4px; font-size:15px; color:#12123a;">Can a tile leak data to the wrong person?</h4>
+            <p style="margin:0; font-size:14px; color:#4a4a6a;">No. Every number is counted with the reader's own access rights and record rules. The two background jobs &#8212; recorded history and the threshold check &#8212; run as the tile's owner for a private tile, and server-side for a shared one, because a stored daily number has to be the same number for everybody.</p>
+        </div>
+        <div style="padding:14px 18px; border:1px solid #e6e3f0; border-radius:12px; margin-bottom:8px; background-color:#ffffff;">
+            <h4 style="margin:0 0 4px; font-size:15px; color:#12123a;">What happens to my tiles when I upgrade?</h4>
+            <p style="margin:0; font-size:14px; color:#4a4a6a;">They are ordinary records in your database, not code. Upgrading keeps them, and you can export a ribbon to JSON to carry it into another database.</p>
+        </div>
+        <div style="padding:14px 18px; border:1px solid #e6e3f0; border-radius:12px; margin-bottom:8px; background-color:#ffffff;">
+            <h4 style="margin:0 0 4px; font-size:15px; color:#12123a;">Does it work on models added by other apps, or by Studio?</h4>
+            <p style="margin:0; font-size:14px; color:#4a4a6a;">Yes. Tiles are attached to a model, not to a view file, so anything with a list or kanban view qualifies &#8212; including models you created yourself.</p>
+        </div>
+        <div style="padding:14px 18px; border:1px solid #e6e3f0; border-radius:12px; margin-bottom:8px; background-color:#ffffff;">
+            <h4 style="margin:0 0 4px; font-size:15px; color:#12123a;">Can users mess up the shared ribbon?</h4>
+            <p style="margin:0; font-size:14px; color:#4a4a6a;">Only Filter Tiles managers publish, edit, reorder or delete shared tiles. Everybody else builds private tiles and takes private copies &#8212; usually exactly what they wanted.</p>
+        </div>
+        <div style="padding:14px 18px; border:1px solid #e6e3f0; border-radius:12px; background-color:#ffffff;">
+            <h4 style="margin:0 0 4px; font-size:15px; color:#12123a;">What if I uninstall it?</h4>
+            <p style="margin:0; font-size:14px; color:#4a4a6a;">Everything the module added goes with it: the models, the group, the scheduled actions and the tiles themselves. No core view or record was modified, so nothing is left behind.</p>
+        </div>
+    </div>
+
+    <!-- ========================= FOOTER ========================= -->
+    <div style="margin-top:44px; padding:32px 24px; border-radius:18px; text-align:center; color:#ece9f7; background-image:linear-gradient(135deg,#43286f,#603e9b,#8b5cf6);">
+        <img src="icon.png" alt="Dynamic Filter Tiles" style="width:60px; margin:0 auto 12px; border-radius:14px;"/>
+        <h3 style="margin:0 0 6px; color:#ffffff; font-size:23px;">Give every view its own ribbon</h3>
+        <p style="margin:0 0 4px;">Install it, open any list, and hit the <b>+</b> tile. That is the whole setup.</p>
+        <div style="margin:14px 0 16px;">
+            <span style="display:inline-block; margin:3px; padding:6px 14px; border-radius:999px; background-color:#5a3d91; color:#ffffff; font-size:12.5px; font-weight:bold;">Odoo 19 &#183; Community &#183; Enterprise &#183; Odoo.sh</span><span
+                  style="display:inline-block; margin:3px; padding:6px 14px; border-radius:999px; background-color:#5a3d91; color:#ffffff; font-size:12.5px; font-weight:bold;">OPL-1 licence</span><span
+                  style="display:inline-block; margin:3px; padding:6px 14px; border-radius:999px; background-color:#5a3d91; color:#ffffff; font-size:12.5px; font-weight:bold;">Support by email</span>
+        </div>
+        <p style="margin:0;">Questions, a feature you need, or a hand installing it?<br/>
+            <a href="mailto:ebinpg777@gmail.com" style="color:#ffffff; font-weight:bold;">ebinpg777@gmail.com</a></p>
+        <p style="margin:10px 0 0; font-size:13px; opacity:.85;">Dynamic Filter Tiles &#8212; built and supported by Ebin P G</p>
+    </div>
+</section>

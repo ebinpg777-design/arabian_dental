@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_statement_wizard_invoice,statement wizard (invoicing),model_epg_partner_statement_wizard,account.group_account_invoice,1,1,1,1
+access_statement_wizard_readonly,statement wizard (readonly),model_epg_partner_statement_wizard,account.group_account_readonly,1,1,1,1
+access_statement_wizard_user,statement wizard (user),model_epg_partner_statement_wizard,base.group_user,1,1,1,1

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_work_target_list" model="ir.ui.view">
+        <field name="name">lab.work.target.list</field>
+        <field name="model">lab.work.target</field>
+        <field name="arch" type="xml">
+            <!-- Target and Done side by side, because the only question anybody
+                 opens this to ask is whether the second reached the first. -->
+            <list string="Daily Targets" sample="1" editable="bottom"
+                  decoration-success="met" decoration-warning="not met and done_count &gt; 0"
+                  decoration-muted="target == 0">
+                <field name="date"/>
+                <field name="user_id"/>
+                <field name="workcenter_id" placeholder="Any bench"/>
+                <field name="target" sum="Target"/>
+                <field name="done_count" sum="Done" readonly="1"/>
+                <field name="achieved_pct" widget="percentage" readonly="1"
+                       string="Achieved"/>
+                <field name="met" readonly="1" optional="hide"/>
+                <field name="refreshed_at" readonly="1" optional="hide"/>
+                <field name="company_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_work_target_form" model="ir.ui.view">
+        <field name="name">lab.work.target.form</field>
+        <field name="model">lab.work.target</field>
+        <field name="arch" type="xml">
+            <form string="Daily Target">
+                <header>
+                    <button name="action_refresh" type="object" string="Recount"
+                            class="btn-secondary"
+                            help="Count this technician's day again from the work orders."/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="user_id"/>
+                            <field name="date"/>
+                            <field name="workcenter_id" placeholder="Any bench"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="target"/>
+                            <field name="done_count"/>
+                            <field name="achieved_pct" widget="percentage"/>
+                            <field name="met"/>
+                            <field name="refreshed_at"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_work_target_pivot" model="ir.ui.view">
+        <field name="name">lab.work.target.pivot</field>
+        <field name="model">lab.work.target</field>
+        <field name="arch" type="xml">
+            <pivot string="Targets" sample="1">
+                <field name="user_id" type="row"/>
+                <field name="date" interval="day" type="col"/>
+                <field name="target" type="measure"/>
+                <field name="done_count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_work_target_graph" model="ir.ui.view">
+        <field name="name">lab.work.target.graph</field>
+        <field name="model">lab.work.target</field>
+        <field name="arch" type="xml">
+            <graph string="Targets" sample="1" type="bar">
+                <field name="user_id"/>
+                <field name="target" type="measure"/>
+                <field name="done_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_work_target_search" model="ir.ui.view">
+        <field name="name">lab.work.target.search</field>
+        <field name="model">lab.work.target</field>
+        <field name="arch" type="xml">
+            <search string="Daily Targets">
+                <field name="user_id"/>
+                <field name="workcenter_id"/>
+                <field name="date"/>
+                <filter name="today" string="Today"
+                        domain="[('date','=',context_today().strftime('%Y-%m-%d'))]"/>
+                <!-- strftime, never date.replace(): a view domain is evaluated by
+                     the python-LIKE interpreter in the browser, which has no
+                     replace() on a date, and the screen dies at render time with
+                     "Function.prototype.apply was called on undefined". Nothing
+                     server-side catches it. (client, 2026-09-10) -->
+                <filter name="this_month" string="This Month"
+                        domain="[('date','&gt;=',context_today().strftime('%Y-%m-01'))]"/>
+                <separator/>
+                <filter name="met" string="Target met" domain="[('met','=',True)]"/>
+                <filter name="missed" string="Missed"
+                        domain="[('met','=',False),('target','&gt;',0)]"/>
+                <separator/>
+                <filter name="mine" string="My targets"
+                        domain="[('user_id','=',uid)]"/>
+                <group>
+                    <filter name="g_user" string="Technician" context="{'group_by':'user_id'}"/>
+                    <filter name="g_date" string="Day" context="{'group_by':'date'}"/>
+                    <filter name="g_wc" string="Work Centre" context="{'group_by':'workcenter_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_work_target" model="ir.actions.act_window">
+        <field name="name">Daily Targets</field>
+        <field name="res_model">lab.work.target</field>
+        <field name="view_mode">list,pivot,graph,form</field>
+        <field name="search_view_id" ref="view_work_target_search"/>
+        <field name="context">{'search_default_g_user': 1, 'search_default_this_month': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nobody has a target yet</p>
+            <p>Set what each technician should get through in a day, and the station
+               board will show their count against it. Use <b>Set Daily Targets</b> to
+               do a whole bench, or a whole week, at once.</p>
+        </field>
+    </record>
+
+    <!-- The wizard -->
+    <record id="view_work_target_wizard_form" model="ir.ui.view">
+        <field name="name">lab.work.target.wizard.form</field>
+        <field name="model">lab.work.target.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Set Daily Targets">
+                <group>
+                    <group>
+                        <field name="workcenter_id"
+                               placeholder="Any bench (a whole-day target)"/>
+                        <field name="skip_weekends"/>
+                    </group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                </group>
+                <field name="line_ids" nolabel="1">
+                    <!-- `force_save` on the technician, and it is not optional.
+                         The lines are built by the onchange, so every one of them
+                         is NEW when the wizard is saved - and a readonly field is
+                         not sent back to the server, so each line arrived without
+                         the person it was about: "Missing required value for the
+                         field 'Technician'". Readonly is still right (nobody
+                         should retype a name here); it just has to be saved.
+                         (client, 2026-09-10) -->
+                    <list editable="bottom" create="0">
+                        <field name="user_id" readonly="1" force_save="1"/>
+                        <field name="target"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_save" type="object" string="Set Targets"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_work_target_wizard" model="ir.actions.act_window">
+        <field name="name">Set Daily Targets</field>
+        <field name="res_model">lab.work.target.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_work_target" name="Daily Targets"
+              parent="mrp.menu_mrp_root" action="action_work_target"
+              sequence="6" groups="lab_workcenter_scan.group_production_manager"/>
+    <menuitem id="menu_work_target_set" name="Set Daily Targets"
+              parent="mrp.menu_mrp_root" action="action_work_target_wizard"
+              sequence="7" groups="lab_workcenter_scan.group_production_manager"/>
+
+    <record id="cron_refresh_work_targets" model="ir.cron">
+        <field name="name">Lab: recount daily targets</field>
+        <field name="model_id" ref="model_lab_work_target"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_refresh()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>

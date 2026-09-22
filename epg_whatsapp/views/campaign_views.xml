@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Campaigns: news to many doctors, sent free from the Desk, paced per day, with
+         a tracked link and a safe stop link. (client, 2026-09-17) -->
+    <record id="view_campaign_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.campaign.form</field>
+        <field name="model">epg.whatsapp.campaign</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_launch" type="object" string="Put on the Desk"
+                            class="btn-success" icon="fa-whatsapp" invisible="state != 'draft'"
+                            confirm="One message per recipient goes on the WhatsApp Desk, paced per day. Continue?"/>
+                    <button name="action_open_desk" type="object" string="Open the Desk"
+                            class="btn-primary" invisible="state != 'running'"/>
+                    <button name="action_mark_done" type="object" string="Mark as done"
+                            invisible="state != 'running'"/>
+                    <button name="action_stop" type="object" string="Stop"
+                            invisible="state != 'running'"
+                            confirm="Cancel every message of this campaign that has not been sent?"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,running,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box" invisible="state == 'draft'">
+                        <button name="action_view_queued" type="object" class="oe_stat_button" icon="fa-hourglass-half">
+                            <field name="queued_count" widget="statinfo" string="Waiting"/>
+                        </button>
+                        <button name="action_view_sent" type="object" class="oe_stat_button" icon="fa-check">
+                            <field name="sent_count" widget="statinfo" string="Sent"/>
+                        </button>
+                        <button name="action_view_clicked" type="object" class="oe_stat_button" icon="fa-hand-pointer-o">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="clicked_count"/> · <field name="click_rate"/>%</span>
+                                <span class="o_stat_text">Opened link</span>
+                            </div>
+                        </button>
+                        <button name="action_view_replied" type="object" class="oe_stat_button" icon="fa-reply">
+                            <field name="replied_count" widget="statinfo" string="Replied"/>
+                        </button>
+                        <button name="action_view_optout" type="object" class="oe_stat_button" icon="fa-ban">
+                            <field name="optout_count" widget="statinfo" string="Stopped"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Onam holidays" readonly="state != 'draft'"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="account_id" options="{'no_create': True}" readonly="state != 'draft'"/>
+                            <field name="daily_limit" readonly="state != 'draft'"/>
+                            <field name="optout" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="link_url" placeholder="https://…" widget="url" readonly="state != 'draft'"/>
+                            <field name="link_label" invisible="not link_url" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+                    <div class="o_wa_audience_row" invisible="not audience_id or state != 'draft'">
+                        <span><b><field name="audience_count" class="oe_inline"/></b> in the audience right now.</span>
+                        <button name="action_load_audience" type="object" class="btn btn-sm btn-secondary"
+                                string="Load them as recipients" icon="fa-download"/>
+                        <span class="text-muted small">An empty recipient list is filled from the audience at launch.</span>
+                    </div>
+                    <div class="alert alert-info py-2" role="status" invisible="state != 'draft' or not recipient_count or mode != 'personal'">
+                        <b><field name="reachable_count" class="oe_inline"/></b> of
+                        <field name="recipient_count" class="oe_inline"/> recipients have a WhatsApp
+                        number. At <field name="daily_limit" class="oe_inline" readonly="1"/> a day
+                        this takes <b><field name="day_count" class="oe_inline"/> day(s)</b>: the first
+                        batch goes on the Desk now, the rest at 10 AM on the following days.
+                    </div>
+                    <notebook>
+                        <page string="Message" name="message">
+                            <div class="d-flex flex-column flex-lg-row gap-3">
+                                <div class="flex-grow-1">
+                                    <field name="body" nolabel="1" readonly="state != 'draft'"
+                                           placeholder="Dear {{name}},&#10;&#10;The lab is closed for Onam from 14 to 17 September…"/>
+                                    <label for="quick_replies" class="mt-3 fw-bold"/>
+                                    <field name="quick_replies" nolabel="1" readonly="state != 'draft'"
+                                           placeholder="👍 Noted&#10;📞 Please call me"/>
+                                </div>
+                                <div class="o_wa_campaign_preview">
+                                    <div class="small text-muted mb-1">What the first recipient receives</div>
+                                    <field name="preview" nolabel="1" readonly="1"/>
+                                </div>
+                            </div>
+                        </page>
+                        <page string="Recipients" name="recipients">
+                            <field name="partner_ids" readonly="state != 'draft'" options="{'no_create': True}">
+                                <list>
+                                    <field name="display_name" string="Contact"/>
+                                    <field name="city" optional="show"/>
+                                    <field name="phone" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_campaign_list" model="ir.ui.view">
+        <field name="name">epg.whatsapp.campaign.list</field>
+        <field name="model">epg.whatsapp.campaign</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date" string="Created"/>
+                <field name="name"/>
+                <field name="recipient_count" string="Recipients"/>
+                <field name="sent_count" string="Sent"/>
+                <field name="clicked_count" string="Opened link"/>
+                <field name="replied_count" string="Replied"/>
+                <field name="optout_count" string="Stopped"/>
+                <field name="state" widget="badge" decoration-info="state == 'running'"
+                       decoration-success="state == 'done'" decoration-muted="state == 'cancel'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_campaign" model="ir.actions.act_window">
+        <field name="name">Campaigns</field>
+        <field name="res_model">epg.whatsapp.campaign</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Tell your doctors something</p>
+            <p>Holiday closures, a new appliance, a price list: written once, sent free from
+               the WhatsApp Desk a day's batch at a time, with a tracked link and a stop
+               link. Tip: select contacts in Contacts and use <b>Action ▸ WhatsApp
+               campaign</b>.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_campaigns" name="Campaigns" parent="menu_root"
+              action="action_campaign" sequence="15"/>
+
+    <!-- Contacts ▸ select ▸ Action ▸ WhatsApp campaign. -->
+    <record id="action_partner_campaign" model="ir.actions.server">
+        <field name="name">WhatsApp campaign</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">list,kanban</field>
+        <field name="group_ids" eval="[(4, ref('epg_whatsapp.group_whatsapp_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = {
+    'type': 'ir.actions.act_window', 'name': 'WhatsApp Campaign',
+    'res_model': 'epg.whatsapp.campaign', 'view_mode': 'form', 'target': 'current',
+    'views': [(False, 'form')],
+    'context': {'default_partner_ids': [(6, 0, records.ids)]},
+}</field>
+    </record>
+
+    <!-- Reminders on a template, beside the quick replies. -->
+    <record id="view_template_form_nudge" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.form.nudge</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_template_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='extras']" position="inside">
+                <div class="p-2 rounded border" invisible="not report_id">
+                    <div class="fw-bold"><i class="fa fa-bell-o me-1" title="Reminder"/>Remind if the document is not opened</div>
+                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                        <span class="text-muted small">after</span>
+                        <field name="nudge_after_hours" class="oe_inline" style="width: 5rem"/>
+                        <span class="text-muted small">hours (0 = never) - one reminder, cancelled by itself if the doctor opens it first.</span>
+                    </div>
+                    <field name="nudge_text" nolabel="1" invisible="not nudge_after_hours"
+                           placeholder="Dear Dr. {{partner_id.name}}, a gentle reminder: invoice {{name}} is waiting for you."/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- The new facts on a message. -->
+    <record id="view_message_form_smart" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.form.smart</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_message_form"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="scheduled_at" invisible="not scheduled_at"/>
+                <field name="campaign_id" invisible="not campaign_id"/>
+                <field name="nudge_of_id" invisible="not nudge_of_id"/>
+                <field name="clicked_at" invisible="not clicked_at"/>
+                <field name="opted_out_at" invisible="not opted_out_at"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_message_search_smart" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.search.smart</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_message_search"/>
+        <field name="arch" type="xml">
+            <filter name="failed" position="before">
+                <filter name="snoozed" string="Snoozed" domain="[('scheduled_at', '!=', False), ('state', '=', 'ready')]"/>
+                <filter name="reminders" string="Reminders" domain="[('nudge_of_id', '!=', False)]"/>
+                <filter name="unopened" string="Document not opened"
+                        domain="[('attachment_id', '!=', False), ('seen_at', '=', False), ('state', '=', 'sent')]"/>
+            </filter>
+            <field name="partner_id" position="after">
+                <field name="campaign_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

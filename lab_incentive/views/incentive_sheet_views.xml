@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_incentive_sheet_form" model="ir.ui.view">
+        <field name="name">lab.incentive.sheet.form</field>
+        <field name="model">lab.incentive.sheet</field>
+        <field name="arch" type="xml">
+            <form string="Incentive Sheet">
+                <header>
+                    <button name="action_compute" type="object" string="Compute"
+                            class="btn-primary" invisible="state == 'paid'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <button name="action_approve" type="object" string="Approve"
+                            class="btn-primary" invisible="state != 'computed'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <button name="action_disburse" type="object" string="Disburse"
+                            class="btn-primary" invisible="state != 'approved'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <button name="action_reset_to_draft" type="object" string="Reset"
+                            invisible="state not in ('computed','approved')"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,computed,approved,paid"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="executive_id"
+                                   readonly="state != 'draft'"/>
+                            <field name="period"
+                                   readonly="state != 'draft'"/>
+                            <field name="rule_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="total_sales" readonly="1"/>
+                            <field name="total_base" readonly="1"/>
+                            <label for="new_clinic_count" string="New clinics"/>
+                            <div>
+                                <field name="new_clinic_count" readonly="1"
+                                       class="oe_inline"/>
+                                <button name="action_view_new_clinics" type="object"
+                                        class="btn-link oe_inline" string="see them"
+                                        invisible="new_clinic_count == 0"/>
+                                <field name="new_clinic_amount" readonly="1"
+                                       class="oe_inline ms-2" widget="monetary"/>
+                            </div>
+                            <field name="incentive_amount" readonly="1"
+                                   class="fw-bold"/>
+                        </group>
+                    </group>
+
+                    <!-- The calculation widget: WHY the amount above is what it is. -->
+                    <group string="How this was calculated"
+                           invisible="state == 'draft'">
+                        <field name="slab_widget_data" widget="lab_slab_widget"
+                               nolabel="1" colspan="2"/>
+                    </group>
+
+                    <group string="Disbursement" invisible="state not in ('approved','paid')">
+                        <field name="approved_by_id" readonly="1"/>
+                        <field name="approved_date" readonly="1"/>
+                        <field name="paid_reference" readonly="state == 'paid'"/>
+                        <field name="paid_date" readonly="1"/>
+                    </group>
+
+                    <field name="line_ids" readonly="1">
+                        <list>
+                            <field name="sale_order_id"/>
+                            <field name="product_id"/>
+                            <field name="sale_amount" sum="Total"/>
+                            <field name="incentive_base" sum="Total"/>
+                            <field name="used_incentive_price" optional="show"/>
+                            <field name="incentive_amount" sum="Total"/>
+                        </list>
+                    </field>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_incentive_sheet_list" model="ir.ui.view">
+        <field name="name">lab.incentive.sheet.list</field>
+        <field name="model">lab.incentive.sheet</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'draft'" decoration-success="state == 'paid'">
+                <field name="name"/>
+                <field name="executive_id"/>
+                <field name="period"/>
+                <field name="total_sales" sum="Total"/>
+                <field name="incentive_amount" sum="Total"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'paid'"
+                       decoration-warning="state == 'computed'"
+                       decoration-info="state == 'approved'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_incentive_sheet_search" model="ir.ui.view">
+        <field name="name">lab.incentive.sheet.search</field>
+        <field name="model">lab.incentive.sheet</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="executive_id"/>
+                <field name="period"/>
+                <filter name="to_approve" string="Awaiting Approval"
+                        domain="[('state','=','computed')]"/>
+                <filter name="to_pay" string="Approved — To Pay"
+                        domain="[('state','=','approved')]"/>
+                <group>
+                    <filter name="by_executive" string="Executive"
+                            context="{'group_by':'executive_id'}"/>
+                    <filter name="by_period" string="Month"
+                            context="{'group_by':'period:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_incentive_sheet" model="ir.actions.act_window">
+        <field name="name">Incentive Sheets</field>
+        <field name="res_model">lab.incentive.sheet</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+    </record>
+    <record id="view_incentive_sheet_kanban" model="ir.ui.view">
+        <field name="name">lab.incentive.sheet.kanban</field>
+        <field name="model">lab.incentive.sheet</field>
+        <field name="arch" type="xml">
+            <!-- Cards, because this list is read on a phone. As a list it was 614px
+                 wide on a 412px screen, so an executive had to drag the table
+                 sideways to see their own figure. (client, 2026-08-24) -->
+            <kanban quick_create="false" create="false" class="o_fw_kanban"
+                    default_order="period desc, id desc">
+                <field name="state"/>
+                <field name="currency_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="fs-6"><field name="period"/></strong>
+                            <field name="state" widget="badge"
+                                   decoration-success="state == 'paid'"
+                                   decoration-warning="state == 'confirmed'"/>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">Sales</span>
+                            <span><field name="total_sales" widget="monetary"/></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Incentive</span>
+                            <strong><field name="incentive_amount" widget="monetary"/></strong>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_incentive_sheet_my" model="ir.actions.act_window">
+        <field name="name">My Incentive</field>
+        <field name="res_model">lab.incentive.sheet</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('executive_id','=',uid)]</field>
+    </record>
+    <record id="action_incentive_analysis" model="ir.actions.act_window">
+        <field name="name">Incentive Analysis</field>
+        <field name="res_model">lab.incentive.sheet</field>
+        <field name="view_mode">pivot,graph</field>
+        <field name="context">{'search_default_by_executive': 1, 'search_default_by_period': 1}</field>
+    </record>
+</odoo>

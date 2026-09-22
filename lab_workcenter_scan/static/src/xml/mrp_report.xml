@@ -1,0 +1,648 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.MrpReport">
+    <div class="o_mr o_action">
+        <div class="o_mr_head">
+            <div>
+                <div class="o_mr_eyebrow">Production</div>
+                <h2 class="o_mr_title">Production Reports</h2>
+            </div>
+            <!-- Two halves, and the one that always has data comes first. -->
+            <div class="o_mr_halves" t-if="state.data" role="tablist">
+                <button class="o_mr_half" role="tab"
+                        t-att-class="{ o_mr_half_on: state.half === 'now' }"
+                        t-att-aria-selected="state.half === 'now' ? 'true' : 'false'"
+                        t-on-click="() => this.show('now')">
+                    <i class="fa fa-tachometer me-1" aria-hidden="true"/> Right now
+                </button>
+                <button class="o_mr_half" role="tab"
+                        t-att-class="{ o_mr_half_on: state.half === 'did' }"
+                        t-att-aria-selected="state.half === 'did' ? 'true' : 'false'"
+                        t-on-click="() => this.show('did')">
+                    <i class="fa fa-history me-1" aria-hidden="true"/> What we did
+                </button>
+                <button class="o_mr_half" role="tab"
+                        t-att-class="{ o_mr_half_on: state.half === 'targets' }"
+                        t-att-aria-selected="state.half === 'targets' ? 'true' : 'false'"
+                        t-on-click="() => this.show('targets')">
+                    <i class="fa fa-bullseye me-1" aria-hidden="true"/> Against target
+                </button>
+            </div>
+            <div class="o_mr_range" t-if="state.data and state.half === 'did'">
+                <button t-foreach="[4, 8, 13, 26]" t-as="w" t-key="w"
+                        class="o_mr_rangebtn"
+                        t-att-class="state.weeks === w ? 'o_mr_rangebtn_on' : ''"
+                        t-on-click="() => this.load(w)">
+                    <t t-esc="w"/>w
+                </button>
+            </div>
+        </div>
+
+        <div t-if="state.loading" class="text-center text-muted py-5">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+
+        <t t-else="">
+            <!-- ============================================== AGAINST TARGET -->
+            <t t-if="state.half === 'targets'">
+                <div t-if="!state.targets and state.targetsBusy" class="text-center text-muted py-5">
+                    <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+                </div>
+                <t t-elif="state.targets">
+                    <t t-set="tg" t-value="state.targets"/>
+                    <!-- The period: this week or this month, stepped back and forward. -->
+                    <div class="o_mr_tbar">
+                        <button class="o_mr_rangebtn" t-att-class="{ o_mr_rangebtn_on: state.tSpan === 'week' }"
+                                t-on-click="() => this.spanTargets('week')">This week</button>
+                        <button class="o_mr_rangebtn" t-att-class="{ o_mr_rangebtn_on: state.tSpan === 'month' }"
+                                t-on-click="() => this.spanTargets('month')">This month</button>
+                        <span class="o_mr_tstep">
+                            <button class="o_mr_rangebtn" t-att-disabled="state.targetsBusy"
+                                    t-on-click="() => this.stepTargets(-1)" title="Earlier">
+                                <i class="fa fa-chevron-left"/>
+                            </button>
+                            <span class="o_mr_tperiod"><t t-esc="tg.from"/> → <t t-esc="tg.to"/></span>
+                            <button class="o_mr_rangebtn" t-att-disabled="state.targetsBusy"
+                                    t-on-click="() => this.stepTargets(1)" title="Later">
+                                <i class="fa fa-chevron-right"/>
+                            </button>
+                        </span>
+                        <i t-if="state.targetsBusy" class="fa fa-circle-o-notch fa-spin ms-2 text-muted"/>
+                    </div>
+
+                    <div t-if="!tg.people.length" class="o_mr_empty">
+                        Nobody has a target or a stamp in this period. Targets are set under
+                        Manufacturing → Set Daily Targets.
+                    </div>
+
+                    <t t-else="">
+                        <div class="o_mr_cards">
+                            <div class="o_mr_card">
+                                <div class="o_mr_v"><t t-if="tg.totals.pct !== null"><t t-esc="tg.totals.pct"/>%</t><t t-else="">—</t></div>
+                                <div class="o_mr_l">of the targets set were reached</div>
+                            </div>
+                            <div class="o_mr_card">
+                                <div class="o_mr_v"><t t-esc="tg.totals.done_against"/> / <t t-esc="tg.totals.target"/></div>
+                                <div class="o_mr_l">done against target</div>
+                            </div>
+                            <div class="o_mr_card">
+                                <div class="o_mr_v"><t t-esc="tg.totals.days_met"/> / <t t-esc="tg.totals.days_set"/></div>
+                                <div class="o_mr_l">person-days that met their target</div>
+                            </div>
+                            <div class="o_mr_card">
+                                <div class="o_mr_v"><t t-esc="tg.totals.people_with_target"/> / <t t-esc="tg.totals.people"/></div>
+                                <div class="o_mr_l">technicians with a target set</div>
+                            </div>
+                        </div>
+
+                        <!-- The period day by day: done against set, across everybody
+                             with a target, with the percentage above each pair.
+                             (client, 2026-09-10) -->
+                        <div class="o_mr_panel" t-if="tg.daily.length and tg.totals and tg.totals.target">
+                            <div class="o_mr_panel_h">
+                                Done against target, day by day
+                                <span class="text-muted">— everybody with a target that day, added up</span>
+                            </div>
+                            <div class="o_mr_daily">
+                                <div t-foreach="tg.daily" t-as="d" t-key="d.date" class="o_mr_daily_day"
+                                     t-att-class="{ o_mr_daily_future: d.future, o_mr_daily_wknd: d.weekend }"
+                                     t-att-title="d.label + ': ' + d.done + ' of ' + d.target">
+                                    <div class="o_mr_daily_pct"
+                                         t-att-class="{ o_mr_good: d.pct !== null and d.pct >= 100, o_mr_warn: d.pct !== null and d.pct &lt; 100 }">
+                                        <t t-if="d.pct !== null"><t t-esc="d.pct"/>%</t>
+                                    </div>
+                                    <div class="o_mr_daily_bars">
+                                        <div class="o_mr_daily_t" t-attf-style="height: {{ dailyPct(d.target) }}%"/>
+                                        <div class="o_mr_daily_d" t-att-class="{ o_mr_daily_met: d.pct !== null and d.pct >= 100 }"
+                                             t-attf-style="height: {{ dailyPct(d.done) }}%"/>
+                                    </div>
+                                    <div class="o_mr_daily_l" t-esc="d.label"/>
+                                </div>
+                            </div>
+                            <div class="o_mr_legend text-muted">
+                                <span class="o_mr_dot o_mr_dot_target"/> target set
+                                <span class="o_mr_dot o_mr_dot_done"/> done
+                            </div>
+                        </div>
+
+                        <!-- The heat strip: one cell per person per day. Green met,
+                             amber short, blue done with no target, grey nothing. A
+                             total hides the shape of a week; this is the shape. -->
+                        <div class="o_mr_panel">
+                            <div class="o_mr_panel_h">
+                                Day by day, against target
+                                <span class="text-muted">— tap a name for the cases; tap a cell for the day</span>
+                            </div>
+                            <div class="o_mr_heat">
+                                <div class="o_mr_heat_row o_mr_heat_head">
+                                    <span class="o_mr_heat_name"/>
+                                    <span class="o_mr_heat_days">
+                                        <span t-foreach="tg.days" t-as="d" t-key="d.date"
+                                              class="o_mr_heat_day"
+                                              t-att-class="{ o_mr_heat_today: d.is_today, o_mr_heat_wknd: d.weekend }"
+                                              t-esc="d.label"/>
+                                    </span>
+                                    <span class="o_mr_heat_num">Done / target</span>
+                                    <span class="o_mr_heat_num">Days met</span>
+                                    <span class="o_mr_heat_num" title="Consecutive days the target was met, ending on the last day it was set">Streak</span>
+                                    <span class="o_mr_heat_num">Best day</span>
+                                </div>
+                                <div t-foreach="tg.people" t-as="p" t-key="p.id" class="o_mr_heat_row">
+                                    <button class="o_mr_heat_name o_mr_link" t-on-click="() => this.openPersonCases(p)"
+                                            title="The cases behind this row">
+                                        <span class="o_mr_heat_pname" t-esc="p.name"/>
+                                        <span class="o_mr_heat_pct"
+                                              t-att-class="{ o_mr_good: p.pct !== null and p.pct >= 100,
+                                                             o_mr_warn: p.pct !== null and p.pct &lt; 100 }">
+                                            <t t-if="p.pct !== null"><t t-esc="p.pct"/>%</t>
+                                            <t t-else="">no target</t>
+                                        </span>
+                                        <span t-if="p.pct !== null" class="o_mr_pbar o_mr_pbar_sm">
+                                            <span class="o_mr_pfill" t-att-class="{ o_mr_pfill_short: p.pct &lt; 100 }"
+                                                  t-attf-style="width: {{ Math.min(100, p.pct) }}%"/>
+                                        </span>
+                                    </button>
+                                    <span class="o_mr_heat_days">
+                                        <button t-foreach="p.days" t-as="c" t-key="c.date"
+                                                t-attf-class="o_mr_cell o_mr_cell_{{ c.state }}"
+                                                t-att-title="cellTitle(tg.days[c_index], c)"
+                                                t-on-click="() => this.drill(false, p.id)">
+                                            <span t-if="c.state !== 'none' and c.state !== 'future'" class="o_mr_cell_n" t-esc="c.done"/>
+                                            <span t-if="c.state === 'short' or c.state === 'met'" class="o_mr_cell_fill"
+                                                  t-attf-style="height: {{ c.pct }}%"/>
+                                        </button>
+                                    </span>
+                                    <span class="o_mr_heat_num"><b t-esc="p.done"/><t t-if="p.target"> / <t t-esc="p.target"/></t></span>
+                                    <span class="o_mr_heat_num"><t t-if="p.days_set"><t t-esc="p.days_met"/> / <t t-esc="p.days_set"/></t><t t-else="">—</t></span>
+                                    <span class="o_mr_heat_num">
+                                        <span t-if="p.streak" class="o_mr_streak" title="Days in a row on target">
+                                            <i class="fa fa-fire me-1"/><t t-esc="p.streak"/>
+                                        </span>
+                                        <t t-else="">—</t>
+                                    </span>
+                                    <span class="o_mr_heat_num"><t t-esc="p.best"/></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div t-if="tg.stations.length" class="o_mr_panel">
+                            <div class="o_mr_panel_h">
+                                Benches with their own targets
+                                <span class="text-muted">— done there, against what was set there</span>
+                            </div>
+                            <div t-foreach="tg.stations" t-as="s" t-key="s.id" class="o_mr_srow">
+                                <div class="o_mr_sname" t-esc="s.name"/>
+                                <div class="o_mr_sbar">
+                                    <div class="o_mr_sfill" t-att-class="{ o_mr_sfill_good: s.pct >= 100 }"
+                                         t-attf-style="width: {{ Math.min(100, s.pct) || 1 }}%"/>
+                                </div>
+                                <div class="o_mr_sn"><t t-esc="s.done"/> / <t t-esc="s.target"/></div>
+                                <div class="o_mr_sm"><t t-esc="s.pct"/>% · <t t-esc="s.people"/> people</div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+
+            <!-- ============================================== RIGHT NOW -->
+            <!-- Four questions a production manager answers every morning, each
+                 with the drill that acts on it: what is due out, which bench the
+                 lab is waiting on, where the old work sits, and which doctor has
+                 waited longest. Everything here is read from the routing, the
+                 order dates and the deliveries - nothing waits on a scan.
+                 (client, 2026-09-10) -->
+            <t t-if="state.half === 'now'">
+                <div class="o_mr_cards">
+                    <div class="o_mr_card o_mr_card_click"
+                         t-on-click="() => this.drillBacklog()">
+                        <div class="o_mr_v" t-esc="backlog.jobs"/>
+                        <div class="o_mr_l">cases live in the lab</div>
+                    </div>
+                    <div t-if="promises" class="o_mr_card o_mr_card_click o_mr_card_warn"
+                         t-on-click="() => this.drillPromise('overdue')"
+                         title="Past the day this appliance usually leaves">
+                        <div class="o_mr_v" t-esc="promiseCount('overdue')"/>
+                        <div class="o_mr_l">should already have gone</div>
+                    </div>
+                    <div t-if="promises" class="o_mr_card o_mr_card_click"
+                         t-on-click="() => this.drillPromise('today')">
+                        <div class="o_mr_v" t-esc="promiseCount('today')"/>
+                        <div class="o_mr_l">due out today</div>
+                    </div>
+                    <div class="o_mr_card" t-if="backlog.days_to_clear !== null"
+                         t-att-class="{ o_mr_card_warn: backlog.days_to_clear > 10 }"
+                         t-att-title="'With everybody at their bench all day. Set by ' + backlog.gating">
+                        <div class="o_mr_v" t-esc="days(backlog.days_to_clear)"/>
+                        <div class="o_mr_l">
+                            to clear at full capacity
+                            <span class="o_mr_sub">· gated by <t t-esc="backlog.gating"/></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- THE PROMISE CLOCK. Age is the wrong question - a Hawley leaves
+                     in two days and a Twin Block in three - so every live case is
+                     placed against the day its own appliance usually leaves. -->
+                <div class="o_mr_panel" t-if="promises and promises.promised">
+                    <div class="o_mr_panel_h">
+                        When it should go out
+                        <span class="text-muted">— each case against the day the lab
+                            usually delivers that appliance, over
+                            <t t-esc="promises.standards"/> appliance(s) it has a standard for</span>
+                    </div>
+                    <div class="o_mr_clock">
+                        <button t-foreach="promises.rows" t-as="b" t-key="b.key"
+                                class="o_mr_clock_seg" t-attf-class="o_mr_clock_{{ b.key }}"
+                                t-att-disabled="!b.count"
+                                t-attf-style="flex-grow: {{ b.count or 0.001 }}"
+                                t-att-title="b.label + ': ' + b.count + ' case(s)'"
+                                t-on-click="() => this.drillPromise(b.key)">
+                            <span class="o_mr_clock_n" t-esc="b.count"/>
+                            <span class="o_mr_clock_l" t-esc="b.label"/>
+                        </button>
+                    </div>
+                    <div t-if="promises.unpromised" class="o_mr_note">
+                        <t t-esc="promises.unpromised"/> case(s) are of an appliance the
+                        lab has not delivered often enough to have a standard, so nothing
+                        is promised for them.
+                    </div>
+                </div>
+
+                <!-- THE BENCH RADAR. A deep queue and a growing queue need different
+                     answers, so the week's arrivals and departures sit beside the
+                     pile itself. -->
+                <div class="o_mr_panel" t-if="radar and radar.rows.length">
+                    <div class="o_mr_panel_h">
+                        Which bench the lab is waiting on
+                        <span class="text-muted">— the queue now, and what went in and
+                            out of it over <t t-esc="radar.days"/> days</span>
+                        <span class="o_mr_radar_floor">
+                            floor: <b t-esc="radar.in_week"/> in ·
+                            <b t-esc="radar.out_week"/> out ·
+                            <span t-att-class="radar.net > 0 ? 'o_mr_warn' : 'o_mr_good'">
+                                <t t-esc="radar.net > 0 ? '+' + radar.net : radar.net"/> net
+                            </span>
+                        </span>
+                    </div>
+                    <div class="o_mr_radar">
+                        <div class="o_mr_radar_row o_mr_radar_head">
+                            <span>Bench</span>
+                            <span class="o_mr_num">Queue</span>
+                            <span class="o_mr_num">Hours</span>
+                            <span class="o_mr_num">People</span>
+                            <span class="o_mr_num">In</span>
+                            <span class="o_mr_num">Out</span>
+                            <span>Growing / shrinking</span>
+                            <span class="o_mr_num">To clear</span>
+                        </div>
+                        <button t-foreach="radar.rows" t-as="r" t-key="r.id"
+                                class="o_mr_radar_row"
+                                t-att-title="'Open the ' + r.queue + ' cases waiting at ' + r.name"
+                                t-on-click="() => this.drillBacklog(r.id)">
+                            <span class="o_mr_radar_name">
+                                <t t-esc="r.name"/>
+                                <span t-if="r.unstaffed" class="o_mr_tagred">nobody posted</span>
+                            </span>
+                            <span class="o_mr_num o_mr_strong" t-esc="fmt(r.queue)"/>
+                            <span class="o_mr_num o_mr_soft"><t t-esc="r.hours"/> h</span>
+                            <span class="o_mr_num o_mr_soft" t-esc="r.people"/>
+                            <span class="o_mr_num" t-esc="r.in_week"/>
+                            <span class="o_mr_num o_mr_num_fin" t-esc="r.out_week"/>
+                            <span class="o_mr_netbar">
+                                <span class="o_mr_netbar_mid"/>
+                                <span t-if="r.net" class="o_mr_netbar_fill"
+                                      t-att-class="r.net > 0 ? 'o_mr_netbar_up' : 'o_mr_netbar_down'"
+                                      t-attf-style="width: {{ r.net_pct / 2 }}%; {{ r.net > 0 ? 'left:50%' : 'right:50%' }}"/>
+                                <span class="o_mr_netbar_n"
+                                      t-att-class="r.net > 0 ? 'o_mr_warn' : (r.net &lt; 0 ? 'o_mr_good' : '')">
+                                    <t t-esc="r.net > 0 ? '+' + r.net : r.net"/>
+                                </span>
+                            </span>
+                            <span class="o_mr_num" t-att-class="{ o_mr_hot: r.days > 10 }"
+                                  t-esc="days(r.days)"/>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- WHERE IT IS ROTTING. A total says the lab holds 743 cases over
+                     three months; this says which bench is holding them. -->
+                <div class="o_mr_panel" t-if="rot and rot.rows.length">
+                    <div class="o_mr_panel_h">
+                        Where the old work is
+                        <span class="text-muted">— every live case by the bench it stands
+                            at and how long it has been here; tap a square for the cases</span>
+                    </div>
+                    <div class="o_mr_matrix">
+                        <div class="o_mr_matrix_row o_mr_matrix_head">
+                            <span/>
+                            <span t-foreach="rot.bands" t-as="b" t-key="b.key" class="o_mr_matrix_cell">
+                                <t t-esc="b.label"/>
+                                <span class="o_mr_matrix_total" t-esc="fmt(b.count)"/>
+                            </span>
+                            <span class="o_mr_num">All</span>
+                        </div>
+                        <div t-foreach="rot.rows" t-as="r" t-key="r.id" class="o_mr_matrix_row">
+                            <span class="o_mr_matrix_name" t-esc="r.name"/>
+                            <button t-foreach="r.cells" t-as="c" t-key="c.key"
+                                    class="o_mr_matrix_cell o_mr_matrix_box"
+                                    t-attf-class="o_mr_heatmap_{{ c.key }}"
+                                    t-att-disabled="!c.count"
+                                    t-attf-style="--heat: {{ c.heat }}%"
+                                    t-att-title="r.name + ' · ' + c.label + ': ' + c.count + ' case(s)'"
+                                    t-on-click="() => this.drillBacklog(r.id, c.key)">
+                                <t t-if="c.count" t-esc="fmt(c.count)"/>
+                            </button>
+                            <span class="o_mr_num o_mr_strong" t-esc="fmt(r.total)"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WHO IS WAITING. A doctor does not ring about a bench; they ring
+                     about their own two cases. -->
+                <div class="o_mr_panel" t-if="doctors.length">
+                    <div class="o_mr_panel_h">
+                        Doctors kept waiting longest
+                        <span class="text-muted">— clinics with cases past the day that
+                            appliance usually leaves; tap one for their cases</span>
+                    </div>
+                    <div class="o_mr_docs">
+                        <div class="o_mr_docs_row o_mr_docs_head">
+                            <span>Clinic</span>
+                            <span class="o_mr_num">Late</span>
+                            <span class="o_mr_num">Cases here</span>
+                            <span class="o_mr_num">Oldest</span>
+                            <span class="o_mr_num">Worst over</span>
+                        </div>
+                        <button t-foreach="doctors" t-as="d" t-key="d.id" class="o_mr_docs_row"
+                                t-on-click="() => this.drillDoctor(d.id)">
+                            <span class="o_mr_docs_name" t-esc="d.name"/>
+                            <span class="o_mr_num o_mr_strong o_mr_hot" t-esc="d.late"/>
+                            <span class="o_mr_num" t-esc="d.cases"/>
+                            <span class="o_mr_num" t-esc="d.oldest + ' d'"/>
+                            <span class="o_mr_num o_mr_soft">+<t t-esc="d.over"/> d</span>
+                        </button>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ============================================== WHAT WE DID -->
+            <t t-elif="state.half === 'did'">
+                <!-- The difference between a quiet week and a board nobody has ever
+                     used is the whole meaning of this half, so it is said rather than
+                     implied — and it points at the half that does have figures. -->
+                <div t-if="state.data.never_used" class="o_mr_notice">
+                    <i class="fa fa-info-circle me-2" title="Nothing recorded"/>
+                    <div>
+                        <b>No operation has ever been finished on the station board</b>,
+                        so every figure below is zero — the floor is not idle, it is not
+                        yet scanning. <t t-esc="backlog.jobs"/> cases are live in the lab
+                        right now:
+                        <a href="#" t-on-click.prevent="() => this.show('now')">see where
+                            they are standing</a>. The moment a bench accepts and hands
+                        on its first job, this half fills itself in.
+                    </div>
+                </div>
+
+                <div class="o_mr_cards">
+                    <div class="o_mr_card">
+                        <div class="o_mr_v" t-esc="state.data.totals.jobs"/>
+                        <div class="o_mr_l">operations finished</div>
+                    </div>
+                    <div class="o_mr_card">
+                        <div class="o_mr_v" t-esc="state.data.totals.people"/>
+                        <div class="o_mr_l">people on the bench</div>
+                    </div>
+                    <div class="o_mr_card">
+                        <div class="o_mr_v"><t t-esc="state.data.totals.hands_on"/> h</div>
+                        <div class="o_mr_l">hands-on time</div>
+                    </div>
+                    <div class="o_mr_card o_mr_card_click"
+                         t-att-class="{ o_mr_card_warn: state.data.redo.total }"
+                         t-on-click="() => this.drillRedo()">
+                        <div class="o_mr_v" t-esc="state.data.redo.total"/>
+                        <div class="o_mr_l">
+                            started again
+                            <span t-if="state.data.redo.rate !== null" class="o_mr_sub">
+                                · <t t-esc="state.data.redo.rate"/>% of what was finished
+                            </span>
+                        </div>
+                    </div>
+                    <!-- The one quality number a lab owner quotes. -->
+                    <div t-if="state.data.first_pass !== null" class="o_mr_card"
+                         t-att-class="{ o_mr_card_good: state.data.first_pass >= 95 }">
+                        <div class="o_mr_v"><t t-esc="state.data.first_pass"/>%</div>
+                        <div class="o_mr_l">right first time</div>
+                    </div>
+                    <button class="o_mr_copy" title="Copy this period as plain text, ready for WhatsApp"
+                            t-on-click="() => this.copySummary()">
+                        <i class="fa fa-clipboard me-1" title="Copy"/>Copy summary
+                    </button>
+                </div>
+
+                <div class="o_mr_panel">
+                    <div class="o_mr_panel_h">
+                        Operations finished each week
+                        <span class="text-muted">— with what had to be started again:
+                            a great week with five remakes is not a great week</span>
+                    </div>
+                    <div class="o_mr_weeks">
+                        <div t-foreach="state.data.weeks" t-as="w" t-key="w.week"
+                             class="o_mr_week" t-on-click="() => this.drill(w.week)"
+                             t-attf-title="{{ w.jobs }} finished, {{ w.redos }} started again">
+                            <div class="o_mr_wwrap">
+                                <div class="o_mr_wfill" t-attf-style="height: {{ w.pct or 1 }}%"/>
+                                <div t-if="w.redos" class="o_mr_wredo"
+                                     t-attf-style="height: {{ redoPct(w) }}%"/>
+                            </div>
+                            <div class="o_mr_wn" t-esc="w.jobs"/>
+                            <div t-if="w.redos" class="o_mr_wredo_n">
+                                <t t-esc="w.redos"/>&#8635;</div>
+                            <div class="o_mr_wl" t-esc="w.label"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scanner adoption, day by day: the number that moves first
+                     as the floor takes up the board. -->
+                <div class="o_mr_panel">
+                    <div class="o_mr_panel_h">
+                        Board activity, last 14 days
+                        <span class="text-muted">— accepts and hand-overs on the
+                            station board; the habit, measured daily</span>
+                    </div>
+                    <div t-if="!state.data.activity.total" class="o_mr_empty">
+                        No scan yet in the last fortnight.
+                    </div>
+                    <div t-else="" class="o_mr_weeks o_mr_activity">
+                        <div t-foreach="state.data.activity.rows" t-as="d" t-key="d_index"
+                             class="o_mr_week"
+                             t-att-class="d.weekend ? 'o_mr_week_off' : ''"
+                             t-attf-title="{{ d.accepts }} accepted, {{ d.handed }} handed over">
+                            <div class="o_mr_wwrap o_mr_wwrap_sm">
+                                <div class="o_mr_wfill o_mr_wfill_accept"
+                                     t-attf-style="height: {{ actPct(d.accepts) }}%"/>
+                                <div class="o_mr_wfill o_mr_wfill_handed"
+                                     t-attf-style="height: {{ actPct(d.handed) }}%"/>
+                            </div>
+                            <div class="o_mr_wl" t-esc="d.label"/>
+                        </div>
+                    </div>
+                    <div t-if="state.data.activity.total" class="o_mr_legend text-muted">
+                        <span class="o_mr_dot o_mr_dot_accept"/> accepted
+                        <span class="o_mr_dot o_mr_dot_handed"/> handed over
+                    </div>
+                </div>
+
+                <!-- The routing says where work SHOULD go; this says where it went. -->
+                <div t-if="state.data.flows.length" class="o_mr_panel">
+                    <div class="o_mr_panel_h">
+                        Where work actually travels
+                        <span class="text-muted">— the busiest hand-over lanes the
+                            scanner has recorded</span>
+                    </div>
+                    <div t-foreach="state.data.flows" t-as="f" t-key="f_index"
+                         class="o_mr_flowlane">
+                        <span class="o_mr_flowfrom" t-esc="f.from"/>
+                        <i class="fa fa-long-arrow-right mx-2 text-muted" title="to"/>
+                        <span class="o_mr_flowto" t-esc="f.to"/>
+                        <b class="ms-auto" t-esc="f.count"/>
+                    </div>
+                </div>
+
+                <!-- Ranked on what was finished, never on speed: a bench handed the
+                     hardest appliances is slower by arithmetic, and ranking on minutes
+                     would read that as the technician's failing. -->
+                <div class="o_mr_panel">
+                    <div class="o_mr_panel_h">
+                        Each person
+                        <span class="text-muted">— most finished first; the minutes are
+                            beside it, not above it</span>
+                    </div>
+                    <div t-if="!state.data.people.length" class="o_mr_empty">
+                        No operation in this period carries a technician's name.
+                    </div>
+                    <!-- A bar per person, split into their own work and what they
+                         finished for others; their weeks beside it as a line.
+                         (client, 2026-09-10) -->
+                    <div t-else="" class="o_mr_people">
+                        <div class="o_mr_people_head">
+                            <span/>
+                            <span>Finished</span>
+                            <span class="o_mr_num">Their weeks</span>
+                            <span class="o_mr_num">Hands-on / job</span>
+                            <span class="o_mr_num">Waited first</span>
+                        </div>
+                        <button t-foreach="state.data.people" t-as="p" t-key="p.id"
+                                class="o_mr_people_row" t-on-click="() => this.drill(false, p.id)"
+                                t-att-title="p.jobs + ' finished' + (p.finished_for_others ? ', ' + p.finished_for_others + ' of them for others' : '')">
+                            <span class="o_mr_people_name">
+                                <span class="o_mr_person" t-esc="p.name"/>
+                                <span t-if="p.finished_for_others" class="o_mr_psub">
+                                    <t t-esc="p.finished_for_others"/> finished for others
+                                </span>
+                            </span>
+                            <span class="o_mr_people_bar">
+                                <span class="o_mr_people_own" t-attf-style="width: {{ personBar(p).own }}%"/>
+                                <span class="o_mr_people_oth" t-attf-style="width: {{ personBar(p).others }}%"/>
+                                <b class="o_mr_people_n" t-esc="p.jobs"/>
+                            </span>
+                            <span class="o_mr_sparkcell">
+                                <svg viewBox="0 0 80 22" preserveAspectRatio="none" class="o_mr_spark">
+                                    <polyline t-att-points="sparkPoints(p.spark)"/>
+                                </svg>
+                            </span>
+                            <span class="o_mr_num" t-esc="hours(p.per_job)"/>
+                            <span class="o_mr_num o_mr_soft"><t t-esc="p.waiting_hours"/> h</span>
+                        </button>
+                        <div class="o_mr_legend text-muted">
+                            <span class="o_mr_dot o_mr_dot_own"/> their own jobs
+                            <span class="o_mr_dot o_mr_dot_oth"/> finished for somebody else
+                        </div>
+                    </div>
+                    <div class="o_mr_note">
+                        <b>Hands-on</b> is what the timers recorded between starting and
+                        finishing. Read it beside <b>waited first</b>: a bench with a long
+                        queue and a short hands-on time is not slow, it is under-fed.
+                    </div>
+                </div>
+
+                <!-- Pace against what the operation is costed at. Jobs with no timer
+                     are counted as untimed, never folded in as zero. -->
+                <div class="o_mr_panel" t-if="state.data.pace.timed">
+                    <div class="o_mr_panel_h">Against the costed time</div>
+                    <div class="o_mr_pace">
+                        <div class="o_mr_pacebar">
+                            <div class="o_mr_pace_under"
+                                 t-attf-style="width: {{ 100 - state.data.pace.over_pct }}%"/>
+                            <div class="o_mr_pace_over"
+                                 t-attf-style="width: {{ state.data.pace.over_pct }}%"/>
+                        </div>
+                        <div class="o_mr_note">
+                            <b><t t-esc="state.data.pace.under"/></b> of
+                            <t t-esc="state.data.pace.timed"/> timed operations came in at
+                            or under their costed time;
+                            <b><t t-esc="state.data.pace.over"/></b> ran over, by
+                            <t t-esc="state.data.pace.avg_over"/> min on average.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="o_mr_panel" t-if="state.data.stations.length">
+                    <div class="o_mr_panel_h">
+                        Each station
+                        <span class="text-muted">— share of what was finished, and the hands-on time per job there</span>
+                    </div>
+                    <div class="o_mr_donutwrap">
+                        <svg viewBox="0 0 100 100" class="o_mr_donut" role="img" aria-label="Operations by station">
+                            <circle cx="50" cy="50" r="40" class="o_mr_donut_track"/>
+                            <t t-foreach="donut(state.data.stations, 'jobs')" t-as="seg" t-key="seg.key">
+                                <circle t-if="seg.value" cx="50" cy="50" r="40"
+                                        class="o_mr_donut_seg" t-att-class="seg.cls"
+                                        t-att-stroke-dasharray="seg.dash"
+                                        t-att-stroke-dashoffset="seg.offset">
+                                    <title><t t-esc="seg.label"/>: <t t-esc="seg.value"/> (<t t-esc="seg.pct"/>%)</title>
+                                </circle>
+                            </t>
+                            <text x="50" y="47" class="o_mr_donut_n" t-esc="state.data.totals.jobs"/>
+                            <text x="50" y="60" class="o_mr_donut_l">finished</text>
+                        </svg>
+                        <div class="o_mr_donut_legend">
+                            <div t-foreach="donut(state.data.stations, 'jobs')" t-as="seg" t-key="seg.key"
+                                 class="o_mr_donut_key">
+                                <span class="o_mr_agedot" t-att-class="seg.cls"/>
+                                <span class="o_mr_donut_kname" t-esc="seg.label"/>
+                                <b t-esc="seg.value"/>
+                                <span class="o_mr_soft"><t t-esc="seg.pct"/>% · <t t-esc="hours(seg.row.per_job)"/>/job</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Why work was started again. The only quality signal the lab
+                     records, and it does not depend on the board being scanned. -->
+                <div class="o_mr_panel">
+                    <div class="o_mr_panel_h">
+                        Started again
+                        <span class="text-muted">— why work came back</span>
+                    </div>
+                    <div t-if="!state.data.redo.reasons.length" class="o_mr_empty">
+                        Nothing was sent back in this period.
+                    </div>
+                    <div t-else="" t-foreach="state.data.redo.reasons" t-as="r" t-key="r.id"
+                         class="o_mr_station o_mr_station_click"
+                         t-on-click="() => this.drillRedo(r.id)">
+                        <div class="o_mr_sname" t-esc="r.name"/>
+                        <div class="o_mr_sbar">
+                            <div class="o_mr_sfill o_mr_sfill_warn"
+                                 t-attf-style="width: {{ r.pct or 1 }}%"/>
+                        </div>
+                        <div class="o_mr_sn" t-esc="r.count"/>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </div>
+</t>
+
+</templates>

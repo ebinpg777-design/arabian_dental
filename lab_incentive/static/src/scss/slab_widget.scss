@@ -1,0 +1,44 @@
+.o_incentive_slab_widget {
+    max-width: 520px;
+
+    .o_incentive_slab_summary {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.95rem;
+    }
+    .o_incentive_slab_amount { color: #0e7c86; }
+
+    .o_incentive_slab_row {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        align-items: center;
+        gap: .6rem;
+        padding: .2rem 0;
+        opacity: .55;
+
+        &.o_reached { opacity: 1; }
+        &.o_current .o_incentive_slab_label { font-weight: 700; }
+    }
+    .o_incentive_slab_label {
+        font-size: .82rem;
+        white-space: nowrap;
+    }
+    .o_incentive_slab_pct {
+        margin-left: .4rem;
+        color: #0e7c86;
+    }
+    .o_incentive_slab_bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, .08);
+        overflow: hidden;
+    }
+    .o_incentive_slab_fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #0e7c86, #4f46e5);
+    }
+    .o_incentive_slab_row.o_current .o_incentive_slab_fill {
+        background: linear-gradient(90deg, #0f9d58, #0e7c86);
+    }
+}

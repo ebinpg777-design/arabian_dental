@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_ceo_dashboard.MgmtPulse">
+    <div class="o_mp o_action">
+
+        <div class="o_mp_head">
+            <div class="o_mp_tabs" role="tablist">
+                <button t-foreach="[['sales', 'Sales &amp; Cases'], ['field', 'Field Force'], ['money', 'Money']]"
+                        t-as="tab" t-key="tab[0]" role="tab" class="o_mp_tab"
+                        t-att-class="{ o_mp_tab_on: state.tab === tab[0] }"
+                        t-on-click="() => this.setTab(tab[0])">
+                    <t t-esc="tab[1]"/>
+                </button>
+            </div>
+            <!-- The pivot this page replaced, for the reader whose next question
+                 the page did not answer. -->
+            <!-- One salesperson, or the whole lab. Narrows every tab at once.
+                 (client, 2026-08-28) -->
+            <label class="o_mp_who" t-if="users.length">
+                <span class="o_mp_who_l">Salesperson</span>
+                <select class="o_mp_who_sel" t-on-change="(ev) => this.setUser(ev)">
+                    <option value="" t-att-selected="!state.userId">Everyone</option>
+                    <option t-foreach="users" t-as="u" t-key="u.id"
+                            t-att-value="u.id" t-att-selected="state.userId === u.id">
+                        <t t-esc="u.name"/> (<t t-esc="u.orders"/>)
+                    </option>
+                </select>
+            </label>
+            <button class="o_mp_full" t-on-click="() => this.openFull()">
+                Full analysis <i class="fa fa-external-link ms-1"/>
+            </button>
+        </div>
+
+        <div t-if="state.loading" class="text-center text-muted py-5">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+
+        <t t-else="">
+            <!-- ============================================== SALES & CASES -->
+            <t t-set="s" t-value="state.data.sales"/>
+            <div t-if="state.tab === 'sales'">
+                <t t-call="lab_ceo_dashboard.SalesDaySwitch"/>
+                <t t-if="state.salesView === 'day'" t-call="lab_ceo_dashboard.SalesDay"/>
+                <t t-else="">
+                <div class="o_mp_cards">
+                    <div class="o_mp_card o_mp_card_click" t-on-click="() => this.openMonthOrders()">
+                        <div class="o_mp_card_v"><t t-esc="s.this_month.orders"/></div>
+                        <div class="o_mp_card_l">cases this month</div>
+                        <div t-if="pctDelta(s.this_month.orders, s.prev_month.orders) !== null"
+                             class="o_mp_delta"
+                             t-att-class="{ o_mp_up: s.this_month.orders >= s.prev_month.orders,
+                                            o_mp_down: s.this_month.orders &lt; s.prev_month.orders }">
+                            <t t-esc="pctDelta(s.this_month.orders, s.prev_month.orders)"/>% vs last month, same days
+                        </div>
+                    </div>
+                    <div class="o_mp_card">
+                        <div class="o_mp_card_v"><t t-esc="money(s.this_month.value)"/></div>
+                        <div class="o_mp_card_l">case value this month</div>
+                        <div t-if="pctDelta(s.this_month.value, s.prev_month.value) !== null"
+                             class="o_mp_delta"
+                             t-att-class="{ o_mp_up: s.this_month.value >= s.prev_month.value,
+                                            o_mp_down: s.this_month.value &lt; s.prev_month.value }">
+                            <t t-esc="pctDelta(s.this_month.value, s.prev_month.value)"/>% vs last month, same days
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two lenses on the same twelve bars. A month of many cheap
+                     retainers and a month of few aligners are the same height in
+                     one and opposite in the other, and that is the comparison
+                     being made. (client, 2026-08-28) -->
+                <div class="o_mp_panel">
+                    <div class="o_mp_panel_head">
+                        <div class="o_mp_panel_h">
+                            <t t-if="lens === 'value'">Case value, last 12 months</t>
+                            <t t-else="">Cases booked, last 12 months</t>
+                        </div>
+                        <div class="o_mp_lens">
+                            <button class="o_mp_lensbtn"
+                                    t-att-class="{ o_mp_lensbtn_on: lens === 'orders' }"
+                                    t-on-click="() => this.setLens('orders')">Cases</button>
+                            <button class="o_mp_lensbtn"
+                                    t-att-class="{ o_mp_lensbtn_on: lens === 'value' }"
+                                    t-on-click="() => this.setLens('value')">Value</button>
+                        </div>
+                    </div>
+                    <div class="o_mp_bars">
+                        <div t-foreach="s.trend" t-as="m" t-key="m_index" class="o_mp_col"
+                             t-att-title="m.label + ' — ' + m.orders + ' cases, ' + money(m.value)"
+                             t-on-click="() => this.openMonth(m)">
+                            <div class="o_mp_track">
+                                <!-- The month in progress against the same elapsed
+                                     days of the last one: a raw part-month bar reads
+                                     as a collapse every single mid-month. -->
+                                <div t-if="m_index === s.trend.length - 1 and ghostPct(s.trend)"
+                                     class="o_mp_ghost"
+                                     t-attf-style="height: {{ ghostPct(s.trend) }}%"
+                                     t-att-title="'Same days last month: ' + (lens === 'value' ? money(sameDaysGhost) : sameDaysGhost)"/>
+                                <div class="o_mp_bar"
+                                     t-att-class="{ o_mp_bar_now: m_index === s.trend.length - 1 }"
+                                     t-attf-style="height: {{ barPct(s.trend, lens, lensValue(m)) }}%"/>
+                            </div>
+                            <div class="o_mp_x"><t t-esc="m.label"/></div>
+                            <div class="o_mp_xv"><t t-esc="lensLabel(m)"/></div>
+                        </div>
+                    </div>
+                    <div t-if="ghostPct(s.trend)" class="o_mp_foot">
+                        <span class="o_mp_key o_mp_key_ghost"/> same days last month
+                        (<t t-esc="lens === 'value' ? money(sameDaysGhost) : sameDaysGhost"/>)
+                    </div>
+                </div>
+
+                <div class="o_mp_grid">
+                    <div class="o_mp_panel">
+                        <div class="o_mp_panel_h">Routes this month</div>
+                        <div t-if="!s.routes.length" class="o_mp_none">Nothing booked yet this month.</div>
+                        <div t-foreach="s.routes" t-as="r" t-key="r.id" class="o_mp_row"
+                             t-on-click="() => this.openRoute(r)">
+                            <span class="o_mp_row_n"><t t-esc="r.name"/></span>
+                            <div class="o_mp_row_bar">
+                                <div class="o_mp_row_fill" t-attf-style="width: {{ barPct(s.routes, 'value', r.value) }}%"/>
+                            </div>
+                            <span class="o_mp_row_v"><t t-esc="money(r.value)"/></span>
+                        </div>
+                    </div>
+                    <div class="o_mp_panel">
+                        <div class="o_mp_panel_h">Clinics this month</div>
+                        <div t-if="!s.clinics.length" class="o_mp_none">Nothing booked yet this month.</div>
+                        <div t-foreach="s.clinics" t-as="c" t-key="c.id" class="o_mp_row"
+                             t-on-click="() => this.openClinic(c)">
+                            <span class="o_mp_row_n"><t t-esc="c.name"/></span>
+                            <div class="o_mp_row_bar">
+                                <div class="o_mp_row_fill" t-attf-style="width: {{ barPct(s.clinics, 'value', c.value) }}%"/>
+                            </div>
+                            <span class="o_mp_row_v"><t t-esc="money(c.value)"/></span>
+                        </div>
+                    </div>
+                    <div class="o_mp_panel">
+                        <div class="o_mp_panel_h">Appliances this month</div>
+                        <div t-if="!s.appliances.length" class="o_mp_none">Nothing booked yet this month.</div>
+                        <div t-foreach="s.appliances" t-as="a" t-key="a.id" class="o_mp_row"
+                             t-on-click="() => this.openAppliance(a)">
+                            <span class="o_mp_row_n"><t t-esc="a.name"/></span>
+                            <div class="o_mp_row_bar">
+                                <div class="o_mp_row_fill" t-attf-style="width: {{ barPct(s.appliances, 'value', a.value) }}%"/>
+                            </div>
+                            <span class="o_mp_row_v"><t t-esc="money(a.value)"/></span>
+                        </div>
+                    </div>
+                </div>
+                </t>
+            </div>
+
+            <!-- ================================================= FIELD FORCE -->
+            <t t-set="f" t-value="state.data.field"/>
+            <div t-if="state.tab === 'field'">
+                <div class="o_mp_cards">
+                    <div class="o_mp_card o_mp_card_click" t-on-click="() => this.openNewClinics()">
+                        <div class="o_mp_card_v"><t t-esc="f.new_clinics"/></div>
+                        <div class="o_mp_card_l">new clinics this month</div>
+                    </div>
+                </div>
+
+                <div t-if="!f.has_data" class="o_mp_none o_mp_none_big">
+                    <i class="fa fa-map-o fa-2x mb-2" title="No field data"/>
+                    <div>No completed visits recorded yet.</div>
+                    <div class="small">This page fills in as the executives use My Day.</div>
+                </div>
+
+                <t t-else="">
+                    <div class="o_mp_panel">
+                        <div class="o_mp_panel_h">Visits per week, last 8 weeks</div>
+                        <div class="o_mp_bars">
+                            <div t-foreach="f.weeks" t-as="w" t-key="w_index" class="o_mp_col"
+                                 t-att-title="'Week of ' + w.label + ' — ' + w.visits + ' visits, ' + money(w.collected) + ' collected'">
+                                <div class="o_mp_track">
+                                    <div class="o_mp_bar" t-attf-style="height: {{ barPct(f.weeks, 'visits', w.visits) }}%"/>
+                                </div>
+                                <div class="o_mp_x"><t t-esc="w.label"/></div>
+                                <div class="o_mp_xv"><t t-esc="w.visits"/></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="o_mp_panel">
+                        <div class="o_mp_panel_h">By executive, this month</div>
+                        <div t-foreach="f.people" t-as="p" t-key="p.id" class="o_mp_row"
+                             t-on-click="() => this.openPerson(p)">
+                            <span class="o_mp_row_n"><t t-esc="p.name"/></span>
+                            <div class="o_mp_row_bar">
+                                <div class="o_mp_row_fill" t-attf-style="width: {{ barPct(f.people, 'visits', p.visits) }}%"/>
+                            </div>
+                            <span class="o_mp_row_v">
+                                <t t-esc="p.visits"/> visits · <t t-esc="money(p.collected)"/> collected
+                            </span>
+                        </div>
+                    </div>
+                </t>
+            </div>
+
+            <!-- ======================================================= MONEY -->
+            <t t-set="mo" t-value="state.data.money"/>
+            <div t-if="state.tab === 'money'">
+                <!-- The flow window. Open money is a stock and ignores it. -->
+                <div class="o_mp_periods">
+                    <button t-foreach="mo.periods" t-as="p" t-key="p[0]"
+                            class="o_mp_period"
+                            t-att-class="{ o_mp_period_on: mo.period.key === p[0] }"
+                            t-on-click="() => this.setPeriod(p[0])">
+                        <t t-esc="p[1]"/>
+                    </button>
+                    <span class="o_mp_period_span">
+                        <t t-esc="mo.period.from"/> → <t t-esc="mo.period.to"/>
+                    </span>
+                </div>
+
+                <div class="o_mp_cards">
+                    <div class="o_mp_card">
+                        <div class="o_mp_card_v"><t t-esc="money(mo.billed.amount)"/></div>
+                        <div class="o_mp_card_l">
+                            billed · <t t-esc="mo.billed.invoices"/> invoices
+                        </div>
+                        <div t-if="billedDelta and billedDelta.nothingYet" class="o_mp_delta text-muted">
+                            nothing billed yet this month
+                        </div>
+                        <div t-elif="billedDelta" class="o_mp_delta"
+                             t-att-class="{ o_mp_up: billedDelta.up, o_mp_down: !billedDelta.up }">
+                            <t t-esc="billedDelta.pct"/>% <t t-esc="mo.period.delta_label"/>
+                        </div>
+                        <div t-if="mo.billed.refunds" class="o_mp_refunds"
+                             t-att-title="money(mo.billed.refund_amount) + ' netted off'">
+                            <i class="fa fa-undo me-1"/><t t-esc="mo.billed.refunds"/> credit notes
+                        </div>
+                    </div>
+                    <div class="o_mp_card o_mp_card_cash">
+                        <div class="o_mp_card_v"><t t-esc="money(mo.received.amount)"/></div>
+                        <div class="o_mp_card_l">
+                            received · <t t-esc="mo.received.count"/> receipts
+                        </div>
+                        <div t-if="receivedDelta and receivedDelta.nothingYet" class="o_mp_delta text-muted">
+                            nothing received yet this month
+                        </div>
+                        <div t-elif="receivedDelta" class="o_mp_delta"
+                             t-att-class="{ o_mp_up: receivedDelta.up, o_mp_down: !receivedDelta.up }">
+                            <t t-esc="receivedDelta.pct"/>% <t t-esc="mo.period.delta_label"/>
+                        </div>
+                        <svg t-if="cashSpark" class="o_mp_spark" viewBox="0 0 80 22"
+                             preserveAspectRatio="none" title="Cash in, last 8 weeks">
+                            <polyline t-att-points="cashSpark"/>
+                        </svg>
+                    </div>
+                    <div class="o_mp_card" t-att-class="{ o_mp_card_warn: mo.ratio !== null and mo.ratio &lt; 70 }">
+                        <div class="o_mp_card_v">
+                            <t t-if="mo.ratio !== null"><t t-esc="mo.ratio"/>%</t>
+                            <t t-else="">—</t>
+                        </div>
+                        <div class="o_mp_card_l">of billing collected</div>
+                        <div class="o_mp_delta text-muted">
+                            <t t-if="mo.ratio !== null">received ÷ billed, this window</t>
+                            <t t-else="">nothing billed in this window</t>
+                        </div>
+                    </div>
+                    <div class="o_mp_card o_mp_card_click" t-on-click="() => this.openAR('open')">
+                        <div class="o_mp_card_v"><t t-esc="money(mo.ar.total)"/></div>
+                        <div class="o_mp_card_l">open receivable, today</div>
+                        <div class="o_mp_delta text-muted">
+                            <t t-esc="mo.ar.clinics"/> clinics owe
+                        </div>
+                    </div>
+                    <!-- "Older than a month", not "overdue": this ledger sets
+                         date_maturity to the invoice date, so past-due read 100.0%
+                         every day and meant nothing. (client, 2026-08-28) -->
+                    <div class="o_mp_card o_mp_card_click o_mp_card_warn" t-on-click="() => this.openAR('overdue')">
+                        <div class="o_mp_card_v"><t t-esc="money(mo.ar.stale)"/></div>
+                        <div class="o_mp_card_l">
+                            older than a month (<t t-esc="mo.ar.stale_pct"/>%)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- How old the money is. One bar, four bands: the shape of the
+                     debt is the point, and each band opens what it counts. -->
+                <div class="o_mp_panel" t-if="mo.ar.total">
+                    <div class="o_mp_panel_h">
+                        How old the open receivable is
+                        <span class="text-muted">— <t t-esc="mo.ar.count"/> items</span>
+                    </div>
+                    <div class="o_mp_ageband">
+                        <div t-foreach="mo.ar.bands" t-as="b" t-key="b.key"
+                             class="o_mp_ageseg" t-attf-class="o_mp_ageseg o_mp_age_{{ b.key }}"
+                             t-attf-style="width: {{ b.pct }}%"
+                             t-att-title="b.label + ': ' + money(b.amount) + ' (' + b.count + ' items)'"
+                             t-on-click="() => this.openAgeBand(b)">
+                            <span t-if="b.pct >= 8"><t t-esc="b.pct"/>%</span>
+                        </div>
+                    </div>
+                    <div class="o_mp_agelegend">
+                        <button t-foreach="mo.ar.bands" t-as="b" t-key="b.key"
+                                class="o_mp_agekey" t-att-disabled="!b.amount"
+                                t-on-click="() => this.openAgeBand(b)">
+                            <span class="o_mp_agedot" t-attf-class="o_mp_agedot o_mp_age_{{ b.key }}"/>
+                            <span t-esc="b.label"/>
+                            <b t-esc="money(b.amount)"/>
+                        </button>
+                    </div>
+                    <!-- The judgment numbers a band cannot say on its own. -->
+                    <div class="o_mp_chips">
+                        <span class="o_mp_chip" title="Every open rupee, weighted by its age">
+                            the average open rupee is <b><t t-esc="mo.ar.avg_age"/> days</b> old
+                        </span>
+                        <span class="o_mp_chip">
+                            oldest debt: <b><t t-esc="mo.ar.oldest_days"/> days</b>
+                        </span>
+                        <span class="o_mp_chip"
+                              t-att-class="{ o_mp_chip_warn: mo.ar.top5_pct >= 30 }"
+                              title="How concentrated the risk is">
+                            top 5 clinics hold <b><t t-esc="mo.ar.top5_pct"/>%</b> of it
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Billed and received on the same months: the pair IS the
+                     story — a great billing month that never lands as cash is
+                     the thing this chart exists to show. -->
+                <div class="o_mp_panel">
+                    <div class="o_mp_panel_h">
+                        Billed and received, month by month
+                        <span class="text-muted">— the ledger opens <t t-esc="mo.first_month_label"/></span>
+                    </div>
+                    <div class="o_mp_bars">
+                        <div t-foreach="mo.trend" t-as="m" t-key="m_index" class="o_mp_col"
+                             t-att-title="m.label + ' — billed ' + money(m.billed)
+                                          + (m.opening ? ', receipts here are opening entries'
+                                                       : ', received ' + money(m.received))">
+                            <div class="o_mp_track o_mp_track_pair">
+                                <div class="o_mp_bar2 o_mp_bar2_billed"
+                                     t-attf-style="height: {{ pairPct(mo.trend, 'billed', m.billed) }}%"/>
+                                <div class="o_mp_bar2 o_mp_bar2_cash"
+                                     t-att-class="{ o_mp_bar2_open: m.opening }"
+                                     t-attf-style="height: {{ m.opening ? 2 : pairPct(mo.trend, 'received', m.received) }}%"/>
+                            </div>
+                            <div class="o_mp_x"><t t-esc="m.label"/></div>
+                            <div class="o_mp_xv"><t t-esc="short(m.billed)"/></div>
+                        </div>
+                    </div>
+                    <div class="o_mp_foot">
+                        <span class="o_mp_key o_mp_key_billed"/> billed
+                        <span class="o_mp_key o_mp_key_cash ms-2"/> received
+                        <t t-if="state.userId"> — receipts shown for the whole lab</t>
+                    </div>
+                </div>
+
+                <!-- The route meeting's whole agenda as one table. -->
+                <div class="o_mp_panel">
+                    <div class="o_mp_panel_h">
+                        Money by route
+                        <span class="text-muted">— billed and received in this window; open money as of today</span>
+                        <span t-if="state.userId" class="o_mp_labtag">whole lab</span>
+                    </div>
+                    <div t-if="!mo.routes.length" class="o_mp_none">No routed money yet.</div>
+                    <div t-else="" class="o_mp_tablewrap">
+                        <table class="o_mp_table">
+                            <thead>
+                                <tr>
+                                    <th>Route</th>
+                                    <th class="o_mp_num">Billed</th>
+                                    <th class="o_mp_num">Received</th>
+                                    <th class="o_mp_num">Open</th>
+                                    <th class="o_mp_num">Overdue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="mo.routes" t-as="r" t-key="r.id"
+                                    class="o_mp_trow" t-on-click="() => this.openRouteMoney(r)">
+                                    <td><t t-esc="r.name"/></td>
+                                    <td class="o_mp_num"><t t-esc="short(r.billed)"/></td>
+                                    <td class="o_mp_num"><t t-esc="short(r.received)"/></td>
+                                    <td class="o_mp_num"><b><t t-esc="short(r.open)"/></b></td>
+                                    <td class="o_mp_num">
+                                        <span t-att-class="{ o_mp_bad: r.overdue_pct >= 60 }">
+                                            <t t-esc="short(r.overdue)"/> (<t t-esc="r.overdue_pct"/>%)
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="o_mp_grid o_mp_grid_2">
+                    <!-- Cash rides in pockets before it is banked; the split
+                         is a control question, not decoration. -->
+                    <div class="o_mp_panel">
+                        <div class="o_mp_panel_h">
+                            How the money arrived
+                            <span t-if="state.userId" class="o_mp_labtag">whole lab</span>
+                        </div>
+                        <div t-if="!mo.mix.length" class="o_mp_none">No receipts in this window.</div>
+                        <t t-else="">
+                            <div class="o_mp_mixbar">
+                                <div t-foreach="mo.mix" t-as="j" t-key="j.type"
+                                     t-attf-class="o_mp_mixseg o_mp_mix_{{ j.type }}"
+                                     t-attf-style="width: {{ j.share }}%"
+                                     t-att-title="j.label + ': ' + money(j.amount)"/>
+                            </div>
+                            <div t-foreach="mo.mix" t-as="j" t-key="j.type" class="o_mp_mixrow">
+                                <span t-attf-class="o_mp_agedot o_mp_mix_{{ j.type }}"/>
+                                <span class="o_mp_row_n"><t t-esc="j.label"/></span>
+                                <span class="o_mp_row_v">
+                                    <t t-esc="money(j.amount)"/> · <t t-esc="j.share"/>%
+                                </span>
+                            </div>
+                        </t>
+                    </div>
+
+                    <!-- Owed-and-silent is a different list from owed-the-most:
+                         a big balance that pays weekly is a customer; one that
+                         went quiet is a risk. -->
+                    <div class="o_mp_panel">
+                        <div class="o_mp_panel_h">
+                            Owed a lot, quiet for 60+ days
+                            <span t-if="state.userId" class="o_mp_labtag">whole lab</span>
+                        </div>
+                        <div t-if="!mo.quiet.length" class="o_mp_none">
+                            Every big balance has paid something recently.
+                        </div>
+                        <div t-foreach="mo.quiet" t-as="q" t-key="q.id" class="o_mp_row"
+                             t-on-click="() => this.openQuiet(q)">
+                            <span class="o_mp_row_n"><t t-esc="q.name"/></span>
+                            <span class="o_mp_quiet_when">
+                                <t t-if="q.last_pay">last paid <t t-esc="q.last_pay"/> · <t t-esc="q.days_silent"/> d ago</t>
+                                <t t-else="">never paid</t>
+                            </span>
+                            <span class="o_mp_row_v"><b><t t-esc="money(q.open)"/></b></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="o_mp_panel">
+                    <div class="o_mp_panel_h">Who holds the money</div>
+                    <div t-if="!mo.debtors.length" class="o_mp_none">Nothing open. A clean ledger.</div>
+                    <div t-foreach="mo.debtors" t-as="d" t-key="d.id" class="o_mp_row"
+                         t-on-click="() => this.openDebtor(d)">
+                        <span class="o_mp_row_n">
+                            <t t-esc="d.name"/>
+                            <span class="o_mp_share"><t t-esc="d.share"/>%</span>
+                        </span>
+                        <div class="o_mp_row_bar">
+                            <div class="o_mp_row_fill o_mp_fill_warn" t-attf-style="width: {{ barPct(mo.debtors, 'open', d.open) }}%"/>
+                        </div>
+                        <span class="o_mp_row_v"><t t-esc="money(d.open)"/></span>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

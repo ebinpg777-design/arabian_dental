@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Eight production slips to an A4 sheet.
+
+        One slip per manufacturing order, cut apart and travelling with the work. It
+        carries only what a bench needs to identify the case and what a scanner needs
+        to find it again: the two numbers, the barcode of the MO, who it is for, and
+        the three things that decide how it is made (product, arch, colour).
+
+        Printable from the manufacturing orders themselves, or from a batch of SALES
+        ORDERS - the office selects the day's orders and gets a slip for every job
+        underneath them, which is how the work actually arrives. (client, 2026-08-28)
+    -->
+
+    <template id="report_production_slip_one">
+        <!-- One slip. Sized so four rows of two fit an A4 with 5 mm margins:
+             (297 - 10) / 4 = 71 mm a row, and a slip takes 68 of it.
+
+             Everything is laid out to survive that height with the longest real data
+             in this database: product names run to 40-odd characters and clinic names
+             to 50, so both are clamped to two lines and the labels sit INLINE with
+             their values rather than on their own line. The old one-row-per-field
+             layout is what made three slips fill a page. (client, 2026-08-28) -->
+        <!-- Urgent/emergency has to be the first thing a hand pulling a stack of
+             these apart notices - a coloured border round the whole slip, seen
+             before anything is even read, plus the word itself in the corner so
+             the signal survives a black-and-white print. (client, 2026-08-29) -->
+        <div class="ops-slip"
+             t-attf-style="box-sizing:border-box; overflow:hidden; position:relative;
+                    border-radius:2mm; padding:4mm 3.5mm 5mm;
+                    font-family:Helvetica, Arial, sans-serif; color:#111;
+                    border:{{ '2.5px solid #dc3545' if slip['priority'] == 'emergency'
+                               else ('2.5px solid #d99b00' if slip['priority'] == 'urgent'
+                               else '1px dashed #9a9a9a') }};">
+
+            <div t-if="slip['priority']"
+                 t-attf-style="position:absolute; top:0; right:0; z-index:1;
+                        font-size:9pt; font-weight:bold; color:#fff; letter-spacing:0.3px;
+                        padding:1mm 2.5mm; border-radius:0 1.7mm 0 2mm;
+                        background:{{ '#dc3545' if slip['priority'] == 'emergency' else '#d99b00' }};">
+                <t t-esc="'EMERGENCY' if slip['priority'] == 'emergency' else 'URGENT'"/>
+            </div>
+
+            <!-- Line 1: the two numbers, side by side. Everything on the bench is
+                 found by one of them, so they are the biggest thing on the slip.
+                 padding-right when flagged keeps the clipping this line already
+                 does for an over-long pair of numbers from running the text
+                 under the corner badge unread rather than just short. -->
+            <div t-attf-style="font-size:16.5pt; font-weight:bold; line-height:1.2;
+                        white-space:nowrap; overflow:hidden;
+                        padding-right:{{ '19mm' if slip['priority'] else '0' }};">
+                <span t-esc="slip['mo'] or slip['so']"/>
+                <!-- The sales order is BOLD too, and only a little smaller: the office
+                     and the doctor both quote it, so a bench reading it off the slip
+                     was reading the one grey thing on the card. (client, 2026-08-29) -->
+                <span t-if="slip['mo'] and slip['so']"
+                      style="font-weight:bold; font-size:14pt; color:#333;">
+                    &#160;·&#160;<t t-esc="slip['so']"/>
+                </span>
+            </div>
+
+            <!-- Scanned off the bench. The MO's own number where there is one, the
+                 sales order's where the work was never raised as an MO - which is
+                 also the number the delivery scanner reads. -->
+            <div style="line-height:0; margin:2mm 0 2.5mm;">
+                <span t-out="slip['code']"
+                      t-options="{'widget': 'barcode',
+                                  'symbology': 'Code128',
+                                  'humanreadable': 0,
+                                  'quiet': 1,
+                                  'width': 900,
+                                  'height': 200,
+                                  'img_style': 'width:100%; height:22mm; display:block;'}"/>
+            </div>
+
+            <div style="font-size:12.5pt; line-height:1.55;">
+                <div style="font-weight:bold; overflow:hidden; max-height:12mm;">
+                    <t t-esc="slip['product']"/>
+                </div>
+                <div style="overflow:hidden; max-height:12mm;">
+                    <span style="color:#666;">Dr</span>
+                    <t t-esc="slip['partner']"/>
+                </div>
+                <div t-if="slip['patient']" style="white-space:nowrap; overflow:hidden;">
+                    <span style="color:#666;">Pt</span>
+                    <t t-esc="slip['patient']"/>
+                </div>
+                <!-- A remake says which case it is remaking. The number is what the
+                     office and the doctor quote, and the date says whether this is a
+                     fortnight-old job or a year-old one. Only on reworks, and a shade
+                     smaller than the case itself so it reads as provenance rather than
+                     as this job's own number. (client, 2026-09-10) -->
+                <div t-if="slip['rework']" style="white-space:nowrap; overflow:hidden;
+                            font-size:11pt; line-height:1.35;">
+                    <t t-if="slip['rework_of']">
+                        <span style="color:#666;">Rework of</span>
+                        <span style="font-weight:bold;" t-esc="slip['rework_of']"/>
+                        <t t-if="slip['rework_date']">
+                            &#160;<span style="color:#666;">ordered</span>
+                            <span style="font-weight:bold;" t-esc="slip['rework_date']"/>
+                        </t>
+                    </t>
+                    <span t-else="" style="color:#666;">Rework · no original order recorded</span>
+                </div>
+                <!-- Last line, all three short facts together: an arch, a colour and a
+                     date each on their own row is three lines of a slip that has ten. -->
+                <div style="white-space:nowrap; overflow:hidden;">
+                    <t t-if="slip['date']">
+                        <span style="color:#666;">Due</span>
+                        <span style="font-weight:bold;" t-out="slip['date']"
+                              t-options="{'widget': 'date'}"/>
+                    </t>
+                    <t t-if="slip['ul']">
+                        &#160;<span style="color:#666;">U/L</span>
+                        <span style="font-weight:bold;" t-esc="slip['ul']"/>
+                    </t>
+                    <t t-if="slip['colour']">
+                        &#160;<span style="color:#666;">Col</span>
+                        <span style="font-weight:bold;" t-esc="slip['colour']"/>
+                    </t>
+                    <t t-if="slip['route']">
+                        &#160;<span style="color:#666;">Rt</span>
+                        <t t-esc="slip['route']"/>
+                    </t>
+                </div>
+            </div>
+
+            <!-- The rest of the quarter-page, given to the bench rather than left
+                 blank: who did the work and when it came off. -->
+            <div style="margin-top:2.5mm; border-top:1px dotted #bbb; padding-top:1.5mm;
+                        font-size:10pt; color:#777; line-height:2.4;">
+                Made by ______________&#160;&#160;&#160;Checked ______________
+            </div>
+        </div>
+    </template>
+
+    <template id="report_production_slips">
+        <t t-call="web.html_container">
+            <!-- class="article" is load-bearing: without it Odoo never wraps the body
+                 in web.minimal_layout, the charset meta is missing, and wkhtmltopdf
+                 reads every multi-byte character as latin-1. -->
+            <div class="article">
+                <style>
+                    /* Bootstrap's reboot leaves border-style:solid; border-width:0 on
+                       every table part, and wkhtmltopdf draws that as a visible
+                       hairline once the table collapses its borders. */
+                    .ops-grid, .ops-grid tr, .ops-grid td,
+                    .article, .page {
+                        border-style: none !important; border-width: 0 !important;
+                        box-shadow: none !important;
+                    }
+                    /* The report layout wraps the body in Bootstrap's .container,
+                       which draws a rule down the sheet and eats 8 mm of width on
+                       each side - on a sheet that is being cut into eighths, that is
+                       a line the guillotine has to ignore and paper nobody gets. */
+                    body, #wrapwrap, main {
+                        border: 0 !important; box-shadow: none !important;
+                        padding-left: 0 !important; padding-right: 0 !important;
+                        margin-left: 0 !important; margin-right: 0 !important;
+                        max-width: none !important; width: auto !important;
+                    }
+                </style>
+                <div class="page" style="padding:0; margin:0;">
+                    <t t-foreach="pages" t-as="slip_page">
+                        <!-- A table, not floated divs: wkhtmltopdf collapses a div's
+                             declared height to its content, so four rows of slips
+                             drifted to whatever the text happened to need and the
+                             sheet could not be guillotined in one pass. Table rows
+                             keep the height they are given. The border reset below
+                             is what stops Bootstrap's zero-width borders printing as
+                             hairlines around every cell. (client, 2026-08-28) -->
+                        <table class="ops-grid" style="width:100%; border-collapse:collapse; border:0;"
+                               t-attf-style="width:100%; border-collapse:collapse; border:0; {{ 'page-break-after:always;' if not slip_page_last else '' }}">
+                            <t t-foreach="[0, 2, 4, 6]" t-as="row">
+                                <tr style="height:71mm;">
+                                    <t t-foreach="[0, 1]" t-as="col">
+                                        <t t-set="slip" t-value="slip_page[row + col] if len(slip_page) > row + col else None"/>
+                                        <td style="width:50%; height:71mm; padding:1.2mm; vertical-align:top; border:0;">
+                                            <t t-if="slip">
+                                                <t t-call="sale_custom.report_production_slip_one"/>
+                                            </t>
+                                        </td>
+                                    </t>
+                                </tr>
+                            </t>
+                        </table>
+                    </t>
+                    <div t-if="not pages"
+                         style="font-family:Helvetica, Arial, sans-serif; padding:10mm;">
+                        Nothing to print: none of the records selected has any work
+                        on it.
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- From the manufacturing orders themselves. -->
+    <template id="report_production_slips_mo">
+        <!-- `pages` comes from report/production_slip.py. -->
+        <t t-call="sale_custom.report_production_slips"/>
+    </template>
+
+    <!-- From a batch of sales orders: every job underneath them, in order, so the
+         office can select a day's work and get one sheet. -->
+    <template id="report_production_slips_sale">
+        <!-- `productions` comes from report/production_slip.py: sale.order's own
+             mrp_production_ids is a non-stored compute that returns nothing on this
+             database, so the report searches on the stored sale_id instead. -->
+        <t t-call="sale_custom.report_production_slips"/>
+    </template>
+
+    <record id="action_report_production_slips" model="ir.actions.report">
+        <field name="name">Production Slips (8 per page)</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_production_slips_mo</field>
+        <field name="report_file">sale_custom.report_production_slips_mo</field>
+        <field name="print_report_name">'Production Slips'</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_lab_slips"/>
+    </record>
+
+    <!-- Kept as a report, but taken OFF the sales order's Print menu: lab_reports'
+         long-standing "Production Order" now renders this same sheet, and two entries
+         printing identical paper is how the counter ends up printing both. -->
+    <record id="action_report_production_slips_sale" model="ir.actions.report">
+        <field name="name">Production Slips (8 per page)</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_production_slips_sale</field>
+        <field name="report_file">sale_custom.report_production_slips_sale</field>
+        <field name="print_report_name">'Production Slips'</field>
+        <field name="binding_model_id" eval="False"/>
+        <field name="paperformat_id" ref="paperformat_lab_slips"/>
+    </record>
+
+</odoo>

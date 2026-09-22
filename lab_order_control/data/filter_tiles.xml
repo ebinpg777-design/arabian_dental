@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- KPI / filter tiles (dynamic_filter_tiles) for the sales, invoicing and production
+         screens — replaces the <listdashboard> blocks that used list_view_dashboard.
+         Model-wide tiles (no action_id) sit above EVERY list / kanban of the model, so the
+         same ribbon follows the user through Register, Orders, To Verify, Urgent Works…
+         Invoice tiles are pinned to the Customer Invoices menu so they never show on bills
+         or journal entries. noupdate: users may reorder / recolour / tweak them from the
+         Tile Studio and an upgrade must not undo that. -->
+    <data noupdate="1">
+        <record id="tile_so_registered" model="filter.tile">
+            <field name="name">Registered</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('state','in',['draft','sent'])]</field>
+            <field name="color">slate</field>
+            <field name="icon">fa-pencil-square-o</field>
+            <field name="tooltip">Cases registered, not yet confirmed into production</field>
+        </record>
+
+        <record id="tile_so_to_verify" model="filter.tile">
+            <field name="name">To Verify</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('verification_state','=','to_verify')]</field>
+            <field name="color">violet</field>
+            <field name="icon">fa-check-square-o</field>
+            <field name="tooltip">Waiting for a second person to verify</field>
+        </record>
+
+        <record id="tile_so_on_hold" model="filter.tile">
+            <field name="name">Pending Information</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('verification_state','=','on_hold')]</field>
+            <field name="color">amber</field>
+            <field name="icon">fa-pause-circle</field>
+            <field name="tooltip">On hold until the missing information arrives</field>
+        </record>
+
+        <record id="tile_so_sent_back" model="filter.tile">
+            <field name="name">Sent Back</field>
+            <field name="sequence">40</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('verification_state','=','rejected')]</field>
+            <field name="color">slate</field>
+            <field name="icon">fa-undo</field>
+            <field name="tooltip">Sent back for correction</field>
+        </record>
+
+        <record id="tile_so_doctor_call" model="filter.tile">
+            <field name="name">Doctor Call</field>
+            <field name="sequence">50</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('call_status','=','pending')]</field>
+            <field name="color">orange</field>
+            <field name="icon">fa-phone</field>
+            <field name="tooltip">Call the doctor before starting</field>
+        </record>
+
+        <record id="tile_so_urgent" model="filter.tile">
+            <field name="name">Urgent — In Progress</field>
+            <field name="sequence">60</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('is_urgent_open','=',True)]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-bolt</field>
+            <field name="tooltip">Urgent / emergency cases still in production</field>
+        </record>
+
+        <record id="tile_so_rework" model="filter.tile">
+            <field name="name">Reworks</field>
+            <field name="sequence">70</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('is_rework','=',True),('state','not in',['cancel'])]</field>
+            <field name="color">cyan</field>
+            <field name="icon">fa-refresh</field>
+            <field name="tooltip">Rework orders (never billed)</field>
+        </record>
+
+        <record id="tile_so_3d_print" model="filter.tile">
+            <field name="name">3D Model Prints</field>
+            <field name="sequence">80</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('is_3d_model_print','=',True),('state','not in',['cancel'])]</field>
+            <field name="color">violet</field>
+            <field name="icon">fa-cube</field>
+            <field name="tooltip">Cases flagged as 3D model prints</field>
+        </record>
+
+        <record id="tile_so_today" model="filter.tile">
+            <field name="name">Today's Orders</field>
+            <field name="sequence">10</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('date_order','&gt;=', context_today().strftime('%Y-%m-%d'))]</field>
+            <field name="color">teal</field>
+            <field name="icon">fa-plus-circle</field>
+            <field name="tooltip">Orders dated today</field>
+        </record>
+
+        <record id="tile_so_mtd_count" model="filter.tile">
+            <field name="name">MTD Orders</field>
+            <field name="sequence">20</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('state','in',['sale','done']),('date_order','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="color">sky</field>
+            <field name="icon">fa-calendar</field>
+            <field name="tooltip">Confirmed orders since the 1st</field>
+        </record>
+
+        <record id="tile_so_mtd_sales" model="filter.tile">
+            <field name="name">MTD Sales</field>
+            <field name="sequence">30</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('state','in',['sale','done']),('date_order','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="measure_field_id" ref="sale.field_sale_order__amount_total"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-inr</field>
+            <field name="tooltip">Value of confirmed orders since the 1st</field>
+        </record>
+
+        <record id="tile_so_invoiced" model="filter.tile">
+            <field name="name">Invoiced</field>
+            <field name="sequence">50</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('invoice_status','=','invoiced')]</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-check-square-o</field>
+            <field name="tooltip">Orders fully invoiced</field>
+        </record>
+
+        <record id="tile_so_to_invoice" model="filter.tile">
+            <field name="name">To Invoice</field>
+            <field name="sequence">40</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('invoice_status','=','to invoice')]</field>
+            <field name="color">indigo</field>
+            <field name="icon">fa-file-text-o</field>
+            <field name="tooltip">Confirmed orders with something left to invoice</field>
+        </record>
+
+        <record id="tile_inv_draft" model="filter.tile">
+            <field name="name">Draft</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('state','=','draft')]</field>
+            <field name="color">slate</field>
+            <field name="icon">fa-pencil</field>
+            <field name="tooltip">Not yet posted</field>
+        </record>
+
+        <record id="tile_inv_unpaid" model="filter.tile">
+            <field name="name">Unpaid</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('state','=','posted'),('payment_state','not in',['paid','reversed'])]</field>
+            <field name="measure_field_id" ref="account.field_account_move__amount_residual"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">orange</field>
+            <field name="icon">fa-exclamation-circle</field>
+            <field name="tooltip">Posted, still owed</field>
+        </record>
+
+        <record id="tile_inv_overdue" model="filter.tile">
+            <field name="name">Overdue</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('state','=','posted'),('payment_state','not in',['paid','reversed']),('invoice_date_due','&lt;', context_today().strftime('%Y-%m-%d'))]</field>
+            <field name="measure_field_id" ref="account.field_account_move__amount_residual"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-clock-o</field>
+            <field name="tooltip">Past due date and unpaid</field>
+        </record>
+
+        <record id="tile_inv_mtd" model="filter.tile">
+            <field name="name">MTD Invoiced</field>
+            <field name="sequence">40</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('state','=','posted'),('invoice_date','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="measure_field_id" ref="account.field_account_move__amount_total"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-file-text-o</field>
+            <field name="tooltip">Posted since the 1st</field>
+        </record>
+
+        <record id="tile_inv_paid_month" model="filter.tile">
+            <field name="name">Paid This Month</field>
+            <field name="sequence">50</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('payment_state','=','paid'),('invoice_date','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="color">teal</field>
+            <field name="icon">fa-check</field>
+            <field name="tooltip">Fully paid, dated this month</field>
+        </record>
+
+        <record id="tile_mo_draft" model="filter.tile">
+            <field name="name">Draft</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="domain">[('state','=','draft')]</field>
+            <field name="color">slate</field>
+            <field name="icon">fa-pencil</field>
+            <field name="tooltip">Manufacturing orders not yet confirmed</field>
+        </record>
+
+        <record id="tile_mo_confirmed" model="filter.tile">
+            <field name="name">Confirmed</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="domain">[('state','=','confirmed')]</field>
+            <field name="color">sky</field>
+            <field name="icon">fa-check-square-o</field>
+            <field name="tooltip">Ready to start</field>
+        </record>
+
+        <record id="tile_mo_progress" model="filter.tile">
+            <field name="name">In Progress</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="domain">[('state','=','progress')]</field>
+            <field name="color">indigo</field>
+            <field name="icon">fa-cogs</field>
+            <field name="tooltip">On the floor now</field>
+        </record>
+
+        <record id="tile_mo_to_close" model="filter.tile">
+            <field name="name">To Close</field>
+            <field name="sequence">40</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="domain">[('state','=','to_close')]</field>
+            <field name="color">amber</field>
+            <field name="icon">fa-flag-checkered</field>
+            <field name="tooltip">Work done, MO not yet closed</field>
+        </record>
+
+        <record id="tile_mo_late" model="filter.tile">
+            <field name="name">Late</field>
+            <field name="sequence">50</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="domain">[('state','in',['confirmed','progress','to_close']),('date_deadline','&lt;', context_today().strftime('%Y-%m-%d'))]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-clock-o</field>
+            <field name="tooltip">Open MOs past their deadline</field>
+        </record>
+
+        <record id="tile_mo_urgent" model="filter.tile">
+            <field name="name">Urgent</field>
+            <field name="sequence">60</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="domain">[('state','in',['confirmed','progress','to_close']),('sale_id.priority','in',['urgent','emergency'])]</field>
+            <field name="color">orange</field>
+            <field name="icon">fa-bolt</field>
+            <field name="tooltip">Open MOs of urgent / emergency cases</field>
+        </record>
+
+        <record id="tile_mo_done_today" model="filter.tile">
+            <field name="name">Done Today</field>
+            <field name="sequence">70</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="domain">[('state','=','done'),('date_finished','&gt;=', context_today().strftime('%Y-%m-%d'))]</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-check-circle</field>
+            <field name="tooltip">Finished today</field>
+        </record>
+
+        <record id="tile_wo_ready" model="filter.tile">
+            <field name="name">Ready</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_workorder"/>
+            <field name="domain">[('state','=','ready')]</field>
+            <field name="color">sky</field>
+            <field name="icon">fa-play-circle-o</field>
+            <field name="tooltip">Work orders that can start now</field>
+        </record>
+
+        <record id="tile_wo_progress" model="filter.tile">
+            <field name="name">In Progress</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_workorder"/>
+            <field name="domain">[('state','=','progress')]</field>
+            <field name="color">indigo</field>
+            <field name="icon">fa-cog</field>
+            <field name="tooltip">Being worked on</field>
+        </record>
+
+        <!-- 'blocked' is what Odoo 19 calls it. The tile asked for 'pending' and
+             'waiting', which are not states a work order can be in, so it read 0
+             on a floor with 5,802 blocked operations. (client, 2026-09-10) -->
+        <record id="tile_wo_waiting" model="filter.tile">
+            <field name="name">Waiting</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_workorder"/>
+            <field name="domain">[('state','=','blocked')]</field>
+            <field name="color">amber</field>
+            <field name="icon">fa-hourglass-half</field>
+            <field name="tooltip">Blocked by a previous operation or by components</field>
+        </record>
+
+        <!-- How much this floor has finished, beside what it is holding. The
+             ribbon counted only what was finished TODAY, which reads zero every
+             morning and says nothing about the work behind it. (client, 2026-09-10) -->
+        <record id="tile_wo_finished" model="filter.tile">
+            <field name="name">Finished</field>
+            <field name="sequence">50</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_workorder"/>
+            <field name="domain">[('state','=','done')]</field>
+            <!-- Every work-order screen defaults to "to do", so a finished
+                 count inside the reader's filters is 0 for ever. -->
+            <field name="ignore_filters" eval="True"/>
+            <field name="color">lime</field>
+            <field name="icon">fa-flag-checkered</field>
+            <field name="tooltip">Every operation this lab has finished</field>
+        </record>
+
+        <!-- The same for a month, because a lifetime total moves too slowly to
+             tell anybody how the floor is doing. -->
+        <record id="tile_wo_finished_month" model="filter.tile">
+            <field name="name">Finished This Month</field>
+            <field name="sequence">60</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_workorder"/>
+            <field name="domain">[('state','=','done'),('date_finished','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="ignore_filters" eval="True"/>
+            <field name="color">teal</field>
+            <field name="icon">fa-calendar-check-o</field>
+            <field name="tooltip">Operations finished since the first of the month</field>
+        </record>
+
+        <record id="tile_wo_done_today" model="filter.tile">
+            <field name="name">Done Today</field>
+            <field name="sequence">40</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="mrp.model_mrp_workorder"/>
+            <field name="domain">[('state','=','done'),('date_finished','&gt;=', context_today().strftime('%Y-%m-%d'))]</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-check-circle</field>
+            <field name="tooltip">Finished today</field>
+        </record>
+        <!-- Row names shown at the left of each ribbon row -->
+        <record id="tile_partner_clinics" model="filter.tile">
+            <field name="name">Clinics</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('is_clinic','=',True)]</field>
+            <field name="color">teal</field>
+            <field name="icon">fa-hospital-o</field>
+            <field name="tooltip">Contacts flagged as clinics</field>
+        </record>
+
+        <record id="tile_partner_doctors" model="filter.tile">
+            <field name="name">Doctors</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('is_doctor','=',True)]</field>
+            <field name="color">sky</field>
+            <field name="icon">fa-user-md</field>
+            <field name="tooltip">Contacts flagged as doctors</field>
+        </record>
+
+        <record id="tile_partner_customers" model="filter.tile">
+            <field name="name">Customers</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('customer_rank','&gt;',0)]</field>
+            <field name="color">indigo</field>
+            <field name="icon">fa-shopping-bag</field>
+            <field name="tooltip">Has at least one sale order / invoice</field>
+        </record>
+
+        <record id="tile_partner_no_route" model="filter.tile">
+            <field name="name">No Sales Route</field>
+            <field name="sequence">40</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('is_company','=',True),('team_id','=',False)]</field>
+            <field name="color">amber</field>
+            <field name="icon">fa-question-circle</field>
+            <field name="tooltip">Companies / clinics without a Sales Route yet</field>
+        </record>
+
+        <record id="tile_partner_no_salesperson" model="filter.tile">
+            <field name="name">No Salesperson</field>
+            <field name="sequence">50</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('is_company','=',True),('user_id','=',False)]</field>
+            <field name="color">orange</field>
+            <field name="icon">fa-user-o</field>
+            <field name="tooltip">Companies / clinics with no salesperson set</field>
+        </record>
+
+        <record id="tile_partner_new_month" model="filter.tile">
+            <field name="name">Added This Month</field>
+            <field name="sequence">60</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('create_date','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-calendar-plus-o</field>
+            <field name="tooltip">Contacts created since the 1st</field>
+        </record>
+
+        <record id="tile_partner_credit_hold" model="filter.tile">
+            <field name="name">Credit Limit Set</field>
+            <field name="sequence">70</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('credit_limit','&gt;',0)]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-exclamation-triangle</field>
+            <field name="tooltip">Clinics with a credit limit enforced</field>
+        </record>
+
+        <record id="row_partner_1" model="filter.tile.row">
+            <field name="model_id" ref="base.model_res_partner"/><field name="number">1</field><field name="name">Contacts</field>
+        </record>
+        <record id="row_so_1" model="filter.tile.row">
+            <field name="model_id" ref="sale.model_sale_order"/><field name="number">1</field><field name="name">Case Queue</field>
+        </record>
+        <record id="row_so_2" model="filter.tile.row">
+            <field name="model_id" ref="sale.model_sale_order"/><field name="number">2</field><field name="name">This Month</field>
+        </record>
+        <record id="tile_inv_partial" model="filter.tile">
+            <field name="name">Partially Paid</field>
+            <field name="sequence">25</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('state','=','posted'),('payment_state','=','partial')]</field>
+            <field name="measure_field_id" ref="account.field_account_move__amount_residual"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">amber</field>
+            <field name="icon">fa-adjust</field>
+            <field name="tooltip">Posted, part of the amount received</field>
+        </record>
+
+        <record id="tile_inv_credit_notes" model="filter.tile">
+            <field name="name">Credit Notes</field>
+            <field name="sequence">60</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('move_type','=','out_refund'),('state','=','posted')]</field>
+            <field name="measure_field_id" ref="account.field_account_move__amount_total"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">violet</field>
+            <field name="icon">fa-undo</field>
+            <field name="tooltip">Posted credit notes</field>
+        </record>
+
+        <record id="tile_inv_today" model="filter.tile">
+            <field name="name">Today's Invoices</field>
+            <field name="sequence">10</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('move_type','=','out_invoice'),('invoice_date','=', context_today().strftime('%Y-%m-%d'))]</field>
+            <field name="measure_field_id" ref="account.field_account_move__amount_total"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">teal</field>
+            <field name="icon">fa-plus-circle</field>
+            <field name="tooltip">Invoices dated today</field>
+        </record>
+
+        <record id="tile_inv_due_week" model="filter.tile">
+            <field name="name">Due This Week</field>
+            <field name="sequence">20</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('state','=','posted'),('payment_state','not in',['paid','reversed']),('invoice_date_due','&gt;=', context_today().strftime('%Y-%m-%d')),('invoice_date_due','&lt;=', (context_today() + relativedelta(days=7)).strftime('%Y-%m-%d'))]</field>
+            <field name="measure_field_id" ref="account.field_account_move__amount_residual"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">orange</field>
+            <field name="icon">fa-calendar-check-o</field>
+            <field name="tooltip">Unpaid, due within the next 7 days</field>
+        </record>
+
+        <record id="tile_inv_mtd_count" model="filter.tile">
+            <field name="name">MTD Invoices</field>
+            <field name="sequence">30</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('move_type','=','out_invoice'),('state','=','posted'),('invoice_date','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="color">sky</field>
+            <field name="icon">fa-calendar</field>
+            <field name="tooltip">Number of invoices posted since the 1st</field>
+        </record>
+
+        <record id="tile_inv_unpaid_over30" model="filter.tile">
+            <field name="name">Unpaid > 30 days</field>
+            <field name="sequence">40</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="action_id" ref="account.action_move_out_invoice"/>
+            <field name="domain">[('state','=','posted'),('payment_state','not in',['paid','reversed']),('invoice_date_due','&lt;', (context_today() - relativedelta(days=30)).strftime('%Y-%m-%d'))]</field>
+            <field name="measure_field_id" ref="account.field_account_move__amount_residual"/>
+            <field name="aggregate">sum</field>
+            <field name="symbol">₹</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-exclamation-triangle</field>
+            <field name="tooltip">Overdue by more than a month</field>
+        </record>
+
+        <record id="row_inv_1" model="filter.tile.row">
+            <field name="model_id" ref="account.model_account_move"/><field name="number">1</field><field name="name">Status &amp; Amounts Owed</field>
+        </record>
+        <record id="row_inv_2" model="filter.tile.row">
+            <field name="model_id" ref="account.model_account_move"/><field name="number">2</field><field name="name">This Month</field>
+        </record>
+        <record id="row_mo_1" model="filter.tile.row">
+            <field name="model_id" ref="mrp.model_mrp_production"/><field name="number">1</field><field name="name">Production</field>
+        </record>
+        <record id="row_wo_1" model="filter.tile.row">
+            <field name="model_id" ref="mrp.model_mrp_workorder"/><field name="number">1</field><field name="name">Work Orders</field>
+        </record>
+    </data>
+</odoo>

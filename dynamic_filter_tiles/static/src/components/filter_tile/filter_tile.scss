@@ -1,0 +1,18 @@
+
+// A tile whose filter the browser cannot evaluate: shown, so a manager can
+// find and fix it, but visibly not usable. It is never applied.
+// (client, 2026-09-10)
+.o_dft_tile.o_dft_broken {
+    opacity: .55;
+    border-style: dashed;
+    cursor: not-allowed;
+
+    .o_dft_broken_flag {
+        position: absolute;
+        top: .25rem;
+        right: .35rem;
+        color: #b45309;
+        font-size: .8rem;
+        z-index: 2;
+    }
+}

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_fieldwork.NewClinics">
+    <div class="o_fw_newclinics o_action">
+        <div class="o_fw_nc_head">
+            <div>
+                <div class="o_fw_nc_eyebrow">New clinics</div>
+                <h2 class="o_fw_nc_title">
+                    <t t-esc="state.data and state.data.month_label"/>
+                </h2>
+                <div class="o_fw_nc_sub" t-if="state.data and state.data.scoped">
+                    Your routes only.
+                </div>
+            </div>
+            <!-- A month at a time, and never forward past the one in progress. -->
+            <div class="o_fw_nc_nav" t-if="state.data">
+                <button class="o_fw_nc_btn" title="Previous month"
+                        t-on-click="() => this.load(state.data.prev_month)">
+                    <i class="fa fa-chevron-left"/>
+                </button>
+                <button class="o_fw_nc_btn" title="Next month"
+                        t-att-disabled="state.data.is_this_month"
+                        t-on-click="() => this.load(state.data.next_month)">
+                    <i class="fa fa-chevron-right"/>
+                </button>
+            </div>
+        </div>
+
+        <div t-if="state.loading" class="text-center text-muted py-5">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+
+        <t t-else="">
+            <div class="o_fw_nc_cards">
+                <div class="o_fw_nc_card" t-on-click="() => this.openList()">
+                    <div class="o_fw_nc_v" t-esc="state.data.total"/>
+                    <div class="o_fw_nc_l">clinics opened</div>
+                </div>
+                <!-- A door opened and never used is not the same achievement as one
+                     that is now sending cases. -->
+                <div class="o_fw_nc_card">
+                    <div class="o_fw_nc_v" t-esc="state.data.ordering"/>
+                    <div class="o_fw_nc_l">have sent work since</div>
+                </div>
+                <div class="o_fw_nc_card">
+                    <div class="o_fw_nc_v" t-esc="state.data.by_route.length"/>
+                    <div class="o_fw_nc_l">routes opening doors</div>
+                </div>
+            </div>
+
+            <!-- One month means little on its own. -->
+            <div class="o_fw_nc_panel" t-if="state.data.trend.length">
+                <div class="o_fw_nc_panel_h">The last six months</div>
+                <div class="o_fw_nc_spark">
+                    <div t-foreach="state.data.trend" t-as="m" t-key="m.month"
+                         class="o_fw_nc_bar"
+                         t-att-class="m.month === state.data.month ? 'o_fw_nc_bar_now' : ''"
+                         t-on-click="() => this.load(m.month)">
+                        <div class="o_fw_nc_barwrap">
+                            <div class="o_fw_nc_barfill"
+                                 t-attf-style="height: {{ m.pct or 2 }}%"/>
+                        </div>
+                        <div class="o_fw_nc_barn" t-esc="m.count"/>
+                        <div class="o_fw_nc_barl" t-esc="m.label"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_fw_nc_panel" t-if="state.data.by_route.length">
+                <div class="o_fw_nc_panel_h">Which rounds opened them</div>
+                <div t-foreach="state.data.by_route" t-as="r" t-key="r.id"
+                     class="o_fw_nc_route" t-on-click="() => this.openList(r.id)">
+                    <div class="o_fw_nc_route_n" t-esc="r.name"/>
+                    <div class="o_fw_nc_route_bar">
+                        <div class="o_fw_nc_route_fill"
+                             t-attf-style="width: {{ r.pct or 2 }}%"/>
+                    </div>
+                    <div class="o_fw_nc_route_c" t-esc="r.count"/>
+                </div>
+            </div>
+
+            <div class="o_fw_nc_panel">
+                <div class="o_fw_nc_panel_h">
+                    The clinics
+                    <span class="text-muted" t-if="state.data.total > state.data.shown">
+                        — newest <t t-esc="state.data.shown"/> of
+                        <t t-esc="state.data.total"/>
+                    </span>
+                </div>
+                <div t-if="!state.data.rows.length" class="o_fw_nc_empty">
+                    No new clinic was opened in this month.
+                </div>
+                <div t-foreach="state.data.rows" t-as="c" t-key="c.id"
+                     class="o_fw_nc_row" t-on-click="() => this.openClinic(c)">
+                    <div class="flex-grow-1">
+                        <div class="o_fw_nc_row_t">
+                            <t t-esc="c.name"/>
+                            <span t-if="c.ordering" class="o_fw_nc_tag">ordering</span>
+                        </div>
+                        <div class="o_fw_nc_row_s">
+                            <t t-esc="c.route"/>
+                            <t t-if="c.city"> · <t t-esc="c.city"/></t>
+                            <t t-if="c.by"> · opened by <t t-esc="c.by"/></t>
+                        </div>
+                    </div>
+                    <div class="o_fw_nc_row_r">
+                        <div class="o_fw_nc_row_d" t-esc="c.opened"/>
+                        <div class="o_fw_nc_row_o" t-if="c.orders">
+                            <t t-esc="c.orders"/> cases ·
+                            <t t-esc="money(c.value)"/>
+                        </div>
+                        <div class="o_fw_nc_row_o o_fw_nc_quiet" t-else="">
+                            no work yet
+                        </div>
+                    </div>
+                    <i class="fa fa-chevron-right text-muted ms-2" title="Open"/>
+                </div>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

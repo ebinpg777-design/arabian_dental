@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- A doctor sees the requests their own practice submitted, and nothing else.
+         child_of the commercial partner, so a clinic with branch contacts is one
+         practice — the same rule the case list already uses. -->
+    <record id="rule_case_request_portal_own" model="ir.rule">
+        <field name="name">Portal: own case requests only</field>
+        <field name="model_id" ref="model_lab_case_request"/>
+        <field name="domain_force">[('partner_id','child_of',user.partner_id.commercial_partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+    </record>
+
+    <!-- The lines carry the same practice's work, so the same rule, through the
+         request. Without it a portal user could read every practice's lines. -->
+    <record id="rule_case_request_line_portal_own" model="ir.rule">
+        <field name="name">Portal: own case request lines only</field>
+        <field name="model_id" ref="model_lab_case_request_line"/>
+        <field name="domain_force">[('request_id.partner_id','child_of',user.partner_id.commercial_partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+    </record>
+</odoo>

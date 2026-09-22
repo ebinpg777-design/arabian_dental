@@ -1,0 +1,1895 @@
+// Lab Field Work.
+//
+// SCSS variables only. Odoo 19's backend exposes NO `--bs-*` custom properties, so
+// `var(--bs-border-color)` resolves to nothing and the element renders with no border —
+// silently, because the rule looks correct in devtools. These also follow dark mode,
+// since Odoo recompiles the backend bundle with dark values.
+//
+// The whole screen is sized for a phone held one-handed: 44px minimum touch targets,
+// one column, and the action always on the right where a thumb reaches.
+//
+// ---------------------------------------------------------------------------
+// The module's palette.
+//
+// Everything used to be `$fw-violet` — whatever muted colour the database is
+// themed with — so My Day and the Control Tower were the same flat plum and neither
+// looked like the violet tile you tapped to get there.
+//
+// My Day is violet, matching the app icon: the executive's own screen. The Control
+// Tower is indigo-to-teal, close enough to belong to the same app and different enough
+// that a manager knows at a glance which screen is open — they use both, often minutes
+// apart, and a shared colour makes them momentarily indistinguishable.
+$fw-violet:      #6d28d9;
+$fw-violet-deep: #a21caf;
+$fw-indigo:      #3730a3;
+$fw-teal:        #0d7c8a;
+
+.o_fw_day,
+.o_fw_tower,
+.o_fw_health {
+    max-width: 900px;                 // a day is a list, not a spreadsheet
+    margin: 0 auto;
+    padding: 1rem;
+
+    // These three ARE the `.o_action` element, which the web client styles
+    // `height: 100%; overflow: hidden` - so whatever does not fit is simply cut
+    // off and no ancestor scrolls it. On a 850px desktop window My Day was 1,201px
+    // tall: 397px of it, "In your bag" included, was unreachable and the wheel did
+    // nothing. The action root is therefore its own scroller. `min-height: 0` is
+    // required with it: without it a flex child refuses to shrink below its content
+    // and the overflow never engages. (client, 2026-08-25)
+
+    // ------------------------------------------------------------------ hero
+    .o_fw_hero {
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        border-radius: .75rem;
+        background: linear-gradient(135deg, $fw-violet, $fw-violet-deep);
+        color: #fff;
+    }
+
+    .o_fw_hero_top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .o_fw_hero_eyebrow {
+        font-size: .8125rem;
+        letter-spacing: .01em;
+        opacity: .85;
+    }
+
+    .o_fw_hero_date {
+        margin: 0;
+        font-size: 1.375rem;
+        font-weight: 600;
+        color: #fff;
+        line-height: 1.25;
+    }
+
+    // A grid, not a wrapping row. Wrapped flex items take their own width, so
+    // the second row's captions landed wherever the first row's numbers happened
+    // to end and nothing lined up. Four columns sized to their widest cell keeps
+    // the money above and the door counts below - each under a column of its own,
+    // and packed left rather than stretched across the hero. minmax(0, ...) is
+    // what lets a narrow phone shrink them instead of overflowing.
+    // (client, 2026-09-08)
+    .o_fw_stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, max-content));
+        justify-content: start;
+        align-items: start;
+        column-gap: 1.25rem;
+        row-gap: .75rem;
+        margin-top: 1rem;
+    }
+
+    .o_fw_stat {
+        display: flex;
+        flex-direction: column;
+        align-self: flex-start;          // a short value never drops its label
+        min-width: 0;
+    }
+
+    // A stat you can open. It has to look pressable before it is pressed, or the
+    // click is only discoverable by accident. (client, 2026-08-27)
+    .o_fw_stat_click {
+        cursor: pointer;
+        border-radius: .5rem;
+        padding: .15rem .45rem;
+        margin: -.15rem -.45rem;
+        transition: background-color .12s ease;
+
+        &:hover { background: rgba(255, 255, 255, .16); }
+
+        .o_fw_stat_l::after {
+            content: " \203A";           // a single chevron: this one goes somewhere
+            font-weight: 700;
+        }
+    }
+
+    // The label already knew to wrap; the VALUE did not, and that asymmetry is
+    // the bug. An amount is a single unbreakable token - the money formatter
+    // joins the number to the symbol with a non-breaking space - so a column
+    // narrower than the amount did not shrink the text, it let it run straight
+    // out and into the neighbour's cell: the hero read "62,950.00 ₹0" as soon
+    // as somebody was carrying five figures. Breaking is ugly; overlapping is
+    // wrong, and the media query below means it almost never has to break.
+    // (client, 2026-09-19)
+    .o_fw_stat_v {
+        font-size: 1.125rem;
+        font-weight: 600;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    // Long amounts are set smaller so they keep to one line in their own column
+    // rather than wrapping the symbol onto a line of its own. statCls() in
+    // my_day.js decides which of these a value gets.
+    .o_fw_stat_v_long  { font-size: .95rem; }
+    .o_fw_stat_v_xlong { font-size: .8rem; }
+    // Wraps rather than overflows: in the grid a caption longer than its column
+    // takes a second line, which keeps the columns aligned. It used to be nowrap,
+    // when each stat sized itself and nothing had to line up.
+    .o_fw_stat_l {
+        font-size: .75rem;
+        opacity: .8;
+        line-height: 1.25;
+        overflow-wrap: break-word;
+    }
+
+    // On a phone the four columns are the whole width, so an amount in five
+    // figures has nowhere to go. Tighter gaps and a slightly smaller number buy
+    // it the room to stay on one line. (client, 2026-09-19)
+    @media (max-width: 480px) {
+        .o_fw_stats { column-gap: .6rem; }
+        .o_fw_stat_v { font-size: .95rem; }
+        .o_fw_stat_v_long  { font-size: .8rem; }
+        .o_fw_stat_v_xlong { font-size: .7rem; }
+        .o_fw_stat_l { font-size: .7rem; }
+    }
+
+    // A ring rather than a bar: it says "how far round the month" in a fixed square,
+    // which a phone has and horizontal space it does not.
+    .o_fw_ring_wrap { text-align: center; cursor: pointer; }
+
+    .o_fw_ring {
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        // The inner disc below is absolutely positioned; without this it
+        // resolves against some far-off ancestor and paints a 46px purple
+        // circle somewhere else on the screen entirely — it was landing on
+        // the clinic cards and swallowing their star. (2026-09-02)
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: conic-gradient(#fff calc(var(--fw-pct) * 1%),
+                                   rgba(255, 255, 255, .25) 0);
+        margin: 0 auto;
+
+        &::before {
+            content: "";
+            position: absolute;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: #7b2bbd;      // matches the hero gradient behind the ring
+        }
+    }
+
+    .o_fw_ring_label {
+        position: relative;
+        font-size: .8125rem;
+        font-weight: 700;
+    }
+
+    .o_fw_ring_caption { font-size: .6875rem; opacity: .8; margin-top: .25rem; }
+
+    // ------------------------------------------------------------ attendance
+    // The one card that changes colour when it needs attention. Everything else on the
+    // screen is calm on purpose, so this reads as "do this first" without a word of
+    // instruction — and the words are there anyway, because colour alone is not a
+    // message.
+    .o_fw_clock {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .875rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid $border-color;
+        border-left-width: 4px;
+        border-radius: .625rem;
+        background-color: $body-bg;
+    }
+
+    .o_fw_clock_off {
+        border-left-color: $warning;
+        background-color: rgba($warning, .08);
+    }
+
+    .o_fw_clock_on {
+        border-left-color: $success;
+        background-color: rgba($success, .07);
+    }
+
+    .o_fw_clock_body { flex: 1 1 auto; min-width: 0; }
+
+    .o_fw_clock_state {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        font-weight: 700;
+        font-size: .9375rem;
+        color: $o-gray-900;
+    }
+
+    .o_fw_clock_sub { font-size: .8125rem; color: $o-gray-700; margin-top: .125rem; }
+
+    // A slow pulse, so "on duty" reads as live rather than as a static label. Stopped
+    // for anyone who has asked the OS for less motion.
+    .o_fw_pulse {
+        width: .5rem;
+        height: .5rem;
+        border-radius: 50%;
+        background-color: $success;
+        box-shadow: 0 0 0 0 rgba($success, .6);
+        animation: o-fw-pulse 2.2s infinite;
+    }
+
+    @keyframes o-fw-pulse {
+        70%  { box-shadow: 0 0 0 .5rem rgba($success, 0); }
+        100% { box-shadow: 0 0 0 0 rgba($success, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .o_fw_pulse { animation: none; }
+    }
+
+    .o_fw_clock_btn {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: .5rem 1rem;
+        border: 0;
+        border-radius: .5rem;
+        background-color: $fw-violet;
+        color: #fff;
+        font-weight: 600;
+        font-size: .875rem;
+        white-space: nowrap;
+
+        &:disabled { opacity: .5; }
+    }
+
+    .o_fw_clock_on .o_fw_clock_btn {
+        background-color: $body-bg;
+        color: $o-gray-900;
+        border: 1px solid $border-color;
+    }
+
+    // ------------------------------------------------------- quick actions
+    // Three equal targets. Equal because there is no ranking between them — which one
+    // matters depends entirely on the moment, and sizing one bigger would be a guess.
+    // The quickbar is two sections, not one grid of look-alikes: DO (the doorstep)
+    // and MINE (the executive's own pages). Each has a small titled header, its
+    // own tint, and a 3-up grid that stays 3-up on a phone. (client, 2026-08-28)
+    .o_fw_quickbar {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        margin-bottom: 1rem;
+    }
+    .o_fw_sec {
+        border-radius: .9rem;
+        padding: .6rem .6rem .7rem;
+        border: 1px solid $border-color;
+        background: $body-bg;
+    }
+    .o_fw_sec_do {
+        background: linear-gradient(180deg, rgba($fw-violet, .07), rgba($fw-violet, .02));
+        border-color: rgba($fw-violet, .25);
+    }
+    .o_fw_sec_mine {
+        background: $o-gray-100;
+    }
+    .o_fw_sec_head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0 .15rem .5rem;
+    }
+    .o_fw_sec_title {
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: $o-gray-700;
+    }
+    .o_fw_sec_hint { font-size: .7rem; color: $o-gray-500; }
+    .o_fw_sec_refresh {
+        border: 0; background: transparent; color: $o-gray-500;
+        width: 1.8rem; height: 1.8rem; border-radius: 50%;
+        &:hover { background: rgba($fw-violet, .1); color: $fw-violet; }
+    }
+    .o_fw_sec_grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .5rem;
+        @media (min-width: 768px) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    }
+
+    .o_fw_qa {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: .25rem;
+        min-height: 60px;
+        padding: .5rem .25rem;
+        border: 1px solid $border-color;
+        border-radius: .625rem;
+        background-color: $body-bg;
+        color: $o-gray-700;
+        font-size: .75rem;
+        font-weight: 600;
+
+        .fa { font-size: 1.125rem; color: $fw-violet; }
+
+        &:hover {
+            border-color: $fw-violet;
+            background-color: rgba($fw-violet, .06);
+        }
+    }
+
+    // ------------------------------------------------------------------ trip
+    .o_fw_trip {
+        display: flex;
+        align-items: center;
+        padding: .75rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid $border-color;
+        border-radius: .625rem;
+        background-color: $o-gray-100;
+        cursor: pointer;
+        min-height: 44px;
+
+        &:hover { background-color: $o-gray-200; }
+    }
+
+    // ------------------------------------------------------------------ cards
+    .o_fw_card {
+        display: flex;
+        align-items: stretch;
+        // Same trap the track panel hit on 2026-08-24, in the same container and
+        // with the same symptom: `.o_fw_day` is also `.o_action`, which the web
+        // client lays out as a COLUMN FLEX container, so a direct child with no
+        // flex sizing is shrinkable. On a database with deliveries the block of
+        // delivery cards fills the column and every visit card below it collapses
+        // to 2px - full text in the DOM, four invisible hairlines on screen, and
+        // the day's whole point unreachable. It never showed on a lab with no
+        // deliveries, which is why it shipped. (2026-09-12)
+        flex: 0 0 auto;
+        margin-bottom: .75rem;
+        border: 1px solid $border-color;
+        border-radius: .625rem;
+        background-color: $body-bg;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba($o-gray-900, .04);
+        transition: box-shadow .15s ease, transform .15s ease;
+
+        &:hover {
+            box-shadow: 0 .25rem .75rem rgba($o-gray-900, .10);
+            transform: translateY(-1px);
+        }
+    }
+
+    // A 4px spine carries the state so the eye can run down the list without reading.
+    // The words are on the chip inside — the colour is never the only carrier.
+    .o_fw_card_planned { border-left: 4px solid $o-gray-400; }
+    .o_fw_card_open    { border-left: 4px solid $warning; }
+    .o_fw_card_done    { border-left: 4px solid $success; }
+
+    .o_fw_card_body { flex: 1 1 auto; padding: .875rem 1rem; cursor: pointer; min-width: 0; }
+
+    .o_fw_clinic {
+        font-size: 1rem;
+        color: $o-gray-900;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .o_fw_meta { font-size: .8125rem; color: $o-gray-600; margin-top: .125rem; }
+    // The clinic address, next to Navigate: a WebView-wrapped field app may not
+    // open a geo: link, so this stays the fallback that always works - clamped to
+    // two lines so one long migrated address does not push the card's height around.
+    .o_fw_addr {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .o_fw_result { font-size: .8125rem; color: $o-gray-700; margin-top: .5rem; }
+    .o_fw_warn { font-size: .8125rem; color: $danger; margin-top: .375rem; }
+    .o_fw_hint { font-size: .8125rem; color: $o-gray-600; margin-top: .375rem; }
+
+    .o_fw_chip {
+        font-size: .6875rem;
+        font-weight: 600;
+        padding: .125rem .5rem;
+        border-radius: 1rem;
+        background-color: $o-gray-200;
+        color: $o-gray-700;
+        white-space: nowrap;
+    }
+
+    .o_fw_chip_open { background-color: rgba($warning, .2); color: darken($warning, 22%); }
+    .o_fw_chip_done { background-color: rgba($success, .18); color: darken($success, 10%); }
+
+    // The action column: a full-height target on the thumb side of the card.
+    .o_fw_action {
+        flex: 0 0 auto;
+        min-width: 7.5rem;
+        min-height: 44px;
+        border: 0;
+        border-left: 1px solid $border-color;
+        background-color: $o-gray-100;
+        color: $o-gray-900;
+        font-weight: 600;
+        font-size: .875rem;
+        cursor: pointer;
+
+        &:hover:not(:disabled) { background-color: $fw-violet; color: #fff; }
+        &:disabled { opacity: .5; cursor: default; }
+    }
+
+    .o_fw_empty {
+        padding: 2.5rem 1rem;
+        text-align: center;
+        color: $o-gray-600;
+        border: 1px dashed $border-color;
+        border-radius: .625rem;
+    }
+}
+
+.o_fw_tower,
+.o_fw_health { max-width: 1180px; }
+
+// The manager's screens are indigo→teal. Same family as My Day, unmistakably not it.
+.o_fw_tower .o_fw_hero,
+.o_fw_health .o_fw_hero {
+    background: linear-gradient(135deg, $fw-indigo, $fw-teal);
+}
+
+.o_fw_tower .o_fw_ring::before,
+.o_fw_health .o_fw_ring::before { background: #2b3a8f; }
+.o_fw_hero_wide .o_fw_stats { gap: 1.75rem; }
+.o_fw_seen { opacity: .7; font-size: .75rem; }
+
+// ------------------------------------------------------- control tower & health
+.o_fw_tower,
+.o_fw_health {
+
+    // Alerts. Each one is something a person has to decide about, so each is a target.
+    .o_fw_alerts { margin-bottom: 1.25rem; }
+
+    .o_fw_alert {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .75rem 1rem;
+        margin-bottom: .5rem;
+        border: 1px solid $border-color;
+        border-left-width: 4px;
+        border-radius: .625rem;
+        background-color: $body-bg;
+        cursor: pointer;
+        min-height: 44px;
+
+        &:hover { background-color: $o-gray-100; }
+    }
+
+    // The level is carried by the border AND by the words in the title, never by
+    // colour alone.
+    .o_fw_alert_danger  { border-left-color: $danger; }
+    .o_fw_alert_warning { border-left-color: $warning; }
+    .o_fw_alert_info    { border-left-color: $info; }
+
+    .o_fw_alert_icon   { font-size: 1.125rem; color: $o-gray-600; width: 1.25rem; text-align: center; }
+    .o_fw_alert_title  { font-weight: 600; font-size: .9375rem; color: $o-gray-900; }
+    .o_fw_alert_detail { font-size: .8125rem; color: $o-gray-600; }
+    .o_fw_alert_go     { font-size: .8125rem; font-weight: 600; color: $fw-violet; white-space: nowrap; }
+
+    // One row per person.
+    .o_fw_person {
+        display: flex;
+        align-items: stretch;
+        margin-bottom: .625rem;
+        border: 1px solid $border-color;
+        border-left: 4px solid $o-gray-400;
+        border-radius: .625rem;
+        background-color: $body-bg;
+        overflow: hidden;
+        transition: box-shadow .15s ease;
+
+        &:hover { box-shadow: 0 .25rem .75rem rgba($o-gray-900, .08); }
+    }
+
+    .o_fw_person_at_clinic { border-left-color: $success; }
+    .o_fw_person_moving    { border-left-color: $info; }
+    .o_fw_person_idle      { border-left-color: $warning; }
+
+    .o_fw_person_body { flex: 1 1 auto; padding: .75rem 1rem; cursor: pointer; min-width: 0; }
+
+    .o_fw_person_head {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+
+    .o_fw_person_name { font-size: .9375rem; color: $o-gray-900; }
+    .o_fw_person_now  { font-size: .8125rem; color: $o-gray-700; margin-top: .25rem; }
+
+    .o_fw_dot {
+        width: .5rem;
+        height: .5rem;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        background-color: $o-gray-400;
+    }
+    .o_fw_dot_success { background-color: $success; }
+    .o_fw_dot_info    { background-color: $info; }
+    .o_fw_dot_warning { background-color: $warning; }
+    .o_fw_dot_muted   { background-color: $o-gray-400; }
+
+    // How far through their own plan, at a glance and without a number to read.
+    .o_fw_person_bar {
+        height: 4px;
+        border-radius: 2px;
+        background-color: $o-gray-200;
+        margin: .5rem 0 .375rem;
+        overflow: hidden;
+    }
+    .o_fw_person_fill { height: 100%; background-color: $fw-violet; }
+
+    .o_fw_person_stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .875rem;
+        font-size: .8125rem;
+        color: $o-gray-600;
+    }
+}
+
+// ---------------------------------------------------------------- field health
+.o_fw_hero_btn {
+    border: 1px solid rgba(255, 255, 255, .5);
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+    border-radius: .5rem;
+    padding: .5rem .875rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    min-height: 44px;
+
+    &:hover { background: rgba(255, 255, 255, .22); }
+}
+
+.o_fw_health {
+
+    .o_fw_panel {
+        border: 1px solid $border-color;
+        border-radius: .75rem;
+        background-color: $body-bg;
+        padding: 1.125rem 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .o_fw_panel_head {
+        font-size: 1rem;
+        font-weight: 600;
+        color: $o-gray-900;
+        margin-bottom: .875rem;
+    }
+
+    .o_fw_panel_sub {
+        display: block;
+        font-size: .8125rem;
+        font-weight: 400;
+        color: $o-gray-600;
+        margin-top: .125rem;
+    }
+
+    // The verdict is a sentence first and a colour second, so it still reads when the
+    // colour does not survive (print, high contrast, colour blindness).
+    .o_fw_verdict {
+        border-left: 4px solid $o-gray-400;
+        background-color: $o-gray-100;
+        border-radius: .5rem;
+        padding: .875rem 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .o_fw_verdict_danger  { border-left-color: $danger; }
+    .o_fw_verdict_warning { border-left-color: $warning; }
+    .o_fw_verdict_good    { border-left-color: $success; }
+    .o_fw_verdict_muted   { border-left-color: $o-gray-400; }
+
+    .o_fw_verdict_title { font-weight: 600; color: $o-gray-900; margin-bottom: .25rem; }
+    .o_fw_verdict_body  { font-size: .875rem; color: $o-gray-700; }
+
+    .o_fw_verdict_btn {
+        margin-top: .75rem;
+        min-height: 44px;
+        border: 0;
+        border-radius: .5rem;
+        padding: .5rem 1rem;
+        background-color: $fw-violet;
+        color: #fff;
+        font-weight: 600;
+        font-size: .875rem;
+
+        &:disabled { opacity: .5; }
+    }
+
+    // Where people actually stand, against where the rule says they should.
+    .o_fw_hist {
+        display: flex;
+        align-items: flex-end;
+        gap: .5rem;
+        height: 150px;
+        padding-top: 1.25rem;
+    }
+
+    .o_fw_hist_col {
+        flex: 1 1 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        height: 100%;
+        min-width: 0;
+    }
+
+    .o_fw_hist_n { font-size: .75rem; color: $o-gray-600; margin-bottom: .25rem; }
+
+    .o_fw_hist_bar { width: 100%; border-radius: .25rem .25rem 0 0; }
+    .o_fw_hist_in  { background-color: $fw-violet; }
+    .o_fw_hist_out { background-color: $o-gray-400; }
+
+    .o_fw_hist_l {
+        font-size: .6875rem;
+        color: $o-gray-600;
+        margin-top: .375rem;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .o_fw_hist_key {
+        font-size: .8125rem;
+        color: $o-gray-600;
+        margin-top: 1rem;
+        line-height: 1.5;
+    }
+
+    .o_fw_count {
+        display: inline-block;
+        min-width: 1.5rem;
+        padding: 0 .375rem;
+        margin-right: .5rem;
+        border-radius: 1rem;
+        background-color: $o-gray-200;
+        color: $o-gray-900;
+        font-size: .75rem;
+        text-align: center;
+    }
+
+    // Sparklines: inline SVG, so there is no charting library to load or break.
+    .o_fw_sparks {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .o_fw_spark { color: $fw-violet; }
+
+    .o_fw_spark_head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+
+    .o_fw_spark_l { font-size: .8125rem; color: $o-gray-600; }
+    .o_fw_spark_v { font-size: 1.125rem; color: $o-gray-900; }
+
+    .o_fw_spark_svg {
+        width: 100%;
+        height: 46px;
+        margin: .375rem 0 .25rem;
+        overflow: visible;
+    }
+
+    .o_fw_spark_foot {
+        display: flex;
+        justify-content: space-between;
+        font-size: .6875rem;
+        color: $o-gray-600;
+    }
+
+    .o_fw_spark_delta { color: $o-gray-700; font-weight: 600; }
+}
+
+// ---------------------------------------------------------------- suggestions
+.o_fw_suggest {
+    margin-top: 1.5rem;
+
+    .o_fw_suggest_head {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: $o-gray-600;
+        margin-bottom: .5rem;
+    }
+}
+
+// A suggestion is an offer, not a task: dashed, so it never reads as something the
+// executive has already been told to do.
+.o_fw_card_suggest {
+    border-style: dashed;
+    border-left: 4px dashed $info;
+    background-color: $o-gray-100;
+}
+
+.o_fw_action_ghost {
+    min-width: 5.5rem;
+    background-color: transparent;
+}
+
+.o_fw_chip_warn   { background-color: rgba($warning, .2); color: darken($warning, 25%); }
+.o_fw_chip_danger { background-color: rgba($danger, .15); color: $danger; }
+
+// ---------------------------------------------------------------- mobile widgets
+// Everything below replaces a keyboard or a dropdown with a target big enough to hit
+// while walking. The phone keyboard covers half the screen and moves the field being
+// edited, and is the single biggest reason field staff stop filling records in.
+
+// A selection as chips.
+.o_fw_choice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.o_fw_choice_chip {
+    min-height: 44px;
+    padding: .5rem .875rem;
+    border: 1px solid $border-color;
+    border-radius: 1.5rem;
+    background-color: $body-bg;
+    color: $o-gray-700;
+    font-size: .875rem;
+    font-weight: 600;
+    line-height: 1.2;
+
+    &:hover:not(:disabled) { border-color: $fw-violet; }
+    &:disabled { opacity: .75; }
+}
+
+.o_fw_choice_on {
+    background-color: $fw-violet;
+    border-color: $fw-violet;
+    color: #fff;
+}
+
+.o_fw_choice_ro .o_fw_choice_chip:not(.o_fw_choice_on) { display: none; }
+
+// Money.
+.o_fw_amount_now {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $o-gray-900;
+    line-height: 1.1;
+}
+
+.o_fw_amount_steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: .5rem;
+}
+
+.o_fw_amount_step {
+    min-height: 44px;
+    min-width: 4rem;
+    padding: .5rem .75rem;
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    background-color: $o-gray-100;
+    color: $o-gray-900;
+    font-weight: 600;
+    font-size: .875rem;
+
+    &:hover { background-color: $fw-violet; color: #fff; border-color: $fw-violet; }
+}
+
+.o_fw_amount_clear { color: $o-gray-600; }
+
+.o_fw_amount_input {
+    margin-top: .5rem;
+    width: 100%;
+    max-width: 18rem;
+    min-height: 44px;
+    padding: .5rem .75rem;
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    background-color: $body-bg;
+    color: $o-gray-900;
+}
+
+// Camera.
+.o_fw_camera_drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 20rem;
+    min-height: 8.5rem;
+    padding: 1rem;
+    border: 2px dashed $border-color;
+    border-radius: .75rem;
+    background-color: $o-gray-100;
+    color: $o-gray-600;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover { border-color: $fw-violet; color: $fw-violet; }
+}
+
+.o_fw_camera_ro { cursor: default; border-style: solid; }
+
+.o_fw_camera_img {
+    max-width: 20rem;
+    width: 100%;
+    border-radius: .75rem;
+    border: 1px solid $border-color;
+}
+
+.o_fw_camera_actions { display: flex; gap: .5rem; margin-top: .5rem; }
+
+.o_fw_camera_btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: .5rem .875rem;
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    background-color: $body-bg;
+    color: $o-gray-900;
+    font-size: .875rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0;
+}
+
+.o_fw_camera_del { color: $danger; }
+
+// Navigate / Call / WhatsApp.
+.o_fw_contact_bar {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.o_fw_contact_btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 44px;
+    padding: .5rem 1rem;
+    border: 1px solid $border-color;
+    border-radius: .625rem;
+    background-color: $o-gray-100;
+    color: $o-gray-900;
+    font-weight: 600;
+    font-size: .875rem;
+    text-decoration: none;
+
+    &:hover { background-color: $fw-violet; color: #fff; border-color: $fw-violet; }
+}
+
+.o_fw_contact_map { background-color: rgba($fw-violet, .12); }
+.o_fw_contact_none { font-size: .8125rem; color: $o-gray-600; align-self: center; }
+
+// Quick actions on a My Day card.
+.o_fw_quick { display: flex; gap: .5rem; margin-top: .5rem; flex-wrap: wrap; }
+
+.o_fw_quick_btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    min-height: 36px;
+    padding: .25rem .625rem;
+    border: 1px solid $border-color;
+    border-radius: 1rem;
+    background-color: $body-bg;
+    color: $o-gray-700;
+    font-size: .75rem;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover { background-color: $fw-violet; color: #fff; border-color: $fw-violet; }
+}
+
+// Upper / lower, drawn as the arches.
+.o_fw_arch { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+
+.o_fw_arch_btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .125rem;
+    min-height: 44px;
+    padding: .375rem .75rem;
+    border: 1px solid $border-color;
+    border-radius: .625rem;
+    background-color: $body-bg;
+    color: $o-gray-500;
+    font-size: .6875rem;
+    font-weight: 600;
+
+    &:disabled { opacity: .8; }
+}
+
+.o_fw_arch_svg { width: 2.25rem; height: 1.25rem; display: block; }
+
+.o_fw_arch_on {
+    color: $fw-violet;
+    border-color: $fw-violet;
+    background-color: rgba($fw-violet, .10);
+}
+
+.o_fw_arch_label { font-size: .75rem; color: $o-gray-600; }
+
+// A quantity as two big targets.
+.o_fw_stepper { display: inline-flex; align-items: center; gap: .5rem; }
+
+.o_fw_step_btn {
+    width: 44px;
+    height: 44px;
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    background-color: $o-gray-100;
+    color: $o-gray-900;
+
+    &:hover:not(:disabled) { background-color: $fw-violet; color: #fff; }
+    &:disabled { opacity: .5; }
+}
+
+.o_fw_step_v {
+    min-width: 3.25rem;
+    text-align: center;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $o-gray-900;
+}
+
+.o_fw_step_in {
+    min-height: 44px;
+    padding: .25rem .375rem;
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    background-color: $body-bg;
+
+    &:focus { border-color: $fw-violet; outline: none; }
+}
+
+// Inside an editable list the same widgets have to fit a row. They keep a 44px target
+// but lose the padding that makes sense on a form.
+.o_list_renderer, .o_field_x2many_list {
+    .o_fw_arch_btn { padding: .125rem .5rem; }
+    .o_fw_arch_svg { width: 1.75rem; height: 1rem; }
+    .o_fw_arch_label { display: none; }
+    .o_fw_step_btn { width: 36px; height: 36px; }
+    .o_fw_step_v { min-width: 2.75rem; font-size: 1rem; }
+    .o_fw_choice_chip { padding: .25rem .625rem; font-size: .8125rem; }
+}
+
+// Case registration is a conversation at a counter, so the patient's name is the
+// heading and everything else follows the order the doctor says it.
+.o_fw_case {
+    .o_fw_case_label { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; }
+    .oe_title { width: 100%; }
+    .oe_title input { font-size: 1.5rem; }
+}
+
+// A flag that changes what the lab does. Quiet when off, unmissable when on — a
+// permanently loud control is one people stop seeing.
+.o_fw_flag {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .875rem 1rem;
+    border: 1px solid $border-color;
+    border-left: 4px solid $o-gray-400;
+    border-radius: .625rem;
+    background-color: $body-bg;
+    cursor: pointer;
+    min-height: 60px;
+
+    &:hover { border-color: $warning; }
+}
+
+.o_fw_flag_on {
+    border-left-color: $warning;
+    background-color: rgba($warning, .10);
+}
+
+.o_fw_flag_icon { font-size: 1.25rem; color: $o-gray-500; width: 1.5rem; text-align: center; }
+.o_fw_flag_on .o_fw_flag_icon { color: darken($warning, 12%); }
+
+.o_fw_flag_body { flex: 1 1 auto; min-width: 0; }
+.o_fw_flag_title { font-weight: 600; color: $o-gray-900; }
+.o_fw_flag_help { font-size: .8125rem; color: $o-gray-600; }
+
+// The state in words, because the colour alone is not the message.
+.o_fw_flag_state {
+    font-size: .6875rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    padding: .125rem .5rem;
+    border-radius: 1rem;
+    background-color: $o-gray-200;
+    color: $o-gray-700;
+}
+
+.o_fw_flag_on .o_fw_flag_state {
+    background-color: $warning;
+    color: #fff;
+}
+
+// The visit and trip forms are filled in on a phone at a clinic door.
+.o_fw_form {
+    .o_form_button_box .oe_stat_button { min-height: 44px; }
+}
+
+// ---------------------------------------------------------------- phone layout
+@media (max-width: 767px) {
+    // Everything on a form is one column and full width. Odoo already stacks groups,
+    // but inputs keep a desktop width and end up as a narrow box in a wide row.
+    .o_fw_form {
+        .o_fw_amount_input,
+        .o_fw_camera_drop,
+        .o_fw_camera_img { max-width: 100%; }
+
+        // The three phone actions stay under the thumb however far the form scrolls.
+        // Sticky rather than fixed: it stays inside the sheet and never covers the
+        // chatter or the save indicator.
+        .o_fw_contact_bar {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            padding: .5rem 0;
+            margin: 0 0 .75rem;
+            background-color: $body-bg;
+            border-bottom: 1px solid $border-color;
+        }
+
+        .o_fw_contact_btn { flex: 1 1 0; justify-content: center; }
+
+        // A chip row on a phone is two columns, not five slivers.
+        .o_fw_choice_chip { flex: 1 1 45%; justify-content: center; text-align: center; }
+        .o_fw_amount_step { flex: 1 1 28%; }
+    }
+
+    // An editable list on a phone is unusable as a grid — Odoo already stacks each row
+    // into a card, so the job here is only to stop the widgets inside being squeezed.
+    .o_fw_case {
+        .o_fw_arch { justify-content: flex-start; }
+        .o_fw_stepper { justify-content: flex-start; }
+        .oe_title input { font-size: 1.25rem; }
+    }
+}
+
+@media (max-width: 991.98px) {
+    // One row per person is a grid at desk width and a stack on a tablet. The status
+    // chips must wrap rather than push the figures off the right edge.
+    .o_fw_tower {
+        .o_fw_person_head { row-gap: .25rem; }
+        .o_fw_person_stats { gap: .625rem; font-size: .75rem; }
+        .o_fw_alert { flex-wrap: wrap; row-gap: .375rem; }
+        .o_fw_alert_go { margin-left: auto; }
+    }
+
+    .o_fw_health {
+        // Seven distance buckets at phone width are seven slivers with unreadable
+        // labels, so the histogram scrolls sideways instead of compressing.
+        .o_fw_hist {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .o_fw_hist_col { min-width: 54px; }
+        .o_fw_alert { flex-wrap: wrap; row-gap: .375rem; }
+        .o_fw_sparks { grid-template-columns: 1fr; }
+    }
+}
+
+@media (max-width: 575px) {
+    .o_fw_day,
+    .o_fw_tower,
+    .o_fw_health {
+        padding: .5rem;
+
+        .o_fw_action { min-width: 5rem; span { display: none; } }
+        .o_fw_stats { column-gap: .875rem; row-gap: .625rem; }
+        .o_fw_alert_go span { display: none; }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Track a work, on My Day (client, 2026-08-24)
+// ---------------------------------------------------------------------------
+.o_fw_day {
+    .o_fw_track {
+        // `.o_fw_day` is also `.o_action`, which the web client lays out as a column
+        // flex container. Without this the panel is a flex ITEM and shrank to its
+        // 2px of border while holding 25 rows of 59px each - present in the DOM,
+        // invisible on screen. (2026-08-24)
+        flex: 0 0 auto;
+        border: 1px solid var(--border-color, #dee2e6);
+        border-radius: .6rem; margin-bottom: 1rem; overflow: hidden;
+        // Long lists stay inside the panel rather than pushing the day off-screen.
+        max-height: 60vh; overflow-y: auto;
+    }
+    .o_fw_track_bar {
+        display: flex; align-items: center; gap: .5rem;
+        padding: .5rem .7rem; border-bottom: 1px solid var(--border-color, #dee2e6);
+        background: #f6f8fa;
+        > .fa-search { color: var(--muted, #6c757d); }
+        input { flex: 1 1 auto; border: 0; background: transparent; outline: none;
+                font-size: .95rem; min-width: 0; }
+    }
+    .o_fw_track_close { border: 0; background: transparent; color: var(--muted, #6c757d);
+        padding: .2rem .4rem; }
+    .o_fw_track_note { padding: .7rem; color: var(--muted, #6c757d); font-size: .85rem; }
+    .o_fw_track_row {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: .6rem; padding: .55rem .7rem;
+        border-bottom: 1px solid rgba(0, 0, 0, .05);
+        &:last-child { border-bottom: 0; }
+    }
+    .o_fw_track_main { min-width: 0;
+        strong { display: block; }
+        .o_fw_track_clinic { font-size: .8rem; color: var(--muted, #6c757d);
+            display: block; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; } }
+    .o_fw_track_side { text-align: right; flex: 0 0 auto;
+        small { display: block; font-size: .72rem; color: var(--muted, #6c757d); } }
+    .o_fw_track_stage { display: inline-block; padding: .05rem .45rem;
+        border-radius: 10px; font-size: .72rem; font-weight: 600; }
+    .o_fw_track_good { background: #e7f6ee; color: #067647; }
+    .o_fw_track_mid  { background: #fdf3e6; color: #b45309; }
+    .o_fw_track_wait { background: #eef1f4; color: #475467; }
+}
+
+// ---------------------------------------------------------------------------
+// Mobile kanban polish (client, 2026-08-24): thumb-sized cards, a state edge,
+// and a real progress bar on the target card.
+// ---------------------------------------------------------------------------
+.o_fw_kanban {
+    .o_kanban_record { position: relative; overflow: hidden; }
+
+    // The coloured strip down the card's left edge: the state, readable at a
+    // glance from arm's length.
+    .o_fw_edge { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+    .o_fw_edge_planned   { background: #98a2b3; }
+    .o_fw_edge_open      { background: #1570ef; }
+    .o_fw_edge_draft     { background: #98a2b3; }
+    .o_fw_edge_submitted { background: #b45309; }
+    .o_fw_edge_approved,
+    .o_fw_edge_done      { background: #067647; }
+    .o_fw_edge_cancel,
+    .o_fw_edge_rejected  { background: #b42318; }
+
+    .o_fw_bar_track { height: 8px; border-radius: 4px; background: #eef1f4;
+        overflow: hidden; }
+    .o_fw_bar_fill { height: 100%; border-radius: 4px; background: #067647; }
+
+    // Thumbs, not cursors: room around every card, and no accidental taps
+    // from cards touching each other.
+    @media (max-width: 767.98px) {
+        .o_kanban_record { padding: .85rem .9rem .85rem 1.05rem;
+            margin-bottom: .55rem; border-radius: .6rem;
+            font-size: .95rem; }
+        .o_kanban_record .fs-6 { font-size: 1.02rem !important; }
+        .o_kanban_renderer { padding: .5rem .6rem; }
+    }
+}
+
+// Day stepper on My Day (client, 2026-08-25): back over the allowed window only.
+// One row for the header's controls: the day stepper and the month's door count.
+// They sat on two rows, which on a phone pushed the day's actual figures below the
+// fold. (client, 2026-08-28)
+.o_fw_hero_controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin-top: .5rem;
+}
+
+.o_fw_day .o_fw_daynav,
+.o_fw_tower .o_fw_daynav {
+    display: flex; align-items: center; gap: .35rem;
+    .o_fw_daynav_btn, .o_fw_daynav_today {
+        border: 0; border-radius: .45rem; padding: .3rem .6rem;
+        background: rgba(255, 255, 255, .18); color: #fff; font-size: .8rem;
+        min-height: 34px;                 // a thumb, not a cursor
+        &:disabled { opacity: .35; }
+    }
+    .o_fw_daynav_today { font-weight: 600; }
+}
+
+// ---------------------------------------------------------------------------
+// These three screens ARE the `.o_action` element. The web client styles it
+// `.o_web_client > .o_action_manager > .o_action { height: 100%; overflow: hidden }`
+// - three classes of specificity - so a plain `.o_fw_day { overflow-y: auto }`
+// loses and the content is simply cut off. On a 850px desktop window My Day is
+// 1,201px tall: 397px of it, "In your bag" included, was unreachable and the wheel
+// did nothing. (Phones were already fine: the web client has its own
+// `media-breakpoint-down(md)` rule that makes `.o_action` scroll.)
+//
+// Matching the parent restores the specificity contest. `min-height: 0` matters
+// alongside it: a flex child will not shrink below its content without it, and the
+// overflow never engages. (client, 2026-08-25)
+// ---------------------------------------------------------------------------
+// The rule to beat is `html .o_web_client > .o_action_manager > .o_action`
+// (confirmed with CSS.getMatchedStylesForNode, 2026-08-25): four compound
+// selectors, and it is declared after ours, so anything shorter loses on
+// specificity or on order. This mirrors it and adds the screen's own class.
+// .o_fw_tower / .o_fw_health were removed with those screens (2026-08-31); the
+// three role desks carry the same override in desks.scss, which is the file
+// that owns them.
+html .o_web_client > .o_action_manager > .o_action {
+    &.o_fw_day {
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        -webkit-overflow-scrolling: touch;   // momentum on the phones this is for
+    }
+}
+
+// Track order: the journey behind a row (client, 2026-08-25)
+.o_fw_day {
+    .o_fw_track_row { cursor: pointer; &:hover { background: #f6f8fa; } }
+    .o_fw_track_old { color: #b42318; font-weight: 600; }
+    .o_fw_track_detail { padding: .1rem .7rem .7rem; background: #fbfcfd;
+        border-bottom: 1px solid rgba(0, 0, 0, .05); }
+    .o_fw_track_steps { margin: .3rem 0 .5rem; }
+    .o_fw_step { display: flex; align-items: center; gap: .5rem;
+        font-size: .84rem; padding: .18rem 0; color: var(--muted, #6c757d);
+        > i { width: 1rem; text-align: center; }
+        .o_fw_step_label { flex: 1 1 auto; min-width: 0; }
+        small { flex: 0 0 auto; }
+        &.o_fw_step_done { color: inherit;
+            > i { color: #067647; } } }
+    // Who made the case, step by step: small, quiet, and only when the lab
+    // recorded a name. (client, 2026-09-09)
+    .o_fw_track_who {
+        margin: .1rem 0 .5rem;
+        padding: .4rem .55rem;
+        background: rgba(37, 99, 235, .06);
+        border-radius: .5rem;
+    }
+
+    .o_fw_track_who_h {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        color: var(--muted, #6c757d);
+        margin-bottom: .15rem;
+    }
+
+    .o_fw_track_who_row {
+        display: flex;
+        justify-content: space-between;
+        gap: .6rem;
+        font-size: .78rem;
+        line-height: 1.45;
+    }
+
+    .o_fw_track_who_op { color: var(--muted, #6c757d); min-width: 0; }
+    .o_fw_track_who_n { font-weight: 600; text-align: right; }
+
+    // "as of 11:02   Refresh" - the reading and the way to take it again,
+    // on one line above the actions that address the doctor.
+    .o_fw_track_read {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+        font-size: .72rem;
+        color: var(--muted, #6c757d);
+        margin: -.2rem 0 .5rem .1rem;
+    }
+
+    // A thumb at a clinic door, like every other control on this screen:
+    // the text is small because it is a footnote, the target is not.
+    .o_fw_track_reread {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.25rem;
+        border: 0;
+        background: rgba(37, 99, 235, .08);
+        padding: .3rem .7rem;
+        margin: -.4rem 0 -.4rem auto;   // hard right, and no taller a line
+        font-size: .78rem;
+        font-weight: 600;
+        color: #2563eb;
+        border-radius: 1.2rem;
+        touch-action: manipulation;
+
+        &:active { background: rgba(37, 99, 235, .2); }
+        &:disabled { opacity: .6; }
+    }
+
+    .o_fw_track_acts { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .o_fw_track_act { display: inline-flex; align-items: center;
+        border: 1px solid var(--border-color, #dee2e6); background: #fff;
+        border-radius: .45rem; padding: .35rem .7rem; font-size: .82rem;
+        min-height: 38px;                     // a thumb, not a cursor
+        color: inherit; text-decoration: none;
+        &:hover { background: #eef2f7; } }
+}
+
+// Track order chips (client, 2026-08-26)
+.o_fw_day {
+    .o_fw_track_chips { display: flex; flex-wrap: wrap; gap: .4rem;
+        padding: .5rem .7rem 0; }
+    .o_fw_chip { border: 1px solid var(--border-color, #dee2e6); background: #fff;
+        border-radius: 999px; padding: .3rem .75rem; font-size: .8rem;
+        min-height: 34px; color: inherit;
+        &.o_fw_chip_on { background: #1f3a5f; border-color: #1f3a5f; color: #fff; } }
+}
+
+// The doors opened this month, on the round's own screen. One line rather than a
+// card: it is a number they check, not a place they work. (client, 2026-08-27)
+.o_fw_day .o_fw_newclinic_line {
+    display: inline-flex;
+    align-items: center;
+    gap: .1rem;
+    padding: .28rem .6rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+    font-size: .8rem;
+    min-height: 34px;                     // a thumb, not a cursor
+    cursor: pointer;
+
+    &:hover { background: rgba(255, 255, 255, .28); }
+    b { margin-right: .15rem; }
+}
+
+// ---------------------------------------------------------------------------
+// The fortnight strip on the Control Tower. Bars rather than a line: fourteen
+// discrete days ARE bars, and each one has to be a click target big enough for a
+// thumb, which a line's vertices are not. (client, 2026-08-27)
+// ---------------------------------------------------------------------------
+.o_fw_tower .o_fw_trend {
+    border: 1px solid $border-color;
+    border-radius: .75rem;
+    background-color: $body-bg;
+    padding: .75rem .9rem .5rem;
+    margin-bottom: 1rem;
+
+    .o_fw_trend_head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        flex-wrap: wrap;
+        margin-bottom: .5rem;
+    }
+
+    .o_fw_trend_title {
+        font-size: .8125rem;
+        font-weight: 700;
+        color: $o-gray-700;
+    }
+
+    // Three lenses on the same fortnight. Switching costs no round trip, so the
+    // comparison is fast enough to actually be made.
+    .o_fw_trend_tabs { display: flex; gap: .25rem; flex-wrap: wrap; }
+
+    .o_fw_trend_tab {
+        border: 0;
+        border-radius: 1rem;
+        padding: .2rem .6rem;
+        font-size: .75rem;
+        font-weight: 600;
+        min-height: 30px;
+        background-color: $o-gray-200;
+        color: $o-gray-700;
+
+        &:hover { background-color: $o-gray-300; }
+    }
+
+    .o_fw_trend_tab_on {
+        background-color: $primary;
+        color: #fff;
+
+        &:hover { background-color: $primary; }
+    }
+
+    .o_fw_trend_none {
+        padding: 1.1rem .25rem;
+        color: $o-gray-600;
+        font-size: .8125rem;
+    }
+
+    .o_fw_trend_bars {
+        display: flex;
+        align-items: flex-end;
+        gap: .25rem;
+        overflow-x: auto;                 // fourteen thumbs never squeeze to slivers
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: .25rem;
+    }
+
+    .o_fw_trend_col {
+        flex: 1 0 34px;
+        min-width: 34px;
+        cursor: pointer;
+        border-radius: .375rem;
+        padding: .15rem .1rem;
+
+        &:hover { background-color: $o-gray-100; }
+    }
+
+    // A closed Sunday is not a bad day, and the strip must not read as a cliff.
+    .o_fw_trend_col_off .o_fw_trend_bar { opacity: .4; }
+    .o_fw_trend_col_off .o_fw_trend_x { opacity: .5; }
+
+    .o_fw_trend_track {
+        height: 56px;
+        display: flex;
+        align-items: flex-end;
+        position: relative;               // the average line is placed against this
+    }
+
+    // Drawn per column rather than once across the strip: each bar then carries its
+    // own reference, and no absolutely-positioned overlay has to be kept in step
+    // with a scrolling row of bars.
+    .o_fw_trend_avg {
+        position: absolute;
+        left: -1px;
+        right: -1px;
+        height: 0;
+        border-top: 1px dashed rgba($o-gray-900, .45);
+        pointer-events: none;
+    }
+
+    .o_fw_trend_avg_note {
+        font-weight: 400;
+        color: $o-gray-600;
+    }
+
+    .o_fw_trend_bar {
+        width: 100%;
+        border-radius: .25rem .25rem 0 0;
+        background: linear-gradient(180deg, lighten($primary, 18%), $primary);
+        min-height: 2px;
+    }
+
+    // The day on screen, marked on the strip that selects it.
+    //
+    // Marked UNDER the axis, never as a filled column: a tinted box the height of
+    // the track is read as a bar, so a selected day with no work in it looked like
+    // the busiest day of the fortnight. The underline cannot be mistaken for data
+    // because it lives where data never goes. (client, 2026-08-28)
+    .o_fw_trend_col_on {
+        .o_fw_trend_bar {
+            background: linear-gradient(180deg, lighten($o-gray-900, 30%), $o-gray-900);
+        }
+        .o_fw_trend_x {
+            font-weight: 700;
+            color: $o-gray-900;
+            border-bottom: 2px solid $primary;
+            padding-bottom: .1rem;
+        }
+    }
+
+    .o_fw_trend_x {
+        margin-top: .25rem;
+        font-size: .625rem;
+        text-align: center;
+        color: $o-gray-600;
+        white-space: nowrap;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Doctors / Clinics on My Day (client, 2026-09-02)
+// Cards, not a list view: the four facts that decide whether to knock, at
+// arm's length, on a phone held in one hand at a clinic door.
+// ---------------------------------------------------------------------------
+.o_fw_day {
+    .o_fw_clinics {
+        // Same reason as .o_fw_track: `.o_fw_day` is a column flex container,
+        // and without this the panel is an item that shrinks to its border
+        // while holding every card.
+        flex: 0 0 auto;
+        border: 1px solid var(--border-color, #dee2e6);
+        border-radius: .6rem;
+        margin-bottom: 1rem;
+        overflow: hidden;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .o_fw_clinic_fav_toggle {
+        border: 1px solid var(--border-color, #dee2e6);
+        background: #fff;
+        color: var(--muted, #6c757d);
+        border-radius: 999px;
+        padding: .15rem .55rem;
+        font-size: .8rem;
+        font-weight: 700;
+        flex: 0 0 auto;
+
+        .fa { margin-right: .2rem; }
+    }
+
+    .o_fw_clinic_fav_on {
+        background: #fef3c7;
+        border-color: #f59e0b;
+        color: #92400e;
+    }
+
+    .o_fw_track_busy,
+    .o_fw_track_none,
+    .o_fw_track_more {
+        padding: .7rem;
+        color: var(--muted, #6c757d);
+        font-size: .85rem;
+        text-align: center;
+    }
+
+    .o_fw_clinic_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: .6rem;
+        padding: .6rem;
+    }
+
+    .o_fw_clinic_card {
+        border: 1px solid var(--border-color, #dee2e6);
+        border-radius: .55rem;
+        background: #fff;
+        padding: .6rem .65rem;
+        display: flex;
+        flex-direction: column;
+        gap: .4rem;
+        min-width: 0;
+    }
+
+    // A starred clinic is visibly different in the grid, not only sorted first:
+    // the order is lost the moment the executive searches.
+    .o_fw_clinic_fav {
+        border-color: #f59e0b;
+        box-shadow: inset 3px 0 0 #f59e0b;
+    }
+
+    .o_fw_clinic_top {
+        display: flex;
+        align-items: flex-start;
+        gap: .4rem;
+    }
+
+    .o_fw_clinic_name {
+        font-weight: 700;
+        line-height: 1.25;
+        min-width: 0;
+        flex: 1 1 auto;
+        word-break: break-word;
+    }
+
+    .o_fw_clinic_route {
+        font-size: .72rem;
+        font-weight: 600;
+        color: var(--muted, #6c757d);
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .o_fw_clinic_star {
+        border: 0;
+        background: transparent;
+        color: #cbd5e1;
+        font-size: 1.25rem;
+        // A star is the smallest thing on the card and the one most often
+        // tapped by mistake; give it the same thumb as everything else.
+        min-width: 2.75rem;
+        min-height: 2.5rem;
+        padding: 0;
+        flex: 0 0 auto;
+        line-height: 1;
+    }
+
+    .o_fw_clinic_star_on { color: #f59e0b; }
+
+    .o_fw_clinic_addr {
+        font-size: .8rem;
+        color: var(--muted, #6c757d);
+        line-height: 1.3;
+    }
+
+    .o_fw_clinic_facts {
+        display: flex;
+        gap: .5rem;
+        border-top: 1px solid rgba(0, 0, 0, .06);
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+        padding: .4rem 0;
+    }
+
+    .o_fw_clinic_fact {
+        flex: 1 1 50%;
+        min-width: 0;
+    }
+
+    .o_fw_clinic_fact_v {
+        display: block;
+        font-weight: 800;
+        font-size: .95rem;
+        color: #10233a;
+    }
+
+    .o_fw_clinic_owes { color: #b91c1c; }
+
+    .o_fw_clinic_fact_l {
+        display: block;
+        font-size: .7rem;
+        // Darker than --muted: at 11px on white the grey these labels
+        // inherited failed AA (3.8:1) on the screen most likely to be read
+        // outdoors, in sunlight, at arm's length.
+        color: #5b6470;
+    }
+
+    .o_fw_clinic_acts {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+    }
+
+    // 44px is the thumb. Everything on this card is tapped one-handed at a
+    // clinic door, so nothing here is smaller than that.
+    .o_fw_clinic_go {
+        flex: 1 1 auto;
+        min-height: 2.75rem;
+        border: 0;
+        border-radius: .4rem;
+        background: var(--primary, #714b67);
+        color: #fff;
+        font-weight: 600;
+        font-size: .875rem;
+        padding: .4rem .5rem;
+
+        &[disabled] { opacity: .6; }
+    }
+
+    .o_fw_clinic_ico {
+        flex: 0 0 auto;
+        width: 2.75rem;
+        height: 2.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border-color, #dee2e6);
+        border-radius: .4rem;
+        color: #334155;
+        text-decoration: none;
+    }
+
+    .o_fw_qa_on {
+        border-color: var(--primary, #714b67);
+        color: var(--primary, #714b67);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Day sheet: the round scrolls inside itself (client, 2026-09-05)
+//
+// A thirty-clinic round is thirty lines, and stacked they pushed the notes,
+// the figures and the approval trail below the fold — an approver had to
+// scroll past the whole day to reach the buttons that judge it. Capped here
+// rather than truncated in the data: every line is still present, and the
+// page stops growing with the size of the round.
+// ---------------------------------------------------------------------------
+.o_fw_tl_sub {
+    font-size: .8rem;
+    color: #2563eb;
+    font-weight: 600;
+    margin: -.1rem 0 .4rem;
+}
+
+.o_fw_tl_head {
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted, #6c757d);
+    margin-bottom: .25rem;
+}
+
+.o_fw_tl {
+    max-height: 20rem;
+    overflow-y: auto;
+    padding-right: .5rem;
+    // A hairline rail, so a capped list reads as "there is more" rather than
+    // as a list that happens to end there.
+    border-left: 2px solid rgba(0, 0, 0, .06);
+    padding-left: .6rem;
+
+    // Thin bar: the default scrollbar inside a form section is heavier than
+    // the content it scrolls.
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar { width: 6px; }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, .18);
+        border-radius: 3px;
+    }
+}
+
+// On a phone the sheet is already one narrow column; a nested scroll area
+// there fights the page scroll, so let it run its natural length.
+@media (max-width: 767.98px) {
+    .o_fw_tl { max-height: none; overflow-y: visible; border-left: 0; padding-left: 0; }
+}
+
+// The hand count of cases (widget fw_count): a number readable at arm's
+// length and two buttons a thumb cannot miss. (client, 2026-09-08)
+.o_fw_count {
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+
+    .o_fw_count_btn {
+        width: 3.2rem;
+        height: 3.2rem;
+        border-radius: 50%;
+        border: 2px solid #2563eb;
+        background: #fff;
+        color: #2563eb;
+        font-size: 1.9rem;
+        font-weight: 700;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        touch-action: manipulation;
+
+        &:active { background: #dbeafe; }
+        &:disabled { opacity: .35; }
+    }
+
+    .o_fw_count_input,
+    .o_fw_count_value {
+        width: 5.4rem;
+        height: 3.2rem;
+        font-size: 2.2rem;
+        font-weight: 700;
+        text-align: center;
+        line-height: 3.2rem;
+        border: 2px solid #cbd5e1;
+        border-radius: .6rem;
+        background: #fff;
+        color: #111;
+        -moz-appearance: textfield;
+
+        &::-webkit-outer-spin-button,
+        &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        &:focus { outline: none; border-color: #2563eb; }
+    }
+
+    .o_fw_count_value {
+        border-color: transparent;
+        background: transparent;
+        display: inline-block;
+    }
+}
+
+// ---------------------------------------------------------------- cash in hand
+// The card that says what the lab's money in this pocket amounts to, and has the
+// way to be rid of it on the same card. Red only past the policy. (2026-09-18)
+.o_fw_day .o_fw_cash {
+    // `.o_fw_day` is a column flex container (it is also `.o_action`): a direct
+    // child with no flex sizing is shrinkable and collapses under the cards
+    // below it - the button was there, 2px tall, and every tap landed on a
+    // visit card instead. Same trap as .o_fw_card. (2026-09-18)
+    flex: 0 0 auto;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: .625rem;
+    background-color: var(--o-gray-100, #f8f9fa);
+    overflow: hidden;
+
+    &.o_fw_cash_overdue { border-color: rgba(220, 53, 69, .55); }
+
+    .o_fw_cash_row, .o_fw_cash_pending {
+        display: flex;
+        align-items: center;
+        padding: .75rem 1rem;
+        min-height: 44px;
+        cursor: pointer;
+        &:hover { background-color: var(--o-gray-200, #e9ecef); }
+    }
+    .o_fw_cash_pending {
+        border-top: 1px dashed var(--border-color, #dee2e6);
+        font-size: .875rem;
+        color: var(--o-gray-700, #495057);
+    }
+    .o_fw_code_chip {
+        font-family: var(--font-monospace, SFMono-Regular, Menlo, monospace);
+        font-weight: 700;
+        letter-spacing: .08em;
+        padding: .125rem .5rem;
+        border-radius: .375rem;
+        background: #fff;
+        border: 1px solid var(--border-color, #dee2e6);
+        white-space: nowrap;
+    }
+    .o_fw_cash_btn {
+        display: block;
+        width: 100%;
+        border: 0;
+        border-top: 1px solid var(--border-color, #dee2e6);
+        background: #1f3a5f;
+        color: #fff;
+        font-weight: 600;
+        padding: .75rem 1rem;
+        min-height: 48px;
+        &:hover { background: #17304f; }
+    }
+}
+
+// The code on the slip: read across a desk, or scanned. Same on phone and PC.
+.o_fw_form .o_fw_code_box {
+    text-align: center;
+    padding: 1rem;
+    margin: .5rem 0 1rem;
+    border: 2px dashed #1f3a5f;
+    border-radius: .75rem;
+    background: #fff;
+
+    .o_fw_code_hint { color: var(--o-gray-600, #6c757d); font-size: .875rem; }
+    .o_fw_code {
+        font-family: var(--font-monospace, SFMono-Regular, Menlo, monospace);
+        font-size: 2.25rem;
+        font-weight: 700;
+        letter-spacing: .2em;
+        margin: .25rem 0 .5rem;
+        .o_field_widget, .o_field_widget span, .o_field_widget input {
+            font: inherit; letter-spacing: inherit; text-align: center;
+        }
+    }
+    .o_fw_code_qr img { max-width: 150px; }
+}
+.o_fw_form .o_fw_big_amount .o_input, .o_fw_form .o_fw_big_amount span {
+    font-size: 1.5rem; font-weight: 700;
+}
+.o_fw_code_input .o_input {
+    font-family: var(--font-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 1.5rem; letter-spacing: .2em; text-transform: uppercase;
+}

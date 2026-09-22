@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_sale_custom" model="ir.ui.view">
+        <field name="name">res.partner.form.sale.custom</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!-- Sales Route reads under the address (client, 2026-08-21): the clinic's
+                 place and the route that serves it belong together, and the field is a
+                 direct child of the left-hand group, so it renders as a labelled row -
+                 not inline inside the address div.
+                 Two o_address_format blocks exist in the composed form (this one and the
+                 child-contact sub-form in Contacts &amp; Addresses); Odoo takes the FIRST
+                 match in document order, which is this one - asserted after upgrade.
+                 Required for a clinic, for anything that already trades as a customer,
+                 and for anything created from a customer screen - vendors, employees,
+                 child addresses and archived contacts are untouched.
+                 The expression reads `active`, `is_clinic` and `customer_rank`, so all
+                 three must stay in this view's arch; `is_clinic` below is deliberately
+                 ungrouped (lab_fieldwork's copy is manager-only). If the checkbox is
+                 ever deduplicated, make that node invisible="1" rather than deleting it. -->
+            <xpath expr="//div[hasclass('o_address_format')]" position="after">
+                <field name="customer_rank" invisible="1"/>
+                <field name="team_id" string="Sales Route" options="{'no_create': True}"
+                       required="active and not parent_id
+                                 and (is_clinic or customer_rank &gt; 0
+                                      or context.get('res_partner_search_mode') == 'customer'
+                                      or context.get('default_customer_rank'))"/>
+            </xpath>
+
+            <field name="category_id" position="after">
+                <field name="is_clinic"/>
+                <field name="is_doctor"/>
+                <field name="gst_number"/>
+                <field name="pan_number"/>
+                <field name="dci_number"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Contacts list: the clinic's Sales Route and what it still owes, next to the
+         name — the two things the counter and the collector look up most
+         (client, 2026-08-19). `credit` is core's open receivable balance (posted,
+         unreconciled), computed in one SQL for the whole page. -->
+    <record id="view_partner_tree_sale_custom" model="ir.ui.view">
+        <field name="name">res.partner.list.sale.custom</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <field name="display_name" position="after">
+                <field name="team_id" string="Sales Route" optional="show"
+                       options="{'no_create': True}"/>
+                <field name="credit" string="Outstanding" optional="show" sum="Total outstanding"
+                       widget="monetary" options="{'currency_field': 'currency_id'}"
+                       decoration-danger="credit &gt; 0" decoration-bf="credit &gt; 0"/>
+                <field name="currency_id" column_invisible="True"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Search / filter clinics by Sales Route: type a route name in the search box,
+         "Has no Sales Route" to find the unassigned ones, and Group By > Sales Route. -->
+    <record id="view_res_partner_filter_sale_custom" model="ir.ui.view">
+        <field name="name">res.partner.search.sale.custom</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="team_id" string="Sales Route"/>
+                <field name="is_clinic" string="Clinic"/>
+            </field>
+            <filter name="type_company" position="after">
+                <separator/>
+                <filter string="Clinics" name="clinics" domain="[('is_clinic', '=', True)]"/>
+                <filter string="Has a Sales Route" name="has_team" domain="[('team_id', '!=', False)]"/>
+                <filter string="No Sales Route" name="no_team" domain="[('team_id', '=', False)]"/>
+            </filter>
+            <filter name="salesperson" position="after">
+                <filter name="group_team" string="Sales Route" context="{'group_by': 'team_id'}"/>
+            </filter>
+        </field>
+    </record>
+
+</odoo>

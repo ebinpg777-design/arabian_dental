@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Pay now, on the doctor's phone: the amount, their UPI app, a QR code for a
+         desk computer, and "I've paid". Standalone; no website module. -->
+    <template id="pay_page" name="WhatsApp pay page">
+        <html>
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="robots" content="noindex"/>
+                <title>Pay <t t-esc="amount"/> · <t t-esc="company_name"/></title>
+                <style>
+                    body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+                           background: #efeae2; color: #111b21; }
+                    .wrap { max-width: 420px; margin: 0 auto; padding: 20px 16px 40px; }
+                    .card { background: #fff; border-radius: 18px; padding: 24px 22px; box-shadow: 0 6px 24px rgba(0,0,0,.08); margin-bottom: 14px; }
+                    .co { font-size: 13px; color: #075e54; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+                    .amt { font-size: 40px; font-weight: 800; margin: 6px 0 2px; }
+                    .ref { color: #54656f; font-size: 15px; }
+                    .apps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+                    .app { display: block; text-align: center; text-decoration: none; border-radius: 14px; padding: 14px 8px;
+                           font-weight: 700; font-size: 15px; color: #fff; background: #128c7e; }
+                    .app.upi { grid-column: 1 / -1; background: #25d366; font-size: 17px; padding: 16px; }
+                    .app.gpay { background: #1a73e8; } .app.phonepe { background: #5f259f; } .app.paytm { background: #00baf2; }
+                    .qr { text-align: center; }
+                    .qr svg { width: 200px; height: 200px; }
+                    .qr .id { font-family: ui-monospace, monospace; font-size: 14px; color: #075e54; margin-top: 6px; }
+                    .hint { color: #54656f; font-size: 14px; margin: 6px 0 0; line-height: 1.4; }
+                    .paid { width: 100%; border: 0; border-radius: 24px; background: #075e54; color: #fff; font-size: 17px;
+                            font-weight: 700; padding: 15px; cursor: pointer; }
+                    .done { background: #d9fdd3; color: #075e54; font-weight: 700; text-align: center; padding: 14px; border-radius: 14px; }
+                    h2 { font-size: 16px; margin: 0 0 10px; color: #111b21; }
+                </style>
+            </head>
+            <body>
+                <div class="wrap">
+                    <div class="card">
+                        <div class="co"><t t-esc="company_name"/></div>
+                        <div class="amt"><t t-esc="amount"/></div>
+                        <div class="ref" t-if="reference">for <t t-esc="reference"/></div>
+                        <div class="apps">
+                            <t t-foreach="apps" t-as="app">
+                                <a t-att-href="app['url']" t-attf-class="app #{app['key']}"><t t-esc="app['label']"/></a>
+                            </t>
+                        </div>
+                        <p class="hint">Opens your UPI app with the amount filled in. Check the payee is <b><t t-esc="payee"/></b> before you confirm.</p>
+                    </div>
+                    <div class="card qr" t-if="qr">
+                        <h2>Or scan from another phone</h2>
+                        <t t-out="qr"/>
+                        <div class="id"><t t-esc="upi_id"/></div>
+                    </div>
+                    <div class="card">
+                        <div t-if="claimed" class="done">✅ Thank you — you told us this is paid.</div>
+                        <form t-else="" method="post" t-att-action="form_action">
+                            <h2>Paid? Let us know</h2>
+                            <button type="submit" class="paid">I've paid <t t-esc="amount"/></button>
+                            <p class="hint">Tells the lab to look for your payment. Your invoice is marked paid once the receipt is matched.</p>
+                        </form>
+                    </div>
+                </div>
+            </body>
+        </html>
+    </template>
+</odoo>

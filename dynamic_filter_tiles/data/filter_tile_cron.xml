@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!--
+            Tiles that keep a history get one point a day. Runs at night: the
+            number a tile shows in the morning is then "yesterday, closed".
+        -->
+        <record id="cron_capture_snapshots" model="ir.cron">
+            <field name="name">Filter Tiles: record tile history</field>
+            <field name="model_id" ref="model_filter_tile"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_capture_snapshots()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="nextcall" eval="(DateTime.now().replace(hour=23, minute=30, second=0) + timedelta(days=-1)).strftime('%Y-%m-%d %H:%M:%S')"/>
+            <field name="active" eval="True"/>
+            <field name="priority">8</field>
+        </record>
+
+        <!--
+            Threshold watch. Hourly is frequent enough to be useful and rare
+            enough to be free: only tiles that were given a threshold are
+            evaluated, and only a crossing (not a state) notifies.
+        -->
+        <record id="cron_check_alerts" model="ir.cron">
+            <field name="name">Filter Tiles: check tile thresholds</field>
+            <field name="model_id" ref="model_filter_tile"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_check_alerts()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+            <field name="priority">8</field>
+        </record>
+
+    </data>
+</odoo>

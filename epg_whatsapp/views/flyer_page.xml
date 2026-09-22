@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The flyer: a campaign's picture, its words and its buttons, on the lab's own
+         address. What a WhatsApp message with a photo looks like without the API.
+         Standalone: no website module, no backend assets. -->
+    <template id="flyer_page" name="WhatsApp flyer page">
+        <html>
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="robots" content="noindex"/>
+                <title><t t-esc="headline"/> · <t t-esc="company_name"/></title>
+                <!-- What WhatsApp shows as the card under the message: a title and a
+                     line, so one link reads as something worth tapping rather than a
+                     bare address. (client, 2026-09-18) -->
+                <meta property="og:type" content="website"/>
+                <meta property="og:site_name" t-att-content="company_name"/>
+                <meta property="og:title" t-att-content="headline"/>
+                <meta property="og:description" t-att-content="summary or company_name"/>
+                <meta t-if="image" property="og:image" t-att-content="image"/>
+                <meta name="description" t-att-content="summary or company_name"/>
+                <style>
+                    body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+                           background: #efeae2; color: #111b21; }
+                    .wrap { max-width: 480px; margin: 0 auto; padding: 16px 14px 40px; }
+                    .card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+                    .card img { display: block; width: 100%; height: auto; }
+                    .body { padding: 20px 20px 8px; }
+                    .co { font-size: 12px; color: #075e54; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+                    h1 { font-size: 22px; margin: 6px 0 12px; line-height: 1.25; }
+                    p.txt { font-size: 16px; line-height: 1.5; color: #333; margin: 0 0 8px; }
+                    .facts { margin: 4px 20px 12px; border: 1px solid #e9edef; border-radius: 12px; overflow: hidden; }
+                    .fact { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; font-size: 14px; }
+                    .fact + .fact { border-top: 1px solid #f0f2f5; }
+                    .fact-k { color: #667781; }
+                    .fact-v { font-weight: 700; text-align: right; }
+                    .btns { padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+                    .btn { display: block; text-align: center; text-decoration: none; border-radius: 14px; padding: 14px;
+                           font-weight: 700; font-size: 16px; color: #fff; background: #128c7e; }
+                    .btn.link { background: #1a73e8; }
+                    .btn.chat { background: #25d366; }
+                    .btn.pay { background: #075e54; }
+                    .stop { text-align: center; margin-top: 18px; font-size: 13px; }
+                    .stop a { color: #54656f; }
+                </style>
+            </head>
+            <body>
+                <div class="wrap">
+                    <div class="card">
+                        <img t-if="image" t-att-src="image" alt=""/>
+                        <div class="body">
+                            <div class="co"><t t-esc="company_name"/></div>
+                            <h1><t t-esc="headline"/></h1>
+                            <p class="txt"><t t-out="lines"/></p>
+                        </div>
+                        <div t-if="facts" class="facts">
+                        <t t-foreach="facts" t-as="fact">
+                            <div class="fact">
+                                <span class="fact-k"><t t-esc="fact[0]"/></span>
+                                <span class="fact-v"><t t-esc="fact[1]"/></span>
+                            </div>
+                        </t>
+                    </div>
+                    <div class="btns">
+                            <t t-foreach="replies" t-as="reply">
+                                <a class="btn" t-att-href="reply['url']"><t t-esc="reply['label']"/></a>
+                            </t>
+                            <a t-if="link" class="btn link" t-att-href="link['url']"><t t-esc="link['label']"/></a>
+                            <t t-foreach="buttons or []" t-as="button">
+                                <a t-attf-class="btn #{button.get('kind') == 'pay' and 'pay' or 'link'}" t-att-href="button['url']"><t t-esc="button['label']"/></a>
+                            </t>
+                            <a t-if="chat" class="btn chat" t-att-href="chat">💬 Chat with us on WhatsApp</a>
+                        </div>
+                    </div>
+                    <div t-if="stop" class="stop"><a t-att-href="stop">Don't want these messages?</a></div>
+                </div>
+            </body>
+        </html>
+    </template>
+</odoo>

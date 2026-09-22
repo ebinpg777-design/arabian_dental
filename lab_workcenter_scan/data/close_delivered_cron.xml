@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!--
+            The historic backlog, ground down in batches.
+
+            Deliberately INACTIVE on install. Going forward, a delivery closes its own
+            jobs the moment it is validated and nothing here is needed. This exists for
+            the 20,978 already-delivered jobs left open before that rule existed, and
+            working through them is a seven-and-a-half-hour job that rewrites 21,000
+            manufacturing orders and posts roughly 108,000 stock move lines — not
+            something a module upgrade should start on its own, and best begun when the
+            lab is quiet. Switch it on from Close-out Worklist, or here.
+
+            Once the backlog is clear each run costs a single query, so it is safe to
+            leave running.
+        -->
+        <record id="cron_close_delivered_backlog" model="ir.cron">
+            <field name="name">Close manufacturing orders already delivered</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="state">code</field>
+            <field name="code">model._lab_close_delivered_backlog()</field>
+            <field name="interval_number">10</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

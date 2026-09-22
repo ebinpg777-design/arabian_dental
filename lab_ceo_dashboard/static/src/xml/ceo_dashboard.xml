@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_ceo_dashboard.CeoDashboard">
+    <div class="o_ceo_dash o_action">
+        <!-- The strip. It never leaves the screen: the chosen screen opens under
+             it, so switching is one click or one number key and there is nothing
+             to go back from. (client, 2026-08-28) -->
+        <div class="o_ceo_strip">
+            <div class="o_ceo_strip_brand">
+                <i class="fa fa-th-large me-2" aria-hidden="true"/>
+                <span>Management</span>
+            </div>
+            <div t-if="state.loading" class="text-muted small">
+                <i class="fa fa-circle-o-notch fa-spin me-1" title="Loading"/> Loading…
+            </div>
+            <nav t-else="" class="o_ceo_tabs" aria-label="Management screens" role="tablist">
+                <button t-foreach="state.launchers" t-as="l" t-key="l.key" type="button"
+                        role="tab" class="o_ceo_tab"
+                        t-att-class="{ o_ceo_tab_on: l.key === state.active }"
+                        t-att-aria-selected="l.key === state.active ? 'true' : 'false'"
+                        t-att-title="l.hint"
+                        t-on-click="() => this.select(l)">
+                    <i t-att-class="'fa ' + l.icon + ' o_ceo_tab_icon'" aria-hidden="true"/>
+                    <span class="o_ceo_tab_name" t-esc="l.name"/>
+                    <!-- The badge says 25.9 Cr; the hover says every paisa. -->
+                    <span t-if="figure(l) !== ''" class="o_ceo_tab_fig"
+                          t-att-title="exact(l) + ' ' + l.unit">
+                        <t t-esc="figure(l)"/>
+                    </span>
+                </button>
+            </nav>
+            <button t-if="active" type="button" class="o_ceo_full"
+                    title="Open this screen on its own page"
+                    t-on-click="() => this.openFull(active)">
+                <i class="fa fa-external-link me-1" aria-hidden="true"/> Full screen
+            </button>
+        </div>
+
+        <!-- The chosen screen, mounted here. -->
+        <div class="o_ceo_stage">
+            <t t-if="active" t-key="active.key">
+                <ErrorHandler onError="(error) => this.onEmbedError(active, error)">
+                    <t t-if="component(active)"
+                       t-component="component(active)" t-props="clientProps(active)"/>
+                    <View t-elif="active.kind === 'window'" t-props="viewProps(active)"/>
+                    <div t-else="" class="o_ceo_stage_note">
+                        <button type="button" class="btn btn-primary"
+                                t-on-click="() => this.openFull(active)">
+                            Open <t t-esc="active.name"/>
+                        </button>
+                    </div>
+                </ErrorHandler>
+            </t>
+            <div t-elif="!state.loading and !state.launchers.length" class="o_ceo_stage_note">
+                Nothing here is open to you yet — ask for the Management role.
+            </div>
+        </div>
+    </div>
+</t>
+
+</templates>

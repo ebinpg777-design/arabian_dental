@@ -1,0 +1,1534 @@
+// The station board.
+//
+// SCSS variables only — Odoo 19's backend defines no --bs-* custom properties, so
+// var(--bs-border-color) resolves to nothing and every card renders borderless.
+//
+// Sized for a tablet propped up at a bench and read from a step away: nothing below
+// 14px, every control a 48px target, and three columns that become one on a phone.
+$st-in:   #b45309;   // arrived — amber, needs a decision
+$st-work: #0d7c8a;   // on the bench — teal, in hand
+$st-done: #64748b;   // passed on — grey, history
+$st-danger: #b3261e; // start again — the one act that destroys work
+
+.o_st {
+    padding: 1rem;
+    max-width: 1600px;
+    margin: 0 auto;
+
+    .o_st_bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .o_st_eyebrow { font-size: .8125rem; color: $o-gray-600; }
+    .o_st_seen { opacity: .8; }
+    .o_st_name { margin: 0; font-size: 1.5rem; font-weight: 700; color: $o-gray-900; }
+
+    // ---------------------------------------------------------------- the lead's row
+    // Names with the load beside them, because "who is free" is the only question a
+    // lead is answering when they hand work out.
+    .o_st_people {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-bottom: .875rem;
+    }
+
+    .o_st_people_l {
+        font-size: .8125rem;
+        font-weight: 700;
+        color: $o-gray-600;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-right: .25rem;
+    }
+
+    .o_st_person {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        min-height: 44px;
+        padding: .25rem .75rem;
+        border: 1px solid $border-color;
+        border-radius: 999px;
+        background-color: $body-bg;
+        color: $o-gray-800;
+        font-size: .9375rem;
+        font-weight: 600;
+
+        &:hover { border-color: $st-work; }
+
+        // A FILTER chip, not a pressed button: solid fill read as "assign to this
+        // person" and got tapped expecting that. Selection is a tint + a check
+        // mark instead — the same language search facets and kanban filters use
+        // elsewhere in Odoo, so a lead recognises it on sight. (client, 2026-08-29)
+        &.o_st_person_on {
+            background-color: rgba($st-work, .12);
+            border-color: $st-work;
+            color: $st-work;
+            font-weight: 700;
+
+            .o_st_person_check { display: inline-block; }
+        }
+
+        // The pile nobody has been given yet — the one the lead is here to empty.
+        &.o_st_person_free {
+            border-style: dashed;
+            &:not(.o_st_person_on) { color: $st-in; border-color: rgba($st-in, .5); }
+        }
+
+        &.o_st_person_lead .o_st_person_n::after {
+            content: " ★";
+            opacity: .55;
+            font-size: .75em;
+        }
+    }
+
+    // A plain "clear the filter" chip, styled a shade quieter than a named
+    // technician so it reads as the default rather than one more choice.
+    .o_st_person_all {
+        color: $o-gray-600;
+        font-weight: 700;
+        &.o_st_person_on { background-color: rgba($o-gray-700, .1); border-color: $o-gray-500; color: $o-gray-800; }
+    }
+
+    // Hidden until a chip is selected — its appearance is what shows the choice
+    // took, since the fill itself no longer changes to a solid colour.
+    .o_st_person_check {
+        display: none;
+        font-size: .75em;
+    }
+
+    .o_st_person_c {
+        min-width: 1.75rem;
+        padding: 0 .375rem;
+        border-radius: 999px;
+        background-color: rgba($o-gray-900, .08);
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        font-size: .8125rem;
+    }
+
+    .o_st_person_on .o_st_person_c { background-color: rgba($st-work, .15); color: $st-work; }
+
+    .o_st_nudge {
+        display: flex;
+        align-items: flex-start;
+        border: 1px dashed rgba($st-in, .5);
+        border-radius: .625rem;
+        background-color: rgba($st-in, .06);
+        color: darken($st-in, 5%);
+        padding: .75rem .875rem;
+        font-size: .875rem;
+        margin-bottom: .875rem;
+    }
+
+    .o_st_more {
+        padding: .5rem .25rem 0;
+        font-size: .8125rem;
+        color: $o-gray-600;
+        text-align: center;
+    }
+
+    // auto-fit, not a fixed three: this board has FOUR stages when work has been
+    // sent on and not yet taken, and a fixed grid pushed that fourth column onto a
+    // second row where nobody scrolled to it. Columns now fit as many as the width
+    // allows - four on a desktop, two on a tablet, one on a phone - and `minmax(0,`
+    // lets them shrink, which `1fr` alone does not. (client, 2026-09-12)
+    .o_st_cols {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        gap: .625rem;
+        align-items: start;
+    }
+
+    .o_st_col {
+        border: 1px solid $border-color;
+        border-top: 3px solid $o-gray-400;
+        border-radius: .625rem;
+        background-color: $o-gray-100;
+        padding: .5rem;
+        min-height: 5rem;
+        min-width: 0;
+    }
+
+    .o_st_scanwrap { display: flex; gap: .375rem; flex-wrap: wrap; align-items: center; }
+
+    // The repeat-scan button is deliberately quieter than the primary one: it is the
+    // right choice for a tray and the wrong one for a single job.
+    .o_st_scan_many {
+        background: $body-bg !important;
+        color: $st-work !important;
+        border: 1px solid $st-work !important;
+    }
+
+    // Scanning is the primary action on the whole screen, so it is the only filled
+    // button on it and it is sized to be hit without looking.
+    .o_st_scan {
+        min-height: 52px;
+        padding: .5rem 1.25rem;
+        border: 0;
+        border-radius: .625rem;
+        background: linear-gradient(135deg, $st-work, darken($st-work, 10%));
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: .625rem;
+
+        &:hover { filter: brightness(1.08); }
+    }
+
+    // The typed way in, beside the camera and the same height as it, so neither
+    // reads as the "real" one.
+    .o_st_type {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .25rem;
+        min-height: 52px;
+        padding: .25rem .375rem .25rem .625rem;
+        border: 1px solid $o-gray-300;
+        border-radius: .625rem;
+        background: $body-bg;
+        color: $o-gray-600;
+
+        &:focus-within { border-color: $st-work; box-shadow: 0 0 0 .125rem rgba($st-work, .15); }
+    }
+    .o_st_type_acts { display: inline-flex; align-items: center; gap: .375rem; }
+
+    .o_st_type_in {
+        width: 11rem;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        font-family: $font-family-monospace;
+        font-weight: 600;
+        font-size: 1rem;
+        color: $o-gray-900;
+        &::placeholder { font-family: inherit; font-weight: 400; color: $o-gray-500; }
+    }
+    .o_st_type_go {
+        border: 0;
+        border-radius: .4375rem;
+        padding: .375rem .75rem;
+        background: $st-work;
+        color: #fff;
+        font-weight: 700;
+        &:disabled { opacity: .4; }
+    }
+
+    // A hand-over that will first ask "who did this?" wears an amber dot.
+    .o_st_go_ask { position: relative; }
+    .o_st_go_dot {
+        display: inline-block;
+        width: .5rem; height: .5rem;
+        border-radius: 50%;
+        background: $st-in;
+        margin-left: .375rem;
+        box-shadow: 0 0 0 .1875rem rgba($st-in, .2);
+    }
+
+    .o_st_col_in   { border-top-color: $st-in; }
+    .o_st_col_wait { border-top-color: $danger; }
+
+    .o_st_count_warn { background-color: rgba($danger, .18); color: $danger; }
+
+    // Still the sender's problem: dashed, because it is not on this bench.
+    // Sized like every other tile. These carry their own markup rather than the
+    // shared card body, so they kept the old roomier spacing and read as a
+    // different, looser kind of card in the column beside them.
+    // (client, 2026-09-12)
+    .o_st_card_wait {
+        border-style: dashed;
+        cursor: pointer;
+        padding: .375rem .625rem .4375rem;
+        background-color: rgba($danger, .04);
+
+        .o_st_meta, .o_st_sub { font-size: .75rem; line-height: 1.3; }
+        .o_st_sub { margin-top: .125rem; }
+    }
+
+    // Who is doing it. A select rather than a dialog: one tap opens the phone's own
+    // picker, which is bigger and more familiar than anything worth building here.
+    .o_st_assign {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .5rem .75rem;
+        border-top: 1px solid $border-color;
+        background-color: $o-gray-100;
+
+        select { min-height: 44px; flex: 1 1 auto; }
+    }
+
+    .o_st_assign_l {
+        font-size: .75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: $o-gray-600;
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    .o_st_with { font-weight: 600; color: $o-gray-800; }
+    .o_st_col_work { border-top-color: $st-work; }
+    .o_st_col_done { border-top-color: $st-done; }
+
+    .o_st_col_h {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+        font-size: .9375rem;
+        color: $o-gray-900;
+        margin-bottom: .625rem;
+    }
+
+    .o_st_count {
+        min-width: 1.75rem;
+        text-align: center;
+        padding: .125rem .5rem;
+        border-radius: 1rem;
+        background-color: $o-gray-300;
+        font-size: .8125rem;
+    }
+
+    .o_st_none { font-size: .8125rem; color: $o-gray-600; padding: .5rem .25rem; }
+
+    // One job. Tall enough to hit, quiet enough to scan a column of them.
+    // Sized down once the technician dropdown left the card: a bench reads a
+    // column of these at a glance, and every row of padding was a job that did
+    // not fit on the screen. (client, 2026-09-12)
+    .o_st_card {
+        background-color: $body-bg;
+        border: 1px solid $border-color;
+        border-radius: .5rem;
+        margin-bottom: .375rem;
+        overflow: hidden;
+    }
+
+    .o_st_card_done { cursor: pointer; opacity: .85; padding: .4375rem .625rem; }
+
+    .o_st_card_picked {
+        border-color: $st-work;
+        box-shadow: 0 0 0 2px rgba($st-work, .2);
+    }
+
+    .o_st_body { padding: .375rem .625rem .25rem; cursor: pointer; position: relative; }
+
+    // Ticking a job must not open it, so the box sits above the card's own click
+    // target and stops the event.
+    .o_st_tick {
+        position: absolute;
+        top: .375rem;
+        right: .375rem;
+        width: 40px;
+        height: 40px;
+        border: 0;
+        border-radius: .5rem;
+        background: transparent;
+        color: $o-gray-500;
+        font-size: 1.125rem;
+        line-height: 1;
+
+        &:hover { background-color: $o-gray-200; }
+        &.o_st_tick_on { color: $st-work; }
+    }
+
+    // What a technician sees where the lead gets a picker.
+    .o_st_doing {
+        padding: .5rem .75rem;
+        border-top: 1px solid $border-color;
+        background-color: $o-gray-100;
+        font-size: .8125rem;
+        color: $o-gray-700;
+        font-weight: 600;
+    }
+
+    // Hand out everything ticked, in one action, from wherever the page is scrolled to.
+    .o_st_bulk {
+        position: sticky;
+        bottom: 0;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+        padding: .75rem 1rem;
+        border: 1px solid $st-work;
+        border-radius: .75rem;
+        background-color: $body-bg;
+        box-shadow: 0 -.25rem 1rem rgba($o-gray-900, .15);
+
+        select { min-height: 48px; max-width: 22rem; flex: 1 1 14rem; }
+    }
+
+    .o_st_bulk_n { font-weight: 700; color: $st-work; white-space: nowrap; }
+
+    .o_st_bulk_x {
+        min-height: 44px;
+        border: 0;
+        background: transparent;
+        color: $o-gray-600;
+        font-weight: 600;
+        &:hover { color: $o-gray-900; }
+    }
+
+    .o_st_title {
+        font-size: 1.0625rem;
+        font-weight: 700;
+        color: $o-gray-900;
+        line-height: 1.25;
+    }
+
+    // The sales order beside the patient: what the office and the doctor call
+    // this case. Quiet enough not to compete with the name.
+    .o_st_ref {
+        display: inline-block;
+        margin-left: .375rem;
+        padding: 0 .375rem;
+        border-radius: .25rem;
+        background-color: $o-gray-200;
+        color: $o-gray-700;
+        font-size: .75rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        vertical-align: .15em;
+    }
+
+    .o_st_meta { font-size: .875rem; color: $o-gray-700; margin-top: .125rem; }
+    // The MO number is what the bench scans and what the traveller says: it leads.
+    .o_st_mo {
+        display: inline-block;
+        padding: .0625rem .4375rem;
+        border-radius: .3125rem;
+        background-color: rgba($o-brand-primary, .12);
+        color: $o-brand-primary;
+        font-family: $font-family-monospace;
+        font-size: 1.0625rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+    }
+
+    // The case behind it, one quiet line: patient, then the doctor/clinic it goes back to.
+    .o_st_case {
+        margin-top: .25rem;
+        font-size: .8125rem;
+        color: $o-gray-700;
+        line-height: 1.3;
+    }
+    .o_st_patient { font-weight: 600; color: $o-gray-800; }
+    .o_st_clinic  { color: $o-gray-600; }
+    // What the appliance is. ONE line, clipped: names here run to 83 characters,
+    // and a tile that grows a row for a long one pushes jobs off the column. The
+    // full name is in the tooltip. (client, 2026-09-14)
+    .o_st_product {
+        margin-top: .125rem;
+        font-size: .8125rem;
+        font-weight: 600;
+        color: $st-work;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        .fa { opacity: .7; }
+    }
+
+    .o_st_sub  { font-size: .75rem; color: $o-gray-600; margin-top: .25rem; }
+
+    // The two things that change what the bench does before touching the job. Loud on
+    // purpose, and spelled out — a coloured edge alone is not an instruction.
+    .o_st_flags { display: flex; gap: .25rem; flex-wrap: wrap; margin-bottom: .1875rem; }
+
+    .o_st_flag {
+        font-size: .6875rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        padding: .125rem .5rem;
+        border-radius: 1rem;
+    }
+
+    .o_st_flag_urgent { background-color: rgba($danger, .15); color: $danger; }
+    // WHEN IT IS DUE OUT, read against the age chip beside it: how long it has
+    // been here, and how long it has left. (client, 2026-09-12)
+    .o_st_flag_due { background-color: $o-gray-200; color: $o-gray-700; }
+    .o_st_due_overdue { background-color: rgba($st-danger, .12); color: darken($st-danger, 8%); }
+    .o_st_due_today   { background-color: rgba($st-in, .18);    color: darken($st-in, 8%); }
+    .o_st_due_soon    { background-color: rgba($st-in, .09);    color: darken($st-in, 4%); }
+    .o_st_flag_call   { background-color: rgba($warning, .22); color: darken($warning, 25%); }
+
+    // Full-width actions: a button a gloved thumb has to aim at is a button pressed
+    // twice or not at all.
+    // Both names on one line: who has the job, and who finished it where the
+    // bench records the two separately. (client, 2026-09-12)
+    // The finisher reads as the SECOND name on the line the technician already
+    // has, not as a repeat of the first. (client, 2026-09-12)
+    .o_st_with_fin { color: $st-work; font-weight: 600; }
+
+    .o_st_actions { display: flex; }
+    // A row holding only the quiet icons is not a button bar: without a primary
+    // action beside them they were a 48px strip of empty card. (client, 2026-09-12)
+    .o_st_actions:not(:has(.o_st_go)) {
+        justify-content: flex-end;
+        .o_st_alt { width: 36px; min-height: 24px; border-left: 0; border-top: 0; }
+    }
+
+    .o_st_go {
+        flex: 1 1 auto;
+        min-height: 40px;
+        border: 0;
+        border-top: 1px solid $border-color;
+        background-color: $o-gray-100;
+        color: $o-gray-900;
+        font-weight: 700;
+        font-size: .9375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        width: 100%;
+
+        &:disabled { opacity: .5; }
+    }
+
+    .o_st_go_accept:hover:not(:disabled) { background-color: $st-in; color: #fff; }
+    .o_st_go_hand:hover:not(:disabled)   { background-color: $st-work; color: #fff; }
+
+    .o_st_alt {
+        flex: 0 0 auto;
+        width: 56px;
+        min-height: 48px;
+        border: 0;
+        border-top: 1px solid $border-color;
+        border-left: 1px solid $border-color;
+        background-color: $o-gray-100;
+        color: $o-gray-700;
+
+        &:hover { background-color: $o-gray-200; }
+    }
+
+    .o_st_empty {
+        padding: 2.5rem 1rem;
+        text-align: center;
+        color: $o-gray-600;
+        border: 1px dashed $border-color;
+        border-radius: .75rem;
+    }
+}
+
+// A phone is one column. Three columns of one card each is not a board, it is three
+// slivers — and "Arrived" is what the head opens the phone to see, so it comes first.
+// Below this a column cannot hold a card without wrapping the case number, so
+// the board becomes one column and "Arrived" - what the phone is opened to see -
+// leads. (client, 2026-09-12)
+@media (max-width: 599.98px) {
+    .o_st .o_st_cols { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 991.98px) {
+    .o_st { padding: .5rem; }
+    // A TABLET IS NOT A PHONE. This used to collapse to one column at 991px, so a
+    // tablet propped at a bench showed one stage and three screens of scrolling to
+    // reach the rest. It keeps as many columns as fit and only becomes a single
+    // column on a real phone, below. (client, 2026-09-12)
+    .o_st .o_st_cols {
+        grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+        gap: .5rem;
+    }
+    // Every row of padding on a phone is a card that fell off the bottom.
+    .o_st .o_st_col { padding: .375rem; }
+    .o_st .o_st_card { margin-bottom: .25rem; }
+    .o_st .o_st_type_in { flex: 1; width: auto; min-width: 6rem; }
+    .o_st .o_st_name { font-size: 1.25rem; }
+    // A destination that wraps to six lines is a button three cards tall. One
+    // line, cut where it runs out; the full name stays in the tooltip.
+    .o_st .o_st_go_hand {
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        display: block; line-height: 40px; padding: 0 .375rem; font-size: .8125rem;
+    }
+    // The verb survives; the destination is what goes. It stays in the title.
+    .o_st .o_st_go_dest { display: none; }
+}
+
+// Only a real phone stacks the header: on a tablet this cost three rows of
+// screen before any work was visible. (client, 2026-09-12)
+@media (max-width: 599.98px) {
+    .o_st .o_st_scan { width: 100%; justify-content: center; order: -1; }
+    .o_st .o_st_type { width: 100%; flex-wrap: wrap; padding: .5rem; }
+    .o_st .o_st_bar { flex-direction: column; align-items: stretch; }
+    .o_st .o_st_pick { width: 100%; justify-content: center; }
+    // The number on its own line with Go beside it, then the three things that
+    // can be done to it as equal thirds - each a thumb's target rather than a
+    // 25px word. Cramming all five into one row is what made this unusable.
+    // (client, 2026-09-12)
+    .o_st .o_st_type_in { flex: 1 1 auto; min-width: 0; font-size: 1rem; }
+    .o_st .o_st_type_go { min-height: 40px; padding: 0 1rem; }
+    .o_st .o_st_type_acts {
+        display: grid;
+        // Four now - Where, Correct, Cancel, Start again - still one row, still
+        // thumb-sized. (client, 2026-09-14)
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .3125rem;
+        width: 100%;
+        margin-top: .5rem;
+    }
+    .o_st .o_st_type_find {
+        min-height: 46px;
+        width: 100%;
+        padding: .375rem .25rem;
+        font-size: .8125rem;
+        flex-direction: column;
+        gap: .125rem;
+        .fa { margin-right: 0 !important; font-size: 1rem; }
+    }
+}
+
+
+// ─── "Who did this?" — the rule as one tap ──────────────────────────────────
+// The correction dialog speaks the same vocabulary as the scan-confirm one -
+// the job line, the lead labels, the people tiles - so it shares the block
+// rather than repeating sixty lines that would then drift apart.
+// (client, 2026-09-12)
+.o_st_doing_dlg, .o_st_change_dlg, .o_st_redo_dlg {
+    .o_st_warnlabel {
+        display: flex;
+        gap: .625rem;
+        align-items: flex-start;
+        padding: .75rem .875rem;
+        border-radius: .625rem;
+        border: 1px solid rgba($st-in, .35);
+        border-left: .3125rem solid $st-in;
+        background: rgba($st-in, .08);
+        color: darken($st-in, 8%);
+        font-weight: 600;
+        line-height: 1.35;
+        .fa { margin-top: .125rem; }
+    }
+    .o_st_doing_job {
+        margin: .875rem 0 .5rem;
+        .o_st_mo {
+            display: inline-block;
+            padding: .0625rem .4375rem;
+            border-radius: .3125rem;
+            background-color: rgba($o-brand-primary, .12);
+            color: $o-brand-primary;
+            font-family: $font-family-monospace;
+            font-size: 1.0625rem;
+            font-weight: 800;
+        }
+        .o_st_ref {
+            display: inline-block; margin-left: .375rem; padding: 0 .375rem;
+            border-radius: .25rem; background: $o-gray-200; color: $o-gray-700;
+            font-size: .75rem; font-weight: 600;
+        }
+        .o_st_case { margin-top: .25rem; font-size: .8125rem; color: $o-gray-700; }
+        .o_st_patient { font-weight: 600; color: $o-gray-800; }
+        .o_st_doing_next { margin-top: .25rem; font-size: .8125rem; color: $o-gray-600; }
+    }
+    .o_st_doing_lead { font-size: .8125rem; color: $o-gray-600; margin: .5rem 0 .5rem; }
+    .o_st_doing_noone {
+        padding: .75rem .875rem; border-radius: .625rem;
+        background: $o-gray-100; color: $o-gray-700; font-size: .875rem;
+    }
+    .o_st_tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+        gap: .625rem;
+    }
+    .o_st_tile {
+        position: relative;
+        display: flex; flex-direction: column; align-items: center; gap: .25rem;
+        min-height: 6.5rem;
+        padding: .875rem .5rem .625rem;
+        border: 1px solid $o-gray-300;
+        border-radius: .875rem;
+        background: $body-bg;
+        color: $o-gray-900;
+        text-align: center;
+        transition: transform .08s ease, box-shadow .08s ease, border-color .08s ease;
+        &:hover:not(:disabled) {
+            border-color: $st-work;
+            box-shadow: 0 .25rem .75rem rgba($st-work, .18);
+            transform: translateY(-1px);
+        }
+        &:disabled { opacity: .6; }
+    }
+    .o_st_tile_key {
+        position: absolute; top: .375rem; left: .5rem;
+        font-size: .6875rem; font-weight: 700; color: $o-gray-500;
+        font-family: $font-family-monospace;
+    }
+    .o_st_avatar {
+        width: 2.75rem; height: 2.75rem; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, $st-work, darken($st-work, 12%));
+        color: #fff; font-weight: 800; font-size: 1rem; letter-spacing: .02em;
+    }
+    .o_st_tile_lead .o_st_avatar { background: linear-gradient(135deg, $st-in, darken($st-in, 10%)); }
+    .o_st_tile_name { font-weight: 700; font-size: .875rem; line-height: 1.2; }
+    .o_st_tile_load { font-size: .6875rem; color: $o-gray-600; }
+    .o_st_tile_light { border-color: rgba($st-work, .6); }
+    .o_st_tile_light .o_st_tile_load { color: $st-work; font-weight: 700; }
+    .o_st_tile_busy { border-color: $st-work; background: rgba($st-work, .06); }
+    .o_st_doing_foot { display: flex; justify-content: flex-end; margin-top: .75rem; }
+}
+
+// ─── "Where is it?" — searched the way Track Order searches ──────────────────
+.o_st_find_dlg {
+    .o_st_find_bar {
+        display: flex; align-items: center; gap: .5rem;
+        padding: .375rem .75rem; margin-bottom: .75rem;
+        border: 1px solid $o-gray-300; border-radius: .625rem;
+        &:focus-within { border-color: $st-work; box-shadow: 0 0 0 .125rem rgba($st-work, .15); }
+    }
+    .o_st_find_in { flex: 1; min-width: 0; border: 0; outline: 0; font-size: 1rem; background: transparent; }
+    .o_st_find_hint { color: $o-gray-600; font-size: .875rem; padding: .25rem 0 .5rem; }
+    .o_st_find_case {
+        padding: .5rem 0 .625rem;
+        & + .o_st_find_case { border-top: 1px solid $o-gray-200; }
+    }
+    .o_st_find_head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .375rem;
+                      font-size: .875rem; margin-bottom: .375rem; }
+    .o_st_ref { display: inline-block; padding: 0 .375rem; border-radius: .25rem;
+                background: $o-gray-200; color: $o-gray-700; font-size: .75rem; font-weight: 700; }
+    .o_st_patient { font-weight: 600; color: $o-gray-800; }
+    .o_st_clinic { color: $o-gray-600; }
+    .o_st_find_date { margin-left: auto; color: $o-gray-500; font-size: .75rem; }
+    .o_st_find_status { color: $o-gray-600; font-style: italic; font-size: .875rem; }
+    .o_st_find_piece {
+        display: grid; gap: .0625rem; width: 100%; text-align: left;
+        margin-top: .375rem; padding: .4375rem .625rem;
+        border: 1px solid $o-gray-300; border-left: .25rem solid $o-gray-400;
+        border-radius: .5rem; background: $body-bg;
+        &:hover { background: $o-gray-100; }
+        &.o_st_find_waiting { border-left-color: $st-in; }
+        &.o_st_find_bench   { border-left-color: $st-work; }
+        &.o_st_find_passed  { border-left-color: $st-done; }
+    }
+    .o_st_find_where { font-weight: 700; color: $o-gray-900; font-size: .9375rem; }
+    .o_st_where_here { color: $st-work; font-weight: 600; font-size: .8125rem; margin-left: .25rem; }
+    .o_st_find_what { font-size: .8125rem; color: $o-gray-700; }
+    .o_st_mo { font-family: $font-family-monospace; font-weight: 700; color: $o-brand-primary; }
+    .o_st_arch { display: inline-block; margin-left: .25rem; padding: 0 .25rem; border-radius: .25rem;
+                 background: rgba($st-work, .12); color: $st-work; font-size: .6875rem; font-weight: 800; }
+    .o_st_find_standing { font-size: .8125rem; color: $o-gray-600; }
+    .o_st_doing_foot { display: flex; justify-content: flex-end; margin-top: .5rem; }
+}
+
+// ─── "Cancel this step" — work that does not belong at this bench ───────────
+.o_st_cancel_dlg {
+    .o_st_cancel_note {
+        padding: .5rem .75rem;
+        border-radius: .5rem;
+        border-left: .25rem solid $st-danger;
+        background: rgba($st-danger, .06);
+        color: darken($st-danger, 10%);
+        font-size: .875rem;
+        line-height: 1.35;
+    }
+    .o_st_cancel_reason { min-height: 3.5rem; border-radius: .5rem; font-size: .9375rem; }
+    .o_st_change_go.o_st_cancel_go:not(:disabled) { background: $st-danger; }
+}
+
+// ─── "Correct this job" — the wrong name, or a card scanned twice ───────────
+.o_st_change_dlg {
+    // The chosen tile has to be unmistakable: it is what arms the confirm.
+    .o_st_tile_on {
+        border-color: $st-work;
+        background: rgba($st-work, .1);
+        box-shadow: inset 0 0 0 1px $st-work;
+    }
+    .o_st_tiles_status { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); }
+    .o_st_tile_status, .o_st_tile_who { min-height: 4.25rem; justify-content: center; }
+    .o_st_change_note {
+        margin-bottom: .5rem; font-size: .8125rem; color: $o-gray-600;
+    }
+    // The floor's own refusal, beside what was chosen rather than over a screen
+    // that has already closed.
+    .o_st_change_err {
+        margin-top: .875rem;
+        padding: .625rem .75rem;
+        border-radius: .5rem;
+        border-left: .25rem solid $st-danger;
+        background: rgba($st-danger, .07);
+        color: darken($st-danger, 12%);
+        font-size: .875rem;
+    }
+    .o_st_change_go {
+        width: 100%;
+        min-height: 3.25rem;
+        margin-top: 1rem;
+        border: 0;
+        border-radius: .625rem;
+        background: $st-work;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        &:disabled { background: $o-gray-300; color: $o-gray-600; }
+    }
+}
+
+// ─── "Start this case again" — the one act that cannot be undone ────────────
+.o_st_redo_dlg {
+    // Red, not amber: amber is "check this", red is "this destroys work".
+    .o_st_dangerlabel {
+        display: flex;
+        gap: .5rem;
+        align-items: flex-start;
+        padding: .5rem .75rem;
+        border-radius: .5rem;
+        border: 1px solid rgba($st-danger, .35);
+        border-left: .25rem solid $st-danger;
+        background: rgba($st-danger, .06);
+        color: darken($st-danger, 12%);
+        font-size: .875rem;
+        line-height: 1.35;
+        .fa { margin-top: .15rem; }
+    }
+    // Even thirds that keep their shape, not auto-fill boxes of eight different
+    // widths. Shorter than the people tiles because a reason is one line of
+    // text, never a face and a count. (client, 2026-09-12)
+    .o_st_tiles_reason {
+        grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+        gap: .5rem;
+    }
+    .o_st_tile_reason {
+        min-height: 2.875rem;
+        justify-content: center;
+        padding: .5rem .625rem;
+        font-size: .875rem;
+        text-align: center;
+        &:hover:not(.o_st_tile_on) { border-color: $o-gray-500; background: $o-gray-100; }
+    }
+    // The chosen reason has to be unmistakable: it is what arms the confirm.
+    .o_st_tile_on {
+        border-color: $st-work;
+        background: rgba($st-work, .12);
+        box-shadow: inset 0 0 0 2px $st-work;
+        .o_st_tile_name { color: darken($st-work, 8%); font-weight: 800; }
+    }
+    .o_st_redo_notel { display: block; margin: .75rem 0 .25rem; font-size: .8125rem;
+                       font-weight: 600; color: $o-gray-700; }
+    .o_st_optional   { font-weight: 400; color: $o-gray-500; }
+    .o_st_redo_note  {
+        font-size: .9375rem;
+        min-height: 42px;
+        border-radius: .5rem;
+        border: 1px solid $o-gray-300;
+        &:focus { border-color: $st-work; box-shadow: 0 0 0 .125rem rgba($st-work, .15); }
+    }
+
+    // Held, not tapped. The fill IS the feedback: a bar that visibly has to reach
+    // the end is understood without instructions, and it makes an accidental
+    // press impossible rather than merely unlikely.
+    .o_st_holdwrap { margin-top: .75rem; }
+    .o_st_hold {
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        min-height: 3.25rem;
+        border: 0;
+        border-radius: .625rem;
+        background: $o-gray-300;
+        color: $o-gray-600;
+        font-weight: 700;
+        font-size: 1rem;
+        touch-action: none;          // a hold must not scroll the page under it
+        user-select: none;
+        &.o_st_hold_armed { background: $st-danger; color: #fff; cursor: pointer; }
+        &:disabled { cursor: not-allowed; }
+    }
+    .o_st_hold_fill {
+        position: absolute; inset: 0 auto 0 0;
+        background: rgba(0, 0, 0, .28);
+        transition: width .04s linear;
+    }
+    .o_st_hold_label { position: relative; }
+    .o_st_holdhint {
+        margin-top: .375rem;
+        font-size: .75rem;
+        color: $o-gray-600;
+        text-align: center;
+    }
+    .o_st_holdhint_warn { color: $st-danger; font-weight: 600; }
+    // Leaving it alone is the safe answer, so it is a real target across the
+    // foot rather than four small words tucked under the red one.
+    // (client, 2026-09-12)
+    .o_st_doing_foot {
+        display: flex;
+        justify-content: stretch;
+        margin-top: .5rem;
+        .btn-link {
+            flex: 1;
+            min-height: 40px;
+            border: 1px solid $o-gray-300;
+            border-radius: .5rem;
+            color: $o-gray-700;
+            font-weight: 600;
+            text-decoration: none;
+            &:hover { background: $o-gray-100; color: $o-gray-900; }
+        }
+    }
+}
+
+// A case that has been round before, said on the card itself.
+.o_st .o_st_flag_redo {
+    background: rgba($st-danger, .12);
+    color: darken($st-danger, 10%);
+}
+.o_st .o_st_alt_redo:hover { color: $st-danger; border-color: rgba($st-danger, .5); }
+
+// The second name, and the bench still waiting for it. (client, 2026-09-09)
+.o_st .o_st_finisher {
+    margin-top: .1rem;
+
+    &.o_st_finisher_none { color: #b45309; font-weight: 600; }
+}
+
+// Undo is the quietest control on a card, like Start again: it takes something
+// back rather than moving work on. On a passed-on card it is a corner button,
+// because that whole card is a link to the work order.
+.o_st .o_st_alt_undo { color: $o-gray-700; }
+
+// The day the whole board is read for: above the columns, beside the bench
+// filter, because it governs both the chip counts and the finished column.
+.o_st .o_st_daybar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .3rem;
+    margin: 0 0 .5rem;
+}
+
+.o_st .o_st_daybar_l {
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: $o-gray-700;
+    margin-right: .25rem;
+}
+
+.o_st .o_st_daybar_note { font-size: .78rem; color: $o-gray-700; margin-left: .25rem; }
+
+// "Where?" - the question asked without doing anything to the job.
+.o_st .o_st_type_find {
+    border: 0;
+    background: transparent;
+    color: $o-gray-700;
+    font-size: .8rem;
+    font-weight: 600;
+    padding: .25rem .6rem;
+    white-space: nowrap;
+
+    &:hover { color: $st-work; }
+    // Corrections, not the way work normally moves - so outlined rather than
+    // filled, and Scan stays the only filled control on this header. But they
+    // are still BUTTONS: at 25px they were half the 48px target the rest of
+    // this board is built to, and unusable with gloves on a phone.
+    // (client, 2026-09-12)
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .125rem;
+    min-height: 38px;
+    padding: .375rem .75rem;
+    line-height: 1.2;
+    border: 1px solid $o-gray-300;
+    border-radius: .5rem;
+    background: $body-bg;
+    transition: background-color .12s ease, border-color .12s ease;
+
+    // `&.`, not a descendant: the button carries BOTH classes. Starting a case
+    // again cannot be undone, so it wears the colour this sheet already keeps
+    // for that one act rather than looking like the two controls beside it that
+    // only read. (client, 2026-09-12)
+    &.o_st_type_fix {
+        color: $o-gray-700;
+        &:hover:not(:disabled) {
+            color: $st-work;
+            background-color: rgba($st-work, .1);
+        }
+    }
+    &.o_st_type_cancel {
+        color: $o-gray-700;
+        &:hover:not(:disabled) {
+            color: $st-danger;
+            background-color: rgba($st-danger, .08);
+        }
+    }
+    &.o_st_type_redo {
+        color: $st-danger;
+        &:hover:not(:disabled) {
+            color: $st-danger;
+            background-color: rgba($st-danger, .1);
+        }
+    }
+    &:disabled { opacity: .5; }
+}
+
+.o_st_where_dlg {
+    .o_st_where_at { font-size: 1.35rem; font-weight: 700; line-height: 1.3; }
+    .o_st_where_here { font-size: .9rem; font-weight: 600; color: $o-gray-700; margin-left: .35rem; }
+    .o_st_where_line { margin: .15rem 0 .75rem; color: $o-gray-700; }
+    .o_st_where_job { border-top: 1px solid $border-color; padding-top: .6rem; }
+    .o_st_where_meta { font-size: .85rem; color: $o-gray-700; margin-top: .15rem; }
+    .o_st_where_next { font-size: .85rem; margin-top: .35rem; }
+}
+
+.o_st .o_st_done_step,
+.o_st .o_st_done_today {
+    border: 1px solid $border-color;
+    background: $body-bg;
+    border-radius: .4rem;
+    min-height: 2rem;
+    padding: .15rem .5rem;
+    font-size: .8rem;
+    color: $o-gray-700;
+
+    &:disabled { opacity: .45; }
+}
+
+.o_st .o_st_done_date {
+    flex: 0 1 11rem;
+    min-width: 8rem;
+    border: 1px solid $border-color;
+    border-radius: .4rem;
+    min-height: 2rem;
+    padding: .15rem .4rem;
+    font-size: .8rem;
+}
+
+.o_st .o_st_card_done { position: relative; }
+
+.o_st .o_st_undo_done {
+    position: absolute;
+    top: .35rem;
+    right: .35rem;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .05);
+    color: $o-gray-700;
+    touch-action: manipulation;
+
+    &:active { background: rgba(0, 0, 0, .12); }
+    &:disabled { opacity: .5; }
+}
+
+// The day against its target. A bare number said nothing about whether the day
+// was going well; these two say it at a glance from across a bench.
+// (client, 2026-09-09)
+.o_st_person_c {
+    &.o_st_person_met {
+        background: var(--success, #28a745);
+        color: #fff;
+    }
+    &.o_st_person_short {
+        background: var(--warning, #ffc107);
+        color: #1d1d1d;
+    }
+}
+
+.o_st_person_t {
+    // The day counted across every bench, not just this one. NOT
+    // `o_st_person_all` - that is the "All" chip that clears the filter.
+    .o_st_person_floor { margin-right: .2rem; font-size: .65em; opacity: .75; }
+    opacity: .75;
+    font-weight: 400;
+    // Never wraps away from the number it qualifies: "8" on one line and "/12"
+    // on the next reads as two different figures.
+    white-space: nowrap;
+}
+
+// The bench's day as one line above the chips: done against the targets set,
+// with a tick where the shift is. (client, 2026-09-09)
+.o_st .o_st_bench {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .6rem;
+    margin: 0 0 .75rem;
+    padding: .5rem .75rem;
+    border: 1px solid $border-color;
+    border-radius: .625rem;
+    background-color: $body-bg;
+}
+
+.o_st .o_st_bench_l {
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: $o-gray-700;
+    white-space: nowrap;
+}
+
+.o_st .o_st_bench_bar {
+    position: relative;
+    flex: 1 1 10rem;
+    min-width: 8rem;
+    height: .75rem;
+    border-radius: 999px;
+    background-color: rgba($o-gray-900, .08);
+    overflow: visible;
+}
+
+.o_st .o_st_bench_fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background-color: $st-work;
+    transition: width .4s ease;
+    &.o_st_bench_fill_met { background-color: var(--success, #28a745); }
+    &.o_st_bench_fill_behind { background-color: var(--warning, #ffc107); }
+}
+
+// Where the shift is: a tick the fill should have reached by now.
+.o_st .o_st_bench_now {
+    position: absolute;
+    top: -.25rem;
+    bottom: -.25rem;
+    width: 2px;
+    margin-left: -1px;
+    background-color: $o-gray-900;
+    border-radius: 1px;
+}
+
+.o_st .o_st_bench_n {
+    font-variant-numeric: tabular-nums;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+.o_st .o_st_bench_m { font-size: .8rem; color: $o-gray-700; }
+.o_st .o_st_bench_ahead { color: #0b6b3a; font-weight: 700; }
+.o_st .o_st_bench_behind { color: #b45309; font-weight: 700; }
+
+// Each chip carries its own day along its foot.
+.o_st .o_st_person {
+    position: relative;
+    overflow: hidden;
+}
+
+.o_st .o_st_person_bar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    background-color: var(--warning, #ffc107);
+    &.o_st_person_bar_met { background-color: var(--success, #28a745); }
+}
+
+// Set where the day is read: the pencil on the bench line, and the dialog
+// behind it. (client, 2026-09-10)
+.o_st .o_st_bench_set {
+    margin-left: auto;
+    border: 1px solid $border-color;
+    border-radius: 999px;
+    background: transparent;
+    color: $o-gray-700;
+    font-size: .8rem;
+    font-weight: 600;
+    padding: .3rem .7rem;
+    white-space: nowrap;
+    &:hover { color: $st-work; border-color: $st-work; }
+}
+
+.o_st_targets_dlg {
+    .o_st_targets_lead { font-size: .9rem; color: $o-gray-700; margin-bottom: .75rem; }
+
+    .o_st_targets_all {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .5rem .75rem;
+        margin-bottom: .5rem;
+        border: 1px dashed $o-gray-300;
+        border-radius: .5rem;
+        label { margin: 0; font-weight: 600; font-size: .85rem; }
+    }
+
+    .o_st_targets_rows { display: flex; flex-direction: column; }
+
+    .o_st_targets_row {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .45rem 0;
+        border-bottom: 1px solid $o-gray-200;
+    }
+
+    .o_st_targets_who { flex: 1 1 auto; min-width: 0; }
+    .o_st_targets_name { display: block; font-weight: 600; color: $o-gray-900; }
+    .o_st_targets_done { display: block; font-size: .75rem; color: $o-gray-600; }
+
+    .o_st_targets_ctl { display: inline-flex; align-items: center; gap: .25rem; }
+
+    // 44px targets: a tablet in a glove.
+    .o_st_targets_btn {
+        width: 44px;
+        height: 44px;
+        border: 1px solid $border-color;
+        border-radius: .5rem;
+        background: $body-bg;
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+        &:hover { border-color: $st-work; color: $st-work; }
+    }
+
+    .o_st_targets_in {
+        width: 4.5rem;
+        height: 44px;
+        text-align: center;
+        font-size: 1.1rem;
+        font-weight: 700;
+        border: 1px solid $border-color;
+        border-radius: .5rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .o_st_targets_total { text-align: right; margin-top: .6rem; color: $o-gray-700; }
+}
+
+// ---------------------------------------------------------------------------
+// WHICH BENCH IS THIS. A name in a dropdown could not be told apart from the
+// three benches beside it, so the station identifies itself: its own hue and
+// initials, its name, and the code printed on the bench. The hue comes from
+// the id, so a bench looks the same here, in the picker, and tomorrow.
+// (client, 2026-09-10)
+.o_st .o_st_who { min-width: 0; }
+
+.o_st .o_st_id {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 56px;
+    padding: .35rem .75rem .35rem .35rem;
+    border: 1px solid transparent;
+    border-radius: .75rem;
+    background: transparent;
+    text-align: left;
+    max-width: 100%;
+
+    &:hover:not(:disabled) {
+        border-color: hsl(var(--bench-hue, 190), 45%, 62%);
+        background: hsl(var(--bench-hue, 190), 60%, 97%);
+        .o_st_id_swap { opacity: 1; }
+    }
+    &:disabled { opacity: .6; }
+}
+
+.o_st .o_st_id_chip {
+    flex: 0 0 auto;
+    width: 3rem;
+    height: 3rem;
+    border-radius: .625rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: .02em;
+    color: hsl(var(--bench-hue, 190), 65%, 26%);
+    background: hsl(var(--bench-hue, 190), 70%, 92%);
+    border: 1px solid hsl(var(--bench-hue, 190), 55%, 78%);
+
+    &.o_st_id_chip_none { color: $o-gray-600; background: $o-gray-100; border-color: $o-gray-300; }
+}
+
+.o_st .o_st_id_body { min-width: 0; display: flex; flex-direction: column; }
+.o_st .o_st_id_body .o_st_name { display: block; line-height: 1.15; }
+
+.o_st .o_st_id_code {
+    align-self: flex-start;
+    margin-top: .15rem;
+    padding: 0 .4rem;
+    border-radius: .25rem;
+    background: $o-gray-100;
+    border: 1px solid $o-gray-300;
+    font-family: $font-family-monospace;
+    font-size: .72rem;
+    color: $o-gray-700;
+}
+
+.o_st .o_st_id_swap { opacity: .35; color: $o-gray-700; }
+
+// The "change station" button, beside the scan controls. It carries the
+// bench's own hue: a grey outline read as one more of the four controls
+// around it, and the one thing this button does is change WHICH BENCH the
+// board is - so it is the same colour as the chip that names it.
+.o_st .o_st_pick {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    min-height: 48px;
+    padding: 0 1rem;
+    border: 1px solid hsl(var(--bench-hue, 190), 50%, 70%);
+    border-radius: 999px;
+    background: hsl(var(--bench-hue, 190), 72%, 95%);
+    color: hsl(var(--bench-hue, 190), 65%, 28%);
+    font-weight: 700;
+    white-space: nowrap;
+    max-width: none;
+
+    &:hover {
+        background: hsl(var(--bench-hue, 190), 70%, 90%);
+        border-color: hsl(var(--bench-hue, 190), 55%, 55%);
+        color: hsl(var(--bench-hue, 190), 70%, 22%);
+    }
+    &:active { background: hsl(var(--bench-hue, 190), 65%, 86%); }
+}
+
+// How many benches there are to choose from.
+.o_st .o_st_pick_n {
+    min-width: 1.4rem;
+    padding: 0 .35rem;
+    border-radius: 999px;
+    background: hsl(var(--bench-hue, 190), 45%, 85%);
+    color: hsl(var(--bench-hue, 190), 65%, 25%);
+    font-size: .78rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+// The choice itself: one card per bench, in the picker and on the empty board.
+.o_st_pick_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+    gap: .5rem;
+    width: 100%;
+}
+
+// A bench card: its NAME across the header, and underneath the code printed on
+// the frame with where the work stands. A long name ("Wire Bending / Adams
+// Clasp") no longer fights three numbers for one line. Every measurement here
+// is space around the content: the type, the chip and the counts are the size
+// they were, and only the room around them came down. (client, 2026-09-10)
+.o_st_pick_card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    padding: .35rem .55rem .3rem;
+    border: 1px solid $border-color;
+    border-left: 4px solid hsl(var(--bench-hue, 190), 55%, 55%);
+    border-radius: .625rem;
+    background: $body-bg;
+    text-align: left;
+    transition: border-color .12s ease, background .12s ease, box-shadow .12s ease;
+
+    &:hover {
+        border-color: hsl(var(--bench-hue, 190), 55%, 50%);
+        background: hsl(var(--bench-hue, 190), 60%, 98%);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+    }
+    &:disabled { opacity: .6; }
+
+    &.o_st_pick_on {
+        border-color: hsl(var(--bench-hue, 190), 55%, 45%);
+        background: hsl(var(--bench-hue, 190), 60%, 97%);
+        box-shadow: 0 0 0 2px hsl(var(--bench-hue, 190), 60%, 88%);
+    }
+}
+
+// --------------------------------------------------------------- header row
+.o_st_pick_head {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    min-width: 0;
+}
+
+.o_st_pick_chip {
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: .8rem;
+    letter-spacing: .02em;
+    color: hsl(var(--bench-hue, 190), 65%, 26%);
+    background: hsl(var(--bench-hue, 190), 70%, 92%);
+}
+
+.o_st_pick_name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.25;
+    color: $o-gray-900;
+    // Two lines at most, then an ellipsis: the floor's longest names run to
+    // four words and a card must stay the height of its neighbours.
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+// --------------------------------------------------------------- second row
+.o_st_pick_foot {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    padding-top: .25rem;
+    border-top: 1px solid $o-gray-200;
+}
+
+.o_st_pick_code {
+    font-family: $font-family-monospace;
+    font-size: .72rem;
+    padding: 0 .3rem;
+    border-radius: .25rem;
+    background: $o-gray-100;
+    border: 1px solid $o-gray-300;
+    color: $o-gray-700;
+    white-space: nowrap;
+}
+
+.o_st_pick_lead { color: #b45309; font-size: .78rem; }
+
+// Where the work at this bench is: three small figures, pushed to the end of
+// the row so they line up down the grid.
+.o_st_pick_counts {
+    margin-left: auto;
+    display: flex;
+    gap: .35rem;
+    text-align: center;
+}
+
+.o_st_pick_c {
+    min-width: 2.8rem;
+    padding: 0 .25rem;
+    border-radius: .375rem;
+    background: rgba($o-gray-900, .04);
+}
+.o_st_pick_c_wait .o_st_pick_qn { color: $st-in; }
+.o_st_pick_c_bench .o_st_pick_qn { color: $st-work; }
+.o_st_pick_c_done .o_st_pick_qn { color: #0b6b3a; }
+
+.o_st_pick_qn { display: block; font-weight: 700; font-size: 1rem;
+                font-variant-numeric: tabular-nums; line-height: 1.1; }
+.o_st_pick_ql { display: block; font-size: .6rem; color: $o-gray-600;
+                line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; }
+
+.o_st_pick_tick { flex: 0 0 auto; color: #0b6b3a; }
+
+.o_st_pickdlg {
+    .o_st_pick_search {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: .75rem;
+        padding: .35rem .6rem;
+        border: 1px solid $border-color;
+        border-radius: .5rem;
+
+        input { flex: 1 1 auto; border: 0; outline: 0; min-height: 36px; background: transparent; }
+    }
+    .o_st_pick_none { padding: 1rem; color: $o-gray-600; }
+}
+
+.o_st .o_st_empty_h { font-size: 1.25rem; font-weight: 700; color: $o-gray-900; }
+
+// ---------------------------------------------------------------------------
+// FIND AT THIS BENCH, and the order of the queue. A column shows forty cards
+// and the deepest bench here has nine hundred behind them, so both of these
+// run over the whole queue on the server, never over the page.
+// (client, 2026-09-10)
+.o_st .o_st_findbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: 0 0 .625rem;
+}
+
+.o_st .o_st_find {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    flex: 1 1 22rem;
+    max-width: 32rem;
+    min-height: 44px;
+    padding: 0 .6rem;
+    border: 1px solid $border-color;
+    border-radius: 999px;
+    background: $body-bg;
+    color: $o-gray-600;
+
+    &:focus-within { border-color: $st-work; color: $st-work; }
+}
+
+.o_st .o_st_find_in {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: .9375rem;
+    color: $o-gray-900;
+}
+
+.o_st .o_st_find_clear {
+    border: 0;
+    background: transparent;
+    color: $o-gray-600;
+    padding: 0 .2rem;
+    &:hover { color: $st-danger; }
+}
+
+.o_st .o_st_sorts { display: inline-flex; gap: .25rem; flex-wrap: wrap; }
+
+.o_st .o_st_sort {
+    min-height: 44px;
+    padding: 0 .75rem;
+    border: 1px solid $border-color;
+    border-radius: 999px;
+    background: $body-bg;
+    color: $o-gray-700;
+    font-size: .85rem;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &:hover { border-color: $st-work; color: $st-work; }
+    &.o_st_sort_on {
+        background: rgba($st-work, .12);
+        border-color: $st-work;
+        color: $st-work;
+        font-weight: 700;
+    }
+}
+
+.o_st .o_st_find_note { font-size: .8rem; color: $o-gray-700; }
+.o_st .o_st_more_hint { display: block; color: $o-gray-600; }
+
+// How long a job has stood at this bench, on its own card.
+.o_st .o_st_flag_age {
+    background: rgba($o-gray-900, .06);
+    color: $o-gray-700;
+
+    &.o_st_flag_stale {
+        background: rgba($st-in, .14);
+        color: $st-in;
+        font-weight: 700;
+    }
+}

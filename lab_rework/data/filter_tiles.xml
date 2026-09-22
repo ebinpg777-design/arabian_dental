@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Rework tiles now live on sale.order (there is no separate rework document). -->
+    <data noupdate="1">
+        <record id="tile_so_rework_open" model="filter.tile">
+            <field name="name">Reworks in Progress</field>
+            <field name="sequence">75</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('is_rework','=',True),('state','in',['sale'])]</field>
+            <field name="color">cyan</field>
+            <field name="icon">fa-refresh</field>
+            <field name="tooltip">Rework orders still in production</field>
+        </record>
+        <record id="tile_so_rework_month" model="filter.tile">
+            <field name="name">Reworks MTD</field>
+            <field name="sequence">60</field>
+            <field name="row">2</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain">[('is_rework','=',True),('date_order','&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="color">violet</field>
+            <field name="icon">fa-refresh</field>
+            <field name="tooltip">Reworks raised since the 1st</field>
+        </record>
+    </data>
+</odoo>

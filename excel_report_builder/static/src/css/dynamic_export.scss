@@ -1,0 +1,674 @@
+// ── Modal width ────────────────────────────────────────────────────────────────
+@media (min-width: 1200px) {
+    .modal-xl {
+        --bs-modal-width: 1600px;
+    }
+}
+
+// ── Dialog body background ────────────────────────────────────────────────────
+.erd-dialog {
+    .modal-body {
+        background: #f4f5f7;
+        padding: 1rem;
+    }
+}
+
+.erd-body {
+    // keeps inner cards from overflowing on small screens
+    overflow-x: hidden;
+}
+
+// ── Card header strip ─────────────────────────────────────────────────────────
+.erd-card-header {
+    background: linear-gradient(135deg, #ffffff 0%, #eef0f4 100%);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #5a6170;
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid #e0e3ea;
+}
+
+// ── Template select ────────────────────────────────────────────────────────────
+.erd-tpl-select {
+    font-size: 0.82rem;
+}
+
+// ── Inline save row ────────────────────────────────────────────────────────────
+.erd-save-row {
+    animation: erd-fadein 0.15s ease;
+}
+
+@keyframes erd-fadein {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Record count badge ────────────────────────────────────────────────────────
+.erd-count-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #0d6efd;
+    background: #e8f0fe;
+    border: 1px solid #c2d4fb;
+    border-radius: 999px;
+    padding: 2px 10px;
+    white-space: nowrap;
+}
+
+// ── Available field items ─────────────────────────────────────────────────────
+.erd-field-item {
+    background: #ffffff;
+    border: 1px solid #e6e9ef;
+    cursor: default;
+    transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+
+    &:hover {
+        background: #eef3ff;
+        border-color: #b5c8f8;
+        box-shadow: 0 1px 4px rgba(0, 80, 220, 0.08);
+    }
+}
+
+// ── Field label / name text ───────────────────────────────────────────────────
+.erd-field-label {
+    font-size: 0.82rem;
+    line-height: 1.2;
+}
+.erd-field-name {
+    font-size: 0.67rem;
+    line-height: 1.2;
+}
+
+// ── Add / expand mini-buttons ─────────────────────────────────────────────────
+.erd-btn-add {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+
+    &:hover {
+        background: #2e7d32;
+        color: #fff;
+        border-color: #2e7d32;
+    }
+}
+
+.erd-btn-expand {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+
+    &:hover {
+        background: #1565c0;
+        color: #fff;
+        border-color: #1565c0;
+    }
+}
+
+// ── Icon-only header buttons (save / delete) ──────────────────────────────────
+.erd-icon-btn {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+// ── Selected column items ─────────────────────────────────────────────────────
+.erd-col-item {
+    background: linear-gradient(135deg, #f5f7ff 0%, #eaedff 100%);
+    border: 1px solid #d1d9f7;
+    transition: background 0.12s;
+
+    &:hover {
+        background: linear-gradient(135deg, #eaedff 0%, #d9deff 100%);
+    }
+}
+
+.erd-col-num {
+    min-width: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6c757d;
+    text-align: center;
+}
+
+// ── Column action buttons ──────────────────────────────────────────────────────
+.erd-act-btn {
+    padding: 2px 7px;
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+
+// ── Aggregation select ─────────────────────────────────────────────────────────
+.erd-agg-select {
+    width: 88px !important;
+    min-width: 88px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #0d6efd;
+    background: #eef2ff;
+    border-color: #c0ccf5;
+    padding: 2px 4px;
+    height: 26px;
+
+    &:focus {
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+    }
+}
+
+// ── Field type badges ──────────────────────────────────────────────────────────
+.erd-type-badge {
+    display: inline-block;
+    min-width: 36px;
+    text-align: center;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 2px 4px;
+    border-radius: 3px;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+}
+
+.erd-badge-text   { background: #e9ecef; color: #495057; }
+.erd-badge-num    { background: #d0e8ff; color: #0a4a8a; }
+.erd-badge-money  { background: #d4edda; color: #155724; }
+.erd-badge-bool   { background: #fff3cd; color: #856404; }
+.erd-badge-date   { background: #d4d9ff; color: #2c36a8; }
+.erd-badge-sel    { background: #e2d9f3; color: #4a2c7a; }
+.erd-badge-rel     { background: #fce8e8; color: #8b1a1a; }   // M2O
+.erd-badge-rel2    { background: #fde8fb; color: #7b1163; }   // M2M — purple-pink
+.erd-badge-o2m     { background: #fff0d4; color: #7a4a00; }   // O2M — amber
+.erd-badge-formula { background: #e8d5ff; color: #4a0e8f; }   // Computed f(x)
+
+// ── Preview table ──────────────────────────────────────────────────────────────
+.erd-preview-wrap {
+    max-height: 260px;
+    overflow: auto;
+}
+
+.erd-preview-table {
+    font-size: 0.8rem;
+
+    thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        font-size: 0.76rem;
+        font-weight: 700;
+        vertical-align: middle;
+    }
+
+    tbody td {
+        vertical-align: middle;
+    }
+}
+
+// ── Pencil button inside preview header ───────────────────────────────────────
+// Uses a dark semi-transparent pill so it's always visible regardless of
+// whatever header background color the user has chosen.
+.erd-pencil-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.40);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    line-height: 1;
+    transition: background 0.12s;
+    flex-shrink: 0;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.70);
+        color: #fff;
+    }
+
+    i { font-size: 0.65rem; }
+}
+
+// Confirm / cancel micro-buttons in preview header editing mode
+.erd-pencil-confirm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: rgba(25, 135, 84, 0.85);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    flex-shrink: 0;
+
+    &:hover { background: #157347; }
+    i { font-size: 0.65rem; }
+}
+
+.erd-pencil-cancel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: rgba(108, 117, 125, 0.7);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    flex-shrink: 0;
+
+    &:hover { background: #495057; }
+    i { font-size: 0.65rem; }
+}
+
+// ── Inline header rename inputs ───────────────────────────────────────────────
+.erd-header-input {
+    font-size: 0.82rem;
+    height: 28px;
+    min-width: 0;
+}
+
+.erd-preview-header-input {
+    font-size: 0.75rem;
+    height: 24px;
+    min-width: 80px;
+    max-width: 160px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #212529;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+
+    &:focus {
+        background: #fff;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.35);
+    }
+}
+
+// ── Control panel split button ─────────────────────────────────────────────────
+.erd-cp-group {
+    box-shadow: 0 2px 6px rgba(26, 115, 64, 0.35);
+    border-radius: 6px;
+    overflow: visible; // let dropdown escape
+
+    // Remove Bootstrap btn-group inner border
+    > .btn + .btn { border-left: 1px solid rgba(255,255,255,0.28) !important; }
+}
+
+.erd-cp-main-btn {
+    background: linear-gradient(135deg, #1a7340 0%, #25a55d 100%);
+    color: #fff;
+    border: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 5px 14px 5px 10px;
+    border-radius: 6px 0 0 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+
+    &:hover, &:focus {
+        background: linear-gradient(135deg, #145c32 0%, #1e8a4d 100%);
+        color: #fff;
+    }
+    &:active {
+        background: #0f4526;
+        color: #fff;
+    }
+}
+
+.erd-cp-excel-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.erd-cp-label {
+    letter-spacing: 0.01em;
+}
+
+.erd-cp-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.28);
+    color: #fff;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.erd-cp-caret-btn {
+    background: linear-gradient(135deg, #145c32 0%, #1e8a4d 100%);
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.8rem;
+    transition: background 0.15s;
+
+    &:hover, &:focus { background: #0f4526; color: #fff; }
+
+    // Bootstrap places the caret via ::after — keep it white
+    &::after { border-top-color: rgba(255,255,255,0.85); }
+}
+
+// ── Control panel dropdown ─────────────────────────────────────────────────────
+.erd-cp-dropdown {
+    min-width: 270px;
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 4px !important;
+}
+
+.erd-cp-dd-header {
+    background: linear-gradient(135deg, #1a7340 0%, #25a55d 100%);
+    border-bottom: none;
+}
+
+.erd-cp-dd-logo {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.2);
+    border-radius: 7px;
+    color: #fff;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.erd-cp-builder-row {
+    border-bottom: 1px solid #f0f0f0;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+
+    &:hover {
+        background: #f0faf4;
+    }
+}
+
+.erd-cp-action-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.erd-cp-tpl-section {
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+}
+
+.erd-cp-tpl-row {
+    padding: 8px 12px !important;
+    transition: background 0.1s;
+
+    &:hover {
+        background: #f5fdf8;
+        .erd-cp-dl-icon { opacity: 1; }
+    }
+}
+
+.erd-cp-type-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.erd-cp-type-dot-std { background: #0d6efd; }
+.erd-cp-type-dot-grp { background: #6f42c1; }
+
+.erd-cp-pill {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+.erd-cp-pill-std    { background: #dbeafe; color: #1d4ed8; }
+.erd-cp-pill-grp    { background: #ede9fe; color: #5b21b6; }
+.erd-cp-pill-shared { background: #d1fae5; color: #065f46; }
+
+.erd-cp-dl-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0faf4;
+    border-radius: 50%;
+    color: #1a7340;
+    font-size: 0.72rem;
+    opacity: 0.6;
+    transition: opacity 0.12s;
+}
+
+// ── Quick-add dropdown menu ───────────────────────────────────────────────────
+.erd-quickadd-menu {
+    min-width: 220px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.erd-quickadd-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px !important;
+
+    &:hover { background: #f5f5f5; }
+}
+
+.erd-qa-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+}
+
+// ── Formula column button & panel ─────────────────────────────────────────────
+.erd-formula-btn {
+    background: #f0e8ff;
+    color: #4a0e8f;
+    border: 1px solid #d4b8f8;
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 6px;
+    transition: background 0.12s;
+
+    &:hover, &.active {
+        background: #4a0e8f;
+        color: #fff;
+        border-color: #4a0e8f;
+    }
+}
+
+.erd-formula-panel {
+    background: #faf5ff;
+    border-bottom: 1px solid #e4d5fb !important;
+    animation: erd-fadein 0.15s ease;
+
+    .font-monospace { font-size: 0.8rem; }
+}
+
+.erd-formula-expr {
+    color: #6c3db3;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+// Field token chips in formula builder
+.erd-token-btn {
+    background: #eef0ff;
+    color: #2d3a8c;
+    border: 1px solid #c5cbf5;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+
+    &:hover {
+        background: #2d3a8c;
+        color: #fff;
+    }
+}
+
+// ── Per-column num_format select ───────────────────────────────────────────────
+.erd-fmt-select {
+    width: 100px !important;
+    min-width: 100px;
+    font-size: 0.7rem;
+    height: 22px;
+    padding: 1px 4px;
+    border-color: #ced4da;
+    color: #495057;
+}
+
+// ── Heatmap toggle button ─────────────────────────────────────────────────────
+.erd-heatmap-btn {
+    background: #f8f8f8;
+    color: #aaa;
+    border: 1px solid #ddd;
+    font-size: 0.7rem;
+    padding: 1px 7px;
+    height: 22px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: background 0.12s, color 0.12s;
+
+    &.active {
+        background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcf7f);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    &:hover:not(.active) {
+        background: #f0f0f0;
+        color: #555;
+    }
+}
+
+// ── Grouped mode option rows ────────────────────────────────────────────────
+.erd-group-option {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    transition: background 0.12s;
+
+    &:hover { background: #eef3ff; }
+}
+
+// ── Preview statistics footer row ─────────────────────────────────────────────
+.erd-preview-stat-row td {
+    background: #f0f9f4 !important;
+    border-top: 2px solid #b2dfdb !important;
+    padding: 3px 6px !important;
+}
+
+.erd-stat-chip {
+    display: inline-block;
+    background: #e0f2e9;
+    color: #1a7340;
+    border: 1px solid #b2dfdb;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    white-space: nowrap;
+    font-family: monospace;
+}
+
+// ── Footer stat badges ─────────────────────────────────────────────────────────
+// Solid colours — readable on any modal footer background
+.erd-footer-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.erd-footer-badge-blue   { background: #1a6fc4; color: #fff; }
+.erd-footer-badge-green  { background: #198754; color: #fff; }
+.erd-footer-badge-orange { background: #e07b00; color: #fff; }
+.erd-footer-badge-purple { background: #6f42c1; color: #fff; }
+
+// ── Quick-add bolt button ──────────────────────────────────────────────────────
+.erd-quickadd-btn {
+    background: #fff8e1;
+    color: #e65100;
+    border: 1px solid #ffcc80;
+    padding: 1px 6px;
+    font-size: 0.72rem;
+    line-height: 1.5;
+
+    &:hover {
+        background: #e65100;
+        color: #fff;
+        border-color: #e65100;
+    }
+
+    &::after { display: none; } // suppress Bootstrap caret on small button
+}
+
+// ── Sort direction toggle ──────────────────────────────────────────────────────
+.erd-sort-dir {
+    font-size: 0.72rem;
+    white-space: nowrap;
+    min-width: 72px;
+
+    &.active {
+        background: #0d6efd;
+        color: #fff;
+        border-color: #0d6efd;
+    }
+}
+
+// ── Scrollable panels consistent height on small screens ─────────────────────
+@media (max-width: 992px) {
+    .erd-dialog .modal-body {
+        padding: 0.5rem;
+    }
+}

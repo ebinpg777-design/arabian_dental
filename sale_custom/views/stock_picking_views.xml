@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_sale_custom" model="ir.ui.view">
+        <field name="name">stock.picking.form.sale.custom</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Courier Details" name="courier_details">
+                    <group>
+                        <field name="courier_company"/>
+                        <field name="courier_option"/>
+                        <field name="consignment_number"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Operation type: the one-click Validate switch, next to the backorder policy. -->
+    <record id="view_picking_type_form_sale_custom" model="ir.ui.view">
+        <field name="name">stock.picking.type.form.sale.custom</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.view_picking_type_form"/>
+        <field name="arch" type="xml">
+            <field name="create_backorder" position="after">
+                <field name="lab_done_from_demand"/>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_sticker_wizard_user,sticker wizard,model_epg_sticker_print_wizard,base.group_user,1,1,1,1
+access_sticker_format_user,sticker format read,model_epg_sticker_format,base.group_user,1,0,0,0
+access_sticker_format_manager,sticker format manage,model_epg_sticker_format,sales_team.group_sale_manager,1,1,1,1

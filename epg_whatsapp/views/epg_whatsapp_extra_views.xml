@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Delivery receipts, direction and the retry state on the message log. -->
+    <record id="view_message_list_receipts" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.list.receipts</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_message_list"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="direction" optional="show"/>
+            </field>
+            <field name="state" position="after">
+                <field name="sent_as_template" string="As template" optional="hide"/>
+                <field name="delivered_at" optional="hide"/>
+                <field name="read_at" optional="hide"/>
+                <field name="try_count" string="Tries" optional="hide"/>
+                <field name="next_try_at" string="Retry at" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_message_form_receipts" model="ir.ui.view">
+        <field name="name">epg.whatsapp.message.form.receipts</field>
+        <field name="model">epg.whatsapp.message</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_message_form"/>
+        <field name="arch" type="xml">
+            <field name="external_id" position="after">
+                <field name="delivered_at" invisible="not delivered_at"/>
+                <field name="read_at" invisible="not read_at"/>
+                <field name="direction"/>
+                <field name="conversation_id"/>
+                <field name="sent_as_template" invisible="not sent_as_template"/>
+                <field name="try_count" invisible="try_count == 0"/>
+                <field name="next_try_at" invisible="not next_try_at"/>
+                <field name="error_code" invisible="not error_code"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Webhook setup on the sender: the URL and token to paste into Meta. -->
+    <record id="view_account_form_webhook" model="ir.ui.view">
+        <field name="name">epg.whatsapp.account.form.webhook</field>
+        <field name="model">epg.whatsapp.account</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_account_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_conversations" type="object"
+                        class="oe_stat_button" icon="fa-comments-o">
+                    <field name="conversation_count" widget="statinfo"
+                           string="Conversations"/>
+                </button>
+            </xpath>
+            <xpath expr="//field[@name='api_version']" position="after">
+                <field name="template_language"/>
+            </xpath>
+            <xpath expr="//group[@name='behaviour']" position="after">
+                <group string="Webhook" name="webhook" colspan="2" invisible="channel == 'link'">
+                    <div class="text-muted" colspan="2">
+                        Paste these into Meta ▸ WhatsApp ▸ Configuration ▸ Webhook, and
+                        subscribe to the <b>messages</b> field. Without it Odoo never
+                        learns whether a message was delivered or read, and never sees
+                        replies — which is also what keeps the 24-hour reply window open.
+                    </div>
+                    <field name="webhook_reachable" invisible="1"/>
+                    <div class="alert alert-danger" role="alert" colspan="2"
+                         invisible="webhook_reachable">
+                        <b>This webhook cannot receive anything on this server.</b>
+                        <field name="webhook_warning" nolabel="1" readonly="1"
+                               class="d-block mt-1"/>
+                    </div>
+                    <field name="webhook_url" readonly="1" widget="CopyClipboardChar"/>
+                    <field name="webhook_token" password="True"
+                           groups="base.group_system"/>
+                    <field name="app_secret" password="True" groups="base.group_system"/>
+                    <div class="alert alert-warning" role="alert" colspan="2"
+                         groups="base.group_system"
+                         invisible="app_secret">
+                        Without an App Secret this sender rejects every callback, because
+                        an unsigned one cannot be proven to come from Meta. A forged
+                        inbound message would open the free-form window for any number.
+                    </div>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <menuitem id="menu_conversations" name="Conversations" parent="menu_root"
+              action="action_epg_whatsapp_conversation" sequence="20"/>
+
+    <!-- The Desk: where free WhatsApp messages are sent. First in the app. -->
+    <record id="action_desk" model="ir.actions.client">
+        <field name="name">WhatsApp Desk</field>
+        <field name="tag">epg_whatsapp_desk</field>
+    </record>
+    <menuitem id="menu_desk" name="Desk" parent="menu_root" action="action_desk" sequence="1"/>
+
+</odoo>

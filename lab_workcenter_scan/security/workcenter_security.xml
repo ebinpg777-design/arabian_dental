@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!--
+            Bench-bound access.
+
+            Deliberately an OPT-IN group rather than a rule on `mrp.group_mrp_user`.
+            Planners, schedulers and office staff hold that group too, and they have
+            every reason to see the whole floor — narrowing it for everyone would break
+            their work to solve a problem they do not have.
+
+            Give this group to the people who stand at a bench. They then see the work
+            orders and stations they are posted to, and nothing else.
+        -->
+        <record id="group_workcenter_bound" model="res.groups">
+            <field name="name">Bench user (own work centres only)</field>
+            <!-- No category on purpose: a category would put this in the Manufacturing
+                 privilege SELECTOR, where it would become an alternative to User /
+                 Administrator. It is neither — it is an extra restriction ticked on top
+                 of whichever mrp role the person already holds. -->
+            <field name="comment">Sees only the work centres they are a department head
+                or technician of, and the jobs at them. Intended for shop-floor staff;
+                planners and managers should not hold it.</field>
+        </record>
+
+        <!--
+            Who may give out work.
+
+            The lead of a station is whoever is named in its Production Leads list, and
+            that is deliberately a per-station fact rather than a group: a lab has a lead
+            at Acrylisation and a different one at Wire Bending, and neither should be
+            handing out the other's queue.
+
+            This group is the exception above them — a production manager covering the
+            whole floor. It exists because `mrp.group_mrp_manager` cannot do the job:
+            every manufacturing user on this database also holds it, so a rule written
+            against it says "everyone", which is the same as no rule at all.
+            (client, 2026-08-26)
+        -->
+        <record id="group_production_manager" model="res.groups">
+            <field name="name">Production manager (gives out work anywhere)</field>
+            <field name="comment">May assign jobs to technicians at ANY work centre, and
+                accept or hand over work anywhere. Give this to the few people who run
+                the floor as a whole; everyone else leads the stations they are named on.
+            </field>
+        </record>
+
+        <!-- Administrators keep the run of the floor: without this, installing the
+             module would leave a lab whose stations have no leads yet with nobody at
+             all able to give out work. -->
+        <record id="base.group_system" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('group_production_manager'))]"/>
+        </record>
+
+        <record id="rule_workorder_own_bench" model="ir.rule">
+            <field name="name">Work order: only my own work centres</field>
+            <field name="model_id" ref="mrp.model_mrp_workorder"/>
+            <field name="domain_force">['|',
+                ('workcenter_id.head_user_ids', 'in', user.id),
+                ('workcenter_id.users', 'in', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_workcenter_bound'))]"/>
+        </record>
+
+        <record id="rule_workcenter_own_bench" model="ir.rule">
+            <field name="name">Work centre: only my own</field>
+            <field name="model_id" ref="mrp.model_mrp_workcenter"/>
+            <field name="domain_force">['|',
+                ('head_user_ids', 'in', user.id), ('users', 'in', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_workcenter_bound'))]"/>
+            <!-- Read-only: a bench user works at a station, they do not reconfigure it. -->
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,514 @@
+<odoo>
+    <!-- ─── KANBAN DASHBOARD ─────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_allocation_kanban_dashboard" model="ir.ui.view">
+        <field name="name">petty.cash.allocation.kanban.dashboard</field>
+        <field name="model">petty.cash.allocation</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard" create="true" quick_create="false"
+                    records_draggable="false">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="account_id"/>
+                <field name="amount_balance"/>
+                <field name="amount_allocated"/>
+                <field name="amount_utilized"/>
+                <field name="amount_returned"/>
+                <field name="utilization_pct"/>
+                <field name="health_status"/>
+                <field name="expense_count"/>
+                <field name="transaction_count"/>
+                <field name="allocation_approval_count"/>
+                <field name="expense_approval_count"/>
+                <field name="currency_id"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click o_kanban_card p-0 overflow-hidden">
+
+                            <!-- Colour header band: green/orange/red when allocated, teal when submitted, grey otherwise -->
+                            <div t-attf-class="px-3 py-2 d-flex justify-content-between align-items-center
+                                    #{record.state.raw_value === 'allocated' ?
+                                        (record.health_status.raw_value === 'healthy' ? 'bg-success' :
+                                         record.health_status.raw_value === 'warning'  ? 'bg-warning'  : 'bg-danger')  :
+                                      record.state.raw_value === 'submitted' ? 'bg-info' :
+                                      record.state.raw_value === 'returned'  ? 'bg-secondary' : 'bg-light border-bottom'}">
+
+                                <!-- Avatar + holder name -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center fw-bold text-dark"
+                                         style="width:34px;height:34px;font-size:12px;flex-shrink:0;">
+                                        <t t-esc="record.partner_id.value ? record.partner_id.value.substring(0,2).toUpperCase() : '--'"/>
+                                    </div>
+                                    <span class="fw-semibold text-white text-truncate" style="max-width:140px;">
+                                        <field name="partner_id"/>
+                                    </span>
+                                </div>
+
+                                <!-- State badge -->
+                                <span class="badge rounded-pill bg-white text-dark" style="font-size:10px;">
+                                    <field name="state"/>
+                                </span>
+                            </div>
+
+                            <div class="p-3">
+                                <!-- Reference & account -->
+                                <div class="text-muted small mb-1"><field name="name"/></div>
+                                <div class="text-muted small mb-3 text-truncate"><field name="account_id"/></div>
+
+                                <!-- Utilisation progress bar -->
+                                <div t-if="record.state.raw_value === 'allocated' and record.amount_allocated.raw_value > 0"
+                                     class="mb-3">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="text-muted">Utilization</span>
+                                        <span t-attf-class="fw-semibold
+                                                #{record.health_status.raw_value === 'critical' ? 'text-danger' :
+                                                  record.health_status.raw_value === 'warning'  ? 'text-warning' : 'text-success'}">
+                                            <t t-esc="Math.round(record.utilization_pct.raw_value)"/>%
+                                        </span>
+                                    </div>
+                                    <div class="progress" style="height:6px;border-radius:3px;">
+                                        <div t-attf-class="progress-bar
+                                                #{record.health_status.raw_value === 'healthy' ? 'bg-success' :
+                                                  record.health_status.raw_value === 'warning'  ? 'bg-warning' : 'bg-danger'}"
+                                             role="progressbar"
+                                             t-attf-style="width:#{Math.min(record.utilization_pct.raw_value, 100)}%"
+                                             aria-valuemin="0" aria-valuemax="100"/>
+                                    </div>
+                                </div>
+
+                                <!-- 2×2 metric grid -->
+                                <div class="row g-0 rounded border overflow-hidden mb-3">
+                                    <div class="col-6 text-center py-2 border-end border-bottom">
+                                        <div class="text-muted" style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;">Allocated</div>
+                                        <div class="fw-semibold small text-primary"><field name="amount_allocated" widget="monetary"/></div>
+                                    </div>
+                                    <div class="col-6 text-center py-2 border-bottom">
+                                        <div class="text-muted" style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;">Utilized</div>
+                                        <div class="fw-semibold small text-warning"><field name="amount_utilized" widget="monetary"/></div>
+                                    </div>
+                                    <div class="col-6 text-center py-2 border-end">
+                                        <div class="text-muted" style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;">Returned</div>
+                                        <div class="fw-semibold small text-info"><field name="amount_returned" widget="monetary"/></div>
+                                    </div>
+                                    <div class="col-6 text-center py-2">
+                                        <div class="text-muted" style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;">Balance</div>
+                                        <div t-attf-class="fw-bold small #{record.amount_balance.raw_value > 0 ? 'text-success' : 'text-muted'}">
+                                            <field name="amount_balance" widget="monetary"/>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Pending approval alerts -->
+                                <div t-if="record.allocation_approval_count.raw_value > 0" class="mb-1">
+                                    <button name="action_view_allocation_approvals" type="object"
+                                            class="btn btn-sm btn-warning w-100 py-1">
+                                        <i class="fa fa-check-circle me-1" title="Pending"/>
+                                        <field name="allocation_approval_count"/> Allocation Pending
+                                    </button>
+                                </div>
+                                <div t-if="record.expense_approval_count.raw_value > 0" class="mb-1">
+                                    <button name="action_view_expense_approvals" type="object"
+                                            class="btn btn-sm btn-warning w-100 py-1">
+                                        <i class="fa fa-list me-1" title="Pending"/>
+                                        <field name="expense_approval_count"/> Expense Pending
+                                    </button>
+                                </div>
+
+                                <!-- Footer counts -->
+                                <div class="row g-0 border-top pt-2 mt-1 text-center">
+                                    <div class="col-6">
+                                        <button name="action_view_expenses" type="object"
+                                                class="btn btn-link p-0 text-decoration-none w-100">
+                                            <i class="fa fa-file-text-o text-muted me-1" title="Expenses"/>
+                                            <span class="fw-semibold"><field name="expense_count"/></span>
+                                            <span class="text-muted small"> Expense(s)</span>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button name="action_view_transactions" type="object"
+                                                class="btn btn-link p-0 text-decoration-none w-100">
+                                            <i class="fa fa-exchange text-muted me-1" title="Transactions"/>
+                                            <span class="fw-semibold"><field name="transaction_count"/></span>
+                                            <span class="text-muted small"> Txn(s)</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ─── LIST VIEW ────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_allocation_tree" model="ir.ui.view">
+        <field name="name">petty.cash.allocation.list</field>
+        <field name="model">petty.cash.allocation</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'allocated' and health_status == 'healthy'"
+                  decoration-warning="state == 'allocated' and health_status == 'warning'"
+                  decoration-danger="state == 'allocated' and health_status == 'critical'"
+                  decoration-muted="state in ('cancelled', 'returned')">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="journal_id"/>
+                <field name="allocated_date"/>
+                <field name="return_date"/>
+                <field name="amount_limit" sum="Requested"/>
+                <field name="amount_allocated" sum="Allocated"/>
+                <field name="amount_utilized" sum="Utilized"/>
+                <field name="amount_balance" sum="Balance"/>
+                <field name="utilization_pct" string="Used %" optional="show"/>
+                <field name="health_status" widget="badge"
+                       decoration-success="health_status == 'healthy'"
+                       decoration-warning="health_status == 'warning'"
+                       decoration-danger="health_status == 'critical'"
+                       optional="show"/>
+                <field name="expense_count" string="Expenses" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state == 'allocated'"
+                       decoration-muted="state in ('returned', 'cancelled')"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ─── PIVOT ────────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_allocation_pivot" model="ir.ui.view">
+        <field name="name">petty.cash.allocation.pivot</field>
+        <field name="model">petty.cash.allocation</field>
+        <field name="arch" type="xml">
+            <pivot string="Petty Cash Allocation Analysis">
+                <field name="partner_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="amount_allocated" type="measure"/>
+                <field name="amount_utilized" type="measure"/>
+                <field name="amount_balance" type="measure"/>
+                <field name="utilization_pct" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ─── GRAPH ────────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_allocation_graph" model="ir.ui.view">
+        <field name="name">petty.cash.allocation.graph</field>
+        <field name="model">petty.cash.allocation</field>
+        <field name="arch" type="xml">
+            <graph string="Petty Cash Balances" type="bar">
+                <field name="partner_id"/>
+                <field name="amount_balance" type="measure"/>
+                <field name="amount_utilized" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ─── FORM ─────────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_allocation_form" model="ir.ui.view">
+        <field name="name">petty.cash.allocation.form</field>
+        <field name="model">petty.cash.allocation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit_request" string="Submit Request" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_allocate" string="Allocate" type="object"
+                            class="oe_highlight"
+                            groups="petty_cash.group_petty_cash_manager"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_request_reallocation" string="Request Re-allocation"
+                            type="object" invisible="state != 'allocated'"/>
+                    <button name="action_replenish" string="Replenish Float" type="object"
+                            invisible="state != 'allocated' or float_amount == 0"/>
+                    <button name="action_partial_return" string="Partial Return" type="object"
+                            invisible="state != 'allocated'"
+                            title="Return part of the cash balance, keep the allocation open"/>
+                    <button name="action_close" string="Close Allocation" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'allocated'"
+                            title="Return remaining balance and permanently close this allocation"/>
+                    <button name="action_print_statement" string="Print Statement" type="object"
+                            invisible="state not in ('allocated', 'returned')"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state in ('cancelled', 'returned')"
+                            groups="petty_cash.group_petty_cash_officer"/>
+                    <button name="action_reset_to_draft" string="Reset to Draft" type="object"
+                            invisible="state != 'cancelled'"
+                            groups="petty_cash.group_petty_cash_officer"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,allocated,returned"/>
+                </header>
+                <sheet>
+                    <!-- Smart buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_new_expense" type="object" class="oe_stat_button"
+                                icon="fa-plus" invisible="state != 'allocated'">
+                            <span>Add Expense</span>
+                        </button>
+                        <button name="action_view_expenses" type="object" class="oe_stat_button"
+                                icon="fa-file-text-o">
+                            <field name="expense_count" widget="statinfo" string="Expenses"/>
+                        </button>
+                        <button name="action_view_transactions" type="object" class="oe_stat_button"
+                                icon="fa-exchange">
+                            <field name="transaction_count" widget="statinfo" string="Transactions"/>
+                        </button>
+                        <button name="action_view_partial_returns" type="object" class="oe_stat_button"
+                                icon="fa-undo"
+                                invisible="partial_return_count == 0">
+                            <field name="partial_return_count" widget="statinfo" string="Partial Returns"/>
+                        </button>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+
+                    <!-- ── KPI summary strip (visible once allocated) ── -->
+                    <div class="row g-0 rounded border overflow-hidden mb-3"
+                         invisible="state not in ('allocated', 'returned')">
+                        <div class="col-3 text-center py-3 border-end bg-light">
+                            <div class="text-muted fw-semibold" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Allocated</div>
+                            <div class="h5 mb-0 text-primary">
+                                <field name="amount_allocated" widget="monetary" readonly="1" nolabel="1"/>
+                            </div>
+                        </div>
+                        <div class="col-3 text-center py-3 border-end bg-light">
+                            <div class="text-muted fw-semibold" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Utilized</div>
+                            <div class="h5 mb-0 text-warning">
+                                <field name="amount_utilized" widget="monetary" readonly="1" nolabel="1"/>
+                            </div>
+                        </div>
+                        <div class="col-3 text-center py-3 border-end bg-light">
+                            <div class="text-muted fw-semibold" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Returned</div>
+                            <div class="h5 mb-0 text-info">
+                                <field name="amount_returned" widget="monetary" readonly="1" nolabel="1"/>
+                            </div>
+                        </div>
+                        <div class="col-3 text-center py-3 bg-light">
+                            <div class="text-muted fw-semibold" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Balance</div>
+                            <div class="h5 mb-0 text-success">
+                                <field name="amount_balance" widget="monetary" readonly="1" nolabel="1"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Utilization progress bar ── -->
+                    <div class="mb-3" invisible="state not in ('allocated', 'returned') or amount_allocated == 0">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted fw-semibold">Utilization</span>
+                            <span class="fw-semibold">
+                                <field name="utilization_pct" readonly="1" nolabel="1"/>%
+                                — <field name="health_status" widget="badge"
+                                         decoration-success="health_status == 'healthy'"
+                                         decoration-warning="health_status == 'warning'"
+                                         decoration-danger="health_status == 'critical'"
+                                         readonly="1" nolabel="1"/>
+                            </span>
+                        </div>
+                        <div class="progress" style="height:10px;border-radius:5px;">
+                            <field name="utilization_pct" widget="progressbar"
+                                   options="{'editable': false, 'overflow_class': 'bg-danger'}"
+                                   readonly="1" nolabel="1"/>
+                        </div>
+                    </div>
+
+                    <!-- ── Main fields ── -->
+                    <group>
+                        <group string="Cash Holder">
+                            <field name="partner_id" readonly="state != 'draft'"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="journal_id" readonly="state not in ('draft', 'submitted')"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   groups="petty_cash.group_petty_cash_officer"/>
+                            <field name="account_id" readonly="1"
+                                   groups="petty_cash.group_petty_cash_officer"/>
+                            <field name="company_id" readonly="state != 'draft'"
+                                   groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Amounts &amp; Dates">
+                            <field name="can_edit_limit" invisible="1"/>
+                            <field name="amount_limit"
+                                   readonly="not can_edit_limit or state not in ('draft','submitted')"/>
+                            <field name="float_amount"
+                                   readonly="state not in ('draft','submitted','allocated') or not can_edit_limit"
+                                   invisible="state == 'draft'"
+                                   groups="petty_cash.group_petty_cash_officer"/>
+                            <field name="auto_replenish"
+                                   readonly="state not in ('draft','submitted','allocated')"
+                                   invisible="state == 'draft'"
+                                   groups="petty_cash.group_petty_cash_officer"/>
+                            <field name="allocated_date" readonly="state != 'draft'"/>
+                            <field name="return_date" string="Closed Date" readonly="1"
+                                   invisible="state != 'returned'"/>
+                            <field name="amount_write_off" readonly="1"
+                                   invisible="amount_write_off == 0"
+                                   string="Written Off"/>
+                            <field name="utilization_pct" invisible="1"/>
+                            <field name="partial_return_count" invisible="1"/>
+                            <field name="health_status" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Expenses" name="expenses">
+                            <field name="expense_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="total_amount" sum="Total"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state == 'draft'"
+                                           decoration-warning="state in ('submitted', 'approved')"
+                                           decoration-success="state in ('bill_created', 'paid')"
+                                           decoration-danger="state == 'rejected'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Transactions" name="transactions">
+                            <field name="transaction_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="type" widget="badge"
+                                           decoration-primary="type == 'allocation'"
+                                           decoration-danger="type == 'expense'"
+                                           decoration-success="type == 'return'"
+                                           decoration-warning="type == 'write_off'"/>
+                                    <field name="is_closing" string="Closing"
+                                           invisible="type != 'return'"/>
+                                    <field name="amount_signed" string="Amount" sum="Net"/>
+                                    <field name="note" string="Note" optional="show"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state == 'draft'"
+                                           decoration-warning="state in ('submitted', 'approved')"
+                                           decoration-success="state == 'posted'"
+                                           decoration-danger="state == 'rejected'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Spend Controls" name="spend_controls"
+                              groups="petty_cash.group_petty_cash_officer">
+                            <group>
+                                <field name="monthly_budget"
+                                       readonly="state not in ('draft','submitted','allocated')"/>
+                                <field name="amount_spent_this_month" readonly="1"
+                                       invisible="monthly_budget == 0"/>
+                            </group>
+                            <separator string="Allowed Expense Accounts"/>
+                            <p class="text-muted" style="font-size:12px;">
+                                Leave empty to allow all expense accounts.
+                                When set, only these accounts may be used in expense lines.
+                            </p>
+                            <field name="allowed_account_ids"
+                                   readonly="state not in ('draft','submitted','allocated')"
+                                   widget="many2many_tags"
+                                   domain="[('account_type', 'like', 'expense')]"
+                                   options="{'no_create': True, 'no_create_edit': True}"/>
+
+                            <field name="category_budget_enabled" invisible="1"/>
+                            <div invisible="not category_budget_enabled">
+                                <separator string="Category Budgets (Soft Warnings)"/>
+                                <p class="text-muted" style="font-size:12px;">
+                                    Optional per-category or per-account spend limits.
+                                    When an approval would exceed a budget, a warning is posted in the chatter — the expense is not blocked.
+                                </p>
+                                <field name="category_budget_ids"
+                                       readonly="state not in ('draft','submitted','allocated')">
+                                    <list editable="bottom">
+                                        <field name="categ_id"
+                                               options="{'no_create': True, 'no_create_edit': True}"/>
+                                        <field name="account_id"
+                                               domain="[('account_type', 'like', 'expense')]"
+                                               options="{'no_create': True, 'no_create_edit': True}"/>
+                                        <field name="budget_amount"/>
+                                        <field name="amount_spent" readonly="1"/>
+                                        <field name="amount_remaining" readonly="1"
+                                               decoration-danger="amount_remaining == 0"
+                                               decoration-warning="amount_remaining &lt; budget_amount * 0.2"/>
+                                    </list>
+                                </field>
+                            </div>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="note" placeholder="Internal notes…"
+                                   readonly="state in ('returned', 'cancelled')"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ─── SEARCH ───────────────────────────────────────────────────────────── -->
+    <record id="view_petty_cash_allocation_search" model="ir.ui.view">
+        <field name="name">petty.cash.allocation.search</field>
+        <field name="model">petty.cash.allocation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="journal_id"/>
+                <!-- Status filters -->
+                <filter string="My Allocations" name="my_allocations"
+                        domain="[('partner_id.user_ids', 'in', [uid])]"/>
+                <filter string="My Active" name="my_active_allocations"
+                        domain="[('partner_id.user_ids', 'in', [uid]), ('state', '=', 'allocated')]"/>
+                <separator/>
+                <filter string="To Approve" name="to_approve"
+                        domain="[('state', '=', 'submitted')]"/>
+                <filter string="Allocated" name="allocated"
+                        domain="[('state', '=', 'allocated')]"/>
+                <filter string="Closed" name="closed"
+                        domain="[('state', '=', 'returned')]"/>
+                <separator/>
+                <!-- Health filters -->
+                <filter string="Low Balance" name="low_balance"
+                        domain="[('health_status', 'in', ('warning', 'critical')), ('state', '=', 'allocated')]"/>
+                <filter string="Critical" name="critical"
+                        domain="[('health_status', '=', 'critical'), ('state', '=', 'allocated')]"/>
+                <filter string="Healthy" name="healthy"
+                        domain="[('health_status', '=', 'healthy'), ('state', '=', 'allocated')]"/>
+                <group name="group_by">
+                    <filter string="Cash Holder" name="group_holder"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter string="Status" name="group_state"
+                            context="{'group_by': 'state'}"/>
+                    <filter string="Health" name="group_health"
+                            context="{'group_by': 'health_status'}"/>
+                    <filter string="Return Month" name="group_return_month"
+                            context="{'group_by': 'return_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ─── ACTIONS ──────────────────────────────────────────────────────────── -->
+    <record id="action_petty_cash_dashboard" model="ir.actions.act_window">
+        <field name="name">Dashboard</field>
+        <field name="res_model">petty.cash.allocation</field>
+        <field name="view_mode">kanban</field>
+        <field name="domain">[]</field>
+        <field name="context">{'search_default_allocated': 1}</field>
+        <field name="view_id" ref="view_petty_cash_allocation_kanban_dashboard"/>
+    </record>
+
+    <record id="action_petty_cash_allocation" model="ir.actions.act_window">
+        <field name="name">Allocations</field>
+        <field name="res_model">petty.cash.allocation</field>
+        <field name="view_mode">kanban,list,form,pivot,graph</field>
+        <field name="context">{'search_default_group_state': 1}</field>
+    </record>
+
+    <record id="action_petty_cash_allocation_requests" model="ir.actions.act_window">
+        <field name="name">Allocation Requests</field>
+        <field name="res_model">petty.cash.allocation</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'submitted')]</field>
+    </record>
+</odoo>

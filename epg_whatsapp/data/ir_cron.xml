@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+          Sending on the spot is right for the common case, but it leaves a failed
+          message sitting there for ever: a Meta rate limit or a five-second network
+          blip permanently loses a notification nobody knows was lost. This picks those
+          up once their backoff has elapsed, and gives up after four tries so one bad
+          number cannot become a permanent background load.
+        -->
+        <record id="ir_cron_whatsapp_queue" model="ir.cron">
+            <field name="name">WhatsApp: send queued and retry failed</field>
+            <field name="model_id" ref="model_epg_whatsapp_message"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_send_queue()</field>
+            <field name="interval_number">10</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+        <!-- Automations put the day's messages on the Desk every morning. -->
+        <record id="ir_cron_whatsapp_automations" model="ir.cron">
+            <field name="name">WhatsApp: run automations</field>
+            <field name="model_id" ref="model_epg_whatsapp_automation"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_run()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

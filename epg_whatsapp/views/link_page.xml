@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- What a doctor sees after tapping a quick reply, or a link that has gone
+         stale. Standalone: no website module, no backend assets. -->
+    <template id="link_page" name="WhatsApp link page">
+        <html>
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="robots" content="noindex"/>
+                <title><t t-esc="title"/> · <t t-esc="company_name"/></title>
+                <style>
+                    body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+                           background: #efeae2; color: #111b21; display: flex; min-height: 100vh;
+                           align-items: center; justify-content: center; }
+                    .card { background: #fff; border-radius: 18px; padding: 32px 28px; max-width: 360px;
+                            margin: 24px; text-align: center; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+                    .icon { font-size: 48px; }
+                    h1 { font-size: 22px; margin: 12px 0 8px; }
+                    p { font-size: 16px; color: #54656f; margin: 0 0 18px; line-height: 1.4; }
+                    .co { font-size: 13px; color: #075e54; font-weight: 600; }
+                    .btn { display: block; width: 100%; box-sizing: border-box; border: 0; border-radius: 24px;
+                           background: #128c7e; color: #fff; font-size: 16px; font-weight: 600;
+                           padding: 12px 20px; margin: 0 0 10px; cursor: pointer; }
+                    .btn[name="reason"] { background: #fff; color: #d93025; border: 2px solid #d93025; }
+                    .num { display: block; width: 100%; box-sizing: border-box; font-size: 18px; padding: 12px 14px;
+                           border: 2px solid #128c7e; border-radius: 14px; margin: 0 0 14px; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="icon"><t t-esc="icon"/></div>
+                    <h1><t t-esc="title"/></h1>
+                    <p><t t-esc="text"/></p>
+                    <form t-if="form_action" method="post" t-att-action="form_action">
+                        <input t-if="ask_number" type="tel" name="number" class="num" required="required"
+                               placeholder="Your WhatsApp number" autocomplete="tel"/>
+                        <t t-foreach="buttons" t-as="button">
+                            <button type="submit" class="btn" t-att-name="button['name']"
+                                    t-att-value="button['value']"><t t-esc="button['label']"/></button>
+                        </t>
+                    </form>
+                    <div class="co"><t t-esc="company_name"/></div>
+                </div>
+            </body>
+        </html>
+    </template>
+</odoo>

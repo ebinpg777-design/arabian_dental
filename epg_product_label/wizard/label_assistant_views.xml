@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_epg_label_assistant_form" model="ir.ui.view">
+        <field name="name">epg.label.assistant.form</field>
+        <field name="model">epg.label.assistant</field>
+        <field name="arch" type="xml">
+            <form string="Layout Assistant" class="epg_assistant">
+                <field name="template_id" invisible="1"/>
+                <field name="label_type" invisible="1"/>
+
+                <div class="epg_assistant_intro">
+                    <h2 class="mb-1">
+                        <i class="fa fa-magic me-2" title="Layout assistant"/>Design this label for me
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Pick a layout and the assistant places every element in
+                        proportion to your
+                        <field name="label_width" nolabel="1" readonly="1" class="oe_inline"/>
+                        ×
+                        <field name="label_height" nolabel="1" readonly="1" class="oe_inline"/>
+                        <field name="unit" nolabel="1" readonly="1" class="oe_inline"/>
+                        label. Everything stays editable afterwards.
+                    </p>
+                </div>
+
+                <!--
+                    The layout choice is the whole decision, so it gets the card
+                    picker rather than a dropdown: these are shapes, and a shape is
+                    faster to recognise than to read.
+                -->
+                <field name="style" widget="epg_layout_picker" nolabel="1"/>
+
+                <group>
+                    <group string="Style">
+                        <field name="theme" widget="radio"/>
+                    </group>
+                    <group string="Include">
+                        <field name="include_name" invisible="label_type != 'product'"/>
+                        <field name="include_reference" invisible="label_type != 'product'"/>
+                        <field name="include_price"
+                               invisible="label_type != 'product' or style in ('barcode_only', 'asset_tag')"/>
+                        <field name="include_barcode"/>
+                        <field name="include_attributes"
+                               invisible="label_type != 'product'"/>
+                        <field name="include_image"
+                               invisible="style != 'product_card'"/>
+                        <field name="include_logo"/>
+                        <field name="include_date"/>
+                    </group>
+                </group>
+
+                <div class="alert alert-warning d-flex align-items-center py-2"
+                     role="alert" invisible="not warning">
+                    <i class="fa fa-exclamation-triangle me-2" title="Warning"/>
+                    <field name="warning" nolabel="1" readonly="1"/>
+                </div>
+
+                <div class="alert alert-info d-flex align-items-center py-2"
+                     role="alert" invisible="warning">
+                    <i class="fa fa-check-circle me-2" title="Ready"/>
+                    <span>
+                        <field name="element_preview" nolabel="1" readonly="1"
+                               class="oe_inline"/>
+                        elements will be placed on the label.
+                    </span>
+                </div>
+
+                <group>
+                    <field name="replace_existing"/>
+                </group>
+
+                <footer>
+                    <button name="action_generate" type="object" string="Generate Layout"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_epg_label_assistant" model="ir.actions.act_window">
+        <field name="name">Layout Assistant</field>
+        <field name="res_model">epg.label.assistant</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" eval="False"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="format_roll_100x60" model="epg.sticker.format">
+            <field name="name">Roll 100 × 60 mm</field>
+            <field name="sequence">10</field>
+            <field name="width_mm">100</field><field name="height_mm">60</field>
+            <field name="columns">1</field><field name="rows">1</field>
+            <field name="is_default" eval="True"/>
+        </record>
+        <record id="format_roll_50x30" model="epg.sticker.format">
+            <field name="name">Roll 50 × 30 mm</field>
+            <field name="sequence">20</field>
+            <field name="width_mm">50</field><field name="height_mm">30</field>
+            <field name="margin_mm">1.5</field>
+            <field name="columns">1</field><field name="rows">1</field>
+        </record>
+        <record id="format_a4_2x5" model="epg.sticker.format">
+            <field name="name">A4 sheet 2 × 5 (105 × 59 mm)</field>
+            <field name="sequence">30</field>
+            <field name="width_mm">105</field><field name="height_mm">59.4</field>
+            <field name="columns">2</field><field name="rows">5</field>
+            <field name="note">Standard 10-up A4 label sheet</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Rework lives on the order itself: a tick, a reason, and (optionally) the job it
+         remakes. Right at the top of the form, where the counter fills the case in. -->
+    <record id="view_order_form_rework" model="ir.ui.view">
+        <field name="name">sale.order.form.lab.rework</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Anchored on partner_id, not priority: sale.view_order_form has no
+                 <field name="priority"> to attach to (the only "priority" in the
+                 combined arch sits inside a sub-view, which inheritance cannot
+                 target), so the original anchor failed the whole upgrade with
+                 "Element '<field name='priority'>' cannot be located in parent view".
+                 partner_id is the first field of the form, so the tick still lands
+                 at the top. -->
+            <field name="partner_id" position="before">
+                <field name="is_rework" widget="boolean_toggle"/>
+                <!-- only this customer's own jobs (the field's domain uses '=?' so the
+                     list is unfiltered until a customer is picked) -->
+                <field name="rework_origin_id" invisible="not is_rework"
+                       domain="[('is_rework', '=', False), ('partner_id', '=?', partner_id)]"
+                       options="{'no_create': True}"
+                       placeholder="This customer's earlier orders…"
+                       context="{'sale_show_patient': True}"/>
+                <field name="rework_reason_id" invisible="not is_rework"
+                       required="is_rework" options="{'no_create_edit': True}"/>
+                <field name="rework_responsibility" invisible="not is_rework"/>
+                <field name="rework_note" invisible="not is_rework"
+                       placeholder="What came back, and why…"/>
+            </field>
+
+            <xpath expr="//header" position="inside">
+                <button name="action_create_rework" type="object" string="Create Rework"
+                        invisible="state not in ('sale','done') or is_rework"
+                        groups="lab_order_control.group_lab_order_checker,lab_fieldwork.group_fieldwork_manager"/>
+            </xpath>
+
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_reworks" type="object"
+                        class="oe_stat_button" icon="fa-refresh"
+                        invisible="rework_count == 0">
+                    <field name="rework_count" widget="statinfo" string="Reworks"/>
+                </button>
+            </xpath>
+
+            <xpath expr="//sheet" position="inside">
+                <widget name="web_ribbon" title="REWORK" bg_color="text-bg-info"
+                        class="o_lab_ribbon_second" invisible="not is_rework"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_list_rework" model="ir.ui.view">
+        <field name="name">sale.order.list.lab.rework</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="is_rework" widget="boolean_toggle" optional="hide" readonly="1"/>
+                <field name="rework_reason_id" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_order_search_rework" model="ir.ui.view">
+        <field name="name">sale.order.search.lab.rework</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <filter name="my_sale_orders_filter" position="before">
+                <filter string="Reworks" name="filter_reworks" domain="[('is_rework', '=', True)]"/>
+                <separator/>
+            </filter>
+            <filter name="salesperson" position="after">
+                <filter name="group_rework_reason" string="Rework Reason"
+                        context="{'group_by': 'rework_reason_id'}"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- Reason list stays: it is what the reporting groups by -->
+    <record id="view_rework_reason_list" model="ir.ui.view">
+        <field name="name">lab.rework.reason.list</field>
+        <field name="model">lab.rework.reason</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="responsibility_default"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_rework_reason" model="ir.actions.act_window">
+        <field name="name">Rework Reasons</field>
+        <field name="res_model">lab.rework.reason</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <record id="action_rework" model="ir.actions.act_window">
+        <field name="name">Reworks</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('is_rework', '=', True)]</field>
+        <field name="context">{'default_is_rework': True, 'search_default_group_rework_reason': 0}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No reworks</p>
+            <p>A rework is an order with <b>Rework</b> ticked: same clinic, same patient,
+               the work made again at no charge.</p>
+        </field>
+    </record>
+</odoo>

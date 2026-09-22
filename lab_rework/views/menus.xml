@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- A rework IS an order, so it sits in Sales next to the orders it remakes. -->
+    <menuitem id="menu_rework_all" name="Reworks"
+              parent="sale.sale_order_menu" sequence="22"
+              action="action_rework"
+              groups="lab_order_control.group_lab_order_checker,lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_rework_reasons" name="Rework Reasons"
+              parent="sale.menu_sale_config" sequence="60"
+              action="action_rework_reason"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+</odoo>

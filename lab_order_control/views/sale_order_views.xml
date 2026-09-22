@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_order_control" model="ir.ui.view">
+        <field name="name">sale.order.form.order.control</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_submit_for_verification" type="object"
+                        string="Submit for Verification" class="btn-secondary"
+                        invisible="not verification_needed or state not in ('draft', 'sent') or verification_state in ('to_verify', 'verified')"
+                        groups="lab_order_control.group_lab_order_entry"/>
+                <button name="action_verify" type="object" string="Verify"
+                        class="btn-primary"
+                        invisible="not verification_needed or verification_state != 'to_verify'"
+                        groups="lab_order_control.group_lab_order_checker"/>
+                <button name="action_reject_verification" type="object" string="Send Back"
+                        invisible="not verification_needed or verification_state != 'to_verify'"
+                        groups="lab_order_control.group_lab_order_checker"/>
+                <button name="action_reset_verification" type="object" string="Reset Verification"
+                        invisible="not verification_needed or verification_state == 'draft' or state == 'sale'"
+                        groups="lab_order_control.group_lab_order_checker"/>
+                <button name="action_set_to_draft" type="object" string="Set to Draft"
+                        invisible="state != 'sale'"
+                        confirm="Take this confirmed case back to draft? Its open delivery and not-yet-started manufacturing orders will be cancelled and it must be verified again."
+                        groups="lab_order_control.group_lab_order_checker,sales_team.group_sale_manager"/>
+                <button name="action_release_credit_block" type="object"
+                        string="Release Credit Block" class="btn-warning"
+                        invisible="not credit_warning or credit_override_by_id or state == 'sale'"
+                        groups="lab_order_control.group_lab_credit_override"/>
+            </xpath>
+
+            <xpath expr="//field[@name='state']" position="before">
+                <field name="verification_needed" invisible="1"/>
+                <field name="verification_state" widget="statusbar"
+                       statusbar_visible="draft,to_verify,verified"
+                       invisible="not verification_needed"
+                       options="{'clickable': false}"/>
+            </xpath>
+
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-warning m-0 rounded-0" role="alert"
+                     invisible="not credit_warning or credit_override_by_id">
+                    <i class="fa fa-exclamation-triangle me-1" title="Credit limit"/>
+                    <field name="credit_warning" nolabel="1" readonly="1" class="d-inline"/>
+                </div>
+                <div class="alert alert-info m-0 rounded-0" role="alert"
+                     invisible="verification_state != 'rejected'">
+                    <i class="fa fa-reply me-1" title="Sent back"/>
+                    <strong>Sent back for correction:</strong>
+                    <field name="verification_note" nolabel="1" readonly="1" class="d-inline"/>
+                </div>
+            </xpath>
+
+            <xpath expr="//page[@name='other_information']" position="after">
+                <page string="Verification &amp; Credit" name="lab_order_control">
+                    <group>
+                        <group string="Maker / Checker">
+                            <field name="entered_by_id"/>
+                            <field name="verified_by_id"/>
+                            <field name="verification_date"/>
+                            <field name="verification_note"
+                                   placeholder="What needs correcting..."
+                                   groups="lab_order_control.group_lab_order_checker"/>
+                        </group>
+                        <group string="Credit">
+                            <field name="partner_credit_limit"/>
+                            <field name="partner_credit_exposure"/>
+                            <field name="credit_override_by_id"/>
+                            <field name="credit_override_reason"
+                                   groups="lab_order_control.group_lab_credit_override"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_list_order_control" model="ir.ui.view">
+        <field name="name">sale.order.list.order.control</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="verification_state" widget="badge" optional="show"
+                       decoration-success="verification_state == 'verified'"
+                       decoration-warning="verification_state == 'to_verify'"
+                       decoration-danger="verification_state == 'rejected'"/>
+                <field name="entered_by_id" optional="hide"/>
+                <field name="verified_by_id" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_sales_order_filter_order_control" model="ir.ui.view">
+        <field name="name">sale.order.search.order.control</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <filter name="my_sale_orders_filter" position="after">
+                <separator/>
+                <filter name="to_verify" string="To Verify"
+                        domain="[('verification_state', '=', 'to_verify')]"/>
+                <filter name="verified" string="Verified"
+                        domain="[('verification_state', '=', 'verified')]"/>
+                <!-- Same fact the "Pending Information" tile and list already show -
+                     named to match them, so the chip this leaves behind reads the
+                     same as what clicking the tile would say. (client, 2026-08-29) -->
+                <filter name="on_hold" string="Pending Information"
+                        domain="[('verification_state', '=', 'on_hold')]"/>
+                <filter name="sent_back" string="Sent Back"
+                        domain="[('verification_state', '=', 'rejected')]"/>
+                <filter name="urgent" string="Urgent" domain="[('priority', '=', 'urgent')]"/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="action_lab_orders_to_verify" model="ir.actions.act_window">
+        <field name="name">Orders to Verify</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('verification_state', '=', 'to_verify')]</field>
+        <field name="context">{'search_default_urgent': 0}</field>
+        <!-- The queue list carries the KPI tiles (Epic D-2) and the ageing columns. -->
+        <field name="view_id" ref="lab_order_control.view_order_list_verification"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing waiting to be verified</p>
+            <p>Cases registered at the counter or submitted from the field land here for a
+               second pair of eyes before they go into production.</p>
+        </field>
+    </record>
+
+    <record id="action_lab_orders_sent_back" model="ir.actions.act_window">
+        <field name="name">Sent Back for Correction</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('verification_state', '=', 'rejected')]</field>
+    </record>
+</odoo>

@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="petty_cash.PettyCashDashboard">
+        <div class="o_pc_dashboard o_action">
+
+            <!-- ── Hero header ─────────────────────────────────────────── -->
+            <div class="o_pc_hero">
+                <div class="o_pc_hero_top">
+                    <div class="o_pc_hero_title">
+                        <div class="o_pc_hero_icon"><i class="fa fa-money"/></div>
+                        <div>
+                            <h1>Petty Cash</h1>
+                            <div class="o_pc_hero_sub">
+                                <t t-if="state.data" t-esc="state.data.is_manager ? 'Organization-wide overview' : 'My petty cash overview'"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_pc_period">
+                        <button t-on-click="() => this.setPeriod('month')" t-att-class="state.period === 'month' ? 'active' : ''">Month</button>
+                        <button t-on-click="() => this.setPeriod('quarter')" t-att-class="state.period === 'quarter' ? 'active' : ''">Quarter</button>
+                        <button t-on-click="() => this.setPeriod('year')" t-att-class="state.period === 'year' ? 'active' : ''">Year</button>
+                        <button t-on-click="() => this.setPeriod('all')" t-att-class="state.period === 'all' ? 'active' : ''">All</button>
+                    </div>
+                </div>
+
+                <div t-if="!state.loading and state.data" class="o_pc_chips">
+                    <span class="o_pc_chip"><i class="fa fa-users"/><t t-esc="state.data.kpis.holder_count"/> holders</span>
+                    <span class="o_pc_chip o_pc_chip_ok"><i class="fa fa-check-circle"/><t t-esc="state.data.kpis.healthy_count"/> healthy</span>
+                    <span class="o_pc_chip o_pc_chip_warn"><i class="fa fa-exclamation-circle"/><t t-esc="state.data.kpis.low_count"/> low</span>
+                    <span class="o_pc_chip o_pc_chip_crit"><i class="fa fa-times-circle"/><t t-esc="state.data.kpis.critical_count"/> critical</span>
+                    <span class="o_pc_chip"><i class="fa fa-tags"/>Float <t t-esc="state.data.kpis.float_total_str"/></span>
+                    <span t-if="state.data.kpis.pending_replenishment" class="o_pc_chip o_pc_chip_info">
+                        <i class="fa fa-refresh"/><t t-esc="state.data.kpis.pending_replenishment"/> top-up(s) pending
+                    </span>
+                </div>
+            </div>
+
+            <div t-if="state.loading" class="o_pc_loading">
+                <i class="fa fa-circle-o-notch fa-spin fa-3x"/>
+                <div class="mt-3">Loading dashboard…</div>
+            </div>
+
+            <t t-if="!state.loading and state.data">
+                <t t-set="d" t-value="state.data"/>
+                <t t-set="k" t-value="d.kpis"/>
+
+                <!-- ── KPI cards ───────────────────────────────────────── -->
+                <div class="o_pc_kpis">
+                    <div class="o_pc_kpi o_pc_a_primary" t-on-click="() => this.openAllocations(d.domains.active)">
+                        <div class="o_pc_kpi_ic"><i class="fa fa-money"/></div>
+                        <div class="o_pc_kpi_body">
+                            <div class="o_pc_kpi_label">Allocated</div>
+                            <div class="o_pc_kpi_value"><t t-esc="k.allocated_str"/></div>
+                            <div class="o_pc_kpi_sub"><t t-esc="k.active_count"/> active</div>
+                        </div>
+                    </div>
+                    <div class="o_pc_kpi o_pc_a_warning" t-on-click="() => this.openAllocations(d.domains.active)">
+                        <div class="o_pc_kpi_ic"><i class="fa fa-shopping-cart"/></div>
+                        <div class="o_pc_kpi_body">
+                            <div class="o_pc_kpi_label">Utilized</div>
+                            <div class="o_pc_kpi_value"><t t-esc="k.utilized_str"/></div>
+                            <div class="o_pc_kpi_sub"><t t-esc="k.utilization"/>% of allocated</div>
+                        </div>
+                    </div>
+                    <div class="o_pc_kpi o_pc_a_success" t-on-click="() => this.openAllocations(d.domains.active)">
+                        <div class="o_pc_kpi_ic"><i class="fa fa-balance-scale"/></div>
+                        <div class="o_pc_kpi_body">
+                            <div class="o_pc_kpi_label">Available Balance</div>
+                            <div class="o_pc_kpi_value"><t t-esc="k.balance_str"/></div>
+                            <div class="o_pc_kpi_sub">avg <t t-esc="k.avg_balance_str"/>/holder</div>
+                        </div>
+                    </div>
+                    <div class="o_pc_kpi o_pc_a_info" t-on-click="() => this.openAllocations(d.domains.returned)">
+                        <div class="o_pc_kpi_ic"><i class="fa fa-check-square-o"/></div>
+                        <div class="o_pc_kpi_body">
+                            <div class="o_pc_kpi_label">Closed Allocations</div>
+                            <div class="o_pc_kpi_value"><t t-esc="k.returned_str"/></div>
+                            <div class="o_pc_kpi_sub"><t t-esc="k.returned_count"/> fully closed</div>
+                        </div>
+                    </div>
+                    <div class="o_pc_kpi o_pc_a_secondary" t-on-click="() => this.openAllocations(d.domains.partial_returned)">
+                        <div class="o_pc_kpi_ic"><i class="fa fa-reply"/></div>
+                        <div class="o_pc_kpi_body">
+                            <div class="o_pc_kpi_label">Partial Returns</div>
+                            <div class="o_pc_kpi_value"><t t-esc="k.partial_returned_str"/></div>
+                            <div class="o_pc_kpi_sub">on active allocations</div>
+                        </div>
+                    </div>
+                    <div class="o_pc_kpi o_pc_a_primary" t-on-click="() => this.openAllocations(d.domains.active)">
+                        <div class="o_pc_kpi_ic"><i class="fa fa-folder-open"/></div>
+                        <div class="o_pc_kpi_body">
+                            <div class="o_pc_kpi_label">Active Allocations</div>
+                            <div class="o_pc_kpi_value"><t t-esc="k.active_count"/></div>
+                            <div class="o_pc_kpi_sub"><t t-esc="k.submitted_count"/> awaiting approval</div>
+                        </div>
+                    </div>
+                    <div class="o_pc_kpi o_pc_a_warning" t-on-click="() => this.openAllocations(d.domains.active)">
+                        <div class="o_pc_kpi_ic"><i class="fa fa-tachometer"/></div>
+                        <div class="o_pc_kpi_body">
+                            <div class="o_pc_kpi_label">Avg Utilization</div>
+                            <div class="o_pc_kpi_value"><t t-esc="k.avg_utilization"/>%</div>
+                            <div class="o_pc_kpi_sub">per allocation</div>
+                        </div>
+                    </div>
+                    <div class="o_pc_kpi o_pc_a_danger" t-on-click="() => this.openTransactions(d.domains.expense)">
+                        <div class="o_pc_kpi_ic"><i class="fa fa-credit-card"/></div>
+                        <div class="o_pc_kpi_body">
+                            <div class="o_pc_kpi_label">Spend This Period</div>
+                            <div class="o_pc_kpi_value"><t t-esc="k.expense_total_str"/></div>
+                            <div class="o_pc_kpi_sub"><t t-esc="k.expense_count"/> transaction(s)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Charts row ──────────────────────────────────────── -->
+                <div class="o_pc_grid3">
+                    <!-- Utilization donut -->
+                    <div class="o_pc_card">
+                        <div class="o_pc_card_h">Overall Utilization</div>
+                        <div class="o_pc_donut_wrap">
+                            <svg viewBox="0 0 36 36" class="o_pc_donut">
+                                <path class="o_pc_donut_bg"
+                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                <path t-attf-class="o_pc_donut_fg o_pc_stroke_{{ k.utilization >= 85 ? 'danger' : k.utilization >= 60 ? 'warning' : 'success' }}"
+                                      t-attf-stroke-dasharray="{{ this.barWidth(k.utilization) }}, 100"
+                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                <text x="18" y="17.5" class="o_pc_donut_num"><t t-esc="k.utilization"/>%</text>
+                                <text x="18" y="22.5" class="o_pc_donut_cap">utilized</text>
+                            </svg>
+                        </div>
+                        <div class="o_pc_donut_legend">
+                            <span><i class="o_pc_dot o_pc_bg_warning"/>Utilized <b><t t-esc="k.utilized_str"/></b></span>
+                            <span><i class="o_pc_dot o_pc_bg_success"/>Available <b><t t-esc="k.balance_str"/></b></span>
+                        </div>
+                    </div>
+
+                    <!-- Health distribution -->
+                    <div class="o_pc_card">
+                        <div class="o_pc_card_h">Balance Health</div>
+                        <t t-set="htotal" t-value="k.healthy_count + k.low_count + k.critical_count"/>
+                        <div class="o_pc_stack">
+                            <div class="o_pc_seg o_pc_bg_success" t-attf-style="width: {{ this.pct(k.healthy_count, htotal) }}%"/>
+                            <div class="o_pc_seg o_pc_bg_warning" t-attf-style="width: {{ this.pct(k.low_count, htotal) }}%"/>
+                            <div class="o_pc_seg o_pc_bg_danger" t-attf-style="width: {{ this.pct(k.critical_count, htotal) }}%"/>
+                        </div>
+                        <div class="o_pc_hlegend">
+                            <div class="o_pc_hl_row"><span><i class="o_pc_dot o_pc_bg_success"/>Healthy</span><b><t t-esc="k.healthy_count"/></b></div>
+                            <div class="o_pc_hl_row"><span><i class="o_pc_dot o_pc_bg_warning"/>Low balance</span><b><t t-esc="k.low_count"/></b></div>
+                            <div class="o_pc_hl_row"><span><i class="o_pc_dot o_pc_bg_danger"/>Critical</span><b><t t-esc="k.critical_count"/></b></div>
+                        </div>
+                    </div>
+
+                    <!-- Quick stats -->
+                    <div class="o_pc_card">
+                        <div class="o_pc_card_h">At a Glance</div>
+                        <div class="o_pc_glance">
+                            <div class="o_pc_g_row o_pc_g_eq">
+                                <span><i class="fa fa-money text-muted"/>Allocated</span><b><t t-esc="k.allocated_str"/></b>
+                            </div>
+                            <div class="o_pc_g_row o_pc_g_sub">
+                                <span><i class="fa fa-shopping-cart text-muted"/>− Utilized</span><b class="text-warning"><t t-esc="k.utilized_str"/></b>
+                            </div>
+                            <div class="o_pc_g_row o_pc_g_sub">
+                                <span><i class="fa fa-reply text-muted"/>− Part. Returned</span><b class="text-info"><t t-esc="k.partial_returned_str"/></b>
+                            </div>
+                            <div class="o_pc_g_row o_pc_g_total">
+                                <span><i class="fa fa-balance-scale text-muted"/>= Available</span><b class="text-success"><t t-esc="k.balance_str"/></b>
+                            </div>
+                            <div class="o_pc_g_row">
+                                <span><i class="fa fa-tags text-muted"/>Float target</span><b><t t-esc="k.float_total_str"/></b>
+                            </div>
+                            <div class="o_pc_g_row">
+                                <span><i class="fa fa-hourglass-half text-muted"/>Requests pending</span><b><t t-esc="k.submitted_count"/></b>
+                            </div>
+                            <div class="o_pc_g_row">
+                                <span><i class="fa fa-refresh text-muted"/>Top-ups pending</span><b><t t-esc="k.pending_replenishment"/></b>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Pending approvals (officers / managers) ─────────── -->
+                <div t-if="d.is_manager" class="o_pc_pendings">
+                    <div class="o_pc_pending" t-on-click="() => this.openApprovals('petty.cash.transaction', [['type','=','allocation'],['state','=','submitted']])">
+                        <i class="fa fa-inbox"/><span>Allocation Requests</span>
+                        <b t-att-class="d.pending.allocation ? 'o_pc_badge_on' : ''"><t t-esc="d.pending.allocation"/></b>
+                    </div>
+                    <div class="o_pc_pending" t-on-click="() => this.openApprovals('petty.cash.expense', [['state','=','submitted']])">
+                        <i class="fa fa-file-text-o"/><span>Expense Approvals</span>
+                        <b t-att-class="d.pending.expense ? 'o_pc_badge_on' : ''"><t t-esc="d.pending.expense"/></b>
+                    </div>
+                    <div class="o_pc_pending" t-on-click="() => this.openApprovals('petty.cash.transaction', [['type','=','return'],['state','=','submitted']])">
+                        <i class="fa fa-undo"/><span>Return Approvals</span>
+                        <b t-att-class="d.pending.return ? 'o_pc_badge_on' : ''"><t t-esc="d.pending.return"/></b>
+                    </div>
+                </div>
+
+                <!-- ── Holders + side panels ───────────────────────────── -->
+                <div class="o_pc_grid_main">
+                    <div class="o_pc_card">
+                        <div class="o_pc_card_h"><t t-esc="d.is_manager ? 'Cash Holders' : 'My Allocations'"/></div>
+                        <table class="o_pc_table">
+                            <t t-set="any_partial" t-value="d.holders.some(r => r.partial_returned > 0)"/>
+                            <thead>
+                                <tr>
+                                    <th>Holder</th>
+                                    <th class="text-end">Allocated</th>
+                                    <th class="text-end" t-if="any_partial" title="Cash returned while allocation is still active">Part. Returned</th>
+                                    <th class="text-end">Balance</th>
+                                    <th style="width:28%;">Utilization</th>
+                                    <th class="text-center">Health</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="d.holders" t-as="row" t-key="row.id" t-on-click="() => this.openHolder(row.id)">
+                                    <td>
+                                        <span class="o_pc_avatar" t-esc="row.name.substring(0,2).toUpperCase()"/>
+                                        <span class="o_pc_holder_name" t-esc="row.name"/>
+                                    </td>
+                                    <td class="text-end"><t t-esc="row.allocated_str"/></td>
+                                    <td t-if="any_partial" class="text-end text-info">
+                                        <t t-if="row.partial_returned > 0" t-esc="row.partial_returned_str"/>
+                                        <span t-else="" class="text-muted">—</span>
+                                    </td>
+                                    <td class="text-end fw-bold"><t t-esc="row.balance_str"/></td>
+                                    <td>
+                                        <div class="o_pc_bar">
+                                            <div t-attf-class="o_pc_bar_fill o_pc_bg_{{ this.healthColor(row.health) }}"
+                                                 t-attf-style="width: {{ this.barWidth(row.utilization) }}%"/>
+                                        </div>
+                                        <span class="o_pc_bar_lbl"><t t-esc="row.utilization"/>%</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span t-attf-class="o_pc_pill o_pc_pill_{{ this.healthColor(row.health) }}"><t t-esc="row.health"/></span>
+                                    </td>
+                                </tr>
+                                <tr t-if="!d.holders.length"><td colspan="5" class="o_pc_empty">No active allocations.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="o_pc_side">
+                        <div class="o_pc_card">
+                            <div class="o_pc_card_h o_pc_h_danger"><i class="fa fa-exclamation-triangle"/>Needs Attention</div>
+                            <div class="o_pc_list">
+                                <button t-foreach="d.attention" t-as="a" t-key="a.id" class="o_pc_li"
+                                        t-on-click="() => this.openAllocations([['id','=',a.id]])">
+                                    <span class="o_pc_li_l">
+                                        <span t-attf-class="o_pc_pill o_pc_pill_{{ this.healthColor(a.health) }}"><t t-esc="a.utilization"/>%</span>
+                                        <span t-esc="a.holder"/>
+                                    </span>
+                                    <span class="o_pc_li_r"><t t-esc="a.balance_str"/></span>
+                                </button>
+                                <div t-if="!d.attention.length" class="o_pc_empty">All balances healthy 🎉</div>
+                            </div>
+                        </div>
+
+                        <div class="o_pc_card">
+                            <div class="o_pc_card_h"><i class="fa fa-tags"/>Top Spend</div>
+                            <div class="o_pc_list">
+                                <t t-set="topmax" t-value="d.top_spend.length ? d.top_spend[0].amount : 0"/>
+                                <div t-foreach="d.top_spend" t-as="s" t-key="s_index" class="o_pc_spend">
+                                    <div class="o_pc_spend_top">
+                                        <span class="o_pc_spend_name" t-esc="s.name"/>
+                                        <b t-esc="s.amount_str"/>
+                                    </div>
+                                    <div class="o_pc_bar o_pc_bar_sm">
+                                        <div class="o_pc_bar_fill o_pc_bg_primary" t-attf-style="width: {{ this.pct(s.amount, topmax) }}%"/>
+                                    </div>
+                                </div>
+                                <div t-if="!d.top_spend.length" class="o_pc_empty">No expenses yet.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

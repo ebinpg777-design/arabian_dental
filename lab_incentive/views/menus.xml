@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+      No root menu. An incentive is not an application either — it is one number an
+      executive checks about their own month, and a short approval queue a manager
+      works through. So it goes where each of those people already is.
+    -->
+    <menuitem id="menu_incentive_my" name="My Incentive"
+              parent="lab_fieldwork.menu_fieldwork_root" sequence="45"
+              action="action_incentive_sheet_my"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <menuitem id="menu_incentive_sheets" name="Incentive Sheets"
+              parent="lab_ceo_dashboard.menu_lab_ceo_root" sequence="20"
+              action="action_incentive_sheet"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_incentive_generate" name="Generate Incentive Sheets"
+              parent="lab_ceo_dashboard.menu_lab_ceo_root" sequence="21"
+              action="action_generate_sheets"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_incentive_analysis" name="Incentive Analysis"
+              parent="lab_ceo_dashboard.menu_lab_ceo_root" sequence="22"
+              action="action_incentive_analysis"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <!-- Configuration sits with the other field-work configuration, not in a
+         top-level place of its own. -->
+    <menuitem id="menu_incentive_rules" name="Incentive Rules"
+              parent="lab_fieldwork.menu_fw_config" sequence="30"
+              action="action_incentive_rule"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+</odoo>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="epg_whatsapp.Chats">
+    <!-- Odoo's own control panel on top: the breadcrumb back to the record or the
+         contact this chat was opened from. (client, 2026-09-18) -->
+    <Layout display="{ controlPanel: {} }" className="'o_wa_chats' + (state.showThread ? ' o_wa_chats_thread' : '')">
+
+        <!-- ================================================ the list -->
+        <aside class="o_wa_chats_list">
+            <div class="o_wa_chats_search">
+                <i class="fa fa-search" title="Search"/>
+                <input type="search" placeholder="Search a doctor or number" t-model="state.search"
+                       t-on-input="() => this.onSearch()"/>
+            </div>
+            <div t-if="state.loading" class="text-center text-muted py-4">
+                <i class="fa fa-circle-o-notch fa-spin" title="Loading"/>
+            </div>
+            <div t-elif="!state.chats.length" class="o_wa_chats_empty">
+                <i class="fa fa-comments-o" title="No chats"/>
+                <div>No conversations yet. The first message to a doctor starts one.</div>
+            </div>
+            <button t-foreach="state.chats" t-as="c" t-key="c.id" class="o_wa_chat"
+                    t-att-class="{ o_wa_chat_on: c.id === state.openId, o_wa_chat_wait: c.awaiting }"
+                    t-on-click="() => this.open(c.id)">
+                <span class="o_wa_card_av" t-esc="initials(c.partner or c.number)"/>
+                <span class="o_wa_chat_main">
+                    <span class="o_wa_chat_top">
+                        <span class="o_wa_chat_name" t-esc="c.partner or ('+' + c.number)"/>
+                        <span class="o_wa_chat_when" t-esc="c.when"/>
+                    </span>
+                    <span class="o_wa_chat_last">
+                        <span t-if="c.opt_out" class="o_wa_chip o_wa_chip_stop">stopped</span>
+                        <t t-if="!c.last_inbound and c.last">You: </t><t t-esc="c.last"/>
+                    </span>
+                </span>
+                <span t-if="c.awaiting" class="o_wa_chat_badge" title="They wrote last">
+                    <i class="fa fa-reply" title="Reply?"/>
+                </span>
+            </button>
+        </aside>
+
+        <!-- ================================================ the thread -->
+        <section class="o_wa_chats_pane">
+            <div t-if="!t and !state.threadLoading" class="o_wa_chats_pick">
+                <div class="o_wa_chats_pick_logo"><i class="fa fa-whatsapp" title="WhatsApp"/></div>
+                <div class="o_wa_chats_pick_h">Pick a conversation</div>
+                <div>Everything said to a doctor and everything they answered, in one place.</div>
+            </div>
+            <t t-elif="t">
+                <div class="o_wa_thread_head">
+                    <button class="o_wa_back" t-on-click="() => this.back()" title="Back to the list">
+                        <i class="fa fa-arrow-left" title="Back"/>
+                    </button>
+                    <span class="o_wa_card_av" t-esc="initials(t.partner or t.number)"/>
+                    <div class="o_wa_thread_who">
+                        <div class="o_wa_thread_name">
+                            <a t-if="t.partner_id" href="#" t-on-click.prevent="() => this.openPartner()" t-esc="t.partner or ('+' + t.number)"/>
+                            <t t-else="" t-esc="'+' + t.number"/>
+                        </div>
+                        <div class="o_wa_thread_meta">
+                            +<t t-esc="t.number"/>
+                            <t t-if="t.engagement"> · <t t-esc="t.engagement"/></t>
+                            <t t-if="t.best_time"> · <t t-esc="t.best_time"/></t>
+                        </div>
+                    </div>
+                    <button t-if="t.partner_id" class="btn btn-sm btn-light" t-on-click="() => this.importChat()" title="Import a chat exported from WhatsApp">
+                        <i class="fa fa-upload me-1" title="Import"/><span class="d-none d-md-inline">Import chat</span>
+                    </button>
+                </div>
+
+                <div t-if="state.focus" class="o_wa_focus_note">
+                    <i class="fa fa-bookmark me-1" title="Record"/>Messages about the record you came from are marked.
+                </div>
+                <div class="o_wa_thread" t-ref="thread">
+                    <div t-if="state.threadLoading" class="text-center text-muted py-4">
+                        <i class="fa fa-circle-o-notch fa-spin" title="Loading"/>
+                    </div>
+                    <t t-foreach="t.bubbles" t-as="b" t-key="b.id">
+                        <div t-if="b.kind === 'day'" class="o_wa_day"><span t-esc="b.label"/></div>
+                        <div t-else="" class="o_wa_msg" t-att-class="{ o_wa_msg_in: b.inbound, o_wa_msg_out: !b.inbound, o_wa_msg_cancel: b.cancelled, o_wa_msg_focus: isFocused(b) }">
+                            <div class="o_wa_msg_bubble">
+                                <div t-if="b.template" class="o_wa_msg_tpl" t-esc="b.template"/>
+                                <t t-foreach="lines(b.text)" t-as="line" t-key="line_index">
+                                    <div t-if="line.blank" class="o_wa_gap"/>
+                                    <div t-else="" t-out="line.html"/>
+                                </t>
+                                <div t-if="b.document" class="o_wa_msg_doc"><i class="fa fa-file-pdf-o me-1" title="Document"/><t t-esc="b.document"/></div>
+                                <div t-if="b.pay" class="o_wa_msg_doc"><i class="fa fa-credit-card me-1" title="Pay now"/>Pay now · <t t-esc="b.pay"/></div>
+                                <div t-if="b.replies.length" class="o_wa_msg_replies">
+                                    <span t-foreach="b.replies" t-as="r" t-key="r_index" class="o_wa_reply_chip" t-esc="r"/>
+                                </div>
+                                <div class="o_wa_msg_time">
+                                    <a t-if="b.record" href="#" class="me-1" t-on-click.prevent="() => this.openRecord(b)" t-esc="b.record"/>
+                                    <t t-if="b.waiting"><span class="o_wa_msg_wait">on the Desk</span></t>
+                                    <t t-elif="b.cancelled"><span class="o_wa_msg_wait">not sent</span></t>
+                                    <t t-esc="b.time"/>
+                                    <span t-if="!b.inbound and !b.waiting and !b.cancelled" class="o_wa_ticks" t-att-class="{ o_wa_ticks_seen: b.ticks === 2 }">
+                                        <i class="fa fa-check" title="Sent"/><i t-if="b.ticks === 2" class="fa fa-check" title="Read"/>
+                                    </span>
+                                </div>
+                            </div>
+                            <button t-if="b.waiting" class="btn btn-sm btn-success o_wa_msg_send" t-on-click="() => this.sendWaiting(b)">
+                                <i class="fa fa-whatsapp me-1" title="WhatsApp"/>Send now
+                            </button>
+                            <div t-if="b.events.length" class="o_wa_msg_events">
+                                <span t-foreach="b.events" t-as="e" t-key="e_index"><i class="fa fa-eye me-1" title="Event"/><t t-esc="e"/></span>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+                <div class="o_wa_compose">
+                    <div t-if="t.opt_out" class="o_wa_compose_stop">
+                        <i class="fa fa-ban me-1" title="Stopped"/>This doctor asked not to be messaged on WhatsApp.
+                    </div>
+                    <t t-else="">
+                        <div t-if="state.replying" class="o_wa_compose_reply">
+                            <input class="form-control" placeholder="What they wrote in WhatsApp" t-model="state.replyText"
+                                   t-on-keydown="(ev) => ev.key === 'Enter' and this.logReply()"/>
+                            <button class="btn btn-primary" t-on-click="() => this.logReply()">Log</button>
+                            <button class="btn btn-light" t-on-click="() => state.replying = false"><i class="fa fa-times" title="Close"/></button>
+                        </div>
+                        <div class="o_wa_compose_row">
+                            <select t-if="t.snippets.length" class="o_wa_compose_snip" title="Saved replies" t-on-change="(ev) => this.pickSnippet(ev)">
+                                <option value="">💬 Saved…</option>
+                                <option t-foreach="t.snippets" t-as="s" t-key="s.id" t-att-value="s.id" t-esc="s.name"/>
+                            </select>
+                            <textarea class="o_wa_compose_in" rows="1" placeholder="Write a message…" t-ref="compose"
+                                      t-model="state.text" t-on-keydown="(ev) => this.onComposeKeydown(ev)"/>
+                            <button class="o_wa_compose_reply_btn" title="Log something they wrote in WhatsApp" t-on-click="() => state.replying = !state.replying">
+                                <i class="fa fa-reply" title="Log their reply"/>
+                            </button>
+                            <button class="o_wa_compose_send" t-att-disabled="!state.text.trim() or state.busy" t-on-click="() => this.send()" title="Open in WhatsApp (Ctrl+Enter)">
+                                <i class="fa fa-paper-plane" title="Send"/>
+                            </button>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </section>
+    </Layout>
+</t>
+
+</templates>

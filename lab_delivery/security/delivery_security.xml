@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_delivery_own" model="ir.rule">
+        <field name="name">Executives see their own deliveries</field>
+        <field name="model_id" ref="model_lab_delivery"/>
+        <!--
+            Theirs to carry, OR theirs to have raised.
+
+            Work genuinely changes hands in the field and the wizard offers other field
+            people under "Carried By" — but this rule covers create and write as well as
+            read, so naming a colleague made the create fail with a raw AccessError on
+            the record the executive had just filled in. Handing over is the point; not
+            being able to see what you handed over is the bug. (client, 2026-08-27)
+        -->
+        <field name="domain_force">['|', ('executive_id','=',user.id),
+                                         ('create_uid','=',user.id)]</field>
+        <field name="groups" eval="[(4, ref('lab_fieldwork.group_fieldwork_executive'))]"/>
+    </record>
+    <!-- A carrier's clinics. Deliveries are handed to whoever is going that way,
+         so an executive regularly carries work to a clinic on someone else's
+         route - and the route-only partner rule then refused the very clinic on
+         the delivery and on the visit it was handed over at ("doesn't have 'read'
+         access to Contact"). Read only, and only the clinics on deliveries this
+         rule above already shows them, with their doctors. (client, 2026-09-15) -->
+    <record id="rule_partner_executive_carried" model="ir.rule">
+        <field name="name">Executives: clinics they carry work to</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="domain_force">['|', '|', '|',
+            ('delivery_ids.executive_id', '=', user.id),
+            ('delivery_ids.create_uid', '=', user.id),
+            ('parent_id.delivery_ids.executive_id', '=', user.id),
+            ('parent_id.delivery_ids.create_uid', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('lab_fieldwork.group_fieldwork_executive'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <!-- The orders on the boxes an executive carries, whichever route the clinic
+         is on - the delivery form shows its order. Read only. (client, 2026-09-15) -->
+    <record id="rule_sale_order_executive_carried" model="ir.rule">
+        <field name="name">Executives: orders they carry</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="domain_force">['|',
+            ('delivery_ids.executive_id', '=', user.id),
+            ('delivery_ids.create_uid', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('lab_fieldwork.group_fieldwork_executive'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <!-- The sale.order grants an executive needs moved to lab_fieldwork on
+         2026-09-12 (rule_sale_order_executive_read / _manager_all and their ACL
+         rows). They were here because handover was the first feature to need
+         them, but lab_fieldwork's own visit form reads sale.order too and had
+         no grant of its own, so installing it without this module broke every
+         visit an executive opened. This module depends on lab_fieldwork, so
+         it still gets them. -->
+
+    <record id="rule_delivery_all" model="ir.rule">
+        <field name="name">Registration and managers see every delivery</field>
+        <field name="model_id" ref="model_lab_delivery"/>
+        <field name="domain_force">[(1,'=',1)]</field>
+        <field name="groups" eval="[(4, ref('lab_order_control.group_lab_order_checker')),
+                                    (4, ref('lab_fieldwork.group_fieldwork_manager')),
+                                    (4, ref('base.group_system')),
+                                    (4, ref('base.group_erp_manager'))]"/>
+    </record>
+</odoo>

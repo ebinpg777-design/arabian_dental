@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="crm_team_view_form_sticker" model="ir.ui.view">
+        <field name="name">crm.team.form.epg.sticker</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_form"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="address" placeholder="Printed on the route sticker"/>
+                <field name="phone"/>
+            </field>
+        </field>
+    </record>
+</odoo>

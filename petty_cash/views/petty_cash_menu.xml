@@ -1,0 +1,19 @@
+<odoo>
+    <menuitem id="menu_petty_cash_root" web_icon="petty_cash,static/description/icon.png" name="Petty Cash" sequence="35" groups="petty_cash.group_petty_cash_user"/>
+    <menuitem id="menu_petty_cash_dashboard" name="Dashboard" parent="menu_petty_cash_root" action="action_petty_cash_dashboard_kpi" sequence="5"/>
+    <menuitem id="menu_petty_cash" name="Operations" parent="menu_petty_cash_root" sequence="10"/>
+    <menuitem id="menu_petty_cash_allocations" name="Allocations" parent="menu_petty_cash" action="action_petty_cash_allocation" sequence="10"/>
+    <menuitem id="menu_petty_cash_transactions" name="Transactions" parent="menu_petty_cash" action="action_petty_cash_transaction" sequence="30"/>
+    <menuitem id="menu_petty_cash_expenses" name="Expenses" parent="menu_petty_cash" action="action_petty_cash_expense" sequence="20"/>
+    <menuitem id="menu_petty_cash_approvals" name="Approvals" parent="menu_petty_cash_root" sequence="20" groups="petty_cash.group_petty_cash_officer"/>
+    <menuitem id="menu_petty_cash_allocation_requests" name="Allocation Requests" parent="menu_petty_cash_approvals" action="action_petty_cash_allocation_approval" sequence="10" groups="petty_cash.group_petty_cash_manager"/>
+    <menuitem id="menu_petty_cash_expense_approvals" name="Expense Approvals" parent="menu_petty_cash_approvals" action="action_petty_cash_expense_approval" sequence="20" groups="petty_cash.group_petty_cash_manager"/>
+    <menuitem id="menu_petty_cash_return_approvals" name="Return Approvals" parent="menu_petty_cash_approvals" action="action_petty_cash_return_approval" sequence="30" groups="petty_cash.group_petty_cash_manager"/>
+    <menuitem id="menu_petty_cash_reporting" name="Reporting" parent="menu_petty_cash_root" sequence="90" groups="petty_cash.group_petty_cash_officer"/>
+    <menuitem id="menu_petty_cash_report_spend" name="Spend by Category" parent="menu_petty_cash_reporting" action="action_petty_cash_spend_report" sequence="10"/>
+    <menuitem id="menu_petty_cash_reports" name="Expense Analysis" parent="menu_petty_cash_reporting" action="action_petty_cash_reports" sequence="20"/>
+    <menuitem id="menu_petty_cash_report_allocation" name="Allocation Analysis" parent="menu_petty_cash_reporting" action="action_petty_cash_allocation_report" sequence="30"/>
+    <menuitem id="menu_petty_cash_report_transaction" name="Transaction Analysis" parent="menu_petty_cash_reporting" action="action_petty_cash_transaction_report" sequence="40"/>
+    <menuitem id="menu_petty_cash_config" name="Configuration" parent="menu_petty_cash_root" sequence="95" groups="base.group_system"/>
+    <menuitem id="menu_petty_cash_config_settings" name="Settings" parent="menu_petty_cash_config" action="action_petty_cash_config_settings" sequence="10" groups="base.group_system"/>
+</odoo>

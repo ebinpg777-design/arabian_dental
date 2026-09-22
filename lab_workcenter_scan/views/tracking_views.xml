@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        The chain, walkable from any link: order → visit → clinic → job → station.
+        A stat button that is only ever a number is decoration; each of these opens the
+        records behind it.
+    -->
+    <record id="view_production_form_tracking" model="ir.ui.view">
+        <field name="name">mrp.production.form.tracking</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <field name="has_field_visit" invisible="1"/>
+                <field name="clinic_id" invisible="1"/>
+                <button name="action_view_open_workorders" type="object"
+                        class="oe_stat_button" icon="fa-cogs"
+                        invisible="workorder_open_count == 0">
+                    <field name="workorder_open_count" widget="statinfo"
+                           string="Left to do"/>
+                </button>
+                <button name="action_view_visit" type="object"
+                        class="oe_stat_button" icon="fa-map-marker"
+                        invisible="not has_field_visit">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Collected</span>
+                        <span class="o_stat_text">On Visit</span>
+                    </div>
+                </button>
+                <button name="action_view_clinic" type="object"
+                        class="oe_stat_button" icon="fa-stethoscope"
+                        invisible="not clinic_id">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Clinic</span>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+
+    <record id="view_workcenter_form_tracking" model="ir.ui.view">
+        <field name="name">mrp.workcenter.form.tracking</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <div class="oe_button_box" name="wc_button_box">
+                    <button name="action_view_open_workorders" type="object"
+                            class="oe_stat_button" icon="fa-cogs"
+                            invisible="open_workorder_count == 0">
+                        <field name="open_workorder_count" widget="statinfo"
+                               string="Jobs Here"/>
+                    </button>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!--
+        The auto-close failure flag, somewhere a person can actually see it.
+
+        When a delivery cannot close its job the module flags the order and the catch-up
+        sweep skips it for ever after — which is right, but the flag appeared in no view,
+        no filter and no list, so a job parked that way was invisible and would sit open
+        indefinitely with nothing saying why. (client, 2026-08-27)
+    -->
+    <record id="view_production_form_close_failed" model="ir.ui.view">
+        <field name="name">mrp.production.form.close.failed</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_clear_close_failed" type="object"
+                        class="oe_stat_button" icon="fa-exclamation-triangle"
+                        invisible="not lab_close_failed">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Auto-close</span>
+                        <span class="o_stat_text">failed — retry</span>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+
+    <record id="view_production_search_close_failed" model="ir.ui.view">
+        <field name="name">mrp.production.search.close.failed</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.view_mrp_production_filter"/>
+        <field name="arch" type="xml">
+            <filter name="todo" position="after">
+                <separator/>
+                <filter name="lab_close_failed" string="Auto-close failed"
+                        domain="[('lab_close_failed', '=', True)]"/>
+            </filter>
+        </field>
+    </record>
+
+</odoo>

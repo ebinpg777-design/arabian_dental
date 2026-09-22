@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_bank_reconciliation_list" model="ir.ui.view">
+        <field name="name">bank.reconciliation.list</field>
+        <field name="model">bank.reconciliation</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'done'">
+                <field name="date"/>
+                <field name="journal_id"/>
+                <field name="account_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="bank_balance"/>
+                <field name="book_balance"/>
+                <field name="difference"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'" decoration-warning="state == 'draft'"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_bank_reconciliation_form" model="ir.ui.view">
+        <field name="name">bank.reconciliation.form</field>
+        <field name="model">bank.reconciliation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_open_screen" type="object" string="Open Matching Screen"
+                            class="btn-primary" invisible="not id or state != 'draft'"/>
+                    <button name="action_validate" type="object" string="Mark Reconciled"
+                            invisible="state != 'draft' or not id"/>
+                    <button name="action_start_next" type="object" string="Start Next Statement"
+                            class="btn-primary" invisible="state != 'done'"/>
+                    <button name="action_open_screen" type="object" string="View Matching Screen"
+                            invisible="state != 'done'"/>
+                    <button name="action_reset_draft" type="object" string="Reopen"
+                            invisible="state != 'done'" groups="account.group_account_manager"/>
+                    <button name="action_print_pdf" type="object" string="Print BRS"
+                            invisible="not id"/>
+                    <button name="action_download_xlsx" type="object" string="Excel"
+                            invisible="not id"/>
+                    <button name="action_print_query_letter" type="object" string="Query Letter"
+                            invisible="not id"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Statement">
+                            <field name="company_id" groups="base.group_multi_company"
+                                   readonly="state == 'done'"/>
+                            <field name="journal_id" readonly="state == 'done'"/>
+                            <field name="account_id" readonly="state == 'done'"/>
+                            <field name="date" readonly="state == 'done'"/>
+                            <field name="bank_balance" readonly="state == 'done'"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Bank Reconciliation Statement">
+                            <field name="book_balance"/>
+                            <field name="deposits_not_credited"/>
+                            <field name="payments_not_presented"/>
+                            <field name="adjusted_balance"/>
+                            <field name="difference"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Bank charges and interest">
+                            <field name="charge_account_id" readonly="state == 'done'"/>
+                            <field name="interest_account_id" readonly="state == 'done'"/>
+                            <field name="charge_tolerance" readonly="state == 'done'"/>
+                        </group>
+                        <group string="Ageing">
+                            <field name="stale_days" readonly="state == 'done'"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Notes for the auditor…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_bank_reconciliation_search" model="ir.ui.view">
+        <field name="name">bank.reconciliation.search</field>
+        <field name="model">bank.reconciliation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="journal_id"/>
+                <field name="account_id"/>
+                <filter name="draft" string="In Progress" domain="[('state', '=', 'draft')]"/>
+                <filter name="done" string="Reconciled" domain="[('state', '=', 'done')]"/>
+                <group>
+                    <filter name="by_journal" string="Bank" context="{'group_by': 'journal_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_bank_reconciliation" model="ir.actions.act_window">
+        <field name="name">Bank Reconciliation Statements</field>
+        <field name="res_model">bank.reconciliation</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_bank_reconciliation_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Reconcile a bank</p>
+            <p>Pick the bank and the statement date, enter the passbook balance, then tick
+               the lines the bank has cleared. The statement works out the rest.</p>
+        </field>
+    </record>
+
+    <record id="action_bank_reconciliation_screen" model="ir.actions.client">
+        <field name="name">Bank Reconciliation</field>
+        <field name="tag">bank_reconciliation_screen</field>
+    </record>
+
+    <record id="action_bank_reconciliation_overview" model="ir.actions.client">
+        <field name="name">Bank Reconciliation</field>
+        <field name="tag">bank_reconciliation_overview</field>
+    </record>
+
+    <menuitem id="menu_bank_reconciliation" name="Bank Reconciliation"
+              parent="account.menu_finance_entries" action="action_bank_reconciliation_overview"
+              sequence="25" groups="account.group_account_readonly"/>
+    <menuitem id="menu_bank_reconciliation_statements" name="Bank Reconciliation Statements"
+              parent="account.menu_finance_entries" action="action_bank_reconciliation"
+              sequence="26" groups="account.group_account_readonly"/>
+</odoo>

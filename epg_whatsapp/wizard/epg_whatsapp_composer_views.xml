@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_composer_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.composer.form</field>
+        <field name="model">epg.whatsapp.composer</field>
+        <field name="arch" type="xml">
+            <form string="Send WhatsApp">
+                <field name="res_model" invisible="1"/>
+                <field name="res_id" invisible="1"/>
+                <field name="channel" invisible="1"/>
+                <div class="alert alert-success py-2 d-flex align-items-center gap-2" role="status"
+                     invisible="channel != 'link'">
+                    <i class="fa fa-whatsapp fa-lg" title="WhatsApp"/>
+                    <span>Opens in <b>your WhatsApp</b> with the message typed in - free, no Meta
+                        charge. Press Send there, confirm here, and it is logged on
+                        <field name="record_name" class="oe_inline fw-bold" readonly="1"/>.</span>
+                </div>
+                <group>
+                    <group>
+                        <field name="template_id" options="{'no_create': True}"
+                               placeholder="No template - write freely"/>
+                        <field name="number" placeholder="e.g. +91 98470 12345"/>
+                    </group>
+                    <group>
+                        <field name="account_id" options="{'no_create': True}"/>
+                        <field name="snippet_id" options="{'no_create': True}"
+                               placeholder="Drop in a saved reply…"/>
+                    </group>
+                </group>
+                <!-- Editable on purpose: the template is the starting point, and the
+                     person sending often knows something it does not. -->
+                <field name="body" nolabel="1" widget="wa_editor"
+                       options="{'model_field': 'res_model'}"
+                       placeholder="The message that will be sent…"/>
+                <footer>
+                    <button name="action_send" type="object" class="btn-primary" data-hotkey="q"
+                            invisible="channel != 'link'" icon="fa-whatsapp"
+                            string="Open in WhatsApp"/>
+                    <button name="action_queue" type="object" class="btn-secondary" data-hotkey="w"
+                            invisible="channel != 'link'" icon="fa-inbox"
+                            string="Send later from the Desk"/>
+                    <button name="action_send" type="object" string="Send" class="btn-primary"
+                            data-hotkey="q" invisible="channel == 'link'"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_composer" model="ir.actions.act_window">
+        <field name="name">Send WhatsApp</field>
+        <field name="res_model">epg.whatsapp.composer</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

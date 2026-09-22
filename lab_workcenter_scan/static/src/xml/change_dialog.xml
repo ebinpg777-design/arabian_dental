@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.ChangeDialog">
+    <Dialog title="'Correct this job?'" size="'md'" footer="false"
+            contentClass="'o_st_change_dlg'">
+
+        <!-- Which job. A wrong card must be obvious BEFORE anything is changed,
+             so it is named the way the cards name it. -->
+        <div class="o_st_doing_job">
+            <span class="o_st_mo" t-esc="props.job.production or props.job.name"/>
+            <span t-if="props.job.order" class="o_st_ref" t-esc="props.job.order"/>
+            <div t-if="props.job.patient or props.job.clinic" class="o_st_case">
+                <span t-if="props.job.patient" class="o_st_patient" t-esc="props.job.patient"/>
+                <span t-if="props.job.patient and props.job.clinic"> · </span>
+                <span t-if="props.job.clinic" class="o_st_clinic" t-esc="props.job.clinic"/>
+            </div>
+            <div class="o_st_doing_next">
+                <i class="fa fa-industry me-1" title="Now at"/>
+                Now at <strong t-esc="props.job.operation"/>
+            </div>
+        </div>
+
+        <!-- Who is doing it. Tapping the name already on the job clears it:
+             "nobody, this was never given out" is as common a correction as
+             another name. -->
+        <div class="o_st_doing_lead">Who is doing it?</div>
+        <div t-if="!props.canAssign" class="o_st_change_note">
+            Giving work out is the bench lead's call, so the name is shown but
+            cannot be changed here.
+        </div>
+        <div class="o_st_tiles o_st_tiles_who">
+            <button t-foreach="props.people" t-as="p" t-key="p.id"
+                    class="o_st_tile o_st_tile_who"
+                    t-att-class="state.benchUserId === p.id ? 'o_st_tile_on' : ''"
+                    t-att-disabled="state.busy or !props.canAssign"
+                    t-on-click="() => this.pickPerson(p.id)">
+                <span class="o_st_tile_name" t-esc="p.name"/>
+                <span t-if="p.is_lead" class="o_st_tile_load">lead</span>
+            </button>
+        </div>
+
+        <!-- Only where the bench records the two separately. -->
+        <t t-if="props.wantsFinisher">
+            <div class="o_st_doing_lead">Who finished it?</div>
+            <div class="o_st_tiles o_st_tiles_who">
+                <button t-foreach="props.people" t-as="p" t-key="p.id"
+                        class="o_st_tile o_st_tile_who"
+                        t-att-class="state.finisherUserId === p.id ? 'o_st_tile_on' : ''"
+                        t-att-disabled="state.busy"
+                        t-on-click="() => this.pickFinisher(p.id)">
+                    <span class="o_st_tile_name" t-esc="p.name"/>
+                </button>
+            </div>
+        </t>
+
+        <div class="o_st_doing_lead">Where does it stand?</div>
+        <div class="o_st_tiles o_st_tiles_status">
+            <button t-foreach="statuses" t-as="s" t-key="s.key"
+                    class="o_st_tile o_st_tile_status"
+                    t-att-class="state.status === s.key ? 'o_st_tile_on' : ''"
+                    t-att-disabled="state.busy"
+                    t-on-click="() => this.pickStatus(s.key)">
+                <span class="o_st_tile_name" t-esc="s.label"/>
+                <span class="o_st_tile_load" t-esc="s.hint"/>
+            </button>
+        </div>
+
+        <!-- The floor's own refusals, beside what was chosen rather than as a
+             toast over a screen that has already closed. -->
+        <div t-if="state.error" class="o_st_change_err" role="alert">
+            <i class="fa fa-exclamation-triangle me-1" title="Refused"/>
+            <t t-esc="state.error"/>
+        </div>
+
+        <button class="o_st_change_go" t-att-disabled="!dirty or state.busy"
+                t-on-click="() => this.confirm()">
+            <i class="fa fa-check me-1" title="Confirm"/>
+            <t t-if="state.busy">Saving…</t>
+            <t t-elif="dirty">Confirm the correction</t>
+            <t t-else="">Change something first</t>
+        </button>
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-att-disabled="state.busy"
+                    t-on-click="() => this.props.close()">Leave it as it is</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

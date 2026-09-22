@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="epg_whatsapp.SendDialog">
+    <Dialog title="props.position ? 'Send on WhatsApp · ' + props.position : 'Send on WhatsApp'" size="'md'" footer="false">
+        <div class="o_wa_send">
+            <div t-if="state.loading" class="text-center text-muted py-5">
+                <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+            </div>
+            <div t-elif="state.error" class="alert alert-warning mb-0" role="alert">
+                <t t-esc="state.error"/>
+                <div class="mt-3 text-end">
+                    <button class="btn btn-secondary" t-on-click="() => this.skip()">Close</button>
+                </div>
+            </div>
+            <t t-else="">
+                <div class="o_wa_send_to">
+                    <div class="o_wa_avatar"><i class="fa fa-whatsapp" title="WhatsApp"/></div>
+                    <div class="o_wa_send_who">
+                        <div class="o_wa_send_name" t-esc="p.partner or p.number"/>
+                        <div class="o_wa_send_meta">
+                            +<t t-esc="p.number"/>
+                            <t t-if="p.record"> · <t t-esc="p.record"/></t>
+                            <t t-if="p.template"> · <t t-esc="p.template"/></t>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- What to know before it goes: sent already, messaged minutes ago,
+                     or part of a bundle that lost a refused message. -->
+                <div t-if="p.warnings.length or p.blocked_others.length" class="o_wa_warn" role="alert">
+                    <div t-foreach="p.warnings" t-as="w" t-key="w_index"><i class="fa fa-exclamation-triangle me-1" title="Warning"/><t t-esc="w"/></div>
+                    <div t-foreach="p.blocked_others" t-as="w" t-key="'b' + w_index"><i class="fa fa-ban me-1" title="Not sent"/><t t-esc="w"/></div>
+                </div>
+                <div t-if="bundled or p.best_time" class="o_wa_facts mt-0">
+                    <span t-if="bundled" class="o_wa_fact o_wa_fact_bundle"><i class="fa fa-object-group me-1" title="Bundle"/><t t-esc="p.ids.length"/> messages, sent as one</span>
+                    <span t-if="p.best_time" class="o_wa_fact"><i class="fa fa-clock-o me-1" title="Best time"/><t t-esc="p.best_time.label"/></span>
+                </div>
+
+                <!-- ========================================== 1. read it -->
+                <t t-if="state.step === 'preview'">
+                    <div t-if="state.editing" class="o_wa_edit_box">
+                        <textarea class="form-control o_wa_edit" rows="8" t-model="state.draft"/>
+                        <div class="d-flex gap-2 mt-2 justify-content-end">
+                            <button class="btn btn-sm btn-link text-muted" t-on-click="() => state.editing = false">Cancel</button>
+                            <button class="btn btn-sm btn-primary" t-att-disabled="state.busy" t-on-click="() => this.saveEdit()"><i class="fa fa-check me-1" title="Save"/>Use these words</button>
+                        </div>
+                    </div>
+                    <div t-else="" class="o_wa_chat">
+                        <div class="o_wa_bubble">
+                            <t t-foreach="lines" t-as="line" t-key="line_index">
+                                <div t-if="line.blank" class="o_wa_gap"/>
+                                <div t-else="" t-out="line.html"/>
+                            </t>
+                        </div>
+                        <button t-if="canEdit" class="btn btn-link btn-sm o_wa_edit_btn" t-on-click="() => this.edit()" title="Change the words before they go">
+                            <i class="fa fa-pencil me-1" title="Edit"/>Edit
+                        </button>
+                    </div>
+                    <!-- The document: a private link in the text (tracked), and the
+                         file itself for whoever wants it in the chat - shared from a
+                         phone, or downloaded and dropped into WhatsApp Web. -->
+                    <div t-if="attachments.length" class="o_wa_docs">
+                        <div t-foreach="attachments" t-as="a" t-key="a.id" class="o_wa_doc_row">
+                            <i class="fa fa-file-pdf-o text-danger" title="Document"/>
+                            <span class="o_wa_doc_name" t-esc="a.name"/>
+                            <span t-if="a.size" class="text-muted small" t-esc="a.size"/>
+                            <a class="btn btn-sm btn-outline-secondary ms-auto" t-att-href="a.url" title="Download the file, then drop it into the chat in WhatsApp Web">
+                                <i class="fa fa-download me-1" title="Download"/>Download
+                            </a>
+                        </div>
+                        <div class="o_wa_hint mt-1">
+                            Goes as a private link — you'll see when it is opened. To send the file itself:
+                            <b>Download</b> it and drop it into the chat<t t-if="canShareFiles">, or <b>Share the PDF…</b> from this phone</t>.
+                        </div>
+                    </div>
+                    <div class="o_wa_facts" t-if="p.replies.length">
+                        <span class="o_wa_fact"><i class="fa fa-reply me-1" title="Quick replies"/><t t-esc="p.replies.length"/> quick replies</span>
+                    </div>
+                    <div class="o_wa_modes" role="radiogroup">
+                        <button t-foreach="modes" t-as="m" t-key="m[0]" role="radio"
+                                class="o_wa_mode" t-att-class="{ o_wa_mode_on: state.openWith === m[0] }"
+                                t-att-aria-checked="state.openWith === m[0] ? 'true' : 'false'"
+                                t-on-click="() => this.setMode(m[0])">
+                            <i t-attf-class="fa {{ m[2] }} me-1" t-att-title="m[1]"/><t t-esc="m[1]"/>
+                        </button>
+                    </div>
+                    <div t-if="p.sender_number" class="o_wa_hint">
+                        Check WhatsApp is logged in as <b t-esc="p.sender_number"/>.
+                    </div>
+                    <div t-if="p.history.length" class="o_wa_hist">
+                        <button class="btn btn-link btn-sm px-0" t-on-click="() => state.showHistory = !state.showHistory">
+                            <i t-attf-class="fa fa-caret-{{ state.showHistory ? 'down' : 'right' }} me-1" title="History"/>
+                            Recent with this doctor (<t t-esc="p.history.length"/>)
+                        </button>
+                        <div t-if="state.showHistory" class="o_wa_hist_list">
+                            <div t-foreach="p.history" t-as="h" t-key="h.id" class="o_wa_hist_row" t-att-class="{ o_wa_hist_in: h.inbound }">
+                                <span class="o_wa_hist_when" t-esc="h.when"/>
+                                <span class="o_wa_hist_text"><b t-if="h.template"><t t-esc="h.template"/>: </b><t t-esc="h.text"/></span>
+                                <i t-if="h.seen" class="fa fa-eye text-success ms-1" title="Opened"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div t-if="state.snoozing" class="o_wa_snooze">
+                        <span class="text-muted small me-1">Send later:</span>
+                        <button t-foreach="snoozes" t-as="z" t-key="z[0]" class="btn btn-sm btn-outline-secondary" t-on-click="() => this.snooze(z[0])" t-esc="z[1]"/>
+                    </div>
+                    <div class="o_wa_actions">
+                        <button class="btn btn-link text-muted" t-on-click="() => state.snoozing = !state.snoozing">
+                            <i class="fa fa-clock-o me-1" title="Later"/>Later
+                        </button>
+                        <button class="btn btn-outline-secondary o_wa_alt" t-on-click="() => this.copy()" title="Copy the text, paste it in WhatsApp yourself">
+                            <i class="fa fa-copy me-1" title="Copy"/>Copy
+                        </button>
+                        <button t-if="canShare" class="btn btn-outline-secondary o_wa_alt" t-on-click="() => this.share()" title="Share to WhatsApp or WhatsApp Business">
+                            <i class="fa fa-share-alt me-1" title="Share"/>Share…
+                        </button>
+                        <button t-if="canShareFiles" class="btn btn-outline-success o_wa_alt" t-on-click="() => this.shareDocument()" title="Hand the PDF itself to WhatsApp, with the text as its caption">
+                            <i class="fa fa-file-pdf-o me-1" title="Share the PDF"/>Share the PDF…
+                        </button>
+                        <button class="btn btn-success btn-lg o_wa_go" data-hotkey="q" t-on-click="() => this.open()">
+                            <i class="fa fa-whatsapp me-2" title="WhatsApp"/>Open in WhatsApp
+                        </button>
+                    </div>
+                    <div class="o_wa_kbd">Keyboard: <kbd>Alt</kbd>+<kbd>Q</kbd> open · <kbd>Esc</kbd> later</div>
+                </t>
+
+                <!-- ========================================== 1b. on a phone -->
+                <t t-elif="state.step === 'qr'">
+                    <div class="o_wa_qr">
+                        <div class="o_wa_qr_code" t-if="qr" t-out="qr"/>
+                        <div t-else="" class="alert alert-warning">The QR code could not be drawn here.</div>
+                        <div class="o_wa_qr_help">
+                            <b>Scan with your phone's camera.</b>
+                            WhatsApp opens on the phone with the message typed in. Press Send
+                            there, then come back and confirm.
+                        </div>
+                    </div>
+                    <div class="o_wa_actions">
+                        <button class="btn btn-link text-muted" t-on-click="() => this.notSent()">Not sent</button>
+                        <button class="btn btn-success btn-lg" t-att-disabled="state.busy" data-hotkey="s" t-on-click="() => this.sent()">
+                            <i class="fa fa-check me-2" title="Sent"/>I've sent it
+                        </button>
+                    </div>
+                </t>
+
+                <!-- ========================================== 2. did it go? -->
+                <t t-else="">
+                    <div class="o_wa_confirm" t-att-class="{ o_wa_confirm_back: state.back }">
+                        <div class="o_wa_confirm_icon"><i class="fa fa-paper-plane" title="Sent?"/></div>
+                        <div class="o_wa_confirm_q">
+                            <t t-if="state.back">Welcome back — did the message go?</t>
+                            <t t-else="">Press <b>Send</b> in WhatsApp, then confirm here.</t>
+                        </div>
+                        <div class="o_wa_confirm_sub">
+                            Confirming logs it on <b t-esc="p.record or p.partner or 'the contact'"/>.
+                        </div>
+                    </div>
+                    <div class="o_wa_actions">
+                        <button class="btn btn-link text-muted" t-on-click="() => this.notSent()">Not sent</button>
+                        <button class="btn btn-outline-secondary" t-on-click="() => this.open()">
+                            <i class="fa fa-external-link me-1" title="Open again"/>Open again
+                        </button>
+                        <button class="btn btn-success btn-lg" t-att-disabled="state.busy" data-hotkey="s" t-on-click="() => this.sent()">
+                            <i class="fa fa-check me-2" title="Sent"/>Yes, sent
+                        </button>
+                    </div>
+                    <div class="o_wa_kbd">Keyboard: <kbd>Alt</kbd>+<kbd>S</kbd> sent · <kbd>Esc</kbd> close</div>
+                </t>
+            </t>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

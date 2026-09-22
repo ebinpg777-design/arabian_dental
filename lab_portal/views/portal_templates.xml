@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The card on the portal home. -->
+    <template id="portal_my_home_cases" name="Portal: My Cases"
+              inherit_id="portal.portal_my_home" priority="30">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/lab_portal/static/description/icon.png'"/>
+                <t t-set="title">Cases</t>
+                <t t-set="text">Where every case you sent us has got to</t>
+                <t t-set="url" t-value="'/my/cases'"/>
+                <t t-set="placeholder_count" t-value="'case_count'"/>
+            </t>
+        </xpath>
+    </template>
+
+    <template id="portal_my_cases" name="My Cases">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Cases</t>
+            </t>
+
+            <t t-if="not cases and not search">
+                <div class="alert alert-info" role="status">
+                    We have no cases from you yet.
+                </div>
+            </t>
+
+            <!-- Summary tiles. They are also the filters: on a phone the quickest way
+                 to "show me what is ready" is to tap the number that says how many. -->
+            <div t-if="summary and summary.get('total')" class="o_case_tiles">
+                <a class="o_case_tile o_tile_lab" href="#" data-stage="in_lab">
+                    <span class="o_tile_n" t-esc="summary['in_lab']"/>
+                    <span class="o_tile_l">In the lab</span>
+                </a>
+                <a class="o_case_tile o_tile_ready" href="#" data-stage="ready">
+                    <span class="o_tile_n" t-esc="summary['ready']"/>
+                    <span class="o_tile_l">Ready</span>
+                </a>
+                <a class="o_case_tile o_tile_sent" href="#" data-stage="sent">
+                    <span class="o_tile_n" t-esc="summary['sent']"/>
+                    <span class="o_tile_l">On its way</span>
+                </a>
+                <a class="o_case_tile o_tile_done" href="#" data-stage="delivered">
+                    <span class="o_tile_n" t-esc="summary['delivered']"/>
+                    <span class="o_tile_l">Delivered</span>
+                </a>
+            </div>
+
+            <div t-if="cases" class="o_case_filterbar" role="group"
+                 aria-label="Filter cases by stage">
+                <button type="button" class="o_case_fchip active" data-stage="">All</button>
+                <button type="button" class="o_case_fchip" data-stage="in_lab">In the lab</button>
+                <button type="button" class="o_case_fchip" data-stage="ready">Ready</button>
+                <button type="button" class="o_case_fchip" data-stage="sent">On its way</button>
+                <button type="button" class="o_case_fchip" data-stage="delivered">Delivered</button>
+            </div>
+
+            <div t-if="not cases and search" class="alert alert-warning" role="status">
+                Nothing matches <strong t-esc="search"/>.
+            </div>
+
+            <!-- Cards, not a table. A doctor reads this on a phone between patients, and
+                 a seven-column table on a 360px screen is a horizontal scrollbar. -->
+            <div t-if="cases" class="o_case_list">
+                <a t-foreach="cases" t-as="case"
+                   class="o_case_card" t-att-data-stage="case.portal_stage"
+                   t-attf-href="/my/cases/#{case.id}">
+                    <!-- The ring carries the number so progress is never colour alone. -->
+                    <div t-attf-class="o_case_ring o_ring_#{case.portal_stage}"
+                         t-attf-style="--pct: #{case.portal_progress}"
+                         t-attf-aria-label="#{case.portal_progress}% complete">
+                        <span t-esc="case.portal_progress"/><small>%</small>
+                    </div>
+                    <div class="o_case_body">
+                        <div class="o_case_top">
+                            <span class="o_case_patient">
+                                <t t-esc="case.patient or case.name"/>
+                            </span>
+                            <span t-attf-class="o_case_chip o_case_chip_#{case.portal_stage}">
+                                <t t-esc="dict(case._fields['portal_stage'].selection).get(case.portal_stage)"/>
+                            </span>
+                        </div>
+                        <div class="o_case_meta">
+                            <t t-esc="case.name"/>
+                            <span t-if="case.date_order"> · <t t-esc="case.date_order.strftime('%d %b %Y')"/></span>
+                        </div>
+                        <div t-if="case.portal_operation" class="o_case_now">
+                            <i class="fa fa-cog me-1" title="Currently"/>
+                            <t t-esc="case.portal_operation"/>
+                        </div>
+                        <t t-set="promise" t-value="case.portal_promise()"/>
+                        <div t-if="promise and promise.get('date') and not promise.get('delivered')"
+                             t-attf-class="o_case_due #{'o_due_late' if promise.get('late') else ('o_due_soon' if promise.get('soon') else '')}">
+                            <i class="fa fa-calendar-o me-1"/>
+                            <t t-if="promise.get('late')">Was due <t t-esc="promise['date'].strftime('%d %b')"/></t>
+                            <t t-elif="promise.get('days') == 0">Due today</t>
+                            <t t-else="">Due <t t-esc="promise['date'].strftime('%d %b')"/></t>
+                        </div>
+                    </div>
+                    <i class="fa fa-angle-right o_case_go" aria-hidden="true"/>
+                </a>
+            </div>
+
+            <div t-if="pager" class="mt-3">
+                <t t-call="portal.pager"/>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_case_page" name="Case">
+        <t t-call="portal.portal_layout">
+            <t t-set="title" t-value="case.patient or case.name"/>
+
+            <div class="o_case_head">
+                <div>
+                    <h3 class="mb-0"><t t-esc="case.patient or case.name"/></h3>
+                    <div class="text-muted">
+                        <t t-esc="case.name"/>
+                        <span t-if="case.date_order"> · sent <t t-esc="case.date_order.strftime('%d %b %Y')"/></span>
+                    </div>
+                </div>
+                <span t-attf-class="o_case_chip o_case_chip_#{case.portal_stage}">
+                    <t t-esc="dict(case._fields['portal_stage'].selection).get(case.portal_stage)"/>
+                </span>
+            </div>
+
+            <!-- The five stages a doctor asks about, in order, with where this case is.
+                 The words are on the labels — a coloured dot alone is not an answer. -->
+            <div class="o_case_stages">
+                <t t-foreach="[('registered','Registered'),('in_lab','In the lab'),('ready','Ready'),('sent','On its way'),('delivered','Delivered')]"
+                   t-as="stage">
+                    <div t-attf-class="o_case_stage #{case.portal_progress >= (stage_index + 1) * 20 and 'o_case_stage_on' or ''}">
+                        <span class="o_case_dot"/>
+                        <span class="o_case_stage_l"><t t-esc="stage[1]"/></span>
+                    </div>
+                </t>
+            </div>
+
+            <div t-if="case.portal_operation" class="o_case_now_big">
+                <i class="fa fa-cog me-2" title="Currently"/>
+                <t t-esc="case.portal_operation"/>
+            </div>
+
+            <div t-if="promise and promise.get('date')"
+                 t-attf-class="o_case_promise #{'o_due_late' if promise.get('late') else ('o_due_soon' if promise.get('soon') else '')}">
+                <i class="fa fa-calendar-check-o me-2"/>
+                <t t-if="promise.get('delivered')">Delivered — was promised for
+                    <strong t-esc="promise['date'].strftime('%d %b %Y')"/>.</t>
+                <t t-elif="promise.get('late')">This was promised for
+                    <strong t-esc="promise['date'].strftime('%d %b %Y')"/>. It is late —
+                    please tell us if that is a problem for the appointment.</t>
+                <t t-elif="promise.get('days') == 0">Promised for <strong>today</strong>.</t>
+                <t t-else="">Promised for
+                    <strong t-esc="promise['date'].strftime('%d %b %Y')"/>
+                    (<t t-esc="promise['days']"/> days).</t>
+            </div>
+
+            <div class="o_case_panel">
+                <h5>What we are making</h5>
+                <div t-foreach="lines" t-as="line" class="o_case_line">
+                    <div class="o_case_line_n"><t t-esc="line['name']"/></div>
+                    <div class="o_case_line_m">
+                        <span t-if="line['ul']" class="o_case_pill"><t t-esc="line['ul']"/></span>
+                        <span t-if="line['colour']" class="o_case_pill"><t t-esc="line['colour']"/></span>
+                        <span class="text-muted">× <t t-esc="int(line['qty'])"/></span>
+                    </div>
+                </div>
+                <div t-if="not lines" class="text-muted">Nothing recorded on this case.</div>
+            </div>
+
+            <!-- One track per appliance. A case can raise several jobs, and a single
+                 merged bar hides the one that has not moved since Tuesday — which is
+                 exactly the one the doctor is ringing about. -->
+            <div t-if="productions" class="o_case_panel">
+                <h5>Where each appliance is</h5>
+                <div t-foreach="productions" t-as="mo" class="o_case_job">
+                    <div class="o_case_job_head">
+                        <div>
+                            <span class="o_case_job_n"><t t-esc="mo['product']"/></span>
+                            <span class="text-muted small"> · <t t-esc="mo['name']"/></span>
+                        </div>
+                        <span t-if="mo['done']" class="o_case_chip o_case_chip_ready">Finished</span>
+                        <span t-elif="mo['current']" class="o_case_chip o_case_chip_in_lab">
+                            <t t-esc="mo['current']"/>
+                        </span>
+                        <span t-else="" class="o_case_chip o_case_chip_registered">Queued</span>
+                    </div>
+                    <div class="o_case_track" t-attf-aria-label="#{mo['progress']}% complete">
+                        <div class="o_case_track_fill" t-attf-style="width: #{mo['progress']}%"/>
+                    </div>
+                    <div class="o_case_job_meta text-muted small">
+                        <t t-esc="mo['steps_done']"/> of <t t-esc="mo['step_count']"/> steps
+                    </div>
+                    <!-- Horizontally scrollable on a phone rather than wrapped into a
+                         column: the ORDER of the stations is the information. -->
+                    <div t-if="mo['steps']" class="o_case_rail">
+                        <div t-foreach="mo['steps']" t-as="step"
+                             t-attf-class="o_case_railstep o_case_step_#{step['state']}">
+                            <i t-attf-class="fa #{step['state'] == 'done' and 'fa-check-circle' or step['state'] == 'progress' and 'fa-dot-circle-o' or 'fa-circle-o'}"/>
+                            <span t-esc="step['name']"/>
+                            <span t-if="step['state'] == 'progress'" class="o_case_step_tag">now</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div t-if="not productions and steps" class="o_case_panel">
+                <h5>Progress through the lab</h5>
+                <div t-foreach="steps" t-as="step"
+                     t-attf-class="o_case_step o_case_step_#{step['state']}">
+                    <i t-attf-class="fa #{step['state'] == 'done' and 'fa-check-circle' or step['state'] == 'progress' and 'fa-dot-circle-o' or 'fa-circle-o'}"
+                       t-att-title="step['state']"/>
+                    <span><t t-esc="step['name']"/></span>
+                    <span t-if="step['state'] == 'progress'" class="o_case_step_tag">
+                        happening now
+                    </span>
+                </div>
+            </div>
+
+            <div class="o_case_foot text-muted">
+                Anything not right? Reply to the message we sent you, or call the lab —
+                we would rather hear about it now than after it is delivered.
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================ DIGITAL Rx ==== -->
+    <template id="portal_my_rx" name="My Case Requests">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            <div class="o_lab_rx_head d-flex justify-content-between align-items-center mb-3">
+                <h3 class="mb-0">Case Requests</h3>
+                <a href="/my/rx/new" class="btn o_lab_btn">
+                    <i class="fa fa-plus me-1"/>Send a new case
+                </a>
+            </div>
+            <t t-if="not rx_requests">
+                <div class="alert alert-info" role="status">
+                    You have not sent us a case through the portal yet. Use
+                    <strong>Send a new case</strong> to submit a prescription — you can
+                    attach a scan or STL file with it.
+                </div>
+            </t>
+            <div t-else="" class="o_case_list">
+                <div t-foreach="rx_requests" t-as="rx" class="o_case_card">
+                    <div class="o_case_body">
+                        <div class="o_case_top">
+                            <span class="o_case_patient"><t t-esc="rx.patient"/></span>
+                            <span t-attf-class="o_case_chip o_case_chip_#{rx.state == 'converted' and 'ready' or (rx.state == 'rejected' and 'cancel' or 'registered')}">
+                                <t t-esc="dict(rx._fields['state'].selection).get(rx.state)"/>
+                            </span>
+                        </div>
+                        <div class="o_case_meta">
+                            <t t-esc="rx.name"/> ·
+                            <t t-esc="rx.create_date.strftime('%d %b %Y')"/> ·
+                            <t t-esc="rx.line_count"/> item(s)
+                        </div>
+                        <div t-if="rx.sale_order_id" class="o_case_now">
+                            <i class="fa fa-check-circle me-1"/>
+                            Accepted as <t t-esc="rx.sale_order_id.name"/>
+                        </div>
+                        <div t-if="rx.state == 'rejected' and rx.staff_note" class="o_case_due o_due_late">
+                            <i class="fa fa-info-circle me-1"/><t t-esc="rx.staff_note"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_rx_form" name="Send a New Case">
+        <t t-call="portal.portal_layout">
+            <h3>Send a new case</h3>
+            <p class="text-muted">
+                Tell us the patient and what you need. We will confirm the price before
+                anything is made.
+            </p>
+            <div t-if="error" class="alert alert-danger" role="alert">
+                <t t-if="error == 'product'">One of the appliances is not one the lab
+                    offers any more. Choose it again from the list.</t>
+                <t t-elif="error == 'arch'">Choose Upper, Lower or Upper &amp; Lower for
+                    each appliance.</t>
+                <t t-else="">Enter a patient name and at least one appliance.</t>
+            </div>
+            <form action="/my/rx/new" method="post" enctype="multipart/form-data"
+                  class="o_lab_rx_form">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Patient name</label>
+                        <input type="text" name="patient" class="form-control" required="required"/>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Age</label>
+                        <input type="number" name="age" class="form-control" min="0"/>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Gender</label>
+                        <select name="gender" class="form-select">
+                            <option value="">—</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h5 class="mt-4">What do you need?</h5>
+                <!-- Three fixed rows rather than JavaScript to add more: a doctor sending
+                     one appliance should not meet a builder, and three covers almost
+                     every real prescription. Anything larger is a phone call anyway. -->
+                <t t-foreach="[0, 1, 2]" t-as="row">
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-12 col-md-6">
+                            <label t-if="row == 0" class="form-label">Appliance</label>
+                            <select name="product_id" class="form-select">
+                                <option value="">—</option>
+                                <option t-foreach="products" t-as="p" t-att-value="p.id">
+                                    <t t-esc="p.display_name"/>
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label t-if="row == 0" class="form-label">Arch</label>
+                            <select name="ul" class="form-select">
+                                <option value="upper">Upper</option>
+                                <option value="lower">Lower</option>
+                                <option value="ul">Upper &amp; Lower</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label t-if="row == 0" class="form-label">Qty</label>
+                            <input type="number" name="quantity" class="form-control"
+                                   value="1" min="1"/>
+                        </div>
+                    </div>
+                </t>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Modifications</label>
+                        <input type="text" name="modification" class="form-control"/>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Special instructions</label>
+                        <input type="text" name="instruction" class="form-control"/>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Notes</label>
+                        <textarea name="note" class="form-control" rows="2"/>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Scans / STL files</label>
+                        <input type="file" name="scan" class="form-control" multiple="multiple"/>
+                        <div class="form-text">Attach an intra-oral scan or STL if you have one.</div>
+                    </div>
+                </div>
+
+                <div class="o_lab_cta mt-4">
+                    <button type="submit" class="btn o_lab_btn">Send to the lab</button>
+                    <a href="/my/rx" class="btn o_lab_btn_ghost">Cancel</a>
+                </div>
+            </form>
+        </t>
+    </template>
+</odoo>

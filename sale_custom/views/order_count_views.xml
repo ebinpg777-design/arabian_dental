@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_count_report_form" model="ir.ui.view">
+        <field name="name">sale.order.count.report.form</field>
+        <field name="model">sale.order.count.report</field>
+        <field name="arch" type="xml">
+            <form string="Order Count">
+                <group>
+                    <group string="Period">
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group string="Group by">
+                        <field name="group_by_1"/>
+                        <field name="group_by_2"/>
+                        <field name="group_by_3" invisible="not group_by_2"/>
+                    </group>
+                </group>
+                <group string="Narrow down (optional)">
+                    <field name="team_ids" widget="many2many_tags"
+                           options="{'no_create': True}" placeholder="Every route"/>
+                    <field name="user_ids" widget="many2many_tags"
+                           options="{'no_create': True}" placeholder="Every salesperson"/>
+                    <field name="partner_ids" widget="many2many_tags"
+                           options="{'no_create': True}" placeholder="Every clinic"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </group>
+                <footer>
+                    <button name="action_print" string="Print Summary" type="object"
+                            class="btn-primary" data-hotkey="q" icon="fa-print"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_order_count_report" model="ir.actions.act_window">
+        <field name="name">Order Count</field>
+        <field name="res_model">sale.order.count.report</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- The menu entry lives in lab_finance_ops (Accounting > Finance Ops): that
+         module depends on this one, never the other way round. -->
+</odoo>

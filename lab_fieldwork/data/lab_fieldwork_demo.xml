@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Two clinics pinned near each other so a geo-fence demo is possible. -->
+        <record id="demo_clinic_1" model="res.partner">
+            <field name="name">Smile Craft Dental</field>
+            <field name="is_company" eval="True"/>
+            <field name="is_clinic" eval="True"/>
+            <field name="city">Kochi</field>
+            <field name="partner_latitude">9.98160</field>
+            <field name="partner_longitude">76.57790</field>
+        </record>
+        <record id="demo_clinic_2" model="res.partner">
+            <field name="name">Marine Drive Smiles</field>
+            <field name="is_company" eval="True"/>
+            <field name="is_clinic" eval="True"/>
+            <field name="city">Kochi</field>
+            <field name="partner_latitude">9.99210</field>
+            <field name="partner_longitude">76.58650</field>
+        </record>
+        <record id="demo_clinic_3" model="res.partner">
+            <field name="name">Vyttila Family Dental</field>
+            <field name="is_company" eval="True"/>
+            <field name="is_clinic" eval="True"/>
+            <field name="city">Kochi</field>
+        </record>
+
+        <record id="demo_beat_mon" model="lab.beat">
+            <field name="name">Kochi Central — Monday</field>
+            <field name="code">KC-MON</field>
+            <field name="weekday">0</field>
+            <field name="user_id" ref="base.user_admin"/>
+            <field name="partner_ids" eval="[(6, 0, [
+                ref('demo_clinic_1'), ref('demo_clinic_2'), ref('demo_clinic_3')])]"/>
+        </record>
+
+        <record id="demo_target" model="lab.target">
+            <field name="user_id" ref="base.user_admin"/>
+            <field name="goal_visits">40</field>
+            <field name="goal_orders">30</field>
+            <field name="goal_value">150000</field>
+            <field name="goal_collect">100000</field>
+            <field name="state">open</field>
+        </record>
+    </data>
+</odoo>

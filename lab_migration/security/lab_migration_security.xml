@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!--
+            The migration tool was gated on base.group_system, which conflates two very
+            different things: being allowed to administer Odoo, and being allowed to pull
+            a live Odoo 10 database into this one. The people who run a cutover are not
+            necessarily system administrators, and every system administrator should not
+            be able to fire a data sync by accident.
+
+            Its own group, so migration access is granted deliberately and can be taken
+            away again once the cutover is finished.
+        -->
+        <record id="privilege_lab_migration" model="res.groups.privilege">
+            <field name="name">Lab Migration</field>
+            <field name="category_id" ref="base.module_category_technical"/>
+            <field name="sequence">40</field>
+        </record>
+
+        <record id="group_lab_migration_user" model="res.groups">
+            <field name="name">Migration: Read Only</field>
+            <field name="privilege_id" ref="privilege_lab_migration"/>
+            <field name="comment">Can see the migration backend, the id map and the run
+                log, but cannot connect to the source database or start a sync.</field>
+        </record>
+
+        <record id="group_lab_migration_manager" model="res.groups">
+            <field name="name">Migration: Run Sync</field>
+            <field name="privilege_id" ref="privilege_lab_migration"/>
+            <field name="implied_ids" eval="[(4, ref('group_lab_migration_user'))]"/>
+            <field name="comment">Can configure the Odoo 10 connection and run the data
+                sync, including opening balances. This writes master data across the whole
+                database — grant it for the cutover and remove it afterwards.</field>
+        </record>
+
+        <!-- A system administrator keeps read access so they can diagnose a failed run
+             without being handed the ability to start one. -->
+        <record id="base.group_system" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('group_lab_migration_user'))]"/>
+        </record>
+    </data>
+</odoo>

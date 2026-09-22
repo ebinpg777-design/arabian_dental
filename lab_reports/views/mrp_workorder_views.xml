@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mrp_workorder_form_view_lab" model="ir.ui.view">
+        <field name="name">mrp.workorder.form.lab</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="mrp.mrp_production_workorder_form_view_inherit"/>
+        <field name="arch" type="xml">
+            <field name="workcenter_id" position="after">
+                <field name="delay_reason"/>
+                <field name="remarks"/>
+            </field>
+        </field>
+    </record>
+</odoo>

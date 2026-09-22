@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="epg_product_label.LabelDesignerField">
+    <div t-att-class="props.readonly ? 'epg_designer epg_designer_readonly' : 'epg_designer'">
+
+        <!-- toolbar -->
+        <div class="epg_designer_toolbar">
+            <div class="btn-group me-2" t-if="!props.readonly">
+                <button type="button" class="btn btn-primary btn-sm"
+                        t-on-click.stop="togglePalette">
+                    <i class="fa fa-plus me-1"/>Add Element
+                </button>
+                <div class="epg_designer_palette" t-if="state.showPalette">
+                    <t t-foreach="paletteGroups" t-as="group" t-key="group.key">
+                        <div class="epg_designer_palette_group" t-esc="group.label"/>
+                        <t t-foreach="paletteFor(group)" t-as="entry" t-key="entry.type">
+                            <button type="button" class="epg_designer_palette_item"
+                                    t-on-click.stop="() => this.addElement(entry)">
+                                <i t-att-class="'fa fa-fw me-2 ' + entry.icon"/>
+                                <t t-esc="entry.label"/>
+                            </button>
+                        </t>
+                    </t>
+                </div>
+            </div>
+
+            <div class="btn-group me-2" t-if="!props.readonly">
+                <button type="button" class="btn btn-secondary btn-sm"
+                        title="Edit the selected element"
+                        t-att-disabled="!hasSelection"
+                        t-on-click="openSelected">
+                    <i class="fa fa-pencil"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm"
+                        title="Duplicate the selection (Ctrl+D)"
+                        t-att-disabled="!hasSelection"
+                        t-on-click="duplicateSelected">
+                    <i class="fa fa-clone"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm"
+                        title="Delete the selection (Del)"
+                        t-att-disabled="!hasSelection"
+                        t-on-click="deleteSelected">
+                    <i class="fa fa-trash"/>
+                </button>
+            </div>
+
+            <div class="btn-group me-2" t-if="!props.readonly">
+                <button type="button" class="btn btn-secondary btn-sm" title="Undo (Ctrl+Z)"
+                        t-att-disabled="!canUndo" t-on-click="undo">
+                    <i class="fa fa-undo"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Redo (Ctrl+Shift+Z)"
+                        t-att-disabled="!canRedo" t-on-click="redo">
+                    <i class="fa fa-repeat"/>
+                </button>
+            </div>
+
+            <div class="btn-group me-2" t-if="!props.readonly">
+                <button type="button" class="btn btn-secondary btn-sm" title="Align left"
+                        t-att-disabled="!hasSelection" t-on-click="() => this.alignSelected('left')">
+                    <i class="fa fa-align-left"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Centre horizontally"
+                        t-att-disabled="!hasSelection" t-on-click="() => this.alignSelected('hcenter')">
+                    <i class="fa fa-align-center"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Align right"
+                        t-att-disabled="!hasSelection" t-on-click="() => this.alignSelected('right')">
+                    <i class="fa fa-align-right"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Align top"
+                        t-att-disabled="!hasSelection" t-on-click="() => this.alignSelected('top')">
+                    <i class="fa fa-angle-up"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Centre vertically"
+                        t-att-disabled="!hasSelection" t-on-click="() => this.alignSelected('vcenter')">
+                    <i class="fa fa-bars"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Align bottom"
+                        t-att-disabled="!hasSelection" t-on-click="() => this.alignSelected('bottom')">
+                    <i class="fa fa-angle-down"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Stretch to full width"
+                        t-att-disabled="!hasSelection" t-on-click="() => this.alignSelected('stretch')">
+                    <i class="fa fa-arrows-h"/>
+                </button>
+            </div>
+
+            <!-- Multi-selection tools: meaningless on one element, so they only
+                 appear once there is a selection to arrange. -->
+            <div class="btn-group me-2" t-if="!props.readonly and isMultiSelection">
+                <button type="button" class="btn btn-secondary btn-sm"
+                        title="Space evenly across" t-on-click="() => this.distributeSelected('h')">
+                    <i class="fa fa-ellipsis-h"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm"
+                        title="Space evenly down" t-on-click="() => this.distributeSelected('v')">
+                    <i class="fa fa-ellipsis-v"/>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm"
+                        title="Match width to the first selected"
+                        t-on-click="() => this.matchSize('width')">
+                    <i class="fa fa-arrows-h"/><small class="ms-1">=</small>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm"
+                        title="Match height to the first selected"
+                        t-on-click="() => this.matchSize('height')">
+                    <i class="fa fa-arrows-v"/><small class="ms-1">=</small>
+                </button>
+            </div>
+
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-secondary btn-sm" title="Zoom out"
+                        t-on-click="zoomOut"><i class="fa fa-search-minus"/></button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Fit"
+                        t-on-click="zoomFit"><i class="fa fa-arrows-alt"/></button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Zoom in"
+                        t-on-click="zoomIn"><i class="fa fa-search-plus"/></button>
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm"
+                        t-att-class="state.wysiwyg ? 'btn-primary' : 'btn-secondary'"
+                        title="Show the label as it will print" t-on-click="toggleWysiwyg">
+                    <i class="fa fa-eye"/>
+                </button>
+                <button type="button" class="btn btn-sm"
+                        t-att-class="state.guides ? 'btn-primary' : 'btn-secondary'"
+                        title="Snap to the other elements" t-on-click="toggleGuides">
+                    <i class="fa fa-crosshairs"/>
+                </button>
+                <button type="button" class="btn btn-sm"
+                        t-att-class="state.snap ? 'btn-primary' : 'btn-secondary'"
+                        title="Snap to grid" t-on-click="toggleSnap">
+                    <i class="fa fa-magnet"/>
+                </button>
+                <button type="button" class="btn btn-sm"
+                        t-att-class="state.grid ? 'btn-primary' : 'btn-secondary'"
+                        title="Show grid" t-on-click="toggleGrid">
+                    <i class="fa fa-th"/>
+                </button>
+                <button type="button" class="btn btn-sm"
+                        t-att-class="state.showLayers ? 'btn-primary' : 'btn-secondary'"
+                        title="Layers panel" t-on-click="toggleLayers">
+                    <i class="fa fa-clone"/>
+                </button>
+            </div>
+
+            <span class="ms-auto text-muted small epg_designer_status">
+                <i class="fa fa-circle-o-notch fa-spin me-1" t-if="state.rendering"/>
+                <span t-if="state.previewName" class="me-2">
+                    <i class="fa fa-eye me-1"/><t t-esc="state.previewName"/>
+                </span>
+                <t t-esc="formatNumber(labelWidth)"/> ×
+                <t t-esc="formatNumber(labelHeight)"/>
+                <t t-esc="unit"/>
+            </span>
+        </div>
+
+        <div class="epg_designer_workspace">
+            <!-- canvas -->
+            <div class="epg_designer_stage" tabindex="0"
+                 t-on-keydown="onKeyDown"
+                 t-on-pointermove="onPointerMove"
+                 t-on-pointerup="onPointerUp"
+                 t-on-pointercancel="onPointerUp">
+                <div class="epg_designer_canvas" t-ref="canvas"
+                     t-att-style="canvasStyle + gridStyle"
+                     t-on-pointerdown="onCanvasPointerDown"
+                     t-on-click="onCanvasClick">
+
+                    <!--
+                        The printed label, rendered by the same code that makes the
+                        PDF and then scaled as a whole.  It is inert: every pointer
+                        event belongs to the interaction layer above it.
+                    -->
+                    <div class="epg_designer_paper" t-if="hasRendered"
+                         t-att-style="paperStyle">
+                        <div class="epg_designer_paper_label" t-att-style="state.labelStyle">
+                            <div t-out="state.background"/>
+                            <t t-foreach="elements" t-as="element" t-key="key(element)">
+                                <div class="epg_designer_paper_item"
+                                     t-att-class="state.dragging and state.dragging.geometries[key(element)] ? 'epg_designer_paper_ghost' : ''"
+                                     t-out="renderedHtml(element)"/>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- interaction layer -->
+                    <t t-foreach="elements" t-as="element" t-key="key(element)">
+                        <div t-att-class="elementClass(element)"
+                             t-att-style="elementStyle(element)"
+                             t-on-pointerdown="(ev) => this.onElementPointerDown(element, ev)"
+                             t-on-dblclick.stop="() => this.openSelected()">
+                            <span class="epg_designer_element_body">
+                                <i t-att-class="'fa fa-fw ' + icon(element)"/>
+                                <span class="epg_designer_element_label"
+                                      t-esc="labelFor(element)"/>
+                            </span>
+                            <t t-if="isSelected(element) and !props.readonly and !isMultiSelection">
+                                <t t-foreach="handles" t-as="handle" t-key="handle">
+                                    <span t-att-class="'epg_designer_handle epg_designer_handle_' + handle"
+                                          t-on-pointerdown="(ev) => this.onElementPointerDown(element, ev, handle)"/>
+                                </t>
+                            </t>
+                        </div>
+                    </t>
+
+                    <!-- alignment guides -->
+                    <t t-foreach="state.activeGuides" t-as="guide" t-key="guide_index">
+                        <span class="epg_designer_guide" t-att-style="guideStyle(guide)"/>
+                    </t>
+
+                    <!-- rubber band -->
+                    <span class="epg_designer_marquee" t-if="state.marquee"
+                          t-att-style="marqueeStyle"/>
+                </div>
+            </div>
+
+            <!-- layers -->
+            <div class="epg_designer_layers" t-if="state.showLayers">
+                <div class="epg_designer_layers_head">
+                    <i class="fa fa-clone me-1"/>Layers
+                    <span class="badge text-bg-secondary ms-auto" t-esc="elements.length"/>
+                </div>
+                <div class="epg_designer_layers_body">
+                    <t t-foreach="layers" t-as="layer" t-key="key(layer)">
+                        <div t-att-class="'epg_designer_layer' + (isSelected(layer) ? ' epg_designer_layer_selected' : '')"
+                             t-on-click="(ev) => this.select(layer, ev.shiftKey || ev.ctrlKey || ev.metaKey)">
+                            <button type="button" class="epg_designer_layer_eye"
+                                    t-att-title="layer.data.active ? 'Hide on the printed label' : 'Show on the printed label'"
+                                    t-att-disabled="props.readonly"
+                                    t-on-click.stop="() => this.toggleVisible(layer)">
+                                <i t-att-class="'fa ' + (layer.data.active ? 'fa-eye' : 'fa-eye-slash text-muted')"/>
+                            </button>
+                            <i t-att-class="'fa fa-fw me-1 ' + icon(layer)"/>
+                            <span class="epg_designer_layer_name" t-esc="labelFor(layer)"/>
+                            <span class="epg_designer_layer_z" t-esc="layer.data.z_index"/>
+                            <span class="epg_designer_layer_order" t-if="!props.readonly">
+                                <button type="button" title="Bring forward"
+                                        t-on-click.stop="() => this.changeLayer(layer, 1)">
+                                    <i class="fa fa-angle-up"/>
+                                </button>
+                                <button type="button" title="Send backward"
+                                        t-on-click.stop="() => this.changeLayer(layer, -1)">
+                                    <i class="fa fa-angle-down"/>
+                                </button>
+                            </span>
+                        </div>
+                    </t>
+                    <div class="text-muted small p-2" t-if="!elements.length">
+                        Nothing on this label yet. Use <b>Add Element</b>, or run the
+                        Layout Assistant from the template header.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- quick properties for the selection -->
+        <div class="epg_designer_props" t-if="selected and !props.readonly">
+            <span class="epg_designer_props_title">
+                <i t-att-class="'fa fa-fw me-1 ' + icon(selected)"/>
+                <t t-esc="labelFor(selected)"/>
+            </span>
+            <label>Name
+                <input type="text" class="o_input"
+                       t-att-value="selected.data.name"
+                       t-on-change="(ev) => this.updateSelected('name', ev)"/>
+            </label>
+            <label>X
+                <input type="number" step="0.1" class="o_input"
+                       t-att-value="formatNumber(selected.data.pos_x)"
+                       t-on-change="(ev) => this.updateSelected('pos_x', ev)"/>
+            </label>
+            <label>Y
+                <input type="number" step="0.1" class="o_input"
+                       t-att-value="formatNumber(selected.data.pos_y)"
+                       t-on-change="(ev) => this.updateSelected('pos_y', ev)"/>
+            </label>
+            <label>W
+                <input type="number" step="0.1" class="o_input"
+                       t-att-value="formatNumber(selected.data.width)"
+                       t-on-change="(ev) => this.updateSelected('width', ev)"/>
+            </label>
+            <label>H
+                <input type="number" step="0.1" class="o_input"
+                       t-att-value="formatNumber(selected.data.height)"
+                       t-on-change="(ev) => this.updateSelected('height', ev)"/>
+            </label>
+            <label>Font
+                <input type="number" step="0.5" class="o_input"
+                       t-att-value="formatNumber(selected.data.font_size)"
+                       t-on-change="(ev) => this.updateSelected('font_size', ev)"/>
+            </label>
+            <label class="epg_designer_props_check">
+                <input type="checkbox"
+                       t-att-checked="selected.data.font_bold"
+                       t-on-change="(ev) => this.updateSelected('font_bold', ev)"/>
+                Bold
+            </label>
+            <label>Align
+                <select class="o_input"
+                        t-on-change="(ev) => this.updateSelected('text_align', ev)">
+                    <option value="left" t-att-selected="selected.data.text_align === 'left'">Left</option>
+                    <option value="center" t-att-selected="selected.data.text_align === 'center'">Center</option>
+                    <option value="right" t-att-selected="selected.data.text_align === 'right'">Right</option>
+                    <option value="justify" t-att-selected="selected.data.text_align === 'justify'">Justify</option>
+                </select>
+            </label>
+            <button type="button" class="btn btn-link btn-sm ms-auto" t-on-click="openSelected">
+                All options…
+            </button>
+        </div>
+
+        <div class="epg_designer_props epg_designer_props_multi"
+             t-if="isMultiSelection and !props.readonly">
+            <span class="epg_designer_props_title">
+                <i class="fa fa-object-group me-1"/>
+                <t t-esc="state.selectedIds.length"/> elements selected
+            </span>
+            <span class="text-muted small">
+                Align and distribute act on the selection. Drag any one of them to
+                move the whole group.
+            </span>
+        </div>
+
+        <div class="alert alert-warning py-1 px-2 mb-0 mt-2 small" t-if="outOfBoundsCount">
+            <i class="fa fa-exclamation-triangle me-1"/>
+            <t t-esc="outOfBoundsCount"/> element(s) reach outside the label and will be
+            clipped when printed.
+        </div>
+
+        <!-- the standard x2many list, for keyboard-driven editing -->
+        <div class="epg_designer_list mt-3">
+            <t t-call="web.X2ManyField"/>
+        </div>
+    </div>
+</t>
+
+</templates>

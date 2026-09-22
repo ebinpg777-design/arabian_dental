@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_migration_backend_form" model="ir.ui.view">
+        <field name="name">migration.backend.form</field>
+        <field name="model">migration.backend</field>
+        <field name="arch" type="xml">
+            <form string="Odoo 10 Migration">
+                <header>
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_test_connection" type="object" string="Test Connection" class="btn-secondary"/>
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_sync_master" type="object" string="Sync Master Data" class="btn-primary"
+                            confirm="Fetch and upsert all master data from the Odoo 10 database. Continue?"/>
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_sync_configuration" type="object" string="Sync Configuration"
+                            confirm="Sync system parameters, number sequences and decimal precision from Odoo 10. Continue?"/>
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_sync_all" type="object" string="Sync All + Config + Opening Balances" class="btn-primary"
+                            confirm="Sync master data AND post accounting + inventory opening balances as of the Opening Date. Continue?"/>
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_continue_invoice_numbering" type="object" string="Continue Numbering (Invoices + MOs)"
+                            confirm="Continue Odoo 10 numbering: post one zero-amount anchor entry per journal for customer invoices/vendor bills, and set each manufacturing operation type's sequence for MOs. Continue?"/>
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_sync_transactions_gl" type="object"
+                            string="Migrate Documents (Sales + Accounting)"
+                            confirm="Migrate every sale order, invoice and journal entry dated on/after 'Migrate Documents From'. Long-running. Continue?"/>
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_sync_transactions_ops" type="object"
+                            string="Migrate Documents (Production + Stock)"
+                            confirm="Migrate manufacturing orders, transfers and purchase orders dated on/after 'Migrate Documents From'. Long-running. Continue?"/>
+                    <!-- The small, safe one: only the partners whose old balance
+                         actually moved, matched item by item. (client, 2026-09-18) -->
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_refresh_opening_balances" type="object"
+                            string="Refresh Opening Balances"
+                            confirm="Compare the opening balances with the Odoo 10 ledger as of the Opening Balance Date and correct what changed there - item by item, matched by the old line id. Only the partners whose balance actually moved are re-posted; items already reconciled here are left alone and named in the log. Long-running. Continue?"/>
+                    <button groups="lab_migration.group_lab_migration_manager" name="action_refresh_inventory" type="object"
+                            string="Refresh On-hand"
+                            confirm="Reset on-hand quantities to the source position as of 'On-hand As Of'. Continue?"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Odoo 10 Source"/></h1>
+                    </div>
+                    <group>
+                        <group string="Odoo 10 PostgreSQL Connection">
+                            <field name="db_host"/>
+                            <field name="db_port"/>
+                            <field name="db_name"/>
+                            <field name="db_user"/>
+                            <field name="db_password" password="True" groups="lab_migration.group_lab_migration_manager"/>
+                        </group>
+                        <group string="Opening Balances">
+                            <field name="opening_date"/>
+                            <field name="opening_move_date"/>
+                            <field name="opening_open_item_years"/>
+                        </group>
+                        <group string="Transactions">
+                            <field name="txn_from_date"/>
+                            <field name="inventory_as_of"/>
+                            <field name="txn_only_new"/>
+                            <field name="txn_limit"/>
+                        </group>
+                    </group>
+                    <separator string="Last Run Log"/>
+                    <field name="log" widget="text" readonly="1" nolabel="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_migration_backend_list" model="ir.ui.view">
+        <field name="name">migration.backend.list</field>
+        <field name="model">migration.backend</field>
+        <field name="arch" type="xml">
+            <list string="Migration Sources">
+                <field name="name"/>
+                <field name="db_host"/>
+                <field name="db_name"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_migration_backend" model="ir.actions.act_window">
+        <field name="name">Odoo 10 Migration</field>
+        <field name="res_model">migration.backend</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- web_icon is what puts the app in the drawer. static/description/icon.png alone
+         only gives the Apps-list thumbnail; without this binding the module shows as an
+         application with no icon at all. -->
+    <menuitem id="menu_migration_root" name="Migration" sequence="95"
+              web_icon="lab_migration,static/description/icon.png"
+              groups="lab_migration.group_lab_migration_user"/>
+    <menuitem id="menu_migration_backend" name="Odoo 10 Source"
+              parent="menu_migration_root" action="action_migration_backend" sequence="1"
+              groups="lab_migration.group_lab_migration_user"/>
+</odoo>

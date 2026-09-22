@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        One stylesheet for every floor sheet.
+
+        Borders are declared here rather than left to the report stylesheet: Bootstrap's
+        reboot leaves `border-style: solid; border-width: 0` on table elements, which
+        wkhtmltopdf renders as a hairline round anything used for layout. Data tables get
+        their borders explicitly; layout tables get none.
+
+        `thead { display: table-header-group }` is what makes a column heading repeat at
+        the top of every page — a two-page queue whose headings appear only once is a
+        second page nobody can read.
+    -->
+    <template id="floor_css">
+        <style>
+            .fl { font-size: 12px; color: #111; }
+            .fl h1 { font-size: 21px; margin: 0; }
+            .fl h2 { font-size: 17px; margin: 0; }
+            .fl h3 { font-size: 14px; margin: 12px 0 4px 0; }
+            .fl .fl-head { overflow: hidden; margin-bottom: 10px; }
+            .fl .fl-l { float: left; }
+            .fl .fl-r { float: right; text-align: right; }
+            .fl .fl-muted { color: #666; font-size: 10px; }
+            .fl .fl-note { color: #666; font-size: 10px; margin-top: 6px; }
+            .fl table.fl-t { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+            .fl table.fl-t thead { display: table-header-group; }
+            .fl table.fl-t th { background: #f2f2f2; border: 1px solid #ccc;
+                                padding: 4px 6px; text-align: left; font-size: 11px; }
+            .fl table.fl-t td { border: 1px solid #ccc; padding: 4px 6px;
+                                vertical-align: top; }
+            .fl table.fl-t tr { page-break-inside: avoid; }
+            .fl .num { text-align: right; font-variant-numeric: tabular-nums;
+                       white-space: nowrap; }
+            .fl .mono { font-family: monospace; }
+            .fl .chip { display: inline-block; padding: 0 5px; border-radius: 3px;
+                        font-size: 10px; font-weight: bold; }
+            .fl .chip-rework { background: #333; color: #fff; }
+            .fl .chip-old { background: #b00020; color: #fff; }
+            .fl .chip-ready { background: #0d7c8a; color: #fff; }
+            .fl .ink { border-bottom: 1px solid #999; display: inline-block;
+                       min-width: 120px; }
+            .fl .box { border: 1px solid #999; height: 30px; }
+            .fl .kv { margin-bottom: 2px; }
+            .fl .kv b { display: inline-block; min-width: 74px; color: #444; }
+            .fl .brk { page-break-before: always; }
+        </style>
+    </template>
+
+    <!-- ============================================================ CASE TRAVELLER -->
+    <!--
+        The sheet that travels WITH the case, one per page, with somewhere to write.
+
+        The job card is a card: it identifies the work. This is a form: it records the
+        journey. Its In / Out / Done by / Remarks columns are the only place in this
+        system where a bench can note why a step took two days, and they are deliberately
+        ink boxes rather than printed data — the board records what happened, this
+        records what nobody thought to scan.
+    -->
+    <template id="report_traveller_document">
+        <t t-call="web.external_layout">
+            <t t-set="d" t-value="payload[o.id]"/>
+            <div class="page fl">
+                <t t-call="lab_workcenter_scan.floor_css"/>
+
+                <div class="fl-head">
+                    <div class="fl-l" style="width:74%;">
+                        <h1><t t-esc="d['patient']"/></h1>
+                        <div class="fl-muted" style="font-size:12px;">
+                            <span class="mono" t-esc="o.name"/>
+                            <t t-if="o.sale_id">
+                                · <span class="mono" t-esc="o.sale_id.name"/>
+                            </t>
+                            <t t-if="d['route']"> · <t t-esc="d['route']"/></t>
+                        </div>
+                        <div style="margin-top:6px;">
+                            <span t-if="o.sale_id.is_rework"
+                                  class="chip chip-rework">REWORK</span>
+                            <span t-if="d['days'] &gt; 90" class="chip chip-old">
+                                IN THE LAB <t t-esc="d['days']"/> DAYS
+                            </span>
+                        </div>
+                    </div>
+                    <div class="fl-r" style="width:24%;">
+                        <div t-out="o.name"
+                             t-options="{'widget': 'barcode', 'symbology': 'QR', 'width': 300, 'height': 300, 'img_style': 'width:96px;height:96px;'}"/>
+                    </div>
+                </div>
+
+                <table class="fl-t">
+                    <tr>
+                        <td style="width:50%;">
+                            <div class="kv"><b>Appliance</b>
+                                <t t-esc="o.product_id.display_name"/></div>
+                            <div class="kv"><b>Quantity</b>
+                                <span t-field="o.product_qty"/>
+                                <span t-field="o.product_uom_id.name"/></div>
+                            <div class="kv"><b>Arch</b>
+                                <span t-field="o.ul"/></div>
+                        </td>
+                        <td style="width:50%;">
+                            <div class="kv"><b>Clinic</b><t t-esc="d['clinic']"/></div>
+                            <div class="kv"><b>Ordered</b>
+                                <span t-field="o.date_start" t-options="{'widget': 'date'}"/>
+                                (<t t-esc="d['days']"/> days ago)</div>
+                            <div class="kv"><b>Route</b><t t-esc="d['route']"/></div>
+                        </td>
+                    </tr>
+                </table>
+
+                <h3>The journey</h3>
+                <table class="fl-t">
+                    <thead>
+                        <tr>
+                            <th style="width:4%;">#</th>
+                            <th style="width:22%;">Station</th>
+                            <th style="width:20%;">Operation</th>
+                            <th style="width:11%;">In</th>
+                            <th style="width:11%;">Out</th>
+                            <th style="width:16%;">Done by</th>
+                            <th style="width:16%;">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="d['steps']" t-as="step">
+                            <td class="num" t-esc="step_index + 1"/>
+                            <td>
+                                <t t-esc="step.workcenter_id.name"/>
+                                <div t-if="step.state == 'done'" class="fl-muted">done</div>
+                            </td>
+                            <td t-esc="step.name"/>
+                            <td style="height:26px;"/>
+                            <td/>
+                            <td/>
+                            <td/>
+                        </tr>
+                        <tr t-if="not d['steps']">
+                            <td colspan="7" class="fl-muted">
+                                No operations are defined for this case — it has no
+                                routing, so there is no journey to record.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="margin-top:14px;overflow:hidden;">
+                    <div style="float:left;width:48%;">
+                        <div class="fl-muted">Finished and checked by</div>
+                        <div class="box"/>
+                    </div>
+                    <div style="float:right;width:48%;">
+                        <div class="fl-muted">Date</div>
+                        <div class="box"/>
+                    </div>
+                </div>
+
+                <div class="fl-note">
+                    Writing on this sheet does not move the job. Scan the code above at a
+                    station board to accept it or hand it on.
+                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_traveller">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="lab_workcenter_scan.report_traveller_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- ================================================================= HOLD TAG -->
+    <!--
+        A tag you tie to the work, not a document you file.
+
+        It exists to physically stop the next person picking up a half-finished plate,
+        which is the one job no screen can do. Bound to the FORM only: a hold tag mass
+        printed off a list selection would be meaningless, and the act of printing one
+        should be as deliberate as the act of stopping the job.
+
+        A6 rather than a 100x60 sticker because it carries five hand-written boxes, and
+        nobody writes a reason in six millimetres with gloved hands.
+    -->
+    <template id="report_hold_tag_document">
+        <t t-set="d" t-value="payload[o.id]"/>
+        <!-- class="article" without a letterhead: Odoo finds a report's body by that
+             class, and without it the renderer skips the wrapper carrying <meta charset>
+             and wkhtmltopdf reads the UTF-8 as latin-1. -->
+        <div class="article">
+            <div class="page fl">
+                <t t-call="lab_workcenter_scan.floor_css"/>
+                <div style="border:3px solid #b00020;padding:10px;">
+                    <div style="background:#b00020;color:#fff;text-align:center;
+                                font-size:26px;font-weight:bold;letter-spacing:2px;
+                                padding:6px;margin:-10px -10px 10px -10px;">
+                        HOLD — DO NOT CONTINUE
+                    </div>
+
+                    <div style="overflow:hidden;margin-bottom:8px;">
+                        <div style="float:left;width:64%;">
+                            <div style="font-size:20px;font-weight:bold;"
+                                 t-esc="d['patient']"/>
+                            <div class="mono" style="font-size:16px;font-weight:bold;"
+                                 t-esc="o.name"/>
+                            <div class="fl-muted" style="font-size:11px;">
+                                <t t-esc="o.product_id.display_name"/>
+                                <t t-if="o.sale_id"> · <t t-esc="o.sale_id.name"/></t>
+                            </div>
+                            <div class="fl-muted" style="font-size:11px;"
+                                 t-esc="d['clinic']"/>
+                        </div>
+                        <div style="float:right;width:34%;text-align:right;">
+                            <div t-out="o.name"
+                                 t-options="{'widget': 'barcode', 'symbology': 'QR', 'width': 300, 'height': 300, 'img_style': 'width:80px;height:80px;'}"/>
+                        </div>
+                    </div>
+
+                    <table class="fl-t">
+                        <tr>
+                            <td style="width:50%;">
+                                <div class="fl-muted">Stopped at (station)</div>
+                                <div style="height:26px;"/>
+                            </td>
+                            <td style="width:50%;">
+                                <div class="fl-muted">Stopped by</div>
+                                <div style="height:26px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="fl-muted">Why it was stopped</div>
+                                <div style="height:52px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="fl-muted">Cleared by</div>
+                                <div style="height:26px;"/>
+                            </td>
+                            <td>
+                                <div class="fl-muted">Date cleared</div>
+                                <div style="height:26px;"/>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="fl-note">
+                        Tie this to the work. Do not remove it until the reason above is
+                        cleared and signed.
+                        Printed <t t-esc="d['stamp']['at']"/> by
+                        <t t-esc="d['stamp']['by']"/>.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_hold_tag">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="lab_workcenter_scan.report_hold_tag_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- =========================================================== STATION QUEUE -->
+    <!--
+        What is actually waiting at one bench, for a bench with no tablet.
+
+        The queue is the FIRST unfinished operation of each case, never every unfinished
+        one: a case routed through four stations is unfinished at all four from the moment
+        it is created, so counting them all shows Acrylisation thousands deep before
+        anything has reached it. See report.lab.floor._first_open_step.
+    -->
+    <template id="report_station_queue_document">
+        <t t-call="web.external_layout">
+            <t t-set="d" t-value="payload[o.id]"/>
+            <div class="page fl">
+                <t t-call="lab_workcenter_scan.floor_css"/>
+                <div class="fl-head">
+                    <div class="fl-l">
+                        <h1><t t-esc="o.name"/></h1>
+                        <div class="fl-muted">
+                            Cases whose next step is this bench
+                            <t t-if="o.scan_code"> · station code
+                                <span class="mono" t-esc="o.scan_code"/></t>
+                        </div>
+                    </div>
+                    <div class="fl-r">
+                        <div style="font-size:22px;font-weight:bold;"
+                             t-esc="d['total']"/>
+                        <div class="fl-muted">cases due to start here</div>
+                    </div>
+                </div>
+
+                <table class="fl-t">
+                    <thead>
+                        <tr>
+                            <th style="width:7%;" class="num">Days in lab</th>
+                            <th style="width:12%;">Job</th>
+                            <th style="width:17%;">Patient</th>
+                            <th style="width:18%;">Clinic</th>
+                            <th style="width:16%;">Appliance</th>
+                            <th style="width:6%;">Arch</th>
+                            <th style="width:12%;">Taken by</th>
+                            <th style="width:12%;">Passed on</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="d['rows']" t-as="r">
+                            <td class="num">
+                                <b t-esc="r['days']"/>
+                            </td>
+                            <td class="mono" style="font-size:10px;">
+                                <t t-esc="r['mo'].name"/>
+                                <div t-if="r['rework']" class="chip chip-rework">REWORK</div>
+                            </td>
+                            <td>
+                                <t t-esc="r['patient']"/>
+                                <div class="fl-muted" t-esc="r['order']"/>
+                            </td>
+                            <td style="font-size:11px;">
+                                <t t-esc="r['clinic']"/>
+                                <div class="fl-muted" t-esc="r['route']"/>
+                            </td>
+                            <td style="font-size:11px;" t-esc="r['appliance']"/>
+                            <td t-esc="r['arch']"/>
+                            <td/>
+                            <td/>
+                        </tr>
+                        <tr t-if="not d['rows']">
+                            <td colspan="8" class="fl-muted">
+                                Nothing is waiting to start at this bench. Work appears
+                                here when it is the next step of a case that is still in
+                                the lab.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="fl-note">
+                    <t t-if="d['total'] &gt; 40">
+                        Showing the 40 oldest cases, of <t t-esc="d['total']"/>.
+                    </t>
+                    <t t-if="d['oldest']">
+                        Oldest: <t t-esc="d['oldest']"/> days in the lab.
+                    </t>
+                    <!-- Until the floor accepts and hands over on the board, the order
+                         of steps is the ROUTING's, not a record of where a case has
+                         physically reached. Saying so is the difference between a
+                         worklist and a claim the data cannot support. -->
+                    <t t-if="not d['handovers']">
+                        No job at this bench has yet been accepted or handed on at the
+                        station board, so this list is the routing order, not a record
+                        of where each case has physically reached.
+                    </t>
+                    <t t-if="d['rework']">
+                        <t t-esc="d['rework']"/> of the <t t-esc="len(d['rows'])"/>
+                        listed are remakes.
+                    </t>
+                    Cases already delivered to the doctor are excluded.
+                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_station_queue">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="lab_workcenter_scan.report_station_queue_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- ============================================================== CALLOVER -->
+    <template id="report_callover_document">
+        <t t-call="web.external_layout">
+            <t t-set="d" t-value="payload[doc.id]"/>
+            <div class="page fl">
+                <t t-call="lab_workcenter_scan.floor_css"/>
+                <div class="fl-head">
+                    <div class="fl-l">
+                        <h1>Aged Case Callover</h1>
+                        <div class="fl-muted">
+                            Still in the lab, ordered <t t-esc="doc.older_than"/> or
+                            more days ago
+                            <t t-if="doc.team_ids">
+                                · <t t-esc="', '.join(doc.team_ids.mapped('name'))"/>
+                            </t>
+                        </div>
+                    </div>
+                    <div class="fl-r">
+                        <div style="font-size:22px;font-weight:bold;" t-esc="d['total']"/>
+                        <div class="fl-muted">
+                            cases this old<t t-if="d['routes']"> on
+                            <t t-esc="d['routes']"/></t>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="fl-t">
+                    <thead>
+                        <tr>
+                            <th style="width:6%;" class="num">Days</th>
+                            <th style="width:12%;">Job</th>
+                            <th style="width:16%;">Patient</th>
+                            <th style="width:19%;">Clinic</th>
+                            <th style="width:8%;">Route</th>
+                            <th style="width:15%;">Waiting at</th>
+                            <th style="width:24%;">What is happening / who is chasing</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="d['rows']" t-as="r">
+                            <td class="num"><b t-esc="r['days']"/></td>
+                            <td class="mono" style="font-size:10px;">
+                                <t t-esc="r['mo'].name"/>
+                                <div t-if="r['rework']" class="chip chip-rework">REWORK</div>
+                            </td>
+                            <td>
+                                <t t-esc="r['patient']"/>
+                                <div class="fl-muted" t-esc="r['order']"/>
+                            </td>
+                            <td style="font-size:11px;" t-esc="r['clinic']"/>
+                            <td style="font-size:11px;" t-esc="r['route']"/>
+                            <td style="font-size:11px;">
+                                <t t-esc="r['station']"/>
+                                <!-- Blank unless the operation adds something the
+                                     station name does not — see Floor._step_note. -->
+                                <div t-if="r['step']" class="fl-muted" t-esc="r['step']"/>
+                            </td>
+                            <td/>
+                        </tr>
+                        <tr t-if="not d['rows']">
+                            <td colspan="7" class="fl-muted">
+                                Nothing in the lab is that old. Try a shorter period.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="fl-note">
+                    Age is counted from the order date. This lab records no promised date,
+                    so nothing here is called late — only old.
+                    Cases already delivered are excluded.
+                    Showing <t t-esc="d['shown']"/> of <t t-esc="d['total']"/>.
+                    <t t-if="d['rework']">
+                        <t t-esc="d['rework']"/> of them are remakes.
+                    </t>
+                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_callover">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="lab_workcenter_scan.report_callover_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- ====================================================== PACKING MANIFEST -->
+    <!--
+        Which boxes go in which van, and a line to sign them out. One page per route so
+        the sheet can travel with the van rather than staying on the packing table.
+    -->
+    <template id="report_manifest_document">
+        <t t-call="web.external_layout">
+            <t t-set="d" t-value="payload[doc.id]"/>
+            <div class="page fl">
+                <t t-call="lab_workcenter_scan.floor_css"/>
+                <div class="fl-head">
+                    <div class="fl-l">
+                        <h1>Packing Manifest</h1>
+                        <div class="fl-muted"><t t-esc="d['scope']"/></div>
+                    </div>
+                    <div class="fl-r">
+                        <div style="font-size:22px;font-weight:bold;" t-esc="d['total']"/>
+                        <div class="fl-muted">boxes</div>
+                    </div>
+                </div>
+
+                <t t-foreach="d['routes']" t-as="route">
+                    <h3 t-att-class="route_index &gt; 0 and 'brk' or ''">
+                        <t t-esc="route['name']"/>
+                        <span class="fl-muted">
+                            — <t t-esc="route['total']"/> boxes
+                            <t t-if="route['partial']">
+                                (<t t-esc="route['count']"/> listed here — this block is
+                                INCOMPLETE, do not sign it as a full handover)
+                            </t>
+                        </span>
+                    </h3>
+                    <table class="fl-t">
+                        <thead>
+                            <tr>
+                                <th style="width:5%;">✓</th>
+                                <th style="width:14%;">Order</th>
+                                <th style="width:30%;">Clinic</th>
+                                <th style="width:22%;">Patient</th>
+                                <th style="width:10%;" class="num">Items</th>
+                                <th style="width:19%;">Box / bag no.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="route['rows']" t-as="r">
+                                <td style="text-align:center;">
+                                    <span style="display:inline-block;width:11px;
+                                                 height:11px;border:1px solid #999;"/>
+                                </td>
+                                <td class="mono" style="font-size:10px;">
+                                    <t t-esc="r['order']"/>
+                                    <span t-if="r['ready'] and d['show_ready']"
+                                          class="chip chip-ready">READY</span>
+                                </td>
+                                <td style="font-size:11px;" t-esc="r['clinic']"/>
+                                <td style="font-size:11px;" t-esc="r['patient']"/>
+                                <td class="num" t-esc="r['items']"/>
+                                <td/>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="overflow:hidden;margin-bottom:10px;">
+                        <div style="float:left;width:32%;">
+                            <div class="fl-muted">Packed by</div>
+                            <div class="box"/>
+                        </div>
+                        <div style="float:left;width:32%;margin-left:2%;">
+                            <div class="fl-muted">Handed to (driver / courier)</div>
+                            <div class="box"/>
+                        </div>
+                        <div style="float:right;width:30%;">
+                            <div class="fl-muted">Time out</div>
+                            <div class="box"/>
+                        </div>
+                    </div>
+                </t>
+
+                <div t-if="not d['routes']" class="fl-muted">
+                    Nothing is waiting to go out for that selection.
+                </div>
+
+                <div class="fl-note">
+                    Showing <t t-esc="d['shown']"/> of <t t-esc="d['total']"/> boxes.
+                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_manifest">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="lab_workcenter_scan.report_manifest_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- ============================================================== CLOSE-OUT -->
+    <!--
+        Not floor paper — an office worklist, and the most valuable sheet in this set.
+
+        21,099 of this lab's 23,536 open manufacturing orders sit on a sales order that
+        has already been delivered in full. Until they are closed, every production
+        figure the lab reads is inflated roughly tenfold, and every aged-case report has
+        to filter them out to tell the truth.
+    -->
+    <template id="report_closeout_document">
+        <t t-call="web.external_layout">
+            <t t-set="d" t-value="payload[doc.id]"/>
+            <div class="page fl">
+                <t t-call="lab_workcenter_scan.floor_css"/>
+                <div class="fl-head">
+                    <div class="fl-l">
+                        <h1>Delivered, but still open</h1>
+                        <div class="fl-muted">
+                            Manufacturing orders whose case has already gone to the
+                            doctor. Close them and the lab's numbers become true.
+                        </div>
+                    </div>
+                    <div class="fl-r">
+                        <div style="font-size:22px;font-weight:bold;" t-esc="d['total']"/>
+                        <div class="fl-muted">
+                            of <t t-esc="d['open_total']"/> open orders in the whole lab
+                            <t t-if="d['routes']"><br/>route:
+                                <t t-esc="d['routes']"/></t>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="fl-t">
+                    <thead>
+                        <tr>
+                            <th style="width:5%;">✓</th>
+                            <th style="width:14%;">Job</th>
+                            <th style="width:14%;">Order</th>
+                            <th style="width:24%;">Clinic</th>
+                            <th style="width:19%;">Patient</th>
+                            <th style="width:12%;">Delivered</th>
+                            <th style="width:12%;" class="num">Open (days)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="d['rows']" t-as="r">
+                            <td style="text-align:center;">
+                                <span style="display:inline-block;width:11px;height:11px;
+                                             border:1px solid #999;"/>
+                            </td>
+                            <td class="mono" style="font-size:10px;" t-esc="r['mo'].name"/>
+                            <td class="mono" style="font-size:10px;" t-esc="r['order']"/>
+                            <td style="font-size:11px;" t-esc="r['clinic']"/>
+                            <td style="font-size:11px;" t-esc="r['patient']"/>
+                            <td class="num" t-esc="r['delivered']"/>
+                            <td class="num" t-esc="r['days']"/>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="fl-note">
+                    Showing <t t-esc="d['shown']"/> of <t t-esc="d['total']"/>.
+                    <t t-if="d['capped']">
+                        Work through these and print the sheet again for the next batch.
+                    </t>
+                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_closeout">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="lab_workcenter_scan.report_closeout_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- ========================================================= CLINIC WORK -->
+    <!--
+        The only sheet here that leaves the building, so it is the one that must never
+        overstate. It lists live work only: telling a doctor they have twelve cases with
+        us when eleven are already on their own shelf is not a saved phone call, it is a
+        phone call caused, in front of a customer.
+    -->
+    <template id="report_clinic_work_document">
+        <t t-call="web.external_layout">
+            <t t-set="d" t-value="payload[doc.id]"/>
+            <div class="page fl">
+                <t t-call="lab_workcenter_scan.floor_css"/>
+                <t t-foreach="d['clinics']" t-as="c">
+                    <div t-att-class="c_index &gt; 0 and 'brk' or ''">
+                        <div class="fl-head">
+                            <div class="fl-l">
+                                <h2 t-esc="c['partner'].display_name"/>
+                                <div class="fl-muted">
+                                    Work with us right now
+                                    <t t-if="c['route']"> · route
+                                        <t t-esc="c['route']"/></t>
+                                </div>
+                            </div>
+                            <div class="fl-r">
+                                <div style="font-size:22px;font-weight:bold;"
+                                     t-esc="c['count']"/>
+                                <div class="fl-muted">
+                                    cases<t t-if="c['packed']">,
+                                    <t t-esc="c['packed']"/> ready to send</t>
+                                </div>
+                            </div>
+                        </div>
+
+                        <table class="fl-t">
+                            <thead>
+                                <tr>
+                                    <th style="width:16%;">Order</th>
+                                    <th style="width:24%;">Patient</th>
+                                    <th style="width:28%;">Appliance</th>
+                                    <th style="width:22%;">Where it is</th>
+                                    <th style="width:10%;" class="num">Days</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="c['rows']" t-as="r">
+                                    <td class="mono" style="font-size:10px;"
+                                        t-esc="r['order']"/>
+                                    <td t-esc="r['patient']"/>
+                                    <td style="font-size:11px;" t-esc="r['appliance']"/>
+                                    <td style="font-size:11px;">
+                                        <t t-if="r['packed']">
+                                            <span class="chip chip-ready">READY</span>
+                                            reserved to send
+                                        </t>
+                                        <t t-else="">
+                                            <t t-esc="r['station'] or 'in the lab'"/>
+                                        </t>
+                                    </td>
+                                    <td class="num" t-esc="r['days']"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+
+                <div class="fl-note">
+                    Cases we have already delivered are not listed. A case appears here
+                    when the lab has no record of it going out.
+                    <t t-if="d['shown_clinics'] &lt; d['total_clinics']">
+                        Showing <t t-esc="d['shown_clinics']"/> of
+                        <t t-esc="d['total_clinics']"/> clinics — narrow the selection
+                        for the rest.
+                    </t>
+                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_clinic_work">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="lab_workcenter_scan.report_clinic_work_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- ======================================================== REQUISITION -->
+    <!--
+        What to fetch from the store for a batch of cases, added up once.
+
+        Components are totalled on a folded product name rather than on the product id:
+        the master carries 'Monomor' and 'monomor' as two separate products, and a slip
+        that lists the same tin twice gets one of the lines ignored.
+    -->
+    <template id="report_requisition_document">
+        <div class="article">
+            <div class="page fl">
+                <t t-call="lab_workcenter_scan.floor_css"/>
+                <div class="fl-head">
+                    <div class="fl-l">
+                        <h1>Store Requisition</h1>
+                        <div class="fl-muted">
+                            For <t t-esc="cases"/> cases
+                            <t t-if="no_bom"> · <t t-esc="no_bom"/> of them have no
+                                component list</t>
+                        </div>
+                    </div>
+                    <div class="fl-r fl-muted">
+                        <t t-esc="stamp['at']"/><br/>
+                        <t t-esc="stamp['by']"/>
+                    </div>
+                </div>
+
+                <table class="fl-t">
+                    <thead>
+                        <tr>
+                            <th style="width:6%;">✓</th>
+                            <th style="width:54%;">Component</th>
+                            <th style="width:18%;" class="num">Quantity</th>
+                            <th style="width:22%;">Issued</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="lines" t-as="line">
+                            <td style="text-align:center;">
+                                <span style="display:inline-block;width:11px;height:11px;
+                                             border:1px solid #999;"/>
+                            </td>
+                            <td>
+                                <t t-esc="line['name']"/>
+                                <div t-if="line['aka']" class="fl-muted">
+                                    also spelt <t t-esc="', '.join(line['aka'])"/>
+                                </div>
+                            </td>
+                            <td class="num">
+                                <b t-esc="line['qty']"/> <t t-esc="line['uom']"/>
+                            </td>
+                            <td/>
+                        </tr>
+                        <tr t-if="not lines">
+                            <td colspan="4" class="fl-muted">
+                                None of the selected cases lists any components.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="overflow:hidden;margin-top:12px;">
+                    <div style="float:left;width:48%;">
+                        <div class="fl-muted">Issued by</div>
+                        <div class="box"/>
+                    </div>
+                    <div style="float:right;width:48%;">
+                        <div class="fl-muted">Received by</div>
+                        <div class="box"/>
+                    </div>
+                </div>
+
+                <h3>Cases in this batch</h3>
+                <div class="mono" style="font-size:10px;line-height:1.5;">
+                    <t t-foreach="docs" t-as="o">
+                        <t t-esc="o.name"/><t t-if="not o_last"> · </t>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_requisition">
+        <t t-call="web.html_container">
+            <t t-call="lab_workcenter_scan.report_requisition_document"/>
+        </t>
+    </template>
+
+    <!-- ============================================================ PAPERFORMAT -->
+    <record id="paperformat_hold_tag" model="report.paperformat">
+        <field name="name">Lab Hold Tag (A6)</field>
+        <field name="format">A6</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">6</field>
+        <field name="margin_bottom">6</field>
+        <field name="margin_left">6</field>
+        <field name="margin_right">6</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <!-- ================================================================ ACTIONS -->
+    <!--
+        binding_view_types is set deliberately on each. Every one of the 77 report
+        actions already on this database sits on the untouched 'list,form' default, which
+        is how a Print menu ends up offering a hold tag for forty selected records.
+    -->
+    <record id="action_report_traveller" model="ir.actions.report">
+        <field name="name">Case Traveller</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_traveller</field>
+        <field name="report_file">lab_workcenter_scan.report_traveller</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+        <field name="binding_view_types">list,form</field>
+        <field name="print_report_name">'Traveller - %s' % object.name</field>
+    </record>
+
+    <record id="action_report_hold_tag" model="ir.actions.report">
+        <field name="name">Hold Tag</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_hold_tag</field>
+        <field name="report_file">lab_workcenter_scan.report_hold_tag</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+        <!-- Form only: stopping a job is a deliberate act, not a bulk operation. -->
+        <field name="binding_view_types">form</field>
+        <field name="paperformat_id" ref="paperformat_hold_tag"/>
+        <field name="print_report_name">'Hold - %s' % object.name</field>
+    </record>
+
+    <record id="action_report_requisition" model="ir.actions.report">
+        <field name="name">Store Requisition</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_requisition</field>
+        <field name="report_file">lab_workcenter_scan.report_requisition</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+        <!-- List only: a requisition for one case is a walk to the store, not a form. -->
+        <field name="binding_view_types">list</field>
+        <field name="print_report_name">'Store Requisition'</field>
+    </record>
+
+    <record id="action_report_station_queue" model="ir.actions.report">
+        <field name="name">Station Queue Sheet</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_station_queue</field>
+        <field name="report_file">lab_workcenter_scan.report_station_queue</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_workcenter"/>
+        <field name="binding_type">report</field>
+        <field name="binding_view_types">list,form</field>
+        <field name="print_report_name">'Queue - %s' % object.name</field>
+    </record>
+
+    <record id="action_report_callover" model="ir.actions.report">
+        <field name="name">Aged Case Callover</field>
+        <field name="model">lab.callover.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_callover</field>
+        <field name="report_file">lab_workcenter_scan.report_callover</field>
+        <field name="print_report_name">'Aged Case Callover'</field>
+    </record>
+
+    <record id="action_report_manifest" model="ir.actions.report">
+        <field name="name">Packing Manifest</field>
+        <field name="model">lab.packing.manifest.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_manifest</field>
+        <field name="report_file">lab_workcenter_scan.report_manifest</field>
+        <field name="print_report_name">'Packing Manifest'</field>
+    </record>
+
+    <record id="action_report_closeout" model="ir.actions.report">
+        <field name="name">Close-out Worklist</field>
+        <field name="model">lab.closeout.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_closeout</field>
+        <field name="report_file">lab_workcenter_scan.report_closeout</field>
+        <field name="print_report_name">'Close-out Worklist'</field>
+    </record>
+
+    <record id="action_report_clinic_work" model="ir.actions.report">
+        <field name="name">Clinic Work in Hand</field>
+        <field name="model">lab.clinic.work.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_workcenter_scan.report_clinic_work</field>
+        <field name="report_file">lab_workcenter_scan.report_clinic_work</field>
+        <field name="print_report_name">'Work in Hand'</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="lab_fieldwork.CountField">
+        <div class="o_fw_count" t-att-class="{ 'o_fw_count_ro': props.readonly }">
+            <button t-if="!props.readonly" type="button" class="o_fw_count_btn"
+                    t-att-disabled="value &lt;= 0" aria-label="One fewer"
+                    t-on-click="() => this.bump(-1)">&#8722;</button>
+            <input t-if="!props.readonly" type="number" inputmode="numeric"
+                   min="0" t-att-max="props.max" class="o_fw_count_input"
+                   t-att-id="props.id" t-att-value="value"
+                   t-on-input="onInput" t-on-change="onChange"/>
+            <span t-else="" class="o_fw_count_value" t-esc="value"/>
+            <button t-if="!props.readonly" type="button" class="o_fw_count_btn"
+                    aria-label="One more" t-on-click="() => this.bump(1)">+</button>
+        </div>
+    </t>
+</templates>

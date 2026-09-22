@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Urgency made loud (R10). Colour is never the only signal — the ribbon and the
+         badge both carry words, because a colour-blind user must read the same thing. -->
+    <record id="view_order_form_urgency" model="ir.ui.view">
+        <field name="name">sale.order.form.lab.urgency</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <widget name="web_ribbon" title="EMERGENCY" bg_color="text-bg-danger"
+                        invisible="priority != 'emergency'"/>
+                <widget name="web_ribbon" title="URGENT" bg_color="text-bg-warning"
+                        invisible="priority != 'urgent'"/>
+                <field name="is_urgent_open" invisible="1"/>
+            </xpath>
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-danger m-0 rounded-0" role="alert"
+                     invisible="priority != 'emergency'">
+                    <strong>Emergency work.</strong>
+                    This case must go out today — it is pinned on the dispatch board and
+                    checked against a shorter delivery grace.
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_list_urgency" model="ir.ui.view">
+        <field name="name">sale.order.list.lab.urgency</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="decoration-danger">priority == 'emergency'</attribute>
+                <attribute name="decoration-bf">priority in ('urgent','emergency')</attribute>
+            </list>
+            <field name="name" position="before">
+                <field name="priority" widget="priority" optional="show"/>
+            </field>
+            <!-- KPI tiles (R15/R16) live in data/filter_tiles.xml (dynamic_filter_tiles). -->
+        </field>
+    </record>
+
+    <record id="view_order_search_urgency" model="ir.ui.view">
+        <field name="name">sale.order.search.lab.urgency</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_view_search_inherit_sale"/>
+        <field name="arch" type="xml">
+            <filter name="my_sale_orders_filter" position="after">
+                <separator/>
+                <filter name="lab_urgent" string="Urgent"
+                        domain="[('priority','=','urgent')]"/>
+                <filter name="lab_emergency" string="Emergency"
+                        domain="[('priority','=','emergency')]"/>
+                <filter name="lab_urgent_open" string="Urgent — In Progress"
+                        domain="[('is_urgent_open','=',True)]"/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="action_urgent_works" model="ir.actions.act_window">
+        <field name="name">Urgent Works (In Progress)</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('is_urgent_open','=',True)]</field>
+        <field name="context">{'search_default_lab_urgent_open': 0}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing urgent is outstanding</p>
+            <p>Urgent and emergency work still in progress appears here.</p>
+        </field>
+    </record>
+
+    <!-- A menu with no groups is visible to EVERY internal user, and an ungrouped
+         child also drags its parent app into the switcher: this one put "Sales" in
+         front of bench technicians who have no sales access at all.
+         (client, 2026-08-29) -->
+    <menuitem id="menu_lab_urgent_works" name="Urgent Works"
+              parent="sale.sale_order_menu"
+              action="action_urgent_works" sequence="26"
+              groups="lab_order_control.group_lab_order_entry"/>
+</odoo>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The discount sheet turned into a field: one number per doctor, next to
+         where the payable/receivable accounts already live for this customer. -->
+    <record id="view_partner_form_outstanding_discount" model="ir.ui.view">
+        <field name="name">res.partner.form.outstanding.discount</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="account.view_partner_property_form"/>
+        <field name="arch" type="xml">
+            <field name="property_account_payable_id" position="after">
+                <field name="outstanding_discount_percent"
+                       groups="account.group_account_user"/>
+            </field>
+        </field>
+    </record>
+</odoo>

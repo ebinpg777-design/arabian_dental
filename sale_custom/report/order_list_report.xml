@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Order List. A4 portrait (client, 2026-08-21). The columns do not fit a portrait
+        page side by side, so the row is built in two tiers: the identity of the case on
+        top (number, date, customer, route) and its detail underneath (patient,
+        products). No amounts and no status chips: the list is a register of cases,
+        not a ledger (client, 2026-09-18). Same design language as the invoice and the
+        dispatch register.
+    -->
+    <template id="report_order_list">
+        <t t-call="web.html_container">
+            <t t-set="o" t-value="wizard"/>
+            <t t-set="hide_letterhead" t-value="True"/>
+            <t t-set="footer_note">Order list</t>
+            <t t-call="sale_custom.external_layout_lab">
+                <div class="page lab-invoice oll">
+                    <t t-call="sale_custom.letterhead_block"/>
+
+                    <table class="oll-title">
+                        <tr>
+                            <td style="vertical-align:bottom;">
+                                <div class="oi-title">ORDER LIST</div>
+                                <div class="oll-sub">
+                                    <t t-if="grouped">Grouped by <t t-out="group_label"/> · </t>
+                                    printed <t t-out="printed_on"/>
+                                </div>
+                            </td>
+                            <td style="text-align:right;vertical-align:bottom;">
+                                <div class="oi-numlabel">Period</div>
+                                <div class="oll-period">
+                                    <span t-field="wizard.date_from"/> — <span t-field="wizard.date_to"/>
+                                </div>
+                                <div class="oll-countchip">
+                                    <t t-out="order_count"/> order<t t-if="order_count != 1">s</t>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="oll-criteria" t-if="criteria">
+                        <t t-foreach="criteria" t-as="c">
+                            <span class="oll-crit"><span class="oll-crit-k"><t t-out="c[0]"/></span>
+                                <t t-out="c[1]"/></span>
+                        </t>
+                    </div>
+
+                    <!-- What the tints mean, for whoever picks the sheet up. Only
+                         printed when the list actually contains one. -->
+                    <div class="oll-criteria" t-if="has_rush">
+                        <span class="oll-crit" style="background-color:#f8d0d0;">Emergency</span>
+                        <span class="oll-crit" style="background-color:#ffe2c2;">Urgent</span>
+                    </div>
+
+                    <p t-if="not groups" class="oll-empty">
+                        No orders in this period for the chosen filters.
+                    </p>
+
+                    <t t-foreach="groups" t-as="g">
+                        <table class="oll-groupband" t-if="grouped">
+                            <tr>
+                                <td><t t-out="g['label']"/></td>
+                                <td style="text-align:right;">
+                                    <t t-out="len(g['rows'])"/> order<t t-if="len(g['rows']) != 1">s</t>
+                                </td>
+                            </tr>
+                        </table>
+                        <table class="oll-lines">
+                            <thead>
+                                <tr>
+                                    <th style="width:16%">Number</th>
+                                    <th style="width:14%">Order date</th>
+                                    <th>Customer / Products</th>
+                                    <th style="width:16%">Route</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="g['rows']" t-as="row">
+                                    <t t-set="order" t-value="row[0]"/>
+                                    <!-- tier 1: which case it is -->
+                                    <!-- The rush a case is on, in colour: emergency
+                                         red, urgent orange. Both tiers of the row are
+                                         tinted, or half the row looks unmarked.
+                                         (client, 2026-09-19) -->
+                                    <t t-set="row_style"
+                                       t-value="'background-color:#f8d0d0;' if order.priority == 'emergency'
+                                                else ('background-color:#ffe2c2;' if order.priority == 'urgent' else '')"/>
+                                    <tr class="oll-row-top" t-attf-style="{{ row_style }}">
+                                        <td class="oll-doc"><t t-out="order.name"/></td>
+                                        <td><span t-field="order.date_order" t-options="{'widget': 'date'}"/></td>
+                                        <td class="oll-party"><t t-out="order.partner_id.name"/></td>
+                                        <td><t t-out="order.team_id.name or ''"/></td>
+                                    </tr>
+                                    <!-- tier 2: what it is for -->
+                                    <tr class="oll-row-sub" t-attf-style="{{ row_style }}">
+                                        <td/>
+                                        <td class="oll-patient"><t t-if="order.patient">Patient: <t t-out="order.patient"/></t></td>
+                                        <td colspan="2" class="oll-products"><t t-out="row[1]"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Print ▸ Order List on the orders list: the same document for the orders
+         ticked, flat, in one click. Action ▸ Print Order List opens the wizard on
+         the same selection when a grouping is wanted. (client, 2026-09-18) -->
+    <template id="report_order_list_selection">
+        <t t-call="sale_custom.report_order_list"/>
+    </template>
+
+    <record id="action_report_order_list_selection" model="ir.actions.report">
+        <field name="name">Order List</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_order_list_selection</field>
+        <field name="report_file">sale_custom.report_order_list</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_lab_invoice"/>
+        <field name="group_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <record id="action_report_order_list" model="ir.actions.report">
+        <field name="name">Order List</field>
+        <field name="model">sale.order.list.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_order_list</field>
+        <field name="report_file">sale_custom.report_order_list</field>
+        <field name="print_report_name">'Order List %s to %s' % (object.date_from or '', object.date_to or '')</field>
+        <field name="paperformat_id" ref="paperformat_lab_invoice"/>
+    </record>
+</odoo>

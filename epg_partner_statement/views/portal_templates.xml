@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Card on My Account -->
+    <template id="portal_my_home_statement" name="Portal My Home: Statement" inherit_id="portal.portal_my_home" priority="45">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/epg_partner_statement/static/description/icon.svg'"/>
+                <t t-set="title">Statement of Account</t>
+                <t t-set="text">Your ledger, what is still open, and a PDF to download</t>
+                <t t-set="url" t-value="'/my/statement'"/>
+                <t t-set="config_card" t-value="True"/>
+            </t>
+        </xpath>
+    </template>
+
+    <template id="portal_statement_page" name="Portal: Statement of Account">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="False"/>
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Statement of Account</t>
+            </t>
+            <div class="o_portal_statement">
+                <form method="get" action="/my/statement" class="row g-2 align-items-end mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label" for="date_from">From</label>
+                        <input type="date" class="form-control" name="date_from" id="date_from" t-att-value="options['date_from']"/>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="date_to">To</label>
+                        <input type="date" class="form-control" name="date_to" id="date_to" t-att-value="options['date_to']"/>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="statement_type">Type</label>
+                        <select class="form-select" name="statement_type" id="statement_type">
+                            <option value="receivable" t-att-selected="options['statement_type'] == 'receivable'">What I owe (receivable)</option>
+                            <option value="payable" t-att-selected="options['statement_type'] == 'payable'">What is owed to me (payable)</option>
+                            <option value="both" t-att-selected="options['statement_type'] == 'both'">Both</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Show</button>
+                        <a class="btn btn-secondary" t-attf-href="/my/statement/pdf?date_from=#{options['date_from']}&amp;date_to=#{options['date_to']}&amp;statement_type=#{options['statement_type']}">
+                            <i class="fa fa-file-pdf-o"/> PDF</a>
+                        <a class="btn btn-outline-secondary" t-attf-href="/my/statement/pdf?date_from=#{options['date_from']}&amp;date_to=#{options['date_to']}&amp;statement_type=#{options['statement_type']}&amp;open_items=1">Open items</a>
+                    </div>
+                </form>
+
+                <t t-if="not statement['has_data']">
+                    <div class="alert alert-info">No entries for this period.</div>
+                </t>
+                <t t-foreach="statement['blocks']" t-as="block">
+                    <t t-set="cur" t-value="block['currency']"/>
+                    <t t-set="mo" t-value="{'widget': 'monetary', 'display_currency': cur}"/>
+                    <h5 t-if="len(statement['blocks']) > 1"><span t-out="cur.name"/></h5>
+                    <div class="row mb-2">
+                        <div class="col-md-4"><div class="card p-2"><small class="text-muted">Opening balance</small><div class="fs-5" t-out="block['opening']" t-options="mo"/></div></div>
+                        <div class="col-md-4"><div class="card p-2"><small class="text-muted" t-out="labels['due']"/><div class="fs-5 fw-bold" t-out="block['closing']" t-options="mo"/></div></div>
+                        <div class="col-md-4"><div class="card p-2"><small class="text-muted">Open items (all dates)</small><div class="fs-5" t-out="block['ageing_total']" t-options="mo"/></div></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead><tr><th>Date</th><th>Document</th><th>Description</th><th>Due</th><th class="text-end" t-out="labels['debit']"/><th class="text-end" t-out="labels['credit']"/><th class="text-end">Balance</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="block['lines']" t-as="l" t-att-class="'table-warning' if l['days_overdue'] else ''">
+                                    <td><span t-out="l['doc_date']" t-options="{'widget': 'date'}"/></td>
+                                    <td><span t-out="l['move']"/><small class="text-muted"> <span t-out="l['kind']"/></small></td>
+                                    <td><span t-out="l['name']"/><t t-if="l['patient']"><br/><small class="text-muted"><span t-out="l['patient']"/></small></t></td>
+                                    <td><span t-out="l['due']" t-options="{'widget': 'date'}"/><small t-if="l['days_overdue']" class="text-danger"> (<span t-out="l['days_overdue']"/> d)</small></td>
+                                    <td class="text-end"><span t-if="l['debit']" t-out="l['debit']" t-options="mo"/></td>
+                                    <td class="text-end"><span t-if="l['credit']" t-out="l['credit']" t-options="mo"/></td>
+                                    <td class="text-end"><span t-out="l['balance']" t-options="mo"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div t-if="block['ageing_total']" class="mb-4">
+                        <strong>Ageing of open items:</strong>
+                        <t t-foreach="block['ageing_rows']" t-as="a">
+                            <span class="badge text-bg-light me-1"><span t-out="a[0]"/>: <span t-out="a[1]" t-options="mo"/></span>
+                        </t>
+                    </div>
+                </t>
+            </div>
+        </t>
+    </template>
+</odoo>

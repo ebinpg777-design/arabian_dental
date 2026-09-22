@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.WhereDialog">
+    <Dialog title="title" size="'md'" contentClass="'o_st_where_dlg'">
+        <!-- The one fact the question was asked for, in the largest type. -->
+        <div class="o_st_where_at">
+            <i class="fa fa-map-marker me-2" title="At"/>
+            <t t-esc="props.job.station"/>
+            <span t-if="props.job.here" class="o_st_where_here">· this station</span>
+        </div>
+        <div class="o_st_where_line" t-esc="standing"/>
+
+        <div class="o_st_where_job">
+            <span class="o_st_mo" t-esc="props.job.production or props.job.job"/>
+            <div t-if="props.job.patient or props.job.clinic" class="o_st_case">
+                <span t-if="props.job.patient" class="o_st_patient" t-esc="props.job.patient"/>
+                <span t-if="props.job.patient and props.job.clinic"> · </span>
+                <span t-if="props.job.clinic" class="o_st_clinic" t-esc="props.job.clinic"/>
+            </div>
+            <div class="o_st_where_meta">
+                <span t-if="props.job.operation"><t t-esc="props.job.operation"/></span>
+                <span t-if="props.job.state_label"> · <t t-esc="props.job.state_label"/></span>
+                <span t-if="props.job.accepted_at"> · since <t t-esc="props.job.accepted_at"/></span>
+            </div>
+            <div t-if="props.job.next_station" class="o_st_where_next">
+                <i class="fa fa-share me-1" title="Then"/>Then it goes to
+                <strong t-esc="props.job.next_station"/>
+            </div>
+        </div>
+
+        <t t-set-slot="footer">
+            <button class="btn btn-primary" t-on-click="() => this.openRecord()">
+                Open the job
+            </button>
+            <button class="btn btn-secondary" t-on-click="() => props.close()">
+                Close
+            </button>
+        </t>
+    </Dialog>
+</t>
+
+</templates>

@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.Flow">
+    <div class="o_fl o_action">
+        <!-- The hero: the day being read, and what happened on it. The live
+             floor (queues, urgent, oldest) is always this minute's, whichever
+             day is chosen; the day's own numbers follow the date.
+             (client, 2026-09-09) -->
+        <div class="o_fl_hero">
+            <div class="o_fl_hero_l">
+                <div class="o_fl_eyebrow">Production</div>
+                <h2 class="o_fl_title">Where the work is</h2>
+                <div t-if="state.data" class="o_fl_daybar">
+                    <button class="o_fl_daybtn" t-att-disabled="state.loading"
+                            t-on-click="() => this.stepDay(-1)" title="The day before">
+                        <i class="fa fa-chevron-left" title="Earlier"/>
+                    </button>
+                    <input type="date" class="o_fl_date"
+                           t-att-value="state.day" t-att-max="state.data.day.today"
+                           t-on-change="(ev) => this.setDay(ev.target.value)"/>
+                    <button class="o_fl_daybtn"
+                            t-att-disabled="state.loading or state.data.day.is_today"
+                            t-on-click="() => this.stepDay(1)" title="The day after">
+                        <i class="fa fa-chevron-right" title="Later"/>
+                    </button>
+                    <button t-if="!state.data.day.is_today" class="o_fl_daybtn o_fl_today"
+                            t-on-click="() => this.setDay(state.data.day.today)">Today</button>
+                    <span class="o_fl_daylabel" t-esc="state.data.day.label"/>
+                </div>
+            </div>
+            <div t-if="state.data" class="o_fl_stats">
+                <div class="o_fl_stat o_fl_stat_day">
+                    <span class="o_fl_v" t-esc="fmt(state.data.day.taken)"/>
+                    <span class="o_fl_l">taken</span>
+                </div>
+                <div class="o_fl_stat o_fl_stat_day">
+                    <span class="o_fl_v" t-esc="fmt(state.data.day.finished)"/>
+                    <span class="o_fl_l">finished</span>
+                </div>
+                <div class="o_fl_stat o_fl_stat_day" title="Bench minutes on the steps finished this day">
+                    <span class="o_fl_v" t-esc="hoursOf(state.data.day.minutes)"/>
+                    <span class="o_fl_l">bench time</span>
+                </div>
+                <div class="o_fl_stat o_fl_stat_day">
+                    <span class="o_fl_v" t-esc="fmt(state.data.day.new_cases)"/>
+                    <span class="o_fl_l">new cases in</span>
+                </div>
+                <div class="o_fl_stat o_fl_stat_day">
+                    <span class="o_fl_v" t-esc="fmt(state.data.day.delivered)"/>
+                    <span class="o_fl_l">delivered out</span>
+                </div>
+                <div class="o_fl_stat o_fl_stat_day" t-if="state.data.day.redos">
+                    <span class="o_fl_v" t-esc="fmt(state.data.day.redos)"/>
+                    <span class="o_fl_l">redos started</span>
+                </div>
+                <div class="o_fl_stat">
+                    <span class="o_fl_v" t-esc="fmt(state.data.standing_total)"/>
+                    <span class="o_fl_l">cases on the floor now</span>
+                </div>
+                <div class="o_fl_stat">
+                    <span class="o_fl_v" t-esc="fmt(state.data.totals.stale)"/>
+                    <span class="o_fl_l">steps over <t t-esc="state.data.totals.ageing_hours"/>h</span>
+                </div>
+            </div>
+        </div>
+
+        <div t-if="state.loading" class="text-center text-muted py-5">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+
+        <t t-else="">
+            <!-- Pace: today's finishes against the usual by this hour. "14
+                 finished" means nothing at eleven without knowing a normal day
+                 has 22 by then. -->
+            <div class="o_fl_strip">
+                <span t-if="state.data.pace and state.data.pace.usual" class="o_fl_chip"
+                      t-att-class="{ 'o_fl_chip_ahead': state.data.pace.delta >= 0,
+                                     'o_fl_chip_behind': state.data.pace.delta &lt; 0 }"
+                      t-attf-title="Usual by this hour over the last {{ state.data.pace.days }} working day(s)">
+                    <i t-attf-class="fa fa-{{ state.data.pace.delta >= 0 ? 'arrow-up' : 'arrow-down' }} me-1"/>
+                    <b t-esc="state.data.pace.pct"/>% of the usual pace
+                    <span class="text-muted">(<t t-esc="state.data.pace.so_far"/> vs <t t-esc="state.data.pace.usual"/>)</span>
+                </span>
+                <!-- The day against its targets: of the people given a number,
+                     how many reached it. (client, 2026-09-10) -->
+                <span t-if="state.data.targets and state.data.targets.set" class="o_fl_chip"
+                      t-att-class="{ 'o_fl_chip_ahead': state.data.targets.met === state.data.targets.set,
+                                     'o_fl_chip_behind': state.data.targets.met &lt; state.data.targets.set and !state.data.pace }"
+                      title="Technicians who reached the target set for them on this day, and the floor's total against the total set">
+                    <i class="fa fa-bullseye me-1"/>
+                    <b t-esc="state.data.targets.met"/> of <t t-esc="state.data.targets.set"/> on target
+                    <span class="text-muted">(<t t-esc="state.data.targets.done"/> of <t t-esc="state.data.targets.target"/>)</span>
+                </span>
+                <span t-if="state.data.stuck_total" class="o_fl_chip o_fl_chip_stuck"
+                      t-attf-title="Cases nobody has started after {{ state.data.totals.ageing_hours }} hours at the bench they stand at">
+                    <b t-esc="fmt(state.data.stuck_total)"/> stuck over <t t-esc="state.data.totals.ageing_hours"/>h
+                </span>
+                <span t-if="state.data.urgent.total" class="o_fl_chip o_fl_chip_urgent"
+                      title="Urgent and emergency cases still in the lab - open the list"
+                      t-on-click="() => this.openRush()">
+                    <b t-esc="fmt(state.data.urgent.total)"/> urgent / emergency on the floor
+                    <i class="fa fa-external-link ms-1" title="Open"/>
+                </span>
+                <span t-if="state.data.day.urgent_finished" class="o_fl_chip">
+                    <b t-esc="state.data.day.urgent_finished"/> urgent / emergency finished
+                </span>
+                <span t-if="state.data.closeout" class="o_fl_chip o_fl_chip_debt"
+                      title="Orders the doctor already has that were never closed here - the office worklist that shrinks this database's biggest distortion"
+                      t-on-click="() => this.openCloseout()">
+                    <b t-esc="fmt(state.data.closeout)"/> delivered, never closed
+                    <i class="fa fa-external-link ms-1" title="Open"/>
+                </span>
+                <span class="o_fl_updated">
+                    as of <t t-esc="state.data.as_of"/>
+                    <button class="o_fl_refresh" t-att-disabled="state.refreshing"
+                            t-on-click="() => this.load()" title="Read the floor again">
+                        <i t-attf-class="fa fa-refresh me-1 {{ state.refreshing ? 'fa-spin' : '' }}"/>
+                        <t t-if="state.refreshing">Reading…</t>
+                        <t t-else="">Refresh</t>
+                    </button>
+                </span>
+            </div>
+
+            <!-- The day's rhythm, hour by hour. A total says how much; this
+                 says when - the late start, the lunch dip, the three o'clock
+                 push, the bench that goes quiet at four. -->
+            <div t-if="state.data.hours.length" class="o_fl_panel o_fl_rhythm">
+                <div class="o_fl_panel_h">
+                    Hour by hour
+                    <span class="text-muted">— <span class="o_fl_key o_fl_key_fin"/> finished
+                        <span class="o_fl_key o_fl_key_tak"/> taken</span>
+                </div>
+                <div class="o_fl_hours">
+                    <div t-foreach="state.data.hours" t-as="h" t-key="h.h" class="o_fl_hour"
+                         t-attf-title="{{ h.label }}:00 — {{ h.finished }} finished, {{ h.taken }} taken">
+                        <div class="o_fl_hour_bars">
+                            <div class="o_fl_hour_fin" t-attf-style="height: {{ Math.max(h.pct_finished, h.finished ? 4 : 0) }}%"/>
+                            <div class="o_fl_hour_tak" t-attf-style="height: {{ Math.max(h.pct_taken, h.taken ? 4 : 0) }}%"/>
+                        </div>
+                        <div class="o_fl_hour_l" t-esc="h.label"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How each work centre is working. A queue count says how much is
+                 standing there; none of it says how the bench WORKS. This does:
+                 what came in and went out today (and so whether the queue grew),
+                 how long a case waited before somebody started it, how long a step
+                 took once started, who was there and when, and what is stuck.
+                 One row per station, the busiest queue on top. (client, 2026-09-09) -->
+            <div class="o_fl_panel o_fl_process">
+                <div class="o_fl_panel_h">
+                    How each station is working
+                    <span class="text-muted">— <t t-esc="state.data.day.label"/>; queues are this minute's</span>
+                </div>
+                <div t-if="!activeStations.length" class="o_fl_empty">
+                    Nothing is in production.
+                </div>
+                <div t-else="" class="o_fl_proc_tbl">
+                    <div class="o_fl_proc_h">
+                        <span>Station</span>
+                        <span class="o_fl_num" title="Live cases standing at this bench right now, and how many of them nobody has started">Queue now</span>
+                        <span class="o_fl_num" title="Cases accepted at this bench on the day">In</span>
+                        <span class="o_fl_num" title="Steps handed on from this bench on the day">Out</span>
+                        <span class="o_fl_num" title="In minus out: a positive number is a queue that grew">Net</span>
+                        <span class="o_fl_num" title="Average wait from arriving at the bench to somebody starting, on the day">Wait to start</span>
+                        <span class="o_fl_num" title="Average time from start to hand-on, on the day">Step time</span>
+                        <span class="o_fl_num" title="Technicians with a stamp at this bench on the day">People</span>
+                        <span class="o_fl_num" title="First start and last hand-on of the day">Hours</span>
+                        <span class="o_fl_num" title="Cases nobody has started after the ageing line">Stuck</span>
+                    </div>
+                    <button t-foreach="activeStations" t-as="s" t-key="s.id"
+                            class="o_fl_proc_row"
+                            t-att-class="{ 'o_fl_proc_peak': s.is_bottleneck, 'o_fl_proc_idle': !s.in_day and !s.out_day }"
+                            t-on-click="() => this.openStation(s)"
+                            title="Open the live queue at this station">
+                        <span class="o_fl_proc_name">
+                            <span class="o_fl_proc_title">
+                                <t t-esc="s.name"/>
+                                <span t-if="s.is_bottleneck" class="o_fl_tag o_fl_tag_stale">deepest queue</span>
+                                <span t-if="s.urgent" class="o_fl_tag o_fl_tag_urgent"><t t-esc="s.urgent"/> urgent</span>
+                                <span t-if="s.unstaffed" class="o_fl_tag o_fl_tag_none">nobody posted</span>
+                            </span>
+                            <span class="o_fl_proc_bar"><span t-attf-style="width: {{ s.pct }}%"/></span>
+                        </span>
+                        <span class="o_fl_num">
+                            <b t-esc="fmt(s.here)"/>
+                            <span t-if="s.here_waiting" class="o_fl_proc_sub">
+                                <t t-esc="fmt(s.here_waiting)"/> waiting
+                            </span>
+                        </span>
+                        <span class="o_fl_num" t-esc="s.in_day"/>
+                        <span class="o_fl_num o_fl_num_fin" t-esc="s.out_day"/>
+                        <span class="o_fl_num" t-att-class="{ 'o_fl_net_up': s.net_day > 0, 'o_fl_net_down': s.net_day &lt; 0 }"
+                              t-esc="signed(s.net_day)"/>
+                        <span class="o_fl_num" t-esc="minutesOf(s.wait_min)"/>
+                        <span class="o_fl_num">
+                            <t t-esc="minutesOf(s.cycle_min)"/>
+                            <span t-if="s.over_day" class="o_fl_proc_sub o_fl_over"><t t-esc="s.over_day"/> over</span>
+                        </span>
+                        <span class="o_fl_num" t-esc="s.people_day || '—'"/>
+                        <span class="o_fl_num o_fl_when">
+                            <t t-if="s.first"><t t-esc="s.first"/><t t-if="s.last"> – <t t-esc="s.last"/></t></t>
+                            <t t-else="">—</t>
+                        </span>
+                        <span class="o_fl_num" t-att-class="{ 'o_fl_hot_n': s.stuck }">
+                            <t t-if="s.stuck"><t t-esc="fmt(s.stuck)"/></t>
+                            <t t-else="">—</t>
+                            <span t-if="s.oldest_h >= 48" class="o_fl_proc_sub">oldest <t t-esc="daysOf(s.oldest_h)"/></span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- THE RUSH REPORT. A count sends a supervisor looking; this says
+                 which cases they are, which bench each stands at, whether
+                 anybody has taken it and how long it has waited. Emergency above
+                 urgent, and within each the longest wait first.
+                 (client, 2026-09-10) -->
+            <div t-if="rush.total" class="o_fl_panel o_fl_rush">
+                <div class="o_fl_panel_h">
+                    Urgent and emergency work
+                    <span class="text-muted">— every rush case in the lab, at the step
+                        it is actually at</span>
+                    <button class="o_fl_rush_all" t-on-click="() => this.openRush()">
+                        open all <t t-esc="rush.total"/> <i class="fa fa-external-link ms-1"/>
+                    </button>
+                </div>
+                <div class="o_fl_rush_sum">
+                    <button class="o_fl_rush_stat o_fl_rush_emg" t-att-disabled="!rush.emergency"
+                            t-on-click="() => this.openRush('emergency')">
+                        <span class="o_fl_v" t-esc="rush.emergency"/>
+                        <span class="o_fl_l">emergency</span>
+                    </button>
+                    <button class="o_fl_rush_stat o_fl_rush_urg" t-att-disabled="!rush.urgent"
+                            t-on-click="() => this.openRush('urgent')">
+                        <span class="o_fl_v" t-esc="rush.urgent"/>
+                        <span class="o_fl_l">urgent</span>
+                    </button>
+                    <span class="o_fl_rush_stat">
+                        <span class="o_fl_v" t-esc="rush.waiting"/>
+                        <span class="o_fl_l">nobody has started</span>
+                    </span>
+                    <span class="o_fl_rush_stat">
+                        <span class="o_fl_v" t-esc="rush.on_bench"/>
+                        <span class="o_fl_l">on a bench now</span>
+                    </span>
+                    <span class="o_fl_rush_stat">
+                        <span class="o_fl_v"><t t-esc="rush.oldest"/> d</span>
+                        <span class="o_fl_l">longest waiting</span>
+                    </span>
+                    <span class="o_fl_rush_stat">
+                        <span class="o_fl_v o_fl_num_fin" t-esc="rush.finished_today"/>
+                        <span class="o_fl_l">finished <t t-esc="state.data.day.label"/></span>
+                    </span>
+                </div>
+
+                <div t-if="rush.stations.length" class="o_fl_rush_where">
+                    Standing at:
+                    <button t-foreach="rush.stations" t-as="s" t-key="s.id"
+                            class="o_fl_rush_bench" t-on-click="() => this.openStation(s)">
+                        <t t-esc="s.name"/> <b t-esc="s.count"/>
+                    </button>
+                </div>
+
+                <div class="o_fl_rush_tbl">
+                    <div class="o_fl_rush_row o_fl_rush_head">
+                        <span>Case</span>
+                        <span>Patient · clinic</span>
+                        <span>Standing at</span>
+                        <span class="o_fl_num">Waiting</span>
+                        <span>Who has it</span>
+                    </div>
+                    <button t-foreach="rush.rows" t-as="r" t-key="r.id"
+                            class="o_fl_rush_row"
+                            t-att-class="{ o_fl_rush_row_emg: r.emergency }"
+                            t-on-click="() => this.openCase(r.production_id)">
+                        <span class="o_fl_rush_case">
+                            <span class="o_fl_rush_tag"
+                                  t-att-class="r.emergency ? 'o_fl_rush_tag_emg' : 'o_fl_rush_tag_urg'"
+                                  t-esc="r.emergency ? 'EMERGENCY' : 'URGENT'"/>
+                            <span class="o_fl_rush_mo" t-esc="r.production"/>
+                            <span t-if="r.order" class="o_fl_rush_so" t-esc="r.order"/>
+                        </span>
+                        <span class="o_fl_rush_who">
+                            <span t-if="r.patient" class="o_fl_rush_pt" t-esc="r.patient"/>
+                            <span class="o_fl_rush_cl" t-esc="r.clinic"/>
+                        </span>
+                        <span class="o_fl_rush_st">
+                            <t t-esc="r.station"/>
+                            <span t-if="r.operation" class="o_fl_rush_op" t-esc="r.operation"/>
+                        </span>
+                        <span class="o_fl_num" t-att-class="{ o_fl_hot_n: r.days >= 7 }">
+                            <t t-esc="r.days"/> d
+                        </span>
+                        <span class="o_fl_rush_hand">
+                            <t t-if="r.taken"><t t-esc="r.who or 'on the bench'"/></t>
+                            <span t-else="" class="o_fl_rush_none">nobody yet</span>
+                        </span>
+                    </button>
+                </div>
+                <div t-if="rush.more" class="o_fl_rush_more">
+                    and <t t-esc="rush.more"/> more — open all to see them.
+                </div>
+            </div>
+
+            <!-- Where the work went: the process as it actually ran on the day,
+                 not the routing on paper. -->
+            <div t-if="state.data.flows.length" class="o_fl_panel o_fl_flows">
+                <div class="o_fl_panel_h">
+                    Where the work went
+                    <span class="text-muted">— hand-overs on <t t-esc="state.data.day.label"/>, busiest path first</span>
+                </div>
+                <div class="o_fl_flow_list">
+                    <div t-foreach="state.data.flows" t-as="f" t-key="f_index" class="o_fl_flow">
+                        <span class="o_fl_flow_path">
+                            <t t-esc="f.from"/>
+                            <i class="fa fa-long-arrow-right mx-2" title="to"/>
+                            <t t-if="f.to"><t t-esc="f.to"/></t>
+                            <t t-else=""><span class="o_fl_flow_end">finished</span></t>
+                        </span>
+                        <span class="o_fl_flow_bar"><span t-attf-style="width: {{ f.pct }}%"/></span>
+                        <span class="o_fl_flow_n" t-esc="f.count"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Each person's day: how many they took and finished, the minutes
+                 on the bench, when they started and stopped, what they still hold.
+                 The question the floor asked for by name. (client, 2026-09-09) -->
+            <div class="o_fl_panel o_fl_people">
+                <div class="o_fl_panel_h">
+                    Who did what
+                    <span class="text-muted">— <t t-esc="state.data.day.label"/>, most finished first</span>
+                </div>
+                <div t-if="!state.data.people.length" class="o_fl_empty">
+                    No technician has a job stamped on this day.
+                </div>
+                <div t-else="" class="o_fl_people_tbl">
+                    <div class="o_fl_people_h">
+                        <span>Technician</span>
+                        <span class="o_fl_num" title="Given out or accepted on this day">Taken</span>
+                        <span class="o_fl_num" title="Handed on this day">Finished</span>
+                        <span class="o_fl_num" title="Taken or finished, counted once, against the target set for the day - the station board's own count">Target</span>
+                        <span class="o_fl_num" title="Bench minutes on the finished steps">Time</span>
+                        <span class="o_fl_num" title="Minutes per finished step">Per step</span>
+                        <span class="o_fl_num" title="First and last stamp of the day">Hours</span>
+                        <span class="o_fl_num" title="Open steps in their name right now">Holding</span>
+                    </div>
+                    <button t-foreach="state.data.people" t-as="p" t-key="p.id"
+                            class="o_fl_person" t-on-click="() => this.openPerson(p)"
+                            title="Open this person's work orders for the day">
+                        <span class="o_fl_person_n">
+                            <span class="o_fl_avatar" t-esc="initials(p.name)"/>
+                            <span>
+                                <span class="o_fl_person_name" t-esc="p.name"/>
+                                <span class="o_fl_person_s">
+                                    <t t-if="p.stations"><t t-esc="p.stations"/> station(s)</t>
+                                    <t t-if="p.finished_as_finisher"> · finished <t t-esc="p.finished_as_finisher"/> for others</t>
+                                    <!-- Its own drill. The row is already a button,
+                                         so this cannot be one too: a span that stops
+                                         the click going up does the same job and
+                                         keeps the markup legal. (client, 2026-09-19) -->
+                                    <t t-if="p.over"> · <span class="o_fl_over o_fl_over_click"
+                                            role="button" tabindex="0"
+                                            title="Show just the steps that ran past their expected time"
+                                            t-on-click="(ev) => this.openOverTime(p, ev)"
+                                            t-on-keydown="(ev) => this.openOverTime(p, ev)"><t t-esc="p.over"/> over time</span></t>
+                                </span>
+                            </span>
+                        </span>
+                        <span class="o_fl_num" t-esc="p.taken"/>
+                        <span class="o_fl_num o_fl_num_fin">
+                            <t t-esc="p.finished"/>
+                            <span class="o_fl_minibar"><span t-attf-style="width: {{ shareOf(p.finished) }}%"/></span>
+                        </span>
+                        <span class="o_fl_num o_fl_tgt">
+                            <t t-if="p.target">
+                                <span t-att-class="{ o_fl_tgt_met: p.target_met, o_fl_tgt_short: !p.target_met }">
+                                    <t t-esc="p.done"/>/<t t-esc="p.target"/>
+                                </span>
+                                <span class="o_fl_minibar">
+                                    <span t-att-class="{ o_fl_bar_short: !p.target_met }" t-attf-style="width: {{ p.target_pct }}%"/>
+                                </span>
+                            </t>
+                            <t t-else="">—</t>
+                        </span>
+                        <span class="o_fl_num" t-esc="hoursOf(p.minutes)"/>
+                        <span class="o_fl_num"><t t-if="p.avg_min"><t t-esc="p.avg_min"/> min</t><t t-else="">—</t></span>
+                        <span class="o_fl_num o_fl_when">
+                            <t t-if="p.first"><t t-esc="p.first"/><t t-if="p.last"> – <t t-esc="p.last"/></t></t>
+                            <t t-else="">—</t>
+                        </span>
+                        <span class="o_fl_num" t-esc="p.holding"/>
+                    </button>
+                </div>
+            </div>
+
+        </t>
+    </div>
+</t>
+
+</templates>

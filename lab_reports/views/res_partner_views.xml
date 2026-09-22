@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_lab" model="ir.ui.view">
+        <field name="name">res.partner.form.lab</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Lab Details" name="lab_details">
+                    <group>
+                        <group string="Client">
+                            <field name="cr_number"/>
+                            <field name="contact_person"/>
+                            <field name="handled_by"/>
+                            <field name="sourced_by"/>
+                            <field name="hospital_reg_no"/>
+                            <field name="last_sale_date"/>
+                        </group>
+                        <group string="Vendor">
+                            <field name="vendor_code"/>
+                            <field name="vendor_status"/>
+                            <field name="activity_type"/>
+                            <field name="iso_status"/>
+                            <field name="rating"/>
+                            <field name="credit_period"/>
+                            <field name="no_employees"/>
+                            <field name="approved_by"/>
+                        </group>
+                        <group string="Vendor Evaluation">
+                            <field name="evaluation_period"/>
+                            <field name="total_supplies"/>
+                            <field name="qty_rejected"/>
+                            <field name="no_qty_rejected"/>
+                            <field name="delivery_performance"/>
+                            <field name="invoicing"/>
+                        </group>
+                        <group string="Notes">
+                            <field name="quality_certificate"/>
+                            <field name="major_clients"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_company_form_lab" model="ir.ui.view">
+        <field name="name">res.company.form.lab</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <!-- Put the Excel-report logo in the report-logos group (added by
+                 sale_custom), NOT beside the native company logo in the header. -->
+            <field name="logo2" position="after">
+                <field name="excel_logo" widget="image"/>
+            </field>
+        </field>
+    </record>
+</odoo>

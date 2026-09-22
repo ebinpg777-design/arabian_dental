@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.StationPickDialog">
+    <Dialog title="title" size="'lg'" contentClass="'o_st_pickdlg'">
+        <div t-if="props.stations.length > 6" class="o_st_pick_search">
+            <i class="fa fa-search" title="Search"/>
+            <input type="text" t-ref="search" t-model="state.query"
+                   t-on-keydown="onKeydown" placeholder="Name or code…"
+                   autocomplete="off" spellcheck="false"/>
+        </div>
+
+        <div class="o_st_pick_grid">
+            <button t-foreach="matches" t-as="s" t-key="s.id"
+                    class="o_st_pick_card"
+                    t-att-class="{ o_st_pick_on: s.id === props.currentId }"
+                    t-att-disabled="state.busy"
+                    t-attf-style="--bench-hue: {{ hue(s) }}"
+                    t-on-click="() => this.pick(s)">
+                <!-- HEADER: the bench's colour, its initials and its NAME, which is
+                     what somebody standing at it recognises. Everything else -
+                     the code printed on the frame, and where the work is - sits on
+                     the row beneath, so a long name never has to fight a number for
+                     the same line. (client, 2026-09-10) -->
+                <span class="o_st_pick_head">
+                    <span class="o_st_pick_chip" t-esc="initials(s.name)"/>
+                    <span class="o_st_pick_name" t-esc="s.name"/>
+                    <i t-if="s.id === props.currentId" class="fa fa-check o_st_pick_tick"
+                       title="You are here"/>
+                </span>
+                <span class="o_st_pick_foot">
+                    <span t-if="s.code" class="o_st_pick_code" t-esc="s.code"/>
+                    <span t-if="s.is_lead" class="o_st_pick_lead">
+                        <i class="fa fa-star" title="You lead this bench"/>
+                    </span>
+                    <!-- Where the work at this bench actually is, for the day being
+                         read: waiting to be taken, on the bench, passed on. -->
+                    <span class="o_st_pick_counts">
+                        <span class="o_st_pick_c o_st_pick_c_wait" title="Waiting to be taken">
+                            <span class="o_st_pick_qn" t-esc="s.waiting"/>
+                            <span class="o_st_pick_ql">waiting</span>
+                        </span>
+                        <span class="o_st_pick_c o_st_pick_c_bench" title="On the bench: accepted, not passed on">
+                            <span class="o_st_pick_qn" t-esc="s.bench"/>
+                            <span class="o_st_pick_ql">on bench</span>
+                        </span>
+                        <span class="o_st_pick_c o_st_pick_c_done" t-att-title="'Passed on ' + props.dayLabel">
+                            <span class="o_st_pick_qn" t-esc="s.finished"/>
+                            <span class="o_st_pick_ql">finished</span>
+                        </span>
+                    </span>
+                </span>
+            </button>
+        </div>
+
+        <div t-if="!matches.length" class="o_st_pick_none">
+            No station matches “<t t-esc="state.query"/>”.
+        </div>
+
+        <t t-set-slot="footer">
+            <button class="btn btn-secondary" t-on-click="() => props.close()">Cancel</button>
+        </t>
+    </Dialog>
+</t>
+
+</templates>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_sale_custom" model="ir.ui.view">
+        <field name="name">res.config.settings.form.sale.custom</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <setting id="online_signature" position="after">
+                <setting id="emergency_service_setting" string="Emergency Service"
+                         help="Product and percentage used for the urgent/emergency surcharge line">
+                    <field name="emergency_service_id" domain="[('type', '=', 'service')]"/>
+                    <div class="content-group mt16" invisible="not emergency_service_id">
+                        <label for="emergency_service_perc" class="o_light_label"/>
+                        <field name="emergency_service_perc" class="oe_inline"/>
+                    </div>
+                </setting>
+            </setting>
+        </field>
+    </record>
+</odoo>

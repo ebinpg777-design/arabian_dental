@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Verification is a top-level Sales dropdown, not a sub-menu of Orders: the
+         people who verify live in it all day and it sits beside Orders, not inside it.
+         (client, 2026-08-19) -->
+    <menuitem id="menu_lab_order_verification" name="Verification"
+              parent="sale.sale_menu_root" sequence="15"
+              groups="lab_order_control.group_lab_order_entry"/>
+
+    <menuitem id="menu_lab_orders_to_verify" name="Orders to Verify"
+              parent="menu_lab_order_verification"
+              action="action_lab_orders_to_verify" sequence="10"/>
+
+    <menuitem id="menu_lab_orders_sent_back" name="Sent Back for Correction"
+              parent="menu_lab_order_verification"
+              action="action_lab_orders_sent_back" sequence="20"/>
+
+    <menuitem id="menu_lab_pending_info" name="Pending Information"
+              parent="menu_lab_order_verification"
+              action="action_orders_pending_info" sequence="30"/>
+
+    <menuitem id="menu_lab_doctor_calls" name="Doctor Calls"
+              parent="menu_lab_order_verification"
+              action="action_doctor_call" sequence="40"/>
+</odoo>

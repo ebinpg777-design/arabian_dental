@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Company-level numbers are not for everyone: this board shows revenue, cash
+             and receivables in one place, so it gets its own group rather than riding on
+             an operational role. -->
+        <record id="group_lab_executive" model="res.groups">
+            <field name="name">Lab Executive (CEO)</field>
+            <field name="privilege_id" ref="lab_access_control.privilege_lab_access"/>
+            <field name="comment">Sees the company-level executive dashboard: revenue,
+                cash position, receivables and alerts across the whole lab.</field>
+        </record>
+    </data>
+</odoo>

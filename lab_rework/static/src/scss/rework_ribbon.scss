@@ -1,0 +1,8 @@
+// Second corner ribbon (REWORK) drawn parallel to, and further from the corner
+// than, the default URGENT / EMERGENCY ribbon. The stock ribbon is a 10rem square
+// anchored top-right whose diagonal carries the stripe; a wider square anchored to
+// the same corner puts its diagonal further out. 15rem leaves a small gap after
+// the default stripe height (2.5 x font-size-lg).
+.o_lab_ribbon_second .ribbon {
+    --Ribbon-wrapper-width: 15rem;
+}

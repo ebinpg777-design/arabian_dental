@@ -1,0 +1,57 @@
+// Order Count Summary — the same palette as the other lab sheets.
+.lab-invoice.occ {
+    $navy: #1f3a5f;
+    $card: #eef3f7;
+    $muted: #4d5c6b;
+    $line: #dfe5ea;
+    $hot: #b42318;
+
+    table.occ-title { margin-bottom: 8px; }
+    .occ-sub { font-size: 9.4pt; color: $muted; margin-top: 2px; }
+    .occ-period { font-size: 15pt; font-weight: 700; color: $navy; line-height: 1.2; white-space: nowrap; }
+
+    .occ-criteria { margin: 2px 0 8px; }
+    .occ-crit { display: inline-block; background: $card; border-radius: 4px;
+        padding: 2px 9px; margin: 0 6px 4px 0; font-size: 8.8pt;
+        .occ-crit-k { color: $muted; text-transform: uppercase; letter-spacing: .4px;
+            font-size: 7.8pt; font-weight: 700; margin-right: 5px; } }
+
+    table.occ-summary { table-layout: fixed; border-collapse: separate;
+        border-spacing: 8px 0; margin: 10px -8px 12px; }
+    .occ-card { border: 1px solid $line; border-radius: 6px; padding: 8px 12px; vertical-align: top;
+        .occ-card-value { font-size: 14pt; font-weight: 700; color: $navy;
+            margin-top: 1px; white-space: nowrap; }
+        .occ-share { font-size: 9pt; color: $muted; font-weight: 600; margin-left: 4px; }
+        &.occ-card-due { background: $navy; border-color: $navy;
+            .oi-label { color: rgba(255,255,255,.9); }
+            .occ-card-value { color: #fff; } } }
+
+    .occ-attention { border: 1px solid $line; border-radius: 6px; padding: 8px 12px 6px;
+        margin-bottom: 12px; page-break-inside: avoid; }
+    .occ-attention-title { font-size: 8.8pt; font-weight: 700; color: $muted;
+        text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+    table.occ-bar { margin-bottom: 3px;
+        td { vertical-align: middle; }
+        .occ-bar-label { width: 26%; font-size: 9.4pt; font-weight: 600;
+            padding-right: 8px; }
+        .occ-bar-track { background: $card; border-radius: 3px; height: 9px; }
+        .occ-bar-fill { background: $navy; border-radius: 3px; height: 9px; }
+        .occ-bar-value { width: 17%; text-align: right; font-size: 9.4pt;
+            font-weight: 700; white-space: nowrap; } }
+    .occ-attention-note { font-size: 8.6pt; color: $muted; margin-top: 4px; }
+
+    table.occ-lines {
+        font-size: 10pt;
+        thead th { background: $navy; color: #fff; font-weight: 700; font-size: 8.4pt;
+            text-transform: uppercase; letter-spacing: .5px; padding: 6px 9px; text-align: left; }
+        thead th.num { text-align: right; }
+        tbody td { padding: 5px 9px; border-bottom: 1px solid $line; }
+        .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        tr.occ-l0 td { font-weight: 700; background: #f7f9fb; }
+        tr.occ-l2 td { color: #3a4750; font-size: 9.2pt; }
+        .occ-hot { color: $hot; font-weight: 700; }
+        tr.occ-total td { background: $navy; color: #fff; font-weight: 700;
+            font-size: 10.5pt; border-bottom: none; }
+    }
+    .occ-empty { text-align: center; color: $muted; font-style: italic; padding: 26px 0; }
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Production Order - eight work items to an A4 sheet.
+
+        The office selects the day's sales orders and gets one slip per job underneath
+        them: the two numbers, the barcode the bench and the delivery scanner both
+        read, who it is for, and the three things that decide how it is made.
+
+        The layout itself lives in sale_custom.report_production_slips, and the slips
+        are built by report/production_order.py - which falls back to the order's own
+        lines for the roughly one order in five that has no manufacturing order behind
+        it, so the sheet is never blank. (client, 2026-08-28)
+    -->
+    <template id="report_mrporder">
+        <t t-call="sale_custom.report_production_slips"/>
+    </template>
+
+    <record id="action_report_production_order" model="ir.actions.report">
+        <field name="name">Production Order</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_reports.report_mrporder</field>
+        <field name="report_file">lab_reports.report_mrporder</field>
+        <field name="print_report_name">'Production Order'</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <!-- 5 mm margins and no header spacing: the old sheet lost its whole top
+             third to the standard paperformat's header gap. -->
+        <field name="paperformat_id" ref="sale_custom.paperformat_lab_slips"/>
+    </record>
+</odoo>

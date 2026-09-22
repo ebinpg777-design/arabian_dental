@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_epg_label_element_form" model="ir.ui.view">
+        <field name="name">epg.label.element.form</field>
+        <field name="model">epg.label.element</field>
+        <field name="arch" type="xml">
+            <form string="Label Element">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Product name"/></h1>
+                    </div>
+                    <field name="model_name" invisible="1"/>
+                    <field name="unit" invisible="1"/>
+                    <field name="template_id" invisible="1"/>
+                    <group>
+                        <group string="Element">
+                            <field name="element_type"/>
+                            <field name="sequence"/>
+                            <field name="z_index"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Position and Size">
+                            <label for="pos_x" string="Position (X, Y)"/>
+                            <div class="o_row">
+                                <field name="pos_x" class="oe_inline"/>
+                                <span class="mx-1"/>
+                                <field name="pos_y" class="oe_inline"/>
+                                <span class="ms-2 text-muted"><field name="unit" readonly="1" nolabel="1"/></span>
+                            </div>
+                            <label for="width" string="Size (W, H)"/>
+                            <div class="o_row">
+                                <field name="width" class="oe_inline"/>
+                                <span class="mx-1"/>
+                                <field name="height" class="oe_inline"/>
+                            </div>
+                            <field name="rotation"/>
+                            <field name="auto_height"/>
+                            <field name="opacity"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Content" name="content"
+                              invisible="element_type in ('box', 'line', 'ellipse')">
+                            <group>
+                                <group invisible="element_type != 'text'">
+                                    <field name="text_content" nolabel="1" colspan="2"
+                                           placeholder="Any text. Use {{ name }} or {{ categ_id.name }} to inject values from the printed record."/>
+                                </group>
+                                <group invisible="element_type != 'html'">
+                                    <field name="html_content" nolabel="1" colspan="2"/>
+                                </group>
+                                <group string="Source"
+                                       invisible="element_type not in ('field', 'date')">
+                                    <field name="field_id" options="{'no_create': True}"/>
+                                    <field name="field_path" widget="epg_field_path"
+                                           placeholder="e.g. categ_id.name"/>
+                                </group>
+                                <group string="Barcode"
+                                       invisible="element_type not in ('barcode', 'qrcode')">
+                                    <field name="barcode_source"/>
+                                    <field name="barcode_value"
+                                           invisible="barcode_source != 'static'"
+                                           required="element_type in ('barcode', 'qrcode') and barcode_source == 'static'"/>
+                                    <field name="field_path" widget="epg_field_path"
+                                           invisible="barcode_source != 'field'"
+                                           required="element_type in ('barcode', 'qrcode') and barcode_source == 'field'"/>
+                                    <field name="text_content"
+                                           invisible="barcode_source != 'text'"
+                                           placeholder="e.g. https://shop.example.com/p/{{ id }}"/>
+                                    <field name="barcode_type"
+                                           invisible="element_type == 'qrcode'"/>
+                                    <field name="barcode_humanreadable"
+                                           invisible="element_type == 'qrcode'"/>
+                                    <field name="qr_error_correction"
+                                           invisible="element_type != 'qrcode' and barcode_type != 'QR'"/>
+                                    <label for="barcode_status" string="Check"/>
+                                    <div>
+                                        <field name="barcode_status"
+                                               widget="epg_barcode_status" nolabel="1"/>
+                                    </div>
+                                </group>
+                                <group string="Contact"
+                                       invisible="element_type not in ('address', 'vcard')">
+                                    <field name="field_path" string="Contact Field" widget="epg_field_path"
+                                           placeholder="Leave empty to use the printed record"/>
+                                    <field name="address_parts"
+                                           invisible="element_type != 'address'"/>
+                                </group>
+                                <group string="Image" invisible="element_type != 'image'">
+                                    <field name="image_source"/>
+                                    <field name="image_data" widget="image"
+                                           filename="image_filename"
+                                           invisible="image_source != 'static'"/>
+                                    <field name="image_filename" invisible="1"/>
+                                    <field name="field_path" widget="epg_field_path"
+                                           invisible="image_source != 'field'"
+                                           required="element_type == 'image' and image_source == 'field'"/>
+                                    <field name="image_fit"/>
+                                    <field name="image_threshold"/>
+                                </group>
+                                <group string="Price"
+                                       invisible="element_type not in ('price', 'price_promo', 'price_uom', 'price_diff')">
+                                    <field name="price_base"
+                                           invisible="element_type == 'price_promo'"/>
+                                    <field name="field_path"
+                                           invisible="price_base != 'field'"/>
+                                    <field name="price_tax"/>
+                                    <field name="price_show_currency"/>
+                                    <field name="price_currency_position"
+                                           invisible="not price_show_currency"/>
+                                    <field name="price_strikethrough"
+                                           invisible="element_type not in ('price', 'price_promo')"/>
+                                    <field name="price_uom_qty"
+                                           invisible="element_type != 'price_uom'"/>
+                                    <field name="price_uom_label"
+                                           invisible="element_type != 'price_uom'"/>
+                                    <field name="price_diff_mode"
+                                           invisible="element_type != 'price_diff'"/>
+                                </group>
+                                <group string="Pricelist Rule"
+                                       invisible="element_type != 'pricelist_rule'">
+                                    <field name="rule_pricelist"/>
+                                    <field name="rule_info"/>
+                                </group>
+                                <group string="Attributes"
+                                       invisible="element_type != 'attributes'">
+                                    <field name="attribute_ids" widget="many2many_tags"/>
+                                    <field name="attribute_show_name"/>
+                                    <field name="attribute_separator"/>
+                                </group>
+                                <group string="Formatting"
+                                       invisible="element_type in ('barcode', 'qrcode', 'vcard', 'image', 'html', 'box', 'line', 'ellipse')">
+                                    <field name="value_format"/>
+                                    <field name="digits"
+                                           invisible="value_format not in ('float', 'integer', 'percentage')"/>
+                                    <field name="date_format"
+                                           invisible="value_format not in ('date', 'datetime') and element_type not in ('date', 'pricelist_rule')"/>
+                                    <field name="prefix"/>
+                                    <field name="suffix"/>
+                                    <field name="default_value"/>
+                                    <field name="max_length"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Style" name="style">
+                            <group>
+                                <group string="Text"
+                                       invisible="element_type in ('barcode', 'qrcode', 'vcard', 'image', 'box', 'line', 'ellipse')">
+                                    <field name="font_family"/>
+                                    <field name="font_size"/>
+                                    <label for="font_bold" string="Style"/>
+                                    <div class="o_row">
+                                        <field name="font_bold"/><span class="me-3">Bold</span>
+                                        <field name="font_italic"/><span class="me-3">Italic</span>
+                                        <field name="font_underline"/><span class="me-3">Underline</span>
+                                        <field name="font_strike"/><span>Strike</span>
+                                    </div>
+                                    <field name="text_align"/>
+                                    <field name="vertical_align"/>
+                                    <field name="line_height"/>
+                                    <field name="letter_spacing"/>
+                                    <field name="text_transform"/>
+                                    <field name="text_wrap"/>
+                                    <field name="text_color" widget="color"/>
+                                </group>
+                                <group string="Box">
+                                    <field name="bg_transparent"/>
+                                    <field name="bg_color" widget="color"
+                                           invisible="bg_transparent"/>
+                                    <field name="fill"
+                                           invisible="element_type not in ('box', 'ellipse')"/>
+                                    <field name="border_width"/>
+                                    <field name="border_style" invisible="not border_width"/>
+                                    <field name="border_color" widget="color"
+                                           invisible="not border_width"/>
+                                    <field name="border_radius"
+                                           invisible="element_type == 'ellipse'"/>
+                                    <field name="padding"/>
+                                </group>
+                                <group string="Barcode Rendering"
+                                       invisible="element_type not in ('barcode', 'qrcode', 'vcard')">
+                                    <field name="barcode_transparent"/>
+                                    <field name="barcode_inverted"/>
+                                    <field name="barcode_quiet"/>
+                                    <field name="barcode_module_width"/>
+                                    <field name="barcode_ratio"
+                                           invisible="element_type != 'barcode'"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Visibility" name="visibility">
+                            <group>
+                                <field name="condition"
+                                       placeholder="e.g. object.barcode"/>
+                            </group>
+                            <div class="text-muted">
+                                Leave the condition empty to always print this element.
+                                When it is set, the element is printed only if the
+                                expression is true for the record being printed.
+                                <code>object</code> is that record.
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_epg_label_element_list" model="ir.ui.view">
+        <field name="name">epg.label.element.list</field>
+        <field name="model">epg.label.element</field>
+        <field name="arch" type="xml">
+            <list string="Elements" editable="bottom" multi_edit="1">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="element_type"/>
+                <field name="pos_x" string="X"/>
+                <field name="pos_y" string="Y"/>
+                <field name="width" string="W"/>
+                <field name="height" string="H"/>
+                <field name="font_size" string="Size" optional="show"/>
+                <field name="font_bold" string="Bold" optional="show"/>
+                <field name="text_align" string="Align" optional="hide"/>
+                <field name="rotation" optional="hide"/>
+                <field name="z_index" string="Layer" optional="hide"/>
+                <field name="condition" optional="hide"/>
+                <field name="active" widget="boolean_toggle" optional="show"/>
+                <field name="template_id" column_invisible="1"/>
+                <field name="unit" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_epg_label_element_search" model="ir.ui.view">
+        <field name="name">epg.label.element.search</field>
+        <field name="model">epg.label.element</field>
+        <field name="arch" type="xml">
+            <search string="Elements">
+                <field name="name"/>
+                <field name="template_id"/>
+                <field name="element_type"/>
+                <filter name="filter_active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="filter_inactive" string="Hidden" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_template" string="Template"
+                            context="{'group_by': 'template_id'}"/>
+                    <filter name="group_type" string="Type"
+                            context="{'group_by': 'element_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_epg_label_element" model="ir.actions.act_window">
+        <field name="name">Label Elements</field>
+        <field name="res_model">epg.label.element</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_epg_label_element_search"/>
+    </record>
+
+</odoo>

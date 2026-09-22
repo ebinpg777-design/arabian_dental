@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_target_form" model="ir.ui.view">
+        <field name="name">lab.target.form</field>
+        <field name="model">lab.target</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_open" type="object" string="Start"
+                            class="btn-primary" invisible="state != 'draft'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <button name="action_close" type="object" string="Close"
+                            invisible="state != 'open'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <button name="action_draft" type="object" string="Reopen"
+                            invisible="state != 'closed'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning m-0 mb-3 rounded d-flex align-items-center"
+                         role="alert" invisible="not lock_is_locked or lock_can_edit">
+                        <i class="fa fa-lock me-2" title="Locked"/>
+                        <field name="lock_message" nolabel="1" readonly="1" class="mb-0"/>
+                    </div>
+                    <field name="lock_is_locked" invisible="1"/>
+                    <field name="lock_can_edit" invisible="1"/>
+
+                    <widget name="web_ribbon" title="Closed" bg_color="text-bg-secondary"
+                            invisible="state != 'closed'"/>
+
+                    <!-- The achieved number is measured, so every part of it must be
+                         reachable: a target you cannot audit is a target people argue
+                         about instead of working towards. -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_visits" type="object"
+                                class="oe_stat_button" icon="fa-map-marker"
+                                invisible="done_visits == 0">
+                            <field name="done_visits" widget="statinfo" string="Visits"/>
+                        </button>
+                        <button name="action_view_cases" type="object"
+                                class="oe_stat_button" icon="fa-medkit"
+                                invisible="done_orders == 0">
+                            <field name="done_orders" widget="statinfo" string="Cases"/>
+                        </button>
+                        <button name="action_view_cases" type="object"
+                                class="oe_stat_button" icon="fa-line-chart"
+                                invisible="done_value == 0">
+                            <div class="o_stat_info">
+                                <field name="done_value" widget="monetary" class="o_stat_value"/>
+                                <span class="o_stat_text">Achieved</span>
+                            </div>
+                        </button>
+                        <button name="action_view_performance" type="object"
+                                class="oe_stat_button" icon="fa-trophy"
+                                groups="lab_fieldwork.group_fieldwork_manager">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Score</span>
+                                <span class="o_stat_text">card</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title"><h1><field name="display_name" readonly="1"/></h1></div>
+
+                    <group>
+                        <group>
+                            <field name="allowed_user_ids" invisible="1"/>
+                            <field name="user_id" readonly="state != 'draft'"
+                                   domain="[('id', 'in', allowed_user_ids)]"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="month" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <!-- One headline number with a progress bar. Four ratios
+                                 would let a good visit count hide a bad revenue month. -->
+                            <field name="progress" widget="progressbar" readonly="1"/>
+                            <field name="company_id" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <group string="Goal / Achieved">
+                        <group>
+                            <label for="goal_value"/>
+                            <div class="d-flex align-items-center gap-2">
+                                <field name="goal_value" nolabel="1"
+                                       readonly="state == 'closed'"/>
+                                <span class="text-muted">→</span>
+                                <field name="done_value" nolabel="1" readonly="1"
+                                       class="fw-bold"/>
+                            </div>
+                            <label for="goal_orders"/>
+                            <div class="d-flex align-items-center gap-2">
+                                <field name="goal_orders" nolabel="1"
+                                       readonly="state == 'closed'"/>
+                                <span class="text-muted">→</span>
+                                <field name="done_orders" nolabel="1" readonly="1"
+                                       class="fw-bold"/>
+                            </div>
+                        </group>
+                        <group>
+                            <label for="goal_visits"/>
+                            <div class="d-flex align-items-center gap-2">
+                                <field name="goal_visits" nolabel="1"
+                                       readonly="state == 'closed'"/>
+                                <span class="text-muted">→</span>
+                                <field name="done_visits" nolabel="1" readonly="1"
+                                       class="fw-bold"/>
+                            </div>
+                            <label for="goal_collect"/>
+                            <div class="d-flex align-items-center gap-2">
+                                <field name="goal_collect" nolabel="1"
+                                       readonly="state == 'closed'"/>
+                                <span class="text-muted">→</span>
+                                <field name="done_collect" nolabel="1" readonly="1"
+                                       class="fw-bold"/>
+                            </div>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Notes on this month…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_target_list" model="ir.ui.view">
+        <field name="name">lab.target.list</field>
+        <field name="model">lab.target</field>
+        <field name="arch" type="xml">
+            <list decoration-success="progress >= 100" decoration-danger="progress &lt; 50 and state == 'open'">
+                <field name="month"/>
+                <field name="user_id" groups="lab_fieldwork.group_fieldwork_manager"/>
+                <field name="goal_value" sum="Goal"/>
+                <field name="done_value" sum="Achieved"/>
+                <field name="progress" widget="progressbar"/>
+                <field name="done_visits" optional="show"/>
+                <field name="done_orders" optional="show"/>
+                <field name="state" widget="badge"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_target_search" model="ir.ui.view">
+        <field name="name">lab.target.search</field>
+        <field name="model">lab.target</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <filter name="mine" string="Mine" domain="[('user_id', '=', uid)]"/>
+                <filter name="running" string="Running" domain="[('state', '=', 'open')]"/>
+                <filter name="behind" string="Behind"
+                        domain="[('state', '=', 'open'), ('progress', '&lt;', 80)]"/>
+                <group>
+                    <filter name="g_user" string="Executive" context="{'group_by': 'user_id'}"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <filter name="g_month" string="Month" context="{'group_by': 'month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_target_kanban" model="ir.ui.view">
+        <field name="name">lab.target.kanban</field>
+        <field name="model">lab.target</field>
+        <field name="arch" type="xml">
+            <!-- Cards, because this list is read on a phone. As a list it was
+                 706px wide on a 412px screen, so an executive had to drag the
+                 table sideways to see the figure they came for. (client, 2026-08-24) -->
+            <kanban quick_create="false" class="o_fw_kanban" default_order="month desc">
+                <field name="state"/>
+                <field name="currency_id"/>
+                <field name="progress"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="fs-6"><field name="month" widget="date"/></strong>
+                            <field name="state" widget="badge"
+                                   decoration-success="state == 'open'"/>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">Target</span>
+                            <strong><field name="goal_value" widget="monetary"/></strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Achieved</span>
+                            <strong><field name="done_value" widget="monetary"/></strong>
+                        </div>
+                        <!-- A DIV, not widget="progressbar": that widget renders an
+                             editable input in a kanban card, which on a phone looks
+                             like a broken text box next to a percent sign. -->
+                        <div class="o_fw_bar_track mt-2">
+                            <div class="o_fw_bar_fill"
+                                 t-attf-style="width: #{Math.min(record.progress.raw_value || 0, 100)}%"/>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            <field name="progress"/>% of target
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_target_my" model="ir.actions.act_window">
+        <field name="name">My Target</field>
+        <field name="res_model">lab.target</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('user_id', '=', uid)]</field>
+    </record>
+
+    <record id="action_target_all" model="ir.actions.act_window">
+        <field name="name">Targets</field>
+        <field name="res_model">lab.target</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_running': 1}</field>
+    </record>
+</odoo>

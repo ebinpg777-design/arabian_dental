@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.RestartDialog">
+    <Dialog title="'Start this case again?'" size="'md'" footer="false"
+            contentClass="'o_st_redo_dlg'">
+
+        <!-- What will happen, in words a bench reads once. Not a warning icon and a
+             shrug: the number of operations is the size of the loss. -->
+        <div class="o_st_dangerlabel" role="alert">
+            <i class="fa fa-refresh" title="Start again"/>
+            <div>
+                <strong>Every bench starts again from the first step.</strong>
+                The work already done on this case is not kept, and the case is
+                recorded as having been done again.
+                <t t-if="props.job.redo_count">
+                    This case has already been started again
+                    <t t-esc="props.job.redo_count"/> time(s).
+                </t>
+            </div>
+        </div>
+
+        <!-- Which case. A wrong card must be obvious BEFORE anything happens. -->
+        <div class="o_st_doing_job">
+            <span class="o_st_mo" t-esc="props.job.production or props.job.name"/>
+            <span t-if="props.job.order" class="o_st_ref" t-esc="props.job.order"/>
+            <div t-if="props.job.patient or props.job.clinic" class="o_st_case">
+                <span t-if="props.job.patient" class="o_st_patient" t-esc="props.job.patient"/>
+                <span t-if="props.job.patient and props.job.clinic"> · </span>
+                <span t-if="props.job.clinic" class="o_st_clinic" t-esc="props.job.clinic"/>
+            </div>
+            <div class="o_st_doing_next">
+                <i class="fa fa-industry me-1" title="Now at"/>
+                Now at <strong t-esc="props.job.operation"/>
+            </div>
+        </div>
+
+        <div class="o_st_doing_lead">Why is it being done again?</div>
+        <div class="o_st_tiles o_st_tiles_reason">
+            <button t-foreach="props.reasons" t-as="r" t-key="r.id"
+                    class="o_st_tile o_st_tile_reason"
+                    t-att-class="state.reasonId === r.id ? 'o_st_tile_on' : ''"
+                    t-att-disabled="state.busy"
+                    t-on-click="() => this.pickReason(r)">
+                <span class="o_st_tile_name" t-esc="r.name"/>
+                <span t-if="r.station" class="o_st_tile_load" t-esc="r.station"/>
+            </button>
+        </div>
+
+        <label class="o_st_redo_notel" for="o_st_redo_note">
+            What happened? <span class="o_st_optional">(optional)</span>
+        </label>
+        <input id="o_st_redo_note" class="form-control o_st_redo_note" t-ref="note"
+               type="text" t-model="state.note" maxlength="120"
+               placeholder="e.g. clasp snapped while fitting"
+               t-att-disabled="state.busy"/>
+
+        <!-- Held, not tapped. A single tap cannot start a redo at all. -->
+        <div class="o_st_holdwrap">
+            <button class="o_st_hold"
+                    t-att-class="{
+                        'o_st_hold_armed': armed,
+                        'o_st_hold_holding': state.holding,
+                        'o_st_hold_busy': state.busy,
+                    }"
+                    t-att-disabled="!armed"
+                    t-on-pointerdown="() => this.startHold()"
+                    t-on-pointerup="() => this.stopHold()"
+                    t-on-pointerleave="() => this.stopHold()"
+                    t-on-pointercancel="() => this.stopHold()"
+                    t-on-keydown="onKeyDown"
+                    t-on-keyup="onKeyUp">
+                <span class="o_st_hold_fill" t-attf-style="width: {{ state.progress }}%"/>
+                <span class="o_st_hold_label">
+                    <i t-if="state.busy" class="fa fa-circle-o-notch fa-spin me-2"/>
+                    <i t-else="" class="fa fa-refresh me-2"/>
+                    <t t-esc="holdLabel"/>
+                </span>
+            </button>
+            <div t-if="state.slipped" class="o_st_holdhint o_st_holdhint_warn">
+                Keep holding until the bar fills — nothing has been changed.
+            </div>
+            <div t-elif="armed" class="o_st_holdhint">
+                Press and hold. Let go at any time to cancel.
+            </div>
+        </div>
+
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-att-disabled="state.busy"
+                    t-on-click="() => this.props.close()">Leave it as it is</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

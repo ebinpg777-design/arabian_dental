@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Shared bits ================================================================ -->
+
+    <!-- The lab's contact block. One template so the homepage, the about page and the
+         footer of every inner page print the same address and the same numbers. -->
+    <template id="lab_contact_rows" name="Lab contact rows">
+        <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+        <div class="o_lab_contact_rows">
+            <div><i class="fa fa-map-marker"/>
+                <span>
+                    <t t-esc="lab['street']"/>,<br/>
+                    <t t-esc="lab['street2']"/>,<br/>
+                    <t t-esc="lab['city']"/>, <t t-esc="lab['state']"/> <t t-esc="lab['zip']"/>
+                    <a t-att-href="lab['maps']" target="_blank" rel="noopener" class="o_lab_maplink">
+                        <i class="fa fa-external-link me-1"/>Open in Maps
+                    </a>
+                </span>
+            </div>
+            <div><i class="fa fa-phone"/>
+                <span>
+                    <t t-foreach="lab['phones']" t-as="ph">
+                        <a t-attf-href="tel:#{ph[1]}" t-esc="ph[0]"/><t t-if="not ph_last"> · </t>
+                    </t>
+                </span>
+            </div>
+            <div><i class="fa fa-clock-o"/><span t-esc="lab['hours']"/></div>
+            <div><i class="fa fa-instagram"/>
+                <span><a t-att-href="lab['instagram']" target="_blank" rel="noopener">@arabiandentallab_uae_kerala</a></span>
+            </div>
+        </div>
+    </template>
+
+    <!-- A crown on its die, drawn once. Used as the "photograph" until the lab supplies
+         its own pictures through the website editor: a line drawing never goes stale and
+         never 404s. -->
+    <template id="lab_art_crown" name="Crown illustration">
+        <svg class="o_lab_art" viewBox="0 0 320 260" role="img" aria-label="A ceramic crown on its die">
+            <defs>
+                <linearGradient id="labCrownG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#ffffff"/>
+                    <stop offset="1" stop-color="#e9e2d8"/>
+                </linearGradient>
+                <linearGradient id="labDieG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#f2c7b8"/>
+                    <stop offset="1" stop-color="#d9957f"/>
+                </linearGradient>
+            </defs>
+            <ellipse cx="160" cy="232" rx="118" ry="14" fill="rgba(20,33,61,.08)"/>
+            <path d="M92 226 L228 226 L214 172 L106 172 Z" fill="url(#labDieG)"/>
+            <path d="M118 172 L202 172 L192 134 L128 134 Z" fill="#c98470"/>
+            <path d="M104 118 C104 76 132 40 160 40 C188 40 216 76 216 118 L212 132 L108 132 Z"
+                  fill="url(#labCrownG)" stroke="#c9b9a8" stroke-width="2"/>
+            <path d="M120 74 C136 62 150 58 160 62 C170 58 184 62 200 74" fill="none"
+                  stroke="#c9b9a8" stroke-width="2" stroke-linecap="round"/>
+            <path d="M160 62 L160 118" stroke="#d9cdbf" stroke-width="2" stroke-linecap="round"/>
+            <path d="M132 96 C144 102 176 102 188 96" fill="none" stroke="#d9cdbf" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="140" cy="70" r="6" fill="#ffffff" opacity=".9"/>
+            <g class="o_lab_art_tools">
+                <rect x="240" y="150" width="8" height="70" rx="4" fill="#14213d" transform="rotate(20 244 185)"/>
+                <circle cx="252" cy="140" r="9" fill="#b3122b"/>
+                <rect x="60" y="160" width="8" height="70" rx="4" fill="#14213d" transform="rotate(-20 64 195)"/>
+                <circle cx="52" cy="150" r="9" fill="#c99a3d"/>
+            </g>
+        </svg>
+    </template>
+
+    <!-- ================================================================ HOME ==== -->
+    <template id="page_home" name="Arabian Dental Lab — Home">
+        <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+        <t t-set="families" t-value="env['website'].sudo().lab_families()"/>
+        <t t-set="stats" t-value="env['website'].sudo().lab_stats()"/>
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure o_lab">
+
+                <!-- Hero. One promise, one proof, two things to do. A B2B lab site is
+                     read by a busy dentist deciding whether to send a case, not by a
+                     patient browsing. -->
+                <section class="o_lab_hero">
+                    <div class="container">
+                        <div class="row align-items-center">
+                            <div class="col-lg-7">
+                                <span class="o_lab_eyebrow">Dental laboratory · Manjeri, Kerala</span>
+                                <h1 class="o_lab_h1">Your clear choice<br/>for a beautiful smile</h1>
+                                <p class="o_lab_lead">
+                                    Crowns, bridges, dentures and implant prosthetics made to your
+                                    prescription at Arabian Dental Lab — collected from your clinic,
+                                    finished by hand, and delivered back on the date we promised.
+                                </p>
+                                <div class="o_lab_cta">
+                                    <a href="/contactus" class="btn o_lab_btn">Send us a case</a>
+                                    <a href="/my/cases" class="btn o_lab_btn_ghost">
+                                        <i class="fa fa-lock me-2"/>Track your cases
+                                    </a>
+                                </div>
+                                <div class="o_lab_badges">
+                                    <span><i class="fa fa-star me-2"/><t t-esc="lab['google_rating']"/> on Google</span>
+                                    <span><i class="fa fa-truck me-2"/>Doorstep pickup &amp; delivery</span>
+                                    <span><i class="fa fa-graduation-cap me-2"/><t t-esc="lab['academy']"/></span>
+                                </div>
+                            </div>
+                            <div class="col-lg-5 d-none d-lg-block">
+                                <!-- A pure-CSS composition rather than a stock photo: no
+                                     asset to go missing, and it stays sharp at any size. -->
+                                <div class="o_lab_hero_art" aria-hidden="true">
+                                    <div class="o_lab_arch">
+                                        <t t-foreach="range(14)" t-as="i">
+                                            <span t-attf-style="--i: #{i}"/>
+                                        </t>
+                                    </div>
+                                    <div class="o_lab_hero_card">
+                                        <div class="o_lab_hero_card_t">Case ADL-24118</div>
+                                        <div class="o_lab_hero_card_s">Ceramic layering · Shade A2</div>
+                                        <div class="o_lab_hero_bar"><i/></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Proof strip: measured where a number exists, a fact where it does not. -->
+                <section class="o_lab_stats">
+                    <div class="container">
+                        <div class="row text-center">
+                            <div t-foreach="stats" t-as="st" class="col-6 col-lg-3">
+                                <div class="o_lab_stat_n" t-esc="st['n']"/>
+                                <div class="o_lab_stat_l" t-esc="st['l']"/>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Families, counted from the real catalogue -->
+                <section class="o_lab_sec" id="restorations">
+                    <div class="container">
+                        <div class="o_lab_sec_head">
+                            <h2>What we make</h2>
+                            <p>Four families, every piece built to order for your patient — never a stock item.</p>
+                        </div>
+                        <div class="row g-3">
+                            <div t-foreach="families" t-as="fam" class="col-md-6 col-xl-3">
+                                <a class="o_lab_fam" t-attf-href="/restorations##{fam['slug']}">
+                                    <i t-attf-class="fa #{fam['icon']} o_lab_fam_i"/>
+                                    <h3><t t-esc="fam['title']"/></h3>
+                                    <p><t t-esc="fam['blurb']"/></p>
+                                    <span t-if="fam['count']" class="o_lab_fam_n">
+                                        <t t-esc="fam['count']"/> designs
+                                    </span>
+                                    <span t-else="" class="o_lab_fam_n">See the range</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- How a case flows. These are the same five stages the doctor sees in
+                     the portal, so the promise on the website and the status they are
+                     shown later are the same thing. -->
+                <section class="o_lab_sec o_lab_sec_alt">
+                    <div class="container">
+                        <div class="o_lab_sec_head">
+                            <h2>How a case flows</h2>
+                            <p>You can follow every step of it from your own login.</p>
+                        </div>
+                        <div class="o_lab_flow">
+                            <div class="o_lab_step">
+                                <span class="o_lab_step_n">1</span>
+                                <h4>Registered</h4>
+                                <p>Impressions or a scan and the prescription reach us; the case is logged.</p>
+                            </div>
+                            <div class="o_lab_step">
+                                <span class="o_lab_step_n">2</span>
+                                <h4>In the lab</h4>
+                                <p>Through each bench — model, framework, ceramic, finishing.</p>
+                            </div>
+                            <div class="o_lab_step">
+                                <span class="o_lab_step_n">3</span>
+                                <h4>Ready</h4>
+                                <p>Checked against the prescription and the shade, then packed.</p>
+                            </div>
+                            <div class="o_lab_step">
+                                <span class="o_lab_step_n">4</span>
+                                <h4>On its way</h4>
+                                <p>With our executive on the route to your clinic, or by courier.</p>
+                            </div>
+                            <div class="o_lab_step">
+                                <span class="o_lab_step_n">5</span>
+                                <h4>Delivered</h4>
+                                <p>In your hands, ready for the appointment.</p>
+                            </div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <a href="/my/cases" class="btn o_lab_btn">
+                                <i class="fa fa-line-chart me-2"/>See your cases live
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Proof: the bench itself. -->
+                <section class="o_lab_band">
+                    <div class="container">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-6">
+                                <div class="o_lab_band_art">
+                                    <t t-call="lab_website.lab_art_crown"/>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <h2>Made by hand, checked twice</h2>
+                                <p class="o_lab_lead">
+                                    Every restoration is waxed, pressed or milled, layered and glazed by
+                                    a technician who does that one job — then checked against your
+                                    prescription and shade before it is packed.
+                                </p>
+                                <div class="o_lab_badges mt-3">
+                                    <span><i class="fa fa-check-circle me-2"/>Prescription-checked</span>
+                                    <span><i class="fa fa-check-circle me-2"/>Shade-matched</span>
+                                    <span><i class="fa fa-check-circle me-2"/>Photographed on request</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Why -->
+                <section class="o_lab_sec">
+                    <div class="container">
+                        <div class="row g-4">
+                            <div class="col-lg-4">
+                                <div class="o_lab_why">
+                                    <i class="fa fa-diamond"/>
+                                    <h3>Fit, first time</h3>
+                                    <p>Margins, contacts and occlusion checked on the model before
+                                       anything leaves the bench, so the chair-side adjustment is a
+                                       minute, not a remake.</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="o_lab_why">
+                                    <i class="fa fa-clock-o"/>
+                                    <h3>On time, every time</h3>
+                                    <p>A promised date on every case, and a live status you can
+                                       check instead of ringing to ask. Emergency cases have their
+                                       own lane.</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="o_lab_why">
+                                    <i class="fa fa-motorcycle"/>
+                                    <h3>We come to you</h3>
+                                    <p>Our own executives ride fixed routes across the district —
+                                       impressions collected from your clinic and the finished work
+                                       brought back to it.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Academy teaser -->
+                <section class="o_lab_academy_band">
+                    <div class="container">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-8">
+                                <span class="o_lab_eyebrow o_lab_eyebrow_light"><t t-esc="lab['academy']"/></span>
+                                <h2>Learn on the bench that ships the work</h2>
+                                <p>
+                                    Hands-on courses for technicians and clinicians, taught in the
+                                    laboratory itself, with lectures and study clubs in the
+                                    <t t-esc="lab['hall']"/>.
+                                </p>
+                            </div>
+                            <div class="col-lg-4 text-lg-end">
+                                <a href="/academy" class="btn o_lab_btn_light">
+                                    <i class="fa fa-graduation-cap me-2"/>About the Academy
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contact -->
+                <section class="o_lab_contact" id="contact">
+                    <div class="container">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-7">
+                                <h2>Send us your next case</h2>
+                                <p class="o_lab_lead">
+                                    Tell us what you need and we will tell you exactly when it will
+                                    be with you.
+                                </p>
+                                <t t-call="lab_website.lab_contact_rows"/>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="o_lab_panel">
+                                    <h4>Already sending us cases?</h4>
+                                    <p>Track every case, see which bench it is on and when it
+                                       ships — from your own login.</p>
+                                    <a href="/my/cases" class="btn o_lab_btn w-100">
+                                        <i class="fa fa-sign-in me-2"/>Doctor login
+                                    </a>
+                                    <a href="/contactus" class="btn o_lab_btn_ghost w-100 mt-2">
+                                        Request access
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </t>
+    </template>
+
+    <!-- ======================================================= RESTORATIONS ==== -->
+    <template id="page_restorations" name="What We Make">
+        <t t-set="families" t-value="families or env['website'].sudo().lab_families()"/>
+        <t t-call="website.layout">
+            <t t-set="additional_title" t-value="'What We Make'"/>
+            <div id="wrap" class="oe_structure o_lab">
+
+                <section class="o_lab_pagehero">
+                    <div class="container">
+                        <span class="o_lab_eyebrow o_lab_eyebrow_light">Our catalogue</span>
+                        <h1>What we make</h1>
+                        <p>Four families, built to your prescription. Where a count is shown it is
+                           live from our own catalogue — not a brochure figure.</p>
+                    </div>
+                </section>
+
+                <!-- Jump nav. Four families is too many to scroll past on a phone
+                     looking for one of them. Sticks under the header so it stays
+                     reachable the whole way down. -->
+                <nav class="o_lab_jump" aria-label="Jump to a restoration family">
+                    <div class="container">
+                        <a t-foreach="families" t-as="fam" t-attf-href="##{fam['slug']}"
+                           class="o_lab_jump_i">
+                            <i t-attf-class="fa #{fam['icon']}"/>
+                            <span t-esc="fam['title']"/>
+                            <b t-if="fam['count']" t-esc="fam['count']"/>
+                        </a>
+                    </div>
+                </nav>
+
+                <section class="o_lab_sec">
+                    <div class="container">
+                        <!-- t-attf-class wins over a static class= on the same tag, so
+                             the base class belongs INSIDE it or edits to the static one
+                             silently do nothing. -->
+                        <div t-foreach="families" t-as="fam"
+                             t-att-id="fam['slug']"
+                             t-attf-class="o_lab_famrow #{'o_lab_famrow_alt' if fam_index % 2 else ''}">
+                            <div class="o_lab_famrow_img">
+                                <i t-attf-class="fa #{fam['icon']}"/>
+                                <span t-if="fam['count']" class="o_lab_famrow_badge">
+                                    <b t-esc="fam['count']"/> designs
+                                </span>
+                            </div>
+                            <div class="o_lab_famrow_body">
+                                <h2 t-esc="fam['title']"/>
+                                <p class="o_lab_lead" t-esc="fam['blurb']"/>
+
+                                <t t-if="fam.get('products')">
+                                    <h5 class="o_lab_prodhead">Examples from this family</h5>
+                                    <div class="o_lab_prodlist">
+                                        <span t-foreach="fam['products']" t-as="p"
+                                              class="o_lab_prod" t-esc="p"/>
+                                    </div>
+                                    <p t-if="fam['count'] &gt; len(fam['products'])"
+                                       class="o_lab_more">
+                                        …and <t t-esc="fam['count'] - len(fam['products'])"/>
+                                        more designs in this family.
+                                    </p>
+                                </t>
+
+                                <div class="o_lab_cta mt-3">
+                                    <a href="/contactus" class="btn o_lab_btn">
+                                        Ask about <t t-esc="fam['title']"/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="o_lab_contact">
+                    <div class="container text-center">
+                        <h2>Not sure which design fits?</h2>
+                        <p class="o_lab_lead mx-auto">Send us the case. We will recommend a
+                           design and tell you what it costs before we start.</p>
+                        <div class="o_lab_cta justify-content-center">
+                            <a href="/contactus" class="btn o_lab_btn">Talk to the lab</a>
+                            <a href="/my/cases" class="btn o_lab_btn_ghost">Track your cases</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================ ACADEMY ==== -->
+    <!-- The programme list is what the signage promises (ADL Dental Academy, Crown
+         Conference Hall); the individual course names are a starting point for the
+         lab to edit in the website editor. -->
+    <template id="page_academy" name="Academy">
+        <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+        <t t-call="website.layout">
+            <t t-set="additional_title" t-value="lab['academy']"/>
+            <div id="wrap" class="oe_structure o_lab">
+
+                <section class="o_lab_pagehero o_lab_pagehero_academy">
+                    <div class="container">
+                        <span class="o_lab_eyebrow o_lab_eyebrow_light">Training · Manjeri</span>
+                        <h1><t t-esc="lab['academy']"/></h1>
+                        <p>Hands-on dental technology training in a working laboratory, and a
+                           conference hall for the clinicians who send it work.</p>
+                    </div>
+                </section>
+
+                <section class="o_lab_sec">
+                    <div class="container">
+                        <div class="o_lab_sec_head">
+                            <h2>Programmes</h2>
+                            <p>Small batches, taught at the bench by the technicians who do the work every day.</p>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6 col-xl-3">
+                                <div class="o_lab_course">
+                                    <i class="fa fa-diamond"/>
+                                    <h3>Crown &amp; bridge fundamentals</h3>
+                                    <p>Die work, wax-up, framework and the checks that make a crown seat first time.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-3">
+                                <div class="o_lab_course">
+                                    <i class="fa fa-paint-brush"/>
+                                    <h3>Ceramic layering &amp; shade</h3>
+                                    <p>Building natural translucency and matching the shade the clinic sent, under daylight.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-3">
+                                <div class="o_lab_course">
+                                    <i class="fa fa-desktop"/>
+                                    <h3>Digital workflow</h3>
+                                    <p>From intra-oral scan to CAD design, milling and printing — and where the hand still matters.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-3">
+                                <div class="o_lab_course">
+                                    <i class="fa fa-smile-o"/>
+                                    <h3>Removable prosthetics</h3>
+                                    <p>Complete and partial dentures, cast partial frameworks and flexible dentures.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="o_lab_sec o_lab_sec_alt">
+                    <div class="container">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-6">
+                                <span class="o_lab_eyebrow"><t t-esc="lab['hall']"/></span>
+                                <h2>A hall for the clinicians</h2>
+                                <p class="o_lab_lead">
+                                    Continuing dental education programmes, study clubs and product
+                                    evenings, on site at the laboratory — so a lecture on a
+                                    material can be followed by seeing it layered at the bench.
+                                </p>
+                                <ul class="o_lab_facts o_lab_facts_plain">
+                                    <li><span>For</span><strong>Practising dentists &amp; postgraduates</strong></li>
+                                    <li><span>Format</span><strong>Lectures, hands-on, study clubs</strong></li>
+                                    <li><span>Where</span><strong><t t-esc="lab['city']"/>, <t t-esc="lab['district']"/></strong></li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="o_lab_who">
+                                    <h4>Who it is for</h4>
+                                    <div class="o_lab_who_i"><i class="fa fa-user"/><div><strong>Fresh graduates</strong><span>BDS and dental technology students who want bench skills a college cannot give.</span></div></div>
+                                    <div class="o_lab_who_i"><i class="fa fa-wrench"/><div><strong>Working technicians</strong><span>Short courses on one material or one workflow, without leaving the trade for weeks.</span></div></div>
+                                    <div class="o_lab_who_i"><i class="fa fa-user-md"/><div><strong>Clinicians</strong><span>See what the lab needs from an impression, a scan and a prescription — and why.</span></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="o_lab_contact">
+                    <div class="container text-center">
+                        <h2>Ask about the next batch</h2>
+                        <p class="o_lab_lead mx-auto">Tell us which programme you are interested in
+                           and we will send you the dates and the fee.</p>
+                        <div class="o_lab_cta justify-content-center">
+                            <a href="/contactus" class="btn o_lab_btn">Enquire</a>
+                            <a t-att-href="lab['instagram']" target="_blank" rel="noopener" class="btn o_lab_btn_ghost">
+                                <i class="fa fa-instagram me-2"/>Follow the academy
+                            </a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================== ABOUT ==== -->
+    <template id="page_about" name="About">
+        <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+        <t t-call="website.layout">
+            <t t-set="additional_title" t-value="'About'"/>
+            <div id="wrap" class="oe_structure o_lab">
+                <section class="o_lab_pagehead">
+                    <div class="container">
+                        <h1>About Arabian Dental Lab</h1>
+                        <p><t t-esc="lab['tagline']"/>. A dental laboratory in
+                           <t t-esc="lab['city']"/>, <t t-esc="lab['state']"/>, making crowns,
+                           bridges, dentures and implant work for clinics across the state.</p>
+                    </div>
+                </section>
+                <section class="o_lab_sec">
+                    <div class="container">
+                        <!-- g-5 only from lg up: a 3rem gutter is wider than the
+                             container's padding on a phone and overflows it by 9px. -->
+                        <div class="row g-4 g-lg-5">
+                            <div class="col-lg-7">
+                                <h2>One lab, the whole restoration</h2>
+                                <p>Arabian Dental Lab makes fixed and removable prosthetics under one
+                                   roof — from a single zirconia crown to a full-arch implant case —
+                                   so a clinic sends every patient to one place and talks to one
+                                   team about all of them.</p>
+                                <p>Every case moves through a numbered bench sequence, and every
+                                   stage is recorded against your case rather than remembered. That
+                                   is what lets us tell you where your work is without going to look
+                                   for it — and what lets you see it yourself from your login.</p>
+                                <p>Our executives ride fixed routes through the district, collecting
+                                   impressions from the clinic and bringing the finished work back to
+                                   it. Clinics further afield are served by courier with a consignment
+                                   number you can follow.</p>
+                                <p>The <strong><t t-esc="lab['academy']"/></strong> trains the next
+                                   generation of technicians on the same benches, and the
+                                   <strong><t t-esc="lab['hall']"/></strong> hosts continuing education
+                                   for the clinicians who send us work.</p>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="o_lab_band_art o_lab_band_art_sm mb-3">
+                                    <t t-call="lab_website.lab_art_crown"/>
+                                </div>
+                                <div class="o_lab_panel">
+                                    <h4>At a glance</h4>
+                                    <ul class="o_lab_facts">
+                                        <li><span>Where</span><strong><t t-esc="lab['city']"/>, <t t-esc="lab['district']"/></strong></li>
+                                        <li><span>Makes</span><strong>Crowns, bridges, dentures, implants</strong></li>
+                                        <li><span>Hours</span><strong>Mon – Sat, 9 AM – 6 PM</strong></li>
+                                        <li><span>Delivery</span><strong>Own routes + courier</strong></li>
+                                        <li><span>Google</span><strong><t t-esc="lab['google_rating']"/> ★</strong></li>
+                                        <li><span>Training</span><strong><t t-esc="lab['academy']"/></strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="o_lab_contact">
+                    <div class="container">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-7">
+                                <h2>Find us</h2>
+                                <t t-call="lab_website.lab_contact_rows"/>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="o_lab_panel">
+                                    <h4>Send us a case</h4>
+                                    <p>New to the lab? Tell us about your practice and we will put
+                                       you on a collection route.</p>
+                                    <a href="/contactus" class="btn o_lab_btn w-100">Get in touch</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </t>
+    </template>
+
+</odoo>

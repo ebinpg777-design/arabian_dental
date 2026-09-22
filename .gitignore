@@ -14,8 +14,11 @@ dist/
 downloads/
 eggs/
 .eggs/
+# Python build dirs only - NOT the JS vendor libraries Odoo modules ship under static/
 lib/
 lib64/
+!*/static/**/lib/
+!*/static/**/lib/**
 parts/
 sdist/
 var/

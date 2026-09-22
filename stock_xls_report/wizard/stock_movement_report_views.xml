@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stock_movement_report_wizard" model="ir.ui.view">
+        <field name="name">stock.movement.report.wizard.form</field>
+        <field name="model">stock.movement.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Stock Movement Summary">
+                <group>
+                    <group>
+                        <field name="warehouse_id"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="value_wise"/>
+                    </group>
+                    <group>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"
+                               domain="[('usage', '=', 'internal')]"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="print_report" type="object" string="Export" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stock_movement_report" model="ir.actions.act_window">
+        <field name="name">Stock Movement Summary</field>
+        <field name="res_model">stock.movement.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_stock_movement_report_wizard"/>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_stock_movement_report"
+              name="Stock Movement Summary"
+              parent="stock.menu_warehouse_report"
+              action="action_stock_movement_report"
+              sequence="50"/>
+</odoo>

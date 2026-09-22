@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="reason_lab_error" model="lab.rework.reason">
+            <field name="name">Lab Error</field><field name="code">lab_error</field>
+            <field name="responsibility_default">lab_error</field>
+        </record>
+        <record id="reason_fit_issue" model="lab.rework.reason">
+            <field name="name">Fit Issue</field><field name="code">fit_issue</field>
+            <field name="responsibility_default">fit_issue</field>
+        </record>
+        <record id="reason_transit_damage" model="lab.rework.reason">
+            <field name="name">Transit Damage</field><field name="code">transit_damage</field>
+            <field name="responsibility_default">transit_damage</field>
+        </record>
+        <record id="reason_doctor_change" model="lab.rework.reason">
+            <field name="name">Doctor Requested Change</field><field name="code">doctor_change</field>
+            <field name="responsibility_default">doctor_change</field>
+        </record>
+        <record id="reason_patient_issue" model="lab.rework.reason">
+            <field name="name">Patient Issue</field><field name="code">patient_issue</field>
+            <field name="responsibility_default">patient_issue</field>
+        </record>
+        <!-- Responsibility is left as Unknown on purpose: a broken appliance may
+             have failed in the lab, in transit or in the patient's mouth, and the
+             person registering the rework is the one who knows which. Pre-filling a
+             guess here would put a name against the wrong department in Reporting.
+             (client, 2026-08-29) -->
+        <record id="reason_broken" model="lab.rework.reason">
+            <field name="name">Broken</field><field name="code">broken</field>
+            <field name="responsibility_default">unknown</field>
+        </record>
+        <!-- Sorts last, after every named reason, so it stays the fallback rather
+             than the first thing on the list. -->
+        <record id="reason_other" model="lab.rework.reason">
+            <field name="name">Other</field><field name="code">other</field>
+            <field name="sequence">99</field>
+            <field name="responsibility_default">unknown</field>
+        </record>
+    </data>
+</odoo>

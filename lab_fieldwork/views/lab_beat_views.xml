@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_beat_form" model="ir.ui.view">
+        <field name="name">lab.beat.form</field>
+        <field name="model">lab.beat</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <!-- The one button that removes the module's biggest chore. -->
+                    <button name="action_plan" type="object" string="Plan This Week"
+                            class="btn-primary"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_clinics" type="object"
+                                class="oe_stat_button" icon="fa-stethoscope"
+                                invisible="clinic_count == 0">
+                            <field name="clinic_count" widget="statinfo" string="Clinics"/>
+                        </button>
+                        <!-- The quiet number. A beat can look well planned and still be
+                             losing the clinics on it. -->
+                        <button name="action_view_coverage" type="object"
+                                class="oe_stat_button" icon="fa-heartbeat"
+                                invisible="at_risk_count == 0">
+                            <div class="o_stat_info">
+                                <field name="at_risk_count" class="o_stat_value text-danger"/>
+                                <span class="o_stat_text">Slipping</span>
+                            </div>
+                        </button>
+                        <button name="action_view_visits" type="object"
+                                class="oe_stat_button" icon="fa-map-marker">
+                            <field name="visit_count" widget="statinfo" string="Visits"/>
+                        </button>
+                    </div>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Kochi North — Monday"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="allowed_user_ids" invisible="1"/>
+                            <field name="user_id"
+                                   domain="[('id', 'in', allowed_user_ids)]"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="weekday"/>
+                            <field name="code" placeholder="KN-MON"/>
+                        </group>
+                        <group>
+                            <field name="clinic_count" readonly="1"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <field name="partner_ids" widget="many2many_tags"
+                           options="{'no_quick_create': True}"
+                           placeholder="Clinics on this round…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_beat_list" model="ir.ui.view">
+        <field name="name">lab.beat.list</field>
+        <field name="model">lab.beat</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="weekday"/>
+                <field name="user_id"/>
+                <field name="clinic_count"/>
+                <button name="action_plan" type="object" string="Plan"
+                        icon="fa-calendar-plus-o" class="btn-link"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_beat" model="ir.actions.act_window">
+        <field name="name">Beats</field>
+        <field name="res_model">lab.beat</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first beat</p>
+            <p>A beat is a round of clinics and the day it is worked. Plan it once and
+               the visits create themselves every week.</p>
+        </field>
+    </record>
+</odoo>

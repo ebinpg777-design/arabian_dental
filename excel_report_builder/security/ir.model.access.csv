@@ -1,0 +1,5 @@
+id,name,model_id/id,group_id/id,perm_read,perm_write,perm_create,perm_unlink
+access_dynamic_export_template_manager,dynamic_export_template_manager,model_dynamic_export_template,base.group_user,1,1,1,1
+access_excel_report_builder_config_all,excel report builder config read all,model_excel_report_builder_config,base.group_user,1,0,0,0
+access_excel_report_builder_config_manager,excel report builder config manager,model_excel_report_builder_config,excel_report_builder.group_excel_report_builder_user,1,1,1,1
+access_excel_report_builder_config_admin,excel report builder config admin,model_excel_report_builder_config,base.group_system,1,1,1,1

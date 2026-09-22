@@ -1,0 +1,51 @@
+// Daily Dispatch Register — extends the invoice design language (.lab-invoice base).
+.lab-invoice.odr {
+    $navy: #1f3a5f;
+    $card: #eef3f7;
+    $muted: #4d5c6b;
+    $line: #dfe5ea;
+
+    .odr-sub { font-size: 9.4pt; color: $muted; margin-top: 2px; }
+
+    table.odr-title { margin-bottom: 10px; }
+    .odr-countchip { display: inline-block; background: $card; border-radius: 10px;
+        padding: 2px 12px; margin-top: 4px; font-size: 9pt; font-weight: 700; color: $navy; }
+
+    // every route starts a fresh page (the sheet is handed to that route's runner);
+    // inside a route the table may still flow over — wkhtmltopdf repeats the thead
+    .odr-route { margin-top: 4px; }
+    .odr-newpage { page-break-before: always; }
+    table.odr-route-head {
+        background: $navy; color: #fff; border-radius: 6px 6px 0 0;
+        td { padding: 7px 12px; font-weight: 700; font-size: 10.5pt; letter-spacing: .3px; }
+        .fa { margin-right: 6px; }
+    }
+    table.odr-lines {
+        font-size: 9.4pt;
+        thead th { background: $card; color: $muted; font-weight: 700; font-size: 8pt;
+            text-transform: uppercase; letter-spacing: .5px; padding: 5px 8px; }
+        tbody td { padding: 6px 8px; border-bottom: 1px solid $line; vertical-align: top; }
+        .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .mid { text-align: center; }
+        td.tick, th.tick { width: 22px; text-align: center; padding-left: 4px; padding-right: 4px; }
+        .odr-doc { font-weight: 700; white-space: nowrap; }
+        .odr-works { color: #2b3238; }
+        tr.odr-subtotal td { background: $card; font-weight: 700; border-bottom: none; }
+    }
+    // an empty checkbox for the physical hand-over tick
+    .odr-box { display: inline-block; width: 11px; height: 11px;
+        border: 1.4px solid $muted; border-radius: 2px; }
+
+    .odr-chip { display: inline-block; font-size: 7.6pt; font-weight: 700; padding: 1px 7px;
+        border-radius: 9px; letter-spacing: .4px;
+        &.open { background: #e6f0ff; color: #1d4ed8; }
+        &.paid { background: #e7f6ee; color: #067647; }
+        &.partial { background: #fdf3e3; color: #b45309; }
+        &.credit { background: #fff3e0; color: #b45309; }
+        &.draft { background: #f0f2f4; color: $muted; }
+    }
+
+
+
+    .odr-empty { text-align: center; color: $muted; font-style: italic; padding: 26px 0; }
+}

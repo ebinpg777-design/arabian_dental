@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_ceo_dashboard.FieldCommand">
+    <div class="o_fcmd o_action">
+        <div t-if="state.loading" class="o_fcmd_loading">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+        <t t-else="">
+            <!-- One screen needs no switcher: a reader with no field work role
+                 gets the analysis pulse alone, exactly as before. -->
+            <nav t-if="state.screens.length > 1" class="o_fcmd_bar" aria-label="Field screens">
+                <button t-foreach="state.screens" t-as="s" t-key="s.key"
+                        type="button" class="o_fcmd_tab"
+                        t-att-class="state.active === s.key ? 'o_fcmd_tab_on' : ''"
+                        t-att-title="s.hint" t-on-click="() => this.select(s)">
+                    <i t-att-class="'fa ' + s.icon + ' me-1'" aria-hidden="true"/>
+                    <t t-esc="s.label"/>
+                    <span t-if="s.badge" class="o_fcmd_badge"
+                          t-att-title="s.badge_title" t-esc="s.badge"/>
+                </button>
+            </nav>
+            <div class="o_fcmd_stage">
+                <t t-if="active" t-key="active.key">
+                    <ErrorHandler onError="(error) => this.onScreenError(active, error)">
+                        <t t-if="component(active)"
+                           t-component="component(active)" t-props="screenProps(active)"/>
+                    </ErrorHandler>
+                </t>
+                <div t-else="" class="o_fcmd_empty">
+                    Nothing here is open to you yet — ask for a field work role.
+                </div>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

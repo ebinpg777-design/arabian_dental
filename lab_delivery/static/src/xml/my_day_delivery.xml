@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!--
+    Deliveries on My Day.
+
+    Extends the field-work home screen rather than adding a second one: an executive
+    who has to remember which app holds the boxes is an executive who delivers late.
+-->
+<t t-name="lab_delivery.MyDayDeliveries"
+   t-inherit="lab_fieldwork.MyDay" t-inherit-mode="extension">
+
+    <!-- Doorstep actions go into the DO grid; the executive's own delivery list
+         goes into MINE. Anchored on the grids themselves, never on "the last
+         button": three modules used to race for the same slot. (client, 2026-08-28) -->
+    <!-- The third door count on the hero strip, after cases and reworks
+         collected: boxes handed to doctors today. (client, 2026-09-08) -->
+    <xpath expr="//div[hasclass('o_fw_stats')]" position="inside">
+        <div class="o_fw_stat" t-if="state.data.summary.dispatched !== undefined">
+            <span class="o_fw_stat_v"><t t-esc="state.data.summary.dispatched"/></span>
+            <span class="o_fw_stat_l">dispatches delivered</span>
+        </div>
+    </xpath>
+    <xpath expr="//section[hasclass('o_fw_sec_do')]//div[hasclass('o_fw_sec_grid')]" position="inside">
+        <!-- The fastest path of all: point the phone at the barcode on the invoice
+             already in the bag. -->
+        <button class="o_fw_qa o_fw_qa_scan" t-on-click="() => this.scanDelivery()">
+            <i class="fa fa-qrcode" title="Scan the invoice barcode"/>
+            <span>Scan</span>
+        </button>
+        <!-- Deliver opens the work waiting, not a blank wizard: the executive is
+             choosing WHICH box to hand over, and each row raises its own delivery
+             with the clinic taken from the order. -->
+        <button class="o_fw_qa" t-on-click="() => this.openDeliveryWorklist()">
+            <i class="fa fa-cube" title="Work waiting to be delivered"/>
+            <span>Deliver</span>
+        </button>
+        <button class="o_fw_qa" t-on-click="() => this.newPickup()">
+            <i class="fa fa-briefcase" title="Collect work from the doctor for the lab"/>
+            <span>Collect</span>
+        </button>
+    </xpath>
+    <xpath expr="//section[hasclass('o_fw_sec_mine')]//div[hasclass('o_fw_sec_grid')]" position="inside">
+        <button class="o_fw_qa"
+                t-on-click="() => this.action.doAction('lab_delivery.action_delivery_my')">
+            <i class="fa fa-truck" title="My deliveries"/>
+            <span>Deliveries</span>
+        </button>
+    </xpath>
+
+    <!-- What is in the bag, above the visits: it is the thing most easily forgotten. -->
+    <xpath expr="//div[hasclass('o_fw_empty')]" position="before">
+        <div t-if="deliveries.length" class="o_fw_deliv">
+            <div class="o_fw_deliv_head">
+                <span>
+                    <i class="fa fa-cube me-2" title="Deliveries"/>
+                    In your bag
+                </span>
+                <span class="o_fw_deliv_counts">
+                    <span class="o_fw_chip"><t t-esc="deliverySummary.open"/> open</span>
+                    <span t-if="deliverySummary.late" class="o_fw_chip o_fw_chip_danger">
+                        <t t-esc="deliverySummary.late"/> late
+                    </span>
+                </span>
+            </div>
+
+            <div t-foreach="deliveries" t-as="d" t-key="d.id"
+                 class="o_fw_card o_fw_card_deliv"
+                 t-att-class="{ 'o_fw_card_deliv_late': d.delayed, 'o_fw_card_deliv_emg': d.emergency }">
+                <div class="o_fw_card_body" t-on-click="() => this.openDelivery(d)">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <strong class="o_fw_clinic"><t t-esc="d.clinic"/></strong>
+                        <span class="o_fw_chip"
+                              t-att-class="d.out ? 'o_fw_chip_open' : ''"
+                              t-esc="d.state_label"/>
+                    </div>
+                    <div class="o_fw_meta">
+                        <t t-esc="d.name"/>
+                        <t t-if="d.patient"> · <t t-esc="d.patient"/></t>
+                        <t t-if="d.scheduled_label"> · due <t t-esc="d.scheduled_label"/></t>
+                        <t t-if="d.invoice"> · <strong t-esc="d.invoice"/></t>
+                    </div>
+                    <div t-if="d.is_courier" class="o_fw_meta">
+                        <i class="fa fa-cube me-1" title="Courier"/>
+                        <t t-esc="d.courier"/> <t t-esc="d.awb"/>
+                    </div>
+                    <div t-if="d.courier_stale" class="o_fw_warn">
+                        <i class="fa fa-exclamation-triangle me-1" title="Not moving"/>
+                        The courier has not scanned this for days
+                    </div>
+
+                    <!-- Trouble is said in words, never colour alone. -->
+                    <div t-if="d.emergency" class="o_fw_warn">
+                        <i class="fa fa-bolt me-1" title="Emergency"/>Emergency delivery
+                    </div>
+                    <div t-if="d.delayed" class="o_fw_warn">
+                        <i class="fa fa-clock-o me-1" title="Late"/>
+                        <t t-esc="d.delay_hours"/> h past the promised time
+                    </div>
+
+                    <!-- Same reasoning as the visit card: a WebView-wrapped field app
+                         may not open a geo: link, so the address is always readable
+                         as text, not only reachable through the button.
+                         (client, 2026-08-29) -->
+                    <div t-if="d.map_address and !d.tracking_url"
+                         class="o_fw_meta o_fw_addr" t-esc="d.map_address"/>
+
+                    <div t-if="d.map_url or d.call or d.tracking_url" class="o_fw_quick"
+                         t-on-click.stop="() => {}">
+                        <!-- A parcel with a courier is not something anybody drives to,
+                             so the tracking page takes the place of directions. -->
+                        <a t-if="d.tracking_url" t-att-href="d.tracking_url"
+                           target="_blank" rel="noopener" class="o_fw_quick_btn">
+                            <i class="fa fa-cube" title="Track"/>
+                            <span>Track</span>
+                        </a>
+                        <a t-elif="d.map_url" t-att-href="d.map_url" target="_blank"
+                           rel="noopener" class="o_fw_quick_btn">
+                            <i class="fa fa-location-arrow" title="Navigate"/>
+                            <span>Navigate</span>
+                        </a>
+                        <a t-if="d.call" t-att-href="'tel:' + d.call"
+                           class="o_fw_quick_btn">
+                            <i class="fa fa-phone" title="Call"/>
+                            <span>Call</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- One button, same rule as the visit card: the state decides what it
+                     does, so there is never a choice to make. -->
+                <button class="o_fw_action" t-att-disabled="state.busy === 'd' + d.id"
+                        t-on-click="() => this.onDeliveryPrimary(d)">
+                    <i t-att-class="'fa ' + (d.out ? 'fa-check' : 'fa-motorcycle')"
+                       t-att-title="!d.out ? 'Set off' : (d.direction === 'in' ? 'Received at lab' : 'Delivered')"/>
+                    <span class="ms-2"><t t-esc="!d.out ? 'Set off' : (d.direction === 'in' ? 'Received' : 'Delivered')"/></span>
+                </button>
+            </div>
+        </div>
+    </xpath>
+
+    <!--
+        On a visit card, say what is waiting for THIS clinic and offer the handover.
+
+        Its own row rather than joining the Navigate/Call row: that row only renders
+        when the clinic has a phone or a pin, and a clinic with neither still takes
+        deliveries.
+    -->
+    <!--
+        Anchored on the visits loop, not on the first `.o_fw_card_body` in the document:
+        the delivery cards added above ALSO carry that class and sit earlier in the
+        template, so a class-only xpath lands in the wrong loop and `v` is undefined.
+    -->
+    <xpath expr="//div[@t-foreach='state.data.visits']//div[hasclass('o_fw_meta')]"
+           position="after">
+        <div t-if="v.deliveries_pending" class="o_fw_result o_fw_deliv_hint">
+            <i class="fa fa-cube me-1" title="To hand over"/>
+            <t t-esc="v.deliveries_pending"/> to hand over here
+        </div>
+        <div t-if="v.state !== 'done'" class="o_fw_quick"
+             t-on-click.stop="() => {}">
+            <button class="o_fw_quick_btn" t-on-click.stop="() => this.newDelivery(v)">
+                <i class="fa fa-cube" title="Hand over"/>
+                <span>Hand over</span>
+            </button>
+        </div>
+    </xpath>
+
+</t>
+
+</templates>

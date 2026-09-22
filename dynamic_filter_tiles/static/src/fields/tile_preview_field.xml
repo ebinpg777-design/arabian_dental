@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="dynamic_filter_tiles.FilterTilePreviewField">
+        <div class="o_dft_preview">
+            <div class="o_dft_preview_stage">
+                <div class="o_dft_preview_placeholder" t-if="!modelName">
+                    <i class="fa fa-hand-o-down me-2"/>
+                    Choose a model to see the tile take shape.
+                </div>
+                <FilterTile t-else=""
+                            def="tileDef"
+                            data="state.data"
+                            total="state.total"
+                            loading="state.loading and !state.data"/>
+            </div>
+            <div class="o_dft_preview_caption">
+                <i class="fa fa-bolt me-1"/>
+                Live preview — real numbers from your database, as you type.
+            </div>
+        </div>
+    </t>
+
+</templates>

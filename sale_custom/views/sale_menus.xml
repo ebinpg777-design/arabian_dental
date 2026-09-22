@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_sale_reworks" model="ir.actions.act_window">
+        <field name="name">Reworks</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_rework', '=', True)]</field>
+        <field name="context">{'active_test': False, 'default_is_rework': True, 'default_active': False}</field>
+    </record>
+
+    <!-- The legacy v10 rework list. Retired: `lab_rework` now owns Reworks, and two
+         menus with the same name in one dropdown is exactly the confusion it looks
+         like. The action is kept, so this is one `active` flag away from coming back
+         if the archived v10 reworks are ever needed again. -->
+    <menuitem id="menu_sale_reworks"
+              name="Reworks (legacy)"
+              parent="sale.sale_order_menu"
+              action="action_sale_reworks"
+              active="False"
+              sequence="5"/>
+
+    <!-- "Registered" is what this lab calls a new case (see the state relabelling in
+         models/sale_order.py); the menu now says the same word as the status. -->
+    <record id="sale.menu_sale_quotations" model="ir.ui.menu">
+        <field name="name">Register</field>
+    </record>
+</odoo>

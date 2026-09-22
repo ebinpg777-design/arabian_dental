@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_label" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.epg.label</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="40"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Labels" string="Labels" name="epg_product_label"
+                     groups="epg_product_label.group_label_designer">
+
+                    <block title="Print Wizard" name="epg_label_wizard_block">
+                        <setting id="epg_label_replace_standard"
+                                 help="Route Odoo's own 'Print Labels' action on products to the label builder. Leave off to keep both wizards available.">
+                            <field name="epg_label_replace_standard"/>
+                        </setting>
+                        <setting id="epg_label_pricelists" string="Pricelists"
+                                 help="Proposed by the print wizard and used by price elements.">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="epg_label_pricelist_id" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_pricelist_id"
+                                           options="{'no_create': True}"/>
+                                </div>
+                                <div class="row">
+                                    <label for="epg_label_promo_pricelist_id" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_promo_pricelist_id"
+                                           options="{'no_create': True}"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting id="epg_label_preview_data" string="Preview Data"
+                                 help="Records used to fill the designer preview when a template does not name its own.">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="epg_label_preview_product_id" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_preview_product_id"
+                                           options="{'no_create': True}"/>
+                                </div>
+                                <div class="row">
+                                    <label for="epg_label_preview_partner_id" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_preview_partner_id"
+                                           options="{'no_create': True}"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <block title="Zebra / ZPL" name="epg_label_zpl_block">
+                        <setting id="epg_label_zpl_defaults" string="Default ZPL Settings"
+                                 help="Used by every template set to 'Use Global ZPL Settings'. A template can override them on its Output tab.">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="epg_label_zpl_density" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_zpl_density"/>
+                                </div>
+                                <div class="row">
+                                    <label for="epg_label_zpl_rotation" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_zpl_rotation"/>
+                                </div>
+                                <div class="row">
+                                    <label for="epg_label_zpl_encoding" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_zpl_encoding"/>
+                                </div>
+                                <div class="row">
+                                    <label for="epg_label_zpl_darkness" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_zpl_darkness"/>
+                                </div>
+                                <div class="row">
+                                    <label for="epg_label_zpl_speed" class="col-lg-4 o_light_label"/>
+                                    <field name="epg_label_zpl_speed"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting id="epg_label_printer" string="Direct Printing"
+                                 help="HTTP endpoint of an IoT Box or print server that accepts a raw ZPL body. Leave empty to download the ZPL file instead.">
+                            <field name="epg_label_zpl_printer_url"
+                                   placeholder="http://192.168.1.50:8069/hw_proxy/print_zpl"/>
+                        </setting>
+                    </block>
+
+                    <block title="Templates" name="epg_label_templates_block">
+                        <setting id="epg_label_templates" string="Label Templates"
+                                 help="Design label templates, import and export them as XML.">
+                            <button name="action_open_label_templates" type="object"
+                                    string="Label Templates" icon="fa-arrow-right"
+                                    class="btn-link"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

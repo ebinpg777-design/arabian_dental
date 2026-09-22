@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_delivery.ScanStation">
+    <Dialog size="'fs'" header="false" footer="false" withBodyPadding="false"
+            contentClass="'o_fws_content'">
+        <div class="o_fws">
+
+            <!-- ── header: where you are in the visit ─────────────────── -->
+            <div class="o_fws_top">
+                <div class="o_fws_head">
+                    <div class="o_fws_title">Hand over cases</div>
+                    <div class="o_fws_sub" t-esc="emptyHint"/>
+                </div>
+                <div class="o_fws_tally" t-att-class="state.moved ? 'o_fws_tally_live' : ''">
+                    <div class="o_fws_tally_n" t-esc="state.moved"/>
+                    <div class="o_fws_tally_l">this visit</div>
+                </div>
+                <button class="o_fws_close" t-on-click="() => this.props.close()"
+                        aria-label="Close">
+                    <i class="fa fa-times"/>
+                </button>
+            </div>
+
+            <!-- ── the stage: camera / photo / type ───────────────────── -->
+            <div class="o_fws_stage">
+                <t t-if="state.mode === 'camera'">
+                    <div class="o_fws_viewport">
+                        <video t-ref="video" muted="muted" autoplay="autoplay"
+                               playsinline="playsinline"
+                               t-att-class="state.mirror ? 'o_fws_mirror' : ''"/>
+                        <div class="o_fws_frame">
+                            <span class="o_fws_c o_fws_c_tl"/><span class="o_fws_c o_fws_c_tr"/>
+                            <span class="o_fws_c o_fws_c_bl"/><span class="o_fws_c o_fws_c_br"/>
+                            <span class="o_fws_beam" t-if="state.cameraReady"/>
+                        </div>
+                        <button t-if="state.canFlip" class="o_fws_flip"
+                                t-on-click="() => this.flipCamera()" aria-label="Switch camera">
+                            <i class="fa fa-refresh"/>
+                        </button>
+                        <button t-if="state.torch" class="o_fws_torch"
+                                t-att-class="state.torchOn ? 'o_fws_torch_on' : ''"
+                                t-on-click="() => this.toggleTorch()" aria-label="Torch">
+                            <i class="fa fa-lightbulb-o"/>
+                        </button>
+                    </div>
+
+                    <!-- What the loop sees, as two meters: aim by them. Bars up,
+                         focus down = move back; bars down = not in the slot. -->
+                    <div class="o_fws_meters" t-if="state.cameraReady">
+                        <div class="o_fws_meter">
+                            <span class="o_fws_meter_l">Bars</span>
+                            <span class="o_fws_dots">
+                                <span t-foreach="[1, 2, 3]" t-as="n" t-key="n" class="o_fws_dot"
+                                      t-att-class="state.bars >= n ? 'o_fws_dot_on' : ''"/>
+                            </span>
+                        </div>
+                        <div class="o_fws_meter">
+                            <span class="o_fws_meter_l">Width</span>
+                            <span class="o_fws_dots">
+                                <span t-foreach="[1, 2, 3]" t-as="n" t-key="n" class="o_fws_dot"
+                                      t-att-class="state.width >= n ? 'o_fws_dot_on' : ''"/>
+                            </span>
+                        </div>
+                        <div class="o_fws_meter">
+                            <span class="o_fws_meter_l">Focus</span>
+                            <span class="o_fws_dots">
+                                <span t-foreach="[1, 2, 3]" t-as="n" t-key="n" class="o_fws_dot"
+                                      t-att-class="state.sharp >= n ? 'o_fws_dot_on' : ''"/>
+                            </span>
+                        </div>
+                        <div class="o_fws_zoom" t-if="state.zoom">
+                            <i class="fa fa-search-minus"/>
+                            <input type="range" t-att-min="state.zoom.min" t-att-max="state.zoom.max"
+                                   t-att-step="state.zoom.step" t-att-value="state.zoom.value"
+                                   t-on-input="(ev) => this.setZoom(ev.target.value)"
+                                   aria-label="Zoom"/>
+                            <i class="fa fa-search-plus"/>
+                        </div>
+                    </div>
+
+                    <button class="o_fws_readnow" t-att-disabled="state.busy or !state.cameraReady"
+                            t-on-click="() => this.readNow()">
+                        <i class="fa fa-crosshairs me-2" t-if="!state.busy"/>
+                        <i class="fa fa-circle-o-notch fa-spin me-2" t-else=""/>
+                        <t t-if="state.busy and state.stage" t-esc="state.stage"/>
+                        <t t-else="">Read this frame</t>
+                    </button>
+                    <div class="o_fws_camhint" t-att-class="state.cameraStatus ? 'o_fws_camhint_warn' : ''">
+                        <t t-if="state.cameraStatus" t-esc="state.cameraStatus"/>
+                        <t t-else="">Hold the barcode inside the frame. Blurry up close? Move
+                        the sheet back a little — the lab's server reads what the camera
+                        cannot.</t>
+                    </div>
+                </t>
+                <t t-elif="state.mode === 'photo'">
+                    <input type="file" class="d-none" t-ref="file"
+                           accept="image/*" capture="environment" t-on-change="onPhoto"/>
+                    <button class="o_fws_shutter" t-att-disabled="state.busy"
+                            t-on-click="() => this.takePhoto()">
+                        <span class="o_fws_shutter_ring">
+                            <i class="fa fa-camera" t-if="!state.busy"/>
+                            <i class="fa fa-circle-o-notch fa-spin" t-else=""/>
+                        </span>
+                        <span class="o_fws_shutter_label">
+                            <t t-if="state.busy" t-esc="state.stage"/>
+                            <t t-else="">Photograph the barcode</t>
+                        </span>
+                    </button>
+                </t>
+                <t t-else="">
+                    <div class="o_fws_typebox">
+                        <input type="text" class="o_fws_manual" t-ref="manual"
+                               t-model="state.manual"
+                               inputmode="text" autocomplete="off"
+                               autocapitalize="characters" spellcheck="false"
+                               placeholder="Invoice / order / delivery no."
+                               t-on-keydown="onManualKeydown"/>
+                        <button class="o_fws_go" t-att-disabled="!state.manual.trim() or state.busy"
+                                t-on-click="() => this.submitManual()">
+                            <i class="fa fa-arrow-right"/>
+                        </button>
+                    </div>
+                    <div class="o_fws_typehint">
+                        A handheld scanner works anywhere on this screen — it types
+                        the code and presses Enter by itself.
+                    </div>
+                </t>
+                <div class="o_fws_busyline" t-if="state.busy and state.mode !== 'photo'">
+                    <i class="fa fa-circle-o-notch fa-spin me-2"/><t t-esc="state.stage"/>
+                </div>
+            </div>
+
+            <!-- ── ways in ────────────────────────────────────────────── -->
+            <div class="o_fws_modes">
+                <button t-if="live" class="o_fws_mode"
+                        t-att-class="state.mode === 'camera' ? 'o_fws_mode_on' : ''"
+                        t-on-click="() => this.setMode('camera')">
+                    <i class="fa fa-video-camera me-1"/>Camera
+                </button>
+                <button class="o_fws_mode"
+                        t-att-class="state.mode === 'photo' ? 'o_fws_mode_on' : ''"
+                        t-on-click="() => this.setMode('photo')">
+                    <i class="fa fa-camera me-1"/>Photo
+                </button>
+                <button class="o_fws_mode"
+                        t-att-class="state.mode === 'type' ? 'o_fws_mode_on' : ''"
+                        t-on-click="() => this.setMode('type')">
+                    <i class="fa fa-keyboard-o me-1"/>Type
+                </button>
+            </div>
+
+            <!-- ── the visit so far ───────────────────────────────────── -->
+            <div class="o_fws_feed">
+                <div class="o_fws_feed_empty" t-if="!state.run.length">
+                    <i class="fa fa-barcode"/>
+                    <div>First scan stages a box — load it for the run or deliver
+                    it on the spot. Scanning it again at the door delivers it.</div>
+                </div>
+                <div t-foreach="state.run" t-as="entry" t-key="entry.key"
+                     class="o_fws_card" t-att-class="'o_fws_card_' + entry.tone">
+                    <div class="o_fws_card_main">
+                        <div class="o_fws_card_title" t-esc="entry.title"/>
+                        <div class="o_fws_card_detail" t-if="entry.detail" t-esc="entry.detail"/>
+                        <div class="o_fws_card_choice" t-if="entry.choice">
+                            <button class="o_fws_btn o_fws_btn_load"
+                                    t-att-disabled="entry.resolved"
+                                    t-on-click="() => this.loadBox(entry)">
+                                <i class="fa fa-truck me-2"/>Ready for delivery
+                            </button>
+                            <button class="o_fws_btn o_fws_btn_deliver"
+                                    t-att-disabled="entry.resolved"
+                                    t-on-click="() => this.deliverBox(entry)">
+                                <i class="fa fa-check me-2"/>Deliver now
+                            </button>
+                        </div>
+                        <div class="o_fws_card_codes" t-if="entry.codes">
+                            <button t-foreach="entry.codes" t-as="code" t-key="code"
+                                    class="o_fws_chip"
+                                    t-on-click="() => this.pickCode(entry, code)">
+                                <t t-esc="code"/>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="o_fws_card_side">
+                        <span class="o_fws_card_at" t-esc="entry.at"/>
+                        <button t-if="entry.action" class="o_fws_card_open"
+                                t-on-click="() => this.openCard(entry)">Open</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── done for this door ─────────────────────────────────── -->
+            <div class="o_fws_foot">
+                <button class="o_fws_done" t-on-click="() => this.props.close()">
+                    <i class="fa fa-check me-2"/>Done at this door
+                </button>
+            </div>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

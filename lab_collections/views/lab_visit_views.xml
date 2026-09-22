@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The clinic's statement and what it owes, on the visit: the question is
+         asked at the counter, not in Collections. (client, 2026-09-17) -->
+    <record id="view_visit_form_collections" model="ir.ui.view">
+        <field name="name">lab.visit.form.collections</field>
+        <field name="model">lab.visit</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_visit_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_statement" type="object"
+                        class="oe_stat_button" icon="fa-file-text-o">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Statement</span>
+                    </div>
+                </button>
+                <button name="action_open_receivable" type="object"
+                        class="oe_stat_button" icon="fa-inr">
+                    <div class="o_stat_info">
+                        <field name="clinic_open_receivable" widget="monetary"
+                               class="o_stat_value"/>
+                        <span class="o_stat_text">Open Receivable</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ====================================================== audiences -->
+    <record id="view_audience_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.audience.form</field>
+        <field name="model">epg.whatsapp.audience</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_new_campaign" type="object" string="New campaign to them"
+                            class="btn-primary" icon="fa-bullhorn"/>
+                    <button name="action_preview" type="object" string="See the contacts"
+                            icon="fa-users"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_campaigns" type="object" class="oe_stat_button" icon="fa-bullhorn">
+                            <field name="campaign_count" widget="statinfo" string="Campaigns"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Doctors in Kochi"/></h1>
+                        <field name="description" placeholder="What this audience is for, in a sentence"/>
+                    </div>
+                    <div class="o_wa_audience_count" invisible="problem">
+                        <span class="o_wa_audience_n"><field name="count"/></span>
+                        <span class="o_wa_audience_l">contacts right now
+                            <span invisible="not sample"> · <field name="sample" class="oe_inline"/>…</span>
+                        </span>
+                    </div>
+                    <div class="alert alert-warning py-2" role="alert" invisible="not problem">
+                        <b>These rules cannot be read:</b> <field name="problem" class="oe_inline" readonly="1"/>
+                    </div>
+                    <group>
+                        <group string="Who">
+                            <field name="model_name" invisible="1"/>
+                            <field name="starter"/>
+                            <field name="domain" widget="domain"
+                                   options="{'model': 'res.partner', 'in_dialog': False, 'allow_expressions': True}"/>
+                        </group>
+                        <group string="WhatsApp">
+                            <field name="require_number"/>
+                            <field name="exclude_stopped"/>
+                            <field name="exclude_quiet"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Recent activity" name="recency">
+                        <div colspan="2" class="text-muted small mb-1">
+                            Optional. Counted from the day the audience is used, so "no case in 45 days"
+                            stays true next month too.
+                        </div>
+                        <div colspan="2" class="d-flex align-items-baseline gap-2 flex-wrap">
+                            <field name="recency_field" placeholder="e.g. sale_order_ids.date_order" class="o_wa_recency_field"/>
+                            <field name="recency_kind" class="oe_inline"/>
+                            <field name="recency_days" class="oe_inline o_wa_recency_days"/>
+                            <span class="text-muted small">days</span>
+                        </div>
+                        <field name="recency_domain" invisible="not recency_field"
+                               placeholder="[('state', '=', 'sale')]"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_audience_list" model="ir.ui.view">
+        <field name="name">epg.whatsapp.audience.list</field>
+        <field name="model">epg.whatsapp.audience</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="description" optional="show"/>
+                <field name="count" string="Contacts"/>
+                <field name="campaign_count" string="Campaigns"/>
+                <button name="action_new_campaign" type="object" icon="fa-bullhorn" title="New campaign to them"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_audience" model="ir.actions.act_window">
+        <field name="name">Audiences</field>
+        <field name="res_model">epg.whatsapp.audience</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Say once who a message is for</p>
+            <p>"Doctors in Kochi", "the engaged", "no case in 45 days": a rule written once,
+               with a live count, that every campaign and automation can pick.</p>
+        </field>
+    </record>
+
+    <!-- ====================================================== ideas -->
+    <record id="view_idea_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.idea.form</field>
+        <field name="model">epg.whatsapp.idea</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_use" type="object" string="Use this idea" class="btn-primary" icon="fa-bullhorn"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Onam greetings"/></h1>
+                        <field name="note" placeholder="When to use it, in one line"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="category"/>
+                            <field name="headline" placeholder="The flyer's title"/>
+                        </group>
+                        <group>
+                            <field name="lead_reply" placeholder="e.g. 👍 Interested"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <label for="body"/>
+                    <field name="body" widget="wa_editor" options="{'model': 'res.partner'}"
+                           placeholder="Dear Dr. {{name}}, …"/>
+                    <label for="quick_replies" class="mt-3"/>
+                    <field name="quick_replies" placeholder="👍 Interested&#10;📞 Call me"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_idea_list" model="ir.ui.view">
+        <field name="name">epg.whatsapp.idea.list</field>
+        <field name="model">epg.whatsapp.idea</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="category"/>
+                <field name="note"/>
+                <button name="action_use" type="object" icon="fa-bullhorn" title="Use this idea"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_idea_kanban" model="ir.ui.view">
+        <field name="name">epg.whatsapp.idea.kanban</field>
+        <field name="model">epg.whatsapp.idea</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="category" class="o_wa_ideas">
+                <field name="name"/>
+                <field name="note"/>
+                <field name="body"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_wa_idea">
+                            <div class="fw-bold"><t t-esc="record.name.value"/></div>
+                            <div class="text-muted small"><t t-esc="record.note.value"/></div>
+                            <div class="o_wa_idea_body"><t t-esc="record.body.value"/></div>
+                            <button name="action_use" type="object" class="btn btn-sm btn-primary mt-2">
+                                <i class="fa fa-bullhorn me-1"/>Use it
+                            </button>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_idea" model="ir.actions.act_window">
+        <field name="name">Campaign Ideas</field>
+        <field name="res_model">epg.whatsapp.idea</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Campaigns written in advance</p>
+            <p>A festival greeting, a new appliance, "we miss you": pick one, change three
+               words, send.</p>
+        </field>
+    </record>
+
+    <!-- ====================================================== automations -->
+    <record id="view_automation_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.automation.form</field>
+        <field name="model">epg.whatsapp.automation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_run_now" type="object" string="Run now" class="btn-primary"
+                            icon="fa-play" confirm="Put today's messages on the Desk now?"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="fa-whatsapp">
+                            <field name="sent_count" widget="statinfo" string="Sent"/>
+                        </button>
+                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="fa-hourglass-half">
+                            <field name="waiting_count" widget="statinfo" string="Waiting"/>
+                        </button>
+                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="fa-reply">
+                            <field name="replied_count" widget="statinfo" string="Replied"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Paused" bg_color="text-bg-warning" invisible="active"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. We miss you"/></h1>
+                    </div>
+                    <div class="o_wa_audience_count">
+                        <span class="o_wa_audience_n"><field name="due_count"/></span>
+                        <span class="o_wa_audience_l">would receive it now ·
+                            <field name="audience_count" class="oe_inline"/> in the audience</span>
+                    </div>
+                    <group>
+                        <group string="Who and when">
+                            <field name="audience_id" options="{'no_create': True}"/>
+                            <field name="repeat_days"/>
+                            <field name="daily_limit"/>
+                            <field name="active" widget="boolean_toggle" string="Running"/>
+                        </group>
+                        <group string="How">
+                            <field name="account_id" options="{'no_create': True}"/>
+                            <field name="user_id" options="{'no_create': True}"/>
+                            <field name="hour"/>
+                            <field name="at_best_time"/>
+                            <field name="optout"/>
+                            <field name="last_run_at" invisible="not last_run_at"/>
+                        </group>
+                    </group>
+                    <label for="body"/>
+                    <field name="body" widget="wa_editor" options="{'model': 'res.partner'}"
+                           placeholder="Dear Dr. {{name}}, we have not heard from you in a while…"/>
+                    <group>
+                        <group>
+                            <field name="quick_replies" placeholder="👍 Send a pickup&#10;📞 Call me"/>
+                        </group>
+                        <group>
+                            <field name="lead_reply" placeholder="👍 Send a pickup"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_automation_list" model="ir.ui.view">
+        <field name="name">epg.whatsapp.automation.list</field>
+        <field name="model">epg.whatsapp.automation</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="audience_id"/>
+                <field name="repeat_days"/>
+                <field name="sent_count" string="Sent"/>
+                <field name="replied_count" string="Replied"/>
+                <field name="last_run_at"/>
+                <field name="active" widget="boolean_toggle" string="Running"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_automation" model="ir.actions.act_window">
+        <field name="name">Automations</field>
+        <field name="res_model">epg.whatsapp.automation</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Messages that send themselves</p>
+            <p>An audience, a message, and how often: "we miss you" to a doctor with no case
+               in 45 days appears on the Desk by itself, at most once per doctor.</p>
+        </field>
+    </record>
+
+    <!-- ====================================================== campaign: the marketing bits -->
+    <record id="view_campaign_form_marketing" model="ir.ui.view">
+        <field name="name">epg.whatsapp.campaign.form.marketing</field>
+        <field name="model">epg.whatsapp.campaign</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_campaign_form"/>
+        <field name="arch" type="xml">
+            <button name="action_launch" position="attributes">
+                <attribute name="invisible">state != 'draft' or mode != 'personal'</attribute>
+            </button>
+            <button name="action_launch" position="after">
+                <button name="action_mark_broadcast_sent" type="object" string="Mark as sent"
+                        class="btn-success" icon="fa-check" invisible="state != 'draft' or mode != 'broadcast'"
+                        confirm="The text has been sent from WhatsApp as a broadcast? It is logged to every doctor on the list."/>
+                <button name="action_follow_up" type="object" string="Follow up the silent"
+                        icon="fa-repeat" invisible="state == 'draft'"/>
+                <button name="action_duplicate" type="object" string="Duplicate" icon="fa-clone"/>
+            </button>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_interested" type="object" class="oe_stat_button" icon="fa-star"
+                        invisible="not lead_reply">
+                    <field name="interested_count" widget="statinfo" string="Interested"/>
+                </button>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="attributes">
+                <attribute name="invisible">state == 'draft' and mode == 'personal'</attribute>
+            </xpath>
+            <xpath expr="//field[@name='account_id']" position="before">
+                <field name="idea_id" options="{'no_create': True}" readonly="state != 'draft'"
+                       placeholder="Pick a ready-written campaign…"/>
+                <field name="audience_id" options="{'no_create': True}" readonly="state != 'draft'"/>
+                <label for="mode"/>
+                <div>
+                    <field name="mode" widget="radio" readonly="state != 'draft'"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='daily_limit']" position="attributes">
+                <attribute name="invisible">mode != 'personal'</attribute>
+            </xpath>
+            <xpath expr="//field[@name='link_url']" position="before">
+                <field name="send_on" invisible="mode != 'personal'" readonly="state != 'draft'"/>
+                <field name="at_best_time" invisible="mode != 'personal'" readonly="state != 'draft'"/>
+                <field name="lead_reply" readonly="state != 'draft'" placeholder="e.g. 👍 Interested"/>
+            </xpath>
+            <xpath expr="//field[@name='body']" position="attributes">
+                <attribute name="widget">wa_editor</attribute>
+                <attribute name="options">{'model': 'res.partner'}</attribute>
+            </xpath>
+            <xpath expr="//page[@name='message']" position="after">
+                <page string="Flyer" name="flyer">
+                    <div class="text-muted mb-2">
+                        With a picture, the message links to a page showing it with the text and
+                        the buttons - a WhatsApp message with a photo, without the API.
+                    </div>
+                    <div class="d-flex gap-4 flex-wrap">
+                        <field name="image" widget="image" class="o_wa_flyer_image" readonly="state != 'draft'"
+                               options="{'size': [240, 240]}"/>
+                        <div class="flex-grow-1">
+                            <label for="headline"/>
+                            <field name="headline" placeholder="e.g. Clear aligners, now made in-house" readonly="state != 'draft'"/>
+                        </div>
+                    </div>
+                </page>
+                <page string="Broadcast" name="broadcast" invisible="mode != 'broadcast'">
+                    <div class="alert alert-success py-2" role="status">
+                        <b>One text, sent once.</b> In WhatsApp, make a broadcast list of these
+                        doctors (they must have the lab's number saved), paste this text, send it,
+                        then press <b>Mark as sent</b> here. The page opens, the answers and the
+                        stops are counted for the campaign; a doctor who answers or stops says
+                        which number they are.
+                    </div>
+                    <field name="broadcast_text" widget="CopyClipboardText" readonly="1"/>
+                    <group invisible="state == 'draft'">
+                        <field name="page_url" widget="url" string="Flyer page"/>
+                        <field name="broadcast_opens"/>
+                        <field name="broadcast_link_clicks" invisible="not link_url"/>
+                        <field name="broadcast_sent_at"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_campaign_list_marketing" model="ir.ui.view">
+        <field name="name">epg.whatsapp.campaign.list.marketing</field>
+        <field name="model">epg.whatsapp.campaign</field>
+        <field name="inherit_id" ref="epg_whatsapp.view_campaign_list"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="mode" optional="show"/>
+                <field name="audience_id" optional="show"/>
+            </field>
+            <field name="replied_count" position="after">
+                <field name="interested_count" string="Interested" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- ====================================================== menus -->
+    <menuitem id="menu_marketing" name="Marketing" parent="menu_root" sequence="15"/>
+    <record id="menu_campaigns" model="ir.ui.menu">
+        <field name="parent_id" ref="menu_marketing"/>
+        <field name="sequence">1</field>
+    </record>
+    <menuitem id="menu_audiences" name="Audiences" parent="menu_marketing"
+              action="action_audience" sequence="2"/>
+    <menuitem id="menu_automations" name="Automations" parent="menu_marketing"
+              action="action_automation" sequence="3"/>
+    <menuitem id="menu_ideas" name="Ideas" parent="menu_marketing"
+              action="action_idea" sequence="4"/>
+</odoo>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_lab_ceo_dashboard" model="ir.actions.client">
+        <field name="name">Management</field>
+        <field name="tag">lab_ceo_dashboard</field>
+    </record>
+
+    <!-- "Executive" collided with the field-work Executive role, which is the opposite
+         kind of person: this board is for whoever runs the lab, not for whoever walks
+         the beat. -->
+    <!-- The app opens straight onto the hub. Its navigation bar carries only the
+         incentive screens (lab_incentive adds those); every other management
+         screen is a launcher on the hub, with a live figure telling the reader
+         whether it is worth opening. (client, 2026-08-28) -->
+    <menuitem id="menu_lab_ceo_root" name="Management"
+              web_icon="lab_ceo_dashboard,static/description/icon.png"
+              groups="lab_ceo_dashboard.group_lab_executive" sequence="14"/>
+     <menuitem id="menu_lab_ceo_management" name="Dashboard"
+              action="action_lab_ceo_dashboard"
+              parent="menu_lab_ceo_root"
+              groups="lab_ceo_dashboard.group_lab_executive" sequence="0"/>
+
+</odoo>

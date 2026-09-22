@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_bank_reconciliation_readonly,bank.reconciliation readonly,model_bank_reconciliation,account.group_account_readonly,1,0,0,0
+access_bank_reconciliation_user,bank.reconciliation user,model_bank_reconciliation,account.group_account_user,1,1,1,0
+access_bank_reconciliation_manager,bank.reconciliation manager,model_bank_reconciliation,account.group_account_manager,1,1,1,1
+access_bank_clearance_readonly,bank.clearance readonly,model_bank_clearance,account.group_account_readonly,1,0,0,0
+access_bank_clearance_user,bank.clearance user,model_bank_clearance,account.group_account_user,1,1,1,1
+access_bank_clearance_manager,bank.clearance manager,model_bank_clearance,account.group_account_manager,1,1,1,1
+access_bank_reconciliation_step_readonly,bank.reconciliation.step readonly,model_bank_reconciliation_step,account.group_account_readonly,1,0,0,0
+access_bank_reconciliation_step_user,bank.reconciliation.step user,model_bank_reconciliation_step,account.group_account_user,1,1,1,1
+access_bank_reconciliation_step_manager,bank.reconciliation.step manager,model_bank_reconciliation_step,account.group_account_manager,1,1,1,1
+access_bank_line_query_readonly,bank.line.query readonly,model_bank_line_query,account.group_account_readonly,1,0,0,0
+access_bank_line_query_user,bank.line.query user,model_bank_line_query,account.group_account_user,1,1,1,1
+access_bank_line_query_manager,bank.line.query manager,model_bank_line_query,account.group_account_manager,1,1,1,1

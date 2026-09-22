@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Single column, no notebook: this is filled in on a phone in a parked car. -->
+    <record id="view_quick_entry_form" model="ir.ui.view">
+        <field name="name">lab.case.quick.entry.form</field>
+        <field name="model">lab.case.quick.entry</field>
+        <field name="arch" type="xml">
+            <form string="Quick Case Entry">
+                <group>
+                    <field name="can_edit_executive" invisible="1"/>
+                    <field name="partner_id" options="{'no_create': True}"/>
+                    <field name="entry_date"/>
+                    <field name="executive_id" readonly="not can_edit_executive"/>
+                    <field name="backdate_reason"
+                           invisible="entry_date &gt;= context_today()"/>
+                </group>
+                <field name="line_ids">
+                    <list editable="bottom">
+                        <field name="patient"/>
+                        <field name="product_id" optional="show"/>
+                        <field name="ul" optional="show"/>
+                        <field name="quantity" optional="hide"/>
+                        <field name="age" optional="hide"/>
+                        <field name="gender" optional="hide"/>
+                        <field name="priority" optional="show"/>
+                        <field name="remarks" optional="hide"/>
+                        <field name="duplicate_hint" string="⚠" optional="show"/>
+                    </list>
+                </field>
+                <group>
+                    <field name="submit_all"/>
+                </group>
+                <footer>
+                    <button string="Create Cases" name="action_create_cases" type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_quick_entry" model="ir.actions.act_window">
+        <field name="name">Quick Case Entry</field>
+        <field name="res_model">lab.case.quick.entry</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- The purpose_ids/outcome_ids pills are now edited directly on view_visit_form
+         (lab_visit_views.xml) — one control per concept, not this plus a second
+         many2many_tags block duplicating it. -->
+
+    <record id="view_visit_search_tags" model="ir.ui.view">
+        <field name="name">lab.visit.search.tags</field>
+        <field name="model">lab.visit</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_visit_search"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="purpose_ids"/>
+                <field name="outcome_ids"/>
+                <filter name="f_delivery_purpose" string="Delivery visits"
+                        domain="[('purpose_ids.is_delivery','=',True)]"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Configuration masters -->
+    <record id="action_visit_purpose" model="ir.actions.act_window">
+        <field name="name">Visit Purposes</field>
+        <field name="res_model">lab.visit.purpose</field>
+        <field name="view_mode">list</field>
+    </record>
+    <record id="action_visit_outcome" model="ir.actions.act_window">
+        <field name="name">Visit Outcomes</field>
+        <field name="res_model">lab.visit.outcome</field>
+        <field name="view_mode">list</field>
+    </record>
+    <record id="view_visit_purpose_list" model="ir.ui.view">
+        <field name="name">lab.visit.purpose.list</field>
+        <field name="model">lab.visit.purpose</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code" optional="hide"/>
+                <field name="color" widget="color_picker"/>
+                <field name="is_delivery"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_visit_outcome_list" model="ir.ui.view">
+        <field name="name">lab.visit.outcome.list</field>
+        <field name="model">lab.visit.outcome</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code" optional="hide"/>
+                <field name="color" widget="color_picker"/>
+                <field name="is_delivery"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+</odoo>

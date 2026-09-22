@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_coverage_list" model="ir.ui.view">
+        <field name="name">lab.coverage.list</field>
+        <field name="model">lab.coverage</field>
+        <field name="arch" type="xml">
+            <list create="false" delete="false"
+                  decoration-danger="status in ('at_risk', 'never')"
+                  decoration-warning="status == 'overdue'"
+                  decoration-muted="status == 'current'">
+                <field name="partner_id"/>
+                <field name="beat_id" optional="show"/>
+                <field name="user_id" optional="show"/>
+                <field name="last_visit"/>
+                <field name="days_since"/>
+                <field name="status" widget="badge"
+                       decoration-danger="status in ('at_risk', 'never')"
+                       decoration-warning="status == 'overdue'"
+                       decoration-success="status == 'current'"/>
+                <field name="visits_90d" optional="show"/>
+                <field name="value_90d" sum="Case Value (90d)"/>
+                <!-- What this lab actually has evidence of. Visits are 12 rows; orders
+                     are 26,309, so the ordering columns are the ones that answer
+                     "is this clinic slipping?". (client, 2026-08-29) -->
+                <field name="order_state" widget="badge"
+                       decoration-danger="order_state == 'stopped'"
+                       decoration-warning="order_state == 'slipping'"
+                       decoration-success="order_state == 'steady'"/>
+                <field name="last_order" optional="show"/>
+                <field name="days_since_order" optional="hide"/>
+                <field name="value_drop" sum="Value Lost" optional="show"/>
+                <field name="declining" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_coverage_search" model="ir.ui.view">
+        <field name="name">lab.coverage.search</field>
+        <field name="model">lab.coverage</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="beat_id"/>
+                <filter name="at_risk" string="At Risk"
+                        domain="[('status', 'in', ('at_risk', 'never'))]"/>
+                <filter name="overdue" string="Overdue or worse"
+                        domain="[('status', 'in', ('overdue', 'at_risk', 'never'))]"/>
+                <separator/>
+                <!-- The combination that actually costs money: still ordering, ordering
+                     less, and nobody has been to see. -->
+                <!-- The old rescue filter asked for a VISIT status and matched nothing
+                     on a database with 12 visits. Ordering is the evidence. -->
+                <filter name="rescue" string="Rescue List"
+                        domain="[('order_state', 'in', ('stopped', 'slipping'))]"/>
+                <filter name="stopped" string="Stopped Ordering"
+                        domain="[('order_state', '=', 'stopped')]"/>
+                <filter name="slipping" string="Ordering Less"
+                        domain="[('order_state', '=', 'slipping')]"/>
+                <group>
+                    <filter name="g_order" string="Ordering" context="{'group_by': 'order_state'}"/>
+                    <filter name="g_status" string="Coverage" context="{'group_by': 'status'}"/>
+                    <filter name="g_beat" string="Beat" context="{'group_by': 'beat_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_coverage" model="ir.actions.act_window">
+        <field name="name">Clinic Coverage</field>
+        <field name="res_model">lab.coverage</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="context">{'search_default_rescue': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Every clinic is covered</p>
+            <p>Clinics appear here as they go unvisited, so the ones slipping away show
+               up before the cases stop.</p>
+        </field>
+    </record>
+</odoo>

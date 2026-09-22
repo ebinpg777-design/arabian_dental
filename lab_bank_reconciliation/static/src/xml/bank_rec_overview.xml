@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_bank_reconciliation.Overview">
+    <div class="o_bank_ovw o_action">
+        <div t-if="!state.data" class="o_bank_rec_loading">Loading…</div>
+        <t t-else="">
+            <t t-set="o" t-value="state.data"/>
+            <div class="o_bank_ovw_head">
+                <div>
+                    <h2>Bank Reconciliation</h2>
+                    <div class="o_bank_rec_sub">Every bank, and how far its books have been checked against the passbook.</div>
+                </div>
+                <button class="btn btn-secondary" t-on-click="() => this.statements()">
+                    <i class="fa fa-list me-1" title="Statements"/>All statements
+                </button>
+            </div>
+
+            <div class="o_bank_ovw_kpis">
+                <div class="o_bank_ovw_kpi">
+                    <span>Banks</span><strong t-esc="o.totals.banks"/>
+                </div>
+                <div t-attf-class="o_bank_ovw_kpi {{ o.totals.attention ? 'o_bank_ovw_kpi_warn' : '' }}">
+                    <span>Need reconciling</span><strong t-esc="o.totals.attention"/>
+                </div>
+                <div class="o_bank_ovw_kpi">
+                    <span>In progress</span><strong t-esc="o.totals.progress"/>
+                </div>
+                <div t-attf-class="o_bank_ovw_kpi {{ o.totals.stale ? 'o_bank_ovw_kpi_bad' : '' }}">
+                    <span>Stale outstanding entries</span><strong t-esc="o.totals.stale"/>
+                </div>
+            </div>
+
+            <t t-foreach="companies" t-as="co" t-key="co.id">
+                <h5 class="o_bank_ovw_company" t-esc="co.name"/>
+                <div class="o_bank_ovw_grid">
+                    <div t-foreach="co.cards" t-as="c" t-key="c.journal_id"
+                         t-attf-class="o_bank_ovw_card o_bank_ovw_card_{{ c.status }}">
+                        <div class="o_bank_ovw_card_h">
+                            <div class="o_bank_ovw_card_t">
+                                <div class="o_bank_ovw_name" t-esc="c.journal"/>
+                                <div class="o_bank_ovw_acc" t-esc="c.account or 'No bank account yet'"/>
+                            </div>
+                            <span t-attf-class="o_bank_ovw_pill o_bank_ovw_pill_{{ c.status }}" t-esc="c.status_label"/>
+                        </div>
+
+                        <div class="o_bank_ovw_bal">
+                            <span>Balance as per books today</span>
+                            <strong t-esc="money(c.book, c.currency_id)"/>
+                        </div>
+
+                        <div class="o_bank_ovw_stats">
+                            <div>
+                                <span>Deposits not credited</span>
+                                <strong t-esc="c.deposits.count"/>
+                                <small t-esc="money(c.deposits.amount, c.currency_id)"/>
+                            </div>
+                            <div>
+                                <span>Payments not presented</span>
+                                <strong t-esc="c.payments.count"/>
+                                <small t-esc="money(c.payments.amount, c.currency_id)"/>
+                            </div>
+                            <div t-attf-class="{{ c.stale ? 'o_bank_ovw_stat_bad' : '' }}">
+                                <span>Stale, over <t t-esc="c.stale_days"/> days</span>
+                                <strong t-esc="c.stale"/>
+                                <small t-if="c.oldest_label">oldest <t t-esc="c.oldest_label"/></small>
+                            </div>
+                        </div>
+
+                        <t t-set="sp" t-value="spark(c.trend)"/>
+                        <div t-if="sp" class="o_bank_ovw_trend" title="Outstanding entries at the end of each of the last 12 weeks">
+                            <svg t-att-width="sp.width" t-att-height="sp.height" t-att-viewBox="'0 0 ' + sp.width + ' ' + sp.height">
+                                <polyline t-att-points="sp.points" fill="none" stroke="currentColor" stroke-width="2"
+                                          stroke-linejoin="round" stroke-linecap="round"/>
+                            </svg>
+                            <span>
+                                Outstanding over 12 weeks ·
+                                <strong t-attf-class="{{ sp.change &gt; 0 ? 'text-danger' : (sp.change &lt; 0 ? 'text-success' : '') }}"
+                                        t-esc="(sp.change &gt; 0 ? '+' : '') + sp.change"/> in the last 4
+                            </span>
+                        </div>
+
+                        <div t-if="c.draft" class="o_bank_ovw_where">
+                            <i class="fa fa-pencil-square-o me-1" title="In progress"/>
+                            Statement of <strong t-esc="c.draft.date_label"/> in progress · difference
+                            <strong t-attf-class="{{ c.draft.balanced ? 'text-success' : 'text-danger' }}"
+                                    t-esc="money(c.draft.difference, c.currency_id)"/>
+                        </div>
+                        <div t-elif="c.last_done" class="o_bank_ovw_where">
+                            <i class="fa fa-check-circle me-1" title="Reconciled"/>
+                            Last reconciled on <strong t-esc="c.last_done.date_label"/> at
+                            <t t-esc="money(c.last_done.bank_balance, c.currency_id)"/>
+                        </div>
+                        <div t-else="" class="o_bank_ovw_where">
+                            <i class="fa fa-info-circle me-1" title="Never"/>
+                            Not checked against the passbook yet.
+                        </div>
+
+                        <div class="o_bank_ovw_card_f">
+                            <button class="btn btn-primary btn-sm" t-att-disabled="state.busy or !c.account"
+                                    t-on-click="() => this.reconcile(c)">
+                                <i class="fa fa-check-square-o me-1" title="Reconcile"/>
+                                <t t-esc="c.draft ? 'Continue' : 'Reconcile'"/>
+                            </button>
+                            <button class="btn btn-secondary btn-sm" t-att-disabled="!c.history_count"
+                                    t-on-click="() => this.history(c)">
+                                History (<t t-esc="c.history_count"/>)
+                            </button>
+                            <span t-if="c.last_entry_label" class="o_bank_ovw_last">last entry <t t-esc="c.last_entry_label"/></span>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </div>
+</t>
+
+</templates>

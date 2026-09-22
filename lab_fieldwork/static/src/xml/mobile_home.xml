@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_fieldwork.NavBar" t-inherit="web.NavBar" t-inherit-mode="extension">
+    <xpath expr="//div[hasclass('o_navbar_breadcrumbs')]" position="before">
+        <!-- Phone only: the desktop bar already shows the app name and its menus. -->
+        <div t-if="this.ui.isSmall and currentApp" class="o_fw_mobile_nav d-flex align-items-center">
+            <button type="button" class="o_fw_mobile_btn" title="Back"
+                    aria-label="Back" t-on-click="() => this.fwGoBack()">
+                <i class="fa fa-chevron-left" aria-hidden="true"/>
+            </button>
+            <button type="button" class="o_fw_mobile_btn o_fw_mobile_home"
+                    t-att-title="currentApp.name" t-on-click="() => this.fwGoHome()">
+                <i class="fa fa-home me-1" aria-hidden="true"/>
+                <span class="o_fw_mobile_app" t-esc="currentApp.name"/>
+            </button>
+        </div>
+    </xpath>
+</t>
+
+</templates>

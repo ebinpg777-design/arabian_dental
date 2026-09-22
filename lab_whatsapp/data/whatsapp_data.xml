@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+            A sender that works the moment the module is installed, in simulation mode.
+            Every template and trigger can then be tested against real cases without a
+            single doctor being messaged. Fill in the Meta values and untick simulation
+            to go live.
+        -->
+        <record id="account_default" model="epg.whatsapp.account">
+            <field name="name">Arabian Dental Lab WhatsApp</field>
+            <field name="simulation_mode" eval="True"/>
+            <field name="api_version">v21.0</field>
+        </record>
+    </data>
+</odoo>

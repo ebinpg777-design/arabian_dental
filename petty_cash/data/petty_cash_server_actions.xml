@@ -1,0 +1,43 @@
+<odoo>
+    <!-- ── Expense bulk actions ─────────────────────────────────────────── -->
+    <record id="action_bulk_approve_expenses" model="ir.actions.server">
+        <field name="name">Approve Selected Expenses</field>
+        <field name="model_id" ref="model_petty_cash_expense"/>
+        <field name="binding_model_id" ref="model_petty_cash_expense"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">records.action_bulk_approve()</field>
+        <field name="group_ids" eval="[(4, ref('petty_cash.group_petty_cash_manager'))]"/>
+    </record>
+
+    <record id="action_bulk_reject_expenses" model="ir.actions.server">
+        <field name="name">Reject Selected Expenses</field>
+        <field name="model_id" ref="model_petty_cash_expense"/>
+        <field name="binding_model_id" ref="model_petty_cash_expense"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">records.action_bulk_reject()</field>
+        <field name="group_ids" eval="[(4, ref('petty_cash.group_petty_cash_manager'))]"/>
+    </record>
+
+    <!-- ── Transaction bulk actions ────────────────────────────────────── -->
+    <record id="action_bulk_approve_transactions" model="ir.actions.server">
+        <field name="name">Approve Selected Transactions</field>
+        <field name="model_id" ref="model_petty_cash_transaction"/>
+        <field name="binding_model_id" ref="model_petty_cash_transaction"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">records.action_bulk_approve()</field>
+        <field name="group_ids" eval="[(4, ref('petty_cash.group_petty_cash_manager'))]"/>
+    </record>
+
+    <record id="action_bulk_post_transactions" model="ir.actions.server">
+        <field name="name">Post Selected Transactions</field>
+        <field name="model_id" ref="model_petty_cash_transaction"/>
+        <field name="binding_model_id" ref="model_petty_cash_transaction"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">records.action_bulk_post()</field>
+        <field name="group_ids" eval="[(4, ref('petty_cash.group_petty_cash_officer'))]"/>
+    </record>
+</odoo>

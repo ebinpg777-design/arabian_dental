@@ -1,0 +1,55 @@
+// Field Command — the switcher behind the Management hub's Field Force tile.
+// It draws almost nothing itself: the screens it mounts (the role desks, the
+// pulse) carry their own design. The bar is deliberately quieter than the
+// hub's launcher strip above it, so the page reads hub > screen-set > screen.
+
+.o_fcmd {
+    background: #f6f8fb;
+
+    .o_fcmd_loading { text-align: center; color: #64748b; padding: 4rem 0; }
+
+    .o_fcmd_bar {
+        display: flex; flex-wrap: wrap; gap: .4rem;
+        padding: .55rem 1.25rem 0;
+    }
+    .o_fcmd_tab {
+        border: 1px solid rgba(16, 35, 58, .12); background: #fff;
+        border-radius: .55rem .55rem 0 0; border-bottom: 0;
+        padding: .4rem 1rem; font-size: .88rem; font-weight: 600;
+        color: #64748b; cursor: pointer;
+        &:hover { color: #10233a; }
+    }
+    .o_fcmd_tab_on { background: #10233a; border-color: #10233a; color: #fff;
+                     &:hover { color: #fff; } }
+    .o_fcmd_badge {
+        display: inline-block; min-width: 1.35rem; text-align: center;
+        margin-left: .45rem; padding: 0 .35rem; border-radius: 999px;
+        background: rgba(220, 38, 38, .12); color: #b91c1c;
+        font-size: .74rem; font-weight: 800;
+    }
+    .o_fcmd_tab_on .o_fcmd_badge { background: rgba(255, 255, 255, .22); color: #fff; }
+
+    .o_fcmd_empty { text-align: center; color: #64748b; padding: 4rem 0; }
+
+    // The mounted screen styles itself; the stage only keeps the tab bar's
+    // bottom edge from being swallowed by the screen's own background.
+    .o_fcmd_stage { border-top: 1px solid rgba(16, 35, 58, .12); }
+}
+
+// Opened full-page (the hub's "Full screen" button, or a direct URL) this root
+// IS the `.o_action` element, which the web client clips with
+// `html .o_web_client > .o_action_manager > .o_action { height:100%;
+// overflow:hidden; display:flex }` — four compound selectors, declared after
+// ours. Same fight, same fix, as the hub (o_ceo_dash), the pulse (o_mp) and
+// the role desks (o_fwd): mirror the selector, scroll the root, `min-height: 0`
+// so the flex child may shrink enough for the overflow to engage. Embedded in
+// the hub none of this matches and the page flows as one, which is right.
+html .o_web_client > .o_action_manager > .o_action.o_fcmd {
+    display: block;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}

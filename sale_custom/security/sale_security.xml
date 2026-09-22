@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Daily Sales: salesmen see their own, managers/all-leads see everything -->
+        <record id="crm_rule_own_daily_sales" model="ir.rule">
+            <field name="name">Own Daily Sales</field>
+            <field name="model_id" ref="model_daily_sales"/>
+            <field name="domain_force">[('sales_person_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+        </record>
+        <record id="crm_rule_all_daily_sales" model="ir.rule">
+            <field name="name">All Daily Sales</field>
+            <field name="model_id" ref="model_daily_sales"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('sales_team.group_sale_salesman_all_leads'))]"/>
+        </record>
+        <record id="daily_sales_comp_rule" model="ir.rule">
+            <field name="name">Daily Sales multi-company</field>
+            <field name="model_id" ref="model_daily_sales"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!--
+            The Odoo 10 module also added an "own customers only" record rule on
+            res.partner for group_sale_salesman. It is intentionally NOT ported:
+            in v19 core res.partner uses a single global (no-group) rule, so a
+            group-scoped restriction there OR-combines to "only my partners" and
+            breaks reading order/invoice partners, vendors, the company partner,
+            partner creation, and the Daily-Sales clinic/doctor pickers. If
+            per-salesman scoping is genuinely required it must be redesigned as a
+            read-only rule limited to is_clinic/is_doctor partners.
+        -->
+    </data>
+</odoo>

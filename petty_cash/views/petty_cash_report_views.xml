@@ -1,0 +1,82 @@
+<odoo>
+    <!-- ═══ Spend by Category / Product (expense lines) ═════════════════════ -->
+    <record id="view_petty_cash_expense_line_pivot" model="ir.ui.view">
+        <field name="name">petty.cash.expense.line.pivot</field>
+        <field name="model">petty.cash.expense.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Spend Analysis" sample="1">
+                <field name="categ_id" type="row"/>
+                <field name="product_id" type="row"/>
+                <field name="expense_state" type="col"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_petty_cash_expense_line_graph" model="ir.ui.view">
+        <field name="name">petty.cash.expense.line.graph</field>
+        <field name="model">petty.cash.expense.line</field>
+        <field name="arch" type="xml">
+            <graph string="Spend Analysis" type="bar" sample="1">
+                <field name="categ_id"/>
+                <field name="amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_petty_cash_expense_line_search" model="ir.ui.view">
+        <field name="name">petty.cash.expense.line.search</field>
+        <field name="model">petty.cash.expense.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="categ_id"/>
+                <field name="petty_cash_partner_id"/>
+                <field name="account_id"/>
+                <filter string="Confirmed Spend" name="confirmed"
+                        domain="[('expense_state', 'in', ('approved', 'bill_created', 'paid'))]"/>
+                <filter string="Paid" name="paid" domain="[('expense_state', '=', 'paid')]"/>
+                <separator/>
+                <!-- strftime, never date.replace(): a view domain is evaluated by
+                     the python-LIKE interpreter in the browser, which has no
+                     replace() on a date, and the screen dies at render time with
+                     "Function.prototype.apply was called on undefined". Nothing
+                     server-side catches it. (client, 2026-09-10) -->
+                <filter string="This Month" name="this_month"
+                        domain="[('expense_date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <group name="group_by">
+                    <filter string="Category" name="g_categ" context="{'group_by': 'categ_id'}"/>
+                    <filter string="Product" name="g_product" context="{'group_by': 'product_id'}"/>
+                    <filter string="Expense Account" name="g_account" context="{'group_by': 'account_id'}"/>
+                    <filter string="Cash Holder" name="g_holder" context="{'group_by': 'petty_cash_partner_id'}"/>
+                    <filter string="Status" name="g_state" context="{'group_by': 'expense_state'}"/>
+                    <filter string="Month" name="g_month" context="{'group_by': 'expense_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_petty_cash_spend_report" model="ir.actions.act_window">
+        <field name="name">Spend by Category</field>
+        <field name="res_model">petty.cash.expense.line</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="view_petty_cash_expense_line_search"/>
+        <field name="context">{'search_default_confirmed': 1, 'search_default_g_categ': 1}</field>
+    </record>
+
+    <!-- ═══ Allocation analysis (reuses existing pivot/graph) ═══════════════ -->
+    <record id="action_petty_cash_allocation_report" model="ir.actions.act_window">
+        <field name="name">Allocation Analysis</field>
+        <field name="res_model">petty.cash.allocation</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_group_holder': 1}</field>
+    </record>
+
+    <!-- ═══ Transaction analysis (reuses existing pivot/graph) ══════════════ -->
+    <record id="action_petty_cash_transaction_report" model="ir.actions.act_window">
+        <field name="name">Transaction Analysis</field>
+        <field name="res_model">petty.cash.transaction</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_posted': 1, 'search_default_group_type': 1}</field>
+    </record>
+</odoo>

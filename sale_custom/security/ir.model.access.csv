@@ -1,0 +1,17 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access1_daily_sales,daily.sales.salesman,model_daily_sales,sales_team.group_sale_salesman,1,1,1,0
+access2_daily_sales,daily.sales.manager,model_daily_sales,sales_team.group_sale_manager,1,1,1,1
+access3_daily_sales,daily.sales.user,model_daily_sales,base.group_user,1,1,1,0
+access1_daily_sales_line,daily.sales.line.salesman,model_daily_sales_line,sales_team.group_sale_salesman,1,1,1,0
+access2_daily_sales_line,daily.sales.line.manager,model_daily_sales_line,sales_team.group_sale_manager,1,1,1,1
+access3_daily_sales_line,daily.sales.line.user,model_daily_sales_line,base.group_user,1,1,1,0
+access_product_colour,product.colour.user,model_product_colour,base.group_user,1,0,0,0
+access_product_colour_sale,product.colour.sale,model_product_colour,sales_team.group_sale_manager,1,1,1,1
+access_send_through,send.through.user,model_send_through,base.group_user,1,0,0,0
+access_send_through_sale,send.through.sale,model_send_through,sales_team.group_sale_manager,1,1,1,1
+access_product_appliance_style,product.appliance.style.user,model_product_appliance_style,base.group_user,1,0,0,0
+access_product_appliance_style_sale,product.appliance.style.sale,model_product_appliance_style,sales_team.group_sale_manager,1,1,1,1
+access_confirm_wizard,confirm.wizard,model_confirm_wizard,base.group_user,1,1,1,1
+access_dental_dispatch_register,dental.dispatch.register,model_dental_dispatch_register,base.group_user,1,1,1,1
+access_sale_order_list_report,sale.order.list.report,model_sale_order_list_report,base.group_user,1,1,1,1
+access_sale_order_count_report,sale.order.count.report,model_sale_order_count_report,base.group_user,1,1,1,1

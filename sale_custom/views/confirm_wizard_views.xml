@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The company-warning dialog never had a view: the generated form offered only
+         Save, which confirmed nothing. -->
+    <record id="confirm_wizard_view_form" model="ir.ui.view">
+        <field name="name">confirm.wizard.form</field>
+        <field name="model">confirm.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Confirmation">
+                <field name="name" readonly="1" nolabel="1"/>
+                <field name="sale_id" invisible="1"/>
+                <field name="sale_ids" invisible="1"/>
+                <footer>
+                    <button name="action_confirm" string="Confirm" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The template form: written in a WhatsApp editor beside a live phone
+         preview, its buttons and answers on their own page, its timing and
+         conditions on another. The Cloud API's approved-template page only shows
+         on a Cloud API sender. (client, 2026-09-17) -->
+    <record id="view_template_form" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.form</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_send_test" type="object" class="btn-primary"
+                            string="Send me a test" icon="fa-paper-plane"
+                            invisible="not sample_res_id"
+                            help="Renders the message against the record under Try it and sends it to your own phone."/>
+                    <button name="action_sync_meta" type="object"
+                            string="Check with Meta" icon="fa-refresh"
+                            invisible="not meta_template_name or channel == 'link'"/>
+                    <field name="meta_status" widget="statusbar"
+                           statusbar_visible="unknown,pending,approved"
+                           invisible="not meta_template_name or channel == 'link'"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_messages" type="object"
+                                class="oe_stat_button" icon="fa-whatsapp">
+                            <field name="message_count" widget="statinfo" string="Messages"/>
+                        </button>
+                        <button name="action_view_messages" type="object"
+                                class="oe_stat_button" icon="fa-check-circle"
+                                invisible="not message_count">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="read_rate"/>%</span>
+                                <span class="o_stat_text">read</span>
+                            </div>
+                        </button>
+                        <button name="action_view_messages" type="object"
+                                class="oe_stat_button" icon="fa-exclamation-triangle"
+                                invisible="not failed_count">
+                            <field name="failed_count" widget="statinfo" string="Failed"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Invoice ready"/></h1>
+                    </div>
+                    <group>
+                        <group name="applies">
+                            <field name="model_id" options="{'no_create': True}"/>
+                            <field name="model" invisible="1"/>
+                            <field name="channel" invisible="1"/>
+                            <field name="phone_field"/>
+                            <field name="account_id" options="{'no_create': True}"/>
+                        </group>
+                        <group name="carries">
+                            <field name="report_id" options="{'no_create': True}"/>
+                            <field name="header_text"/>
+                            <field name="footer_text"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+
+                    <!-- Said before saving, with the field named. A placeholder that
+                         resolves to nothing still sends - with a hole in it. -->
+                    <!-- How this message is doing, in the three numbers that say it.
+                         (client, 2026-09-18) -->
+                    <div class="o_wa_health" invisible="not message_count">
+                        <div class="o_wa_health_row">
+                            <span class="o_wa_health_fig"><b><field name="read_rate"/>%</b> read</span>
+                            <span class="o_wa_health_fig" invisible="not quick_replies"><b><field name="reply_rate"/>%</b> answered</span>
+                            <span class="o_wa_health_fig" invisible="not open_minutes"><b><field name="open_minutes"/></b> min to open</span>
+                            <span class="o_wa_health_note"><field name="health_note"/></span>
+                        </div>
+                        <div class="o_wa_health_row text-muted" invisible="not answers_tapped">
+                            <i class="fa fa-reply me-1" title="Answers"/>Tapped: <field name="answers_tapped"/>
+                        </div>
+                    </div>
+                    <field name="reply_count" invisible="1"/>
+                    <field name="placeholder_ok" invisible="1"/>
+                    <div class="alert alert-warning" role="alert" invisible="placeholder_ok">
+                        <strong>Some placeholders will come out empty.</strong>
+                        <field name="placeholder_warnings" readonly="1" nolabel="1"
+                               class="o_epg_wa_warnings"/>
+                    </div>
+
+                    <notebook>
+                        <page string="Message" name="message">
+                            <div class="d-flex flex-column flex-lg-row gap-3 align-items-start">
+                                <div class="flex-grow-1 w-100">
+                                    <field name="body" nolabel="1" widget="wa_editor"
+                                           options="{'model_field': 'model'}"
+                                           placeholder="Dear Dr. {{partner_id.name}},&#10;&#10;Invoice {{name}} for {{amount_total}} is ready.&#10;&#10;*bold*  _italic_"/>
+                                    <div class="d-flex align-items-center gap-2 mt-2">
+                                        <field name="hide_empty_lines" nolabel="1"/>
+                                        <label for="hide_empty_lines" class="mb-0 fw-normal"/>
+                                    </div>
+                                    <div class="o_wa_tpl_more mt-3">
+                                        <div class="fw-bold"><i class="fa fa-repeat me-1" title="Again"/>When it goes to the same record again</div>
+                                        <div class="text-muted small mb-1">
+                                            A reminder that firms up, a follow-up that changes tone. Empty: the message above, every time.
+                                        </div>
+                                        <label for="body_2" class="small fw-bold"/>
+                                        <field name="body_2" nolabel="1" placeholder="Second time…"/>
+                                        <label for="body_3" class="small fw-bold mt-2"/>
+                                        <field name="body_3" nolabel="1" placeholder="Third time and after…"/>
+                                    </div>
+                                </div>
+                                <widget name="epg_wa_preview"/>
+                            </div>
+                        </page>
+                        <page string="Languages" name="languages" invisible="not lang_count">
+                            <div class="text-muted mb-2">
+                                The same message, in the language each doctor's contact
+                                carries. Odoo's own translations: press the globe beside
+                                the message, the header, the footer or the answers and
+                                write the Malayalam version there. A doctor whose contact
+                                has no language, or a language nothing was written in,
+                                gets the message as it stands here.
+                            </div>
+                            <group>
+                                <field name="lang_summary" string="Written in" readonly="1"/>
+                                <field name="lang_count" invisible="1"/>
+                            </group>
+                        </page>
+                        <page string="Buttons &amp; answers" name="buttons">
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    <label for="quick_replies" class="fw-bold"/>
+                                    <field name="quick_replies" nolabel="1"
+                                           placeholder="✅ Received&#10;📞 Please call me"/>
+                                    <div class="text-muted small mb-3">
+                                        One per line. Each becomes a link under the message; the
+                                        answer the doctor taps is logged on the record.
+                                    </div>
+                                    <label for="buttons" class="fw-bold"/>
+                                    <field name="buttons" nolabel="1"
+                                           placeholder="Track my order | https://lab.example/track/{{name}}&#10;Call the lab | tel:+919447000000"/>
+                                    <div class="text-muted small">
+                                        <b>Label | link</b>, one per line. The link may hold placeholders.
+                                        A tap is logged on the record.
+                                    </div>
+                                    <div class="mt-3" invisible="not quick_replies">
+                                        <label for="alert_replies" class="fw-bold"/>
+                                        <field name="alert_replies" nolabel="1"
+                                               placeholder="⚠️ Something is missing&#10;📞 Please call me"/>
+                                        <div class="d-flex align-items-baseline gap-2 mt-1">
+                                            <span class="text-muted small">to-do for</span>
+                                            <field name="alert_user_id" class="oe_inline"
+                                                   options="{'no_create': True}"
+                                                   placeholder="whoever the record belongs to"/>
+                                        </div>
+                                        <div class="text-muted small">
+                                            Tapping one of these raises a to-do on the case: the doctor is
+                                            asking for something, and a chatter note is not an answer.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <label for="button_style" class="fw-bold"/>
+                                    <field name="button_style" nolabel="1" widget="radio"/>
+                                    <div class="text-muted small">
+                                        A page keeps a message with a document, a payment and three
+                                        answers down to one link; the buttons are real buttons there,
+                                        and WhatsApp draws the link as a card.
+                                    </div>
+                                    <div invisible="button_style != 'page'" class="mt-2">
+                                        <label for="page_label" class="fw-bold"/>
+                                        <field name="page_label" nolabel="1"
+                                               placeholder="📄 Open invoice &amp; pay"/>
+                                    </div>
+                                    <div name="extras" class="mt-3"/>
+                                </div>
+                            </div>
+                        </page>
+                        <page string="When" name="when">
+                            <group>
+                                <group string="Timing">
+                                    <field name="delay_hours"/>
+                                </group>
+                                <group string="Condition">
+                                    <field name="filter_domain" widget="domain"
+                                           options="{'model': 'model', 'in_dialog': True, 'allow_expressions': True}"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Try it" name="try">
+                            <group>
+                                <group string="Preview against a real record">
+                                    <field name="sample_res_id" widget="many2one_reference"
+                                           options="{'no_create': True}"/>
+                                    <field name="sample_number" string="Would go to"
+                                           invisible="not sample_res_id"/>
+                                    <field name="sample_number_ok" invisible="1"/>
+                                    <div colspan="2" class="alert alert-danger py-1 mb-0"
+                                         role="alert"
+                                         invisible="not sample_res_id or sample_number_ok">
+                                        That number is not one WhatsApp will accept — it
+                                        needs a country code and a full national number.
+                                    </div>
+                                    <field name="sample_variables"
+                                           invisible="not sample_res_id or not meta_template_name"/>
+                                </group>
+                                <group>
+                                    <div colspan="2" class="text-muted">
+                                        Pick a record and the preview on the Message tab
+                                        shows the finished text; <b>Send me a test</b>
+                                        delivers it to your own phone through the sender
+                                        above.
+                                    </div>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Approved template (Cloud API)" name="meta" invisible="channel == 'link'">
+                            <div class="text-muted mb-2">
+                                Outside the 24-hour reply window WhatsApp accepts only a
+                                template approved in Meta's WhatsApp Manager. Name it here
+                                and list which fields fill its numbered placeholders.
+                            </div>
+                            <group>
+                                <group>
+                                    <field name="meta_template_name"/>
+                                    <field name="meta_variables"
+                                           placeholder="partner_id.name, name, amount_total"/>
+                                </group>
+                                <group>
+                                    <field name="meta_status" widget="badge"
+                                           decoration-success="meta_status == 'approved'"
+                                           decoration-warning="meta_status == 'pending'"
+                                           decoration-danger="meta_status == 'rejected'"/>
+                                    <field name="meta_category" invisible="not meta_category"/>
+                                    <field name="meta_language" invisible="not meta_language"/>
+                                    <field name="meta_reason" invisible="not meta_reason"/>
+                                    <field name="meta_last_synced" invisible="not meta_last_synced"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_template_list" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.list</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="not active">
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="placeholder_ok" string="Check" widget="boolean_icon"
+                       options="{'icon': 'fa-check'}"/>
+                <field name="has_replies" string="Answers" widget="boolean_icon" options="{'icon': 'fa-reply'}" optional="show"/>
+                <field name="has_buttons" string="Buttons" widget="boolean_icon" options="{'icon': 'fa-external-link'}" optional="show"/>
+                <field name="report_id" optional="hide"/>
+                <field name="delay_hours" optional="hide"/>
+                <field name="meta_status" widget="badge" optional="hide"
+                       decoration-success="meta_status == 'approved'"
+                       decoration-warning="meta_status == 'pending'"
+                       decoration-danger="meta_status == 'rejected'"/>
+                <field name="message_count" string="Sent" optional="show"/>
+                <field name="read_rate" string="Read %" optional="show"/>
+                <field name="account_id" optional="hide"/>
+                <field name="active" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- The gallery: every template as the bubble the doctor sees. -->
+    <record id="view_template_kanban" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.kanban</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="arch" type="xml">
+            <kanban class="o_wa_tpl_gallery" default_group_by="model_id">
+                <field name="name"/>
+                <field name="body"/>
+                <field name="quick_replies"/>
+                <field name="report_id"/>
+                <field name="message_count"/>
+                <field name="read_rate"/>
+                <!-- Every field the card reads must be asked for here: a card that
+                     reads one it was not given dies with "Cannot read properties of
+                     undefined", and the whole gallery goes with it. (2026-09-18) -->
+                <field name="reply_rate"/>
+                <field name="active"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_wa_tpl_card">
+                            <div class="o_wa_tpl_head">
+                                <span class="fw-bold" t-esc="record.name.value"/>
+                                <span class="o_wa_tpl_stats" t-if="record.message_count.raw_value">
+                                    <t t-esc="record.message_count.value"/> sent · <t t-esc="Math.round(record.read_rate.raw_value)"/>% read
+                                    <t t-if="record.reply_rate.raw_value"> · <t t-esc="Math.round(record.reply_rate.raw_value)"/>% answered</t>
+                                </span>
+                            </div>
+                            <div class="o_wa_tpl_bubble">
+                                <div t-if="record.report_id.value" class="o_wa_tpl_doc">
+                                    <i class="fa fa-file-pdf-o me-1" title="Document"/><t t-esc="record.report_id.value"/>
+                                </div>
+                                <div class="o_wa_tpl_text" t-esc="record.body.value"/>
+                                <div t-if="record.quick_replies.value" class="o_wa_tpl_replies">
+                                    <t t-foreach="record.quick_replies.value.split('\n')" t-as="r" t-key="r_index">
+                                        <span t-if="r.trim()" class="o_wa_reply_chip" t-esc="r"/>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_template_search" model="ir.ui.view">
+        <field name="name">epg.whatsapp.template.search</field>
+        <field name="model">epg.whatsapp.template</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="body"/>
+                <field name="meta_template_name"/>
+                <filter name="needs_attention" string="Placeholders to fix"
+                        domain="[('placeholder_ok', '=', False)]"/>
+                <filter name="with_replies" string="With answers" domain="[('quick_replies', '!=', False)]"/>
+                <filter name="with_buttons" string="With buttons" domain="[('buttons', '!=', False)]"/>
+                <filter name="no_meta" string="No approved counterpart"
+                        domain="[('meta_template_name', '=', False)]"/>
+                <filter name="rejected" string="Rejected by Meta"
+                        domain="[('meta_status', '=', 'rejected')]"/>
+                <separator/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_model" string="Applies To"
+                            context="{'group_by': 'model_id'}"/>
+                    <filter name="group_meta" string="Meta status"
+                            context="{'group_by': 'meta_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_template" model="ir.actions.act_window">
+        <field name="name">Templates</field>
+        <field name="res_model">epg.whatsapp.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_template_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Write a message once, send it a thousand times</p>
+            <p>A template fills in the record's own values, carries a document, and offers
+               answers and buttons the doctor can tap.</p>
+        </field>
+    </record>
+</odoo>

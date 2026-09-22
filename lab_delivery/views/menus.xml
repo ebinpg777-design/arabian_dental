@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+      No root menu. Delivering finished work is not a separate application — it is
+      something the SAME field executive does on the SAME round as the visits and the
+      cash. A 25th icon in the app drawer would have been an extra place to look for a
+      job that belongs where the executive already is.
+
+      Executive: one flat entry alongside their other "My …" screens.
+      Manager: the board, the full list and the delay report under Operations, where
+      the rest of the team-wide field screens already live.
+    -->
+    <menuitem id="menu_delivery_my" name="My Deliveries"
+              parent="lab_fieldwork.menu_fieldwork_root" sequence="25"
+              action="action_delivery_my"
+              groups="lab_fieldwork.group_fieldwork_executive"/>
+
+    <menuitem id="menu_pickup_incoming" name="Incoming Work"
+              parent="lab_fieldwork.menu_fw_ops" sequence="24"
+              action="action_pickup_incoming"
+              groups="lab_order_control.group_lab_order_checker,lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_delivery_board" name="Dispatch Board"
+              parent="lab_fieldwork.menu_fw_ops" sequence="25"
+              action="action_delivery_dispatch"
+              groups="lab_order_control.group_lab_order_checker,lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_delivery_all" name="All Deliveries"
+              parent="lab_fieldwork.menu_fw_ops" sequence="26"
+              action="action_delivery_all"
+              groups="lab_order_control.group_lab_order_checker,lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_delivery_delays" name="Delivery Delays"
+              parent="lab_fieldwork.menu_fw_analyse" sequence="25"
+              action="action_delivery_delays"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_courier_tracking" name="Consignment Tracking"
+              parent="lab_fieldwork.menu_fw_ops" sequence="27"
+              action="action_courier_events"
+              groups="lab_order_control.group_lab_order_checker,lab_fieldwork.group_fieldwork_manager"/>
+
+    <menuitem id="menu_courier" name="Couriers"
+              parent="lab_fieldwork.menu_fw_config" sequence="25"
+              action="action_courier"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+</odoo>

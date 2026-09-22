@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Hourly for the same reason the day-closer is: "the evening is over"
+             happens at a different UTC hour in every timezone the team spans. -->
+        <record id="cron_generate_day_sheets" model="ir.cron">
+            <field name="name">Field Work: assemble the day sheets</field>
+            <field name="model_id" ref="model_lab_daily_update"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_generate_daily_updates()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- 03:30 UTC = 09:00 IST: each desk's queue in its owner's inbox
+             before the day starts. -->
+        <record id="cron_day_sheet_digest" model="ir.cron">
+            <field name="name">Field Work: morning approval digest</field>
+            <field name="model_id" ref="model_lab_daily_update"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_morning_digest()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="nextcall"
+                   eval="(datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d 03:30:00')"/>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="cron_day_sheet_escalate" model="ir.cron">
+            <field name="name">Field Work: escalate unsigned day sheets</field>
+            <field name="model_id" ref="model_lab_daily_update"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_escalate_stale()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="nextcall"
+                   eval="(datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d 02:45:00')"/>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Daily and idempotent rather than weekly: it acts only on Mondays,
+             and a Monday missed to a restart is caught up the next run. -->
+        <record id="cron_weekly_field_report" model="ir.cron">
+            <field name="name">Field Work: weekly report to the administrators</field>
+            <field name="model_id" ref="model_lab_weekly_report"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_weekly_report()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="nextcall"
+                   eval="(datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d 01:30:00')"/>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+
+    <!-- noupdate=0 ON PURPOSE: a function in noupdate data never runs on
+         upgrade, and this migration exists FOR the upgrade. It is one-shot
+         behind its own parameter, so re-running every later upgrade is a no-op. -->
+    <data noupdate="0">
+        <function model="res.users" name="_fw_migrate_manager_split"/>
+    </data>
+</odoo>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_generate_sheets_wizard" model="ir.ui.view">
+        <field name="name">lab.incentive.generate.wizard.form</field>
+        <field name="model">lab.incentive.generate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Incentive Sheets">
+                <group>
+                    <field name="period"/>
+                </group>
+                <footer>
+                    <button string="Generate" name="action_generate" type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_generate_sheets" model="ir.actions.act_window">
+        <field name="name">Generate Incentive Sheets</field>
+        <field name="res_model">lab.incentive.generate.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

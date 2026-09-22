@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The head tags a phone looks for before it will offer to install.
+         Only on the frontend layout: the back office has core's own manifest,
+         scoped to /odoo, and two manifests on one page is one too many. -->
+    <template id="pwa_head" inherit_id="website.layout" name="Web App head">
+        <xpath expr="//head" position="inside">
+            <t t-set="pwa" t-value="website.sudo()._pwa_values()"/>
+            <t t-if="website.pwa_enabled">
+                <link rel="manifest" href="/manifest.webmanifest"/>
+                <meta name="theme-color" t-att-content="pwa['theme_color']"/>
+                <!-- iOS ignores the manifest almost entirely and reads these. -->
+                <meta name="apple-mobile-web-app-capable" content="yes"/>
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+                <meta name="apple-mobile-web-app-title" t-att-content="pwa['short_name']"/>
+                <!-- Versioned for the same reason the manifest's are: a CDN
+                     cached the old bytes under the bare URL for hours. -->
+                <!-- `sizes` is not decoration here: core's own
+                     apple-touch-icon is already on the page, pointing at the
+                     favicon, which on this site is a 16x16 ICO. Given two
+                     candidates and no sizes, iOS is free to choose the 16px
+                     one for the home screen. Declaring ours makes it the
+                     larger, and therefore the chosen, icon. (spec §4) -->
+                <link rel="apple-touch-icon" sizes="192x192"
+                      t-attf-href="/pwa/icon/192.png?v={{ pwa['icon_version'] }}"/>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- What the worker shows with no signal: the site saying so in its own
+         voice, rather than the browser's error page. -->
+    <template id="offline" name="Offline">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <div class="container py-5 text-center">
+                    <i class="fa fa-plug fa-3x text-muted mb-3" role="img" aria-label="Offline"/>
+                    <h1>No connection</h1>
+                    <p class="lead text-muted">
+                        This page needs the internet. Your phone will pick it up
+                        again on its own — try once you are back in signal.
+                    </p>
+                    <a href="/" class="btn btn-primary">Try again</a>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

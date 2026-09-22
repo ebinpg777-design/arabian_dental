@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_epg_label_print_form" model="ir.ui.view">
+        <field name="name">epg.label.print.form</field>
+        <field name="model">epg.label.print</field>
+        <field name="arch" type="xml">
+            <form string="Print Labels">
+                <field name="label_type" invisible="1"/>
+                <field name="template_output" invisible="1"/>
+                <field name="layout_mode" invisible="1"/>
+                <field name="record_count" invisible="1"/>
+                <div class="alert alert-warning" role="alert" invisible="not warning">
+                    <field name="warning" nolabel="1" readonly="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="template_id"
+                               domain="[('label_type', '=', label_type)]"
+                               options="{'no_create': True}"/>
+                        <field name="output_format"/>
+                        <field name="quantity_source"/>
+                        <field name="quantity"
+                               invisible="quantity_source != 'fixed'"
+                               required="quantity_source == 'fixed'"/>
+                        <field name="skip_labels"
+                               invisible="layout_mode == 'roll' or labels_per_page &lt; 2"/>
+                        <field name="labels_per_page" invisible="1"/>
+                    </group>
+                    <group>
+                        <field name="pricelist_id" options="{'no_create': True}"
+                               invisible="label_type != 'product'"/>
+                        <field name="promo_pricelist_id" options="{'no_create': True}"
+                               invisible="label_type != 'product'"/>
+                        <field name="price_quantity" invisible="label_type != 'product'"/>
+                        <field name="show_cut_grid" invisible="output_format != 'pdf'"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </group>
+                </group>
+
+                <group string="Records">
+                    <field name="product_ids" widget="many2many_tags"
+                           invisible="label_type != 'product'"
+                           options="{'no_create': True}"/>
+                    <field name="product_tmpl_ids" widget="many2many_tags"
+                           invisible="label_type != 'product'"
+                           options="{'no_create': True}"/>
+                    <field name="partner_ids" widget="many2many_tags"
+                           invisible="label_type != 'partner'"
+                           options="{'no_create': True}"/>
+                    <field name="lot_ids" widget="many2many_tags"
+                           invisible="label_type != 'lot'"
+                           options="{'no_create': True}"/>
+                </group>
+
+                <notebook>
+                    <page string="Quantities" name="quantities"
+                          invisible="quantity_source != 'per_record'">
+                        <field name="line_ids" nolabel="1">
+                            <list editable="bottom" create="0">
+                                <field name="display_name_stored" string="Record" readonly="1"/>
+                                <field name="quantity"/>
+                                <field name="res_model" column_invisible="1"/>
+                                <field name="res_id" column_invisible="1"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Preview" name="preview">
+                        <field name="preview_html" nolabel="1" readonly="1"/>
+                    </page>
+                    <page string="ZPL" name="zpl" invisible="output_format != 'zpl'">
+                        <group>
+                            <field name="printer_url" placeholder="http://192.168.1.50:8069/hw_proxy/print_zpl"/>
+                            <field name="zpl_filename" invisible="1"/>
+                        </group>
+                        <field name="zpl_text" nolabel="1" readonly="1"
+                               invisible="not zpl_text"
+                               widget="text" class="font-monospace"/>
+                        <div class="text-muted" invisible="zpl_text">
+                            Use <b>Generate ZPL</b> below to build the job and review it
+                            here before sending it to a printer.
+                        </div>
+                    </page>
+                </notebook>
+
+                <div class="text-muted mt-2">
+                    <field name="label_count" readonly="1" class="oe_inline"/> label(s)
+                    on <field name="page_count" readonly="1" class="oe_inline"/> page(s).
+                </div>
+
+                <footer>
+                    <button name="action_print" type="object" string="Print"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button name="action_preview" type="object" string="Preview"
+                            class="btn-secondary" invisible="output_format != 'pdf'"/>
+                    <button name="action_build_zpl" type="object" string="Generate ZPL"
+                            class="btn-secondary" invisible="output_format != 'zpl'"/>
+                    <button name="action_direct_print" type="object"
+                            string="Send to Printer" class="btn-secondary"
+                            invisible="output_format != 'zpl'"/>
+                    <button name="action_open_designer" type="object"
+                            string="Open Designer" class="btn-link"
+                            invisible="not template_id"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_epg_label_print" model="ir.actions.act_window">
+        <field name="name">Print Custom Labels</field>
+        <field name="res_model">epg.label.print</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="view_id" ref="view_epg_label_print_form"/>
+    </record>
+
+    <!-- Contextual actions on list selections. -->
+    <record id="action_epg_label_print_product" model="ir.actions.server">
+        <field name="name">Print - Custom Product Labels</field>
+        <field name="model_id" ref="product.model_product_product"/>
+        <field name="binding_model_id" ref="product.model_product_product"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_epg_print_labels()</field>
+    </record>
+
+    <record id="action_epg_label_print_product_tmpl" model="ir.actions.server">
+        <field name="name">Print - Custom Product Labels</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_epg_print_labels()</field>
+    </record>
+
+    <record id="action_epg_label_print_partner" model="ir.actions.server">
+        <field name="name">Print - Custom Address Labels</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_epg_print_labels()</field>
+    </record>
+
+    <record id="action_epg_label_print_lot" model="ir.actions.server">
+        <field name="name">Print - Custom Lot Labels</field>
+        <field name="model_id" ref="stock.model_stock_lot"/>
+        <field name="binding_model_id" ref="stock.model_stock_lot"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_epg_print_labels()</field>
+    </record>
+
+</odoo>

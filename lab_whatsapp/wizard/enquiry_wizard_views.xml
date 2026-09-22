@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_enquiry_wizard_form" model="ir.ui.view">
+        <field name="name">lab.whatsapp.enquiry.form</field>
+        <field name="model">lab.whatsapp.enquiry</field>
+        <field name="arch" type="xml">
+            <form string="Ask the doctor">
+                <field name="enquiry_ids" invisible="1"/>
+                <div class="alert alert-success py-2 d-flex align-items-center gap-2" role="status">
+                    <i class="fa fa-whatsapp fa-lg" title="WhatsApp"/>
+                    <span>Ask <field name="partner_id" class="oe_inline fw-bold" readonly="1" nolabel="1"/>
+                        on WhatsApp. Pick the question; it opens in your WhatsApp with the
+                        words already there.</span>
+                </div>
+                <group>
+                    <field name="template_id" widget="radio" nolabel="1"
+                           options="{'no_create': True, 'no_open': True}"/>
+                    <field name="about" placeholder="e.g. SO284978 · patient JUMANATH"/>
+                </group>
+                <field name="preview" readonly="1" nolabel="1" class="o_wa_enquiry_preview"/>
+                <footer>
+                    <button name="action_send" type="object" string="Open in WhatsApp"
+                            class="btn-primary" icon="fa-whatsapp" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

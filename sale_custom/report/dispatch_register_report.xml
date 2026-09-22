@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Daily Dispatch Register. One page-flow per day: summary tiles, then a block per
+        Sales Route with a tick column for the physical hand-over, then sign-off boxes.
+        Same design language as the tax invoice (navy on light cards, tables not flex).
+    -->
+    <!-- title row, repeated at the top of every route's page -->
+    <template id="dispatch_register_title">
+        <table class="odr-title">
+            <tr>
+                <td style="vertical-align:bottom;">
+                    <div class="oi-title">DISPATCH REGISTER</div>
+                    <div class="odr-sub">Invoices dispatched route-wise ·
+                        printed <t t-out="printed_on"/></div>
+                </td>
+                <td style="text-align:right;vertical-align:bottom;">
+                    <div class="oi-numlabel">Dispatch date</div>
+                    <div class="oi-number"><span t-field="wizard.date"/></div>
+                    <div class="odr-countchip" t-if="route_count is not None">
+                        <t t-out="route_count"/> invoice<t t-if="route_count != 1">s</t> on this route
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </template>
+
+    <template id="report_dispatch_register">
+        <t t-call="web.html_container">
+            <t t-set="o" t-value="wizard"/>
+            <t t-set="hide_letterhead" t-value="True"/>
+            <t t-set="footer_note">Dispatch register</t>
+            <t t-set="route_count" t-value="None"/>
+            <t t-call="sale_custom.external_layout_lab">
+                <div class="page lab-invoice odr">
+                    <t t-call="sale_custom.letterhead_block"/>
+
+                    <t t-if="not groups">
+                        <t t-call="sale_custom.dispatch_register_title"/>
+                        <p class="odr-empty">No invoices dated <span t-field="wizard.date"/>.</p>
+                    </t>
+
+                    <t t-foreach="groups" t-as="g">
+                        <!-- one route per page, and the title block repeats on each: the
+                             sheet is handed to that route's runner as a document of its own -->
+                        <div t-attf-class="odr-route {{'' if g_first else 'odr-newpage'}}">
+                            <t t-call="sale_custom.dispatch_register_title">
+                                <t t-set="route_count" t-value="len(g['moves'])"/>
+                            </t>
+                            <table class="odr-route-head">
+                                <tr>
+                                    <td><i class="fa fa-map-marker"/> <t t-out="g['name']"/></td>
+                                    <td style="text-align:right;">
+                                        <t t-out="len(g['moves'])"/> invoice<t t-if="len(g['moves']) != 1">s</t>
+                                        &#160;·&#160; <t t-out="money(g['total'])"/>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table class="odr-lines">
+                                <thead>
+                                    <tr>
+                                        <th class="tick">&#160;</th>
+                                        <th style="width:11%">Invoice</th>
+                                        <th style="width:22%">Clinic</th>
+                                        <th style="width:15%">Patient(s)</th>
+                                        <th>Works</th>
+                                        <th style="width:10%">Source</th>
+                                        <th class="num" style="width:11%">Amount</th>
+                                        <th class="num" style="width:10%">Due</th>
+                                        <th class="mid" style="width:7%">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="g['moves']" t-as="m">
+                                        <t t-set="st" t-value="status(m)"/>
+                                        <td class="tick"><span class="odr-box"/></td>
+                                        <td class="odr-doc"><t t-out="m.name if m.state != 'draft' else (m.name or 'Draft')"/></td>
+                                        <td><t t-out="m.partner_id.name"/></td>
+                                        <td><t t-out="m.patient_names or ''"/></td>
+                                        <td class="odr-works"><t t-out="works(m)"/></td>
+                                        <td><t t-out="m.invoice_origin or ''"/></td>
+                                        <td class="num"><t t-out="money(-m.amount_total if m.move_type == 'out_refund' else m.amount_total)"/></td>
+                                        <td class="num"><t t-out="money(m.amount_residual) if m.amount_residual else ''"/></td>
+                                        <td class="mid"><span t-attf-class="odr-chip {{st[1]}}"><t t-out="st[0]"/></span></td>
+                                    </tr>
+                                    <tr class="odr-subtotal">
+                                        <td class="tick"/>
+                                        <td colspan="5">Route total — <t t-out="g['name']"/></td>
+                                        <td class="num"><t t-out="money(g['total'])"/></td>
+                                        <td class="num"><t t-out="money(g['due'])"/></td>
+                                        <td/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_dispatch_register" model="ir.actions.report">
+        <field name="name">Dispatch Register</field>
+        <field name="model">dental.dispatch.register</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_dispatch_register</field>
+        <field name="report_file">sale_custom.report_dispatch_register</field>
+        <field name="print_report_name">'Dispatch Register %s' % (object.date or '')</field>
+        <field name="paperformat_id" ref="paperformat_lab_invoice"/>
+    </record>
+</odoo>

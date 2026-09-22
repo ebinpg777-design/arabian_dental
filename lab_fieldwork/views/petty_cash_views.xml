@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Cash, from the two sides that care about it: the executive who is carrying it,
+        and the manager who has to know how much of it is walking around.
+    -->
+
+    <record id="view_pc_txn_field_list" model="ir.ui.view">
+        <field name="name">petty.cash.transaction.list.field</field>
+        <field name="model">petty.cash.transaction</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false"
+                  decoration-success="type == 'collection'"
+                  decoration-info="type == 'handover'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="date"/>
+                <field name="name" optional="hide"/>
+                <field name="petty_cash_partner_id" string="Held By" optional="show"/>
+                <field name="type" widget="badge"/>
+                <field name="partner_id" string="Clinic" optional="show"/>
+                <field name="visit_id" optional="show"/>
+                <field name="amount" sum="Total"/>
+                <field name="state" widget="badge"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_pc_txn_field_search" model="ir.ui.view">
+        <field name="name">petty.cash.transaction.search.field</field>
+        <field name="model">petty.cash.transaction</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="petty_cash_partner_id" string="Held By"/>
+                <field name="partner_id" string="Clinic"/>
+                <field name="visit_id"/>
+                <filter name="collections" string="Field Collections"
+                        domain="[('type', '=', 'collection')]"/>
+                <filter name="handovers" string="Handed to Office"
+                        domain="[('type', '=', 'handover')]"/>
+                <filter name="advances" string="Advances"
+                        domain="[('type', 'not in', ('collection', 'handover'))]"/>
+                <separator/>
+                <filter name="this_month" string="This Month" date="date"/>
+                <group>
+                    <filter name="g_holder" string="Held By"
+                            context="{'group_by': 'petty_cash_partner_id'}"/>
+                    <filter name="g_type" string="Type" context="{'group_by': 'type'}"/>
+                    <filter name="g_clinic" string="Clinic" context="{'group_by': 'partner_id'}"/>
+                    <filter name="g_date" string="Date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- The executive: "how much am I holding, and where did it come from?" -->
+    <record id="view_pc_txn_field_kanban" model="ir.ui.view">
+        <field name="name">petty.cash.transaction.kanban.field</field>
+        <field name="model">petty.cash.transaction</field>
+        <field name="arch" type="xml">
+            <!-- Cards, because this list is read on a phone. As a list it was
+                 877px wide on a 412px screen, so an executive had to drag the
+                 table sideways to see the figure they came for. (client, 2026-08-24) -->
+            <kanban quick_create="false" create="false" class="o_fw_kanban"
+                    default_order="date desc, id desc">
+                <field name="state"/>
+                <field name="currency_id"/>
+                <field name="type"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="fs-6"><field name="date" widget="date"/></strong>
+                            <strong><field name="amount_signed" widget="monetary"/></strong>
+                        </div>
+                        <div class="text-muted small mt-1"><field name="type"/></div>
+                        <div t-if="record.partner_id.raw_value" class="text-muted small">
+                            <field name="partner_id"/>
+                        </div>
+                        <div class="mt-2"><field name="state" widget="badge"
+                             decoration-success="state == 'posted'"/></div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_my_cash" model="ir.actions.act_window">
+        <field name="name">My Cash</field>
+        <field name="res_model">petty.cash.transaction</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_pc_txn_field_search"/>
+        <field name="domain">[('petty_cash_partner_id.user_ids', 'in', [uid])]</field>
+        <field name="context">{'search_default_g_type': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No cash movements yet</p>
+            <p>Money you collect at a clinic appears here once you send it to your float
+               from the visit.</p>
+        </field>
+    </record>
+
+    <!-- The manager: "how much customer money is in pockets right now?" -->
+    <record id="action_field_cash" model="ir.actions.act_window">
+        <field name="name">Field Cash</field>
+        <field name="res_model">petty.cash.transaction</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_pc_txn_field_search"/>
+        <field name="context">{'search_default_collections': 1, 'search_default_g_holder': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No field collections yet</p>
+            <p>Cash taken at a clinic reaches here through the <b>Cash into My Float</b>
+               button on the visit, so every rupee points back at the clinic and the
+               visit it came from.</p>
+        </field>
+    </record>
+
+    <!-- Related records, from the float outwards. -->
+    <record id="view_pc_allocation_form_field" model="ir.ui.view">
+        <field name="name">petty.cash.allocation.form.field</field>
+        <field name="model">petty.cash.allocation</field>
+        <field name="inherit_id" ref="petty_cash.view_petty_cash_allocation_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_field_collections" type="object"
+                        class="oe_stat_button" icon="fa-map-marker"
+                        invisible="collection_count == 0">
+                    <field name="collection_count" widget="statinfo" string="Collections"/>
+                </button>
+                <button name="action_view_field_visits" type="object"
+                        class="oe_stat_button" icon="fa-stethoscope"
+                        invisible="collection_count == 0">
+                    <field name="collection_clinic_count" widget="statinfo" string="Clinics"/>
+                </button>
+                <button name="action_view_handovers" type="object"
+                        class="oe_stat_button" icon="fa-inbox"
+                        invisible="handover_count == 0">
+                    <field name="handover_count" widget="statinfo" string="Handed Over"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

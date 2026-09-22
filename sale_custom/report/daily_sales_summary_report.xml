@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_daily_sales_summary">
+        <t t-call="web.html_container">
+            <t t-call="sale_custom.external_layout_lab">
+                <t t-set="o" t-value="docs[0]"/>
+                <div class="page">
+                    <h3>Daily Sales Summary</h3>
+                    <p t-if="docs">
+                        <span t-esc="min(docs.mapped('date'))"/> to <span t-esc="max(docs.mapped('date'))"/>
+                    </p>
+                    <table class="table table-sm" style="font-size:12px">
+                        <thead>
+                            <tr>
+                                <th>Sales Officer</th>
+                                <th class="text-end">Work Collected</th>
+                                <th class="text-end">Work Delivered</th>
+                                <th class="text-end">Payment</th>
+                                <th class="text-end">Entries</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-set="officers" t-value="docs.mapped('sales_person_id')"/>
+                            <tr t-foreach="officers" t-as="officer">
+                                <t t-set="lines" t-value="docs.filtered(lambda d: d.sales_person_id == officer)"/>
+                                <td><span t-esc="officer.name"/></td>
+                                <td class="text-end"><span t-esc="sum(lines.mapped('work_collected'))"/></td>
+                                <td class="text-end"><span t-esc="sum(lines.mapped('work_delivered'))"/></td>
+                                <td class="text-end"><span t-esc="'%.2f' % sum(lines.mapped('payment_amount'))"/></td>
+                                <td class="text-end"><span t-esc="len(lines)"/></td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td>Total</td>
+                                <td class="text-end"><span t-esc="sum(docs.mapped('work_collected'))"/></td>
+                                <td class="text-end"><span t-esc="sum(docs.mapped('work_delivered'))"/></td>
+                                <td class="text-end"><span t-esc="'%.2f' % sum(docs.mapped('payment_amount'))"/></td>
+                                <td class="text-end"><span t-esc="len(docs)"/></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <h4 class="mt-4">Clinic-wise Detail</h4>
+                    <table class="table table-sm" style="font-size:11px">
+                        <thead>
+                            <tr>
+                                <th>Officer</th>
+                                <th>Date</th>
+                                <th>Clinic</th>
+                                <th>Doctor</th>
+                                <th class="text-end">Collected</th>
+                                <th class="text-end">Delivered</th>
+                                <th class="text-end">Payment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="docs.mapped('sales_line_ids')" t-as="line">
+                                <td><span t-field="line.sales_person_id.name"/></td>
+                                <td><span t-field="line.date"/></td>
+                                <td><span t-field="line.partner_id.name"/></td>
+                                <td><span t-field="line.contact_id.name"/></td>
+                                <td class="text-end"><span t-field="line.work_collected"/></td>
+                                <td class="text-end"><span t-field="line.work_delivered"/></td>
+                                <td class="text-end"><span t-field="line.payment_amount"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.FindDialog">
+    <Dialog title="'Where is it?'" size="'md'" footer="false" contentClass="'o_st_find_dlg'">
+        <!-- Typed the way Track Order is: part of the number, the patient or the
+             doctor, narrowing as it goes. (client, 2026-09-14) -->
+        <div class="o_st_find_bar">
+            <i class="fa fa-search" title="Search"/>
+            <input type="search" class="o_st_find_in" t-att-value="state.term"
+                   t-on-input="onInput" autofocus="autofocus"
+                   placeholder="Order number, patient or doctor"
+                   autocomplete="off" spellcheck="false" enterkeyhint="search"/>
+            <i t-if="state.busy" class="fa fa-circle-o-notch fa-spin" title="Searching"/>
+        </div>
+
+        <div t-if="state.term.trim().length &lt; 2" class="o_st_find_hint">
+            Type at least two characters — "287140", "Meera", "Dr Susmitha".
+        </div>
+        <div t-elif="state.searched and !state.rows.length" class="o_st_find_hint">
+            Nothing matches “<t t-esc="state.term.trim()"/>”.
+        </div>
+
+        <div t-foreach="state.rows" t-as="r" t-key="r.order_id" class="o_st_find_case">
+            <div class="o_st_find_head">
+                <span class="o_st_ref o_st_find_so" t-esc="r.order"/>
+                <span t-if="r.patient" class="o_st_patient" t-esc="r.patient"/>
+                <span t-if="r.clinic" class="o_st_clinic"> · <t t-esc="r.clinic"/></span>
+                <span t-if="r.date" class="o_st_find_date" t-esc="r.date"/>
+            </div>
+            <div t-if="r.status" class="o_st_find_status" t-esc="r.status"/>
+            <button t-foreach="r.pieces" t-as="p" t-key="p.workorder_id"
+                    class="o_st_find_piece" t-attf-class="o_st_find_{{ p.standing }}"
+                    t-on-click="() => this.openPiece(p)">
+                <span class="o_st_find_where">
+                    <i class="fa fa-map-marker me-1" title="At"/><t t-esc="p.station"/>
+                    <span t-if="p.here" class="o_st_where_here">· this station</span>
+                </span>
+                <span class="o_st_find_what">
+                    <span class="o_st_mo" t-esc="p.production"/>
+                    <span t-if="p.arch" class="o_st_arch" t-esc="p.arch"/>
+                    <t t-if="p.product_name"> <t t-esc="p.product_name"/></t>
+                </span>
+                <span class="o_st_find_standing">
+                    <t t-esc="p.operation"/> · <t t-esc="standingLabel(p)"/>
+                </span>
+            </button>
+        </div>
+
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-on-click="() => this.props.close()">Close</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

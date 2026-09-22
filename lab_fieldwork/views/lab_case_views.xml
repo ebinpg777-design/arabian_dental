@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Case registration, as filled in at a clinic counter with the doctor waiting.
+
+        The order of the form IS the order of the conversation: who is the patient, what
+        are you making, what came in the bag, anything special. Nothing commercial
+        appears — no price, no tax, no delivery — because none of that is the
+        executive's to decide and every one of those fields is a chance to get an order
+        wrong that somebody else then has to correct.
+    -->
+    <record id="view_case_form" model="ir.ui.view">
+        <field name="name">lab.case.form</field>
+        <field name="model">lab.case</field>
+        <field name="arch" type="xml">
+            <form class="o_fw_form o_fw_case">
+                <header>
+                    <!-- The one thing to do on this screen, so it is the only primary
+                         button and it is first. -->
+                    <button name="action_submit" type="object" string="Submit Case"
+                            class="btn-primary" invisible="state != 'draft'"
+                            data-hotkey="v"/>
+                    <button name="action_reset_to_draft" type="object" string="Reopen"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_create_order" type="object"
+                            string="Create Order Now" class="btn-secondary"
+                            invisible="state != 'submitted'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <button name="action_view_order" type="object" string="View Order"
+                            class="btn-primary" invisible="not sale_order_id"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state not in ('draft', 'submitted')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,registered"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Order Created"
+                            bg_color="text-bg-success" invisible="state != 'registered'"/>
+                    <widget name="web_ribbon" title="Submitted" bg_color="text-bg-info"
+                            invisible="state != 'submitted'"/>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger"
+                            invisible="state != 'cancel'"/>
+
+                    <div class="alert alert-warning m-0 mb-3 rounded"
+                         role="alert" invisible="not duplicate_warning or duplicate_ack">
+                        <div class="d-flex align-items-start">
+                            <i class="fa fa-exclamation-triangle me-2 mt-1"
+                               title="Possible duplicate"/>
+                            <div class="flex-grow-1">
+                                <field name="duplicate_warning" nolabel="1" readonly="1"/>
+                                <div class="mt-2 d-flex flex-wrap align-items-center gap-3">
+                                    <button name="action_view_duplicates" type="object"
+                                            string="See the earlier case"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            invisible="not duplicate_ids"/>
+                                    <label class="d-flex align-items-center gap-2 mb-0"
+                                           for="duplicate_ack">
+                                        <field name="duplicate_ack" nolabel="1"
+                                               widget="boolean_toggle"/>
+                                        <span class="fw-bold">This is a different case</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_order" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="not sale_order_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Order</span>
+                                <span class="o_stat_text">Created</span>
+                            </div>
+                        </button>
+                        <button name="action_view_duplicates" type="object"
+                                class="oe_stat_button" icon="fa-clone"
+                                invisible="not duplicate_ids">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value text-warning">!</span>
+                                <span class="o_stat_text">Earlier</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="patient" class="o_fw_case_label"/>
+                        <h1>
+                            <field name="patient" placeholder="Patient name"
+                                   readonly="state != 'draft'"/>
+                        </h1>
+                        <div class="text-muted">
+                            <field name="partner_id" readonly="1" nolabel="1"
+                                   options="{'no_open': True}"/>
+                            <span class="mx-1">&#8226;</span>
+                            <field name="date" readonly="1" nolabel="1" class="oe_inline"/>
+                        </div>
+                    </div>
+
+                    <field name="visit_id" invisible="1"/>
+                    <field name="patient_key" invisible="1"/>
+                    <field name="duplicate_ids" invisible="1" widget="many2many_tags"/>
+                    <field name="company_id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+
+                    <group>
+                        <group>
+                            <field name="age" widget="fw_stepper"
+                                   readonly="state != 'draft'"/>
+                            <field name="gender" widget="fw_choice"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="priority" widget="fw_choice"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+
+                    <!-- The work. One row per appliance, arch chosen by tapping it. -->
+                    <separator string="What is being made"/>
+                    <div class="alert alert-light border m-0 mb-2 rounded small text-muted"
+                         role="status" invisible="line_count != 0 or state != 'draft'">
+                        <i class="fa fa-arrow-down me-1" title="Add work"/>
+                        Add at least one item — a case with no work on it cannot be saved.
+                    </div>
+                    <field name="line_count" invisible="1"/>
+                    <field name="needs_doctor_call" invisible="1"/>
+                    <field name="line_ids" readonly="state != 'draft'"
+                           context="{'default_ul': 'upper'}">
+                        <list editable="bottom" class="o_fw_case_lines"
+                              no_open="1">
+                            <field name="sequence" widget="handle"/>
+                            <field name="product_id"
+                                   options="{'no_quick_create': True}"/>
+                            <field name="ul" widget="fw_arch"/>
+                            <field name="quantity" widget="fw_stepper"/>
+                            <field name="colour_id" optional="show"
+                                   options="{'no_quick_create': True}"/>
+                            <field name="is_urgent" optional="hide"/>
+                            <field name="note" optional="hide"/>
+                            <field name="company_id" column_invisible="1"/>
+                        </list>
+                    </field>
+
+                    <!-- Before the bag contents: it changes whether the lab starts at
+                         all, so it is not buried under six checkboxes. -->
+                    <field name="needs_doctor_call" widget="fw_flag"
+                           options="{'icon': 'fa-phone'}" nolabel="1"
+                           readonly="state != 'draft'"/>
+                    <group invisible="not needs_doctor_call">
+                        <field name="doctor_call_note" nolabel="1" colspan="2"
+                               readonly="state != 'draft'"
+                               placeholder="What does the lab need to ask? e.g. confirm shade on 21, or which clasp design"/>
+                    </group>
+
+                    <separator string="What came in the bag"/>
+                    <field name="is_screw" invisible="1"/>
+                    <field name="is_bite" invisible="1"/>
+                    <field name="is_bands" invisible="1"/>
+                    <field name="is_wires" invisible="1"/>
+                    <field name="is_teeth" invisible="1"/>
+                    <field name="is_facebow" invisible="1"/>
+                    <widget name="fw_toggles"
+                            fields="is_screw,is_bite,is_bands,is_wires,is_teeth,is_facebow"/>
+
+                    <group>
+                        <group string="Impression">
+                            <field name="impression_type" widget="fw_choice"
+                                   readonly="state != 'draft'"/>
+                            <field name="impression_tray" widget="fw_choice"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                        <group string="Also">
+                            <field name="scanned_impression" widget="fw_choice"
+                                   readonly="state != 'draft'"/>
+                            <field name="wax_bite" widget="fw_choice"
+                                   readonly="state != 'draft'"/>
+                            <field name="send_through_id" readonly="state != 'draft'"
+                                   options="{'no_quick_create': True}"/>
+                        </group>
+                    </group>
+
+                    <group string="Anything special">
+                        <field name="modification" readonly="state != 'draft'"
+                               placeholder="e.g. extra clasp on 16"/>
+                        <field name="instruction" readonly="state != 'draft'"
+                               placeholder="e.g. deliver before Friday"/>
+                        <field name="note" placeholder="Notes for the lab…"/>
+                        <field name="photo" widget="fw_camera"
+                               readonly="state != 'draft'"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_case_list" model="ir.ui.view">
+        <field name="name">lab.case.list</field>
+        <field name="model">lab.case</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancel'"
+                  decoration-success="state == 'registered'"
+                  decoration-warning="duplicate_warning and not duplicate_ack">
+                <field name="date"/>
+                <field name="patient"/>
+                <field name="partner_id"/>
+                <field name="user_id" optional="show"
+                       groups="lab_fieldwork.group_fieldwork_manager"/>
+                <field name="line_count" string="Items"/>
+                <field name="priority" widget="badge" optional="show"/>
+                <field name="sale_order_id" optional="show"/>
+                <field name="state" widget="badge"/>
+                <field name="duplicate_warning" column_invisible="1"/>
+                <field name="duplicate_ack" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_case_kanban" model="ir.ui.view">
+        <field name="model">lab.case</field>
+        <field name="name">lab.case.kanban</field>
+        <field name="arch" type="xml">
+            <!-- Ungrouped, for the same reason My Visits is: state columns on a
+                 phone are something to swipe between rather than read.
+                 (client, 2026-08-24) -->
+            <kanban quick_create="false" class="o_fw_kanban" default_order="id desc">
+                <field name="state"/>
+                <field name="duplicate_ack"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="fs-6"><field name="patient"/></strong>
+                            <field name="priority" widget="badge"/>
+                        </div>
+                        <div class="text-muted small"><field name="partner_id"/></div>
+                        <div class="small mt-1">
+                            <i class="fa fa-medkit me-1" title="Items"/>
+                            <field name="line_count"/> item(s)
+                        </div>
+                        <div t-if="record.duplicate_warning.raw_value and !record.duplicate_ack.raw_value"
+                             class="text-warning small mt-1">
+                            <i class="fa fa-clone me-1" title="Possible duplicate"/>
+                            Possible duplicate
+                        </div>
+                        <field name="duplicate_warning" invisible="1"/>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_case_search" model="ir.ui.view">
+        <field name="name">lab.case.search</field>
+        <field name="model">lab.case</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="patient" filter_domain="[('patient', 'ilike', self)]"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <filter name="pending" string="Not Submitted"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="submitted" string="Submitted"
+                        domain="[('state', '=', 'submitted')]"/>
+                <filter name="registered" string="Order Created"
+                        domain="[('state', '=', 'registered')]"/>
+                <separator/>
+                <filter name="dups" string="Possible Duplicates"
+                        domain="[('duplicate_ack', '=', False)]"/>
+                <filter name="this_month" string="This Month" date="date"/>
+                <group>
+                    <filter name="g_clinic" string="Clinic" context="{'group_by': 'partner_id'}"/>
+                    <filter name="g_user" string="Executive" context="{'group_by': 'user_id'}"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="g_date" string="Date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_case_my" model="ir.actions.act_window">
+        <field name="name">My Cases</field>
+        <field name="res_model">lab.case</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('user_id', '=', uid)]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No cases registered yet</p>
+            <p>Register a case from the visit you are on. It becomes an order when you
+               finish the visit.</p>
+        </field>
+    </record>
+
+    <record id="action_case_all" model="ir.actions.act_window">
+        <field name="name">Case Slips</field>
+        <field name="res_model">lab.case</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="context">{'search_default_g_user': 1}</field>
+    </record>
+</odoo>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.CancelDialog">
+    <Dialog title="'Cancel this step?'" size="'md'" footer="false"
+            contentClass="'o_st_change_dlg o_st_cancel_dlg'">
+
+        <!-- What happens, before anything does: only this bench's step goes. -->
+        <div class="o_st_cancel_note">
+            <i class="fa fa-ban me-1" title="Cancel"/>
+            <strong>Only the step at this bench is cancelled.</strong>
+            The rest of the case carries on to its next bench.
+        </div>
+
+        <!-- Which job. A wrong card must be obvious before anything changes. -->
+        <div class="o_st_doing_job">
+            <span class="o_st_mo" t-esc="props.job.production or props.job.name"/>
+            <span t-if="props.job.order" class="o_st_ref" t-esc="props.job.order"/>
+            <div t-if="props.job.product_name" class="o_st_product">
+                <i class="fa fa-cube me-1" title="Appliance"/><t t-esc="props.job.product_name"/>
+            </div>
+            <div t-if="props.job.patient or props.job.clinic" class="o_st_case">
+                <span t-if="props.job.patient" class="o_st_patient" t-esc="props.job.patient"/>
+                <span t-if="props.job.patient and props.job.clinic"> · </span>
+                <span t-if="props.job.clinic" class="o_st_clinic" t-esc="props.job.clinic"/>
+            </div>
+            <div class="o_st_doing_next">
+                <i class="fa fa-industry me-1" title="Step"/>
+                Step <strong t-esc="props.job.operation"/>
+            </div>
+        </div>
+
+        <label class="o_st_doing_lead" for="o_st_cancel_reason">Why does it not belong here?</label>
+        <textarea id="o_st_cancel_reason" class="form-control o_st_cancel_reason" rows="2"
+                  placeholder="e.g. sent to the wrong bench; this appliance does not need this step"
+                  t-model="state.reason" t-att-disabled="state.busy"/>
+
+        <div t-if="state.error" class="o_st_change_err" role="alert">
+            <i class="fa fa-exclamation-triangle me-1" title="Refused"/>
+            <t t-esc="state.error"/>
+        </div>
+
+        <button class="o_st_change_go o_st_cancel_go" t-att-disabled="!ready"
+                t-on-click="() => this.confirm()">
+            <i class="fa fa-ban me-1" title="Cancel the step"/>
+            <t t-if="state.busy">Cancelling…</t>
+            <t t-elif="state.reason.trim()">Cancel this step</t>
+            <t t-else="">Write a reason first</t>
+        </button>
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-att-disabled="state.busy"
+                    t-on-click="() => this.props.close()">Leave it as it is</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

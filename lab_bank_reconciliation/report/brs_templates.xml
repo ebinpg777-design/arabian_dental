@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_brs">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <t t-set="data" t-value="doc._brs_data()"/>
+                    <t t-set="money" t-value="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                    <div class="page">
+                        <h3 class="mb-0">Bank Reconciliation Statement</h3>
+                        <p class="text-muted">
+                            <strong t-esc="doc.journal_id.display_name"/> ·
+                            <span t-esc="doc.account_id.display_name"/> · as on
+                            <span t-field="doc.date"/>
+                            <span t-if="doc.state != 'done'"> · in progress</span>
+                        </p>
+
+                        <table class="table table-sm mt-3">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Balance as per Books</strong></td>
+                                    <td class="text-end"><strong t-esc="data['book']" t-options="money"/></td>
+                                </tr>
+                                <tr>
+                                    <td>Less: Deposits not yet credited by bank</td>
+                                    <td class="text-end"><span t-esc="data['deposits_not_credited']" t-options="money"/></td>
+                                </tr>
+                                <tr>
+                                    <td>Add: Payments not yet presented to bank</td>
+                                    <td class="text-end"><span t-esc="data['payments_not_presented']" t-options="money"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Balance per Books, adjusted</strong></td>
+                                    <td class="text-end"><strong t-esc="data['adjusted']" t-options="money"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Balance as per Bank</strong></td>
+                                    <td class="text-end"><strong t-esc="data['bank']" t-options="money"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Difference</strong></td>
+                                    <td class="text-end"><strong t-esc="data['difference']" t-options="money"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h5 class="mt-4">Outstanding items by age</h5>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Age</th>
+                                    <th class="text-end">Deposits</th><th class="text-end">Amount</th>
+                                    <th class="text-end">Payments</th><th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="data['ageing']" t-as="bucket">
+                                    <td t-esc="bucket['label']"/>
+                                    <td class="text-end" t-esc="bucket['deposits']['count']"/>
+                                    <td class="text-end"><span t-esc="bucket['deposits']['amount']" t-options="money"/></td>
+                                    <td class="text-end" t-esc="bucket['payments']['count']"/>
+                                    <td class="text-end"><span t-esc="bucket['payments']['amount']" t-options="money"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <t t-if="data['queries']">
+                            <h5 class="mt-4">Entries under query with the bank</h5>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr><th>Date</th><th>Entry</th><th>Particulars</th><th>Query</th><th class="text-end">Amount</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="data['queries']" t-as="line">
+                                        <td><span t-esc="line['date']" t-options="{'widget': 'date'}"/></td>
+                                        <td t-esc="line['move']"/>
+                                        <td t-esc="line['label'] or line['ref']"/>
+                                        <td t-esc="line['query']"/>
+                                        <td class="text-end"><span t-esc="line['amount']" t-options="money"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <t t-foreach="[('Deposits not yet credited by bank', data['deposits']), ('Payments not yet presented to bank', data['payments'])]"
+                           t-as="section">
+                            <h5 class="mt-4" t-esc="section[0]"/>
+                            <p t-if="not section[1]" class="text-muted">None.</p>
+                            <table t-else="" class="table table-sm">
+                                <thead>
+                                    <tr><th>Date</th><th>Entry</th><th>Particulars</th><th>Party</th><th class="text-end">Age</th><th class="text-end">Amount</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="section[1]" t-as="line">
+                                        <td><span t-esc="line['date']" t-options="{'widget': 'date'}"/></td>
+                                        <td t-esc="line['move']"/>
+                                        <td t-esc="line['label'] or line['ref']"/>
+                                        <td t-esc="line['partner']"/>
+                                        <td class="text-end">
+                                            <span t-esc="line['age']"/>
+                                            <strong t-if="line['stale']"> stale</strong>
+                                        </td>
+                                        <td class="text-end"><span t-esc="line['amount']" t-options="money"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="5" class="text-end"><strong>Total</strong></td>
+                                        <td class="text-end"><strong t-esc="sum(l['amount'] for l in section[1])" t-options="money"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

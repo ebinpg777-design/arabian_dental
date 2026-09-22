@@ -1,0 +1,615 @@
+// The production flow board. SCSS variables only — Odoo 19 exposes no --bs-* custom
+// properties in the backend.
+$fl-teal: #0d7c8a;
+$fl-peak: #c2410c;
+
+.o_fl {
+    padding: 1rem;
+    max-width: 1600px;
+    margin: 0 auto;
+
+    .o_fl_hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1.125rem 1.25rem;
+        border-radius: .75rem;
+        background: linear-gradient(135deg, #3730a3, $fl-teal);
+        color: #fff;
+        margin-bottom: 1.25rem;
+    }
+
+    .o_fl_eyebrow { font-size: .8125rem; opacity: .85; }
+    .o_fl_title { margin: 0; font-size: 1.375rem; font-weight: 700; color: #fff; }
+    .o_fl_stats { display: flex; gap: .6rem; flex-wrap: wrap; }
+    // Chips, like the role desks' hero KPIs: one product language.
+    .o_fl_stat {
+        display: flex; flex-direction: column; min-width: 6.5rem;
+        background: rgba(255, 255, 255, .13);
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: .8rem; padding: .45rem .85rem;
+    }
+    .o_fl_v { font-size: 1.25rem; font-weight: 800; line-height: 1.15; }
+    .o_fl_l { font-size: .72rem; opacity: .85; }
+
+    // The adoption strip: chips under the hero.
+    .o_fl_strip { display: flex; flex-wrap: wrap; gap: .45rem;
+                  align-items: center; margin-bottom: 1rem; }
+    .o_fl_chip {
+        background: #fff; border: 1px solid $border-color;
+        border-radius: 999px; padding: .3rem .85rem; font-size: .82rem;
+        b { font-weight: 800; }
+    }
+    .o_fl_chip_urgent { border-color: rgba(220, 38, 38, .5);
+                        background: rgba(220, 38, 38, .06); color: #991b1b; }
+    .o_fl_chip_debt { border-color: rgba(217, 155, 0, .55);
+                      background: rgba(217, 155, 0, .08); color: #7a5600;
+                      cursor: pointer;
+                      &:hover { background: rgba(217, 155, 0, .16); } }
+    .o_fl_updated { margin-left: auto; font-size: .76rem; color: $o-gray-700;
+                    i { cursor: pointer; } }
+
+    .o_fl_tag_urgent { background: rgba(220, 38, 38, .12); color: #991b1b; }
+    .o_fl_tag_fresh { background: rgba(15, 157, 88, .12); color: #0b6b3d; }
+    .o_fl_panel_urgent { border: 1px solid rgba(220, 38, 38, .35); }
+
+    // Stations side by side, in the order the work flows.
+    .o_fl_pipe {
+        display: flex;
+        gap: .625rem;
+        // stretch, not flex-end: bottom-aligned cards of unequal height made
+        // the row's TOPS ragged (reported with a screenshot). Every card now
+        // stands the same height, bars still anchored to their own floor.
+        align-items: stretch;
+        overflow-x: auto;               // a long routing scrolls; it never compresses
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        scrollbar-width: thin;
+        padding-bottom: .5rem;
+        margin-bottom: 1.25rem;
+        // The last card was clipped mid-word at the edge with nothing saying
+        // "there is more": breathing room plus snap makes the cut deliberate.
+        padding-right: 1.5rem;
+    }
+
+    .o_fl_col {
+        flex: 1 0 132px;
+        min-width: 132px;
+        display: flex;
+        flex-direction: column;
+        scroll-snap-align: start;
+        border: 1px solid $border-color;
+        border-radius: .625rem;
+        background-color: $body-bg;
+        padding: .625rem;
+        cursor: pointer;
+
+        &:hover { box-shadow: 0 .25rem .75rem rgba($o-gray-900, .10); }
+    }
+    // Two-line names must not push their card taller than its neighbours.
+    .o_fl_name { min-height: 2.5em; }
+    .o_fl_tags { margin-top: auto; }
+
+    // The tallest column IS the bottleneck. Marked, but it still carries its number.
+    .o_fl_col_peak { border-color: $fl-peak; box-shadow: inset 0 0 0 1px $fl-peak; }
+
+    .o_fl_barwrap {
+        position: relative;
+        height: 110px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+    }
+
+    .o_fl_bar {
+        width: 46px;
+        border-radius: .375rem .375rem 0 0;
+        background: linear-gradient(180deg, lighten($fl-teal, 14%), $fl-teal);
+        min-height: 3px;
+    }
+
+    .o_fl_col_peak .o_fl_bar {
+        background: linear-gradient(180deg, lighten($fl-peak, 14%), $fl-peak);
+    }
+
+    .o_fl_n {
+        position: absolute;
+        top: 0;
+        font-weight: 700;
+        color: $o-gray-900;
+    }
+
+    .o_fl_name {
+        font-size: .8125rem;
+        font-weight: 600;
+        color: $o-gray-900;
+        margin-top: .5rem;
+        text-align: center;
+    }
+
+    .o_fl_tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .25rem;
+        justify-content: center;
+        margin-top: .375rem;
+    }
+
+    .o_fl_tag {
+        font-size: .625rem;
+        font-weight: 700;
+        padding: .0625rem .375rem;
+        border-radius: 1rem;
+        background-color: $o-gray-200;
+        color: $o-gray-700;
+    }
+
+    .o_fl_tag_wait   { background-color: rgba($warning, .22); color: darken($warning, 26%); }
+    .o_fl_tag_stale  { background-color: rgba($fl-peak, .16); color: $fl-peak; }
+    .o_fl_tag_none   { background-color: rgba($danger, .15); color: $danger; }
+    .o_fl_tag_urgent { background-color: rgba($danger, .15); color: $danger; margin-left: .375rem; }
+
+    .o_fl_panel {
+        border: 1px solid $border-color;
+        border-radius: .75rem;
+        background-color: $body-bg;
+        padding: .875rem 1rem;
+    }
+
+    .o_fl_panel_h { font-weight: 700; color: $o-gray-900; margin-bottom: .625rem; }
+
+    .o_fl_row {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .5rem .25rem;
+        border-top: 1px solid $border-color;
+        cursor: pointer;
+        min-height: 48px;
+
+        &:hover { background-color: $o-gray-100; }
+    }
+
+    .o_fl_row_age {
+        min-width: 3.25rem;
+        text-align: center;
+        font-weight: 700;
+        font-size: .9375rem;
+        color: $o-gray-700;
+    }
+
+    .o_fl_hot { color: $fl-peak; }
+    .o_fl_row_t { font-weight: 600; color: $o-gray-900; }
+
+    // The sales order, set in tabular figures so a column of them can be read
+    // down rather than deciphered one at a time.
+    .o_fl_ref {
+        display: inline-block;
+        margin-left: .5rem;
+        padding: 0 .375rem;
+        border-radius: .25rem;
+        background-color: $o-gray-200;
+        color: $o-gray-700;
+        font-size: .75rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        vertical-align: .05em;
+    }
+    .o_fl_row_s { font-size: .8125rem; color: $o-gray-600; }
+
+    .o_fl_empty {
+        padding: 2rem;
+        color: $o-gray-600;
+        border: 1px dashed $border-color;
+        border-radius: .625rem;
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .o_fl { padding: .75rem; }
+    .o_fl .o_fl_stats { gap: 1rem; }
+    .o_fl .o_fl_col { flex: 0 0 116px; min-width: 116px; }
+}
+
+// ---------------------------------------------------------------------------
+// Both floor boards must scroll.
+//
+// Their roots carry `o_action`, and the web client styles
+// `html .o_web_client > .o_action_manager > .o_action { height: 100%; overflow: hidden }`
+// — four compound selectors, declared after ours — so anything shorter loses and the
+// content below the fold is simply unreachable: the wheel does nothing. Measured on a
+// 1200x620 window: the flow board is 915px of content in a 574px box, all of it stuck.
+// `min-height: 0` matters alongside, or a flex child never shrinks below its content
+// and the overflow never engages.
+//
+// The same fix My Day and the CEO board needed. (client, 2026-08-27)
+// ---------------------------------------------------------------------------
+html .o_web_client > .o_action_manager > .o_action {
+    &.o_fl, &.o_st {
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The day. Controls in the hero, the day's numbers beside the live ones, the
+// hour-by-hour rhythm, the people table. (client, 2026-09-09)
+.o_fl {
+    .o_fl_hero { align-items: flex-start; }
+    .o_fl_hero_l { min-width: 0; }
+
+    .o_fl_daybar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .35rem;
+        margin-top: .6rem;
+    }
+
+    .o_fl_daybtn {
+        border: 1px solid rgba(255, 255, 255, .5);
+        background: rgba(255, 255, 255, .12);
+        color: #fff;
+        border-radius: .4rem;
+        min-height: 2rem;
+        padding: .15rem .55rem;
+        font-size: .8rem;
+
+        &:disabled { opacity: .4; }
+        &:hover:not(:disabled) { background: rgba(255, 255, 255, .22); }
+    }
+
+    .o_fl_today { font-weight: 700; }
+
+    .o_fl_date {
+        border: 1px solid rgba(255, 255, 255, .5);
+        background: rgba(255, 255, 255, .12);
+        color: #fff;
+        border-radius: .4rem;
+        min-height: 2rem;
+        padding: .15rem .45rem;
+        font-size: .8rem;
+        color-scheme: dark;
+    }
+
+    .o_fl_daylabel { font-size: .85rem; opacity: .9; margin-left: .35rem; }
+
+    // The day's figures read as one family; the two live ones stand apart.
+    .o_fl_stat_day { border-bottom: 2px solid rgba(255, 255, 255, .55); }
+
+    .o_fl_chip_ahead { border-color: rgba(15, 157, 88, .55); color: #0b6b3a; }
+    .o_fl_chip_behind { border-color: rgba(217, 155, 0, .6); color: #7a5300; }
+
+    .o_fl_refresh {
+        border: 0;
+        background: rgba(13, 110, 253, .08);
+        color: #0d6efd;
+        border-radius: 1.2rem;
+        padding: .25rem .7rem;
+        margin-left: .4rem;
+        font-size: .78rem;
+        font-weight: 600;
+
+        &:hover { background: rgba(13, 110, 253, .16); }
+        &:disabled { opacity: .6; }
+    }
+
+    // Hour by hour
+    .o_fl_key {
+        display: inline-block;
+        width: .7rem;
+        height: .7rem;
+        border-radius: .15rem;
+        vertical-align: -1px;
+        margin: 0 .15rem 0 .4rem;
+    }
+    .o_fl_key_fin { background: #0f9d58; }
+    .o_fl_key_tak { background: rgba(14, 124, 134, .45); }
+
+    .o_fl_hours {
+        display: flex;
+        align-items: flex-end;
+        gap: .3rem;
+        height: 6.5rem;
+        padding-top: .25rem;
+    }
+
+    .o_fl_hour {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        height: 100%;
+    }
+
+    .o_fl_hour_bars {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        border-bottom: 1px solid $o-gray-300;
+    }
+
+    .o_fl_hour_fin, .o_fl_hour_tak { flex: 1 1 0; border-radius: .15rem .15rem 0 0; }
+    .o_fl_hour_fin { background: #0f9d58; }
+    .o_fl_hour_tak { background: rgba(14, 124, 134, .45); }
+    .o_fl_hour_l { font-size: .66rem; color: $o-gray-600; text-align: center; margin-top: .15rem; }
+
+    // The day at each station, under its column
+    .o_fl_daycell { font-size: .7rem; color: $o-gray-700; margin: .15rem 0 .25rem; }
+    .o_fl_daycell_none { color: $o-gray-500; font-style: italic; }
+
+    // Who did what
+    .o_fl_people_tbl { display: flex; flex-direction: column; }
+
+    .o_fl_people_h,
+    .o_fl_person {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) 4rem 6rem 5.5rem 5rem 5rem 7.5rem 4.5rem;
+        align-items: center;
+        gap: .5rem;
+        width: 100%;
+        text-align: left;
+    }
+
+    .o_fl_people_h {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: $o-gray-600;
+        padding: 0 .35rem .35rem;
+        border-bottom: 1px solid $o-gray-300;
+    }
+
+    .o_fl_person {
+        border: 0;
+        border-bottom: 1px solid $o-gray-200;
+        background: transparent;
+        padding: .45rem .35rem;
+        font-size: .875rem;
+        color: $o-gray-900;
+
+        &:hover { background: rgba(0, 0, 0, .03); }
+    }
+
+    .o_fl_person_n { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .o_fl_person_name { display: block; font-weight: 600; }
+    .o_fl_person_s { display: block; font-size: .72rem; color: $o-gray-600; }
+    .o_fl_over { color: #b45309; font-weight: 600; }
+
+    // It goes somewhere, so it has to look like it does before it is pressed.
+    // (client, 2026-09-19)
+    .o_fl_over_click {
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        text-decoration-style: dotted;
+
+        &:hover, &:focus-visible { text-decoration-style: solid; }
+    }
+
+    .o_fl_avatar {
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: rgba(14, 124, 134, .14);
+        color: #0e7c86;
+        font-weight: 700;
+        font-size: .75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .o_fl_num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .o_fl_num_fin { font-weight: 700; color: #0b6b3a; }
+    .o_fl_when { font-size: .8rem; color: $o-gray-700; }
+
+    // Against the target set for the day. (client, 2026-09-10)
+    .o_fl_tgt_met { font-weight: 700; color: #0b6b3a; }
+    .o_fl_tgt_short { font-weight: 700; color: #b45309; }
+    .o_fl_minibar .o_fl_bar_short { background: #d99b00; }
+
+    .o_fl_minibar {
+        display: block;
+        height: .25rem;
+        margin-top: .2rem;
+        border-radius: .15rem;
+        background: rgba(0, 0, 0, .08);
+        overflow: hidden;
+
+        span { display: block; height: 100%; background: #0f9d58; }
+    }
+
+    @media (max-width: 767px) {
+        .o_fl_people_h { display: none; }
+        .o_fl_person {
+            grid-template-columns: minmax(0, 1fr) 3rem 3.5rem 4rem;
+            .o_fl_num:nth-child(n+6) { display: none; }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// How each station is working, and where the work went. The station columns,
+// the urgent list and the sitting-longest list made way for these: a queue
+// count says how much is standing there and nothing about how the bench
+// works. (client, 2026-09-09)
+.o_fl {
+    .o_fl_chip_stuck { border-color: rgba(220, 38, 38, .45); color: #991b1b; }
+
+    .o_fl_proc_tbl { display: flex; flex-direction: column; overflow-x: auto; }
+
+    .o_fl_proc_h,
+    .o_fl_proc_row {
+        display: grid;
+        grid-template-columns: minmax(12rem, 2.2fr) 6.5rem 3.5rem 3.5rem 3.5rem 6rem 6.5rem 4rem 7.5rem 5rem;
+        align-items: center;
+        gap: .5rem;
+        width: 100%;
+        min-width: 62rem;
+        text-align: left;
+    }
+
+    .o_fl_proc_h {
+        font-size: .66rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: $o-gray-600;
+        padding: 0 .35rem .35rem;
+        border-bottom: 1px solid $o-gray-300;
+    }
+
+    .o_fl_proc_row {
+        border: 0;
+        border-bottom: 1px solid $o-gray-200;
+        background: transparent;
+        padding: .45rem .35rem;
+        font-size: .875rem;
+        color: $o-gray-900;
+
+        &:hover { background: rgba(0, 0, 0, .03); }
+        &.o_fl_proc_peak { background: rgba($fl-peak, .06); }
+        &.o_fl_proc_idle { color: $o-gray-600; }
+    }
+
+    .o_fl_proc_name { min-width: 0; }
+    .o_fl_proc_title {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .35rem;
+        font-weight: 600;
+    }
+
+    // The share of the floor standing here, drawn: twelve numbers get compared
+    // one pair at a time, twelve bars are one glance.
+    .o_fl_proc_bar {
+        display: block;
+        height: .3rem;
+        margin-top: .3rem;
+        max-width: 14rem;
+        border-radius: .15rem;
+        background: rgba(0, 0, 0, .07);
+        overflow: hidden;
+
+        span { display: block; height: 100%; background: $fl-peak; }
+    }
+
+    .o_fl_proc_sub { display: block; font-size: .68rem; color: $o-gray-600; font-weight: 400; }
+    .o_fl_net_up { color: #b45309; font-weight: 700; }
+    .o_fl_net_down { color: #0b6b3a; font-weight: 700; }
+    .o_fl_hot_n { color: #b3261e; font-weight: 700; }
+
+    // Where the work went
+    .o_fl_flow_list { display: flex; flex-direction: column; gap: .3rem; }
+
+    .o_fl_flow {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 3rem;
+        align-items: center;
+        gap: .6rem;
+        font-size: .85rem;
+    }
+
+    .o_fl_flow_path { min-width: 0; color: $o-gray-900; }
+    .o_fl_flow_end { color: #0b6b3a; font-weight: 600; }
+
+    .o_fl_flow_bar {
+        display: block;
+        height: .45rem;
+        border-radius: .2rem;
+        background: rgba(0, 0, 0, .07);
+        overflow: hidden;
+
+        span { display: block; height: 100%; background: #0f9d58; }
+    }
+
+    .o_fl_flow_n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+}
+
+// ---------------------------------------------------------------------------
+// THE RUSH REPORT. Urgent and emergency work as a report rather than a count:
+// which cases, which bench, taken or not, and how long each has waited.
+// (client, 2026-09-10)
+.o_fl_rush {
+    .o_fl_rush_all { float: right; border: 0; background: transparent; color: #0e7c86;
+                     font-size: .8125rem; font-weight: 600; }
+
+    .o_fl_rush_sum { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem; }
+    .o_fl_rush_stat {
+        flex: 1 1 7rem;
+        border: 1px solid $o-gray-200;
+        border-radius: .5rem;
+        padding: .35rem .6rem;
+        background: $body-bg;
+        text-align: left;
+        .o_fl_v { display: block; font-size: 1.25rem; font-weight: 800; line-height: 1.2;
+                  font-variant-numeric: tabular-nums; }
+        .o_fl_l { display: block; font-size: .68rem; color: $o-gray-600; }
+        &:disabled { opacity: .55; }
+    }
+    .o_fl_rush_emg { border-color: rgba(179, 38, 30, .45); .o_fl_v { color: #b3261e; } }
+    .o_fl_rush_urg { border-color: rgba(217, 155, 0, .5); .o_fl_v { color: #b45309; } }
+
+    .o_fl_rush_where { font-size: .8rem; color: $o-gray-700; margin-bottom: .5rem; }
+    .o_fl_rush_bench {
+        border: 1px solid $o-gray-300; border-radius: 999px; background: $body-bg;
+        padding: .1rem .55rem; margin: 0 .25rem .25rem 0; font-size: .78rem;
+        &:hover { border-color: #0e7c86; color: #0e7c86; }
+    }
+
+    .o_fl_rush_tbl { display: flex; flex-direction: column; }
+    .o_fl_rush_row {
+        display: grid;
+        grid-template-columns: minmax(11rem, 1.4fr) minmax(10rem, 1.6fr) minmax(9rem, 1.4fr) 5rem minmax(7rem, 1fr);
+        align-items: center;
+        gap: .5rem;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid $o-gray-200;
+        background: transparent;
+        padding: .35rem .25rem;
+        font-size: .85rem;
+        &:hover { background: $o-gray-100; }
+    }
+    .o_fl_rush_head {
+        font-size: .66rem; text-transform: uppercase; letter-spacing: .03em;
+        color: $o-gray-600; border-bottom: 1px solid $o-gray-300;
+        &:hover { background: transparent; }
+    }
+    .o_fl_rush_row_emg { background: rgba(179, 38, 30, .04); }
+
+    .o_fl_rush_tag {
+        display: inline-block; padding: 0 .3rem; border-radius: .25rem;
+        font-size: .58rem; font-weight: 800; letter-spacing: .03em; color: #fff;
+        vertical-align: middle;
+    }
+    .o_fl_rush_tag_emg { background: #b3261e; }
+    .o_fl_rush_tag_urg { background: #d99b00; }
+    .o_fl_rush_mo { font-weight: 700; margin-left: .3rem; }
+    .o_fl_rush_so { color: $o-gray-600; margin-left: .25rem; font-size: .78rem; }
+    .o_fl_rush_pt { display: block; font-weight: 600; }
+    .o_fl_rush_cl, .o_fl_rush_op { display: block; font-size: .74rem; color: $o-gray-600; }
+    .o_fl_rush_hand { font-size: .8rem; }
+    .o_fl_rush_none { color: #b45309; font-weight: 600; }
+    .o_fl_rush_more { font-size: .8rem; color: $o-gray-600; padding-top: .35rem; }
+
+    .o_fl_rush_who, .o_fl_rush_st, .o_fl_rush_case { min-width: 0; overflow: hidden; }
+
+    @media (max-width: 767.98px) {
+        .o_fl_rush_row { grid-template-columns: minmax(8rem, 1.4fr) minmax(7rem, 1.4fr) 4rem; }
+        .o_fl_rush_row > :nth-child(n+4) { display: none; }
+    }
+}

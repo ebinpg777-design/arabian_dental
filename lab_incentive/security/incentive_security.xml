@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_incentive_sheet_own" model="ir.rule">
+        <field name="name">Executives see only their own sheet</field>
+        <field name="model_id" ref="model_lab_incentive_sheet"/>
+        <field name="domain_force">[('executive_id','=',user.id)]</field>
+        <field name="groups" eval="[(4, ref('lab_fieldwork.group_fieldwork_executive'))]"/>
+    </record>
+    <record id="rule_incentive_sheet_mgr" model="ir.rule">
+        <field name="name">Managers see every sheet</field>
+        <field name="model_id" ref="model_lab_incentive_sheet"/>
+        <field name="domain_force">[(1,'=',1)]</field>
+        <field name="groups" eval="[(4, ref('lab_fieldwork.group_fieldwork_manager'))]"/>
+    </record>
+    <!-- The lines carry the same money as the sheet, one order at a time, so they
+         need the same fence: with the sheet rule alone an executive could list
+         every colleague's lines straight from the line model. -->
+    <record id="rule_incentive_sheet_line_own" model="ir.rule">
+        <field name="name">Executives see only their own sheet lines</field>
+        <field name="model_id" ref="model_lab_incentive_sheet_line"/>
+        <field name="domain_force">[('sheet_id.executive_id','=',user.id)]</field>
+        <field name="groups" eval="[(4, ref('lab_fieldwork.group_fieldwork_executive'))]"/>
+    </record>
+    <record id="rule_incentive_sheet_line_mgr" model="ir.rule">
+        <field name="name">Managers see every sheet line</field>
+        <field name="model_id" ref="model_lab_incentive_sheet_line"/>
+        <field name="domain_force">[(1,'=',1)]</field>
+        <field name="groups" eval="[(4, ref('lab_fieldwork.group_fieldwork_manager'))]"/>
+    </record>
+</odoo>

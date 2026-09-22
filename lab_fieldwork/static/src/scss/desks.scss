@@ -1,0 +1,670 @@
+// The three role desks. One visual system, one hue per desk, so a manager
+// glancing at a colleague's screen knows whose desk it is from across the room.
+// SCSS variables, not --bs-*: the Odoo 19 backend defines none.
+
+$fwd-ink:    #10233a;
+$fwd-muted:  #64748b;
+$fwd-line:   rgba(16, 35, 58, .10);
+$fwd-good:   #0f9d58;
+$fwd-bad:    #dc2626;
+$fwd-warn:   #d99b00;
+
+// A desk root IS the `.o_action` element, which the web client styles
+// `height: 100%; overflow: hidden` — so anything past the fold is cut off and no
+// ancestor scrolls it. The override that wins that contest lives at the bottom
+// of this file; see the comment there. `min-height: 100%` was the bug: it grew
+// the box past a viewport that clips, which is exactly what cannot scroll.
+.o_fwd {
+    padding: 0 0 3rem;
+    background: #f6f8fb;
+    font-size: .95rem;
+    color: $fwd-ink;
+
+    // ------------------------------------------------------------------ hero
+    .o_fwd_hero {
+        color: #fff;
+        padding: 1.4rem 1.6rem 1.6rem;
+        margin-bottom: 1.1rem;
+        box-shadow: 0 10px 30px rgba(16, 35, 58, .25);
+        position: relative;
+        // A soft top-left glow so the gradient reads as a surface, not a fill.
+        &::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+                   background: radial-gradient(60rem 12rem at 12% -30%,
+                               rgba(255, 255, 255, .16), transparent 60%); }
+        > * { position: relative; z-index: 1; }
+    }
+    &.o_fwd_ops .o_fwd_hero { background: linear-gradient(120deg, #0b3a53, #0e7c86 70%, #12a5b0); }
+    &.o_fwd_mkt .o_fwd_hero { background: linear-gradient(120deg, #4c1d95, #7c3aed 65%, #c026d3); }
+    &.o_fwd_adm .o_fwd_hero { background: linear-gradient(120deg, #1e293b, #334155 60%, #0f766e); }
+
+    .o_fwd_hero_row { display: flex; flex-wrap: wrap; gap: 1.2rem;
+                      align-items: flex-start; justify-content: space-between; }
+    .o_fwd_eyebrow { text-transform: uppercase; letter-spacing: .12em;
+                     font-size: .72rem; opacity: .85; font-weight: 600; }
+    .o_fwd_live { color: #7CFC9A; text-transform: none; letter-spacing: 0;
+                  margin-left: .5rem; animation: o_fwd_pulse 2.4s infinite; }
+    @keyframes o_fwd_pulse { 50% { opacity: .35; } }
+    .o_fwd_pastday { color: #ffd166; text-transform: none; letter-spacing: 0;
+                     margin-left: .5rem; }
+
+    // --------------------------------------------------------------- day travel
+    // One segmented pill, not three loose boxes: arrows and the date read as a
+    // single control, and the browser's heavy black focus ring (which made the
+    // input look broken on the gradient) is replaced with a soft white one.
+    .o_fwd_daynav {
+        display: inline-flex; align-items: stretch; margin-top: .7rem;
+        border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px;
+        background: rgba(255, 255, 255, .1); backdrop-filter: blur(2px);
+        overflow: hidden;
+    }
+    .o_fwd_daybtn {
+        border: 0; background: transparent; color: #fff;
+        padding: .3rem .7rem; font-size: .82rem; font-weight: 600; cursor: pointer;
+        &:hover:not(:disabled) { background: rgba(255, 255, 255, .18); }
+        &:disabled { opacity: .35; cursor: default; }
+        &:focus-visible { outline: none;
+                          box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .6); }
+    }
+    .o_fwd_daytoday { background: rgba(255, 255, 255, .92); color: $fwd-ink;
+                      font-weight: 700;
+                      &:hover:not(:disabled) { background: #fff; } }
+    .o_fwd_dayinput {
+        border: 0; border-left: 1px solid rgba(255, 255, 255, .25);
+        border-right: 1px solid rgba(255, 255, 255, .25);
+        background: transparent; color: #fff; padding: .2rem .6rem;
+        font-size: .85rem; width: 9.5rem; text-align: center;
+        &:focus, &:focus-visible { outline: none;
+                                   background: rgba(255, 255, 255, .14); }
+        // The native calendar glyph is drawn dark; on this gradient it vanishes.
+        &::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+    }
+    // calc() is load-bearing: SCSS evaluates `1rem + 1vw` at compile time and
+    // dies with "Incompatible units", which fails the WHOLE web.assets_backend
+    // bundle, not just this rule. Inside calc() it is left for the browser.
+    // color is load-bearing: the backend paints headings dark, so the h2 was
+    // rendering BLACK on every hero gradient (reported with a screenshot).
+    .o_fwd_title { margin: .1rem 0 0; font-weight: 800; color: #fff;
+                   font-size: clamp(1.25rem, calc(1rem + 1vw), 1.8rem);
+                   text-shadow: 0 1px 2px rgba(0, 0, 0, .18); }
+    .o_fwd_hero_btn { align-self: center; color: #fff; border-color: rgba(255,255,255,.5); }
+
+    .o_fwd_kpis { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .o_fwd_kpi {
+        background: rgba(255, 255, 255, .13);
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: .8rem; padding: .55rem .95rem; min-width: 7.5rem;
+        backdrop-filter: blur(3px);
+        transition: transform .12s ease, background .12s ease;
+    }
+    .o_fwd_kpi_hot { background: rgba(255, 255, 255, .92); color: $fwd-ink;
+                     box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+    .o_fwd_kpi_click { cursor: pointer; }
+    .o_fwd_kpi_click:hover { background: rgba(255, 255, 255, .25);
+                             transform: translateY(-2px); }
+    .o_fwd_kpi_hot.o_fwd_kpi_click:hover { background: #fff; }
+    .o_fwd_kpi_v { display: block; font-size: 1.25rem; font-weight: 800; line-height: 1.15; }
+    .o_fwd_kpi_sub { font-size: .8rem; font-weight: 500; opacity: .75; }
+    .o_fwd_kpi_l { font-size: .74rem; opacity: .85; }
+
+    .o_fwd_cta {
+        margin-top: 1rem; border: 0; border-radius: 999px;
+        padding: .6rem 1.5rem; font-weight: 700; font-size: .95rem;
+        background: #fff; color: #0b3a53; cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+        transition: transform .12s ease;
+        &:hover { transform: translateY(-1px); }
+        &:disabled { opacity: .6; }
+    }
+
+    // ------------------------------------------------------------------ layout
+    .o_fwd_loading { text-align: center; color: $fwd-muted; padding: 4rem 0; }
+    .o_fwd_grid { display: grid; gap: 1rem; padding: 0 1.25rem;
+                  grid-template-columns: minmax(0, 1.9fr) minmax(260px, 1fr);
+                  align-items: start; max-width: 1400px; margin: 0 auto; }
+    @media (max-width: 900px) { .o_fwd_grid { grid-template-columns: 1fr; } }
+    .o_fwd_main, .o_fwd_side { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+
+    .o_fwd_panel {
+        background: #fff; border: 1px solid $fwd-line; border-radius: 1rem;
+        padding: 1rem 1.1rem; box-shadow: 0 4px 16px rgba(16, 35, 58, .05);
+    }
+    .o_fwd_panel_head { font-weight: 800; margin-bottom: .7rem;
+                        padding-bottom: .5rem;
+                        border-bottom: 1px solid rgba(16, 35, 58, .06);
+                        cursor: pointer; position: relative;
+                        // The fold affordance: a chevron that turns.
+                        &::after { content: "\f107"; font-family: FontAwesome;
+                                   position: absolute; right: .1rem; top: .1rem;
+                                   color: $fwd-muted; transition: transform .15s; }
+    }
+    .o_fwd_folded {
+        > :not(.o_fwd_panel_head) { display: none; }
+        .o_fwd_panel_head { margin-bottom: 0; padding-bottom: 0; border-bottom: 0;
+                            &::after { transform: rotate(-90deg); } }
+    }
+
+    // The triage bar rides along while the queue scrolls under it.
+    .o_fwd_triage { position: sticky; top: 0; z-index: 5; background: #fff;
+                    padding-top: .25rem; padding-bottom: .35rem; }
+    &.o_fwd_ops .o_fwd_panel_head > i { color: #0e7c86; }
+    &.o_fwd_mkt .o_fwd_panel_head > i { color: #7c3aed; }
+    &.o_fwd_adm .o_fwd_panel_head > i { color: #0f766e; }
+    .o_fwd_panel_sub { font-weight: 400; color: $fwd-muted; font-size: .8rem;
+                       margin-left: .4rem; }
+    .o_fwd_empty { text-align: center; color: $fwd-good; padding: 1.6rem 0; }
+    .o_fwd_muted { color: $fwd-muted; }
+    .o_fwd_good { color: $fwd-good; }
+    .o_fwd_bad { color: $fwd-bad; }
+
+    // ------------------------------------------------------------------ queue
+    .o_fwd_card {
+        border: 1px solid $fwd-line; border-radius: .9rem;
+        padding: .8rem .9rem; margin-bottom: .7rem;
+        transition: box-shadow .12s ease;
+        &:hover { box-shadow: 0 6px 18px rgba(16, 35, 58, .10); }
+    }
+    .o_fwd_card_overdue { border-color: rgba(220, 38, 38, .5);
+                          background: rgba(220, 38, 38, .03); }
+    .o_fwd_card_head { display: flex; align-items: center; gap: .6rem;
+                       flex-wrap: wrap; }
+    .o_fwd_card_who { display: flex; align-items: center; gap: .55rem;
+                      cursor: pointer; flex: 1 1 auto; min-width: 0; }
+    .o_fwd_avatar {
+        width: 2rem; height: 2rem; border-radius: 50%; flex: 0 0 auto;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #0e7c86, #4f46e5);
+        color: #fff; font-weight: 800;
+    }
+    .o_fwd_pill { border-radius: 999px; padding: .1rem .6rem; font-size: .74rem;
+                  font-weight: 700; white-space: nowrap; }
+    .o_fwd_pill_clean { background: rgba(15, 157, 88, .12); color: #0b7a43; }
+    .o_fwd_pill_flag { background: rgba(220, 38, 38, .12); color: $fwd-bad;
+                       cursor: pointer; }
+    .o_fwd_pill_warn { background: rgba(217, 155, 0, .15); color: #8a6400; }
+
+    .o_fwd_facts { display: flex; flex-wrap: wrap; gap: .3rem .9rem;
+                   margin: .4rem 0 .1rem; color: $fwd-muted; font-size: .85rem;
+                   b { color: $fwd-ink; } }
+    .o_fwd_why { background: rgba(220, 38, 38, .06); border-radius: .5rem;
+                 color: #7f1d1d; padding: .45rem .6rem; margin: .4rem 0;
+                 font-size: .85rem; white-space: pre-line; }
+    .o_fwd_note { color: $fwd-muted; font-style: italic; margin: .3rem 0;
+                  font-size: .85rem; }
+
+    .o_fwd_age { display: flex; align-items: center; gap: .6rem; margin-top: .45rem; }
+    .o_fwd_age_bar { flex: 1 1 auto; height: 5px; border-radius: 999px;
+                     background: #eef1f6; overflow: hidden; }
+    .o_fwd_age_fill { height: 100%; border-radius: 999px; }
+    .o_fwd_age_label { font-size: .74rem; color: $fwd-muted; white-space: nowrap; }
+
+    .o_fwd_scorebar { display: flex; align-items: center; gap: .8rem;
+                      margin-top: .5rem; flex-wrap: wrap; }
+    .o_fwd_stars { font-size: 1.15rem; color: $fwd-warn; cursor: pointer;
+                   i { margin-right: .15rem; } i:hover { transform: scale(1.15); } }
+    .o_fwd_remark { flex: 1 1 10rem; border: 1px solid $fwd-line;
+                    border-radius: .5rem; padding: .3rem .6rem; font-size: .85rem; }
+
+    .o_fwd_actions { display: flex; gap: .5rem; margin-top: .6rem; flex-wrap: wrap; }
+    .o_fwd_btn {
+        border: 1px solid $fwd-line; background: #fff; border-radius: .55rem;
+        padding: .35rem .9rem; font-weight: 600; font-size: .85rem; cursor: pointer;
+        &:hover { border-color: #94a3b8; }
+        &:disabled { opacity: .5; cursor: default; }
+    }
+    .o_fwd_btn_go { background: $fwd-good; border-color: $fwd-good; color: #fff;
+                    &:hover { background: darken($fwd-good, 5%); } }
+    .o_fwd_btn_warn { background: $fwd-warn; border-color: $fwd-warn; color: #fff; }
+    .o_fwd_btn_ghost { background: transparent; }
+    .o_fwd_sendback { margin-top: .5rem;
+        textarea { width: 100%; border: 1px solid $fwd-line; border-radius: .5rem;
+                   padding: .45rem .6rem; font-size: .85rem; } }
+
+    // ------------------------------------------------------------------ live table
+    .o_fwd_table { width: 100%; border-collapse: collapse; font-size: .87rem;
+        th { color: $fwd-muted; font-weight: 600; text-align: left;
+             border-bottom: 1px solid $fwd-line; padding: .3rem .45rem; }
+        th.text-end { text-align: right; }
+        td { padding: .42rem .45rem; border-bottom: 1px solid rgba(16,35,58,.05); }
+    }
+    .o_fwd_status { border-radius: 999px; padding: .08rem .55rem; font-size: .75rem;
+                    font-weight: 700; }
+    .o_fwd_status_at_clinic { background: rgba(15,157,88,.14); color: #0b7a43; }
+    .o_fwd_status_moving   { background: rgba(14,124,134,.14); color: #0e7c86; }
+    .o_fwd_status_finished { background: rgba(79,70,229,.12); color: #4f46e5; }
+    .o_fwd_status_idle     { background: rgba(217,155,0,.16); color: #8a6400; }
+    .o_fwd_status_on_duty  { background: rgba(15,157,88,.10); color: #0b7a43; }
+    // Calls all made but still clocked in - green like the other working states,
+    // never the indigo of a finished day.
+    .o_fwd_status_visits_done { background: rgba(15,157,88,.16); color: #0b7a43; }
+    // Red, not grey: this one is a fault to clear, not a state to accept.
+    .o_fwd_status_no_setup { background: rgba(200,35,51,.12); color: #a01829; }
+    .o_fwd_status_off      { background: #eef1f6; color: $fwd-muted; }
+
+    // ------------------------------------------------------------------ strip
+    .o_fwd_strip { display: flex; align-items: flex-end; gap: .35rem;
+                   padding: .3rem .2rem 0; overflow-x: auto; }
+    .o_fwd_strip_day { flex: 1 0 3rem; text-align: center; cursor: pointer;
+                       border-radius: .5rem; padding: .3rem .1rem .2rem;
+                       &:hover { background: #eef6f7; } }
+    .o_fwd_strip_on { background: rgba(14, 124, 134, .12); }
+    .o_fwd_strip_off .o_fwd_strip_bar { opacity: .35; }
+    .o_fwd_strip_bar { width: 60%; margin: 0 auto; border-radius: 4px 4px 0 0;
+                       background: linear-gradient(180deg, #12a5b0, #0e7c86); }
+    .o_fwd_strip_label { font-size: .68rem; color: $fwd-muted; white-space: nowrap; }
+
+    // ------------------------------------------------------------------ alerts / gaps
+    .o_fwd_alert { display: flex; gap: .7rem; align-items: flex-start;
+                   padding: .55rem .6rem; border-radius: .6rem; cursor: pointer;
+                   margin-bottom: .4rem;
+                   > i { margin-top: .2rem; }
+                   &:hover { filter: brightness(.97); } }
+    .o_fwd_alert_danger  { background: rgba(220, 38, 38, .07); color: #7f1d1d; }
+    .o_fwd_alert_warning { background: rgba(217, 155, 0, .10); color: #6b4d00; }
+    .o_fwd_alert_info    { background: rgba(14, 124, 134, .08); color: #0b5560; }
+
+    // ------------------------------------------------------------------ momentum & donut
+    .o_fwd_route { display: flex; align-items: center; gap: .8rem;
+                   padding: .4rem 0; border-bottom: 1px solid rgba(16,35,58,.05);
+                   &:last-child { border-bottom: 0; } }
+    .o_fwd_route_name { flex: 1 1 auto; min-width: 0; overflow: hidden;
+                        text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .o_fwd_route_val { font-weight: 700; white-space: nowrap; }
+    .o_fwd_delta { font-size: .78rem; font-weight: 700; white-space: nowrap; }
+    .o_fwd_spark { width: 120px; height: 28px; flex: 0 0 auto;
+        polyline { fill: none; stroke: #7c3aed; stroke-width: 2;
+                   stroke-linejoin: round; stroke-linecap: round; } }
+    .o_fwd_ops .o_fwd_spark polyline { stroke: #0e7c86; }
+
+    .o_fwd_donut_wrap { display: flex; gap: 1rem; align-items: center; }
+    .o_fwd_donut { width: 108px; height: 108px; border-radius: 50%; flex: 0 0 auto;
+                   mask: radial-gradient(circle at center, transparent 34px, #000 35px); }
+    .o_fwd_donut_legend { font-size: .82rem; line-height: 1.7; min-width: 0; }
+    .o_fwd_dot { display: inline-block; width: .6rem; height: .6rem;
+                 border-radius: 50%; margin-right: .35rem; }
+
+    .o_fwd_rescue { display: flex; justify-content: space-between; gap: .6rem;
+                    padding: .45rem 0; border-bottom: 1px solid rgba(16,35,58,.05);
+                    cursor: pointer; &:hover { background: #faf5ff; }
+                    &:last-child { border-bottom: 0; } }
+
+    // ------------------------------------------------------------------ funnel
+    .o_fwd_funnel_row { display: flex; align-items: center; gap: .8rem;
+                        margin-bottom: .5rem; }
+    .o_fwd_funnel_label { flex: 0 0 12rem; text-align: right; color: $fwd-muted;
+                          font-size: .84rem; }
+    .o_fwd_funnel_track { flex: 1 1 auto; }
+    .o_fwd_funnel_bar { color: #fff; font-weight: 700; font-size: .82rem;
+                        border-radius: .45rem; padding: .25rem .6rem;
+                        min-width: 2rem; }
+    .o_fwd_funnel_submitted    { background: #0e7c86; }
+    .o_fwd_funnel_ops_approved { background: #7c3aed; }
+    .o_fwd_funnel_approved_week{ background: $fwd-good; }
+    .o_fwd_funnel_sent_back    { background: $fwd-warn; }
+
+    // ------------------------------------------------------------------ verdict & buckets
+    .o_fwd_verdict { border-radius: .7rem; padding: .7rem .8rem; margin-bottom: .8rem; }
+    .o_fwd_verdict_good    { background: rgba(15, 157, 88, .09); }
+    .o_fwd_verdict_tight   { background: rgba(220, 38, 38, .07); }
+    .o_fwd_verdict_loose   { background: rgba(217, 155, 0, .10); }
+    .o_fwd_verdict_unknown { background: #eef1f6; }
+    .o_fwd_buckets { display: flex; align-items: flex-end; gap: .5rem; padding-top: .4rem; }
+    .o_fwd_bucket { text-align: center; flex: 1 1 0; }
+    .o_fwd_bucket_bar { background: #cbd5e1; border-radius: 4px 4px 0 0;
+                        width: 65%; margin: 0 auto; }
+    .o_fwd_bucket_in { background: #0f766e; }
+    .o_fwd_bucket_label { font-size: .66rem; color: $fwd-muted; white-space: nowrap; }
+
+    // ------------------------------------------------------------------ side lists
+    .o_fwd_tick { display: flex; align-items: baseline; gap: .5rem;
+                  padding: .32rem 0; font-size: .84rem; cursor: pointer;
+                  &:hover { background: #f6f8fb; } }
+    .o_fwd_tick_dot { width: .55rem; height: .55rem; border-radius: 50%;
+                      flex: 0 0 auto; align-self: center; }
+    .o_fwd_tick_submitted { background: #0e7c86; }
+    .o_fwd_tick_ops       { background: #7c3aed; }
+    .o_fwd_tick_approved  { background: $fwd-good; }
+    .o_fwd_tick_back      { background: $fwd-bad; }
+    .o_fwd_tick_ago { margin-left: auto; color: $fwd-muted; font-size: .74rem;
+                      white-space: nowrap; }
+
+    .o_fwd_leader { display: flex; align-items: center; gap: .55rem;
+                    padding: .3rem 0; font-size: .87rem; }
+    .o_fwd_leader_rank { width: 1.4rem; height: 1.4rem; border-radius: 50%;
+                         background: #eef1f6; color: $fwd-muted; font-weight: 800;
+                         font-size: .74rem; display: inline-flex;
+                         align-items: center; justify-content: center; }
+    .o_fwd_leader:first-child .o_fwd_leader_rank { background: #fde68a; color: #92400e; }
+    .o_fwd_leader_name { font-weight: 600; flex: 1 1 auto; min-width: 0;
+                         overflow: hidden; text-overflow: ellipsis; }
+
+    .o_fwd_desk_row { display: flex; align-items: center; gap: .5rem;
+                      justify-content: space-between; padding: .35rem 0;
+                      font-size: .87rem; }
+    .o_fwd_cron { display: flex; align-items: center; gap: .5rem;
+                  padding: .3rem 0; font-size: .84rem; }
+    .o_fwd_cron_name { flex: 1 1 auto; min-width: 0; overflow: hidden;
+                       text-overflow: ellipsis; white-space: nowrap; }
+    // ------------------------------------------------------------------ triage
+    .o_fwd_triage { display: flex; flex-wrap: wrap; gap: .6rem;
+                    align-items: center; justify-content: space-between;
+                    margin-bottom: .8rem; }
+    .o_fwd_lenses { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .o_fwd_lens {
+        border: 1px solid $fwd-line; background: #fff; border-radius: 999px;
+        padding: .25rem .8rem; font-size: .82rem; font-weight: 600;
+        color: $fwd-muted; cursor: pointer;
+        &:hover { border-color: rgba(16, 35, 58, .3); }
+    }
+    .o_fwd_lens_on { background: $fwd-ink; border-color: $fwd-ink; color: #fff; }
+    .o_fwd_lens_n { opacity: .65; margin-left: .25rem; }
+    .o_fwd_triage_right { display: flex; gap: .4rem; align-items: center; }
+    .o_fwd_find, .o_fwd_sort {
+        border: 1px solid $fwd-line; border-radius: .5rem;
+        padding: .28rem .6rem; font-size: .85rem; background: #fff;
+    }
+    .o_fwd_find { min-width: 9rem; }
+
+    .o_fwd_keys {
+        display: flex; flex-wrap: wrap; gap: .4rem .9rem; align-items: center;
+        background: $fwd-ink; color: #fff; border-radius: .6rem;
+        padding: .5rem .8rem; font-size: .82rem; margin-bottom: .7rem;
+        // color is load-bearing: the backend's own kbd rule paints the letter
+        // DARK (light-theme pill), which vanishes on this navy card - the
+        // pills rendered as empty chips until the letter was repainted.
+        kbd { background: rgba(255,255,255,.15); color: #fff;
+              border-radius: .25rem; padding: 0 .35rem; font-weight: 700; }
+    }
+
+    .o_fwd_bulk, .o_fwd_pickall {
+        display: flex; gap: .5rem; align-items: center; margin-bottom: .7rem;
+    }
+    .o_fwd_bulk {
+        background: rgba(15, 157, 88, .08); border: 1px solid rgba(15, 157, 88, .3);
+        border-radius: .6rem; padding: .45rem .7rem; font-size: .88rem;
+    }
+    .o_fwd_pick { margin-right: .1rem; flex: 0 0 auto; cursor: pointer; }
+    // The keyboard cursor has to be visible without being loud - it moves on
+    // every j/k and the eye follows the edge, not a fill.
+    .o_fwd_card_cursor { box-shadow: 0 0 0 2px #0e7c86 !important; }
+    .o_fwd_card_picked { background: rgba(15, 157, 88, .05); }
+
+    // -------------------------------------------------------------------- cover
+    .o_fwd_cover {
+        background: #fff7e6; border: 1px solid rgba(217, 155, 0, .45);
+        color: #7a5600; border-radius: .8rem; padding: .7rem .9rem;
+        font-size: .9rem;
+    }
+    .o_fwd_cover_row {
+        display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+        padding: .45rem .2rem; border-bottom: 1px solid $fwd-line;
+        cursor: pointer;
+        &:last-child { border-bottom: 0; }
+        &:hover { background: rgba(16, 35, 58, .03); }
+    }
+    .o_fwd_absent {
+        display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+        padding: .35rem 0;
+    }
+    .o_fwd_panel_alarm { border-color: rgba(220, 38, 38, .5);
+                         background: rgba(220, 38, 38, .04); }
+
+    // ---------------------------------------------------------- new signals
+    .o_fwd_ink { color: $fwd-ink; }
+
+    .o_fwd_triprow {
+        display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+        padding: .5rem .2rem; border-bottom: 1px solid $fwd-line;
+        &:last-child { border-bottom: 0; }
+        .o_fwd_trip_who { flex: 1 1 10rem; min-width: 0; }
+        .o_fwd_actions { margin-top: 0; }
+    }
+
+    .o_fwd_habit {
+        display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+        justify-content: space-between; padding: .45rem .2rem;
+        border-bottom: 1px solid $fwd-line; cursor: pointer;
+        &:last-child { border-bottom: 0; }
+        &:hover { background: rgba(16, 35, 58, .03); }
+    }
+
+    // The fortnight grid: a dot per person per day.
+    .o_fwd_heat_row { display: flex; align-items: center; gap: .5rem;
+                      padding: .22rem 0; }
+    .o_fwd_heat_name { flex: 0 0 34%; min-width: 0; overflow: hidden;
+                       text-overflow: ellipsis; white-space: nowrap;
+                       font-size: .84rem; font-weight: 600; }
+    .o_fwd_heat_cells { display: flex; gap: 3px; flex-wrap: wrap; }
+    .o_fwd_heat { width: .8rem; height: .8rem; border-radius: .2rem;
+                  display: inline-block; }
+    .o_fwd_heat_clean { background: #34c27b; cursor: pointer; }
+    .o_fwd_heat_flag  { background: #f0b429; cursor: pointer; }
+    .o_fwd_heat_back  { background: $fwd-bad; cursor: pointer; }
+    .o_fwd_heat_off   { background: #e8ecf3; }
+    .o_fwd_heat_we    { opacity: .45; }
+    .o_fwd_heat_legend { display: flex; align-items: center; gap: .35rem;
+                         font-size: .76rem; margin-top: .5rem;
+                         .o_fwd_heat { width: .65rem; height: .65rem; } }
+
+    // opened -> ordered -> came back
+    .o_fwd_conv {
+        display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+        > div { text-align: center;
+                b { display: block; font-size: 1.3rem; }
+                span { font-size: .74rem; color: $fwd-muted; } }
+        > i { color: $fwd-muted; }
+        .o_fwd_conv_pct { margin-left: auto; text-align: right;
+                          b { color: $fwd-good; font-size: 1.5rem; } }
+    }
+
+    .o_fwd_move { display: flex; align-items: center; gap: .55rem;
+                  padding: .3rem 0; font-size: .87rem;
+                  .o_fwd_move_name { flex: 1 1 auto; min-width: 0; font-weight: 600;
+                                     overflow: hidden; text-overflow: ellipsis; } }
+
+    .o_fwd_rescue_go { flex: 0 0 auto; }
+    .o_fwd_rescue_plan {
+        display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+        background: rgba(124, 58, 237, .06); border-radius: .5rem;
+        padding: .45rem .6rem; margin: -.3rem 0 .5rem; font-size: .85rem;
+        select { border: 1px solid $fwd-line; border-radius: .4rem;
+                 padding: .2rem .4rem; background: #fff; max-width: 11rem; }
+    }
+    // -------------------------------------------------- round two of signals
+    // Section headers: the Command Center reads as three questions, not one
+    // wall of panels.
+    .o_fwd_section {
+        text-transform: uppercase; letter-spacing: .1em; font-size: .74rem;
+        font-weight: 800; color: $fwd-muted; margin: .4rem 0 -.4rem .2rem;
+    }
+
+    // The health check as tiles: a senior reader scans colour and a
+    // two-word label; the full sentence survives as the tooltip.
+    .o_fwd_healthgrid { display: grid; gap: .55rem;
+                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .o_fwd_htile {
+        display: flex; align-items: center; gap: .5rem;
+        border-radius: .7rem; padding: .55rem .75rem; font-size: .86rem;
+        font-weight: 600; border: 1px solid transparent;
+        > i { font-size: .95rem; width: 1.35rem; height: 1.35rem;
+              border-radius: 50%; display: inline-flex; align-items: center;
+              justify-content: center; color: #fff; flex: 0 0 auto; }
+        .o_fwd_htile_label { flex: 1 1 auto; min-width: 0; line-height: 1.15; }
+        .o_fwd_htile_n { font-size: 1.05rem; }
+    }
+    .o_fwd_htile_ok { background: rgba(15, 157, 88, .09);
+                      border-color: rgba(15, 157, 88, .25); color: #0b6b3d;
+                      > i { background: #0f9d58; } }
+    .o_fwd_htile_bad { background: rgba(220, 38, 38, .08);
+                       border-color: rgba(220, 38, 38, .35); color: #991b1b;
+                       > i { background: $fwd-bad; } }
+    .o_fwd_check_click { cursor: pointer;
+                         &:hover { filter: brightness(.97); } }
+
+    .o_fwd_covertable tbody tr { cursor: pointer;
+                                 &:hover { background: rgba(16, 35, 58, .03); } }
+    .o_fwd_totalrow td { border-top: 2px solid #cbd5e1; padding-top: .45rem;
+                         font-weight: 600; }
+
+    // ------------------------------------------- the business command center
+    .o_fwd_cell {
+        border: 0; border-radius: .45rem; min-width: 2.2rem;
+        padding: .2rem .55rem; font-weight: 800; color: #fff; cursor: pointer;
+        &:hover { filter: brightness(1.12); }
+    }
+    .o_fwd_cell_ops  { background: #0e7c86; }
+    .o_fwd_cell_mkt  { background: #7c3aed; }
+    .o_fwd_cell_back { background: #d99b00; }
+
+    .o_fwd_biz {
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem;
+        margin-bottom: .6rem;
+        .o_fwd_span2 { grid-column: 1 / -1; }
+        > div { background: #f6f8fb; border-radius: .6rem; padding: .5rem .7rem;
+                b { display: block; font-size: 1.05rem; }
+                span { font-size: .72rem; color: $fwd-muted;
+                       text-transform: uppercase; letter-spacing: .05em; } }
+    }
+
+    .o_fwd_twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.2rem; }
+    .o_fwd_twocol_loose { align-items: start;
+                          > .o_fwd_panel { min-width: 0; } }
+    .o_fwd_colhead { font-size: .74rem; font-weight: 800; color: $fwd-muted;
+                     text-transform: uppercase; letter-spacing: .06em;
+                     margin-bottom: .25rem; }
+
+    .o_fwd_habit_col { display: block; }
+    .o_fwd_rowline { display: flex; align-items: center; gap: .6rem;
+                     justify-content: space-between; flex-wrap: wrap; }
+    .o_fwd_moneyline { font-size: .78rem; margin-top: .15rem;
+                       b { font-weight: 700; } }
+
+    // Tiles pack like bricks, on ALL THREE desks. A row grid makes every row
+    // as tall as its tallest tile, so a short tile beside a long table left a
+    // hole of dead space under it (reported with a screenshot). CSS columns
+    // fill top-to-bottom instead - no holes to leave - and a full-width tile
+    // (o_fwd_span2: the queue, the field board, the widest tables) breaks the
+    // columns with `column-span: all`. (client, 2026-09-01)
+    &.o_fwd_ops .o_fwd_main, &.o_fwd_mkt .o_fwd_main, &.o_fwd_adm .o_fwd_main {
+        display: block; columns: 2; column-gap: 1rem;
+        > * { break-inside: avoid; width: 100%; margin: 0 0 1rem; }
+        > .o_fwd_span2, > .o_fwd_intro, > .o_fwd_cover { column-span: all; }
+        // Half a column is narrower than some tables; they scroll sideways
+        // inside their own tile rather than lose a column of data.
+        .o_fwd_panel:not(.o_fwd_span2) .o_fwd_table {
+            display: block; overflow-x: auto; white-space: nowrap; }
+    }
+    // The administrator's page runs wider than the other desks', because half
+    // of it still has to hold a real table.
+    &.o_fwd_adm .o_fwd_grid {
+        grid-template-columns: minmax(0, 2.6fr) minmax(240px, 1fr);
+        max-width: 1600px;
+    }
+    @media (max-width: 1200px) {
+        &.o_fwd_ops .o_fwd_main, &.o_fwd_mkt .o_fwd_main,
+        &.o_fwd_adm .o_fwd_main { columns: 1; }
+    }
+
+    .o_fwd_sysbtn { align-self: flex-start; }
+    .o_fwd_sysdrawer {
+        grid-column: 1 / -1;
+        display: grid; gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        padding-top: .5rem; border-top: 2px dashed $fwd-line;
+    }
+
+    .o_fwd_intro {
+        background: #eef6ff; border: 1px solid rgba(14, 124, 134, .3);
+        border-radius: .8rem; padding: .8rem 1rem;
+    }
+    .o_fwd_intro_head { display: flex; align-items: center; gap: .3rem; }
+    .o_fwd_intro_steps { margin: .5rem 0 0; padding-left: 1.2rem;
+                         li { margin-bottom: .2rem; } }
+
+    .o_fwd_updated { display: inline-flex; align-items: center; gap: .3rem;
+                     margin-left: .7rem; font-size: .76rem; opacity: .8;
+                     i { cursor: pointer; &:hover { opacity: 1; } } }
+
+    .o_fwd_call { margin-left: .4rem; color: #0e7c86;
+                  &:hover { color: #12a5b0; } }
+
+    .o_fwd_legend_row { cursor: pointer; border-radius: .35rem;
+                        padding: .05rem .25rem;
+                        &:hover { background: rgba(16, 35, 58, .05); } }
+
+    .o_fwd_target { display: flex; align-items: center; gap: .6rem;
+                    padding: .35rem 0; font-size: .87rem; cursor: pointer;
+                    &:hover { background: rgba(16, 35, 58, .03); }
+                    .o_fwd_target_bar { flex: 1 1 5rem; } }
+
+    // ---------------------------------------------------- the command charts
+    .o_fwd_hero_btns { display: flex; flex-direction: column; gap: .4rem;
+                       align-self: center; }
+    .o_fwd_flow_pair { display: flex; align-items: flex-end; gap: 2px;
+                       height: 48px; justify-content: center; }
+    .o_fwd_flow_bar { width: 9px; border-radius: 2px 2px 0 0; }
+    .o_fwd_flow_filed { background: #b7c9d6; }
+    .o_fwd_flow_ok { background: #0f9d58; }
+
+    .o_fwd_speedchart { margin-bottom: .6rem; }
+    .o_fwd_speedsvg { width: 100%; height: 60px; display: block;
+                      background: #f8fafc; border-radius: .5rem;
+                      polyline { fill: none; stroke-width: 2.5;
+                                 vector-effect: non-scaling-stroke; } }
+    .o_fwd_line_ops { stroke: #0e7c86; }
+    .o_fwd_line_mkt { stroke: #7c3aed; }
+    .o_fwd_speedlabels { display: flex; font-size: .74rem; padding: .15rem .2rem; }
+}
+
+// ---------------------------------------------------------------------------
+// Make the desks scroll. Each desk root carries `o_action`, and the web client
+// declares `html .o_web_client > .o_action_manager > .o_action { height: 100%;
+// overflow: hidden }` — four compound selectors, declared after ours, so a plain
+// `.o_fwd { overflow-y: auto }` loses on both specificity and order and the page
+// is simply cut off at the fold (reported: the desks would not scroll at all).
+// Mirroring the parent selector restores the contest. `min-height: 0` matters
+// alongside it: `.o_action` is also `display: flex; flex-flow: column nowrap`,
+// and a flex child will not shrink below its content without it, so the overflow
+// never engages. Same fix, same reason, as My Day above. (client, 2026-08-31)
+// ---------------------------------------------------------------------------
+html .o_web_client > .o_action_manager > .o_action {
+    &.o_fwd {
+        display: block;                      // opt out of the parent's flex column
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;               // the client hides it on .o_action
+    }
+}
+
+// "See all" on a panel that shows only its top rows. Quiet until hovered:
+// the panel's own numbers are the message, this is the way past them.
+.o_fwd {
+    .o_fwd_seeall {
+        font-size: .75rem;
+        font-weight: 600;
+        padding: .125rem .5rem;
+        opacity: .75;
+
+        &:hover { opacity: 1; }
+    }
+}
+
+// The raised-sheet breakdowns on the Command Center (client, 2026-09-05).
+.o_fwd .o_fwd_flagsplit {
+    margin-top: .75rem;
+    padding-top: .625rem;
+    border-top: 1px solid rgba(255, 255, 255, .14);
+}
+
+.o_fwd .o_fwd_sub {
+    font-size: .6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .7;
+    margin-bottom: .25rem;
+}
+
+.o_fwd .o_fwd_rowlink { cursor: pointer; }

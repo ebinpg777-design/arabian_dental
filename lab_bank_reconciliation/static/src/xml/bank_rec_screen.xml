@@ -1,0 +1,605 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_bank_reconciliation.Screen">
+    <div class="o_bank_rec o_action">
+        <div t-if="state.missing" class="o_bank_rec_loading">
+            This screen lost track of its statement (the page was reloaded).
+            <button class="btn btn-link" t-on-click="() => this.openOverview()">Open the banks</button>
+        </div>
+        <div t-elif="!state.data" class="o_bank_rec_loading">Loading…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.data"/>
+
+            <!-- 1. Where the statement stands. -->
+            <div class="o_bank_rec_head">
+                <div class="o_bank_rec_title">
+                    <div class="o_bank_rec_crumbs">
+                        <button class="btn btn-link p-0" t-on-click="() => this.openOverview()">
+                            <i class="fa fa-university me-1" title="Banks"/>Banks
+                        </button>
+                        <span class="mx-1">/</span>
+                        <button class="btn btn-link p-0" t-on-click="() => this.back()">Statement form</button>
+                    </div>
+                    <h2>
+                        <t t-esc="d.journal"/>
+                        <span t-attf-class="badge ms-2 {{ d.state === 'done' ? 'text-bg-success' : 'text-bg-warning' }}"
+                              t-esc="d.state === 'done' ? 'Reconciled' : 'In progress'"/>
+                    </h2>
+                    <div class="o_bank_rec_sub">
+                        <t t-esc="d.account"/> · as on <strong t-esc="d.date_label"/>
+                        <t t-if="d.previous_label"> · last reconciled <t t-esc="d.previous_label"/></t>
+                    </div>
+                </div>
+                <div class="o_bank_rec_actions">
+                    <button t-if="d.editable" class="btn btn-primary"
+                            t-att-disabled="!d.figures.ready or state.busy"
+                            t-att-title="d.figures.ready ? '' : (d.figures.balanced ? 'Enter the balance as per bank first' : 'The difference must be zero first')"
+                            t-on-click="() => this.validate()">
+                        <i class="fa fa-check me-1" title="Reconcile"/>Mark Reconciled
+                    </button>
+                    <button t-if="d.state === 'done'" class="btn btn-primary" t-on-click="() => this.runAction('action_start_next')">
+                        <i class="fa fa-forward me-1" title="Next"/>Start next statement
+                    </button>
+                    <div class="o_bank_rec_more_wrap">
+                        <button class="btn btn-secondary" t-on-click="() => this.toggleMore()">
+                            More <i class="fa fa-caret-down ms-1" title="More"/>
+                        </button>
+                        <div t-if="state.more" class="o_bank_rec_more_menu">
+                            <button t-on-click="() => this.runAction('action_print_pdf')"><i class="fa fa-print" title="Print"/>Print BRS</button>
+                            <button t-on-click="() => this.excel()"><i class="fa fa-file-excel-o" title="Excel"/>Excel</button>
+                            <button t-if="queryCount" t-on-click="() => this.runAction('action_print_query_letter')">
+                                <i class="fa fa-envelope-o" title="Letter"/>Query letter to the bank
+                            </button>
+                            <button t-on-click="() => this.toggleKeys()"><i class="fa fa-keyboard-o" title="Keys"/>Keyboard shortcuts</button>
+                            <button t-on-click="() => this.back()"><i class="fa fa-cog" title="Form"/>Statement settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_bank_rec_progress" t-att-title="money(d.progress.done_amount) + ' of ' + money(d.progress.total_amount)">
+                <div class="o_bank_rec_progress_bar"><span t-att-style="'width:' + d.progress.pct + '%'"/></div>
+                <span class="o_bank_rec_progress_l">
+                    <strong t-esc="d.progress.done"/> of <t t-esc="d.progress.total"/> entries ticked · <t t-esc="d.progress.pct"/>%
+                </span>
+            </div>
+
+            <div t-if="state.keys" class="o_bank_rec_keys">
+                <span><kbd>p</kbd> passbook line</span>
+                <span><kbd>↓</kbd><kbd>↑</kbd> or <kbd>j</kbd><kbd>k</kbd> move</span>
+                <span><kbd>Space</kbd> tick / untick</span>
+                <span><kbd>Enter</kbd> details</span>
+                <span><kbd>q</kbd> query</span>
+                <span><kbd>u</kbd> undo</span>
+                <span><kbd>n</kbd> new bank entry</span>
+                <span><kbd>d</kbd> day totals</span>
+                <span><kbd>/</kbd> search</span>
+                <span><kbd>Esc</kbd> close</span>
+                <span>Shift-click a tick box to tick a range</span>
+            </div>
+
+            <!-- 2. Three figures; the full statement on demand. -->
+            <div class="o_bank_rec_summary">
+                <div class="o_bank_rec_fig">
+                    <span>Books, adjusted</span><strong t-esc="money(d.figures.adjusted)"/>
+                    <button class="btn btn-link btn-sm p-0" t-on-click="() => this.toggleStatement()">
+                        <t t-esc="state.statement ? 'Hide the statement' : 'How it is worked out'"/>
+                    </button>
+                </div>
+                <div class="o_bank_rec_fig o_bank_rec_bank">
+                    <span>Balance as per bank</span>
+                    <input t-if="d.editable" t-ref="balance" type="number" step="0.01"
+                           class="form-control o_bank_rec_bank_in" placeholder="From the passbook"
+                           t-att-value="d.bank_balance || ''" t-on-change="(ev) => this.saveBankBalance(ev)"/>
+                    <strong t-else="" t-esc="money(d.bank_balance)"/>
+                </div>
+                <div t-attf-class="o_bank_rec_fig o_bank_rec_diff {{ d.figures.ready ? 'o_bank_rec_ok' : (d.figures.balanced ? '' : 'o_bank_rec_bad') }}">
+                    <span>Difference</span><strong t-esc="money(d.figures.difference)"/>
+                </div>
+            </div>
+            <table t-if="state.statement" class="o_bank_rec_statement">
+                <tr><td>Balance as per books</td><td t-esc="money(d.figures.book)"/></tr>
+                <tr><td>Less: deposits not yet credited</td><td t-esc="money(d.figures.deposits_not_credited)"/></tr>
+                <tr><td>Add: payments not yet presented</td><td t-esc="money(d.figures.payments_not_presented)"/></tr>
+                <tr class="o_bank_rec_statement_sum"><td>Books, adjusted</td><td t-esc="money(d.figures.adjusted)"/></tr>
+                <tr><td>Balance as per bank</td><td t-esc="money(d.bank_balance)"/></tr>
+                <tr class="o_bank_rec_statement_sum"><td>Difference</td><td t-esc="money(d.figures.difference)"/></tr>
+            </table>
+
+            <!-- 3. The next step. -->
+            <t t-set="next" t-value="coach"/>
+            <div t-if="next" t-attf-class="o_bank_rec_coach o_bank_rec_coach_{{ next.kind }}">
+                <t t-if="next.kind === 'opening'">
+                    <i class="fa fa-flag-checkered" title="First reconciliation"/>
+                    <div class="o_bank_rec_coach_text">
+                        <strong>First reconciliation of this account.</strong> <t t-esc="openingText"/>
+                        <div t-foreach="d.opening.lines" t-as="ol" t-key="ol.id" class="o_bank_rec_coach_line">
+                            <t t-esc="ol.date_label"/> · <t t-esc="ol.label"/> · <strong t-esc="money(ol.amount)"/>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" t-att-disabled="state.busy" t-on-click="() => this.clearOpening()">
+                        Tick <t t-esc="plural(d.opening.count, 'it', 'them')"/>
+                    </button>
+                </t>
+                <t t-elif="next.kind === 'balance'">
+                    <i class="fa fa-book" title="Passbook"/>
+                    <div class="o_bank_rec_coach_text">
+                        <strong>Next:</strong> type the closing balance the passbook shows on <t t-esc="d.date_label"/>.
+                        Then work down the passbook with the passbook line below.
+                    </div>
+                    <button t-if="state.pass.lastBalance !== null" class="btn btn-primary btn-sm" t-att-disabled="state.busy"
+                            t-on-click="() => this.useLastBalance()">
+                        Use <t t-esc="money(state.pass.lastBalance)"/> from the passbook line
+                    </button>
+                    <button t-else="" class="btn btn-primary btn-sm" t-on-click="() => this.focusBalance()">Enter balance</button>
+                </t>
+                <t t-elif="next.kind === 'ready'">
+                    <i class="fa fa-check-circle" title="Ready"/>
+                    <div class="o_bank_rec_coach_text"><strong>The books agree with the bank.</strong> Mark the statement reconciled to lock it.</div>
+                    <button class="btn btn-primary btn-sm" t-att-disabled="state.busy" t-on-click="() => this.validate()">Mark Reconciled</button>
+                </t>
+                <t t-elif="next.kind === 'done'">
+                    <i class="fa fa-lock" title="Reconciled"/>
+                    <div class="o_bank_rec_coach_text"><strong>Reconciled.</strong> The ticks of this statement are locked.</div>
+                    <button class="btn btn-primary btn-sm" t-on-click="() => this.runAction('action_start_next')">Start next statement</button>
+                </t>
+                <t t-else="">
+                    <i class="fa fa-lightbulb-o" title="Hints"/>
+                    <div class="o_bank_rec_coach_text">
+                        <strong>Why is there a difference of <t t-esc="money(abs(d.figures.difference))"/>?</strong>
+                        <div t-foreach="d.hints" t-as="hint" t-key="hint_index" class="o_bank_rec_hint">
+                            <div class="o_bank_rec_hint_text">
+                                <div t-esc="hint.text"/>
+                                <div t-foreach="hint.lines" t-as="hl" t-key="hl.id" class="o_bank_rec_coach_line">
+                                    <t t-esc="hl.date_label"/> · <t t-esc="hl.label"/>
+                                    <t t-if="hl.partner"> · <t t-esc="hl.partner"/></t> · <strong t-esc="money(hl.amount)"/>
+                                </div>
+                            </div>
+                            <button t-if="hint.kind === 'tick' or hint.kind === 'pair'" class="btn btn-sm btn-primary"
+                                    t-att-disabled="state.busy" t-on-click="() => this.applyHint(hint)">
+                                Tick <t t-esc="hint.kind === 'pair' ? 'both' : 'it'"/>
+                            </button>
+                            <button t-elif="hint.kind === 'untick'" class="btn btn-sm btn-warning"
+                                    t-att-disabled="state.busy" t-on-click="() => this.applyHint(hint)">Untick it</button>
+                            <button t-elif="hint.kind === 'search'" class="btn btn-sm btn-secondary"
+                                    t-on-click="() => this.applyHint(hint)">Show it</button>
+                            <button t-elif="hint.kind === 'post'" class="btn btn-sm btn-secondary"
+                                    t-on-click="() => this.applyHint(hint)">Post it</button>
+                        </div>
+                    </div>
+                </t>
+            </div>
+
+            <!-- 4. The passbook line being worked through. -->
+            <div t-if="d.editable" class="o_bank_rec_pass">
+                <span class="o_bank_rec_pass_l"><i class="fa fa-book me-1" title="Passbook"/>Passbook line</span>
+                <input type="date" class="form-control form-control-sm" title="Date in the passbook" t-model="state.pass.date"/>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button t-attf-class="btn {{ state.pass.side === 'deposits' ? 'btn-primary' : 'btn-outline-secondary' }}"
+                            t-on-click="() => this.setPassSide('deposits')">Credit</button>
+                    <button t-attf-class="btn {{ state.pass.side === 'withdrawals' ? 'btn-primary' : 'btn-outline-secondary' }}"
+                            t-on-click="() => this.setPassSide('withdrawals')">Debit</button>
+                </div>
+                <input type="number" step="0.01" t-ref="passAmount" class="form-control form-control-sm o_bank_rec_pass_amt"
+                       placeholder="Amount ⏎" title="Type the amount and press Enter"
+                       t-model="state.pass.amount" t-on-keydown="(ev) => this.onPassKey(ev)"/>
+                <input type="number" step="0.01" class="form-control form-control-sm o_bank_rec_pass_bal"
+                       placeholder="Balance (optional)"
+                       title="The passbook's balance after this line. Each one is checked against the last, so a skipped line shows up."
+                       t-model="state.pass.balance" t-on-keydown="(ev) => this.onPassKey(ev)"/>
+                <button class="btn btn-primary btn-sm" t-att-disabled="state.busy" t-on-click="() => this.findPassbook()">Find</button>
+                <span t-if="state.pass.lastBalance !== null" class="o_bank_rec_note"
+                      t-att-title="'Last passbook balance, on ' + state.pass.lastBalanceDate">
+                    balance <t t-esc="money(state.pass.lastBalance)"/>
+                </span>
+                <label class="o_bank_rec_pass_auto" title="When only one answer fits, tick it at once (you can undo)">
+                    <input type="checkbox" class="form-check-input" t-model="state.pass.auto"/> tick a single match
+                </label>
+                <select class="form-select form-select-sm o_bank_rec_pass_win" t-model="state.pass.window" title="How far from the date to look">
+                    <option value="3">±3 days</option>
+                    <option value="7">±7 days</option>
+                    <option value="15">±15 days</option>
+                    <option value="30">±30 days</option>
+                </select>
+            </div>
+            <t t-set="res" t-value="state.pass.result"/>
+            <div t-if="res" class="o_bank_rec_panel o_bank_rec_matches">
+                <div class="o_bank_rec_panel_h">
+                    <strong t-if="res.results.length">
+                        <t t-esc="res.results.length"/> <t t-esc="plural(res.results.length, 'answer', 'answers')"/> for <t t-esc="money(res.amount)"/> on <t t-esc="res.day_label"/>
+                    </strong>
+                    <strong t-else="">Nothing outstanding makes <t t-esc="money(res.amount)"/> near <t t-esc="res.day_label"/></strong>
+                    <button class="btn-close" title="Close" t-on-click="() => this.closeMatches()"/>
+                </div>
+                <div t-if="!res.results.length" class="o_bank_rec_none">
+                    <t t-esc="res.searched"/> entries within <t t-esc="res.window"/> days looked at. It is probably not in the books yet.
+                    <button class="btn btn-primary btn-sm ms-2" t-on-click="() => this.createFromPassbook()">
+                        <i class="fa fa-plus me-1" title="Create"/>Create the bank entry
+                    </button>
+                </div>
+                <div t-foreach="res.results" t-as="r" t-key="r_index" class="o_bank_rec_match_card">
+                    <div class="o_bank_rec_match_card_h">
+                        <span t-attf-class="badge {{ r.kind === 'single' ? 'text-bg-success' : (r.kind === 'batch' ? 'text-bg-primary' : (r.kind === 'near' ? 'text-bg-warning' : 'text-bg-info')) }}"
+                              t-esc="matchBadge(r)"/>
+                        <span t-if="r.kind === 'near'" class="o_bank_rec_note">the bank may have kept its charges</span>
+                        <span t-if="r.label" class="o_bank_rec_match_label" t-esc="r.label"/>
+                        <span t-if="r.same_day and r.kind === 'group'" class="o_bank_rec_note">same day, likely one deposit slip</span>
+                        <span t-if="r.alternatives" class="o_bank_rec_note"
+                              t-esc="'· ' + r.alternatives + ' other ' + plural(r.alternatives, 'set', 'sets') + ' with the same amounts'"/>
+                        <t t-if="r.kind === 'near'">
+                            <button class="btn btn-sm btn-primary ms-auto" t-att-disabled="state.busy" t-on-click="() => this.tickNear(r)">
+                                Tick, book <t t-esc="money(r.difference)"/> as charges
+                            </button>
+                            <button class="btn btn-sm btn-secondary" t-att-disabled="state.busy" t-on-click="() => this.tickMatch(r)">Tick only</button>
+                        </t>
+                        <button t-else="" class="btn btn-sm btn-primary ms-auto" t-att-disabled="state.busy" t-on-click="() => this.tickMatch(r)">Tick</button>
+                    </div>
+                    <div t-foreach="r.lines.slice(0, 5)" t-as="ml" t-key="ml.id" class="o_bank_rec_match_line">
+                        <span class="o_bank_rec_ellipsis">
+                            <t t-esc="ml.date_label"/> · <t t-esc="ml.label or ml.ref or ml.move"/>
+                            <t t-if="ml.partner"> · <t t-esc="ml.partner"/></t>
+                        </span>
+                        <strong t-esc="money(ml.amount)"/>
+                    </div>
+                    <div t-if="r.lines.length &gt; 5" class="o_bank_rec_note">and <t t-esc="r.lines.length - 5"/> more</div>
+                </div>
+            </div>
+
+            <!-- 5. Tools. -->
+            <div class="o_bank_rec_bar">
+                <div class="o_bank_rec_search">
+                    <i class="fa fa-search" title="Search"/>
+                    <input type="search" t-ref="search" placeholder="Search particulars, entry, party or amount"
+                           t-att-value="state.search" t-on-input="(ev) => this.onSearch(ev)"/>
+                </div>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button t-attf-class="btn {{ state.view === 'lines' ? 'btn-secondary' : 'btn-outline-secondary' }}"
+                            t-on-click="() => this.setView('lines')">Lines</button>
+                    <button t-attf-class="btn {{ state.view === 'days' ? 'btn-secondary' : 'btn-outline-secondary' }}"
+                            t-on-click="() => this.setView('days')">Day totals</button>
+                </div>
+                <button t-attf-class="btn btn-sm {{ state.filters or activeFilters.length ? 'btn-secondary' : 'btn-outline-secondary' }}"
+                        t-on-click="() => this.toggleFilters()">
+                    <i class="fa fa-filter me-1" title="Filters"/>Filters<t t-if="activeFilters.length"> (<t t-esc="activeFilters.length"/>)</t>
+                </button>
+                <button t-if="d.undo" class="btn btn-sm btn-outline-secondary"
+                        t-att-title="'Undo (u): ' + d.undo.label + ', by ' + d.undo.user + ' at ' + d.undo.when"
+                        t-att-disabled="state.busy" t-on-click="() => this.undo()">
+                    <i class="fa fa-undo me-1" title="Undo"/>Undo
+                </button>
+                <button t-if="state.dup.data and state.dup.data.count"
+                        t-attf-class="btn btn-sm {{ state.dup.open ? 'btn-warning' : 'btn-outline-warning' }}"
+                        t-att-title="state.dup.data.count + ' possible duplicates'" t-on-click="() => this.toggleDuplicates()">
+                    <i class="fa fa-clone me-1" title="Duplicates"/><t t-esc="state.dup.data.count"/>
+                </button>
+                <button t-if="d.editable" class="btn btn-sm btn-outline-primary ms-auto" t-on-click="() => this.openEntry()">
+                    <i class="fa fa-plus me-1" title="New"/>New bank entry
+                </button>
+            </div>
+            <div t-if="activeFilters.length" class="o_bank_rec_pills">
+                <span t-foreach="activeFilters" t-as="pill" t-key="pill.key" class="o_bank_rec_pill">
+                    <t t-esc="pill.label"/>
+                    <button title="Remove" t-on-click="() => this.removeFilter(pill.key)">×</button>
+                </span>
+            </div>
+
+            <div t-if="state.filters" class="o_bank_rec_panel o_bank_rec_filters">
+                <div class="o_bank_rec_chips">
+                    <span class="o_bank_rec_chips_l">Age</span>
+                    <button t-foreach="buckets" t-as="b" t-key="b.key"
+                            t-attf-class="o_bank_rec_chip o_bank_rec_chip_{{ b.key }} {{ state.age === b.key ? 'o_bank_rec_chip_on' : '' }}"
+                            t-on-click="() => this.setAge(b.key)">
+                        <span t-esc="b.label"/><strong t-esc="b.count"/><small t-esc="money(b.amount)"/>
+                    </button>
+                </div>
+                <div t-if="sourceChips.length" class="o_bank_rec_chips">
+                    <span class="o_bank_rec_chips_l">From</span>
+                    <button t-foreach="sourceChips" t-as="s" t-key="s.key"
+                            t-attf-class="o_bank_rec_chip o_bank_rec_chip_{{ s.key }} {{ state.source === s.key ? 'o_bank_rec_chip_on' : '' }}"
+                            t-on-click="() => this.setSource(s.key)">
+                        <span t-esc="s.label"/><strong t-esc="s.count"/>
+                        <small t-if="s.amount !== null" t-esc="money(s.amount)"/><small t-else="" t-esc="s.note"/>
+                    </button>
+                </div>
+            </div>
+
+            <!-- A new bank entry. -->
+            <div t-if="state.entry.open and d.editable" class="o_bank_rec_panel o_bank_rec_entry">
+                <div class="o_bank_rec_panel_h">
+                    <strong><i class="fa fa-plus-circle me-1" title="New"/>New bank entry</strong>
+                    <button class="btn-close" title="Close" t-on-click="() => this.closeEntry()"/>
+                </div>
+                <div class="o_bank_rec_entry_grid">
+                    <label>What
+                        <select class="form-select form-select-sm" t-model="state.entry.kind">
+                            <option t-foreach="entryTypes" t-as="k" t-key="k[0]" t-att-value="k[0]" t-esc="k[1]"/>
+                        </select>
+                    </label>
+                    <label>Amount
+                        <input type="number" step="0.01" class="form-control form-control-sm" t-model="state.entry.amount"/>
+                    </label>
+                    <label>Date
+                        <input type="date" class="form-control form-control-sm" t-model="state.entry.date"/>
+                    </label>
+                    <label t-if="entryNeedsPartner">Party
+                        <div class="o_bank_rec_selector">
+                            <RecordSelector resModel="'res.partner'" resId="state.entry.partner_id"
+                                            update="(resId) => this.setEntryPartner(resId)" placeholder="'Customer or supplier…'"/>
+                        </div>
+                    </label>
+                    <label>
+                        <t t-esc="entryNeedsAccount ? 'Account' : 'Account (optional)'"/>
+                        <div class="o_bank_rec_selector">
+                            <RecordSelector resModel="'account.account'" resId="state.entry.account_id"
+                                            update="(resId) => this.setEntryAccount(resId)"
+                                            domain="accountDomain" placeholder="'Other side of the entry…'"/>
+                        </div>
+                    </label>
+                    <label>Particulars
+                        <input type="text" class="form-control form-control-sm" placeholder="As in the passbook" t-model="state.entry.label"/>
+                    </label>
+                    <label>Reference
+                        <input type="text" class="form-control form-control-sm" placeholder="UTR / cheque no." t-model="state.entry.reference"/>
+                    </label>
+                </div>
+                <div class="o_bank_rec_entry_f">
+                    <label class="o_bank_rec_pass_auto">
+                        <input type="checkbox" class="form-check-input" t-model="state.entry.cleared"/> already in the passbook: tick it
+                    </label>
+                    <span class="o_bank_rec_note" t-esc="entryNote"/>
+                    <button class="btn btn-primary btn-sm ms-auto" t-att-disabled="state.busy" t-on-click="() => this.postEntry()">Post</button>
+                </div>
+            </div>
+
+            <!-- Possible duplicates. -->
+            <div t-if="state.dup.open and state.dup.data" class="o_bank_rec_panel">
+                <div class="o_bank_rec_panel_h">
+                    <strong><i class="fa fa-clone me-1" title="Duplicates"/>Possible duplicates</strong>
+                    <span class="o_bank_rec_note">same party, same amount, within <t t-esc="state.dup.data.days"/> days, still outstanding</span>
+                    <button class="btn-close ms-auto" title="Close" t-on-click="() => this.toggleDuplicates()"/>
+                </div>
+                <div t-foreach="state.dup.data.groups" t-as="g" t-key="g_index" class="o_bank_rec_match_card">
+                    <div class="o_bank_rec_match_card_h">
+                        <strong t-esc="g.partner"/>
+                        <span class="o_bank_rec_note"><t t-esc="g.lines.length"/> × <t t-esc="money(g.amount)"/></span>
+                        <button class="btn btn-sm btn-secondary ms-auto" t-on-click="() => this.showDuplicate(g)">Show</button>
+                    </div>
+                    <div t-foreach="g.lines" t-as="gl" t-key="gl.id" class="o_bank_rec_match_line">
+                        <button class="btn btn-link p-0 o_bank_rec_ellipsis" t-on-click="() => this.openDetails(gl)">
+                            <t t-esc="gl.date_label"/> · <t t-esc="gl.move"/> · <t t-esc="gl.label or gl.ref"/>
+                        </button>
+                        <strong t-esc="money(gl.amount)"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. The two columns. -->
+            <div class="o_bank_rec_cols">
+                <section t-foreach="sides" t-as="side" t-key="side.key"
+                         t-attf-class="o_bank_rec_col o_bank_rec_col_{{ side.key }}">
+                    <header class="o_bank_rec_col_h">
+                        <div><strong t-esc="side.title"/><span class="o_bank_rec_note ms-2" t-esc="side.hint"/></div>
+                        <span class="o_bank_rec_count">
+                            <t t-esc="side.outstanding === null ? side.lines.length : side.outstanding"/> outstanding
+                        </span>
+                    </header>
+
+                    <t t-if="state.view === 'days'">
+                        <div t-if="!side.days" class="o_bank_rec_none">Adding up…</div>
+                        <div t-elif="!side.days.length" class="o_bank_rec_none"
+                             t-esc="state.search or state.age or state.source ? 'Nothing matches.' : 'Nothing outstanding.'"/>
+                        <div t-foreach="side.days or []" t-as="day" t-key="day.day" class="o_bank_rec_day">
+                            <div class="o_bank_rec_day_h">
+                                <strong t-esc="day.label"/>
+                                <span class="o_bank_rec_note"><t t-esc="day.count"/> <t t-esc="plural(day.count, 'entry', 'entries')"/></span>
+                                <strong class="o_bank_rec_num" t-esc="money(day.amount)"/>
+                                <button t-if="d.editable" class="btn btn-sm btn-outline-primary" t-att-disabled="state.busy"
+                                        t-on-click="() => this.tickDay(side, day, false)">Tick day</button>
+                            </div>
+                            <div t-foreach="day.groups" t-as="g" t-key="g.key" class="o_bank_rec_day_g">
+                                <span t-attf-class="o_bank_rec_dot o_bank_rec_dot_{{ g.source }}"/>
+                                <span class="o_bank_rec_ellipsis" t-esc="g.label"/>
+                                <span class="o_bank_rec_note text-end" t-esc="g.count"/>
+                                <span class="o_bank_rec_num" t-esc="money(g.amount)"/>
+                                <button t-if="d.editable and day.groups.length &gt; 1" class="btn btn-sm btn-link p-0"
+                                        t-att-disabled="state.busy" t-on-click="() => this.tickDay(side, day, g)">Tick</button>
+                                <span t-else=""/>
+                            </div>
+                        </div>
+                    </t>
+
+                    <t t-else="">
+                        <div t-if="d.editable and side.lines.length" class="o_bank_rec_bulk">
+                            <button class="btn btn-link btn-sm p-0" t-att-disabled="state.busy"
+                                    t-on-click="() => this.tickAll(side)">Tick all shown</button>
+                            <span class="o_bank_rec_note">or up to</span>
+                            <input type="date" class="form-control form-control-sm"
+                                   t-att-value="state.upto[side.key]" t-on-change="(ev) => this.setUpto(side, ev)"/>
+                            <button class="btn btn-link btn-sm p-0" t-att-disabled="!state.upto[side.key] or state.busy"
+                                    t-on-click="() => this.tickUpTo(side)">Tick</button>
+                        </div>
+                        <div t-if="!side.lines.length" class="o_bank_rec_none"
+                             t-esc="state.search or state.age or state.source ? 'Nothing matches.' : 'Nothing outstanding.'"/>
+                        <div t-foreach="side.lines" t-as="line" t-key="line.id"
+                             t-attf-class="o_bank_rec_line {{ line.cleared ? 'o_bank_rec_cleared' : '' }} {{ line.stale ? 'o_bank_rec_is_stale' : '' }} {{ line.query ? 'o_bank_rec_is_query' : '' }} {{ state.focus === side.offset + line_index ? 'o_bank_rec_focus' : '' }} {{ state.detail.lineId === line.id ? 'o_bank_rec_open' : '' }}">
+                            <input type="checkbox" class="form-check-input o_bank_rec_tick"
+                                   t-att-checked="line.cleared"
+                                   t-att-disabled="line.locked or !d.editable or state.busy"
+                                   title="Tick (shift-click for a range)"
+                                   t-on-click="(ev) => this.onTick(ev, line, side, line_index)"/>
+                            <div class="o_bank_rec_what" title="Open the details"
+                                 t-on-click="() => this.openDetails(line, side.offset + line_index)">
+                                <div class="o_bank_rec_label" t-esc="line.label or line.ref or line.move"/>
+                                <div class="o_bank_rec_meta">
+                                    <t t-esc="line.date_label"/> · <t t-esc="line.move"/>
+                                    <t t-if="line.partner"> · <t t-esc="line.partner"/></t>
+                                    <span t-if="line.stale" class="o_bank_rec_stale_tag"> · <t t-esc="line.age"/> days</span>
+                                </div>
+                                <div t-if="line.query" class="o_bank_rec_query_tag">
+                                    <i class="fa fa-flag me-1" title="Under query"/><t t-esc="line.query"/>
+                                </div>
+                            </div>
+                            <div class="o_bank_rec_amt">
+                                <span class="o_bank_rec_num" t-esc="money(line.amount)"/>
+                                <button t-if="d.editable" type="button"
+                                        t-attf-class="o_bank_rec_flag {{ line.query ? 'o_bank_rec_flag_on' : '' }}"
+                                        title="Query this entry with the bank (q)" t-on-click="() => this.openQuery(line)">
+                                    <i class="fa fa-flag" title="Query"/>
+                                </button>
+                            </div>
+                            <div t-if="state.query.lineId === line.id and !state.detail.lineId" class="o_bank_rec_query">
+                                <input type="text" t-ref="queryInput" class="form-control form-control-sm"
+                                       placeholder="What to ask the bank (Enter to save)"
+                                       t-model="state.query.note" t-on-keydown="(ev) => this.onQueryKey(ev)"/>
+                                <button class="btn btn-sm btn-primary" t-att-disabled="state.busy" t-on-click="() => this.saveQuery()">Save</button>
+                                <button t-if="line.query" class="btn btn-sm btn-secondary" t-att-disabled="state.busy"
+                                        t-on-click="() => this.saveQuery(true)">Resolved</button>
+                                <button class="btn btn-sm btn-link" t-on-click="() => this.closeQuery()">Cancel</button>
+                            </div>
+                            <div t-if="line.cleared" class="o_bank_rec_when">
+                                <i t-if="line.locked" class="fa fa-lock me-1" title="In a reconciled statement"/>
+                                cleared
+                                <input type="date" class="form-control form-control-sm"
+                                       t-att-value="line.cleared_date"
+                                       t-att-disabled="line.locked or !d.editable or state.busy"
+                                       t-on-change="(ev) => this.setDate(line, ev)"/>
+                            </div>
+                        </div>
+                        <div t-if="side.lines.length &gt;= d.limit" class="o_bank_rec_none">
+                            Showing the first <t t-esc="d.limit"/>. Search or filter to narrow it.
+                        </div>
+                    </t>
+                </section>
+            </div>
+
+            <!-- Everything behind one entry. -->
+            <t t-if="state.detail.lineId">
+                <div class="o_bank_rec_backdrop" t-on-click="() => this.closeDetails()"/>
+                <aside class="o_bank_rec_drawer">
+                    <header class="o_bank_rec_panel_h">
+                        <strong>Entry details</strong>
+                        <button class="btn-close ms-auto" title="Close (Esc)" t-on-click="() => this.closeDetails()"/>
+                    </header>
+                    <div t-if="!state.detail.data" class="o_bank_rec_loading">Loading…</div>
+                    <t t-else="">
+                        <t t-set="x" t-value="state.detail.data"/>
+                        <section class="o_bank_rec_dsum">
+                            <div class="o_bank_rec_note" t-esc="x.side === 'deposits' ? 'Into the bank' : 'Out of the bank'"/>
+                            <div t-attf-class="o_bank_rec_dsum_amt {{ x.side }}" t-esc="money(x.amount)"/>
+                            <div class="o_bank_rec_note">
+                                <t t-esc="x.date_label"/> · <t t-esc="x.age"/> days old
+                                <span t-attf-class="badge ms-1 {{ x.cleared ? 'text-bg-success' : 'text-bg-warning' }}"
+                                      t-esc="x.cleared ? 'Cleared' : 'Outstanding'"/>
+                            </div>
+                            <div t-if="x.clearance" class="o_bank_rec_note">
+                                Cleared on <t t-esc="x.clearance.date_label"/> by <t t-esc="x.clearance.by"/>
+                                <t t-if="x.clearance.after_statement"> (after this statement's date)</t>
+                                <t t-if="x.clearance.statement"> · <t t-esc="x.clearance.statement"/></t>
+                            </div>
+                            <div class="o_bank_rec_dsum_btns">
+                                <button t-if="x.editable and !x.locked" t-attf-class="btn btn-sm {{ x.cleared ? 'btn-warning' : 'btn-primary' }}"
+                                        t-att-disabled="state.busy" t-on-click="() => this.detailTick()">
+                                    <t t-esc="x.cleared ? 'Untick' : 'Tick as cleared'"/>
+                                </button>
+                                <button t-if="x.editable" class="btn btn-sm btn-secondary" t-on-click="() => this.detailQuery()">
+                                    <i class="fa fa-flag me-1" title="Query"/><t t-esc="x.query ? 'Edit query' : 'Query with bank'"/>
+                                </button>
+                                <button class="btn btn-sm btn-secondary" t-on-click="() => this.openRecord('account.move', x.move.id)">
+                                    <i class="fa fa-external-link me-1" title="Open"/>Open entry
+                                </button>
+                            </div>
+                            <div t-if="state.query.lineId === x.line_id" class="o_bank_rec_query">
+                                <input type="text" t-ref="drawerQueryInput" class="form-control form-control-sm"
+                                       placeholder="What to ask the bank (Enter to save)"
+                                       t-model="state.query.note" t-on-keydown="(ev) => this.onQueryKey(ev)"/>
+                                <button class="btn btn-sm btn-primary" t-on-click="() => this.saveQuery()">Save</button>
+                                <button t-if="x.query" class="btn btn-sm btn-secondary" t-on-click="() => this.saveQuery(true)">Resolved</button>
+                            </div>
+                            <div t-elif="x.query" class="o_bank_rec_query_tag">
+                                <i class="fa fa-flag me-1" title="Query"/><t t-esc="x.query.note"/>
+                                <span class="o_bank_rec_note"> · <t t-esc="x.query.by"/>, <t t-esc="x.query.when"/></span>
+                            </div>
+                        </section>
+
+                        <section class="o_bank_rec_dsec">
+                            <h6>Journal entry</h6>
+                            <dl>
+                                <dt>Number</dt>
+                                <dd><button class="btn btn-link p-0" t-on-click="() => this.openRecord('account.move', x.move.id)" t-esc="x.move.name"/></dd>
+                                <dt>Journal</dt><dd t-esc="x.move.journal"/>
+                                <dt>Date</dt><dd t-esc="x.move.date_label"/>
+                                <t t-if="x.move.ref"><dt>Reference</dt><dd t-esc="x.move.ref"/></t>
+                                <dt>Status</dt><dd t-esc="x.move.state"/>
+                                <dt>Entered by</dt><dd><t t-esc="x.move.created_by"/>, <t t-esc="x.move.created_on"/></dd>
+                                <t t-if="x.move.narration"><dt>Note</dt><dd t-esc="x.move.narration"/></t>
+                            </dl>
+                            <table class="o_bank_rec_dlines">
+                                <thead><tr><th>Account</th><th class="text-end">Debit</th><th class="text-end">Credit</th></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="x.lines" t-as="ml" t-key="ml_index" t-att-class="ml.bank ? 'o_bank_rec_dline_bank' : ''">
+                                        <td>
+                                            <div t-esc="ml.account"/>
+                                            <small class="o_bank_rec_note">
+                                                <t t-esc="ml.partner"/><t t-if="ml.partner and ml.label"> · </t><t t-esc="ml.label"/>
+                                                <t t-if="ml.matching"> · matched <t t-esc="ml.matching"/></t>
+                                            </small>
+                                        </td>
+                                        <td class="text-end o_bank_rec_num"><t t-if="ml.debit" t-esc="money(ml.debit)"/></td>
+                                        <td class="text-end o_bank_rec_num"><t t-if="ml.credit" t-esc="money(ml.credit)"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </section>
+
+                        <section t-if="x.payment" class="o_bank_rec_dsec">
+                            <h6><t t-esc="x.payment.kind"/></h6>
+                            <dl>
+                                <dt>Number</dt>
+                                <dd><button class="btn btn-link p-0" t-on-click="() => this.openRecord('account.payment', x.payment.id)" t-esc="x.payment.name"/></dd>
+                                <dt>Party</dt><dd t-esc="x.payment.partner"/>
+                                <dt>Method</dt><dd t-esc="x.payment.method"/>
+                                <t t-if="x.payment.memo"><dt>Memo</dt><dd t-esc="x.payment.memo"/></t>
+                                <dt>Amount</dt><dd t-esc="money(x.payment.amount)"/>
+                            </dl>
+                        </section>
+
+                        <section t-if="x.invoices.length" class="o_bank_rec_dsec">
+                            <h6>Settled invoices</h6>
+                            <div t-foreach="x.invoices" t-as="inv" t-key="inv.id" class="o_bank_rec_match_line">
+                                <button class="btn btn-link p-0" t-on-click="() => this.openRecord('account.move', inv.id)">
+                                    <t t-esc="inv.name"/> · <t t-esc="inv.date_label"/>
+                                </button>
+                                <span class="o_bank_rec_num"><t t-esc="money(inv.total)"/><small t-if="inv.residual" class="o_bank_rec_note"> (<t t-esc="money(inv.residual)"/> due)</small></span>
+                            </div>
+                        </section>
+
+                        <section t-if="x.party" class="o_bank_rec_dsec">
+                            <h6>Party</h6>
+                            <div class="o_bank_rec_match_line">
+                                <button class="btn btn-link p-0" t-on-click="() => this.openRecord('res.partner', x.party.id)" t-esc="x.party.name"/>
+                                <span class="o_bank_rec_num" t-att-title="'Receivable and payable ledger balance'">
+                                    <t t-esc="money(abs(x.party.balance))"/>
+                                    <small class="o_bank_rec_note" t-esc="x.party.balance &gt; 0 ? ' owed to us' : (x.party.balance &lt; 0 ? ' in advance / owed by us' : '')"/>
+                                </span>
+                            </div>
+                            <button class="btn btn-link btn-sm p-0" t-on-click="() => this.showParty(x.party)">Show this party's bank entries</button>
+                        </section>
+
+                        <section t-if="x.similar.length" class="o_bank_rec_dsec">
+                            <h6>Other outstanding entries of this amount</h6>
+                            <div t-foreach="x.similar" t-as="s" t-key="s.id" class="o_bank_rec_match_line">
+                                <button class="btn btn-link p-0 o_bank_rec_ellipsis" t-on-click="() => this.openDetails(s)">
+                                    <t t-esc="s.date_label"/> · <t t-esc="s.label or s.ref or s.move"/><t t-if="s.partner"> · <t t-esc="s.partner"/></t>
+                                </button>
+                                <span class="o_bank_rec_num" t-esc="money(s.amount)"/>
+                            </div>
+                        </section>
+                    </t>
+                </aside>
+            </t>
+        </t>
+    </div>
+</t>
+
+</templates>
