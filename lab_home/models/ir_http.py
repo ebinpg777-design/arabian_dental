@@ -15,10 +15,30 @@ _logger = logging.getLogger(__name__)
 class IrHttp(models.AbstractModel):
     _inherit = 'ir.http'
 
+    # The wallpapers the module ships, and which of them need light captions.
+    # Named here and not read off the directory: a name that does not exist has
+    # to fall back to something rather than leave the home screen blank.
+    WALLPAPERS = ('studio', 'daylight', 'midnight', 'ceramic')
+    DARK_WALLPAPERS = ('midnight', 'ceramic')
+    DEFAULT_WALLPAPER = 'ceramic'
+
     def session_info(self):
         info = super().session_info()
         info['home_alerts'] = self._home_alerts()
+        info['home_wallpaper'] = self._home_wallpaper()
         return info
+
+    def _home_wallpaper(self):
+        """Which wallpaper this database shows, from `lab_home.wallpaper`.
+
+        A setting and not a preference: the home screen is the lab's front door
+        and it should look the same to everybody who walks through it.
+        """
+        chosen = (self.env['ir.config_parameter'].sudo()
+                  .get_param('lab_home.wallpaper') or '').strip().lower()
+        if chosen not in self.WALLPAPERS:
+            chosen = self.DEFAULT_WALLPAPER
+        return {'name': chosen, 'dark': chosen in self.DARK_WALLPAPERS}
 
     def _home_alerts(self):
         """The warning strip on the app grid, worst first.

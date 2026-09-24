@@ -5,9 +5,13 @@
 // mobile-first — the dentists this is aimed at open it on a phone between patients —
 // and nothing depends on hover.
 
-$lab-red:      #e31e25;   // the red of the mark
-$lab-red-deep: #b3121a;
-$lab-grey:     #7c7d81;   // the grey of the mark
+// Straight off the lab's brand sheet (ADL LOGO CODE.pdf, committed at
+// lab_website/static/src/img/brand/): red CMYK 0 100 100 0, grey CMYK 10 0 0 70.
+// The values here used to be eyedropped from a screenshot of the mark and were
+// both a shade out.
+$lab-red:      #ed1c24;   // the red of the mark
+$lab-red-deep: #b01118;
+$lab-grey:     #606a70;   // the grey of the mark
 $lab-ink:      #14181d;
 $lab-navy:     #0b1220;
 $lab-navy-2:   #16213a;

@@ -1,20 +1,41 @@
 /** @odoo-module **/
 
 /**
- * The warning strip on the app grid.
+ * The lab's home screen: which wallpaper is on it, and the warning strip above
+ * the apps.
  *
- * The warnings themselves are worked out on the server and travel on the
- * session (see models/ir_http.py), so landing on the home screen costs nothing
- * extra. This only decides what to do when one is clicked.
+ * Both are decided on the server and travel on the session (see
+ * models/ir_http.py), so landing on the home screen costs no extra round trip.
  *
- * It patches the THEME's home menu, which is the grid this database actually
- * shows - neither the stock web one nor the responsive drawer.
+ * The component patched is the THEME's home menu, which is the app grid this
+ * database actually shows - neither the stock web one nor the responsive
+ * drawer.
  */
 import {patch} from "@web/core/utils/patch";
+import {registry} from "@web/core/registry";
 import {useService} from "@web/core/utils/hooks";
 import {useState} from "@odoo/owl";
 import {session} from "@web/session";
 import {HomeMenu} from "@zxs_entp_theme/webclient/home_menu/home_menu";
+
+/**
+ * The wallpaper is a class on <body>, set once when the client starts rather
+ * than when the home menu mounts: the background belongs to the whole client,
+ * and setting it from the component would show the default for as long as it
+ * takes that component to appear.
+ */
+registry.category("services").add("lab_home_wallpaper", {
+    start() {
+        const wallpaper = session.home_wallpaper;
+        if (!wallpaper || !wallpaper.name) {
+            return;
+        }
+        document.body.classList.add(`o_lab_wall_${wallpaper.name}`);
+        if (wallpaper.dark) {
+            document.body.classList.add("o_lab_wall_dark");
+        }
+    },
+});
 
 patch(HomeMenu.prototype, {
     setup() {

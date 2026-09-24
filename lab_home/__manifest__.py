@@ -24,6 +24,10 @@ Only users who can act on a warning are shown it.
     'category': 'Technical',
     'license': 'LGPL-3',
     'depends': ['web', 'zxs_entp_theme'],
+    # Odoo's own purple and teal are left alone on purpose (asked for,
+    # 2026-09-24): the brand's red and grey are carried by the logo, the app
+    # icons and the wallpaper, and turning every primary button red as well made
+    # an ordinary save look like a warning.
     'assets': {
         'web.assets_backend': [
             'lab_home/static/src/scss/home_screen.scss',

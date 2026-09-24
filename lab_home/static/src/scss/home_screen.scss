@@ -6,22 +6,67 @@
  * take it away without also taking its own background away.
  */
 
-$lab-red: #e31e25;
+$lab-red: #ed1c24;   // the brand sheet's red
 $lab-navy: #0b1220;
+$lab-ink: #0b0e13;    // the dark wallpapers' own ground
+$lab-paper: #f2f3f6;  // and the light ones'
+
+// WHERE THESE CLASSES LIVE. Odoo puts `o_home_menu_background` on <body>
+// itself, and the wallpaper class goes on the same element (see the service in
+// home_screen.esm.js), so a descendant selector - `body.o_lab_wall_x
+// .o_home_menu_background` - matches nothing at all. Each variant is therefore
+// written twice: once compounded, for the element that carries both, and once as
+// a descendant, in case a later theme moves the background onto a child.
+@mixin wallpaper($file, $ground) {
+    --homeMenu-bg-color: #{$ground};
+    --homeMenu-bg-image: url("/lab_home/static/src/img/#{$file}");
+}
 
 .o_home_menu_background,
 .o_web_client.o_home_menu_background {
-    // The picture is composed in tools/make_home_wallpaper.py - navy, the lab's
-    // own ceramic work in the bottom right, lit from two corners - rather than
-    // layered here, because where each part of it goes depends on where things
-    // sit in the frame, which CSS cannot know.
-    --homeMenu-bg-color: #{$lab-navy};
-    --homeMenu-bg-image: url("/lab_home/static/src/img/wallpaper.jpg");
+    // Which picture shows is the system parameter `lab_home.wallpaper`. Each one
+    // is composed in tools/make_home_wallpaper.py, because where each part of a
+    // picture goes depends on where things sit in the FRAME - which CSS, knowing
+    // only the screen, cannot work out.
+    //
+    // This bare rule is the LIGHT one, although the default setting is the dark
+    // "ceramic". The captions only turn white under `o_lab_wall_dark`, so if the
+    // class ever failed to arrive - an old session, a JS error - a dark picture
+    // here would leave near-black app names on a near-black screen. A light
+    // fallback is wrong about the picture and right about the text.
+    @include wallpaper('wallpaper-studio.jpg', $lab-paper);
+}
 
+.o_lab_wall_studio.o_home_menu_background,
+.o_lab_wall_studio .o_home_menu_background {
+    @include wallpaper('wallpaper-studio.jpg', $lab-paper);
+}
+
+.o_lab_wall_daylight.o_home_menu_background,
+.o_lab_wall_daylight .o_home_menu_background {
+    @include wallpaper('wallpaper-daylight.jpg', #ffffff);
+}
+
+.o_lab_wall_midnight.o_home_menu_background,
+.o_lab_wall_midnight .o_home_menu_background {
+    @include wallpaper('wallpaper-midnight.jpg', $lab-ink);
+}
+
+.o_lab_wall_ceramic.o_home_menu_background,
+.o_lab_wall_ceramic .o_home_menu_background {
+    @include wallpaper('wallpaper-ceramic.jpg', $lab-ink);
+}
+
+// Only the dark wallpapers need any of this. The theme's own colours are meant
+// for a light background and are right as they are on the light ones.
+body.o_lab_wall_dark {
     // The theme makes the navbar transparent over the home screen and leaves its
-    // text the colour a light background wanted. On this wallpaper that is the
-    // company name in near-black on near-black.
-    &:not(.o_home_menu_background_custom):not(.o_in_studio) .o_main_navbar {
+    // text the colour a light background wanted - which on a dark wallpaper is
+    // the company name in near-black on near-black. Only while the home screen
+    // is up: `o_home_menu_background` is on the same element and comes and goes
+    // with it.
+    &.o_home_menu_background:not(.o_home_menu_background_custom):not(.o_in_studio) .o_main_navbar,
+    .o_home_menu_background:not(.o_home_menu_background_custom):not(.o_in_studio) .o_main_navbar {
         color: rgba(255, 255, 255, 0.92);
 
         .o_menu_brand,
@@ -34,15 +79,36 @@ $lab-navy: #0b1220;
             color: inherit;
         }
     }
+
+    .o_home_menu {
+        .o_app .o_caption {
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+        }
+
+        .o_app .o_app_icon {
+            box-shadow:
+                0 8px 20px rgba(0, 0, 0, 0.42),
+                0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .o_no_result {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        &::after {
+            background-image: url("/lab_home/static/src/img/wordmark-white.png");
+        }
+    }
 }
 
 .o_home_menu {
-    // The wordmark is drawn on the screen rather than baked into the picture,
-    // so it stays put and stays sharp whatever the screen.
+    // The wordmark is drawn on the screen rather than baked into a picture, so
+    // it stays sharp on any screen and stays put when the grid scrolls. Bottom
+    // LEFT, because three of the four wallpapers put something in the opposite
+    // corner.
     position: relative;
 
-    // Bottom LEFT: the picture is in the bottom right, and a wordmark laid over
-    // the lab's own ceramic work reads as a watermark on a stock photo.
     &::after {
         content: "";
         position: fixed;
@@ -51,7 +117,7 @@ $lab-navy: #0b1220;
         width: 210px;
         height: 46px;
         background: url("/lab_home/static/src/img/wordmark.png") no-repeat left bottom / contain;
-        opacity: 0.4;
+        opacity: 0.55;
         pointer-events: none;
     }
 
@@ -61,21 +127,8 @@ $lab-navy: #0b1220;
         }
     }
 
-    // App names are set for a light background by the theme.
     .o_app .o_caption {
-        color: #fff;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
         font-weight: 500;
-    }
-
-    .o_app .o_app_icon {
-        box-shadow:
-            0 8px 20px rgba(0, 0, 0, 0.42),
-            0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .o_no_result {
-        color: rgba(255, 255, 255, 0.8);
     }
 }
 

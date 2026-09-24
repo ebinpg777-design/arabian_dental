@@ -67,3 +67,53 @@ class TestHomeAlerts(TransactionCase):
                 "the installed backup module must answer what the home screen asks")
         else:
             self.assertIsNone(self.IrHttp._home_alert_backup())
+
+
+@tagged('post_install', '-at_install')
+class TestWallpaper(TransactionCase):
+    """Which picture the home screen shows.
+
+    A setting rather than a preference: the home screen is the lab's front door
+    and should look the same to everyone who walks through it.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.IrHttp = self.env['ir.http']
+        self.param = self.env['ir.config_parameter'].sudo()
+
+    def _wallpaper(self, value=None):
+        if value is None:
+            self.param.search([('key', '=', 'lab_home.wallpaper')]).unlink()
+        else:
+            self.param.set_param('lab_home.wallpaper', value)
+        return self.IrHttp._home_wallpaper()
+
+    def test_nothing_set_gives_the_default(self):
+        self.assertEqual(self._wallpaper()['name'], 'ceramic')
+
+    def test_a_name_that_was_typed_carelessly_still_gives_a_wallpaper(self):
+        """The direction that matters: a name nobody shipped must not leave the
+        home screen with no background at all."""
+        for typo in ('Midnight ', 'midnigth', 'wallpaper-midnight.jpg', ''):
+            self.assertIn(self._wallpaper(typo)['name'],
+                          self.IrHttp.WALLPAPERS, typo)
+
+    def test_the_names_that_were_shipped_are_taken_as_given(self):
+        for name in self.IrHttp.WALLPAPERS:
+            self.assertEqual(self._wallpaper(name)['name'], name)
+
+    def test_each_wallpaper_says_whether_it_needs_light_captions(self):
+        """Captions are dark by default. A dark wallpaper that forgot to say so
+        would put dark grey app names on a near-black background."""
+        self.assertTrue(self._wallpaper('midnight')['dark'])
+        self.assertFalse(self._wallpaper('studio')['dark'])
+
+    def test_every_wallpaper_named_here_is_a_file_that_exists(self):
+        import os
+        from odoo.modules.module import get_module_path
+        folder = os.path.join(get_module_path('lab_home'), 'static', 'src', 'img')
+        for name in self.IrHttp.WALLPAPERS:
+            self.assertTrue(
+                os.path.exists(os.path.join(folder, 'wallpaper-%s.jpg' % name)),
+                "wallpaper-%s.jpg is offered but not shipped" % name)
