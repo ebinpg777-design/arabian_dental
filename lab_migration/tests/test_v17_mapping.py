@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """How dental_sale's fields land on the suite's — the rules a technician or an
 accountant would check first when the migrated data looks wrong."""
+import os
+from unittest.mock import patch
+
 from odoo import fields
 from odoo.tests import TransactionCase, tagged
 
@@ -406,3 +409,34 @@ class TestCashRounding(TransactionCase):
 
     def test_an_invoice_that_rounded_nothing_asks_for_no_rule(self):
         self.assertEqual(self._map(id=7).get(1), None)
+
+
+@tagged('post_install', '-at_install')
+class TestMenuIcons(TransactionCase):
+    """App icons after a database is copied without its filestore.
+
+    `createdb -T arabian_dental_clean` copies the database and not the files
+    beside it, and a menu's icon is one of those files: 17 of the 22 app icons
+    came up as the generic grey box on the first migrated copy.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.backend = cls.env['migration.backend'].new({})
+        cls.menu = cls.env['ir.ui.menu'].search([('web_icon', '!=', False)], limit=1)
+
+    def test_an_icon_whose_file_is_gone_is_rebuilt_from_the_module(self):
+        """The file is not actually removed - it belongs to the running database
+        and a rolled-back test cannot put it back. What is simulated is the
+        lookup failing, which is what a copied filestore looks like from here."""
+        self.assertTrue(self.menu, "the database must have at least one app icon")
+        with patch.object(os.path, 'exists', lambda _p: False):
+            line = self.backend._repair_menu_icons()
+        rebuilt = int(line.split()[2])
+        self.assertGreater(rebuilt, 0, line)
+        self.assertTrue(self.menu.web_icon_data)
+
+    def test_icons_that_are_there_are_left_alone(self):
+        line = self.backend._repair_menu_icons()
+        self.assertTrue(line.startswith("App icons: 0 of "), line)

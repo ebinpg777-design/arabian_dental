@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 import logging
+import os
 import re
 from collections import defaultdict
 
@@ -1208,6 +1209,7 @@ class MigrationBackend(models.Model):
         stats.append("")
         stats += self._opening_accounting()
         stats += self._opening_inventory()
+        stats.append(self._repair_menu_icons())
         stats.append("")
         # continue Odoo 17 invoice/bill numbering (uses the cache from _run)
         conn = self._connect()
@@ -2798,6 +2800,43 @@ class MigrationBackend(models.Model):
         finally:
             conn.close()
         return out
+
+    def _repair_menu_icons(self):
+        """Give back the app icons a copied database left behind.
+
+        A target is normally made with `createdb -T arabian_dental_clean`, which
+        copies the DATABASE and not the filestore that goes with it. Menu icons
+        live there: `ir.ui.menu.web_icon_data` is a Binary(attachment=True), so
+        17 of the 22 app icons came up as the generic grey box on the first
+        migrated copy. Re-writing `web_icon` recomputes the image from the
+        module's own icon.png, which is on disk either way.
+
+        Counting them is not straightforward: `search` on ir.attachment hides
+        rows that carry a `res_field`, so the ordinary "attachments whose file is
+        missing" query reports one. These are found through the menus instead.
+        """
+        Menu = self.env['ir.ui.menu'].sudo()
+        menus = Menu.search([('web_icon', '!=', False)])
+        if not menus:
+            return "App icons: no menu carries one"
+        store = self.env['ir.attachment']._filestore()
+        attachments = self.env['ir.attachment'].sudo().search([
+            ('res_model', '=', 'ir.ui.menu'),
+            ('res_field', '=', 'web_icon_data'),
+            ('res_id', 'in', menus.ids),
+        ])
+        gone = {a.res_id for a in attachments
+                if not a.store_fname
+                or not os.path.exists(os.path.join(store, a.store_fname))}
+        repaired = 0
+        for menu in Menu.browse(sorted(gone)):
+            try:
+                with self.env.cr.savepoint():
+                    menu.write({'web_icon': menu.web_icon})
+                repaired += 1
+            except Exception as e:
+                _logger.warning("menu icon %s: %s", menu.id, e)
+        return "App icons: %d of %d rebuilt from the modules" % (repaired, len(menus))
 
     def _reset_stock_absent_from_source(self, company, Quant, written):
         """Bring migrated stock the source no longer holds back down to zero.

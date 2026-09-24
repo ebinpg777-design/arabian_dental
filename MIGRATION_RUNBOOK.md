@@ -195,6 +195,10 @@ fresh run does not show it.
   that does the same thing rather than creating one, because an Odoo 19 rule needs a
   profit and a loss account that the Odoo 17 model does not have. If the target has no
   such rule the run says so in the log and those invoices keep unrounded totals.
+* App icons: a target made with `createdb -T` gets the database and not the filestore
+  beside it, and a menu's icon lives there. The run rebuilds those from the modules' own
+  `icon.png` and says how many ("App icons: 17 of 22 rebuilt"). Copying
+  `filestore/arabian_dental_clean` to the new name beforehand avoids it.
 * On-hand is taken from the source's own quants when `On-hand As Of` is today or later,
   and anything the source does not stock is set back to zero. Only products that came
   from the source are touched, so stock booked in after go-live is left alone. An older
