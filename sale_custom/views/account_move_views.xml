@@ -41,7 +41,7 @@
                        column_invisible="parent.move_type not in ('out_invoice', 'out_refund', 'out_receipt')"/>
                 <field name="work_number" string="Work No." optional="hide"
                        column_invisible="parent.move_type not in ('out_invoice', 'out_refund', 'out_receipt')"/>
-                <field name="ul" string="U/L" optional="hide"
+                <field name="ul" string="Jaw" optional="hide"
                        column_invisible="parent.move_type not in ('out_invoice', 'out_refund', 'out_receipt')"/>
                 <field name="teeth" string="Teeth" optional="show" widget="fdi_teeth"
                        column_invisible="parent.move_type not in ('out_invoice', 'out_refund', 'out_receipt')"/>

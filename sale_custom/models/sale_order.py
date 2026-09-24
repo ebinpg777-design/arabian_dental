@@ -764,7 +764,7 @@ class SaleOrderLine(models.Model):
     priority = fields.Selection(
         related='order_id.priority', string='Priority', store=True)
     ul = fields.Selection(
-        [('upper', 'U'), ('lower', 'L'), ('ul', 'UL')], string='U/L')
+        [('upper', 'U'), ('lower', 'L'), ('ul', 'UL')], string='Jaw')
     # Which cast came with the case, which is not always the arch the appliance is
     # for: an upper appliance is often made on both casts. Optional - an
     # unanswered question reads as unanswered. (client, 2026-09-18)

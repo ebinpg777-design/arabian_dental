@@ -113,7 +113,7 @@
                               t-options="{'widget': 'date'}"/>
                     </t>
                     <t t-if="slip['ul']">
-                        &#160;<span style="color:#666;">U/L</span>
+                        &#160;<span style="color:#666;">Jaw</span>
                         <span style="font-weight:bold;" t-esc="slip['ul']"/>
                     </t>
                     <t t-if="slip['colour']">

@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, onMounted, useRef, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { usePopover } from "@web/core/popover/popover_hook";
@@ -169,6 +169,15 @@ export class FdiTeethField extends Component {
 
     setup() {
         this.popover = usePopover(FdiTeethChart, { position: "bottom-start" });
+        this.rootRef = useRef("root");
+        this.inputRef = useRef("input");
+        // Entering the cell is entering the mouth: when the list puts the row in
+        // edition and hands this field the focus, the chart is already open.
+        onMounted(() => {
+            if (!this.props.readonly && this.inputRef.el && document.activeElement === this.inputRef.el) {
+                this.openChart();
+            }
+        });
     }
 
     get value() {
@@ -184,12 +193,11 @@ export class FdiTeethField extends Component {
         return [...teeth, ...extras];
     }
 
-    openChart(ev) {
-        if (this.popover.isOpen) {
-            this.popover.close();
+    openChart() {
+        if (this.props.readonly || this.popover.isOpen || !this.rootRef.el) {
             return;
         }
-        this.popover.open(ev.currentTarget, {
+        this.popover.open(this.rootRef.el, {
             value: this.value,
             readonly: this.props.readonly,
             onChange: (value) => this.update(value),

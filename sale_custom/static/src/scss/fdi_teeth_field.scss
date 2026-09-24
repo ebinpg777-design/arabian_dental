@@ -8,8 +8,8 @@
         gap: 2px;
         padding: 0 6px;
         border-radius: 999px;
-        background: rgba(13, 110, 253, 0.12);
-        color: #0b5ed7;
+        background: rgba(113, 75, 103, 0.13);
+        color: var(--primary, #714b67);
         font-weight: 600;
         font-size: 0.8rem;
         line-height: 1.5;
@@ -33,56 +33,203 @@
         background: transparent;
         &:focus { border-bottom-color: var(--primary, #714b67); outline: none; }
     }
-    .o_fdi_open { color: var(--primary, #714b67); }
+    &:not(.o_fdi_readonly) { cursor: text; }
 }
 
 .o_fdi_chart {
-    min-width: 34rem;
+    --fdi-brand: var(--primary, #714b67);
+    --fdi-ink: #1f2937;
+    --fdi-line: #e2e6ea;
+    min-width: 36rem;
+    padding: 0.75rem 0.9rem 0.9rem;
+    color: var(--fdi-ink);
+    font-size: 0.85rem;
 
-    .o_fdi_archname {
-        flex: 0 0 6.5rem;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+    .o_fdi_head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin: -0.75rem -0.9rem 0.7rem;
+        padding: 0.7rem 0.9rem;
+        background: linear-gradient(135deg, rgba(113, 75, 103, 0.14), rgba(113, 75, 103, 0.03));
+        border-bottom: 1px solid var(--fdi-line);
+    }
+    .o_fdi_logo {
+        display: inline-flex;
+        width: 2.1rem;
+        height: 2.1rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #fff;
+        color: var(--fdi-brand);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    }
+    .o_fdi_title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        line-height: 1.1;
+    }
+    .o_fdi_subtitle {
+        font-size: 0.72rem;
         color: #6c757d;
     }
-    .o_fdi_tooth {
-        width: 2rem;
-        height: 2rem;
-        border: 1px solid #ced4da;
-        border-radius: 7px 7px 10px 10px;
-        background: #fff;
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #495057;
-        transition: transform 0.08s ease, background 0.08s ease;
-        &:hover { transform: translateY(-1px); border-color: #0d6efd; }
-        &.o_fdi_on {
-            background: #0d6efd;
-            border-color: #0d6efd;
+    .o_fdi_count {
+        padding: 0.15rem 0.6rem;
+        border-radius: 999px;
+        background: #f1f3f5;
+        color: #6c757d;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        &.o_fdi_count_on {
+            background: var(--fdi-brand);
             color: #fff;
-            box-shadow: 0 2px 6px rgba(13, 110, 253, 0.35);
+            font-weight: 600;
+        }
+    }
+
+    // The two controls a hand reaches for: primary teeth, and start over.
+    .o_fdi_tools {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+    }
+    .o_fdi_primary_btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.9rem;
+        border: 2px solid #f0ad4e;
+        border-radius: 999px;
+        background: #fff7e6;
+        color: #8a5a00;
+        font-weight: 700;
+        font-size: 0.8rem;
+        letter-spacing: 0.01em;
+        box-shadow: 0 2px 6px rgba(240, 173, 78, 0.35);
+        transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+        &:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(240, 173, 78, 0.45); }
+        &.o_fdi_primary_on {
+            background: #f0ad4e;
+            color: #fff;
+            border-color: #e09a2c;
+        }
+        &:disabled { opacity: 0.6; transform: none; }
+    }
+    .o_fdi_clear {
+        padding: 0.3rem 0.7rem;
+        border: 1px solid var(--fdi-line);
+        border-radius: 999px;
+        background: #fff;
+        color: #b02a37;
+        font-size: 0.78rem;
+        &:hover:not(:disabled) { background: #fff5f5; border-color: #f1aeb5; }
+        &:disabled { color: #adb5bd; }
+    }
+
+    .o_fdi_mouth {
+        padding: 0.6rem 0.6rem 0.4rem;
+        border: 1px solid var(--fdi-line);
+        border-radius: 14px;
+        background: linear-gradient(180deg, #fbfbfc, #f4f5f7);
+    }
+    .o_fdi_sides {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 0.25rem 0.35rem 6.8rem;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #8a94a0;
+    }
+    .o_fdi_arch {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.35rem;
+        // the gap between the arches is the bite line
+        &.o_fdi_arch_lower { margin-top: 0.55rem; }
+        &.o_fdi_arch_lower_primary { margin-top: 0.45rem; }
+    }
+    .o_fdi_archname {
+        flex: 0 0 6.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0;
+        border: 0;
+        background: none;
+        text-align: left;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6c757d;
+        small {
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            color: #adb5bd;
+            font-size: 0.66rem;
+        }
+        &:hover { color: var(--fdi-brand); small { color: var(--fdi-brand); } }
+    }
+    .o_fdi_row {
+        display: flex;
+        align-items: center;
+        gap: 0.28rem;
+    }
+    .o_fdi_tooth {
+        width: 2.05rem;
+        height: 2.2rem;
+        border: 1.5px solid #cfd6dd;
+        background: #fff;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #495057;
+        box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.04);
+        transition: transform 0.08s ease, background 0.1s ease, box-shadow 0.1s ease;
+        &:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--fdi-brand); color: var(--fdi-brand); }
+        &.o_fdi_on, &.o_fdi_on:hover:not(:disabled) {
+            background: var(--fdi-brand);
+            border-color: var(--fdi-brand);
+            color: #fff;
+            box-shadow: 0 3px 8px rgba(113, 75, 67, 0.4);
         }
         &.o_fdi_primary {
-            width: 1.8rem;
-            height: 1.8rem;
+            width: 1.85rem;
+            height: 1.95rem;
             border-style: dashed;
+            border-color: #e5b866;
+            background: #fffaf0;
+            color: #8a5a00;
             font-size: 0.72rem;
+            &.o_fdi_on { background: #f0ad4e; border-color: #e09a2c; border-style: solid; color: #fff; }
         }
-        &:disabled { opacity: 0.7; cursor: default; }
+        &:disabled { opacity: 0.75; cursor: default; }
     }
-    // the upper arch's teeth point down, the lower arch's up
-    .o_fdi_arch:nth-child(odd) .o_fdi_tooth { border-radius: 10px 10px 7px 7px; }
+    // crowns: the upper arch's teeth round towards the bite line, the lower's away from it
+    .o_fdi_arch_upper .o_fdi_tooth, .o_fdi_arch_upper_primary .o_fdi_tooth { border-radius: 6px 6px 11px 11px; }
+    .o_fdi_arch_lower .o_fdi_tooth, .o_fdi_arch_lower_primary .o_fdi_tooth { border-radius: 11px 11px 6px 6px; }
     .o_fdi_midline {
-        width: 2px;
+        width: 0;
         align-self: stretch;
-        margin: 0 4px;
-        background: #dee2e6;
+        margin: 0 0.35rem;
+        border-left: 2px dashed #cfd6dd;
+    }
+    .o_fdi_note {
+        display: flex;
+        align-items: center;
+        margin-top: 0.6rem;
+        padding: 0 0.25rem;
     }
     .o_fdi_extras {
-        width: 16rem;
+        flex: 1 1 auto;
         border: 0;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--fdi-line);
         background: transparent;
+        font-size: 0.8rem;
+        &:focus { outline: none; border-bottom-color: var(--fdi-brand); }
     }
 }

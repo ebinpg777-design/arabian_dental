@@ -82,7 +82,7 @@
                                     <span t-field="o.color_scheme"/>
                                 </div>
                                 <div class="col-3">
-                                    <strong>U/L:</strong>
+                                    <strong>Jaw:</strong>
                                     <span t-field="o.ul"/>
                                 </div>
                             </div>

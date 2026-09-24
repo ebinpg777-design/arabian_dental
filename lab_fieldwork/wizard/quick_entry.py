@@ -146,7 +146,7 @@ class LabCaseQuickEntryLine(models.TransientModel):
         'product.product', string='Appliance',
         domain="[('sale_ok','=',True)]")
     ul = fields.Selection(
-        [('upper', 'U'), ('lower', 'L'), ('ul', 'UL')], string='U/L')
+        [('upper', 'U'), ('lower', 'L'), ('ul', 'UL')], string='Jaw')
     quantity = fields.Float(default=1.0)
     priority = fields.Selection(
         [('low', 'Low'), ('normal', 'Normal'), ('urgent', 'Urgent'),

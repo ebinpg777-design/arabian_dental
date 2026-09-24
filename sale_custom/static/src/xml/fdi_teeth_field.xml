@@ -2,7 +2,8 @@
 <templates xml:space="preserve">
 
     <t t-name="sale_custom.FdiTeethField">
-        <div class="o_fdi_field d-flex align-items-center gap-1 flex-wrap" t-att-class="{ o_fdi_readonly: props.readonly }">
+        <div class="o_fdi_field d-flex align-items-center gap-1 flex-wrap" t-att-class="{ o_fdi_readonly: props.readonly }"
+             t-ref="root" t-on-click="openChart" t-on-focusin="openChart">
             <t t-if="props.readonly">
                 <span t-if="!chips.length" class="text-muted">—</span>
                 <span t-foreach="chips" t-as="chip" t-key="chip" class="o_fdi_chip"><t t-esc="chip"/></span>
@@ -14,48 +15,64 @@
                 </span>
                 <!-- the box ADDS teeth (typed, then Enter or Tab) and empties itself: the
                      chips are the value, so repeating it in a text box only cluttered the cell -->
-                <input type="text" class="o_fdi_input o_input" value="" t-att-placeholder="chips.length ? '+' : (props.placeholder || 'e.g. 11, 21')"
-                       t-on-change="onInputChange" t-on-click.stop=""/>
-                <button type="button" class="o_fdi_open btn btn-sm btn-link p-0" t-on-click.stop="openChart" title="Pick teeth on the chart">
-                    <i class="fa fa-th-large"/>
-                </button>
+                <input type="text" class="o_fdi_input o_input" value="" t-ref="input"
+                       t-att-placeholder="chips.length ? '+' : (props.placeholder || 'e.g. 11, 21')"
+                       t-on-change="onInputChange"/>
             </t>
         </div>
     </t>
 
     <t t-name="sale_custom.FdiTeethChart">
-        <div class="o_fdi_chart p-2">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <strong class="small text-uppercase text-muted">Teeth — FDI</strong>
-                <span class="small text-muted" t-esc="summary"/>
-                <div>
-                    <button type="button" class="btn btn-sm btn-link py-0" t-on-click="() => this.state.primary = !this.state.primary">
-                        <t t-if="state.primary">Hide primary</t><t t-else="">Primary teeth</t>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-link py-0 text-danger" t-on-click="clear" t-att-disabled="props.readonly">Clear</button>
+        <div class="o_fdi_chart">
+            <div class="o_fdi_head">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="o_fdi_logo" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 3c-1.6 0-2.4-.9-4.3-.9C5 2.1 3 4.3 3 7.6c0 4.4 2.3 8.9 3.6 11.9.6 1.4 2.3 1.4 2.8 0 .6-1.7.9-4.4 2.6-4.4s2 2.7 2.6 4.4c.5 1.4 2.2 1.4 2.8 0C18.7 16.5 21 12 21 7.6 21 4.3 19 2.1 16.3 2.1c-1.9 0-2.7.9-4.3.9z"/></svg>
+                    </span>
+                    <div>
+                        <div class="o_fdi_title">Teeth</div>
+                        <div class="o_fdi_subtitle">FDI notation · tap a tooth</div>
+                    </div>
                 </div>
+                <span class="o_fdi_count" t-att-class="{ o_fdi_count_on: state.teeth.length }" t-esc="summary"/>
             </div>
-            <div class="o_fdi_sides small text-muted d-flex justify-content-between px-4 mb-1">
-                <span>patient's right</span><span>patient's left</span>
-            </div>
-            <div t-foreach="visibleArches" t-as="arch" t-key="arch.key" class="o_fdi_arch d-flex align-items-center mb-1">
-                <button type="button" class="o_fdi_archname btn btn-link btn-sm p-0 text-start" t-on-click="() => this.toggleArch(arch)"
-                        t-att-title="'Select the whole ' + arch.label + ' arch'">
-                    <t t-esc="arch.label"/>
+
+            <div class="o_fdi_tools">
+                <button type="button" class="o_fdi_primary_btn" t-att-class="{ o_fdi_primary_on: state.primary }"
+                        t-on-click="() => this.state.primary = !this.state.primary" t-att-disabled="props.readonly">
+                    <i class="fa fa-child me-1"/>
+                    <t t-if="state.primary">Primary teeth shown</t><t t-else="">Primary (baby) teeth</t>
+                    <i t-if="state.primary" class="fa fa-check ms-1"/>
                 </button>
-                <div class="o_fdi_row d-flex gap-1">
-                    <button t-foreach="arch.right" t-as="tooth" t-key="tooth" type="button"
-                            t-attf-class="o_fdi_tooth #{isSelected(tooth) ? 'o_fdi_on' : ''} #{arch.primary ? 'o_fdi_primary' : ''}"
-                            t-on-click="() => this.toggle(tooth)" t-att-disabled="props.readonly"><t t-esc="tooth"/></button>
-                    <span class="o_fdi_midline"/>
-                    <button t-foreach="arch.left" t-as="tooth" t-key="tooth" type="button"
-                            t-attf-class="o_fdi_tooth #{isSelected(tooth) ? 'o_fdi_on' : ''} #{arch.primary ? 'o_fdi_primary' : ''}"
-                            t-on-click="() => this.toggle(tooth)" t-att-disabled="props.readonly"><t t-esc="tooth"/></button>
+                <button type="button" class="o_fdi_clear" t-on-click="clear" t-att-disabled="props.readonly || !state.teeth.length">
+                    <i class="fa fa-eraser me-1"/>Clear
+                </button>
+            </div>
+
+            <div class="o_fdi_mouth">
+                <div class="o_fdi_sides"><span>patient's right</span><span>patient's left</span></div>
+                <div t-foreach="visibleArches" t-as="arch" t-key="arch.key"
+                     t-attf-class="o_fdi_arch o_fdi_arch_#{arch.key}">
+                    <button type="button" class="o_fdi_archname" t-on-click="() => this.toggleArch(arch)"
+                            t-att-title="'Select or clear the whole ' + arch.label + ' arch'" t-att-disabled="props.readonly">
+                        <t t-esc="arch.label"/>
+                        <small>all</small>
+                    </button>
+                    <div class="o_fdi_row">
+                        <button t-foreach="arch.right" t-as="tooth" t-key="tooth" type="button"
+                                t-attf-class="o_fdi_tooth #{isSelected(tooth) ? 'o_fdi_on' : ''} #{arch.primary ? 'o_fdi_primary' : ''}"
+                                t-on-click="() => this.toggle(tooth)" t-att-disabled="props.readonly"><t t-esc="tooth"/></button>
+                        <span class="o_fdi_midline"/>
+                        <button t-foreach="arch.left" t-as="tooth" t-key="tooth" type="button"
+                                t-attf-class="o_fdi_tooth #{isSelected(tooth) ? 'o_fdi_on' : ''} #{arch.primary ? 'o_fdi_primary' : ''}"
+                                t-on-click="() => this.toggle(tooth)" t-att-disabled="props.readonly"><t t-esc="tooth"/></button>
+                    </div>
                 </div>
             </div>
-            <div class="mt-2 small">
-                <label class="text-muted me-1">Also:</label>
-                <input type="text" class="o_input o_fdi_extras" t-att-value="state.extras" placeholder="a note, e.g. Q1 or bridge"
+
+            <div class="o_fdi_note">
+                <i class="fa fa-pencil me-1 text-muted"/>
+                <input type="text" class="o_fdi_extras" t-att-value="state.extras" placeholder="add a note — e.g. Q1, bridge 24–26"
                        t-on-input="onExtrasInput" t-on-change="onExtrasChange" t-att-readonly="props.readonly"/>
             </div>
         </div>

@@ -170,7 +170,7 @@
                             <th>Description</th>
                             <th t-if="show_hsn" style="width:8%">HSN</th>
                             <th t-if="show_patient" style="width:14%">Patient</th>
-                            <th t-if="show_ul" class="mid" style="width:6%">U/L</th>
+                            <th t-if="show_ul" class="mid" style="width:6%">Jaw</th>
                             <th t-if="show_teeth" class="mid" style="width:10%">Teeth</th>
                             <th class="num" style="width:8%">Qty</th>
                             <th class="num" style="width:13%">Unit Price</th>

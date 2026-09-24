@@ -13,7 +13,7 @@ class MrpProduction(models.Model):
     color_scheme = fields.Char(
         related='sale_line_id.color_scheme.name', string='Colour', store=True)
     ul = fields.Selection(
-        related='sale_line_id.ul', string='U/L', store=True)
+        related='sale_line_id.ul', string='Jaw', store=True)
 
 
 class MrpWorkorder(models.Model):
@@ -37,7 +37,7 @@ class MrpWorkorder(models.Model):
     color_scheme = fields.Char(
         related='production_id.color_scheme', readonly=True, string='Colour')
     ul = fields.Selection(
-        related='production_id.ul', readonly=True, string='U/L')
+        related='production_id.ul', readonly=True, string='Jaw')
 
 
 class MrpWorkcenter(models.Model):

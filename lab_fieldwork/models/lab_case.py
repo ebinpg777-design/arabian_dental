@@ -537,7 +537,7 @@ class LabCaseLine(models.Model):
     product_id = fields.Many2one(
         'product.product', string='Work', required=True,
         domain="[('sale_ok', '=', True)]")
-    ul = fields.Selection(UL, string='U/L', required=True, default='upper')
+    ul = fields.Selection(UL, string='Jaw', required=True, default='upper')
     quantity = fields.Float('Qty', default=1.0, required=True,
                             digits='Product Unit of Measure')
     colour_id = fields.Many2one('product.colour', string='Colour')
