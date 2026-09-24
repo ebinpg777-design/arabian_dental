@@ -57,13 +57,20 @@ INK = ((46, 53, 60), (16, 20, 25))   # deepened so it parts from STEEL side by s
 # Order, Management, Field Work, Petty Cash, then Material Requests below them),
 # and two neighbours on the same tone look like the same app twice. Those five
 # carry five different tones. What is left is grouped by what the app is for.
+# NOT DRAWN HERE (asked for, 2026-09-24). Three apps wear artwork somebody else
+# made, and re-running this script must not paint over them:
+#   lab_track        the ortho suite's own Track Order icon (projects/ortho)
+#   lab_migration    the ortho suite's own Migration icon
+#   lab_fieldwork    the ortho suite's own Field Work icon
+#   petty_cash       the ortho suite's own Petty Cash icon
+#   material_request the lab's Odoo 17 icon, from the v17 add-ons it came with
+# Put a module back in the table below to have it drawn again.
+KEEP_AS_THEY_ARE = ('lab_track', 'lab_migration', 'lab_fieldwork',
+                    'petty_cash', 'material_request')
+
 ICONS = {
     # side by side on the home screen - each one a different tone
-    'lab_track':             ('f05b', STEEL),    # crosshairs
     'lab_ceo_dashboard':     ('f0e4', INK),      # tachometer
-    'lab_fieldwork':         ('f21c', RED),      # motorcycle
-    'petty_cash':            ('f0d6', GREY),     # bank note
-    'material_request':      ('f0ca', MAROON),   # list
     # what the lab sells, and what its customers touch
     'sale_custom':           ('f07a', RED),      # shopping cart
     'lab_portal':            ('f0c0', RED),      # users
@@ -80,7 +87,6 @@ ICONS = {
     'lab_reports':           ('f15c', GREY),     # file-text
     # where the work is watched
     'lab_dashboards':        ('f080', STEEL),    # bar chart
-    'lab_migration':         ('f0ec', STEEL),    # exchange
     'lab_pwa':               ('f10b', STEEL),    # mobile
     # the money, and the keys
     'lab_finance_ops':       ('f1ec', INK),      # calculator
@@ -158,6 +164,8 @@ def build(module, codepoint, family, mark):
 
 def main():
     mark = Image.open(MARK_WHITE).convert('RGBA')
+    for module in KEEP_AS_THEY_ARE:
+        print("%-26s left alone (artwork of its own)" % module)
     for module in sorted(ICONS):
         codepoint, family = ICONS[module]
         folder = os.path.join(PROJECT, module, 'static', 'description')
