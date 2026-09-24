@@ -2708,6 +2708,10 @@ class MigrationBackend(models.Model):
         # inventory_as_of lets this be re-run for a later position once the
         # post-opening transfers are in (see action_refresh_inventory).
         date = self.inventory_as_of or self.opening_date
+        # A date in the past has to be rebuilt from the moves; the present position
+        # is read off the source's own quants instead, which is the only figure the
+        # lab itself would recognise (see the query below).
+        from_quants = date >= fields.Date.context_today(self)
         conn = self._connect()
         conn.autocommit = True
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -2730,20 +2734,35 @@ class MigrationBackend(models.Model):
                 # Per LOCATION: the lab keeps stock in department stores (Z- Ceramic
                 # Department...) and those were migrated as locations; a store that
                 # did not map falls back to the warehouse's main stock.
-                cur.execute("""
-                    SELECT product_id, location_id, sum(qty) qty FROM (
-                        SELECT sm.product_id, sm.location_dest_id AS location_id,
-                               sm.product_qty AS qty
-                          FROM stock_move sm JOIN stock_location d ON d.id = sm.location_dest_id
-                         WHERE sm.state = 'done' AND d.usage = 'internal'
-                           AND sm.date <= %s AND sm.company_id = %s
-                        UNION ALL
-                        SELECT sm.product_id, sm.location_id, -sm.product_qty
-                          FROM stock_move sm JOIN stock_location s ON s.id = sm.location_id
-                         WHERE sm.state = 'done' AND s.usage = 'internal'
-                           AND sm.date <= %s AND sm.company_id = %s
-                    ) t GROUP BY product_id, location_id
-                """, (date, comp['id'], date, comp['id']))
+                if from_quants:
+                    # The source's OWN quants, not a re-derivation of them. A move
+                    # carries product_qty, which is what was asked for; the quant
+                    # carries what is actually on the shelf, and the two part
+                    # company wherever a transfer went out short or a count put it
+                    # right afterwards. Re-deriving the present position put 87,346
+                    # units on the target against the lab's 72,205, nearly all of
+                    # it in the department stores. (2026-09-24)
+                    cur.execute("""
+                        SELECT q.product_id, q.location_id, sum(q.quantity) qty
+                          FROM stock_quant q JOIN stock_location l ON l.id = q.location_id
+                         WHERE l.usage = 'internal' AND q.company_id = %s
+                      GROUP BY q.product_id, q.location_id
+                    """, (comp['id'],))
+                else:
+                    cur.execute("""
+                        SELECT product_id, location_id, sum(qty) qty FROM (
+                            SELECT sm.product_id, sm.location_dest_id AS location_id,
+                                   sm.product_qty AS qty
+                              FROM stock_move sm JOIN stock_location d ON d.id = sm.location_dest_id
+                             WHERE sm.state = 'done' AND d.usage = 'internal'
+                               AND sm.date <= %s AND sm.company_id = %s
+                            UNION ALL
+                            SELECT sm.product_id, sm.location_id, -sm.product_qty
+                              FROM stock_move sm JOIN stock_location s ON s.id = sm.location_id
+                             WHERE sm.state = 'done' AND s.usage = 'internal'
+                               AND sm.date <= %s AND sm.company_id = %s
+                        ) t GROUP BY product_id, location_id
+                    """, (date, comp['id'], date, comp['id']))
                 # No `HAVING sum(qty) <> 0`: a product whose source balance is zero
                 # still has to be written when this runs as a REFRESH, or a product
                 # that sold out since the opening keeps its stale opening quantity
@@ -2751,6 +2770,7 @@ class MigrationBackend(models.Model):
                 rows = cur.fetchall()
                 Quant = self.env['stock.quant'].with_company(company).with_context(inventory_mode=True)
                 applied = missing = skipped = 0
+                written = set()
                 for r in rows:
                     prod_id = self._resolve(cache, 'product.product', r['product_id'])
                     if not prod_id:
@@ -2768,11 +2788,45 @@ class MigrationBackend(models.Model):
                                                   'inventory_quantity': r['qty']})
                             quant.action_apply_inventory()
                         applied += 1
+                        written.add((prod_id, loc_id))
                     except Exception as e:
                         missing += 1
                         _logger.warning("opening inventory product=%s: %s", prod_id, e)
-                out.append("Opening inv [%s]: %d set, %d unmapped, %d non-stockable"
-                           % (company.name, applied, missing, skipped))
+                reset = self._reset_stock_absent_from_source(company, Quant, written)
+                out.append("Opening inv [%s]: %d set, %d reset, %d unmapped, %d non-stockable"
+                           % (company.name, applied, reset, missing, skipped))
         finally:
             conn.close()
         return out
+
+    def _reset_stock_absent_from_source(self, company, Quant, written):
+        """Bring migrated stock the source no longer holds back down to zero.
+
+        Writing every source quantity only ever pushes a figure UP to the
+        source's: a product sitting in a target location that the source does not
+        stock is in no row to be corrected, so it keeps whatever a replayed
+        transfer left behind. That was the other half of the 15,141-unit gap.
+
+        Only products that carry a source mapping are touched. Stock booked in
+        since go-live is somebody's real count and is none of this engine's
+        business.
+        """
+        quants = Quant.search([
+            ('company_id', '=', company.id),
+            ('location_id.usage', '=', 'internal'),
+            ('quantity', '!=', 0),
+            ('product_id.x_src_id', '!=', False),
+        ])
+        stray = quants.filtered(
+            lambda q: (q.product_id.id, q.location_id.id) not in written)
+        reset = 0
+        for quant in stray:
+            try:
+                with self.env.cr.savepoint():
+                    quant.inventory_quantity = 0
+                    quant.action_apply_inventory()
+                reset += 1
+            except Exception as e:
+                _logger.warning("resetting stock product=%s location=%s: %s",
+                                quant.product_id.id, quant.location_id.id, e)
+        return reset

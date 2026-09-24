@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <!-- The app grid every user lands on. It is the theme's home menu, not the
+         stock one and not the responsive drawer, so this is where the strip has
+         to go to be seen at all. -->
+    <t t-inherit="zxs_entp_theme.HomeMenu" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('o_apps')]" position="before">
+            <div t-if="visibleHomeAlerts.length" class="o_lab_home_alerts">
+                <div
+                    t-foreach="visibleHomeAlerts"
+                    t-as="alert"
+                    t-key="alert.id"
+                    t-attf-class="o_lab_home_alert o_lab_home_alert_{{alert.level}}"
+                >
+                    <i t-attf-class="fa {{alert.icon}} o_lab_home_alert__icon" role="img" />
+                    <div class="o_lab_home_alert__body">
+                        <div class="o_lab_home_alert__title" t-out="alert.title" />
+                        <div
+                            t-if="alert.detail"
+                            class="o_lab_home_alert__detail"
+                            t-out="alert.detail"
+                        />
+                    </div>
+                    <button
+                        t-if="alert.action"
+                        class="btn btn-sm o_lab_home_alert__button"
+                        t-on-click.stop="() => this.openHomeAlert(alert)"
+                        t-out="alert.button"
+                    />
+                    <button
+                        class="btn btn-sm o_lab_home_alert__close"
+                        title="Hide until the next reload"
+                        t-on-click.stop="() => this.dismissHomeAlerts()"
+                    >
+                        <i class="fa fa-times" />
+                    </button>
+                </div>
+            </div>
+        </xpath>
+    </t>
+
+</templates>

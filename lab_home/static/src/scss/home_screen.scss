@@ -1,0 +1,173 @@
+/* The lab's home screen: its own wallpaper, and the warning strip above the apps.
+ *
+ * The theme paints the home screen from two custom properties, --homeMenu-bg-image
+ * and --homeMenu-bg-color, and nothing else. Redefining those two is the whole
+ * wallpaper: no !important, no selector war, and a theme update cannot silently
+ * take it away without also taking its own background away.
+ */
+
+$lab-red: #e31e25;
+$lab-navy: #0b1220;
+
+.o_home_menu_background,
+.o_web_client.o_home_menu_background {
+    // The picture is composed in tools/make_home_wallpaper.py - navy, the lab's
+    // own ceramic work in the bottom right, lit from two corners - rather than
+    // layered here, because where each part of it goes depends on where things
+    // sit in the frame, which CSS cannot know.
+    --homeMenu-bg-color: #{$lab-navy};
+    --homeMenu-bg-image: url("/lab_home/static/src/img/wallpaper.jpg");
+
+    // The theme makes the navbar transparent over the home screen and leaves its
+    // text the colour a light background wanted. On this wallpaper that is the
+    // company name in near-black on near-black.
+    &:not(.o_home_menu_background_custom):not(.o_in_studio) .o_main_navbar {
+        color: rgba(255, 255, 255, 0.92);
+
+        .o_menu_brand,
+        .o_menu_systray,
+        .o_menu_systray > *,
+        .o_menu_systray .dropdown-toggle,
+        .o_navbar_apps_menu .dropdown-toggle,
+        a,
+        button {
+            color: inherit;
+        }
+    }
+}
+
+.o_home_menu {
+    // The wordmark is drawn on the screen rather than baked into the picture,
+    // so it stays put and stays sharp whatever the screen.
+    position: relative;
+
+    // Bottom LEFT: the picture is in the bottom right, and a wordmark laid over
+    // the lab's own ceramic work reads as a watermark on a stock photo.
+    &::after {
+        content: "";
+        position: fixed;
+        left: 2rem;
+        bottom: 1.5rem;
+        width: 210px;
+        height: 46px;
+        background: url("/lab_home/static/src/img/wordmark.png") no-repeat left bottom / contain;
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+    @include media-breakpoint-down(md) {
+        &::after {
+            display: none;
+        }
+    }
+
+    // App names are set for a light background by the theme.
+    .o_app .o_caption {
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+        font-weight: 500;
+    }
+
+    .o_app .o_app_icon {
+        box-shadow:
+            0 8px 20px rgba(0, 0, 0, 0.42),
+            0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .o_no_result {
+        color: rgba(255, 255, 255, 0.8);
+    }
+}
+
+/* ------------------------------------------------------------------ warnings */
+
+.o_lab_home_alerts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.o_lab_home_alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.6rem;
+    color: #fff;
+    // Glass over the wallpaper rather than a flat panel, so the warning reads as
+    // part of the screen and not as a browser dialog that lost its way.
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+
+    &__icon {
+        font-size: 1.35rem;
+        flex: 0 0 auto;
+    }
+
+    &__body {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    &__title {
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    &__detail {
+        font-size: 0.82rem;
+        opacity: 0.85;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__button {
+        flex: 0 0 auto;
+        background: rgba(255, 255, 255, 0.92);
+        border: none;
+        font-weight: 600;
+        color: #{$lab-navy};
+
+        &:hover {
+            background: #fff;
+            color: #{$lab-navy};
+        }
+    }
+
+    &__close {
+        flex: 0 0 auto;
+        color: rgba(255, 255, 255, 0.75);
+        border: none;
+
+        &:hover {
+            color: #fff;
+        }
+    }
+}
+
+.o_lab_home_alert_danger {
+    background: linear-gradient(
+        120deg,
+        rgba(179, 18, 26, 0.92),
+        rgba(227, 30, 37, 0.82)
+    );
+}
+
+.o_lab_home_alert_warning {
+    background: linear-gradient(
+        120deg,
+        rgba(158, 106, 8, 0.92),
+        rgba(214, 152, 25, 0.82)
+    );
+}
+
+.o_lab_home_alert_info {
+    background: linear-gradient(
+        120deg,
+        rgba(16, 42, 82, 0.92),
+        rgba(38, 76, 140, 0.82)
+    );
+}

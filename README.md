@@ -18,7 +18,7 @@ they are separate codebases from here on.
 | Production | `lab_workcenter_scan`, `lab_reports`, `epg_sticker_print`, `epg_product_label`, `epg_barcode_fallback` |
 | Finance | `lab_finance_ops`, `lab_bank_reconciliation`, `petty_cash`, `epg_direct_payment`, `epg_outstanding_discount`, `epg_partner_statement`, `eh_account_*`, `excel_report_builder`, `stock_xls_report` |
 | Messaging | `epg_whatsapp`, `lab_whatsapp` |
-| Web | `lab_website`, `lab_pwa`, `web_responsive`, `zxs_entp_theme`, `widget_preview_image`, `dynamic_filter_tiles` |
+| Web | `lab_website`, `lab_pwa`, `lab_home`, `web_responsive`, `zxs_entp_theme`, `widget_preview_image`, `dynamic_filter_tiles` |
 | Ops | `lab_access_control`, `lab_migration`, `auto_odoo_db_and_file_backup`** |
 | Store | `material_request` — department requisitions from the main store (board, availability per line, partial approval, reject with reason, reorder, consumption analysis, slip) |
 
@@ -58,6 +58,36 @@ product catalogue at request time by matching category names (`match` words). En
 forms are Odoo's own website forms writing a `mail.mail` to the lab's address. On
 install (and on upgrade, via the migration) the hook names the website after the
 company, points `/` at the homepage and fills in blank company fields.
+
+## The home screen
+
+`lab_home` takes over the screen every user lands on.
+
+The **wallpaper** is the lab's own photography: navy, with layered ceramic work
+in the bottom right and the wordmark in the opposite corner. It is one composed
+image, built by `tools/make_home_wallpaper.py` from the website's photographs and
+committed alongside the module. Re-run that script to change it. The theme paints
+the home screen from two custom properties and the module redefines only those, so
+nothing here fights the theme for the background.
+
+Above the apps sits a **warning strip**, for the things nobody would otherwise go
+looking for.
+
+| Warning | Raised when | Goes to |
+| --- | --- | --- |
+| The last database backup did not work | The newest row in **Auto DB Backups Status** does not say Success | That log |
+
+Only users who can act on a warning are shown one; today that means Settings
+access, because the strip reports on the database's backups. The warnings are
+worked out on the server as the page loads and travel on the session, so nothing
+polls. A warning can be dismissed for the page, not for good: a backup that is
+failing is still failing tomorrow.
+
+Success is what is matched, and everything else counts as a failure. The backup
+module controls the wording of a good run ("Local: Success", "SFTP: Success", …)
+and nothing else; a wording nobody anticipated therefore raises the alarm instead
+of passing quietly. To add a warning of your own, return one more dict from
+`ir.http._home_alerts` in `lab_home/models/ir_http.py`.
 
 ## The day-sheet map
 
@@ -192,7 +222,8 @@ into this suite, mapping each custom field onto the field the suite already has.
 | department stock locations (Z- Ceramic Department …) and consumption sinks (Z-Acrylic Manufacturing Dept, Marketing — type *inventory*) | the same locations, every type; Odoo's own adopted by full name |
 | warehouse, operation types, reordering rules | adopted by code (WH, IN/OUT/INT/PICK/PACK…) so every transfer keeps its exact type and sequence; rules created |
 | product cost, category cost method / valuation (`ir_property`) | `standard_price` on the product, `property_cost_method` / `property_valuation` on the category |
-| transfers, their moves and **move lines** (11,163), adjustments outside any transfer (668) | the same, states as they were; done move lines are replayed in date order, which is what rebuilds on-hand per location from the history itself. The inventory phase then only cross-checks against the source |
+| transfers, their moves and **move lines** (11,163), adjustments outside any transfer (668) | the same, states as they were; done move lines are replayed in date order, so every transfer reads as it did in the source |
+| on-hand quantities (72,205 units over 1,313 product/location pairs) | copied from the source's own **quants** as of `On-hand As Of`, then anything the source does not stock is taken back to zero. Re-deriving the position from the moves instead put 15,141 units too many on the shelves, because a move carries what was asked for and a quant carries what is there |
 | move ↔ sale line, move ↔ purchase line, bill line ↔ purchase line, backorder ↔ transfer | the same links, so delivered / received / billed quantities on orders come out of the documents |
 | `hr.employee` (+ departments, jobs) | the same, linked to the migrated users |
 | attachments on orders, partners, products, employees | copied from the source filestore (`Source Filestore` on the connection) |

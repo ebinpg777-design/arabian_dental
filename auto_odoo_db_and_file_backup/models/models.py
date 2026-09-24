@@ -42,7 +42,7 @@ import odoo
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessDenied, RedirectWarning, UserError
 from odoo.tools import consteq
-from odoo.tools.misc import hmac as odoo_hmac
+from odoo.tools.misc import format_datetime, hmac as odoo_hmac
 
 _intervalTypes = {
     'days': lambda interval: relativedelta(days=interval),
@@ -96,9 +96,67 @@ def exec_pg_environ():
 class AutoDatabaseBackupStatus(models.Model):
     _name = 'auto.database.backup.status'
     _description = 'Auto Database Backup Status'
+    # Newest first. This log is only ever read to answer "did the last one work",
+    # and it was coming back oldest-first, so the answer was the last row on the
+    # last page. (client, 2026-09-24)
+    _order = 'date desc, id desc'
 
     name = fields.Char("Status")
     date = fields.Datetime("Date")
+
+    # WHAT COUNTS AS A FAILURE. This module writes the status as free text, and
+    # every good outcome says so: "Local: Success", "SFTP: Success", "AWS S3:
+    # Success", "Dropbox: Success", "FTP: Success", "Google Drive: Success",
+    # "Success". Everything else is "Failed (Error: ...)".
+    #
+    # So the SUCCESSES are matched and anything else is treated as a failure -
+    # not the other way round. The success wording is a closed set this module
+    # controls; the failure wording is open-ended, and a shape nobody thought of
+    # must raise the alarm rather than pass quietly. On a backup, a false alarm
+    # costs a minute and a missed failure costs the database.
+    SUCCESS_MARKER = 'success'
+
+    failed = fields.Boolean(
+        "Did Not Work", compute='_compute_failed', store=True,
+        help="This run did not report success.")
+
+    @api.depends('name')
+    def _compute_failed(self):
+        for record in self:
+            record.failed = record._is_failure()
+
+    def _is_failure(self):
+        self.ensure_one()
+        return self.SUCCESS_MARKER not in (self.name or '').lower()
+
+    @api.model
+    def _latest(self):
+        """The most recent run of any destination, by date - `limit=1` on the
+        model's own order."""
+        return self.sudo().search([], limit=1)
+
+    @api.model
+    def _home_alert(self):
+        """What the home screen should say about the last run, or nothing.
+
+        The wording lives here, with the module that writes the log and knows
+        what its own rows mean. The home screen only asks (see lab_home), so a
+        change of destination or of wording does not have to be chased into
+        another module.
+        """
+        latest = self._latest()
+        if not latest or not latest._is_failure():
+            return None
+        when = format_datetime(self.env, latest.date) if latest.date else ''
+        return {
+            'id': 'backup_failed',
+            'level': 'danger',
+            'icon': 'fa-exclamation-triangle',
+            'title': self.env._("The last database backup did not work"),
+            'detail': " — ".join(p for p in (when, latest.name or '') if p),
+            'button': self.env._("See the log"),
+            'action': 'auto_odoo_db_and_file_backup.action_autobackup_status',
+        }
 
 
 class AutoDatabaseBackup(models.Model):
@@ -116,6 +174,35 @@ class AutoDatabaseBackup(models.Model):
                                   )
     name = fields.Char("Filename")
     bkpu_rules = fields.One2many('database.backup', 'backup_id', "Auto Database Backup Rules")
+
+    # The last thing that happened, on the screen where backups are set up. A
+    # backup that has started failing is silent otherwise: it writes a row into a
+    # log under a second menu and waits to be looked for. (client, 2026-09-24)
+    last_status_name = fields.Char(
+        "Last Result", compute='_compute_last_status')
+    last_status_date = fields.Datetime(
+        "Last Run", compute='_compute_last_status')
+    last_status_failed = fields.Boolean(compute='_compute_last_status')
+
+    @api.depends_context('uid')
+    def _compute_last_status(self):
+        """Read once for the whole set: the log is not linked to a configuration,
+        so every record here is asking the same question."""
+        latest = self.env['auto.database.backup.status']._latest()
+        for record in self:
+            record.last_status_name = latest.name or ''
+            record.last_status_date = latest.date or False
+            record.last_status_failed = bool(latest) and latest._is_failure()
+
+    def action_view_backup_status(self):
+        """From the warning to the log that raised it."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Auto DB Backups Status'),
+            'res_model': 'auto.database.backup.status',
+            'view_mode': 'list',
+        }
 
 
 class DatabaseBackup(models.Model):
@@ -178,8 +265,8 @@ class DatabaseBackup(models.Model):
         help="Ticked once a pasted authorization code has been swapped for a refresh token.")
     google_drive_folder = fields.Char(
         string='Drive Folder',
-        help="Where the backups are put in Google Drive: a folder name (Lab "
-             "Backups), a path (Lab/Backups), the folder's id, or the address of "
+        help="Where the backups are put in Google Drive: a folder name (Ortho "
+             "Backups), a path (Ortho/Backups), the folder's id, or the address of "
              "the folder in Drive. Created if it is not there yet. Leave empty for "
              "the root of the Drive.")
     google_drive_refresh_token = fields.Text(string='google Drive Refresh Token', groups='base.group_system')
@@ -1424,8 +1511,8 @@ class DatabaseBackup(models.Model):
     def _gdrive_folder_id(self, drive):
         """The Drive folder the backups go into, created if it is not there yet.
 
-        Takes what people have to hand: the folder's name ("Lab Backups"), a
-        path ("Lab/Backups"), the folder id, or the address of the folder in
+        Takes what people have to hand: the folder's name ("Ortho Backups"), a
+        path ("Ortho/Backups"), the folder id, or the address of the folder in
         Drive. Empty means the root, which is where every backup went before
         there was a setting at all. (client, 2026-09-16)
         """
