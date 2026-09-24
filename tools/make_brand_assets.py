@@ -40,6 +40,12 @@ def trimmed(image):
     return image.crop(box) if box else image
 
 
+def scaled(image, width):
+    """To a width, keeping the proportions and adding nothing around it."""
+    height = max(1, round(image.height * width / image.width))
+    return image.resize((width, height), Image.LANCZOS)
+
+
 def fit(image, size):
     """Scale to fit a box and centre it there, keeping the aspect ratio."""
     w, h = size
@@ -137,10 +143,15 @@ def main():
     save(app_icon(mark, 1024), 'app_icon.png', PWA_IMG)
     # The home screen draws the wordmark itself, in whichever version the
     # wallpaper under it calls for.
-    # Three times the size they are drawn at, so the lock-up stays sharp on a
-    # high-density screen.
-    save(fit(master, (900, 192)), 'wordmark.png', HOME_IMG)
-    save(fit(white, (900, 192)), 'wordmark-white.png', HOME_IMG)
+    # TRIMMED, not fitted into a box. `fit` centres the artwork in the box it is
+    # given and pads the rest, and the home screen draws this with
+    # `background-size: contain` - so the padding came straight off the rendered
+    # size. The lock-up was drawing 38 pixels tall inside a 64-pixel box, which
+    # put "Since 2000" at five pixels. Trimmed and wide, it fills what it is
+    # given, and at 1,500px it is three times the size it is drawn at, so it
+    # stays sharp on a high-density screen. (client, 2026-09-24)
+    save(scaled(trimmed(master), 1500), 'wordmark.png', HOME_IMG)
+    save(scaled(trimmed(white), 1500), 'wordmark-white.png', HOME_IMG)
 
     for name, size, kb in written:
         print("%-22s %-10s %5.0f kB" % (name, "%dx%d" % size, kb))

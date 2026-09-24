@@ -110,17 +110,18 @@ body.o_lab_wall_dark {
     // corner.
     position: relative;
 
-    // Full strength and big enough to read. At 210px and 55% opacity it was a
-    // watermark: "Since 2000" came out about five pixels tall and the grey of
-    // "Dental Lab" washed into a pale wallpaper. A logo either belongs on the
-    // screen or it does not. (client, 2026-09-24)
+    // Full strength, and the box is the artwork's own proportion: 1500x193 is
+    // 7.77:1, so 480x62 leaves no padding for `contain` to shrink into. It was
+    // drawing 38 pixels tall inside a 64-pixel box - the rest was the export's
+    // padding - which put "Since 2000" at five and a half pixels.
+    // (client, 2026-09-24)
     &::after {
         content: "";
         position: fixed;
         left: 2rem;
         bottom: 1.5rem;
-        width: 300px;
-        height: 64px;
+        width: 480px;
+        height: 62px;
         background: url("/lab_home/static/src/img/wordmark.png") no-repeat left bottom / contain;
         opacity: 1;
         pointer-events: none;
