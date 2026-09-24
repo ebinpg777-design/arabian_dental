@@ -1129,9 +1129,10 @@ class MigrationBackend(models.Model):
                             'date': mv.get('date'),
                             'x_src_id': mv['id'],
                         }
-                        if mv.get('state') == 'done':
-                            m['quantity'] = mv.get('quantity') or mv.get('product_uom_qty') or 0.0
-                            m['picked'] = True
+                        # NO `quantity` here: writing it on a move makes Odoo 19 create a
+                        # move line of its own, and the move-line phase then adds the
+                        # source's line on top - every done move ends up counted twice.
+                        # The replayed lines carry the quantity.
                         for f in ('origin', 'reference', 'date_deadline', 'procure_method',
                                   'is_inventory', 'price_unit'):
                             if mv.get(f) is not None:
@@ -1279,12 +1280,12 @@ class MigrationBackend(models.Model):
                     vals = {
                         'product_id': product, 'location_id': src, 'location_dest_id': dest,
                         'product_uom_qty': mv.get('product_uom_qty') or 0.0,
-                        'quantity': mv.get('quantity') or 0.0,
+                        # no `quantity`: see _txn_pickings - the move lines carry it
                         'description_picking': mv.get('description_picking') or mv.get('name'),
                         'name': mv.get('name'), 'origin': mv.get('origin'),
                         'reference': mv.get('reference'), 'date': mv.get('date'),
                         'company_id': cid, 'is_inventory': bool(mv.get('is_inventory')),
-                        'picked': mv.get('state') == 'done', 'x_src_id': mv['id'],
+                        'x_src_id': mv['id'],
                     }
                     uom = self._resolve(cache, 'uom.uom', mv.get('product_uom'))
                     if uom:

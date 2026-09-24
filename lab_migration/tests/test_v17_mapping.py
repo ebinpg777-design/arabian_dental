@@ -302,3 +302,41 @@ class TestStockReplay(TransactionCase):
         self.assertIn('skipped=1', stats[-1])
         product.invalidate_recordset()
         self.assertEqual(product.with_context(location=wh.lot_stock_id.id).qty_available - before, 5.0)
+
+    def test_an_adjustment_move_and_its_line_count_once(self):
+        """The move must be created WITHOUT a quantity: written with one, Odoo 19
+        makes a move line of its own and the replayed source line then doubles
+        the stock. (live run, 2026-09-24: on-hand came out at twice the source)"""
+        from .test_migration_safety import FakeSource, SRC
+        from unittest.mock import patch
+        backend = self.env['migration.backend'].create({'name': 'stock once', 'txn_from_date': '2025-01-01'})
+        wh = self.env['stock.warehouse'].search([], limit=1)
+        product = self.env['product.product'].create({'name': 'Alginate', 'type': 'consu', 'is_storable': True})
+        adjust = self.env['stock.location'].search([('usage', '=', 'inventory')], limit=1)
+        before = product.with_context(location=wh.lot_stock_id.id).qty_available
+        cache = {'stock.location': {SRC + 8: wh.lot_stock_id.id, SRC + 9: adjust.id},
+                 'product.product': {SRC + 11: product.id}, 'uom.uom': {},
+                 'res.company': {SRC + 1: self.env.company.id}}
+        now = fields.Datetime.now()
+        cur = FakeSource([
+            ('FROM stock_move_line l', [
+                {'id': SRC + 610, 'move_id': SRC + 510, 'product_id': SRC + 11,
+                 'location_id': SRC + 9, 'location_dest_id': SRC + 8, 'quantity': 7.0,
+                 'date': now, 'product_uom_id': None}]),
+            ('FROM stock_move', [
+                {'id': SRC + 510, 'product_id': SRC + 11, 'location_id': SRC + 9,
+                 'location_dest_id': SRC + 8, 'product_uom_qty': 7.0, 'quantity': 7.0,
+                 'name': 'count', 'origin': None, 'reference': 'count', 'date': now,
+                 'company_id': SRC + 1, 'is_inventory': True, 'state': 'done',
+                 'description_picking': None, 'product_uom': None}]),
+        ])
+        stats = []
+        with patch.object(self.env.cr, 'commit', lambda: None):
+            backend._migration_env()._txn_stock_moves(cur, cache, stats)
+            backend._migration_env()._txn_move_lines(cur, cache, stats)
+        move = self.env['stock.move'].search([('x_src_id', '=', SRC + 510)])
+        self.assertEqual(move.state, 'done')
+        self.assertEqual(len(move.move_line_ids), 1, "one line: the source's, not one Odoo made as well")
+        self.assertEqual(move.quantity, 7.0)
+        product.invalidate_recordset()
+        self.assertEqual(product.with_context(location=wh.lot_stock_id.id).qty_available - before, 7.0)
