@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dynamic_filter.PanelTilesDialog">
+        <Dialog title="'Filter tiles from ' + props.sectionName" size="'md'">
+            <p class="text-muted">
+                One tile per value you tick, in the order you tick them - each one a live
+                count and a one-click filter above the list. Up to
+                <t t-esc="props.maxTiles"/> at a time.
+            </p>
+
+            <div class="o_dft_pt_toolbar">
+                <span class="o_dft_pt_counter">
+                    <t t-esc="state.picked.length"/> / <t t-esc="props.maxTiles"/> selected
+                </span>
+                <button class="btn btn-link btn-sm" t-on-click="pickTop">
+                    <t t-if="props.values[0] and props.values[0].count !== null">Pick the busiest</t>
+                    <t t-else="">Pick the first</t>
+                </button>
+                <button class="btn btn-link btn-sm" t-on-click="pickNone">Pick none</button>
+            </div>
+
+            <div class="o_dft_pt_values">
+                <button t-foreach="props.values" t-as="value" t-key="value.id"
+                        class="o_dft_pt_value"
+                        t-att-class="{ o_dft_pt_picked: isPicked(value) }"
+                        t-att-disabled="!isPicked(value) and isFull"
+                        t-att-style="chipStyle(value)"
+                        t-on-click="() => this.toggle(value)">
+                    <i class="fa fa-fw" role="img" aria-hidden="true"
+                       t-att-class="isPicked(value) ? 'fa-check-square' : 'fa-square-o'"/>
+                    <span class="o_dft_pt_label" t-esc="value.label"/>
+                    <span t-if="value.count !== null" class="o_dft_pt_count" t-esc="value.count"/>
+                </button>
+            </div>
+
+            <div t-if="props.canManage" class="form-check mt-3">
+                <input id="dft_pt_personal" class="form-check-input" type="checkbox"
+                       t-model="state.personal"/>
+                <label class="form-check-label" for="dft_pt_personal">
+                    Keep them private - only I will see these tiles
+                </label>
+            </div>
+            <div t-else="" class="text-muted small mt-3">
+                <i class="fa fa-user-secret me-1" role="img" aria-hidden="true"/>
+                These tiles will be private: only you will see them.
+            </div>
+
+            <div t-if="props.actionName" class="form-check mt-2">
+                <input id="dft_pt_action" class="form-check-input" type="checkbox"
+                       t-model="state.thisActionOnly"/>
+                <label class="form-check-label" for="dft_pt_action">
+                    Only on <b t-out="props.actionName"/> - leave unticked to put them on every
+                    list and kanban view of this model
+                </label>
+            </div>
+
+            <t t-set-slot="footer">
+                <button class="btn btn-primary" t-att-disabled="state.saving or !state.picked.length"
+                        t-on-click="confirm">
+                    <i class="fa fa-th-large me-1" role="img" aria-hidden="true"/>
+                    Create <t t-esc="state.picked.length"/> tiles
+                </button>
+                <button class="btn btn-secondary" t-on-click="() => this.props.close()">
+                    Cancel
+                </button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>

@@ -100,8 +100,16 @@ HISTORY_POINTS = 12
 # Tile width, in pixels. 0 means "the standard width", which the stylesheet owns
 # (and which shrinks on its own in compact mode). The bounds are what stays
 # readable: below MIN the value is clipped, above MAX one tile eats the ribbon.
-MIN_TILE_WIDTH = 120
+MIN_TILE_WIDTH = 90
 MAX_TILE_WIDTH = 520
+
+# Tiles made in one go from a search panel section: a ribbon, not a wall.
+# Keep in sync with MAX_PANEL_TILES in static/src/search_panel/smart_search_panel.js.
+MAX_PANEL_TILES = 12
+
+# The operators the search panel itself filters with: '=' / 'child_of' for a
+# category, 'in' for a filter section.
+PANEL_OPERATORS = ('=', 'in', 'child_of')
 
 # A ribbon can be stacked on several rows. Six is a ceiling, not a target: past
 # that the ribbon is taller than the records it is supposed to describe.
@@ -370,7 +378,20 @@ class FilterTile(models.Model):
 
     @api.onchange('model_id')
     def _onchange_model_id(self):
-        """A domain / measure from another model is always wrong - drop them."""
+        """A domain / measure from another model is always wrong - drop them.
+
+        Except on the form's very first onchange, which runs this method too:
+        a tile born from a view ("Capture this filter", a pinned search panel
+        value) arrives with ``default_model_id`` *and* the domain that view
+        was filtered on. That domain belongs to that model; wiping it here
+        saved every captured tile as "all records".
+        """
+        context = self.env.context
+        if (self.model_id.id == context.get('default_model_id')
+                and (self.domain or '[]') == (context.get('default_domain') or '[]')):
+            if self.only_mine and not self.user_field_id:
+                self.user_field_id = self._guess_user_field()
+            return
         self.domain = '[]'
         self.measure_field_id = False
         self.trend_field_id = False
@@ -555,6 +576,7 @@ class FilterTile(models.Model):
             parts.append(self._dotted(node.func) or '')
         return '.'.join(reversed([p for p in parts if p]))
 
+
     def copy_data(self, default=None):
         vals_list = super().copy_data(default=default)
         for tile, vals in zip(self, vals_list):
@@ -689,9 +711,9 @@ class FilterTile(models.Model):
                 self.env[self.model_name],
                 {'mine_field': fields_sudo.user_field_id.name if self.only_mine else ''}
             ) if self.only_mine and self.model_name in self.env else [],
-            'personal': bool(self.owner_id),
             'broken': bool(self._browser_domain_problem(self.domain)),
             'ignore_filters': self.ignore_filters,
+            'personal': bool(self.owner_id),
             'editable': bool(self.owner_id.id == self.env.uid or self._is_tile_manager()),
         }
 
@@ -1291,6 +1313,83 @@ class FilterTile(models.Model):
                 'color': AUTO_COLOR_CYCLE[index % len(AUTO_COLOR_CYCLE)],
                 'icon': self._auto_icon(option['label'], option['value']),
                 'tooltip': self.env._('%(field)s: %(value)s', field=source['string'], value=option['label']),
+            })
+        return self.create(vals_list).ids
+
+    @api.model
+    def create_tiles_from_panel(self, model_name, field_name, operator, values, action_id=False,
+                                personal=False, icon=False, section_name=False):
+        """One tile per value of a search panel section. Returns created ids.
+
+        ``values`` is ``[{'id': ..., 'label': ...}]`` - what the panel shows,
+        in the order the user picked them. Each tile filters exactly the way
+        the panel does for that value (``operator`` is the panel's own), so a
+        tile and the panel entry it came from always agree on the count.
+
+        The set goes on a row of its own, under whatever the ribbon already
+        holds. A manager may publish it or keep it private; anybody else's
+        tiles are private anyway (see :meth:`create`).
+        """
+        if not model_name or model_name not in self.env:
+            raise UserError(self.env._('Unknown model "%s".', model_name))
+        model = self.env['ir.model']._get(model_name)
+        if not model:
+            raise UserError(self.env._('Unknown model "%s".', model_name))
+        field = self.env[model_name]._fields.get(field_name or '')
+        if not field:
+            raise UserError(self.env._('"%(model)s" has no field "%(field)s".',
+                                       model=model.name, field=field_name))
+        if operator not in PANEL_OPERATORS:
+            raise UserError(self.env._('Unsupported operator "%s".', operator))
+
+        picked = []
+        for value in values or []:
+            if not isinstance(value, dict):
+                continue
+            value_id = value.get('id')
+            # Record ids or selection keys - never a bool: `False` is the
+            # panel's "All", which filters nothing.
+            if isinstance(value_id, bool) or not isinstance(value_id, (int, str)):
+                continue
+            picked.append((value_id, str(value.get('label') or value_id)))
+        if not picked:
+            raise UserError(self.env._('Pick at least one value to make a tile from.'))
+        picked = picked[:MAX_PANEL_TILES]
+
+        action_id = int(action_id) if action_id else False
+        if action_id:
+            action = self.env['ir.actions.act_window'].browse(action_id).exists()
+            if not action or action.res_model != model_name:
+                action_id = False
+        scope = [('model_name', '=', model_name), ('action_id', '=', action_id)]
+        rows = self.search(scope).mapped('row')
+        row = min(max(rows) + 1, MAX_TILE_ROWS) if rows else 1
+        existing = self.search(scope + [('row', '=', row)])
+        start_sequence = max(existing.mapped('sequence') or [0]) + 10
+        owner = self.env.uid if (personal or not self._is_tile_manager()) else False
+        section = str(section_name or field.string or field_name)
+        fallback_icon = icon if icon and str(icon).startswith('fa-') else False
+
+        def icon_for(label, value_id):
+            # A value that says what it is ("Done", "Late") gets its own icon;
+            # the rest wear the section's, so the set still reads as one.
+            guessed = self._auto_icon(label, value_id)
+            return fallback_icon if guessed == 'fa-circle-o' and fallback_icon else guessed
+
+        vals_list = []
+        for index, (value_id, label) in enumerate(picked):
+            operand = [value_id] if operator == 'in' else value_id
+            vals_list.append({
+                'name': label,
+                'sequence': start_sequence + index * 10,
+                'row': row,
+                'model_id': model.id,
+                'action_id': action_id,
+                'owner_id': owner,
+                'domain': repr([(field_name, operator, operand)]),
+                'color': AUTO_COLOR_CYCLE[index % len(AUTO_COLOR_CYCLE)],
+                'icon': icon_for(label, value_id),
+                'tooltip': self.env._('%(field)s: %(value)s', field=section, value=label),
             })
         return self.create(vals_list).ids
 

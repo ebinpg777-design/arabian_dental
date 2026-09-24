@@ -1,18 +1,21 @@
 /** @odoo-module **/
 
 import { Component, onMounted, onWillUnmount, onWillUpdateProps, useState } from "@odoo/owl";
+import { browser } from "@web/core/browser/browser";
 import { _t } from "@web/core/l10n/translation";
 import { humanNumber } from "@web/core/utils/numbers";
 import { formatFloat, formatInteger } from "@web/views/fields/formatters";
 import { resolveTileColor } from "../../core/tile_colors";
 
 const ANIMATION_MS = 420;
+// How long a "+3" stays on a tile whose number just moved.
+const CHANGE_MS = 6000;
 const SPARK_W = 100;
 const SPARK_H = 30;
 
 // Keep in sync with models/filter_tile.py. The server clamps too; these only
 // stop the drag itself at the edge.
-const MIN_TILE_WIDTH = 120;
+const MIN_TILE_WIDTH = 90;
 const MAX_TILE_WIDTH = 520;
 
 /** Ease-out cubic: fast start, gentle landing - reads as "counting up". */
@@ -34,6 +37,9 @@ export class FilterTile extends Component {
         total: { type: Number, optional: true },
         active: { type: Boolean, optional: true },
         compact: { type: Boolean, optional: true },
+        look: { type: String, optional: true }, // tile style: accent | card | midnight | pastel
+        // Identifies the filter the value was computed against; see `change`.
+        contextKey: { type: String, optional: true },
         // Its filter is something the browser cannot evaluate: shown, greyed,
         // and never applied - a bad tile used to take the view down with it.
         // (client, 2026-09-10)
@@ -53,6 +59,7 @@ export class FilterTile extends Component {
         total: 0,
         active: false,
         compact: false,
+        look: "accent",
         canManage: false,
         selectable: false,
         loading: false,
@@ -60,7 +67,11 @@ export class FilterTile extends Component {
     };
 
     setup() {
-        this.state = useState({ shown: this.rawValue(this.props) });
+        // `change`: how much the value moved at the last refresh, shown as a
+        // pulsing "+3" for a few seconds. Only a move under the same filter
+        // counts - a new filter changing every number is not news.
+        this.state = useState({ shown: this.rawValue(this.props), change: 0 });
+        this.changeTimer = null;
         // Width while a drag is in progress; 0 the rest of the time, when the
         // tile's own `width` (or the stylesheet default) rules.
         this.resize = useState({ width: 0, dragging: false });
@@ -74,14 +85,36 @@ export class FilterTile extends Component {
         onMounted(() => this.animateTo(this.rawValue(this.props), 0));
         onWillUpdateProps((nextProps) => {
             const next = this.rawValue(nextProps);
+            this.noticeChange(this.props, nextProps);
             if (next !== this.state.shown) {
                 this.animateTo(next, this.state.shown);
             }
         });
         onWillUnmount(() => {
+            browser.clearTimeout(this.changeTimer);
             this.stopAnimation();
             this.stopResize?.();
         });
+    }
+
+    noticeChange(prev, next) {
+        if (!prev.contextKey || prev.contextKey !== next.contextKey
+            || !prev.data || !next.data || prev.data === next.data) {
+            return;
+        }
+        const delta = this.rawValue(next) - this.rawValue(prev);
+        if (!delta) {
+            return;
+        }
+        this.state.change = delta;
+        browser.clearTimeout(this.changeTimer);
+        this.changeTimer = browser.setTimeout(() => (this.state.change = 0), CHANGE_MS);
+    }
+
+    get changeText() {
+        const delta = this.state.change;
+        const text = this.isMeasure ? humanNumber(Math.abs(delta), { decimals: 1 }) : formatInteger(Math.abs(delta));
+        return `${delta > 0 ? "+" : "−"}${text}`;
     }
 
     rawValue(props) {
@@ -167,18 +200,18 @@ export class FilterTile extends Component {
      * How much room this tile has sideways.
      *
      * Narrow: the label gets one line and an ellipsis, and the value steps down
-     * a size rather than being clipped. Wide: the label is allowed to wrap onto
-     * a second line instead of being cut, because there is room for it.
+     * a size rather than being clipped. Wide: the value steps up a size (the
+     * label only wraps onto a second line on a tall row - see the stylesheet).
      */
     get widthClass() {
         const width = this.resize.dragging ? this.resize.width : this.props.def.width || 0;
         if (!width) {
             return "";
         }
-        if (width < 156) {
+        if (width < 117) {
             return "o_dft_tile_narrow";
         }
-        if (width >= 260) {
+        if (width >= 195) {
             return "o_dft_tile_wide";
         }
         return "";

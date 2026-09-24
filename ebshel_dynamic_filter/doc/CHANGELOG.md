@@ -2,6 +2,80 @@
 
 All notable changes to *Dynamic Filter Tiles*.
 
+## 19.0.2.3.0
+
+### Added
+
+* **Tile styles.** Four flat styles, no gradients, chosen per user under "Tile style" in the tile
+  menu (kept per model): **Accent** - the default, a white card with a bar of the tile's colour
+  down its left edge - **Card** (colour top bar, coloured number), **Midnight** (dark slate cards
+  with colour accents) and **Pastel** (a flat wash of the colour). An applied tile is outlined in
+  its colour. The Tile Wall and the editor preview use Accent.
+* **Live changes.** When a tile's number moves at a refresh *under the same filter* - an
+  auto-refresh, a colleague's edit - the tile flashes and shows by how much ("+2", "−1") for a
+  few seconds. Filtering the view, which changes every number, does not.
+* **Starred panel values.** Star a value in the search panel and it stays at the top of its
+  section, whatever the sort. Kept per model in the browser.
+* **Select all / invert** for checkbox sections of the search panel, from the section header.
+* **Enter in the find box** applies the first matching value, as a click on it would.
+
+* **The smart search panel.** Odoo's search panel - the column of categories and filters on the
+  left of Contacts, Employees, Products and every other view that has one - is enhanced in every
+  app, with no configuration:
+  * *Find in panel*: one box filtering every section at once, case- and accent-insensitive, with
+    the match highlighted, trees opened down to it, and a match count per section.
+  * The current selection as removable chips at the top, and on each section a selected-count
+    badge and a clear button.
+  * *Count bars*: each value's share of the largest one beside it, drawn behind the value.
+  * Options, remembered per model: sort values by most records or alphabetically, hide values
+    with no records, compact rows, collapse / expand all sections.
+  * *Collapsible sections*, remembered per model.
+  * *Saved selections*: name the current combination of panel values and re-apply it later in
+    one click (kept in the browser, per menu).
+  * *Group the view by this*: one click on a section header groups the list or kanban by its
+    field.
+  * *Straight to tiles*: pin a single panel value as a filter tile (the tile editor opens, filled
+    in), or turn a whole section into a tile set - up to 12 values, the busiest ticked, each tile
+    filtering exactly the way the panel does. New server method
+    `filter.tile.create_tiles_from_panel`.
+  * *Classic look* in the panel menu switches all of it off and gives Odoo's panel back.
+
+  The search model, its domains and its counters are untouched: everything is presentation or a
+  shortcut to something the panel could already do. Phones keep Odoo's own dropdown panel, with
+  the find / sort / hide-empty behaviour but without the tile shortcuts.
+* **Store page**: new screenshots for the smart search panel, and every tile screenshot retaken
+  at the new tile size.
+
+### Fixed
+
+* **Alt + 1…9 did nothing on a freshly opened list.** Odoo puts the focus in the search box, and
+  withholds hotkeys from a text field unless they opt in - which the navbar's own Alt + digit
+  menu shortcuts do. So Alt + 2 opened the app's second menu instead of applying the second
+  tile. The tile shortcuts now opt in too (Alt + digit types nothing into a field).
+* **Two-line tiles: the hover buttons got in the way.** On the shorter tile the breakdown / edit /
+  remove buttons reached the middle of the tile - a click meant for the tile opened a breakdown -
+  and covered the right-edge resize handle, so a tile could no longer be resized. The buttons
+  are now one line high, sit clear of the resize strip, and have a backing in the tile's own
+  tint so they cover the end of the label cleanly.
+* **"Capture this filter as a tile" saved an empty domain.** The form's first onchange ran the
+  model onchange, which clears the domain - so a captured tile counted every record. The captured
+  (default) domain is now kept; changing the model on the form still clears it.
+
+### Changed
+
+* **Slimmer search panel.** 188 px instead of Odoo's 220, the find box and its tools on one line,
+  and the spacing trimmed (8 px gutter, 10 px above a section title, 1 px between values). The
+  "Compact rows" option now goes denser still. A width the user drags still wins.
+* **Tighter ribbon.** Less padding around the bar, between rows and tiles, a narrower row-name
+  pane, and a lighter "Add a row / Multi-select" line.
+* **Smaller tiles.** A tile is now half as tall and three quarters as wide (140 px instead of
+  186 px; compact 100 px instead of 132 px). It is a two-line card - label, then number - and the
+  sparkline is drawn as a watermark behind the number instead of a line of its own. A row made
+  taller than 84 px puts the sparkline back in the flow, as a chart.
+* Tile width bounds are now 90-520 px (was 120-520), row height bounds 28-160 px (was 56-320).
+  Widths set by hand are scaled by 3/4 on upgrade; row heights kept in the browser are clamped
+  to the new bounds when the view opens.
+
 ## 19.0.2.2.0
 
 ### Added

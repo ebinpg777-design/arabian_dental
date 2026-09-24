@@ -6,10 +6,11 @@ against a plain internal user - because "does this still work for someone who is
 not an administrator" is where a module like this breaks.
 """
 import datetime
+from unittest.mock import patch
 
 from odoo import fields
-from odoo.exceptions import AccessError, ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tests import Form, TransactionCase, tagged
 
 
 @tagged('post_install', '-at_install')
@@ -640,7 +641,7 @@ class TestFilterTile(TransactionCase):
         """A drag that overshoots stops at the edge; it does not raise."""
         self.assertEqual(self.Tile.resize_tile(self.tile_companies.id, 9999), 520)
         self.assertEqual(self.tile_companies.width, 520)
-        self.assertEqual(self.Tile.resize_tile(self.tile_companies.id, 10), 120)
+        self.assertEqual(self.Tile.resize_tile(self.tile_companies.id, 10), 90)
         self.assertEqual(self.Tile.resize_tile(self.tile_companies.id, 0), 0,
                          "0 puts the tile back to the standard width")
 
@@ -676,9 +677,78 @@ class TestFilterTile(TransactionCase):
         self.assertEqual(defaults['default_domain'], "[('is_company', '=', True)]")
         self.assertFalse(defaults['default_owner_id'], "a manager builds shared tiles by default")
 
+    def test_the_editor_keeps_the_captured_filter(self):
+        """The form's first onchange must not wipe the domain it was given."""
+        defaults = self.Tile.prepare_tile_defaults('res.partner', "[('is_company', '=', True)]")
+        form = Form(self.Tile.with_context(**defaults))
+        self.assertEqual(form.domain, "[('is_company', '=', True)]")
+        form.name = 'Captured'
+        self.assertEqual(form.save().domain, "[('is_company', '=', True)]")
+
+    def test_changing_the_model_on_the_form_still_drops_the_domain(self):
+        defaults = self.Tile.prepare_tile_defaults('res.partner', "[('is_company', '=', True)]")
+        form = Form(self.Tile.with_context(**defaults))
+        form.model_id = self.env['ir.model']._get('res.users')
+        self.assertEqual(form.domain, '[]')
+
     def test_defaults_are_private_for_a_plain_user(self):
         defaults = self.Tile.with_user(self.user).prepare_tile_defaults('res.partner')
         self.assertEqual(defaults['default_owner_id'], self.user.id)
+
+    # ------------------------------------------------------------------
+    # Tiles from a search panel section
+    # ------------------------------------------------------------------
+    def test_panel_tiles_filter_like_the_panel(self):
+        """A tile made from a panel value counts what the panel value counts."""
+        ids = self.Tile.create_tiles_from_panel(
+            'res.partner', 'parent_id', 'in',
+            [{'id': self.companies[0].id, 'label': 'Company 0'}])
+        tile = self.Tile.browse(ids)
+        self.people[:2].parent_id = self.companies[0]
+        self.assertEqual(tile.name, 'Company 0')
+        self.assertEqual(tile.domain, repr([('parent_id', 'in', [self.companies[0].id])]))
+        result = self.Tile.compute_tiles('res.partner', [tile._tile_payload()])
+        self.assertEqual(result['tiles'][str(tile.id)]['count'], self.env['res.partner'].search_count(
+            [('parent_id', 'in', [self.companies[0].id])]))
+
+    def test_panel_tiles_keep_the_picked_order_on_a_new_row(self):
+        scope = [('model_name', '=', 'res.partner'), ('action_id', '=', False)]
+        next_row = min(max(self.Tile.search(scope).mapped('row')) + 1, 6)
+        ids = self.Tile.create_tiles_from_panel(
+            'res.partner', 'type', '=',
+            [{'id': 'invoice', 'label': 'Invoice'}, {'id': 'contact', 'label': 'Contact'}])
+        tiles = self.Tile.browse(ids)
+        self.assertEqual(tiles.mapped('name'), ['Invoice', 'Contact'])
+        self.assertEqual(tiles[0].domain, repr([('type', '=', 'invoice')]))
+        self.assertTrue(tiles[0].sequence < tiles[1].sequence)
+        self.assertEqual(set(tiles.mapped('row')), {next_row},
+                         "the set goes under the tiles already on row 1")
+
+    def test_panel_tiles_are_private_on_request_and_for_plain_users(self):
+        mine = self.Tile.create_tiles_from_panel(
+            'res.partner', 'type', '=', [{'id': 'contact', 'label': 'Contact'}], personal=True)
+        self.assertEqual(self.Tile.browse(mine).owner_id, self.env.user)
+        shared = self.Tile.create_tiles_from_panel(
+            'res.partner', 'type', '=', [{'id': 'contact', 'label': 'Contact'}])
+        self.assertFalse(self.Tile.browse(shared).owner_id, "a manager publishes by default")
+        theirs = self.Tile.with_user(self.user).create_tiles_from_panel(
+            'res.partner', 'type', '=', [{'id': 'contact', 'label': 'Contact'}])
+        self.assertEqual(self.Tile.browse(theirs).owner_id, self.user)
+
+    def test_panel_tiles_refuse_what_the_panel_would_not_do(self):
+        with self.assertRaises(UserError):
+            self.Tile.create_tiles_from_panel('res.partner', 'no_such_field', '=', [{'id': 1}])
+        with self.assertRaises(UserError):
+            self.Tile.create_tiles_from_panel('res.partner', 'type', 'ilike', [{'id': 'x'}])
+        with self.assertRaises(UserError):
+            # "All" is not a value: it filters nothing.
+            self.Tile.create_tiles_from_panel('res.partner', 'parent_id', '=', [{'id': False}])
+
+    def test_panel_tiles_are_capped(self):
+        values = [{'id': partner.id, 'label': partner.name}
+                  for partner in self.env['res.partner'].search([], limit=20)]
+        ids = self.Tile.create_tiles_from_panel('res.partner', 'parent_id', 'in', values)
+        self.assertEqual(len(ids), min(len(values), 12))
 
     # ------------------------------------------------------------------
     # Batched values
@@ -974,6 +1044,12 @@ class TestOnlyMine(TransactionCase):
 
 
 @tagged('post_install', '-at_install')
+
+
+@tagged('post_install', '-at_install')
+
+
+@tagged('post_install', '-at_install')
 class TestTheBrowserCanEvaluateIt(TransactionCase):
     """A tile's domain is evaluated twice: here, to count it, and in the browser,
     to filter the view when it is clicked.
@@ -1054,6 +1130,7 @@ class TestTheBrowserCanEvaluateIt(TransactionCase):
         """A syntax error is the other check's business, not this one's."""
         self.assertIsNone(self.Tile._browser_domain_problem("[('a', '=',"))
 
+
 @tagged('post_install', '-at_install')
 class TestModelDefinedMine(TransactionCase):
     """A model may say what "mine" means, and both counting and filtering follow.
@@ -1102,6 +1179,7 @@ class TestModelDefinedMine(TransactionCase):
     def test_a_forged_field_is_still_refused_before_the_hook(self):
         self.assertEqual(self.Tile._mine_leaf(
             self.env['res.partner'], {'mine_field': 'name'}), [])
+
 
 @tagged('post_install', '-at_install')
 class TestHeadlineTiles(TransactionCase):

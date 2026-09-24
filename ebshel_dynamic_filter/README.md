@@ -10,7 +10,7 @@ one a label, a live number, a trend, and a filter behind it.
 Tiles are `filter.tile` records: created, coloured, sized and arranged by the people who use them,
 on any model, with no XML and no code.
 
-* Version: `19.0.2.2.0`
+* Version: `19.0.2.3.0`
 * Odoo 19.0 — **Community and Enterprise**
 * Depends on: `web`, `bus` (no Enterprise-only module, no external library)
 * Licence: OPL-1
@@ -29,13 +29,16 @@ on any model, with no XML and no code.
 | **Trends** | A sparkline grouped on a date field of the records, *or* drawn from the tile's own recorded history (a nightly job stores one point a day). |
 | **Goals** | Give a tile a target and the sparkline becomes a progress ring. |
 | **Rows** | Stack up to 6 rows of tiles, each nameable in a pane down its left side (“Pipeline”, “Watch list”); drag a tile onto another row to move it. Each row scrolls and is sized on its own. |
-| **Sizing** | Drag a tile's right edge for its width (stored on the tile, 120–520 px, double-click to reset); drag a row's bottom edge for its height (56–320 px, kept per row and per model in the browser). |
+| **Sizing** | Drag a tile's right edge for its width (stored on the tile, 90–520 px, double-click to reset); drag a row's bottom edge for its height (28–160 px, kept per row and per model in the browser). |
 | **Breakdowns** | One click splits a tile by status, salesperson, country, month… and each row of the popover filters the view down to that slice. |
 | **Group by** | A tile can carry a field to group the view by. One click then filters *and* groups — "Late", by salesperson; "Won", by month — as two ordinary facets: drop the tile and its grouping goes with it, drop the grouping and the filter stays. Works on the Tile Wall too. |
 | **Thresholds** | A tile past its limit turns into a warning, and — if asked — pushes a notification to its audience from an hourly server check. |
 | **The Tile Wall** | Every ribbon in the database on one screen, grouped by model, alerting tiles first. Live mode refreshes it every minute. |
 | **Private & shared** | Any internal user can build tiles only they see. Managers publish tiles for everybody, restricted to groups, companies or view types. |
 | **Portable** | Export a ribbon as JSON, import it into another database — fields are matched by name. |
+| **Tile styles** | Four flat styles, picked per user under "Tile style" in the tile menu: Accent (default - white card, colour bar on the left), Card, Midnight (dark) and Pastel. |
+| **Live changes** | A tile whose number moves at a refresh under the same filter flashes and shows the change ("+2") for a few seconds. |
+| **Smart search panel** | Odoo's own search panel (the left column of Employees, Products…), slimmer (188 px), gets a *find in panel* box (Enter applies the first match), removable selection chips, count bars, starred values on top, select all / invert, sort by count or name, hide-empty, collapsible sections, saved selections, a one-click group-by, and pin-as-tile / section-to-tiles shortcuts. "Classic look" switches it off. |
 | **Managing at scale** | "Manage all tiles" carries a search panel: drill down by model on the left, then narrow by owner, restricted-to group, trend source or company — each with a live count, no typing. |
 
 ---
@@ -104,6 +107,16 @@ asset bundle (`ir.qweb._get_asset_bundle('web.assets_backend')`).
   (`o_dft_row_xs` / `_sm` / `_lg`) and the tile drops what it can spare in order: sparkline,
   sub-label, then the value steps down. Nothing is ever clipped — `overflow: hidden` on a tile
   would otherwise cut the number in half.
+
+* **Smart search panel** — `static/src/search_panel/` patches `SearchPanel.prototype` once, for
+  every app. Values are filtered and sorted by replacing the collections the panel templates loop
+  over, never by hiding rendered rows, and the search model is never modified except through its
+  public methods (`toggleFilterValues`, `clearSections`, `createNewGroupBy`). The desktop
+  template extended is `web.SearchPanel.Regular`, not `web.SearchPanelContent`: Regular is a
+  *primary* copy of Content made when the `web` templates load, so an extension of Content from a
+  later bundle block does not reach it. Odoo's `<section>` sets its class with `t-attf-class`, so
+  an xpath must not use `hasclass()` on it. Preferences and saved selections live in
+  `localStorage` (`ebshel_dynamic_filter.sp.*`).
 
 ## Styling note for contributors
 

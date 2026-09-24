@@ -1,0 +1,625 @@
+// Smart search panel
+// ---------------------------------------------------------------------------
+// Styles for the patched `web.SearchPanel` (see static/src/search_panel/).
+// Everything that changes Odoo's own look is scoped under `.o_dft_sp`, the
+// class the panel carries while the smart look is on - "Classic look" drops
+// the class and, with it, every rule below except the toolbar's.
+//
+// Same rule as filter_tiles.scss: Odoo's Bootstrap has an EMPTY variable
+// prefix, so it is `--primary`, `--border-color`, `--body-bg` - never `--bs-*`.
+
+// --- toolbar: find, saved selections, options ------------------------------
+// One line: the find box takes what the three tool buttons leave. The tools
+// are icon-only and borderless, so the line fits the slimmer 188 px panel.
+.o_search_panel .o_dft_sp_toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 4px 4px 0;
+    background-color: inherit;
+
+    .o_dft_sp_tools {
+        order: 2;
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+    }
+
+    .o_dft_sp_tool {
+        position: relative;
+        flex: 0 0 auto;
+        padding: 2px 4px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+
+        &:hover {
+            color: var(--emphasis-color);
+            background-color: color-mix(in srgb, var(--secondary-color) 12%, transparent);
+        }
+
+        .o_dft_sp_tool_count {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            min-width: 13px;
+            height: 13px;
+            padding: 0 3px;
+            border-radius: 7px;
+            font-size: 0.56rem;
+            font-weight: 700;
+            line-height: 13px;
+            color: #fff;
+            background-color: var(--primary);
+        }
+    }
+
+    // Classic look: only the options button remains, beside Odoo's own fold
+    // button; the panel below is Odoo's, untouched.
+    &.o_dft_sp_toolbar_classic {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: 0;
+        padding: 0;
+        background: none;
+
+        .o_dft_sp_tools {
+            position: absolute;
+            top: 8px;
+            right: 40px;
+        }
+    }
+}
+
+.o_dft_sp_find {
+    position: relative;
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+
+    > .fa-search {
+        position: absolute;
+        top: 50%;
+        left: 8px;
+        transform: translateY(-50%);
+        font-size: 0.68rem;
+        color: var(--secondary-color);
+        pointer-events: none;
+    }
+
+    input {
+        height: 26px;
+        padding: 0 20px 0 23px;
+        border-color: transparent;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        background-color: color-mix(in srgb, var(--secondary-color) 9%, transparent);
+        transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+        &:focus {
+            border-color: var(--primary);
+            background-color: var(--body-bg);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+        }
+    }
+
+    .o_dft_sp_find_clear {
+        position: absolute;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+        padding: 0 6px;
+        font-size: 0.68rem;
+        color: var(--secondary-color);
+    }
+}
+
+// --- slimmer panel ------------------------------------------------------------
+// Odoo's panel is 220 px, with a 16 px left gutter and 24 px above every
+// section title. The smart look spends that room on content instead: a
+// narrower column, and spacing that is just enough to read. A width the user
+// dragged still wins - Odoo sets it inline.
+.o_search_panel.o_dft_sp {
+    --SearchPanel-width: 188px;
+    --treeEntry-padding-h: 10px;
+
+    padding-left: 8px !important;
+
+    .o_search_panel_section_header {
+        padding-top: 10px !important;
+        padding-bottom: 3px !important;
+        font-size: 0.78rem;
+    }
+
+    .o_search_panel_category_value {
+        padding-top: 1px !important;
+        padding-bottom: 1px !important;
+    }
+
+    .o_search_panel_filter_value {
+        margin-bottom: 1px !important;
+    }
+
+    .o_search_panel_filter_group {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .o_search_panel_field {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+}
+
+// --- the current selection, as chips ----------------------------------------
+.o_dft_sp_chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px;
+    margin: 0 4px 2px 0;
+    padding: 4px;
+    border-radius: 8px;
+    background-color: color-mix(in srgb, var(--primary) 6%, transparent);
+
+    .o_dft_sp_clear_all {
+        padding: 0 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+}
+
+.o_dft_sp_chip {
+    --dft-sp-color: var(--primary);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 1px 1px 1px 8px;
+    border: 1px solid color-mix(in srgb, var(--dft-sp-color) 30%, transparent);
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--dft-sp-color) 13%, var(--body-bg));
+    color: color-mix(in srgb, var(--dft-sp-color) 65%, var(--emphasis-color));
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.5;
+    animation: o_dft_sp_pop 0.18s ease-out;
+
+    .o_dft_sp_chip_icon {
+        font-size: 0.65rem;
+        opacity: 0.8;
+    }
+
+    .o_dft_sp_chip_label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .o_dft_sp_chip_remove {
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0.62rem;
+        line-height: 18px;
+        color: inherit;
+        opacity: 0.65;
+
+        &:hover {
+            opacity: 1;
+            background-color: color-mix(in srgb, var(--dft-sp-color) 22%, transparent);
+        }
+    }
+}
+
+@keyframes o_dft_sp_pop {
+    from {
+        transform: scale(0.85);
+        opacity: 0;
+    }
+}
+
+// --- sections ---------------------------------------------------------------
+.o_dft_sp {
+    .o_dft_sp_header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        user-select: none;
+
+        > b {
+            flex: 0 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            letter-spacing: 0.01em;
+        }
+
+        > .o_search_panel_section_icon {
+            margin-right: 0 !important;
+        }
+    }
+
+    .o_dft_sp_badge {
+        flex: 0 0 auto;
+        min-width: 18px;
+        padding: 0 6px;
+        border-radius: 999px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        line-height: 1.6;
+        text-align: center;
+        color: #fff;
+        background-color: var(--primary);
+
+        &.o_dft_sp_badge_match {
+            color: var(--emphasis-color);
+            background-color: color-mix(in srgb, var(--warning) 40%, transparent);
+        }
+    }
+
+    .o_dft_sp_head_tools {
+        display: inline-flex;
+        align-items: center;
+        gap: 1px;
+        margin-left: auto;
+        padding-right: 6px;
+        text-transform: none;
+    }
+
+    // Tools appear on hover, and take no room until then - the section name
+    // is what the header is for. "Clear" is the one worth seeing all the time.
+    .o_dft_sp_head_btn {
+        display: none;
+        padding: 0 3px;
+        font-size: 0.78rem;
+        line-height: 1;
+        color: var(--secondary-color);
+        opacity: 0.75;
+
+        &:hover {
+            opacity: 1;
+            color: var(--primary);
+        }
+    }
+
+    .o_dft_sp_header:hover .o_dft_sp_head_btn,
+    .o_dft_sp_head_btn.o_dft_sp_head_clear {
+        display: inline-block;
+    }
+
+    .o_dft_sp_chevron {
+        width: 12px;
+        font-size: 0.85rem;
+        text-align: center;
+        color: var(--secondary-color);
+        transition: color 0.12s ease;
+    }
+
+    .o_dft_sp_header:hover .o_dft_sp_chevron {
+        color: var(--emphasis-color);
+    }
+
+    .o_dft_sp_collapsed .o_dft_sp_header {
+        opacity: 0.8;
+    }
+
+    // --- values -------------------------------------------------------------
+    // Count bars: `--dft-sp-share` is the value's share of the largest one
+    // beside it; without it (bars off, no counters) the gradient is empty.
+    .o_dft_sp_row {
+        --dft-sp-color: var(--primary);
+
+        border-radius: 6px;
+        background-image: linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--dft-sp-color) 14%, transparent) var(--dft-sp-share, 0%),
+            transparent var(--dft-sp-share, 0%)
+        );
+        background-repeat: no-repeat;
+        transition: background-color 0.12s ease;
+    }
+
+    .o_search_panel_filter_value .o_dft_sp_row {
+        padding-top: 1px;
+        padding-bottom: 1px;
+
+        &:hover {
+            background-color: color-mix(in srgb, var(--primary) 6%, transparent);
+        }
+
+        // Title, counter, pin: the title takes the slack, so the counter and
+        // the pin stay together at the end instead of being spread apart.
+        .o_search_panel_label {
+            justify-content: flex-start !important;
+        }
+
+        .o_search_panel_label_title {
+            margin-right: auto;
+        }
+    }
+
+    .o_search_panel_counter {
+        flex: 0 0 auto;
+        padding: 0 6px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        line-height: 1.55;
+        background-color: color-mix(in srgb, var(--secondary-color) 11%, transparent);
+    }
+
+    .o_search_panel_category_value header.active .o_search_panel_counter {
+        color: #fff !important;
+        background-color: var(--primary);
+    }
+
+    mark.o_dft_sp_hit {
+        padding: 0;
+        border-radius: 2px;
+        color: inherit;
+        font-weight: 700;
+        background-color: color-mix(in srgb, var(--warning) 38%, transparent);
+    }
+
+    // Star and pin: shown on hover only, and taking no room until then - in
+    // a narrow panel every pixel of the label counts. A starred value keeps
+    // its star, in amber, so the favourites stay recognisable.
+    .o_dft_sp_pin,
+    .o_dft_sp_star {
+        display: none;
+        flex: 0 0 auto;
+        padding: 0 3px;
+        font-size: 0.68rem;
+        line-height: 1;
+        color: var(--secondary-color);
+        opacity: 0.75;
+
+        &:hover {
+            opacity: 1;
+            color: var(--primary);
+        }
+    }
+
+    .o_dft_sp_row:hover {
+        .o_dft_sp_pin,
+        .o_dft_sp_star {
+            display: inline-block;
+        }
+    }
+
+    .o_dft_sp_star.o_dft_sp_starred {
+        display: inline-block;
+        opacity: 1;
+        color: #f59e0b;
+    }
+
+    // --- compact density ----------------------------------------------------
+    // Odoo spaces the panel with utility classes (`pt-4`, `py-1`, `mb-1`),
+    // which are `!important` - so are the overrides.
+    // Denser still than the default: for long lists on small screens.
+    &.o_dft_sp_compact {
+        font-size: 0.92em;
+
+        .o_search_panel_section_header {
+            padding-top: 6px !important;
+            padding-bottom: 1px !important;
+        }
+
+        .o_search_panel_category_value {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .o_search_panel_filter_value {
+            margin-bottom: 0 !important;
+        }
+
+        .o_search_panel_filter_group {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+}
+
+.o_dft_sp_nomatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin: 24px 8px 0 0;
+    padding: 16px 8px;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+
+    > .fa-search {
+        font-size: 1.2rem;
+        opacity: 0.5;
+    }
+
+    .btn-link {
+        padding: 0;
+        font-size: 0.78rem;
+    }
+}
+
+// --- menus ------------------------------------------------------------------
+.o_dft_sp_menu {
+    min-width: 230px;
+
+    .dropdown-header {
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .o_dft_sp_check {
+        color: var(--primary);
+    }
+
+    .o_dft_sp_menu_note {
+        max-width: 280px;
+        padding: 2px 16px 6px;
+        font-size: 0.75rem;
+        white-space: normal;
+        color: var(--secondary-color);
+    }
+
+    .o_dft_sp_preset {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .o_dft_sp_preset_icon {
+            color: var(--primary);
+            font-size: 0.75rem;
+        }
+
+        .o_dft_sp_preset_name {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .o_dft_sp_preset_size {
+            flex: 0 0 auto;
+            padding: 0 6px;
+            border-radius: 999px;
+            font-size: 0.66rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            background-color: color-mix(in srgb, var(--secondary-color) 12%, transparent);
+        }
+
+        .o_dft_sp_preset_delete {
+            flex: 0 0 auto;
+            padding: 0 2px;
+            font-size: 0.75rem;
+            color: var(--secondary-color);
+            opacity: 0;
+
+            &:hover {
+                color: var(--danger);
+            }
+        }
+
+        &:hover .o_dft_sp_preset_delete {
+            opacity: 0.85;
+        }
+    }
+
+    .o_dft_sp_preset_save {
+        display: flex;
+        gap: 6px;
+        padding: 4px 12px;
+
+        input {
+            min-width: 0;
+        }
+    }
+}
+
+// --- "Filter tiles from this section" dialog --------------------------------
+.o_dft_pt_toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
+
+    .o_dft_pt_counter {
+        margin-right: auto;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+}
+
+.o_dft_pt_values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.o_dft_pt_value {
+    --dft-color: var(--secondary-color);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 4px 10px 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background-color: var(--body-bg);
+    font-size: 0.8rem;
+    color: var(--emphasis-color);
+    transition: border-color 0.12s ease, background-color 0.12s ease;
+
+    .fa {
+        color: var(--secondary-color);
+    }
+
+    .o_dft_pt_label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .o_dft_pt_count {
+        padding: 0 6px;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--secondary-color);
+        background-color: color-mix(in srgb, var(--secondary-color) 12%, transparent);
+    }
+
+    &:hover:not(:disabled) {
+        border-color: color-mix(in srgb, var(--primary) 50%, var(--border-color));
+    }
+
+    &.o_dft_pt_picked {
+        border-color: var(--dft-color);
+        background-color: color-mix(in srgb, var(--dft-color) 12%, var(--body-bg));
+
+        .fa {
+            color: var(--dft-color);
+        }
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .o_dft_sp_chip {
+        animation: none;
+    }
+}

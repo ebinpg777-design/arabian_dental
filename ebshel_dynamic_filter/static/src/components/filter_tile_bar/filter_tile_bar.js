@@ -32,8 +32,16 @@ const MAX_SHORTCUTS = 9;
 // Auto-refresh steps offered in the studio menu, in seconds.
 const REFRESH_STEPS = [0, 30, 60, 300];
 // Row height bounds, in pixels. 0 means "as tall as the tiles need to be".
-const MIN_ROW_HEIGHT = 56;
-const MAX_ROW_HEIGHT = 320;
+const MIN_ROW_HEIGHT = 28;
+const MAX_ROW_HEIGHT = 160;
+// Tile styles offered in the tile menu; the first is the default. Each is a
+// flat style - `o_dft_look_<key>` in filter_tiles.scss.
+export const TILE_LOOKS = [
+    { key: "accent", label: _t("Accent"), icon: "fa-bookmark-o" },
+    { key: "card", label: _t("Card"), icon: "fa-square-o" },
+    { key: "midnight", label: _t("Midnight"), icon: "fa-moon-o" },
+    { key: "pastel", label: _t("Pastel"), icon: "fa-tint" },
+];
 // Keep in sync with MAX_TILE_ROWS in models/filter_tile.py.
 const MAX_ROWS = 6;
 
@@ -77,6 +85,14 @@ export class FilterTileBar extends Component {
             loading: true,
             collapsed: this.readSetting("collapsed", false),
             compact: this.readSetting("compact", false),
+            // Tile style, per user and per model: "accent" (the default - a
+            // white card with a bar of colour down its left edge), "card",
+            // "midnight" or "pastel". See TILE_LOOKS.
+            look: this.readLook(),
+            // The filter the values were last computed against. A tile only
+            // "pulses" when its number moves while this stays the same - an
+            // auto-refresh, somebody else's edit - not every time you filter.
+            contextKey: "",
             hintDismissed: this.readSetting("hint-dismissed", false),
             refreshEvery: this.readNumberSetting("refresh", 0),
             // How tall each row is, keyed by row number. Unlike a tile's width -
@@ -95,7 +111,12 @@ export class FilterTileBar extends Component {
             combineAll: this.readSetting("combine-all", true),
         });
         for (let row = 1; row <= MAX_ROWS; row++) {
-            this.state.rowHeights[row] = this.readNumberSetting(`row-height-${row}`, 0);
+            // Clamped on the way in: a height stored under older, wider bounds
+            // must not outgrow the tiles it holds.
+            const height = this.readNumberSetting(`row-height-${row}`, 0);
+            this.state.rowHeights[row] = height
+                ? Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, height))
+                : 0;
         }
         this.stopRowResize = null;
 
@@ -144,15 +165,25 @@ export class FilterTileBar extends Component {
             onDrop: () => this.onTileDropped(),
         });
 
+        // `bypassEditableProtection`: a list view opens with the focus in the
+        // search box, and Odoo withholds hotkeys from an editable target unless
+        // they opt in - while the navbar's own Alt + digit shortcuts do. Without
+        // it, Alt + 2 opened the app's second menu instead of the second tile.
+        // Alt + digit types nothing into a text field, so nothing is lost.
+        const hotkeyOptions = { bypassEditableProtection: true };
         for (let index = 1; index <= MAX_SHORTCUTS; index++) {
-            useHotkey(`alt+${index}`, () => {
-                const def = this.orderedDefs[index - 1];
-                if (def) {
-                    this.onTileSelected(def, {});
-                }
-            });
+            useHotkey(
+                `alt+${index}`,
+                () => {
+                    const def = this.orderedDefs[index - 1];
+                    if (def) {
+                        this.onTileSelected(def, {});
+                    }
+                },
+                hotkeyOptions
+            );
         }
-        useHotkey("alt+0", () => this.clearTileFacets());
+        useHotkey("alt+0", () => this.clearTileFacets(), hotkeyOptions);
 
         this.refreshTimer = null;
         this.armRefreshTimer();
@@ -314,13 +345,13 @@ export class FilterTileBar extends Component {
         if (!height) {
             return "";
         }
-        if (height < 84) {
+        if (height < 40) {
             return "o_dft_row_xs";
         }
-        if (height < 112) {
+        if (height < 52) {
             return "o_dft_row_sm";
         }
-        if (height >= 168) {
+        if (height >= 84) {
             return "o_dft_row_lg";
         }
         return "";
@@ -613,17 +644,19 @@ export class FilterTileBar extends Component {
             ignore_filters: def.ignore_filters,
         }));
         try {
+            const baseDomain = this.currentDomain(true);
             const result = await this.keepLast.add(
                 this.orm.silent.call("filter.tile", "compute_tiles", [
                     this.resModel,
                     payload,
-                    this.currentDomain(true),
+                    baseDomain,
                     6,
                     // What a headline tile counts against: this screen without
                     // the reader's own filters. (client, 2026-09-10)
                     this.unfilteredDomain(),
                 ])
             );
+            this.state.contextKey = JSON.stringify(baseDomain);
             this.state.values = result.tiles || {};
             this.state.total = result.total || 0;
         } catch (error) {
@@ -772,7 +805,6 @@ export class FilterTileBar extends Component {
         }
     }
 
-
     /**
      * The screen's own domain, without the filters the reader has applied.
      * A headline tile - "Finished", on a screen whose default filter is "to
@@ -911,6 +943,29 @@ export class FilterTileBar extends Component {
     toggleCollapsed() {
         this.state.collapsed = !this.state.collapsed;
         this.writeSetting("collapsed", this.state.collapsed);
+    }
+
+    get tileLooks() {
+        return TILE_LOOKS;
+    }
+
+    readLook() {
+        let stored = null;
+        try {
+            stored = browser.localStorage.getItem(this.settingKey("look"));
+        } catch {
+            // storage unavailable: the default style
+        }
+        return TILE_LOOKS.some((look) => look.key === stored) ? stored : TILE_LOOKS[0].key;
+    }
+
+    setLook(key) {
+        this.state.look = key;
+        try {
+            browser.localStorage.setItem(this.settingKey("look"), key);
+        } catch {
+            // Private browsing / storage disabled: the choice is simply not kept.
+        }
     }
 
     toggleCompact() {

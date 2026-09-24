@@ -56,6 +56,8 @@
                                     active="isActive(def)"
                                     broken="tileIsBroken(def)"
                                     compact="state.compact"
+                                    look="state.look"
+                                    contextKey="state.contextKey"
                                     canManage="state.canManage"
                                     selectable="state.multiSelect"
                                     shortcut="shortcutFor(def)"
@@ -163,6 +165,14 @@
                            t-att-class="state.compact ? 'fa-expand' : 'fa-compress'"/>
                         <t t-esc="state.compact ? 'Comfortable tiles' : 'Compact tiles'"/>
                     </DropdownItem>
+                    <div class="dropdown-divider" role="separator"/>
+                    <div class="dropdown-header">Tile style</div>
+                    <DropdownItem t-foreach="tileLooks" t-as="look" t-key="look.key"
+                                  onSelected="() => this.setLook(look.key)">
+                        <i class="fa fa-fw me-2" t-att-class="state.look === look.key ? 'fa-check' : look.icon"/>
+                        <t t-esc="look.label"/>
+                    </DropdownItem>
+                    <div class="dropdown-divider" role="separator"/>
                     <DropdownItem onSelected="() => this.cycleRefresh()">
                         <i class="fa fa-refresh fa-fw me-2"
                            t-att-class="{ 'fa-spin': state.refreshEvery }"/>

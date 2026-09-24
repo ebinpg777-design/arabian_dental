@@ -6,6 +6,7 @@
                  o_dft_broken: props.broken,
                  o_dft_active: props.active,
                  o_dft_compact: props.compact,
+                 o_dft_changed: state.change,
                  o_dft_loading: props.loading,
                  o_dft_manageable: props.canManage,
                  o_dft_alerting: isAlerting,
@@ -13,7 +14,7 @@
                  o_dft_selectable: props.selectable,
                  o_dft_error: props.data and props.data.error,
              }"
-             t-attf-class="o_dft_tile {{ widthClass }}"
+             t-attf-class="o_dft_tile o_dft_look_{{ props.look }} {{ widthClass }}"
              t-att-style="style"
              t-att-data-tile-id="props.def.id"
              t-att-title="tooltip"
@@ -22,7 +23,6 @@
              tabindex="0"
              t-on-click="onClick"
              t-on-keydown="onKeydown">
-
             <!-- Its filter is something the browser cannot work out, so tapping
                  it would do nothing but explain itself. Said on the tile, in the
                  place a manager will see it. (client, 2026-09-10) -->
@@ -30,6 +30,7 @@
                   title="This tile's filter cannot be applied — edit it and simplify the filter">
                 <i class="fa fa-exclamation-triangle" role="img" aria-label="Unusable filter"/>
             </span>
+
             <span t-if="props.canManage" class="o_dft_grip" title="Drag to reorder">
                 <i class="fa fa-ellipsis-v" role="img" aria-label="Drag handle"/>
             </span>
@@ -59,6 +60,10 @@
 
                 <div class="o_dft_value_row">
                     <span class="o_dft_value" t-out="formattedValue"/>
+                    <!-- It just moved, under the same filter: say by how much. -->
+                    <span t-if="state.change" class="o_dft_change"
+                          t-att-class="{ o_dft_change_down: state.change &lt; 0 }"
+                          title="Changed at the last refresh" t-esc="changeText"/>
                     <span t-if="subLabel" class="o_dft_sub" t-out="subLabel"/>
                     <i t-if="props.active" class="o_dft_check fa fa-check-circle" role="img"
                        aria-label="Filter applied"/>

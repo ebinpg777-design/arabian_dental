@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Dynamic Filter Tiles',
-    'version': '19.0.2.2.0',
+    'version': '19.0.2.3.0',
     'summary': 'Turn any filter into a one-click tile on every list and kanban view - live counts, '
                'KPIs, trends, thresholds, breakdowns and a tile wall. Built from the UI, no code.',
     'description': """
@@ -33,6 +33,8 @@ The Tile Studio
 
 The tile widget
 ---------------
+* **Four tile styles**, per user: Accent (a white card with a colour bar), Card, Midnight, Pastel.
+* **Live changes**: a tile flashes "+2" when its number moves at a refresh.
 * Animated count-up values, record counts or sum / avg / max / min of any field.
 * Inline **sparkline** plus a period-over-period delta - grouped on a date field
   of the records, or drawn from the tile's own **recorded history**.
@@ -56,6 +58,24 @@ The tile widget
 * Drag a tile's edge to set its width, a row's edge to set its height.
 * Compact / comfortable density, auto-refresh, and a collapsible bar, all
   remembered per model.
+
+The smart search panel
+----------------------
+Odoo's search panel - the column of categories and filters on the left of
+Contacts, Employees, Products and every other view that has one - gets the tools
+it was missing, in every app:
+
+* **Slimmer**: 188 px instead of 220, with the spacing trimmed.
+* **Find in panel**: one box filtering every section, case- and accent-insensitive,
+  with the match highlighted and trees opened down to it - Enter applies the first match.
+* **Starred values** stay at the top of their section; **select all / invert** a section.
+* **Selection chips** at the top, a selected-count and a clear button per section.
+* **Count bars** behind every value; sort by most records or by name; hide the
+  empty values; compact rows; collapsible sections.
+* **Saved selections**: name a combination of panel values, re-apply it in one click.
+* **Group the view** by a section's field in one click.
+* **Straight to tiles**: pin a panel value as a tile, or turn a section into a tile set.
+* **Classic look** gives Odoo's own panel back.
 
 The Tile Wall
 -------------
@@ -113,7 +133,10 @@ Compatibility
             'ebshel_dynamic_filter/static/src/fields/**/*.xml',
             'ebshel_dynamic_filter/static/src/views/**/*.js',
             'ebshel_dynamic_filter/static/src/views/**/*.xml',
+            'ebshel_dynamic_filter/static/src/search_panel/**/*.js',
+            'ebshel_dynamic_filter/static/src/search_panel/**/*.xml',
             'ebshel_dynamic_filter/static/src/scss/filter_tiles.scss',
+            'ebshel_dynamic_filter/static/src/scss/smart_search_panel.scss',
         ],
     },
     'images': [
