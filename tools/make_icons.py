@@ -36,35 +36,56 @@ S = 4                       # supersample
 N = 256 * S
 RADIUS = 58 * S             # matches Odoo's own app icons
 
+# Five tones, all drawn out of the brand sheet's two colours: the red and a
+# deeper one of it, then three steps of the grey, of which the middle one leans
+# to the blue the brand grey already has in it. More than two tones, because a
+# screen of twenty tiles in two colours gives nobody a way to tell one app from
+# its neighbour - Track Order and Material Requests came out as the same tile.
+#
+# Every tone carries a WHITE pictogram at 4.4:1 or better. A lighter steel was
+# tried first and read at 2.6:1, which is a white glyph that disappears.
 RED = ((237, 28, 36), (168, 18, 25))
+MAROON = ((179, 22, 28), (105, 12, 17))
+STEEL = ((94, 110, 130), (48, 60, 78))
 GREY = ((108, 119, 126), (56, 64, 72))
+INK = ((46, 53, 60), (16, 20, 25))   # deepened so it parts from STEEL side by side
 
 # module: (font awesome codepoint, family)
+#
+# The tones are assigned against the ORDER OF THE HOME SCREEN, not by tidy
+# category: the lab's own apps happen to sit next to each other there (Track
+# Order, Management, Field Work, Petty Cash, then Material Requests below them),
+# and two neighbours on the same tone look like the same app twice. Those five
+# carry five different tones. What is left is grouped by what the app is for.
 ICONS = {
-    # what the lab sells, and what its customers and reps touch
-    'sale_custom':           ('f07a', RED),    # shopping cart
-    'lab_portal':            ('f0c0', RED),    # users
-    'lab_website':           ('f0ac', RED),    # globe
-    'lab_whatsapp':          ('f232', RED),    # whatsapp
-    'lab_collections':       ('f156', RED),    # rupee
-    'lab_fieldwork':         ('f21c', RED),    # motorcycle
-    'lab_delivery':          ('f0d1', RED),    # truck
-    'lab_incentive':         ('f091', RED),    # trophy
-    # what the lab runs on
-    'lab_track':             ('f05b', GREY),   # crosshairs
-    'lab_order_control':     ('f14a', GREY),   # check-square
-    'lab_rework':            ('f021', GREY),   # refresh
-    'lab_workcenter_scan':   ('f02a', GREY),   # barcode
-    'material_request':      ('f0ca', GREY),   # list
-    'lab_reports':           ('f15c', GREY),   # file-text
-    'lab_dashboards':        ('f080', GREY),   # bar chart
-    'lab_ceo_dashboard':     ('f0e4', GREY),   # tachometer
-    'lab_finance_ops':       ('f1ec', GREY),   # calculator
-    'lab_bank_reconciliation': ('f19c', GREY),  # bank
-    'petty_cash':            ('f0d6', GREY),   # bank note
-    'lab_access_control':    ('f023', GREY),   # lock
-    'lab_migration':         ('f0ec', GREY),   # exchange
-    'lab_pwa':               ('f10b', GREY),   # mobile
+    # side by side on the home screen - each one a different tone
+    'lab_track':             ('f05b', STEEL),    # crosshairs
+    'lab_ceo_dashboard':     ('f0e4', INK),      # tachometer
+    'lab_fieldwork':         ('f21c', RED),      # motorcycle
+    'petty_cash':            ('f0d6', GREY),     # bank note
+    'material_request':      ('f0ca', MAROON),   # list
+    # what the lab sells, and what its customers touch
+    'sale_custom':           ('f07a', RED),      # shopping cart
+    'lab_portal':            ('f0c0', RED),      # users
+    'lab_website':           ('f0ac', RED),      # globe
+    'lab_whatsapp':          ('f232', RED),      # whatsapp
+    'lab_collections':       ('f156', RED),      # rupee
+    # out on the road
+    'lab_delivery':          ('f0d1', MAROON),   # truck
+    'lab_incentive':         ('f091', MAROON),   # trophy
+    # the store and the bench
+    'lab_workcenter_scan':   ('f02a', GREY),     # barcode
+    'lab_rework':            ('f021', GREY),     # refresh
+    'lab_order_control':     ('f14a', GREY),     # check-square
+    'lab_reports':           ('f15c', GREY),     # file-text
+    # where the work is watched
+    'lab_dashboards':        ('f080', STEEL),    # bar chart
+    'lab_migration':         ('f0ec', STEEL),    # exchange
+    'lab_pwa':               ('f10b', STEEL),    # mobile
+    # the money, and the keys
+    'lab_finance_ops':       ('f1ec', INK),      # calculator
+    'lab_bank_reconciliation': ('f19c', INK),    # bank
+    'lab_access_control':    ('f023', INK),      # lock
 }
 
 
@@ -145,8 +166,9 @@ def main():
             continue
         icon, used = build(module, codepoint, family, mark)
         icon.save(os.path.join(folder, 'icon.png'), 'PNG', optimize=True)
-        print("%-26s %-8s %s" % (module, used,
-                                 'red' if family is RED else 'grey'))
+        names = {id(RED): 'red', id(MAROON): 'maroon', id(STEEL): 'steel',
+                 id(GREY): 'grey', id(INK): 'ink'}
+        print("%-26s %-8s %s" % (module, used, names[id(family)]))
 
 
 if __name__ == '__main__':

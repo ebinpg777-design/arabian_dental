@@ -99,8 +99,8 @@ as well made an ordinary save look like a warning.
 | --- | --- |
 | `ceramic` | Charcoal, with the lab's own layered ceramic work held in the bottom right |
 | `midnight` | The same charcoal lit from two corners, nothing in it to look at |
-| `studio` *(default)* | Pearl white, a red bloom off the top corner, the shield watermarked faintly |
-| `daylight` | White, swept diagonally by the brand red, no photograph |
+| `studio` | Pearl white, a red bloom off the top corner, the shield watermarked faintly |
+| `daylight` *(default)* | White, swept diagonally by the brand red, no photograph |
 
 Set the system parameter to switch; a name nobody shipped falls back to the
 default rather than leaving the screen blank. Each variant declares whether it
@@ -110,10 +110,9 @@ picture is composed as one image rather than layered in CSS because where each
 part of it goes depends on where things sit in the frame, which CSS cannot know:
 the app grid owns the middle and the top, so a photograph only ever gets a corner.
 
-The CSS fallback and the default are now the same picture, which they need not be:
-the bare rule stays light whatever the default is, because the captions only turn
-white under a class, and a dark picture arriving without that class would leave
-near-black app names on a near-black screen.
+The bare CSS rule is a light picture whatever the default is set to, because the
+captions only turn white under a class, and a dark picture arriving without that
+class would leave near-black app names on a near-black screen.
 
 **What is wrong.** A warning strip above the apps, for the things nobody would
 otherwise go looking for.
