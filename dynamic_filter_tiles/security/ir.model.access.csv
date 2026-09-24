@@ -1,7 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_filter_tile_user,filter.tile.user,model_filter_tile,base.group_user,1,1,1,1
-access_filter_tile_manager,filter.tile.manager,model_filter_tile,dynamic_filter_tiles.group_tile_manager,1,1,1,1
-access_filter_tile_snapshot_user,filter.tile.snapshot.user,model_filter_tile_snapshot,base.group_user,1,0,0,0
-access_filter_tile_snapshot_manager,filter.tile.snapshot.manager,model_filter_tile_snapshot,dynamic_filter_tiles.group_tile_manager,1,1,1,1
-access_filter_tile_row_user,filter.tile.row.user,model_filter_tile_row,base.group_user,1,0,0,0
-access_filter_tile_row_manager,filter.tile.row.manager,model_filter_tile_row,dynamic_filter_tiles.group_tile_manager,1,1,1,1

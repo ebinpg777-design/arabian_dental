@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Incentive sheet tiles (dynamic_filter_tiles; replaces the former list_view_dashboard block). -->
+    <!-- Incentive sheet tiles (ebshel_dynamic_filter; replaces the former list_view_dashboard block). -->
     <data noupdate="1">
         <record id="tile_incentive_computed" model="filter.tile">
             <field name="name">Awaiting Approval</field>

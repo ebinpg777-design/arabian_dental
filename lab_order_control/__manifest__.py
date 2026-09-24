@@ -28,7 +28,7 @@ This module only surfaces it on the verification screens.
     'author': 'Ebin P G',
     'website': 'https://www.arabiandentallab.com',
     'depends': ['lab_access_control', 'sale_custom', 'account',
-                'dynamic_filter_tiles'],
+                'ebshel_dynamic_filter'],
     'data': [
         'security/lab_order_control_security.xml',
         'security/ir.model.access.csv',

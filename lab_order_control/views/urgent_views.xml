@@ -37,7 +37,7 @@
             <field name="name" position="before">
                 <field name="priority" widget="priority" optional="show"/>
             </field>
-            <!-- KPI tiles (R15/R16) live in data/filter_tiles.xml (dynamic_filter_tiles). -->
+            <!-- KPI tiles (R15/R16) live in data/filter_tiles.xml (ebshel_dynamic_filter). -->
         </field>
     </record>
 

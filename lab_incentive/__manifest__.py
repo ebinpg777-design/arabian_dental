@@ -9,7 +9,7 @@
     'license': 'LGPL-3',
     # lab_collections: the 'paid' basis asks its countback - payment_state never
     # reaches 'paid' on a ledger whose receipts are never reconciled.
-    'depends': ['lab_fieldwork', 'lab_delivery', 'dynamic_filter_tiles',
+    'depends': ['lab_fieldwork', 'lab_delivery', 'ebshel_dynamic_filter',
                 'lab_collections'],
     'data': [
         'security/incentive_security.xml',

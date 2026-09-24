@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dynamic_filter.TileOverview">
+        <div class="o_dft_wall o_action">
+            <div class="o_dft_wall_head">
+                <div class="o_dft_wall_title">
+                    <h2>Tile Wall</h2>
+                    <span t-if="!state.loading" class="text-muted">
+                        <t t-esc="tileCount"/> tiles
+                        <t t-if="alertCount"> · <span class="o_dft_wall_alerts">
+                            <i class="fa fa-bell me-1"/><t t-esc="alertCount"/> alerting
+                        </span></t>
+                    </span>
+                </div>
+                <div class="o_dft_wall_tools">
+                    <button class="btn btn-secondary" t-att-class="{ active: state.onlyAlerts }"
+                            t-on-click="() => this.toggleAlerts()">
+                        <i class="fa fa-bell me-1"/>
+                        <t t-esc="state.onlyAlerts ? 'Showing alerts' : 'Only alerts'"/>
+                    </button>
+                    <button class="btn btn-secondary" t-att-class="{ active: state.live }"
+                            t-on-click="() => this.toggleLive()"
+                            title="Refresh the wall every minute - for a screen on the wall">
+                        <i class="fa fa-refresh me-1" t-att-class="{ 'fa-spin': state.live }"/>
+                        Live
+                    </button>
+                    <button class="btn btn-primary" t-on-click="() => this.load()">
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div t-if="state.loading" class="o_dft_wall_loading">
+                <i class="fa fa-circle-o-notch fa-spin fa-2x"/>
+            </div>
+
+            <t t-else="">
+                <div t-if="!state.sections.length" class="o_dft_wall_empty">
+                    <i class="fa fa-th-large fa-3x mb-3"/>
+                    <p t-out="emptyMessage"/>
+                </div>
+
+                <div class="o_dft_wall_section" t-foreach="state.sections" t-as="section"
+                     t-key="section.model">
+                    <div class="o_dft_wall_section_head">
+                        <button class="btn btn-link" t-on-click="() => this.openSection(section)">
+                            <t t-esc="section.label"/>
+                        </button>
+                        <span class="text-muted small"><t t-esc="section.total"/> records</span>
+                    </div>
+                    <div class="o_dft_wall_grid">
+                        <FilterTile t-foreach="section.tiles" t-as="tile" t-key="tile.key"
+                                    def="tile"
+                                    data="tile.data"
+                                    total="section.total"
+                                    canManage="false"
+                                    onSelect="() => this.openTile(section, tile)"/>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

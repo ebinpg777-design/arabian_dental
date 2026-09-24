@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- KPI / filter tiles (dynamic_filter_tiles) for the sales, invoicing and production
+    <!-- KPI / filter tiles (ebshel_dynamic_filter) for the sales, invoicing and production
          screens — replaces the <listdashboard> blocks that used list_view_dashboard.
          Model-wide tiles (no action_id) sit above EVERY list / kanban of the model, so the
          same ribbon follows the user through Register, Orders, To Verify, Urgent Works…

@@ -51,7 +51,7 @@ class CrmTeam(models.Model):
     def _lab_pin_invoice_tiles(self):
         """Every account.move tile of ours: pinned to Accounting's Invoices.
 
-        dynamic_filter_tiles used to carry an "Also On" (extra_action_ids) list;
+        ebshel_dynamic_filter used to carry an "Also On" (extra_action_ids) list;
         that concept is gone from the tile model, and writing the dead field
         broke every FRESH install of this module at post_init while the live
         database sailed on with data loaded under the old schema. Pinning to

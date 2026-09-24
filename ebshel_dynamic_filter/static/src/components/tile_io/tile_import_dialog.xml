@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dynamic_filter.TileImportDialog">
+        <Dialog title="'Import a tile set'" size="'md'">
+            <div class="o_dft_import">
+                <p class="text-muted">
+                    Pick a file exported from another database (or paste its contents).
+                    Tiles whose model or fields do not exist here are skipped and listed.
+                </p>
+
+                <label class="o_dft_import_drop btn btn-secondary w-100">
+                    <i class="fa fa-upload me-2"/>
+                    <t t-esc="state.fileName or 'Choose a .json file'"/>
+                    <input class="d-none" type="file" accept="application/json,.json"
+                           t-on-change="onFileSelected"/>
+                </label>
+
+                <textarea class="form-control mt-3 font-monospace" rows="7"
+                          placeholder='{"version": 1, "tiles": [...]}'
+                          t-model="state.payload"/>
+
+                <div class="form-check mt-3">
+                    <input id="dft_import_replace" class="form-check-input" type="checkbox"
+                           t-model="state.replace"/>
+                    <label class="form-check-label" for="dft_import_replace">
+                        Replace tiles that already have the same name on the same model
+                    </label>
+                </div>
+            </div>
+
+            <t t-set-slot="footer">
+                <button class="btn btn-primary" t-att-disabled="!canImport" t-on-click="confirm">
+                    <i t-if="!state.busy" class="fa fa-check me-1"/>
+                    <i t-if="state.busy" class="fa fa-circle-o-notch fa-spin me-1"/>
+                    Import
+                </button>
+                <button class="btn btn-secondary" t-on-click="() => props.close()">Cancel</button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>

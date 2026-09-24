@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dynamic_filter.TileBreakdown">
+        <div class="o_dft_breakdown">
+            <div class="o_dft_breakdown_head">
+                <span t-out="title"/>
+            </div>
+
+            <div t-if="state.loading" class="o_dft_breakdown_loading">
+                <i class="fa fa-circle-o-notch fa-spin"/> Splitting…
+            </div>
+
+            <t t-else="">
+                <div t-if="!state.rows.length" class="o_dft_breakdown_empty">
+                    Nothing to split here.
+                </div>
+                <button class="o_dft_breakdown_row" t-foreach="state.rows" t-as="row"
+                        t-key="row_index" t-on-click="() => this.pick(row)"
+                        title="Filter the view down to this slice">
+                    <span class="o_dft_breakdown_label" t-out="row.label"/>
+                    <span class="o_dft_breakdown_value" t-out="format(row)"/>
+                    <span class="o_dft_breakdown_bar">
+                        <span class="o_dft_breakdown_fill" t-attf-style="width: {{ barWidth(row) }};"/>
+                    </span>
+                </button>
+                <div t-if="state.others" class="o_dft_breakdown_others">
+                    <span>+ <t t-esc="state.others.count"/> more records in other values</span>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

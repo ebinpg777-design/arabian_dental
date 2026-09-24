@@ -137,8 +137,10 @@ def main():
     save(app_icon(mark, 1024), 'app_icon.png', PWA_IMG)
     # The home screen draws the wordmark itself, in whichever version the
     # wallpaper under it calls for.
-    save(fit(master, (630, 134)), 'wordmark.png', HOME_IMG)
-    save(fit(white, (630, 134)), 'wordmark-white.png', HOME_IMG)
+    # Three times the size they are drawn at, so the lock-up stays sharp on a
+    # high-density screen.
+    save(fit(master, (900, 192)), 'wordmark.png', HOME_IMG)
+    save(fit(white, (900, 192)), 'wordmark-white.png', HOME_IMG)
 
     for name, size, kb in written:
         print("%-22s %-10s %5.0f kB" % (name, "%dx%d" % size, kb))

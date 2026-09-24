@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Delivery board tiles (dynamic_filter_tiles; replaces the former list_view_dashboard block). -->
+    <!-- Delivery board tiles (ebshel_dynamic_filter; replaces the former list_view_dashboard block). -->
     <data noupdate="1">
         <record id="tile_delivery_out_today" model="filter.tile">
             <field name="name">Out Today</field>

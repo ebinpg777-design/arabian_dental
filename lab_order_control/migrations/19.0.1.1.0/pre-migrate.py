@@ -2,7 +2,7 @@
 """Strip the old <listdashboard> KPI blocks out of every stored view before loading.
 
 The KPI ribbons moved from `list_view_dashboard` (an XML tag inside the list arch) to
-`dynamic_filter_tiles` (filter.tile records). The old module is removed from the code base
+`ebshel_dynamic_filter` (filter.tile records). The old module is removed from the code base
 in the same release, so its view-validation override is gone the moment the new code is
 deployed — and any inherited list view whose combined arch still carries the tag fails
 RNG validation while the upgrade is loading (a sibling view of this very module hits it).

@@ -7,7 +7,7 @@
     'maintainer': 'Ebin P G',
     'category': 'Inventory/Delivery',
     'license': 'LGPL-3',
-    'depends': ['lab_fieldwork', 'dynamic_filter_tiles', 'mrp'],
+    'depends': ['lab_fieldwork', 'ebshel_dynamic_filter', 'mrp'],
     'data': [
         'security/delivery_security.xml',
         'security/ir.model.access.csv',

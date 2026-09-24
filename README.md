@@ -18,7 +18,7 @@ they are separate codebases from here on.
 | Production | `lab_workcenter_scan`, `lab_reports`, `epg_sticker_print`, `epg_product_label`, `epg_barcode_fallback` |
 | Finance | `lab_finance_ops`, `lab_bank_reconciliation`, `petty_cash`, `epg_direct_payment`, `epg_outstanding_discount`, `epg_partner_statement`, `eh_account_*`, `excel_report_builder`, `stock_xls_report` |
 | Messaging | `epg_whatsapp`, `lab_whatsapp` |
-| Web | `lab_website`, `lab_pwa`, `lab_home`, `web_responsive`, `zxs_entp_theme`, `widget_preview_image`, `dynamic_filter_tiles` |
+| Web | `lab_website`, `lab_pwa`, `lab_home`, `web_responsive`, `zxs_entp_theme`, `widget_preview_image`, `ebshel_dynamic_filter` |
 | Ops | `lab_access_control`, `lab_migration`, `auto_odoo_db_and_file_backup`** |
 | Store | `material_request` — department requisitions from the main store (board, availability per line, partial approval, reject with reason, reorder, consumption analysis, slip) |
 
@@ -26,6 +26,28 @@ they are separate codebases from here on.
 \*\* needs the `dropbox`, `boto3` and `pydrive` Python packages; ship a fresh
 `auto_odoo_db_and_file_backup/models/client_secrets.json` for the lab's own Google
 project if Drive backups are wanted.
+
+
+### The tile ribbon
+
+`ebshel_dynamic_filter` (Dynamic Filter Tiles) replaced the project's own fork of it on
+2026-09-24. The fork had three things the product did not, and they came across with it:
+
+* **Headline tiles** (`ignore_filters`): a tile that counts regardless of what else is
+  filtered, for a figure like "Finished" on a screen whose default filter hides finished
+  work. Applying one clears the other filters, so the list matches the number.
+* **Domains the browser cannot evaluate.** A tile's filter runs twice, once in Python to
+  count it and once in the browser to apply it, and the browser's interpreter knows far
+  less. One it cannot parse used to take the whole view down, for everyone, every time.
+  Such a tile is now refused on save, and flagged and greyed if it was saved earlier.
+* **Who a record belongs to.** A model can define `_dft_mine_leaf` to say what "mine"
+  means when it is not one field - a work order belongs to the technician who did it and
+  to the one who finished it. `lab_workcenter_scan` uses it.
+
+Going the other way, the product brought the group-by facet the fork never had: a tile
+can filter *and* group the list in one click. The tiles themselves survived the swap -
+the module was renamed inside the database rather than reinstalled, because the tables
+belong to it and an uninstall would have dropped all 56.
 
 Every `lab_*` module, `sale_custom`, `material_request` and `petty_cash` carry an icon
 in one family — brand red or brand grey, a white Font Awesome pictogram, the ADL shield

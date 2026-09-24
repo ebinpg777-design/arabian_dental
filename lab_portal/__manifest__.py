@@ -22,7 +22,7 @@ can tell at a glance where each one is without ringing the lab.
     # lab_fieldwork: the case-request ACLs grant its Field Manager group. It does
     # not depend on this module (directly or through its own dependencies), so no cycle.
     'depends': ['portal', 'sale_custom', 'mrp', 'lab_order_control',
-                'dynamic_filter_tiles', 'lab_fieldwork'],
+                'ebshel_dynamic_filter', 'lab_fieldwork'],
     'data': [
         'security/ir.model.access.csv',
         'security/case_request_security.xml',

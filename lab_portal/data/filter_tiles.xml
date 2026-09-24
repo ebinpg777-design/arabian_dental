@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Digital Rx (portal case request) tiles (dynamic_filter_tiles; replaces the former list_view_dashboard block). -->
+    <!-- Digital Rx (portal case request) tiles (ebshel_dynamic_filter; replaces the former list_view_dashboard block). -->
     <data noupdate="1">
         <record id="tile_case_request_new" model="filter.tile">
             <field name="name">New — to review</field>
