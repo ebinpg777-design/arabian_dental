@@ -147,5 +147,10 @@ widget, a cheque in the register, and the stock of a department store.
 * Groups of the modules not installed here (payroll, expenses, projects, leaves) are
   dropped from users; the log names them.
 * Attachments are copied only for the models listed in `_ATTACHMENT_MODELS`.
+* Material requests: on Odoo 17 approving a request moved the goods at once; here
+  approval raises the transfer and the store validates it. Migrated requests therefore
+  come across with their v17 transfer linked, each move on its line, and an approved
+  request whose transfer is done as **Delivered**. The link is completed on any later
+  pass (resume mode included), so the phase order does not matter for it.
 * Thirteen vendor bills / refunds were booked in the B2B *sale* journal on Odoo 17; Odoo 19
   refuses that, so they post in the default purchase journal (BILL) under their own numbers.

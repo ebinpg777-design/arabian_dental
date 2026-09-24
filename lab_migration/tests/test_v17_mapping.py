@@ -211,6 +211,55 @@ class TestMaterialRequestPhase(TransactionCase):
         self.assertEqual(request.line_ids.qty_delivered, 3.0)
         self.assertEqual(request.progress, 100)
 
+    def test_a_request_migrated_before_its_transfer_is_linked_on_the_next_pass(self):
+        """v17 approved = goods moved. If the request came across first and the
+        transfer later, a resume pass links them and settles Delivered."""
+        if 'material.request' not in self.env:
+            self.fail("material_request must be installed on the target for this phase")
+        from .test_migration_safety import FakeSource, SRC
+        from unittest.mock import patch
+        backend = self.env['migration.backend'].create({
+            'name': 'mr resume test', 'txn_from_date': '2025-01-01', 'txn_only_new': True})
+        wh = self.env['stock.warehouse'].search([], limit=1)
+        dept = self.env['stock.location'].create({
+            'name': 'Z- Resume Dept', 'usage': 'internal', 'location_id': wh.lot_stock_id.id})
+        product = self.env['product.product'].create({'name': 'Stone', 'type': 'consu', 'is_storable': True})
+        request = self.env['material.request'].create({
+            'name': 'MR000901', 'location_id': dept.id,
+            'line_ids': [(0, 0, {'product_id': product.id, 'quantity': 2, 'qty_approved': 2,
+                                 'qty_approved_set': True})]})
+        request.write({'state': 'approved'})
+        self.env['migration.map'].create({'dst_model': 'material.request', 'src_id': SRC + 310,
+                                          'dst_id': request.id})
+        picking = self.env['stock.picking'].create({
+            'picking_type_id': wh.int_type_id.id, 'location_id': wh.lot_stock_id.id,
+            'location_dest_id': dept.id,
+            'move_ids': [(0, 0, {'product_id': product.id, 'product_uom_qty': 2,
+                                 'product_uom': product.uom_id.id,
+                                 'location_id': wh.lot_stock_id.id, 'location_dest_id': dept.id})]})
+        picking.action_confirm(); picking.move_ids.quantity = 2; picking.move_ids.picked = True
+        picking.button_validate()
+        cache = {'res.company': {SRC + 1: self.env.company.id},
+                 'stock.location': {SRC + 7: dept.id}, 'product.product': {SRC + 11: product.id},
+                 'res.users': {SRC + 2: self.env.user.id}, 'stock.picking': {SRC + 51: picking.id}}
+        cur = FakeSource([
+            ('FROM material_request_lines', [{'id': SRC + 311, 'material_request_id': SRC + 310,
+                                              'product_id': SRC + 11, 'quantity': 2.0}]),
+            ('FROM stock_move m', [{'id': SRC + 401, 'picking_id': SRC + 51, 'product_id': SRC + 11}]),
+            ('FROM stock_picking WHERE material_request_id', [{'id': SRC + 51, 'material_request_id': SRC + 310}]),
+            ('FROM material_request WHERE', [{'id': SRC + 310, 'name': 'MR000901', 'location_id': SRC + 7,
+                                              'state': 'approved', 'company_id': SRC + 1, 'create_uid': SRC + 2,
+                                              'create_date': fields.Datetime.now(), 'write_date': fields.Datetime.now()}]),
+        ])
+        stats = []
+        with patch.object(self.env.cr, 'commit', lambda: None):
+            backend._migration_env()._txn_material_requests(cur, cache, stats)
+        self.assertIn('linked-transfers=1', stats[0], stats)
+        self.assertEqual(request.picking_ids, picking)
+        self.assertEqual(request.state, 'done')
+        self.assertEqual(request.line_ids.qty_delivered, 2.0)
+        self.assertEqual(len(request.line_ids), 1, "resume mode never rewrites the lines")
+
 
 @tagged('post_install', '-at_install')
 class TestStockReplay(TransactionCase):

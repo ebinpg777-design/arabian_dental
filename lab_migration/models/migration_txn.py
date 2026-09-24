@@ -1826,12 +1826,48 @@ class MigrationBackend(models.Model):
     _MR_STATE = {'draft': 'draft', 'confirm': 'confirm', 'approved': 'approved',
                  'cancelled': 'cancelled'}
 
+    def _txn_mr_link(self, cache, request, row, state, pickings_by_req, Picking):
+        """Link a request's migrated transfer(s) and settle its state from them.
+
+        Returns True when at least one transfer is linked. Idempotent: a transfer
+        already linked, a move already on its line, a request already Delivered
+        are left as they are.
+        """
+        pickings = Picking.browse([p for p in (
+            self._resolve(cache, 'stock.picking', pk['id'])
+            for pk in pickings_by_req.get(row['id'], [])) if p]).exists()
+        if not pickings:
+            return False
+        unlinked = pickings.filtered(lambda p: p.material_request_id != request)
+        if unlinked:
+            unlinked.write({'material_request_id': request.id})
+        by_product = {}
+        for line in request.line_ids:
+            by_product.setdefault(line.product_id.id, line)
+        for move in pickings.move_ids:
+            line = by_product.get(move.product_id.id)
+            if line and not move.material_request_line_id:
+                move.material_request_line_id = line.id
+        if state == 'approved' and request.state == 'approved':
+            live = pickings.filtered(lambda p: p.state != 'cancel')
+            if live and all(p.state == 'done' for p in live):
+                # v17 moved the goods on approval; here that is the Delivered state
+                request.write({'state': 'done'})
+        return True
+
     def _txn_material_requests(self, cur, cache, stats):
         """Department requests for consumables, with their lines and transfers.
 
-        Runs after the transfers, so a request's own transfer (raised on approval
-        in the old system) is linked back to it and its delivered quantities come
-        out of the moves; an approved request whose transfer is done is Delivered.
+        In Odoo 17 approving a request moved the goods there and then; in this
+        suite approval raises the transfer and the store validates it. So a v17
+        request arrives with its own transfer linked back to it, every move on
+        the line it fulfils (delivered quantities come out of those moves), and
+        an approved request whose transfer is done is **Delivered** - the state
+        the store would have reached by validating.
+
+        The linking is done on EVERY pass, resume mode included: a request migrated
+        before its transfer was (any phase order, a paused run) picks the link up
+        the next time this runs, without its lines being rewritten.
         """
         if 'material.request' not in self.env:
             stats.append("Material Requests      SKIPPED (material_request not installed)")
@@ -1876,11 +1912,19 @@ class MigrationBackend(models.Model):
                         counts['skipped'] += 1
                         continue
                     existing = self._resolve(cache, 'material.request', row['id'])
-                    if existing and self.txn_only_new:
-                        counts['skipped'] += 1
-                        continue
                     cid = self._txn_company(cache, row)
                     state = self._MR_STATE.get(row.get('state'), 'draft')
+                    if existing and self.txn_only_new:
+                        # already here: only the transfer link and the state it implies
+                        request = Request.browse(existing).exists()
+                        if not request:
+                            counts['skipped'] += 1
+                            continue
+                        if self._txn_mr_link(cache, request, row, state, pickings_by_req, Picking):
+                            counts['linked'] += 1
+                        else:
+                            counts['skipped'] += 1
+                        continue
                     line_vals = []
                     for ln in lines_by_req.get(row['id'], []):
                         product = self._resolve(cache, 'product.product', ln.get('product_id'))
@@ -1911,28 +1955,15 @@ class MigrationBackend(models.Model):
                         request = Request.with_company(cid).create(dict(vals, line_ids=line_vals))
                         batch.append((row['id'], request.id))
                         counts['created'] += 1
-                    # its transfer(s), and each move onto the line it fulfils
-                    pickings = Picking.browse([p for p in (
-                        self._resolve(cache, 'stock.picking', pk['id'])
-                        for pk in pickings_by_req.get(row['id'], [])) if p]).exists()
-                    if pickings:
-                        pickings.write({'material_request_id': request.id})
-                        counts['linked'] += len(pickings)
-                        by_product = {}
-                        for line in request.line_ids:
-                            by_product.setdefault(line.product_id.id, line)
-                        for move in pickings.move_ids:
-                            line = by_product.get(move.product_id.id)
-                            if line and not move.material_request_line_id:
-                                move.material_request_line_id = line.id
                     post = {'state': state}
                     if state == 'approved':
                         post['approver_id'] = vals['user_id']
                         post['date_approved'] = row.get('write_date')
-                        done = pickings.filtered(lambda p: p.state != 'cancel')
-                        if done and all(p.state == 'done' for p in done):
-                            post['state'] = 'done'
                     request.write(post)
+                    # its transfer(s), each move onto the line it fulfils, and the
+                    # Delivered state when the goods already went
+                    if self._txn_mr_link(cache, request, row, state, pickings_by_req, Picking):
+                        counts['linked'] += 1
             except Exception as e:
                 counts['failed'] += 1
                 if len(batch) > mark:
