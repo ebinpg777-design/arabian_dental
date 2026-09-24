@@ -340,3 +340,69 @@ class TestStockReplay(TransactionCase):
         self.assertEqual(move.quantity, 7.0)
         product.invalidate_recordset()
         self.assertEqual(product.with_context(location=wh.lot_stock_id.id).qty_available - before, 7.0)
+
+
+@tagged('post_install', '-at_install')
+class TestCashRounding(TransactionCase):
+    """The rule that rounds an invoice to the rupee.
+
+    The lab rounds 48,040 of its invoices to the whole rupee through Odoo's cash
+    rounding, as an extra line. Carrying the invoices without the rule left every
+    one of them a few paise off its own number, and a payment of the rounded
+    amount then left a residual of four paise - which the screen calls
+    "Partially Paid", on invoices settled years ago.
+    """
+
+    class Cursor:
+        """Stands in for the source connection: the rules, as rows."""
+
+        def __init__(self, rows):
+            self.rows = rows
+
+        def execute(self, *args):
+            pass
+
+        def fetchall(self):
+            return self.rows
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.backend = cls.env['migration.backend'].new({})
+        accounts = cls.env['account.account'].search([], limit=2)
+        cls.rule = cls.env['account.cash.rounding'].create({
+            'name': 'Half Up',
+            'rounding': 1.0,
+            'rounding_method': 'HALF-UP',
+            'strategy': 'add_invoice_line',
+            'profit_account_id': accounts[0].id,
+            'loss_account_id': accounts[-1].id,
+        })
+
+    def _map(self, **overrides):
+        row = {'id': 1, 'rounding': 1.0, 'rounding_method': 'HALF-UP',
+               'strategy': 'add_invoice_line'}
+        row.update(overrides)
+        return self.backend._txn_cash_rounding_map(self.Cursor([row]))
+
+    def test_a_rule_is_matched_by_what_it_does_not_by_its_name(self):
+        """The source calls it "Round Off" and this database calls it "Half Up".
+        Both round a rupee half up as a line, which is the whole of what the
+        invoices need. Which of the matching rules is picked does not matter, so
+        what is asserted is that the one picked does the same thing."""
+        picked = self.env['account.cash.rounding'].browse(self._map()[1])
+        self.assertTrue(picked.exists())
+        self.assertEqual(picked.rounding, 1.0)
+        self.assertEqual(picked.rounding_method, 'HALF-UP')
+        self.assertEqual(picked.strategy, 'add_invoice_line')
+
+    def test_a_different_step_is_not_this_rule(self):
+        self.assertEqual(self._map(rounding=0.05), {})
+
+    def test_a_different_strategy_is_not_this_rule(self):
+        """Adding a line and biasing the tax put the difference in different
+        places in the ledger, so one cannot stand in for the other."""
+        self.assertEqual(self._map(strategy='biggest_tax'), {})
+
+    def test_an_invoice_that_rounded_nothing_asks_for_no_rule(self):
+        self.assertEqual(self._map(id=7).get(1), None)

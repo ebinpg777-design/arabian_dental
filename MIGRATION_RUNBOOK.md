@@ -135,8 +135,44 @@ SELECT round(sum(balance)) FROM account_move_line l JOIN account_account a ON a.
 SELECT payment_state, count(*) FROM account_move WHERE move_type='out_invoice' AND state='posted' GROUP BY 1;
 ```
 
+Or run the whole table at once:
+
+```
+instances/arabian_dental/venv/bin/python projects/arabian_dental/tools/verify_migration.py \
+  adl_prod_v17 arabian_dental_live
+```
+
 Then open a clinic, an order with teeth and technicians, an invoice with its payment
 widget, a cheque in the register, and the stock of a department store.
+
+### What the table should say, and what will never match
+
+Counts and money tie exactly: orders (71,475), lines (85,541), order value, posted
+invoices (48,752), credit notes (151), bills (589), journal entries (32,209), the
+bank and cash balance, cheques (435), transfers (1,777, of which 1,623 done),
+purchase orders (652), on-hand (72,205 units), attachments, customers, products,
+employees.
+
+Four figures differ by design:
+
+* **Internal users, one more here.** The target's own administrator.
+* **Payment states.** Odoo 17 shows 4,115 invoices *In Payment*, meaning a receipt
+  posted to an outstanding account and not yet reconciled at the bank. Payments
+  arrive here as their journal entries against the bank itself, so there is no such
+  state and those invoices read *Paid*.
+* **Partial reconcile rows (53,088 → 52,167).** The replay reports `matched` plus
+  `already`, and the two together account for every source row (919 were already
+  reconciled by an earlier allocation, because one reconciliation here can settle
+  what the source recorded as several partials).
+* **Which invoice a receipt settled.** Where one receipt covered several invoices,
+  Odoo may allocate it in a different order, so a few hundred invoices carry an open
+  balance their source counterpart does not, and a few hundred others the reverse.
+  The receivable **total** still ties to the rupee, which is the figure that matters.
+
+A copy migrated before 24 Sep 2026 also shows 27,016 invoices a few paise off their
+source totals, and 1,284 of them stuck at *Partially Paid* over residuals under a
+rupee. That was the cash rounding rule not being carried; it is carried now, and a
+fresh run does not show it.
 
 ## 7. Known limits
 
@@ -154,3 +190,13 @@ widget, a cheque in the register, and the stock of a department store.
   pass (resume mode included), so the phase order does not matter for it.
 * Thirteen vendor bills / refunds were booked in the B2B *sale* journal on Odoo 17; Odoo 19
   refuses that, so they post in the default purchase journal (BILL) under their own numbers.
+* The lab rounds invoices to the whole rupee through Odoo's cash rounding ("Round Off",
+  1.00, half up, as an extra line) on 48,040 posted documents. The target adopts a rule
+  that does the same thing rather than creating one, because an Odoo 19 rule needs a
+  profit and a loss account that the Odoo 17 model does not have. If the target has no
+  such rule the run says so in the log and those invoices keep unrounded totals.
+* On-hand is taken from the source's own quants when `On-hand As Of` is today or later,
+  and anything the source does not stock is set back to zero. Only products that came
+  from the source are touched, so stock booked in after go-live is left alone. An older
+  date is still rebuilt from the moves, which is an approximation: a move carries what
+  was asked for, a quant carries what is on the shelf.

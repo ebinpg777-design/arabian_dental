@@ -630,6 +630,34 @@ class MigrationBackend(models.Model):
                                          ('type', '=', wanted)], order='id', limit=1).id
         return cache[key] or journal_id
 
+    def _txn_cash_rounding_map(self, cur):
+        """{source cash rounding id: target id}, adopted rather than copied.
+
+        Matched on what a rule DOES - the same step, the same method, the same
+        strategy - and not on its name: the lab's is called "Round Off" in the
+        source and "Half Up" here, and both round to the rupee, half up, as an
+        extra line. Creating one instead is not an option worth taking: in Odoo
+        19 a rule needs a profit and a loss account that the source's version of
+        the model does not have, so a made-up rule would post the difference to a
+        made-up account.
+        """
+        out = {}
+        cur.execute("SELECT id, rounding, rounding_method, strategy FROM account_cash_rounding")
+        candidates = self.env['account.cash.rounding'].sudo().search([])
+        for rule in cur.fetchall():
+            match = candidates.filtered(
+                lambda c: c.strategy == rule['strategy']
+                and c.rounding_method == rule['rounding_method']
+                and abs((c.rounding or 0) - (rule['rounding'] or 0)) < 1e-6)
+            if match:
+                out[rule['id']] = match[0].id
+            else:
+                _logger.warning(
+                    "no cash rounding rule here matches the source's %s %s %s; "
+                    "those invoices keep unrounded totals",
+                    rule['rounding'], rule['rounding_method'], rule['strategy'])
+        return out
+
     def _txn_invoices(self, cur, cache, stats):
         d = self._txn_dates()
         Move = self.env['account.move'].sudo().with_context(
@@ -655,6 +683,7 @@ class MigrationBackend(models.Model):
                                'account_move_line_id', 'account_tax_id')
         sale_lines = self._rel(cur, 'sale_order_line_invoice_rel',
                                'invoice_line_id', 'order_line_id')
+        roundings = self._txn_cash_rounding_map(cur)
 
         # The master sync posts a zero-amount "numbering anchor" per journal, named
         # after the LAST v17 invoice number, so that new invoices continue the v17
@@ -721,6 +750,16 @@ class MigrationBackend(models.Model):
                             if anchor.state == 'posted':
                                 anchor.button_draft()
                             anchor.unlink()
+                    # ROUNDED TO THE RUPEE. The lab invoices through Odoo's cash
+                    # rounding rule (1.00, half up, as an extra line), on 48,040 of
+                    # its posted documents. Without it every one of those invoices
+                    # comes out a few paise off its own number, and a payment for
+                    # the rupee amount leaves a residual of 4 paise - which reads
+                    # on the screen as "Partially Paid", on 1,284 invoices that
+                    # were paid in full years ago.
+                    rounding = roundings.get(row.get('invoice_cash_rounding_id'))
+                    if rounding:
+                        vals['invoice_cash_rounding_id'] = rounding
                     for dst, (src, model) in {
                             'invoice_payment_term_id': ('invoice_payment_term_id', 'account.payment.term'),
                             'invoice_user_id': ('invoice_user_id', 'res.users'),
