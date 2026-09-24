@@ -43,7 +43,7 @@ vals = {
     'db_name': os.environ.get('MIG_SRC_DB', 'adl_prod_v17'),
     'db_user': os.environ.get('MIG_SRC_USER', 'odoo'),
     'db_password': os.environ.get('MIG_SRC_PASSWORD', 'odoo'),
-    'src_filestore': os.environ.get('MIG_FILESTORE', ''),
+    # only when given: a phase run without it must not blank the path for the next
     # Everything the source holds is inside the document window, so the opening
     # (balances up to the day before) carries nothing and every entry arrives as
     # the entry it was. Move the two dates to cut over on a balance instead.
@@ -53,6 +53,8 @@ vals = {
     'txn_limit': int(os.environ.get('MIG_LIMIT', '0')),
     'txn_only_new': os.environ.get('MIG_RESUME', '0') == '1',
 }
+if os.environ.get('MIG_FILESTORE'):
+    vals['src_filestore'] = os.environ['MIG_FILESTORE']
 if backend:
     backend.write(vals)
 else:

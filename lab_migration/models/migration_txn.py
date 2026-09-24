@@ -625,8 +625,9 @@ class MigrationBackend(models.Model):
             return journal_id
         key = ('_journal_', company_id, wanted)
         if key not in cache:
+            # the chart's own journal (BILL / INV) comes before an opening one (OBP)
             cache[key] = Journal.search([('company_id', '=', company_id),
-                                         ('type', '=', wanted)], limit=1).id
+                                         ('type', '=', wanted)], order='id', limit=1).id
         return cache[key] or journal_id
 
     def _txn_invoices(self, cur, cache, stats):
@@ -1163,15 +1164,16 @@ class MigrationBackend(models.Model):
                     for f in ('priority', 'note'):
                         if row.get(f):
                             vals[f] = row[f]
-                    for dst, (src, model) in {
+                    # (the loop variables must not be `src`: that is the source location)
+                    for dst_field, (src_col, rel_model) in {
                             'partner_id': ('partner_id', 'res.partner'),
                             'sale_id': ('sale_id', 'sale.order'),
                             'user_id': ('user_id', 'res.users'),
                             'owner_id': ('owner_id', 'res.partner'),
                     }.items():
-                        val = self._resolve(cache, model, row.get(src))
+                        val = self._resolve(cache, rel_model, row.get(src_col))
                         if val:
-                            vals[dst] = val
+                            vals[dst_field] = val
                     if src and dest:
                         vals['location_id'], vals['location_dest_id'] = src, dest
                     vals = self._valid(self.env['stock.picking'], vals)
@@ -1349,6 +1351,11 @@ class MigrationBackend(models.Model):
             try:
                 with self.env.cr.savepoint():
                     if self._resolve(cache, 'stock.move.line', ln['id']):
+                        counts['skipped'] += 1
+                        continue
+                    if not float(ln.get('quantity') or 0.0):
+                        # the source keeps zero-quantity lines (a count that found nothing);
+                        # Odoo 19 refuses them and they carry no stock anyway
                         counts['skipped'] += 1
                         continue
                     move_id = move_map.get(ln['move_id'])
@@ -1766,6 +1773,14 @@ class MigrationBackend(models.Model):
                         rec.write(self._valid(Cheque, vals))
                         counts['updated'] += 1
                     else:
+                        # the register is unique on (number, clinic); the source has
+                        # the same number twice for five clinics - both are real
+                        # payments, so the second keeps the number with a suffix
+                        taken = Cheque.with_context(active_test=False).search_count(
+                            [('cheque_number', '=', number), ('partner_id', '=', partner),
+                             ('company_id', '=', vals['company_id'])])
+                        if taken:
+                            vals['cheque_number'] = '%s/%s' % (number, r['id'])
                         rec = Cheque.create(self._valid(Cheque, vals))
                         batch.append((r['id'], rec.id))
                         counts['created'] += 1
