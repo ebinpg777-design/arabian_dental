@@ -43,7 +43,6 @@ GREY = ((108, 119, 126), (56, 64, 72))
 ICONS = {
     # what the lab sells, and what its customers and reps touch
     'sale_custom':           ('f07a', RED),    # shopping cart
-    'lab_track':             ('f05b', RED),    # crosshairs
     'lab_portal':            ('f0c0', RED),    # users
     'lab_website':           ('f0ac', RED),    # globe
     'lab_whatsapp':          ('f232', RED),    # whatsapp
@@ -52,6 +51,7 @@ ICONS = {
     'lab_delivery':          ('f0d1', RED),    # truck
     'lab_incentive':         ('f091', RED),    # trophy
     # what the lab runs on
+    'lab_track':             ('f05b', GREY),   # crosshairs
     'lab_order_control':     ('f14a', GREY),   # check-square
     'lab_rework':            ('f021', GREY),   # refresh
     'lab_workcenter_scan':   ('f02a', GREY),   # barcode

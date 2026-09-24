@@ -90,7 +90,7 @@ class TestWallpaper(TransactionCase):
         return self.IrHttp._home_wallpaper()
 
     def test_nothing_set_gives_the_default(self):
-        self.assertEqual(self._wallpaper()['name'], 'ceramic')
+        self.assertEqual(self._wallpaper()['name'], 'studio')
 
     def test_a_name_that_was_typed_carelessly_still_gives_a_wallpaper(self):
         """The direction that matters: a name nobody shipped must not leave the
