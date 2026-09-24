@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '19.0.5.8.0',
+    'version': '19.0.5.10.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -104,6 +104,14 @@ in the server, not merely in the form.
             'lab_fieldwork/static/src/scss/new_clinics.scss',
             'lab_fieldwork/static/src/scss/mobile_savebar.scss',
             'lab_fieldwork/static/src/xml/mobile_savebar.xml',
+            'lab_fieldwork/static/src/lib/leaflet/leaflet.css',
+            'lab_fieldwork/static/src/lib/leaflet/leaflet.js',
+            'lab_fieldwork/static/src/scss/day_map.scss',
+            'lab_fieldwork/static/src/js/day_map.js',
+            'lab_fieldwork/static/src/xml/day_map.xml',
+            # The watcher is a service, so it must load whatever screen the web
+            # client opens on — not only My Day.
+            'lab_fieldwork/static/src/js/live_track.js',
             'lab_fieldwork/static/src/js/geo_button.js',
             'lab_fieldwork/static/src/xml/geo_button.xml',
             'lab_fieldwork/static/src/js/count_field.js',

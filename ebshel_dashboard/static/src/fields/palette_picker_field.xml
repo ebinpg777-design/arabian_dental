@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.PalettePickerField">
+        <div class="o_dbf_palettes" role="radiogroup">
+            <t t-foreach="options" t-as="option" t-key="option.key">
+                <button type="button"
+                        t-attf-class="o_dbf_pal {{ option.key === current ? 'o_dbf_pal_on' : '' }}"
+                        role="radio" t-att-aria-checked="option.key === current"
+                        t-att-disabled="props.readonly"
+                        t-on-click="() => this.select(option.key)">
+                    <span class="o_dbf_pal_dots">
+                        <t t-if="option.inherited">
+                            <i class="fa fa-link o_dbf_pal_link" role="img" aria-label="Inherited"/>
+                        </t>
+                        <t t-else="">
+                            <t t-foreach="option.dots" t-as="dot" t-key="dot_index">
+                                <i class="o_dbf_pal_dot" t-att-style="'--dbf-dot: ' + dot"/>
+                            </t>
+                        </t>
+                    </span>
+                    <span class="o_dbf_pal_label" t-esc="option.label"/>
+                </button>
+            </t>
+        </div>
+    </t>
+
+</templates>

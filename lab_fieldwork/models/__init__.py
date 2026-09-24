@@ -33,4 +33,6 @@ from . import new_clinics
 from . import ir_ui_menu
 from . import desk_cover
 from . import daily_update
+from . import day_track
+from . import location_ping
 from . import weekly_report

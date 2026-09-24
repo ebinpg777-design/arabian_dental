@@ -4,7 +4,7 @@
         <!--
             The migration tool was gated on base.group_system, which conflates two very
             different things: being allowed to administer Odoo, and being allowed to pull
-            a live Odoo 10 database into this one. The people who run a cutover are not
+            a live Odoo 17 database into this one. The people who run a cutover are not
             necessarily system administrators, and every system administrator should not
             be able to fire a data sync by accident.
 
@@ -28,7 +28,7 @@
             <field name="name">Migration: Run Sync</field>
             <field name="privilege_id" ref="privilege_lab_migration"/>
             <field name="implied_ids" eval="[(4, ref('group_lab_migration_user'))]"/>
-            <field name="comment">Can configure the Odoo 10 connection and run the data
+            <field name="comment">Can configure the Odoo 17 connection and run the data
                 sync, including opening balances. This writes master data across the whole
                 database — grant it for the cutover and remove it afterwards.</field>
         </record>

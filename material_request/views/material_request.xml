@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+     <record id="view_material_request_tree" model="ir.ui.view">
+        <field name="name">material.request.tree</field>
+        <field name="model">material.request</field>
+        <field name="arch" type="xml">
+            <tree string="Material Request">
+                <field name="name"/>
+                <field name="location_id"/>
+                <field name="state"  decoration-info="state == 'draft'"
+                       decoration-success="state == 'confirm'" decoration-danger="state == 'cancelled'"
+                       decoration-warning="state == 'approved'" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_material_request_form" model="ir.ui.view">
+        <field name="name">material.request.form</field>
+        <field name="model">material.request</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_draft" string="Reset to Draft" type="object" class="oe_highlight"
+                            invisible="state in ['draft','cancelled']"
+                            groups="material_request.material_request_user,material_request.material_request_manager"
+                    />
+                    <button name="action_confirm" string="Confirm" type="object" class="oe_highlight"
+                            invisible="state in ['confirm','cancelled','approved']"
+                            groups="material_request.material_request_user,material_request.material_request_manager"
+                    />
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight"
+                            invisible="state in ['approved','cancelled','draft']"
+                            groups="material_request.material_request_manager"
+                    />
+                    <button name="action_cancel" string="Cancel" type="object" class="oe_highlight"
+                            invisible="state in ['cancelled']" groups="material_request.material_request_manager"
+                    />
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirm,approved"/>
+
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="button_open_picking" type="object"
+                                class="oe_stat_button" icon="fa-truck" invisible="not transfer_count">
+                            <field name="transfer_count" widget="statinfo" string="Transfers"/>
+                        </button>
+                    </div>
+                    <div class="oe_title mb24">
+                        <h1>
+                            <field class="text-break" name="name" default_focus="1" readonly="1"/>
+                        </h1>
+                    </div>
+                    <widget name="web_ribbon" bg_color="text-bg-warning" title="In Confirm"
+                            invisible="state != 'confirm'"/>
+                    <widget name="web_ribbon" bg_color="text-bg-success" title="Approved"
+                            invisible="state != 'approved'"/>
+                    <widget name="web_ribbon" bg_color="text-bg-info" title="Cancelled"
+                            invisible="state != 'cancelled'"/>
+
+                    <group>
+                        <group>
+                            <field name="location_id" options="{'no_create':True}"
+                                   required="1" readonly="state in ['approved']"/>
+
+                        </group>
+                        <group>
+
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="material_request_lines" string="Material Request Lines">
+
+                            <field name="lines_id" readonly="state in ['approved']">
+                                <tree editable="bottom">
+                                    <field name="product_id" decoration-bf="1" options="{'no_create':True}"
+                                           style="width:50%;"/>
+                                    <field name="quantity" />
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" groups="base.group_user"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+
+    <record id="material_request_action" model="ir.actions.act_window">
+        <field name="name">Material Request</field>
+        <field name="res_model">material.request</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a material request entry
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="dental_root"
+              name="Material Request"
+              web_icon="material_request,static/description/icon.png"
+              sequence="10"/>
+
+    <menuitem id="material_request"
+              name="Material Request"
+              parent="dental_root"
+              action="material_request_action"
+              sequence="1"
+              groups="material_request.material_request_user,material_request.material_request_manager"/>
+</odoo>

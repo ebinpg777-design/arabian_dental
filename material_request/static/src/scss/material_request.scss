@@ -1,0 +1,21 @@
+// The request board: a coloured edge per stage, so a column's cards read as that
+// stage even when the column header has scrolled away.
+.o_mr_kanban {
+    .o_kanban_record {
+        position: relative;
+        overflow: hidden;
+    }
+    .o_mr_edge {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--o-gray-400, #ced4da);
+    }
+    .o_mr_edge_draft { background: #6c757d; }
+    .o_mr_edge_confirm { background: #f0ad4e; }
+    .o_mr_edge_approved { background: #0d6efd; }
+    .o_mr_edge_done { background: #198754; }
+    .o_mr_edge_rejected, .o_mr_edge_cancelled { background: #dc3545; }
+}

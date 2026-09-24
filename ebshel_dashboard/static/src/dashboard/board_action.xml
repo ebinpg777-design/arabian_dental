@@ -1,0 +1,595 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.BoardAction">
+        <div t-attf-class="o_dbb_action o_action {{ state.presenting ? 'o_dbb_presenting' : '' }} {{ compact ? 'o_dbb_compact' : '' }} {{ state.sidebarMin ? 'o_dbb_side_min' : '' }}"
+             t-ref="root" t-att-style="accentStyle">
+
+            <!-- ============================ sidebar ============================ -->
+            <aside class="o_dbb_side" t-if="!state.presenting">
+                <div class="o_dbb_side_head">
+                    <span class="o_dbb_brand">
+                        <i class="fa fa-tachometer" role="img" aria-label="Dashboards"/>
+                        <span class="o_dbb_side_label">Dashboards</span>
+                    </span>
+                    <button class="o_dbb_side_toggle" t-on-click="toggleSidebar"
+                            t-att-title="state.sidebarMin ? 'Expand the sidebar' : 'Collapse the sidebar'">
+                        <i t-attf-class="fa {{ state.sidebarMin ? 'fa-angle-double-right' : 'fa-angle-double-left' }}" role="img" aria-label="Toggle"/>
+                    </button>
+                </div>
+
+                <button t-if="canBuild" class="btn btn-primary btn-sm o_dbb_build" t-on-click="buildBoard" title="Build a dashboard from a model">
+                    <i class="fa fa-magic" role="img" aria-label="Build"/>
+                    <span class="o_dbb_side_label">Build a dashboard</span>
+                </button>
+
+                <div class="o_dbb_side_sec"><span class="o_dbb_side_label">My dashboards</span></div>
+                <t t-if="state.boards.length &gt; 6 and !state.sidebarMin">
+                    <div class="o_dbb_side_search">
+                        <i class="fa fa-search" role="img" aria-label="Filter"/>
+                        <input type="text" placeholder="Filter dashboards" t-att-value="state.boardFilter"
+                               t-on-input="(ev) => this.state.boardFilter = ev.target.value"/>
+                    </div>
+                </t>
+                <nav class="o_dbb_side_list">
+                    <t t-foreach="sideBoards" t-as="board" t-key="board.id">
+                        <a t-attf-class="o_dbb_side_item {{ state.board and board.id === state.board.id ? 'o_dbb_side_on' : '' }}"
+                           href="#" t-att-title="board.name" t-on-click.prevent="() => this.switchBoard(board.id)">
+                            <i t-attf-class="fa #{board.icon} o_dbb_side_icon" role="img" aria-label="Dashboard"
+                               t-att-style="'color: ' + boardColor(board)"/>
+                            <span class="o_dbb_side_label o_dbb_side_name" t-esc="board.name"/>
+                            <i t-if="board.is_default" class="fa fa-star o_dbb_side_star" role="img" aria-label="Favourite"/>
+                            <span t-if="board.personal" class="o_dbb_side_dot" title="Personal"/>
+                        </a>
+                    </t>
+                    <div t-if="!sideBoards.length" class="o_dbb_side_none o_dbb_side_label">No dashboard yet</div>
+                </nav>
+
+                <div class="o_dbb_side_sec"><span class="o_dbb_side_label">Tools</span></div>
+                <nav class="o_dbb_side_list">
+                    <a href="#" class="o_dbb_side_item" t-on-click.prevent="openQuickFind" title="Quick find (Q)">
+                        <i class="fa fa-search o_dbb_side_icon" role="img" aria-label="Quick find"/>
+                        <span class="o_dbb_side_label o_dbb_side_name">Quick find</span>
+                        <kbd class="o_dbb_side_label">Q</kbd>
+                    </a>
+                    <a href="#" t-attf-class="o_dbb_side_item {{ state.watchOpen ? 'o_dbb_side_on' : '' }}"
+                       t-on-click.prevent="toggleWatchlist" title="KPI watchlist">
+                        <i class="fa fa-thumb-tack o_dbb_side_icon" role="img" aria-label="Watchlist"/>
+                        <span class="o_dbb_side_label o_dbb_side_name">Watchlist</span>
+                        <span t-if="state.watchlist.length" class="o_dbb_side_count o_dbb_side_label" t-esc="state.watchlist.length"/>
+                    </a>
+                    <a href="#" t-attf-class="o_dbb_side_item {{ state.notesOpen ? 'o_dbb_side_on' : '' }}"
+                       t-on-click.prevent="toggleNotes" title="My notes on this dashboard">
+                        <i class="fa fa-sticky-note-o o_dbb_side_icon" role="img" aria-label="Notes"/>
+                        <span class="o_dbb_side_label o_dbb_side_name">My notes</span>
+                        <i t-if="state.note" class="fa fa-circle o_dbb_side_hint" role="img" aria-label="Has a note"/>
+                    </a>
+                    <a href="#" class="o_dbb_side_item" t-on-click.prevent="togglePresenting" title="Present full screen (F)">
+                        <i class="fa fa-expand o_dbb_side_icon" role="img" aria-label="Present"/>
+                        <span class="o_dbb_side_label o_dbb_side_name">Present</span>
+                        <kbd class="o_dbb_side_label">F</kbd>
+                    </a>
+                    <a href="#" class="o_dbb_side_item" t-on-click.prevent="print" title="Print (P)">
+                        <i class="fa fa-print o_dbb_side_icon" role="img" aria-label="Print"/>
+                        <span class="o_dbb_side_label o_dbb_side_name">Print</span>
+                        <kbd class="o_dbb_side_label">P</kbd>
+                    </a>
+                </nav>
+
+                <div class="o_dbb_side_foot o_dbb_side_label">
+                    R refresh · E arrange · M mine · Shift+&#8592;&#8594; switch · Esc clear
+                </div>
+            </aside>
+
+            <!-- ============================ the tour ========================== -->
+            <div class="o_dbb_tour" t-if="state.tourStep &gt;= 0 and state.board and !state.presenting" role="dialog">
+                <div class="o_dbb_tour_card">
+                    <div class="o_dbb_tour_step">
+                        <i t-attf-class="fa #{tourSteps[state.tourStep].icon}" role="img" aria-label="Step"/>
+                        <span t-esc="(state.tourStep + 1) + ' / ' + tourSteps.length"/>
+                    </div>
+                    <h3 t-esc="tourSteps[state.tourStep].title"/>
+                    <p t-esc="tourSteps[state.tourStep].text"/>
+                    <div class="o_dbb_tour_actions">
+                        <button class="btn btn-secondary btn-sm" t-on-click="tourDone">Skip</button>
+                        <button class="btn btn-primary btn-sm" t-on-click="tourNext">
+                            <t t-if="state.tourStep + 1 &gt;= tourSteps.length">Done</t>
+                            <t t-else="">Next</t>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================ main ============================== -->
+            <div class="o_dbb_main">
+                <header class="o_dbb_hero">
+                    <div class="o_dbb_hero_text">
+                        <t t-if="state.board">
+                            <h1 class="o_dbb_title" t-att-title="state.board.description or state.board.name">
+                                <span class="o_dbb_iconpick">
+                                    <button t-attf-class="o_dbb_title_icon {{ canEdit and !state.presenting ? 'o_dbb_title_icon_edit' : '' }}"
+                                            t-on-click="toggleIconPicker"
+                                            t-att-title="canEdit and !state.presenting ? 'Click to change the icon' : ''"
+                                            t-att-disabled="!canEdit or state.presenting">
+                                        <i t-attf-class="fa #{state.board.icon}" role="img" aria-label="Dashboard"/>
+                                    </button>
+                                    <IconPanel t-if="state.iconOpen" current="state.board.icon"
+                                               anchor="'.o_dbb_iconpick'" onPick.bind="applyIcon"
+                                               onClose="() => this.state.iconOpen = false"/>
+                                </span>
+                                <input t-if="state.renaming" type="text" class="o_dbb_title_input"
+                                       t-att-value="state.newName" aria-label="Dashboard name"
+                                       t-on-input="(ev) => this.state.newName = ev.target.value"
+                                       t-on-keydown="onRenameKeydown" t-on-blur="applyRename"/>
+                                <span t-else="" t-attf-class="o_dbb_title_name {{ canEdit and !state.presenting ? 'o_dbb_title_edit' : '' }}"
+                                      t-on-click="startRenaming"
+                                      t-att-title="canEdit and !state.presenting ? 'Click to rename' : ''"
+                                      t-esc="state.board.name"/>
+                                <button t-if="!state.presenting"
+                                        t-attf-class="o_dbb_star {{ state.board.is_default ? 'o_dbb_star_on' : '' }}"
+                                        t-on-click="toggleDefault"
+                                        t-att-title="state.board.is_default ? 'Opens first - click to forget' : 'Open this dashboard first'">
+                                    <i t-attf-class="fa {{ state.board.is_default ? 'fa-star' : 'fa-star-o' }}" role="img" aria-label="Favourite"/>
+                                </button>
+                                <span t-if="state.board.personal" class="o_dbb_tag">
+                                    <i class="fa fa-user" role="img" aria-label="Personal"/> Personal
+                                </span>
+                                <span t-if="state.board.can_edit and !state.board.personal" class="o_dbb_tag o_dbb_tag_shared">
+                                    <i class="fa fa-users" role="img" aria-label="Shared"/> Shared
+                                </span>
+                                <span t-if="state.board.companies and state.board.companies.length" class="o_dbb_tag o_dbb_tag_company"
+                                      t-att-title="state.board.companies.join(', ')">
+                                    <i class="fa fa-building-o" role="img" aria-label="Companies"/>
+                                    <t t-esc="state.board.companies.length === 1 ? state.board.companies[0] : state.board.companies.length + ' companies'"/>
+                                </span>
+                            </h1>
+                        </t>
+                        <t t-else="">
+                            <h1 class="o_dbb_title"><i class="fa fa-tachometer o_dbb_title_icon" role="img" aria-label="Dashboards"/> Dashboards</h1>
+                        </t>
+                    </div>
+
+                    <div class="o_dbb_hero_tools" t-if="state.board">
+                        <!-- A magnifier at rest; it opens into a box on focus and stays open while it holds a search. -->
+                        <div t-attf-class="o_dbb_search {{ state.filter ? 'o_dbb_search_open' : '' }}"
+                             t-if="!state.presenting and state.items.length &gt; 3"
+                             t-on-click="(ev) => ev.currentTarget.querySelector('input').focus()" title="Search the tiles">
+                            <i class="fa fa-search" role="img" aria-label="Search"/>
+                            <input type="text" placeholder="Search tiles…" t-att-value="state.filter"
+                                   t-on-input="(ev) => this.state.filter = ev.target.value"/>
+                            <button t-if="state.filter" class="o_dbb_search_clear" t-on-click="() => this.state.filter = ''" title="Clear">
+                                <i class="fa fa-times" role="img" aria-label="Clear"/>
+                            </button>
+                        </div>
+                        <!-- The reader's scope - the period and "Mine" - as one joined control. -->
+                        <div class="o_dbb_cluster" t-if="state.board.allow_period or (state.board.allow_mine and !state.presenting)">
+                        <div class="o_dbb_period" t-if="state.board.allow_period" t-ref="period">
+                            <button t-attf-class="btn btn-secondary btn-sm o_dbb_pill o_dbb_period_btn {{ state.periodOpen ? 'active' : '' }}"
+                                    t-on-click="togglePeriod" aria-haspopup="true" t-att-aria-expanded="state.periodOpen"
+                                    title="The period every card is read over">
+                                <i class="fa fa-calendar" role="img" aria-label="Period"/>
+                                <span class="o_dbb_period_label" t-esc="periodLabel"/>
+                                <i class="fa fa-caret-down o_dbb_caret" role="img" aria-label="Open"/>
+                            </button>
+                            <div t-if="state.periodOpen" class="dropdown-menu show o_dbb_period_menu" role="menu">
+                                <button t-if="allTimePeriod"
+                                        t-attf-class="o_dbb_period_item o_dbb_period_all {{ periodKey === 'all' ? 'o_dbb_period_on' : '' }}"
+                                        role="menuitem" t-on-click="() => this.pickPeriod('all')">
+                                    <i class="fa fa-clock-o" role="img" aria-label="All time"/>
+                                    <span t-esc="allTimePeriod.label"/>
+                                    <i t-if="periodKey === 'all'" class="fa fa-check ms-auto" role="img" aria-label="Current"/>
+                                </button>
+                                <div class="o_dbb_period_grid">
+                                    <t t-foreach="periodGroups" t-as="group" t-key="group.key">
+                                        <div class="o_dbb_period_col">
+                                            <div class="o_dbb_period_head" t-esc="group.label"/>
+                                            <t t-foreach="group.periods" t-as="period" t-key="period.key">
+                                                <button t-attf-class="o_dbb_period_item {{ period.key === periodKey ? 'o_dbb_period_on' : '' }}"
+                                                        role="menuitem" t-on-click="() => this.pickPeriod(period.key)">
+                                                    <span t-esc="period.label"/>
+                                                    <i t-if="period.key === periodKey" class="fa fa-check ms-auto" role="img" aria-label="Current"/>
+                                                </button>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </div>
+                                <div t-if="state.board.allow_range" class="o_dbb_period_range">
+                                    <div class="o_dbb_period_head">
+                                        Any two dates
+                                        <span t-if="periodKey === 'custom'" class="o_dbb_period_current" t-esc="periodLabel"/>
+                                    </div>
+                                    <div class="o_dbb_period_range_row">
+                                        <input type="date" class="o_dbb_range_input" aria-label="From" t-att-value="state.range.start"
+                                               t-on-change="(ev) => this.onRangeInput('start', ev)"/>
+                                        <span class="o_dbb_period_dash">–</span>
+                                        <input type="date" class="o_dbb_range_input" aria-label="To" t-att-value="state.range.end"
+                                               t-on-change="(ev) => this.onRangeInput('end', ev)"/>
+                                        <button class="btn btn-primary btn-sm ms-auto" t-on-click="applyRange">Apply</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button t-if="state.board.allow_mine and !state.presenting"
+                                t-attf-class="btn btn-secondary btn-sm o_dbb_pill {{ state.mine ? 'active' : '' }}"
+                                t-on-click="toggleMine" title="Only my records (M)">
+                            <i class="fa fa-user" role="img" aria-label="Only mine"/>
+                            <span>Mine</span>
+                        </button>
+                        </div>
+                        <button class="btn btn-secondary btn-sm o_dbb_pill o_dbb_updated" t-on-click="refresh"
+                                t-attf-title="{{ agoLabel }} · Refresh (R)">
+                            <span class="o_dbb_ring_wrap">
+                                <!-- Re-keyed on every refresh, so the countdown ring starts over. -->
+                                <t t-foreach="[refreshCycle]" t-as="cycle" t-key="cycle">
+                                    <svg t-if="state.board.auto_refresh and !state.loading" class="o_dbb_ring"
+                                         viewBox="0 0 20 20" aria-hidden="true">
+                                        <circle class="o_dbb_ring_track" cx="10" cy="10" r="8"/>
+                                        <circle class="o_dbb_ring_fill" cx="10" cy="10" r="8"
+                                                t-attf-style="animation-duration: {{ state.board.auto_refresh }}s"/>
+                                    </svg>
+                                </t>
+                                <i t-attf-class="fa fa-refresh {{ state.loading ? 'fa-spin' : '' }}" role="img" aria-label="Refresh"/>
+                            </span>
+                            <span class="o_dbb_updated_label" t-esc="agoLabel"/>
+                        </button>
+                        <t t-if="canEdit and !state.presenting">
+                            <t t-if="state.editing">
+                                <button class="btn btn-primary btn-sm o_dbb_btn" t-on-click="doneEditing"
+                                        title="Keep this arrangement (Esc)">
+                                    <i class="fa fa-check" role="img" aria-label="Done"/>
+                                    <span>Done</span>
+                                </button>
+                                <button class="btn btn-secondary btn-sm o_dbb_btn" t-on-click="discardEditing"
+                                        title="Put the cards back where they were">
+                                    <i class="fa fa-undo" role="img" aria-label="Discard"/>
+                                    <span>Discard</span>
+                                </button>
+                            </t>
+                            <button t-else="" class="btn btn-secondary btn-sm o_dbb_btn"
+                                    t-on-click="toggleEditing" title="Arrange the cards (E)">
+                                <i class="fa fa-arrows" role="img" aria-label="Arrange"/>
+                                <span>Arrange</span>
+                            </button>
+                            <button class="btn btn-primary btn-sm o_dbb_btn" t-on-click="addCard" title="Add a card">
+                                <i class="fa fa-plus" role="img" aria-label="Add"/>
+                                <span>Card</span>
+                            </button>
+                        </t>
+                        <t t-if="!state.presenting">
+                            <div class="o_dbb_more" t-ref="more">
+                                <button class="btn btn-secondary btn-sm o_dbb_btn o_dbb_btn_icon" t-on-click="toggleMenu" title="More">
+                                    <i class="fa fa-ellipsis-v" role="img" aria-label="More"/>
+                                </button>
+                                <div t-if="state.menuOpen" class="dropdown-menu show o_dbb_menu" role="menu">
+                                    <t t-if="canBuild">
+                                        <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('buildBoard')"><i class="fa fa-magic"/> Build from a model</a>
+                                        <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('newBoard')"><i class="fa fa-plus-square-o"/> New empty dashboard</a>
+                                    </t>
+                                    <t t-if="canEdit">
+                                        <div class="dropdown-divider"/>
+                                        <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="startRenaming"><i class="fa fa-pencil"/> Rename dashboard</a>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="assignMenu"><i class="fa fa-list"/> Add to the menu&#8230;</a>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('editBoard')"><i class="fa fa-cog"/> Settings</a>
+                                        <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('duplicateBoard')"><i class="fa fa-clone"/> Duplicate dashboard</a>
+                                    <a href="#" class="dropdown-item text-danger" role="menuitem" t-on-click.prevent="deleteBoard"><i class="fa fa-trash-o"/> Delete dashboard</a>
+                                        <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('fillGaps')"><i class="fa fa-th"/> Tidy the layout</a>
+                                    </t>
+                                    <div class="dropdown-divider"/>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="startSavingView"><i class="fa fa-bookmark-o"/> Save this view…</a>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="startTour"><i class="fa fa-question-circle"/> Show the tour</a>
+                                    <div class="dropdown-divider"/>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('downloadPdf')"><i class="fa fa-file-pdf-o"/> Download as PDF</a>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('downloadXlsx')"><i class="fa fa-file-excel-o"/> Download as a spreadsheet</a>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('exportBoard')"><i class="fa fa-download"/> Export as file</a>
+                                    <a t-if="canBuild" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('importBoard')"><i class="fa fa-upload"/> Import a file</a>
+                                    <div class="dropdown-divider"/>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('togglePresenting')"><i class="fa fa-expand"/> Present</a>
+                                    <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="() => this.menuAction('print')"><i class="fa fa-print"/> Print</a>
+                                </div>
+                            </div>
+                        </t>
+                        <button t-else="" class="btn btn-secondary btn-sm o_dbb_btn o_dbb_btn_icon" t-on-click="togglePresenting" title="Leave presentation (Esc)">
+                            <i class="fa fa-compress" role="img" aria-label="Leave"/>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- the filter bar: questions the board asks every time -->
+                <div class="o_dbb_bar" t-if="state.board and state.board.filters and state.board.filters.length and !state.presenting">
+                    <i class="fa fa-sliders o_dbb_bar_icon" role="img" aria-label="Filters"/>
+                    <t t-foreach="state.board.filters" t-as="filter" t-key="filter.id">
+                        <label t-attf-class="o_dbb_bar_filter {{ state.filters[filter.id] ? 'o_dbb_bar_on' : '' }}">
+                            <span class="o_dbb_bar_label" t-esc="filter.label"/>
+                            <select class="o_dbb_bar_select" t-att-aria-label="filter.label"
+                                    t-on-change="(ev) => this.onFilterPicked(filter, ev)">
+                                <option value="">Any</option>
+                                <t t-foreach="filter.options" t-as="option" t-key="option.key">
+                                    <option t-att-value="option.key"
+                                            t-att-selected="isFilterValue(filter, option)"
+                                            t-esc="option.label"/>
+                                </t>
+                            </select>
+                        </label>
+                    </t>
+                    <button t-if="filterChips.length" class="btn btn-link btn-sm o_dbb_bar_clear"
+                            t-on-click="clearFilters" title="Clear every filter (Esc)">Clear</button>
+                </div>
+
+                <!-- what stands out: the board's own insights, one chip each -->
+                <div class="o_dbb_story" t-if="story.length and !state.presenting" role="status">
+                    <div class="o_dbb_story_head">
+                        <span class="o_dbb_story_badge"><i class="fa fa-lightbulb-o" role="img" aria-label="Insights"/></span>
+                        <span class="o_dbb_story_title">What stands out</span>
+                    </div>
+                    <div class="o_dbb_story_items">
+                        <t t-foreach="story" t-as="insight" t-key="insight_index">
+                            <button type="button" t-attf-class="o_dbb_story_item o_dbb_story_{{ insight.tone }}"
+                                    t-on-click="() => this.jumpTo(insight)"
+                                    t-att-title="insight.itemId ? 'Show this card' : ''">
+                                <i t-attf-class="fa #{insight.icon} o_dbb_story_item_icon" role="img" aria-label="Insight"/>
+                                <span class="o_dbb_story_text" t-out="insight.html"/>
+                            </button>
+                        </t>
+                    </div>
+                    <button class="o_dbb_story_close" t-on-click="hideStory" title="Hide for this dashboard">
+                        <i class="fa fa-times" role="img" aria-label="Hide"/>
+                    </button>
+                </div>
+
+                <!-- the pages of the board -->
+                <div class="o_dbb_tabs" t-if="state.board and !state.presenting and (tabs.length or (state.editing and canEdit))">
+                    <t t-foreach="tabs" t-as="page" t-key="page.id || 'overview'">
+                        <button t-attf-class="o_dbb_tab {{ (page.id || null) === (state.tab || null) ? 'o_dbb_tab_on' : '' }}"
+                                t-on-click="() => this.pickTab(page.id)">
+                            <i t-attf-class="fa #{page.icon}" role="img" aria-label="Tab"/>
+                            <span t-esc="page.name"/>
+                            <span class="o_dbb_tab_count" t-esc="page.count"/>
+                        </button>
+                    </t>
+                    <t t-if="canEdit and state.editing">
+                        <input t-if="state.addingTab" type="text" class="o_dbb_tab_input" placeholder="Tab name, Enter to add"
+                               t-att-value="state.tabName" t-on-input="(ev) => this.state.tabName = ev.target.value"
+                               t-on-keydown="onTabKeydown"/>
+                        <button t-else="" class="o_dbb_tab o_dbb_tab_add" t-on-click="startAddingTab" title="Add a tab">
+                            <i class="fa fa-plus" role="img" aria-label="Add"/>
+                            <span>Tab</span>
+                        </button>
+                    </t>
+                </div>
+
+                <!-- chips: what narrows the whole page -->
+                <div class="o_dbb_chips" t-if="filterChips.length and !state.presenting">
+                    <t t-foreach="filterChips" t-as="chip" t-key="chip.id">
+                        <span class="o_dbb_chip o_dbb_chip_filter">
+                            <i class="fa fa-filter" role="img" aria-label="Filter"/>
+                            <b t-esc="chip.label"/>: <span t-esc="chip.value"/>
+                            <button class="o_dbb_chip_x" t-on-click="() => this.clearFilter(chip.id)" title="Clear">
+                                <i class="fa fa-times" role="img" aria-label="Clear"/>
+                            </button>
+                        </span>
+                    </t>
+                </div>
+                <div class="o_dbb_chips" t-if="state.focus or state.mine">
+                    <span t-if="state.focus" class="o_dbb_chip" title="Every card of the same model is narrowed to this">
+                        <i class="fa fa-filter" role="img" aria-label="Focus"/>
+                        <span t-esc="focusLabel"/>
+                        <button class="o_dbb_chip_btn" t-on-click="openFocusRecords" title="Open these records">
+                            <i class="fa fa-external-link" role="img" aria-label="Open"/>
+                        </button>
+                        <button class="o_dbb_chip_btn" t-on-click="clearFocus" title="Clear the focus (Esc)">
+                            <i class="fa fa-times" role="img" aria-label="Clear"/>
+                        </button>
+                    </span>
+                    <span t-if="state.mine" class="o_dbb_chip o_dbb_chip_mine" title="Only your own records, on every card that knows its user">
+                        <i class="fa fa-user" role="img" aria-label="Mine"/> Only mine
+                        <button class="o_dbb_chip_btn" t-on-click="toggleMine" title="Show everybody's">
+                            <i class="fa fa-times" role="img" aria-label="Clear"/>
+                        </button>
+                    </span>
+                </div>
+
+                <!-- saved views: a period, a focus and the mine switch, under a name -->
+                <div class="o_dbb_views" t-if="state.board and !state.presenting and (state.views.length or state.savingView)">
+                    <i class="fa fa-bookmark-o" role="img" aria-label="Saved views"/>
+                    <t t-foreach="state.views" t-as="view" t-key="view.id">
+                        <span class="o_dbb_view" role="button" t-on-click="() => this.applyView(view)"
+                              t-att-title="'Period: ' + (view.period or 'as is') + (view.mine ? ' · only mine' : '') + (view.focus ? ' · ' + view.focus.label : '')">
+                            <span t-esc="view.name"/>
+                            <button class="o_dbb_chip_btn" t-on-click.stop="() => this.removeView(view)" title="Forget this view">
+                                <i class="fa fa-times" role="img" aria-label="Remove"/>
+                            </button>
+                        </span>
+                    </t>
+                    <t t-if="state.savingView">
+                        <input type="text" class="o_dbb_view_input" placeholder="Name this view, Enter to save"
+                               t-att-value="state.viewName"
+                               t-on-input="(ev) => this.state.viewName = ev.target.value"
+                               t-on-keydown="onViewKeydown"/>
+                        <button class="btn btn-secondary btn-sm o_dbb_mini" t-on-click="saveView" title="Save"><i class="fa fa-check" role="img" aria-label="Save"/></button>
+                    </t>
+                </div>
+
+                <!-- the watchlist: pinned numbers, whatever board they live on -->
+                <div class="o_dbb_watch" t-if="state.watchOpen and !state.presenting">
+                    <div class="o_dbb_watch_head">
+                        <i class="fa fa-thumb-tack" role="img" aria-label="Watchlist"/>
+                        <span>Watchlist</span>
+                        <span class="o_dbb_watch_hint">Pin any number card with its thumb-tack; it follows you to every dashboard.</span>
+                    </div>
+                    <div class="o_dbb_watch_strip" t-if="state.watchlist.length">
+                        <t t-foreach="state.watchlist" t-as="watch" t-key="watch.id">
+                            <div t-attf-class="o_dbb_watch_item {{ watch.alert ? 'o_dbb_watch_' + watch.alert : '' }}"
+                                 t-att-style="'--dbc-color: ' + cardColor(watch)"
+                                 role="button" t-on-click="() => this.goToCard(watch.board_id, watch.id)">
+                                <div class="o_dbb_watch_board" t-esc="watch.board_name"/>
+                                <div class="o_dbb_watch_name">
+                                    <i t-attf-class="fa #{watch.icon}" role="img" aria-label="Card"/>
+                                    <span t-esc="watch.name"/>
+                                </div>
+                                <div class="o_dbb_watch_value">
+                                    <span t-esc="watchValue(watch)"/>
+                                    <span t-if="watch.symbol" class="o_dbb_watch_unit" t-esc="watch.symbol"/>
+                                    <span t-if="watch.delta !== undefined and watch.delta !== null"
+                                          t-attf-class="o_dbb_watch_delta {{ watch.delta &gt;= 0 ? 'up' : 'down' }}"
+                                          t-esc="(watch.delta &gt; 0 ? '+' : '') + watchValue(watch, watch.delta)"/>
+                                </div>
+                                <button class="o_dbb_watch_unpin" t-on-click.stop="() => this.togglePin(watch)" title="Unpin">
+                                    <i class="fa fa-times" role="img" aria-label="Unpin"/>
+                                </button>
+                            </div>
+                        </t>
+                    </div>
+                    <div t-else="" class="o_dbb_watch_empty">Nothing pinned yet.</div>
+                </div>
+
+                <!-- ============================ body ========================= -->
+                <div class="o_dbb_body">
+                    <div class="o_dbb_content" t-att-style="contentStyle">
+                        <t t-if="state.loading and !state.board">
+                            <div class="text-center p-5">
+                                <i class="fa fa-spinner fa-spin fa-2x" role="img" aria-label="Loading"/>
+                            </div>
+                        </t>
+
+                        <t t-elif="!state.board">
+                            <div class="o_dbb_nocontent">
+                                <i class="fa fa-tachometer fa-3x mb-3" role="img" aria-label="Dashboards"/>
+                                <h3>No dashboard yet</h3>
+                                <p class="text-muted">
+                                    A dashboard is a page of cards, each one a live question asked of a
+                                    model. Nothing here is code.
+                                </p>
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <button t-if="canBuild" class="btn btn-primary o_dbb_btn" t-on-click="buildBoard">
+                                        <i class="fa fa-magic" role="img" aria-label="Build"/>
+                                        <span>Build one from a model</span>
+                                    </button>
+                                    <button t-if="canBuild" class="btn btn-secondary o_dbb_btn" t-on-click="newBoard"><span>Start empty</span></button>
+                                </div>
+                            </div>
+                        </t>
+
+                        <t t-else="">
+                            <t t-if="!state.items.length">
+                                <div class="o_dbb_nocontent">
+                                    <i class="fa fa-th-large fa-3x mb-3" role="img" aria-label="Cards"/>
+                                    <h3>This dashboard has no cards</h3>
+                                    <p class="text-muted">Add a number, a chart, a table or a note to it.</p>
+                                    <t t-if="canEdit">
+                                        <button class="btn btn-primary o_dbb_btn" t-on-click="addCard"><i class="fa fa-plus"/> <span>Add a card</span></button>
+                                    </t>
+                                </div>
+                            </t>
+                            <t t-elif="!visibleItems.length">
+                                <div class="o_dbb_nocontent">
+                                    <i class="fa fa-search fa-2x mb-3" role="img" aria-label="Search"/>
+                                    <h3>No tile matches "<t t-esc="state.filter"/>"</h3>
+                                </div>
+                            </t>
+
+                            <div t-if="showSkeletons" class="o_dbb_grid" t-att-style="gridStyle" aria-hidden="true">
+                                <t t-foreach="skeletons" t-as="span" t-key="span_index">
+                                    <div class="o_dbb_cell" t-attf-style="grid-column: span {{ span }};">
+                                        <div t-attf-class="o_dbb_skel {{ span &lt; 4 ? 'o_dbb_skel_number' : '' }}">
+                                            <span class="o_dbb_skel_line o_dbb_skel_title"/>
+                                            <span class="o_dbb_skel_block"/>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                            <div t-attf-class="o_dbb_grid {{ state.editing ? 'o_dbb_editing' : '' }} {{ state.loading ? 'o_dbb_loading' : '' }}"
+                                 t-att-style="gridStyle">
+                                <t t-foreach="visibleItems" t-as="item" t-key="item.id">
+                                    <div t-attf-class="o_dbb_cell {{ state.flashId === item.id ? 'o_dbb_flash' : '' }}"
+                                         t-att-style="cardStyle(item)" t-att-data-item-id="item.id">
+                                        <BoardCard item="item"
+                                                   editable="state.editing"
+                                                   focus="state.focus or undefined"
+                                                   compact="compact"
+                                                   palette="palette"
+                                                   pinned="isPinned(item)"
+                                                   onDrill.bind="onDrill"
+                                                   onFocus.bind="onFocus"
+                                                   onEdit.bind="openCard"
+                                                   onRefresh.bind="refreshItem"
+                                                   onPin.bind="togglePin"
+                                                   onPdf.bind="onCardPdf"
+                                                   onXlsx.bind="onCardXlsx"
+                                                   onRemove.bind="removeCard"
+                                                   canEdit="canEdit"/>
+                                        <t t-if="state.editing">
+                                            <div class="o_dbb_resize">
+                                                <button class="o_dbb_mini" title="Narrower" t-on-click="() => this.widen(item, -1)">
+                                                    <i class="fa fa-minus" role="img" aria-label="Narrower"/>
+                                                </button>
+                                                <span class="o_dbb_resize_label" t-esc="item.width + '/12'"/>
+                                                <button class="o_dbb_mini" title="Wider" t-on-click="() => this.widen(item, 1)">
+                                                    <i class="fa fa-plus" role="img" aria-label="Wider"/>
+                                                </button>
+                                                <button class="o_dbb_mini" title="Duplicate this card" t-on-click="() => this.duplicateCard(item)">
+                                                    <i class="fa fa-clone" role="img" aria-label="Duplicate"/>
+                                                </button>
+                                                <button class="o_dbb_mini o_dbb_mini_danger" title="Remove this card"
+                                                        t-on-click="() => this.removeCard(item)">
+                                                    <i class="fa fa-trash-o" role="img" aria-label="Remove"/>
+                                                </button>
+                                                <select class="o_dbb_mini_select" title="Move to a tab of this dashboard"
+                                                        t-if="state.board.tabs and state.board.tabs.length"
+                                                        t-on-change="(ev) => this.moveToTab(item, ev)">
+                                                    <option value="">Tab…</option>
+                                                    <option value="none">Overview</option>
+                                                    <t t-foreach="state.board.tabs" t-as="tab" t-key="tab.id">
+                                                        <option t-att-value="tab.id" t-esc="tab.name"/>
+                                                    </t>
+                                                </select>
+                                                <select class="o_dbb_mini_select" title="Move to another dashboard"
+                                                        t-if="state.boards.length &gt; 1"
+                                                        t-on-change="(ev) => this.moveCard(item, ev)">
+                                                    <option value="">Move to…</option>
+                                                    <t t-foreach="state.boards" t-as="board" t-key="board.id">
+                                                        <option t-if="board.id !== state.board.id and board.can_edit" t-att-value="board.id" t-esc="board.name"/>
+                                                    </t>
+                                                </select>
+                                            </div>
+                                            <span class="o_dbb_grip" title="Drag to resize"
+                                                  t-on-pointerdown="(ev) => this.startResize(ev, item)">
+                                                <i class="fa fa-expand" role="img" aria-label="Resize"/>
+                                            </span>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+
+                            <div class="o_dbb_foot text-muted">
+                                <t t-if="!state.presenting"><span t-esc="greeting"/> · </t>
+                                <t t-if="state.board.description and !state.presenting"><span class="o_dbb_foot_desc" t-esc="state.board.description"/> · </t>
+                                <t t-if="periodLabel"><span t-esc="periodLabel"/> · </t>
+                                <span t-esc="visibleItems.length"/><t t-if="state.filter"> of <t t-esc="state.items.length"/></t> cards
+                                <t t-if="state.board.auto_refresh"> · refreshing every <t t-esc="state.board.auto_refresh"/>s</t>
+                                <t t-if="hiddenCount and !state.editing"> · <span t-esc="hiddenCount"/> hidden until their rule fires</t>
+                                <t t-if="state.presenting and state.board.slide_seconds and state.boards.length &gt; 1"> · next dashboard in <t t-esc="state.board.slide_seconds"/>s</t>
+                                <t t-if="state.resizeLabel"> · <span class="o_dbb_resize_live" t-esc="state.resizeLabel"/></t>
+                            </div>
+                        </t>
+                    </div>
+
+                    <!-- my notes: a drawer beside the grid -->
+                    <aside class="o_dbb_notes" t-if="state.notesOpen and state.board and !state.presenting">
+                        <div class="o_dbb_notes_head">
+                            <i class="fa fa-sticky-note-o" role="img" aria-label="Notes"/>
+                            <span>My notes</span>
+                            <span class="o_dbb_notes_state" t-esc="state.noteState"/>
+                            <button class="o_dbb_chip_btn ms-auto" t-on-click="toggleNotes" title="Close">
+                                <i class="fa fa-times" role="img" aria-label="Close"/>
+                            </button>
+                        </div>
+                        <textarea class="o_dbb_notes_text" placeholder="Only you can see this. What to check, whom to ask, what changed…"
+                                  t-att-value="state.noteText" t-on-input="onNoteInput"/>
+                        <div class="o_dbb_notes_foot">Private to you, saved as you type, one note per dashboard.</div>
+                    </aside>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

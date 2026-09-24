@@ -1,0 +1,71 @@
+// The day's track inside the day sheet.
+//
+// Sized in viewport height rather than pixels: the map is one section of a form an
+// approver scrolls through, and a fixed 600px box pushes the notes and the sign-off
+// buttons off a laptop screen.
+
+.o_fw_daymap {
+    margin-top: .25rem;
+
+    .o_fw_daymap_cap {
+        font-size: .82rem;
+        color: #6c757d;
+        margin-bottom: .35rem;
+    }
+
+    .o_fw_daymap_canvas {
+        height: clamp(260px, 42vh, 460px);
+        width: 100%;
+        border: 1px solid rgba(0, 0, 0, .12);
+        border-radius: .5rem;
+        overflow: hidden;
+        // Leaflet's panes sit above form elements without this.
+        z-index: 0;
+        background: #eceff1;
+    }
+
+    // The "show the whole day" control, sized like Leaflet's own zoom buttons.
+    .o_fw_daymap_reset a {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        color: #14181d;
+        font-size: .9rem;
+    }
+
+    .o_fw_daymap_msg {
+        padding: 1rem 0;
+        font-size: .9rem;
+    }
+
+    .o_fw_daymap_key {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .25rem 1.1rem;
+        margin-top: .45rem;
+        font-size: .78rem;
+        color: #6c757d;
+
+        span {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+        }
+        i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .o_fw_daymap_ring i {
+            background: transparent;
+            border: 1px solid #6c757d;
+        }
+    }
+}
+
+// A phone opens the same sheet: the map keeps its shape, the key wraps.
+@media (max-width: 575.98px) {
+    .o_fw_daymap .o_fw_daymap_canvas { height: 300px; }
+}

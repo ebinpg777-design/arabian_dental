@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.IconPickerField">
+        <div class="o_dbf_icon" t-ref="root">
+            <div class="o_dbf_icon_field">
+                <button type="button" class="o_dbf_icon_face" t-on-click="toggle"
+                        t-att-style="'--dbc-color: ' + color"
+                        t-att-disabled="props.readonly" title="Pick an icon">
+                    <i t-attf-class="fa #{current or 'fa-square-o'}" role="img" aria-label="Current icon"/>
+                </button>
+                <input type="text" class="o_input o_dbf_icon_input" t-att-value="current"
+                       t-att-readonly="props.readonly" placeholder="fa-bar-chart"
+                       t-on-change="onTyped"/>
+                <button type="button" class="btn btn-secondary btn-sm o_dbf_icon_open" t-on-click="toggle"
+                        t-att-disabled="props.readonly">
+                    <i class="fa fa-th me-1" role="img" aria-label="Browse"/> Browse
+                </button>
+            </div>
+
+            <IconPanel t-if="state.open" current="current" onPick.bind="select"
+                       onClose="() => this.state.open = false"/>
+        </div>
+    </t>
+
+</templates>

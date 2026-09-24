@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="sale_custom.FdiTeethField">
+        <div class="o_fdi_field d-flex align-items-center gap-1 flex-wrap" t-att-class="{ o_fdi_readonly: props.readonly }">
+            <t t-if="props.readonly">
+                <span t-if="!chips.length" class="text-muted">—</span>
+                <span t-foreach="chips" t-as="chip" t-key="chip" class="o_fdi_chip"><t t-esc="chip"/></span>
+            </t>
+            <t t-else="">
+                <span t-foreach="chips" t-as="chip" t-key="chip" class="o_fdi_chip">
+                    <t t-esc="chip"/>
+                    <button type="button" class="o_fdi_chip_x" t-on-click.stop="() => this.removeChip(chip)" title="Remove">×</button>
+                </span>
+                <!-- the box ADDS teeth (typed, then Enter or Tab) and empties itself: the
+                     chips are the value, so repeating it in a text box only cluttered the cell -->
+                <input type="text" class="o_fdi_input o_input" value="" t-att-placeholder="chips.length ? '+' : (props.placeholder || 'e.g. 11, 21')"
+                       t-on-change="onInputChange" t-on-click.stop=""/>
+                <button type="button" class="o_fdi_open btn btn-sm btn-link p-0" t-on-click.stop="openChart" title="Pick teeth on the chart">
+                    <i class="fa fa-th-large"/>
+                </button>
+            </t>
+        </div>
+    </t>
+
+    <t t-name="sale_custom.FdiTeethChart">
+        <div class="o_fdi_chart p-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong class="small text-uppercase text-muted">Teeth — FDI</strong>
+                <span class="small text-muted" t-esc="summary"/>
+                <div>
+                    <button type="button" class="btn btn-sm btn-link py-0" t-on-click="() => this.state.primary = !this.state.primary">
+                        <t t-if="state.primary">Hide primary</t><t t-else="">Primary teeth</t>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-link py-0 text-danger" t-on-click="clear" t-att-disabled="props.readonly">Clear</button>
+                </div>
+            </div>
+            <div class="o_fdi_sides small text-muted d-flex justify-content-between px-4 mb-1">
+                <span>patient's right</span><span>patient's left</span>
+            </div>
+            <div t-foreach="visibleArches" t-as="arch" t-key="arch.key" class="o_fdi_arch d-flex align-items-center mb-1">
+                <button type="button" class="o_fdi_archname btn btn-link btn-sm p-0 text-start" t-on-click="() => this.toggleArch(arch)"
+                        t-att-title="'Select the whole ' + arch.label + ' arch'">
+                    <t t-esc="arch.label"/>
+                </button>
+                <div class="o_fdi_row d-flex gap-1">
+                    <button t-foreach="arch.right" t-as="tooth" t-key="tooth" type="button"
+                            t-attf-class="o_fdi_tooth #{isSelected(tooth) ? 'o_fdi_on' : ''} #{arch.primary ? 'o_fdi_primary' : ''}"
+                            t-on-click="() => this.toggle(tooth)" t-att-disabled="props.readonly"><t t-esc="tooth"/></button>
+                    <span class="o_fdi_midline"/>
+                    <button t-foreach="arch.left" t-as="tooth" t-key="tooth" type="button"
+                            t-attf-class="o_fdi_tooth #{isSelected(tooth) ? 'o_fdi_on' : ''} #{arch.primary ? 'o_fdi_primary' : ''}"
+                            t-on-click="() => this.toggle(tooth)" t-att-disabled="props.readonly"><t t-esc="tooth"/></button>
+                </div>
+            </div>
+            <div class="mt-2 small">
+                <label class="text-muted me-1">Also:</label>
+                <input type="text" class="o_input o_fdi_extras" t-att-value="state.extras" placeholder="a note, e.g. Q1 or bridge"
+                       t-on-input="onExtrasInput" t-on-change="onExtrasChange" t-att-readonly="props.readonly"/>
+            </div>
+        </div>
+    </t>
+
+</templates>

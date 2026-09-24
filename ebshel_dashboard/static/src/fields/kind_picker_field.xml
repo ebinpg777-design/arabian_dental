@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.KindPickerField">
+        <div class="o_dbf_kindpicker">
+            <div class="o_dbf_kindgroups" role="radiogroup">
+                <t t-foreach="groups" t-as="group" t-key="group.key">
+                    <div class="o_dbf_kindgroup">
+                        <div class="o_dbf_kindgroup_head">
+                            <span class="o_dbf_kindgroup_label" t-esc="group.label"/>
+                            <span t-if="group.needs" class="o_dbf_kindgroup_needs" t-esc="group.needs"/>
+                        </div>
+                        <div class="o_dbf_kinds">
+                            <t t-foreach="group.options" t-as="option" t-key="option.key">
+                                <button type="button"
+                                        t-attf-class="o_dbf_kind {{ option.key === current ? 'o_dbf_kind_on' : '' }}"
+                                        role="radio" t-att-aria-checked="option.key === current"
+                                        t-att-title="option.hint"
+                                        t-att-disabled="props.readonly"
+                                        t-on-click="() => this.select(option.key)">
+                                    <svg class="o_dbf_kind_sketch" viewBox="0 0 40 24" role="img"
+                                         t-att-aria-label="option.label" focusable="false">
+                                        <t t-foreach="sketch(option.key)" t-as="shape" t-key="shape_index">
+                                            <rect t-if="shape.t === 'r'" t-att-x="shape.x" t-att-y="shape.y"
+                                                  t-att-width="shape.w" t-att-height="shape.h" rx="1"
+                                                  t-att-fill="colour(shape)" t-att-fill-opacity="shape.f"/>
+                                            <circle t-elif="shape.t === 'c'" t-att-cx="shape.x" t-att-cy="shape.y"
+                                                    t-att-r="shape.r"
+                                                    t-att-fill="colour(shape)" t-att-fill-opacity="shape.f"/>
+                                            <path t-else="" t-att-d="shape.d"
+                                                  t-att-fill="colour(shape)"
+                                                  t-att-fill-opacity="shape.w ? 0 : shape.f"
+                                                  t-att-stroke="colour(shape)"
+                                                  t-att-stroke-width="shape.w"
+                                                  t-att-stroke-opacity="shape.w ? shape.f : 0"/>
+                                        </t>
+                                    </svg>
+                                    <span t-esc="option.label"/>
+                                </button>
+                            </t>
+                        </div>
+                    </div>
+                </t>
+            </div>
+            <div t-if="missing" class="o_dbf_kind_missing">
+                <i class="fa fa-info-circle" role="img" aria-label="Needs"/>
+                <span t-esc="missing"/>
+            </div>
+        </div>
+    </t>
+
+</templates>

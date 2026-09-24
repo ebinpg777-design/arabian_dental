@@ -1,0 +1,2594 @@
+// Dynamic Dashboards
+// ---------------------------------------------------------------------------
+// Everything is expressed against Bootstrap's CSS variables, the board's
+// `--dbb-accent` and the per-card `--dbc-color`, so a board follows the user's
+// theme (light or dark) without a second palette.
+//
+// Note the names: Odoo builds Bootstrap with an EMPTY variable prefix, so the
+// backend exposes `--danger` / `--body-bg` / `--border-color`, and *not* the
+// `--bs-*` names Bootstrap uses out of the box. A `--bs-` name here does not
+// error - it silently resolves to nothing, which takes the whole declaration
+// with it (an invalid `var()` makes the property unset, not defaulted).
+
+$dbb-side-width: 236px;
+$dbb-side-min: 58px;
+$dbb-radius: 12px;
+
+.o_dbb_action {
+    --dbb-accent: #4f46e5;
+    --dbb-surface: var(--body-bg);
+    --dbb-plane: color-mix(in srgb, var(--secondary-color) 6%, var(--body-bg));
+    --dbb-line: var(--border-color);
+    --dbb-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.05);
+    --dbb-shadow-up: 0 2px 4px rgba(15, 23, 42, 0.06), 0 10px 26px rgba(15, 23, 42, 0.09);
+
+    // The web client's own `.o_action` rule lays an action out as a column;
+    // this one is a row - sidebar beside the page - and has to say so louder.
+    display: flex !important;
+    flex-direction: row !important;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--dbb-plane);
+
+    // ====================================================================
+    // Sidebar
+    // ====================================================================
+    .o_dbb_side {
+        flex: 0 0 $dbb-side-width;
+        width: $dbb-side-width;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 10px;
+        background-color: var(--dbb-surface);
+        border-right: 1px solid var(--dbb-line);
+        overflow-y: auto;
+        overflow-x: hidden;
+        transition: width 0.18s ease-in-out, flex-basis 0.18s ease-in-out;
+    }
+
+    &.o_dbb_side_min .o_dbb_side {
+        flex-basis: $dbb-side-min;
+        width: $dbb-side-min;
+        padding: 12px 8px;
+
+        .o_dbb_side_label {
+            display: none;
+        }
+
+        .o_dbb_side_item,
+        .o_dbb_build,
+        .o_dbb_brand {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .o_dbb_side_sec {
+            height: 1px;
+            margin: 6px 4px;
+            padding: 0;
+            background-color: var(--dbb-line);
+        }
+    }
+
+    .o_dbb_side_head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    .o_dbb_brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 6px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--primary);
+
+        i {
+            font-size: 1.15rem;
+        }
+    }
+
+    .o_dbb_side_toggle {
+        border: 0;
+        background: transparent;
+        color: var(--secondary-color);
+        padding: 4px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+
+        &:hover {
+            background-color: color-mix(in srgb, var(--secondary-color) 12%, transparent);
+        }
+    }
+
+    .o_dbb_build {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 2px 0 8px;
+        width: 100%;
+    }
+
+    .o_dbb_side_sec {
+        padding: 10px 8px 4px;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--secondary-color);
+    }
+
+    .o_dbb_side_search {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 4px 4px;
+        padding: 4px 8px;
+        border: 1px solid var(--dbb-line);
+        border-radius: 8px;
+        color: var(--secondary-color);
+        font-size: 0.8rem;
+
+        input {
+            flex: 1 1 auto;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: var(--body-color, inherit);
+        }
+    }
+
+    .o_dbb_side_list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .o_dbb_side_item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px;
+        border-radius: 8px;
+        color: var(--body-color, inherit);
+        text-decoration: none;
+        font-size: 0.88rem;
+        transition: background-color 0.12s ease-in-out;
+
+        &:hover {
+            background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+            text-decoration: none;
+            color: var(--body-color, inherit);
+        }
+
+        &.o_dbb_side_on {
+            background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        kbd {
+            margin-left: auto;
+            font-size: 0.66rem;
+            padding: 0 5px;
+            border: 1px solid var(--dbb-line);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--secondary-color);
+        }
+    }
+
+    .o_dbb_side_icon {
+        width: 1.2rem;
+        text-align: center;
+        flex: 0 0 auto;
+    }
+
+    .o_dbb_side_name {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .o_dbb_side_star {
+        color: #d97706;
+        font-size: 0.75rem;
+    }
+
+    .o_dbb_side_dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: #0891b2;
+        flex: 0 0 auto;
+    }
+
+    .o_dbb_side_hint {
+        font-size: 0.45rem;
+        color: var(--primary);
+    }
+
+    .o_dbb_side_count {
+        margin-left: auto;
+        font-size: 0.7rem;
+        padding: 0 7px;
+        border-radius: 999px;
+        background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+        color: var(--primary);
+    }
+
+    .o_dbb_side_none {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+    }
+
+    // Saved views, as chips under the hero.
+    .o_dbb_views {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 0 16px 6px;
+        font-size: 0.78rem;
+        color: var(--secondary-color);
+    }
+
+    .o_dbb_view {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 6px 2px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--dbb-line);
+        background-color: var(--dbb-surface);
+        color: var(--body-color, inherit);
+        cursor: pointer;
+
+        &:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+    }
+
+    .o_dbb_view_input {
+        height: 26px;
+        padding: 0 10px;
+        border: 1px solid var(--primary);
+        border-radius: 999px;
+        background-color: var(--dbb-surface);
+        font-size: 0.8rem;
+        min-width: 220px;
+        outline: 0;
+    }
+
+    .o_dbb_side_foot {
+        margin-top: auto;
+        padding: 10px 8px 0;
+        font-size: 0.68rem;
+        line-height: 1.5;
+        color: var(--secondary-color);
+        opacity: 0.8;
+    }
+
+    // ====================================================================
+    // Main column
+    // ====================================================================
+    .o_dbb_main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    // One row, a quarter of the height it used to take: the title on the
+    // left, the controls on the right, the description as the title's tooltip.
+    .o_dbb_hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: nowrap;
+        padding: 4px 16px;
+        min-height: 40px;
+        position: sticky;
+        top: 0;
+        z-index: 6;
+        // Opaque, and its own plane: the grid scrolls underneath it.
+        background-color: var(--dbb-surface);
+        border-bottom: 1px solid var(--dbb-line);
+    }
+
+    .o_dbb_hero_text {
+        min-width: 0;
+        flex: 1 1 200px;
+    }
+
+    .o_dbb_title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        min-width: 0;
+
+        .o_dbb_iconpick {
+            position: relative;
+            display: inline-flex;
+            flex: 0 0 auto;
+        }
+
+        // The board's own icon, changed where it is shown.
+        .o_dbb_title_icon {
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--dbb-accent);
+            font-size: 1rem;
+            line-height: 1;
+
+            &.o_dbb_title_icon_edit {
+                width: 26px;
+                height: 26px;
+                cursor: pointer;
+
+                &:hover {
+                    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+                    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+                }
+            }
+        }
+
+        // The picker hangs from the icon, not from the field it was written for.
+        .o_dbf_icon_panel {
+            top: calc(100% + 6px);
+            left: 0;
+            right: auto;
+        }
+
+        .o_dbb_title_name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .o_dbb_foot_desc {
+        font-style: italic;
+    }
+
+    .o_dbb_tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.66rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, #0891b2 40%, transparent);
+        background-color: color-mix(in srgb, #0891b2 8%, transparent);
+        color: #0891b2;
+
+        &.o_dbb_tag_shared {
+            border-color: color-mix(in srgb, var(--secondary-color) 40%, transparent);
+            background-color: transparent;
+            color: var(--secondary-color);
+        }
+    }
+
+    .o_dbb_star {
+        border: 0;
+        background: transparent;
+        padding: 0 2px;
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+        cursor: pointer;
+
+        &.o_dbb_star_on {
+            color: #d97706;
+        }
+    }
+
+    .o_dbb_hero_tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        flex: 0 1 auto;
+        min-width: 0;
+    }
+
+    // --- controls: pills, buttons, menu --------------------------------
+    // The search is a magnifier until it is wanted: it opens into a box on
+    // focus and stays open while it holds a search, so the title keeps its
+    // room the rest of the time.
+    .o_dbb_search {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+        width: 32px;
+        height: 30px;
+        padding: 0 9px;
+        overflow: hidden;
+        border: 1px solid var(--dbb-line);
+        border-radius: 999px;
+        background-color: transparent;
+        color: var(--secondary-color);
+        cursor: text;
+        transition: width 0.18s ease-in-out, background-color 0.18s ease-in-out;
+
+        > i {
+            flex: 0 0 auto;
+            font-size: 0.82rem;
+        }
+
+        input {
+            flex: 1 1 auto;
+            width: 0;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            font-size: 0.86rem;
+            color: var(--body-color, inherit);
+            opacity: 0;
+            transition: opacity 0.12s ease-in-out;
+        }
+
+        &:focus-within,
+        &.o_dbb_search_open {
+            width: 220px;
+            background-color: var(--dbb-surface);
+            border-color: var(--primary);
+
+            input {
+                opacity: 1;
+            }
+        }
+    }
+
+    .o_dbb_search_clear {
+        border: 0;
+        background: transparent;
+        color: var(--secondary-color);
+        padding: 0 2px;
+        cursor: pointer;
+    }
+
+    // Pills and buttons wear Odoo's own `.btn` classes; these rules only lay
+    // their contents out.
+    .o_dbb_pill,
+    .o_dbb_btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    // The grey Bootstrap button is heavy eight times over: in the header the
+    // secondary buttons are ghosts, and only "+ Card" is filled.
+    .o_dbb_hero_tools .btn.btn-secondary {
+        background-color: transparent;
+        border-color: var(--dbb-line);
+        color: inherit;
+
+        &:hover,
+        &.active {
+            background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+            border-color: color-mix(in srgb, var(--primary) 40%, var(--dbb-line));
+            color: var(--primary);
+        }
+    }
+
+    // The period and "Mine" joined: one control for how the board is read.
+    .o_dbb_cluster {
+        display: inline-flex;
+        align-items: stretch;
+        flex: 0 0 auto;
+        border: 1px solid var(--dbb-line);
+        border-radius: 6px;
+
+        .btn {
+            height: 28px;
+            border: 0 !important;
+            border-radius: 0 !important;
+        }
+
+        > * + * {
+            border-left: 1px solid var(--dbb-line);
+        }
+
+        > :first-child .btn,
+        > .btn:first-child {
+            border-radius: 5px 0 0 5px !important;
+        }
+
+        > :last-child .btn,
+        > .btn:last-child {
+            border-radius: 0 5px 5px 0 !important;
+        }
+    }
+
+    // The refresh button: a ring that fills up to the next automatic refresh.
+    .o_dbb_ring_wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+
+        .fa {
+            font-size: 0.72rem;
+        }
+    }
+
+    .o_dbb_ring {
+        position: absolute;
+        inset: 0;
+        width: 20px;
+        height: 20px;
+        transform: rotate(-90deg);
+    }
+
+    .o_dbb_ring_track {
+        fill: none;
+        stroke: var(--dbb-line);
+        stroke-width: 2;
+    }
+
+    .o_dbb_ring_fill {
+        fill: none;
+        stroke: var(--primary);
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-dasharray: 50.27;
+        stroke-dashoffset: 50.27;
+        animation-name: o_dbb_ring_fill;
+        animation-timing-function: linear;
+        animation-fill-mode: forwards;
+    }
+
+    @keyframes o_dbb_ring_fill {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    // --- the period picker -------------------------------------------------
+    .o_dbb_period {
+        position: relative;
+        flex: 0 0 auto;
+    }
+
+    .o_dbb_period_btn {
+        max-width: 220px;
+
+        .o_dbb_period_label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .o_dbb_caret {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+    }
+
+    .o_dbb_period_menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        left: auto;
+        z-index: 20;
+        width: max-content;
+        // Two caps, not min(): libsass refuses to mix px and vw inside min().
+        max-width: 720px;
+        padding: 10px;
+    }
+
+    @media (max-width: 780px) {
+        .o_dbb_period_menu {
+            max-width: 92vw;
+        }
+
+        .o_dbb_period_grid {
+            flex-wrap: wrap;
+        }
+    }
+
+    .o_dbb_period_grid {
+        display: flex;
+        gap: 4px;
+    }
+
+    .o_dbb_period_col {
+        display: flex;
+        flex-direction: column;
+        min-width: 132px;
+
+        & + .o_dbb_period_col {
+            border-left: 1px solid var(--dbb-line);
+            padding-left: 4px;
+        }
+    }
+
+    .o_dbb_period_head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px 2px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--secondary-color);
+    }
+
+    .o_dbb_period_current {
+        font-weight: 400;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--primary);
+    }
+
+    .o_dbb_period_item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 5px 8px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        font-size: 0.84rem;
+        text-align: left;
+        color: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+
+        &:hover {
+            background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+        }
+
+        &.o_dbb_period_on {
+            color: var(--primary);
+            font-weight: 600;
+            background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+        }
+    }
+
+    .o_dbb_period_all {
+        margin-bottom: 6px;
+        padding: 7px 8px;
+        border-bottom: 1px solid var(--dbb-line);
+        border-radius: 4px 4px 0 0;
+    }
+
+    .o_dbb_period_range {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--dbb-line);
+    }
+
+    .o_dbb_period_range_row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 8px 0;
+    }
+
+    .o_dbb_period_dash {
+        color: var(--secondary-color);
+    }
+
+    .o_dbb_updated {
+        font-size: 0.8rem;
+    }
+
+    .o_dbb_btn_icon {
+        width: 31px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .o_dbb_more {
+        position: relative;
+    }
+
+    // Odoo's dropdown menu, only placed by hand (there is no popper here).
+    .o_dbb_menu {
+        right: 0;
+        left: auto;
+        top: calc(100% + 4px);
+        z-index: 30;
+        min-width: 230px;
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            i {
+                width: 1.1rem;
+                text-align: center;
+                color: var(--secondary-color);
+            }
+        }
+    }
+
+    @media (max-width: 1100px) {
+        .o_dbb_search {
+            display: none;
+        }
+    }
+
+    // The refresh label is the first thing to go: the ring, the icon and the
+    // tooltip still say when the board was read.
+    @media (max-width: 1500px) {
+        .o_dbb_updated .o_dbb_updated_label {
+            display: none;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .o_dbb_period_btn .o_dbb_period_label {
+            display: none;
+        }
+    }
+
+    .o_dbb_tag_company {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // --- what stands out: the board's own insights ---------------------------
+    .o_dbb_story {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 8px 16px 2px;
+        padding: 8px 10px 8px 12px;
+        border: 1px solid var(--dbb-line);
+        border-radius: 10px;
+        background-color: var(--dbb-surface);
+        box-shadow: var(--dbb-shadow);
+    }
+
+    .o_dbb_story_head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+    }
+
+    .o_dbb_story_badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+        color: var(--primary);
+        font-size: 0.9rem;
+    }
+
+    .o_dbb_story_title {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--secondary-color);
+        white-space: nowrap;
+    }
+
+    .o_dbb_story_items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .o_dbb_story_item {
+        --story: var(--secondary-color);
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 10px 4px 8px;
+        border: 1px solid color-mix(in srgb, var(--story) 30%, transparent);
+        border-radius: 999px;
+        background-color: color-mix(in srgb, var(--story) 8%, transparent);
+        font-size: 0.8rem;
+        line-height: 1.3;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition: background-color 0.12s ease-in-out, border-color 0.12s ease-in-out;
+
+        &:hover {
+            border-color: var(--story);
+            background-color: color-mix(in srgb, var(--story) 15%, transparent);
+        }
+
+        b {
+            font-weight: 700;
+        }
+    }
+
+    .o_dbb_story_item_icon {
+        color: var(--story);
+        font-size: 0.78rem;
+    }
+
+    .o_dbb_story_up { --story: var(--success); }
+    .o_dbb_story_down { --story: var(--danger); }
+    .o_dbb_story_warning { --story: #d97706; }
+    .o_dbb_story_danger { --story: var(--danger); }
+    .o_dbb_story_info { --story: #0284c7; }
+
+    .o_dbb_story_close {
+        flex: 0 0 auto;
+        width: 26px;
+        height: 26px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--secondary-color);
+        cursor: pointer;
+
+        &:hover {
+            background-color: color-mix(in srgb, var(--secondary-color) 12%, transparent);
+            color: inherit;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .o_dbb_story_title {
+            display: none;
+        }
+    }
+
+    // --- renaming the board from its own title ------------------------------
+    .o_dbb_title_edit {
+        border-radius: 4px;
+        padding: 0 4px;
+        margin: 0 -4px;
+        cursor: text;
+
+        &:hover {
+            background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+        }
+    }
+
+    .o_dbb_title_input {
+        font: inherit;
+        font-weight: inherit;
+        max-width: 340px;
+        padding: 0 6px;
+        border: 1px solid var(--primary);
+        border-radius: 4px;
+        background-color: var(--dbb-surface);
+        color: inherit;
+        outline: 0;
+    }
+
+    // --- the filter bar ----------------------------------------------------
+    .o_dbb_bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 6px 16px;
+        border-bottom: 1px solid var(--dbb-line);
+        background-color: var(--dbb-plane);
+    }
+
+    .o_dbb_bar_icon {
+        color: var(--secondary-color);
+        font-size: 0.82rem;
+    }
+
+    .o_dbb_bar_filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 8px 0 10px;
+        margin: 0;
+        border: 1px solid var(--dbb-line);
+        border-radius: 999px;
+        background-color: var(--dbb-surface);
+        font-size: 0.8rem;
+        white-space: nowrap;
+        cursor: pointer;
+
+        &.o_dbb_bar_on {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+    }
+
+    .o_dbb_bar_label {
+        font-weight: 600;
+        color: var(--secondary-color);
+        white-space: nowrap;
+    }
+
+    .o_dbb_bar_on .o_dbb_bar_label {
+        color: var(--primary);
+    }
+
+    .o_dbb_bar_select {
+        border: 0;
+        outline: 0;
+        background: transparent;
+        font-size: inherit;
+        color: inherit;
+        cursor: pointer;
+        max-width: 190px;
+    }
+
+    .o_dbb_chip_filter {
+        border-style: dashed;
+    }
+
+    // --- the buttons that take something away -----------------------------
+    .o_dbb_mini_danger:hover,
+    .o_dbc_tool_danger:hover {
+        color: var(--danger);
+        border-color: var(--danger);
+    }
+
+    // --- tabs: the pages of a board ---------------------------------------
+    .o_dbb_tabs {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+        padding: 2px 16px 6px;
+        border-bottom: 1px solid var(--dbb-line);
+        margin: 0 0 4px;
+    }
+
+    .o_dbb_tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        padding: 0 12px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        background: transparent;
+        color: var(--secondary-color);
+        font-size: 0.86rem;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:hover {
+            color: var(--primary);
+        }
+
+        &.o_dbb_tab_on {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        &.o_dbb_tab_add {
+            font-weight: 400;
+        }
+    }
+
+    .o_dbb_tab_count {
+        font-size: 0.68rem;
+        padding: 0 6px;
+        border-radius: 999px;
+        background-color: color-mix(in srgb, var(--secondary-color) 14%, transparent);
+    }
+
+    .o_dbb_tab_input {
+        height: 26px;
+        padding: 0 10px;
+        border: 1px solid var(--primary);
+        border-radius: 4px;
+        background-color: var(--dbb-surface);
+        font-size: 0.8rem;
+        min-width: 180px;
+        outline: 0;
+    }
+
+    // --- a custom date range -----------------------------------------------
+    .o_dbb_range_input {
+        height: 30px;
+        padding: 0 8px;
+        border: 1px solid var(--dbb-line);
+        border-radius: 4px;
+        background-color: var(--dbb-surface);
+        font-size: 0.82rem;
+        color: var(--body-color, inherit);
+    }
+
+    // --- skeletons while a board arrives ---------------------------------
+    .o_dbb_skel {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 300px;
+        padding: 14px;
+        border: 1px solid var(--dbb-line);
+        border-radius: 12px;
+        background-color: var(--dbb-surface);
+
+        &.o_dbb_skel_number {
+            min-height: 150px;
+        }
+    }
+
+    .o_dbb_skel_line,
+    .o_dbb_skel_block {
+        display: block;
+        border-radius: 6px;
+        background-image: linear-gradient(90deg, color-mix(in srgb, var(--secondary-color) 10%, transparent) 25%, color-mix(in srgb, var(--secondary-color) 18%, transparent) 50%, color-mix(in srgb, var(--secondary-color) 10%, transparent) 75%);
+        background-size: 400% 100%;
+        animation: o_dbb_shimmer 1.4s ease-in-out infinite;
+    }
+
+    .o_dbb_skel_title {
+        width: 45%;
+        height: 12px;
+    }
+
+    .o_dbb_skel_block {
+        flex: 1 1 auto;
+    }
+
+    @keyframes o_dbb_shimmer {
+        0% { background-position: 100% 0; }
+        100% { background-position: 0 0; }
+    }
+
+    // --- the tour ----------------------------------------------------------
+    .o_dbb_tour {
+        position: fixed;
+        inset: 0;
+        z-index: 1080;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(15, 23, 42, 0.45);
+    }
+
+    .o_dbb_tour_card {
+        width: 90vw;
+        max-width: 440px;
+        padding: 22px 24px 18px;
+        border-radius: 14px;
+        background-color: var(--body-bg);
+        box-shadow: var(--dbb-shadow-up);
+
+        h3 {
+            margin: 6px 0 8px;
+            font-size: 1.15rem;
+        }
+
+        p {
+            margin: 0 0 16px;
+            color: var(--secondary-color);
+            line-height: 1.5;
+        }
+    }
+
+    .o_dbb_tour_step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        color: var(--primary);
+        font-weight: 700;
+
+        i {
+            font-size: 1.1rem;
+        }
+    }
+
+    .o_dbb_tour_actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    // --- chips -----------------------------------------------------------
+    .o_dbb_chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 0 16px 6px;
+    }
+
+    .o_dbb_chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 6px 3px 12px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--dbb-line));
+        color: var(--primary);
+
+        &.o_dbb_chip_mine {
+            background-color: color-mix(in srgb, #7c3aed 12%, transparent);
+            border-color: color-mix(in srgb, #7c3aed 40%, var(--dbb-line));
+            color: #7c3aed;
+        }
+    }
+
+    .o_dbb_chip_btn {
+        border: 0;
+        background: none;
+        padding: 0 4px;
+        color: inherit;
+        opacity: 0.75;
+        cursor: pointer;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    // --- watchlist strip -------------------------------------------------
+    .o_dbb_watch {
+        margin: 0 16px 6px;
+        padding: 10px 12px;
+        border: 1px solid var(--dbb-line);
+        border-radius: $dbb-radius;
+        background-color: var(--dbb-surface);
+    }
+
+    .o_dbb_watch_head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--secondary-color);
+        margin-bottom: 8px;
+
+        .o_dbb_watch_hint {
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            opacity: 0.8;
+        }
+    }
+
+    .o_dbb_watch_strip {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
+
+    .o_dbb_watch_item {
+        position: relative;
+        flex: 0 0 auto;
+        min-width: 170px;
+        padding: 8px 28px 8px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--dbb-line);
+        border-left: 3px solid var(--dbc-color);
+        background-color: var(--dbb-plane);
+        cursor: pointer;
+
+        &:hover {
+            box-shadow: var(--dbb-shadow);
+        }
+
+        &.o_dbb_watch_warning { border-left-color: #d97706; }
+        &.o_dbb_watch_danger { border-left-color: #e11d48; }
+    }
+
+    .o_dbb_watch_board {
+        font-size: 0.66rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--secondary-color);
+    }
+
+    .o_dbb_watch_name {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        white-space: nowrap;
+
+        i {
+            color: var(--dbc-color);
+        }
+    }
+
+    .o_dbb_watch_value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--dbc-color);
+    }
+
+    .o_dbb_watch_unit {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .o_dbb_watch_delta {
+        font-size: 0.72rem;
+        font-weight: 600;
+
+        &.up { color: var(--success); }
+        &.down { color: var(--danger); }
+    }
+
+    .o_dbb_watch_unpin {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        border: 0;
+        background: transparent;
+        color: var(--secondary-color);
+        opacity: 0.6;
+        cursor: pointer;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    .o_dbb_watch_empty {
+        font-size: 0.82rem;
+        color: var(--secondary-color);
+    }
+
+    // --- body: grid + notes drawer --------------------------------------
+    .o_dbb_body {
+        display: flex;
+        align-items: flex-start;
+        gap: 0;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .o_dbb_content {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .o_dbb_notes {
+        flex: 0 0 300px;
+        position: sticky;
+        top: 52px;
+        margin: 8px 16px 12px 0;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--dbb-line);
+        border-radius: $dbb-radius;
+        background-color: #fffbe7;
+        color: #3b3400;
+        box-shadow: var(--dbb-shadow);
+    }
+
+    .o_dbb_notes_head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+        .o_dbb_notes_state {
+            font-weight: 400;
+            font-size: 0.72rem;
+            opacity: 0.7;
+        }
+    }
+
+    .o_dbb_notes_text {
+        flex: 1 1 auto;
+        min-height: 220px;
+        padding: 12px;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        resize: vertical;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: inherit;
+    }
+
+    .o_dbb_notes_foot {
+        padding: 6px 12px 10px;
+        font-size: 0.7rem;
+        opacity: 0.7;
+    }
+
+    // --- the grid -------------------------------------------------------
+    // Twelve columns by default, like the server's BOARD_COLUMNS: a card's
+    // `width` is a span, so a row always adds up to something predictable.
+    .o_dbb_grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 12px;
+        padding: 4px 16px 0;
+        // A card's height is a minimum: every card of a row grows to the
+        // tallest one, so a row of cards has one bottom edge instead of a
+        // ragged one with holes under the short cards.
+        align-items: stretch;
+        transition: opacity 0.15s ease-in-out;
+
+        &.o_dbb_loading {
+            opacity: 0.55;
+            pointer-events: none;
+        }
+    }
+
+    // Below a tablet every card is the full width: a quarter of a phone is
+    // not a number anybody can read.
+    @media (max-width: 767px) {
+        .o_dbb_side {
+            display: none;
+        }
+
+        .o_dbb_grid > .o_dbb_cell {
+            grid-column: 1 / -1 !important;
+        }
+    }
+
+    .o_dbb_cell {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        border-radius: $dbb-radius;
+
+        &.o_dbb_flash {
+            animation: o_dbb_flash 1.1s ease-in-out 2;
+        }
+    }
+
+    @keyframes o_dbb_flash {
+        0%, 100% { box-shadow: 0 0 0 0 transparent; }
+        50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 45%, transparent); }
+    }
+
+    .o_dbb_placeholder {
+        border: 1px dashed var(--primary);
+        border-radius: $dbb-radius;
+        background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+    }
+
+    .o_dbb_editing .o_dbc_card {
+        outline: 1px dashed color-mix(in srgb, var(--primary) 50%, var(--dbb-line));
+    }
+
+    .o_dbb_resize {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding-top: 4px;
+
+        .o_dbb_resize_label {
+            font-size: 0.75rem;
+            color: var(--secondary-color);
+            min-width: 2.5rem;
+            text-align: center;
+        }
+    }
+
+    .o_dbb_mini {
+        height: 24px;
+        min-width: 24px;
+        padding: 0 6px;
+        border: 1px solid var(--dbb-line);
+        border-radius: 6px;
+        background-color: var(--dbb-surface);
+        color: var(--secondary-color);
+        font-size: 0.72rem;
+        cursor: pointer;
+
+        &:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+    }
+
+    .o_dbb_mini_select {
+        height: 24px;
+        border: 1px solid var(--dbb-line);
+        border-radius: 6px;
+        background-color: var(--dbb-surface);
+        color: var(--secondary-color);
+        font-size: 0.72rem;
+        max-width: 120px;
+    }
+
+    // The resize grip sits on the card's bottom-right corner in Arrange mode.
+    .o_dbb_grip {
+        position: absolute;
+        right: 6px;
+        bottom: 34px;
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background-color: var(--dbb-surface);
+        border: 1px solid var(--dbb-line);
+        color: var(--secondary-color);
+        cursor: nwse-resize;
+        font-size: 0.7rem;
+        z-index: 2;
+        touch-action: none;
+
+        &:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+    }
+
+    .o_dbb_nocontent {
+        text-align: center;
+        padding: 64px 16px;
+        color: var(--secondary-color);
+    }
+
+    .o_dbb_foot {
+        padding: 12px 16px 20px;
+        font-size: 0.78rem;
+
+        .o_dbb_resize_live {
+            color: var(--primary);
+            font-weight: 600;
+        }
+    }
+
+    // --- compact density -----------------------------------------------
+    &.o_dbb_compact {
+        .o_dbb_grid {
+            gap: 8px;
+            padding: 4px 16px 0;
+        }
+    }
+
+    // --- presentation mode ---------------------------------------------
+    // Fills the viewport whether or not the Fullscreen API answered: the
+    // class alone lifts the board over the web client's chrome.
+    &.o_dbb_presenting {
+        position: fixed;
+        inset: 0;
+        z-index: 1100;
+
+        .o_dbb_grid {
+            padding: 8px 24px 0;
+            gap: 16px;
+        }
+
+        .o_dbb_title {
+            font-size: 1.3rem;
+        }
+
+        .o_dbc_card .o_dbc_value {
+            font-size: 2.6rem;
+        }
+    }
+}
+
+body.o_dbb_resizing {
+    cursor: nwse-resize;
+    user-select: none;
+}
+
+// ============================================================================
+// One card
+// ============================================================================
+.o_dbc_card {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    background-color: var(--body-bg);
+    border: 1px solid var(--border-color);
+    border-radius: $dbb-radius;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.15s ease-in-out, transform 0.15s ease-in-out, border-color 0.15s ease-in-out;
+
+    &:hover {
+        box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06), 0 10px 26px rgba(15, 23, 42, 0.09);
+        transform: translateY(-1px);
+
+        .o_dbc_tool {
+            opacity: 1;
+        }
+    }
+
+    &.o_dbc_source {
+        border-color: color-mix(in srgb, var(--dbc-color) 60%, var(--border-color));
+    }
+
+    &.o_dbc_pinned .o_dbc_pin {
+        opacity: 1;
+        color: var(--dbc-color);
+    }
+
+    &.o_dbc_alert_warning {
+        border-color: color-mix(in srgb, #d97706 55%, var(--border-color));
+        --dbc-color: #d97706;
+    }
+
+    &.o_dbc_alert_danger {
+        border-color: color-mix(in srgb, var(--danger) 65%, var(--border-color));
+        --dbc-color: #e11d48;
+    }
+
+    .o_dbc_head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    // A number card wears its title as a small caption, PRiSM-style: no rule
+    // under it, the number is the card.
+    &.o_dbc_number .o_dbc_head {
+        border-bottom: 0;
+        padding-bottom: 2px;
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .o_dbc_icon {
+        color: var(--dbc-color);
+    }
+
+    .o_dbc_title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .o_dbc_badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-transform: capitalize;
+        letter-spacing: 0;
+        background-color: color-mix(in srgb, var(--secondary-color) 12%, transparent);
+        color: var(--secondary-color);
+        flex: 0 0 auto;
+
+        &.o_dbc_badge_focus {
+            background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+            color: var(--primary);
+        }
+
+        &.o_dbc_badge_warning {
+            background-color: color-mix(in srgb, #d97706 16%, transparent);
+            color: #d97706;
+        }
+
+        &.o_dbc_badge_danger {
+            background-color: color-mix(in srgb, #e11d48 16%, transparent);
+            color: #e11d48;
+        }
+
+        &.o_dbc_delta_badge {
+            text-transform: none;
+
+            &.o_dbc_delta_up { color: var(--success); background-color: color-mix(in srgb, var(--success) 12%, transparent); }
+            &.o_dbc_delta_down { color: var(--danger); background-color: color-mix(in srgb, var(--danger) 12%, transparent); }
+        }
+    }
+
+    .o_dbc_spacer {
+        flex: 1 1 auto;
+    }
+
+    .o_dbc_info {
+        color: var(--secondary-color);
+        opacity: 0.55;
+        cursor: help;
+        padding: 0 2px;
+
+        &:hover {
+            opacity: 1;
+            color: var(--dbc-color);
+        }
+    }
+
+    .o_dbc_tool {
+        border: 0;
+        background: transparent;
+        padding: 0 4px;
+        color: var(--secondary-color);
+        opacity: 0;
+        cursor: pointer;
+        transition: opacity 0.12s ease-in-out;
+
+        &:hover {
+            color: var(--dbc-color);
+        }
+    }
+
+    .o_dbc_handle {
+        cursor: grab;
+        color: var(--secondary-color);
+    }
+
+    .o_dbc_body {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 10px 14px;
+    }
+
+    // --- a number -------------------------------------------------------
+    .o_dbc_kpi_body {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+    }
+
+    .o_dbc_numbers {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .o_dbc_value {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        font-size: 2.15rem;
+        line-height: 1.1;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--dbc-color);
+        white-space: nowrap;
+    }
+
+    .o_dbc_prefix,
+    .o_dbc_unit {
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: var(--secondary-color);
+    }
+
+    .o_dbc_sub {
+        font-size: 0.78rem;
+        color: var(--secondary-color);
+        margin-top: 2px;
+    }
+
+    .o_dbc_delta_row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+        font-size: 0.76rem;
+        color: var(--secondary-color);
+
+        .o_dbc_delta_note {
+            white-space: nowrap;
+        }
+    }
+
+    .o_dbc_pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        background-color: color-mix(in srgb, var(--secondary-color) 12%, transparent);
+
+        &.o_dbc_delta_up { color: var(--success); background-color: color-mix(in srgb, var(--success) 13%, transparent); }
+        &.o_dbc_delta_down { color: var(--danger); background-color: color-mix(in srgb, var(--danger) 13%, transparent); }
+    }
+
+    .o_dbc_delta_up { color: var(--success); }
+    .o_dbc_delta_down { color: var(--danger); }
+
+    .o_dbc_delta_note {
+        color: var(--secondary-color);
+    }
+
+    .o_dbc_alert_text {
+        margin-top: 4px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--dbc-color);
+    }
+
+    // The sparkline is a column of its own beside the numbers - never under
+    // them - so the two can be read apart on any width.
+    .o_dbc_spark_col {
+        flex: 0 1 44%;
+        min-width: 70px;
+        max-width: 200px;
+        margin-left: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+    }
+
+    .o_dbc_spark {
+        width: 100%;
+        height: 36px;
+    }
+
+    .o_dbc_spark_caption {
+        font-size: 0.68rem;
+        color: var(--secondary-color);
+        white-space: nowrap;
+    }
+
+    .o_dbc_spark_area {
+        fill: var(--dbc-color);
+        opacity: 0.12;
+    }
+
+    .o_dbc_spark_line {
+        stroke: var(--dbc-color);
+        stroke-width: 1.6;
+        vector-effect: non-scaling-stroke;
+    }
+
+    .o_dbc_spark_dot {
+        fill: var(--dbc-color);
+    }
+
+    // The target ring: a plain SVG circle on a 100-unit dash array, so the
+    // percentage is the offset - no arc maths, no library.
+    .o_dbc_ring {
+        position: relative;
+        width: 62px;
+        height: 62px;
+        flex: 0 0 auto;
+        z-index: 1;
+    }
+
+    .o_dbc_ring_svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .o_dbc_ring_track {
+        stroke: var(--border-color);
+    }
+
+    .o_dbc_ring_fill {
+        stroke: var(--dbc-color);
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.3s ease-in-out;
+    }
+
+    .o_dbc_ring_label {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    // --- a gauge --------------------------------------------------------
+    .o_dbc_gauge_body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .o_dbc_gauge {
+        width: 70%;
+        max-width: 220px;
+        flex: 0 0 auto;
+    }
+
+    .o_dbc_gauge_track {
+        stroke: var(--border-color);
+    }
+
+    .o_dbc_gauge_fill {
+        stroke: var(--dbc-color);
+        transition: stroke-dasharray 0.3s ease-in-out;
+    }
+
+    .o_dbc_gauge_value {
+        margin-top: -18px;
+        font-size: 1.7rem;
+        font-weight: 700;
+        color: var(--dbc-color);
+    }
+
+    .o_dbc_gauge_foot {
+        font-size: 0.78rem;
+        color: var(--secondary-color);
+    }
+
+    // --- a status light -------------------------------------------------
+    .o_dbc_status_body {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+
+        .o_dbc_light {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #059669;
+            box-shadow: 0 0 0 6px color-mix(in srgb, #059669 18%, transparent);
+        }
+
+        &.o_dbc_status_warning .o_dbc_light {
+            background-color: #d97706;
+            box-shadow: 0 0 0 6px color-mix(in srgb, #d97706 20%, transparent);
+        }
+
+        &.o_dbc_status_danger .o_dbc_light {
+            background-color: #e11d48;
+            box-shadow: 0 0 0 6px color-mix(in srgb, #e11d48 20%, transparent);
+            animation: o_dbc_pulse 1.6s ease-in-out infinite;
+        }
+    }
+
+    @keyframes o_dbc_pulse {
+        0%, 100% { box-shadow: 0 0 0 6px color-mix(in srgb, #e11d48 20%, transparent); }
+        50% { box-shadow: 0 0 0 10px color-mix(in srgb, #e11d48 8%, transparent); }
+    }
+
+    // --- a chart --------------------------------------------------------
+    // Chart.js sizes its canvas to the canvas's parent, and without a parent of
+    // known height it falls back to its own aspect ratio - which then becomes
+    // the card's height. So the parent is a box pinned inside the card body,
+    // and the canvas is left alone: Chart.js writes its CSS width and height
+    // itself, in CSS pixels, and draws a bitmap of that size times the device
+    // pixel ratio. Never override those with `width: auto`: a canvas is a
+    // replaced element, and an absolutely positioned replaced element with
+    // `width: auto` takes its *intrinsic* size - the bitmap, twice as large on
+    // a HiDPI screen - which is exactly what blew the charts out of their cards.
+    .o_dbc_chart_body {
+        position: relative;
+        min-height: 0;
+    }
+
+    .o_dbc_chart_box {
+        position: absolute;
+        inset: 8px 10px;
+    }
+
+    .o_dbc_canvas {
+        display: block;
+    }
+
+    // --- lists, progress bars, tables ----------------------------------
+    .o_dbc_list_body {
+        overflow-y: auto;
+        padding: 6px 8px;
+    }
+
+    .o_dbc_row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        overflow: hidden;
+
+        &:hover {
+            background-color: color-mix(in srgb, var(--dbc-color) 10%, transparent);
+        }
+    }
+
+    // The bar sits behind the label rather than beside it: the row keeps its
+    // full width for the name, which is what a reader is actually scanning.
+    .o_dbc_row_bar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        background-color: color-mix(in srgb, var(--dbc-color) 14%, transparent);
+        z-index: 0;
+    }
+
+    .o_dbc_row_rank {
+        position: relative;
+        z-index: 1;
+        flex: 0 0 1.4rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--secondary-color);
+    }
+
+    .o_dbc_row_label {
+        position: relative;
+        z-index: 1;
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.86rem;
+    }
+
+    .o_dbc_row_value {
+        position: relative;
+        z-index: 1;
+        font-size: 0.86rem;
+        font-weight: 600;
+        color: var(--dbc-color);
+        white-space: nowrap;
+    }
+
+    .o_dbc_share {
+        font-weight: 400;
+        color: var(--secondary-color);
+    }
+
+    .o_dbc_progress {
+        padding: 5px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+
+        &:hover,
+        &.o_dbc_row_focused {
+            background-color: color-mix(in srgb, var(--dbc-color) 10%, transparent);
+        }
+    }
+
+    .o_dbc_progress_head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 3px;
+    }
+
+    .o_dbc_progress_track {
+        height: 7px;
+        border-radius: 4px;
+        background-color: color-mix(in srgb, var(--secondary-color) 14%, transparent);
+        overflow: hidden;
+    }
+
+    .o_dbc_progress_fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease-in-out;
+    }
+
+    .o_dbc_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.84rem;
+
+        th,
+        td {
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        th {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--secondary-color);
+        }
+
+        tbody tr {
+            cursor: pointer;
+
+            &:hover,
+            &.o_dbc_row_focused {
+                background-color: color-mix(in srgb, var(--dbc-color) 10%, transparent);
+            }
+        }
+
+        tfoot td {
+            font-weight: 700;
+            border-bottom: 0;
+        }
+
+        .o_dbc_num {
+            text-align: right;
+            white-space: nowrap;
+        }
+    }
+
+    .o_dbc_foot {
+        padding: 6px 14px;
+        border-top: 1px solid var(--border-color);
+        font-size: 0.78rem;
+        color: var(--secondary-color);
+        cursor: pointer;
+
+        &:hover {
+            color: var(--dbc-color);
+        }
+    }
+
+    // The facts under a chart: what the picture adds up to, in numbers.
+    .o_dbc_datastrip {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .o_dbc_fact {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .o_dbc_fact_label {
+        font-size: 0.66rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--secondary-color);
+    }
+
+    .o_dbc_fact_value {
+        font-weight: 600;
+        color: var(--body-color, inherit);
+    }
+
+    // --- rows that stand out: medals, bars in the cells, a colour rule ---
+    .o_dbc_medal {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        box-shadow: inset 0 -1px 1px rgba(0, 0, 0, 0.25);
+    }
+
+    .o_dbc_medal_gold { background-color: #d4af37; }
+    .o_dbc_medal_silver { background-color: #9ca3af; }
+    .o_dbc_medal_bronze { background-color: #b06c34; }
+
+    .o_dbc_row_value {
+        position: relative;
+    }
+
+    .o_dbc_cell_bar {
+        position: absolute;
+        right: 0;
+        top: 3px;
+        bottom: 3px;
+        border-radius: 3px;
+        z-index: 0;
+    }
+
+    .o_dbc_row_value span:last-child {
+        position: relative;
+        z-index: 1;
+    }
+
+    .o_dbc_row_flagged {
+        border-radius: 3px;
+    }
+
+    // --- waiting for its numbers ----------------------------------------
+    .o_dbc_waiting {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        justify-content: center;
+        padding: 4px 0;
+    }
+
+    .o_dbc_wait_line {
+        display: block;
+        border-radius: 6px;
+        background-image: linear-gradient(90deg, color-mix(in srgb, var(--secondary-color) 9%, transparent) 25%, color-mix(in srgb, var(--secondary-color) 17%, transparent) 50%, color-mix(in srgb, var(--secondary-color) 9%, transparent) 75%);
+        background-size: 400% 100%;
+        animation: o_dbb_shimmer 1.4s ease-in-out infinite;
+    }
+
+    .o_dbc_wait_value {
+        width: 42%;
+        height: 26px;
+    }
+
+    .o_dbc_wait_sub {
+        width: 68%;
+        height: 10px;
+    }
+
+    // --- drawn by the card itself: treemap, calendar --------------------------
+    .o_dbc_svg_body {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 120px;
+        padding: 6px 10px 8px;
+    }
+
+    .o_dbc_treemap {
+        position: absolute;
+        inset: 6px 10px 8px;
+        width: calc(100% - 20px);
+        height: calc(100% - 14px);
+    }
+
+    .o_dbc_tm_cell rect {
+        stroke: var(--dbb-surface);
+        stroke-width: 0.6;
+        transition: opacity 0.12s ease-in-out;
+    }
+
+    .o_dbc_tm_cell:hover rect {
+        opacity: 0.85;
+    }
+
+    .o_dbc_tm_cell.o_dbc_tm_on rect {
+        stroke: var(--primary);
+        stroke-width: 1.2;
+    }
+
+    .o_dbc_tm_label,
+    .o_dbc_tm_value {
+        fill: #ffffff;
+        font-size: 3.2px;
+        pointer-events: none;
+        font-weight: 600;
+    }
+
+    .o_dbc_tm_value {
+        font-size: 3.6px;
+        font-weight: 700;
+    }
+
+    .o_dbc_calendar {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-height: 150px;
+    }
+
+    .o_dbc_cal_axis {
+        font-size: 7px;
+        fill: var(--secondary-color);
+    }
+
+    .o_dbc_cal_cell {
+        cursor: pointer;
+
+        &:hover {
+            stroke: var(--primary);
+            stroke-width: 1;
+        }
+
+        &.o_dbc_cal_on {
+            stroke: var(--primary);
+            stroke-width: 1.5;
+        }
+    }
+
+    // --- the "unusual" badge ----------------------------------------------
+    .o_dbc_anomaly {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        cursor: help;
+
+        &.o_dbc_anomaly_up {
+            color: var(--danger);
+            background-color: color-mix(in srgb, var(--danger) 12%, transparent);
+        }
+
+        &.o_dbc_anomaly_down {
+            color: #0369a1;
+            background-color: color-mix(in srgb, #0369a1 12%, transparent);
+        }
+    }
+
+    // --- the small numbers under a big one ---------------------------------
+    .o_dbc_subs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 8px;
+        margin-top: 10px;
+        max-width: 100%;
+    }
+
+    .o_dbc_sub {
+        --dbc-sub: var(--secondary-color);
+        position: relative;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        padding: 3px 9px 5px;
+        border: 1px solid color-mix(in srgb, var(--dbc-sub) 35%, transparent);
+        border-radius: 8px;
+        background-color: color-mix(in srgb, var(--dbc-sub) 7%, transparent);
+        font-size: 0.72rem;
+        line-height: 1.25;
+        color: inherit;
+        cursor: pointer;
+        overflow: hidden;
+        text-align: left;
+
+        &:hover {
+            border-color: var(--dbc-sub);
+            background-color: color-mix(in srgb, var(--dbc-sub) 14%, transparent);
+        }
+    }
+
+    .o_dbc_sub_label {
+        font-weight: 600;
+        color: var(--dbc-sub);
+        white-space: nowrap;
+    }
+
+    .o_dbc_sub_value {
+        font-weight: 700;
+        font-size: 0.86rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .o_dbc_sub_share {
+        font-size: 0.66rem;
+        opacity: 0.75;
+    }
+
+    // The share as a hairline along the bottom edge of the chip.
+    .o_dbc_sub_bar {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 2px;
+        background-color: var(--dbc-sub);
+        opacity: 0.85;
+    }
+
+    .o_dbc_compact .o_dbc_subs {
+        margin-top: 6px;
+        gap: 4px 6px;
+    }
+
+    // --- goal pacing under a number ------------------------------------
+    .o_dbc_pace {
+        margin-top: 8px;
+        max-width: 260px;
+    }
+
+    .o_dbc_pace_track {
+        position: relative;
+        height: 6px;
+        border-radius: 4px;
+        background-color: color-mix(in srgb, var(--secondary-color) 14%, transparent);
+    }
+
+    .o_dbc_pace_fill {
+        height: 100%;
+        border-radius: 4px;
+        background-color: var(--dbc-color);
+        transition: width 0.3s ease-in-out;
+    }
+
+    .o_dbc_pace_mark {
+        position: absolute;
+        top: -3px;
+        bottom: -3px;
+        width: 2px;
+        margin-left: -1px;
+        background-color: var(--body-color, #000);
+        opacity: 0.6;
+    }
+
+    .o_dbc_pace_text {
+        margin-top: 4px;
+        font-size: 0.7rem;
+        color: var(--secondary-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .o_dbc_pace_ahead .o_dbc_pace_text b { color: var(--success); }
+    .o_dbc_pace_on_track .o_dbc_pace_text b { color: var(--dbc-color); }
+    .o_dbc_pace_behind .o_dbc_pace_text b { color: var(--danger); }
+
+    // --- a heat map / pivot -----------------------------------------------
+    .o_dbc_matrix {
+        .o_dbc_cell {
+            border-radius: 4px;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .o_dbc_total {
+            font-weight: 700;
+        }
+    }
+
+    .o_dbc_heat td,
+    .o_dbc_heat th {
+        border-bottom: 0;
+        padding: 4px 6px;
+    }
+
+    // --- a bullet -------------------------------------------------------
+    .o_dbc_bullet_body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .o_dbc_bullet_track {
+        position: relative;
+        height: 18px;
+        border-radius: 4px;
+        background-color: color-mix(in srgb, var(--secondary-color) 12%, transparent);
+        overflow: visible;
+    }
+
+    .o_dbc_bullet_range {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        border-radius: 4px;
+        background-color: color-mix(in srgb, var(--secondary-color) 16%, transparent);
+    }
+
+    .o_dbc_bullet_fill {
+        position: absolute;
+        top: 5px;
+        bottom: 5px;
+        left: 0;
+        border-radius: 3px;
+        background-color: var(--dbc-color);
+        transition: width 0.3s ease-in-out;
+    }
+
+    .o_dbc_bullet_mark {
+        position: absolute;
+        top: -4px;
+        bottom: -4px;
+        width: 3px;
+        margin-left: -1px;
+        border-radius: 2px;
+        background-color: var(--body-color, #000);
+    }
+
+    .o_dbc_bullet_scale {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.68rem;
+        color: var(--secondary-color);
+    }
+
+    // --- a formula ------------------------------------------------------
+    .o_dbc_vars {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .o_dbc_var {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 5px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        background-color: color-mix(in srgb, var(--dbc-color) 10%, transparent);
+        color: var(--body-color, inherit);
+
+        b {
+            color: var(--dbc-color);
+        }
+    }
+
+    // --- backgrounds ----------------------------------------------------
+    &.o_dbc_bg_tint {
+        background-color: color-mix(in srgb, var(--dbc-color) 8%, var(--body-bg));
+    }
+
+    &.o_dbc_bg_accent {
+        background-color: var(--dbc-color);
+        border-color: transparent;
+        color: #fff;
+
+        .o_dbc_head,
+        .o_dbc_title,
+        .o_dbc_icon,
+        .o_dbc_value,
+        .o_dbc_sub,
+        .o_dbc_unit,
+        .o_dbc_prefix,
+        .o_dbc_delta_note,
+        .o_dbc_info,
+        .o_dbc_tool,
+        .o_dbc_spark_caption,
+        .o_dbc_fact_label,
+        .o_dbc_fact_value,
+        .o_dbc_foot {
+            color: #fff;
+        }
+
+        .o_dbc_head,
+        .o_dbc_foot {
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .o_dbc_spark_area { fill: #fff; opacity: 0.25; }
+        .o_dbc_spark_line { stroke: #fff; }
+        .o_dbc_spark_dot { fill: #fff; }
+        .o_dbc_pill { background-color: rgba(255, 255, 255, 0.22); color: #fff; }
+        .o_dbc_ring_track { stroke: rgba(255, 255, 255, 0.35); }
+        .o_dbc_ring_fill { stroke: #fff; }
+    }
+
+    // --- the card menu: table view, exports ----------------------------
+    .o_dbc_menu_wrap {
+        position: relative;
+    }
+
+    .o_dbc_menu {
+        right: 0;
+        left: auto;
+        top: calc(100% + 4px);
+        z-index: 20;
+        min-width: 190px;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            i {
+                width: 1rem;
+                text-align: center;
+                color: var(--secondary-color);
+            }
+        }
+    }
+
+    // A chart shown as its table, in place.
+    .o_dbc_astable {
+        overflow-y: auto;
+        padding: 6px 8px;
+    }
+
+    // --- a note ---------------------------------------------------------
+    .o_dbc_note {
+        overflow-y: auto;
+        font-size: 0.9rem;
+        line-height: 1.5;
+
+        p:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .o_dbc_empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 60px;
+        color: var(--secondary-color);
+        font-size: 0.85rem;
+    }
+
+    .o_dbc_empty_error {
+        color: var(--danger);
+    }
+
+    &.o_dbc_error {
+        border-color: color-mix(in srgb, var(--danger) 40%, var(--border-color));
+    }
+
+    // --- compact --------------------------------------------------------
+    &.o_dbc_compact {
+        .o_dbc_head { padding: 6px 10px; }
+        .o_dbc_body { padding: 6px 10px; }
+        .o_dbc_value { font-size: 1.6rem; }
+    }
+}
+
+// --- print --------------------------------------------------------------
+@media print {
+    .o_main_navbar,
+    .o_dbb_side,
+    .o_dbb_hero_tools,
+    .o_dbb_notes,
+    .o_dbc_tool,
+    .o_dbb_resize,
+    .o_dbb_grip {
+        display: none !important;
+    }
+
+    .o_dbb_action,
+    .o_dbb_main {
+        position: static !important;
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    .o_dbc_card {
+        break-inside: avoid;
+        box-shadow: none !important;
+    }
+}

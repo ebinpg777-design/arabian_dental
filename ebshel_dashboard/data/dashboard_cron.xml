@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+
+    <!--
+        Number cards get one recorded point a day. Runs at night: the number
+        a card shows in the morning is then "yesterday, closed".
+    -->
+    <record id="cron_capture_history" model="ir.cron">
+        <field name="name">Dashboards: record card history</field>
+        <field name="model_id" ref="model_dashboard_snapshot"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_capture()</field>
+        <field name="interval_number" eval="1"/>
+        <field name="interval_type">days</field>
+        <field name="nextcall" eval="(DateTime.now().replace(hour=23, minute=40, second=0) + timedelta(days=-1)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        <field name="active" eval="True"/>
+        <field name="priority">8</field>
+    </record>
+
+    <!--
+        Threshold watch. Hourly is frequent enough to be useful and rare
+        enough to be free: only cards that were given a threshold are
+        evaluated, and only a crossing (not a state) notifies.
+    -->
+    <record id="cron_check_thresholds" model="ir.cron">
+        <field name="name">Dashboards: check card thresholds</field>
+        <field name="model_id" ref="model_dashboard_item"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_alerts()</field>
+        <field name="interval_number" eval="1"/>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="True"/>
+        <field name="priority">8</field>
+    </record>
+
+    <record id="cron_dashboard_digest" model="ir.cron">
+        <field name="name">Dashboards: send the e-mail digests</field>
+        <field name="model_id" ref="model_dashboard_board"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_send_digests()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>

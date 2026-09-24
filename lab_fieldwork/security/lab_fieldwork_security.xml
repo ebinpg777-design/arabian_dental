@@ -634,4 +634,29 @@
             <field name="perm_unlink" eval="False"/>
         </record>
 
+        <!-- The trail between the doors. An executive may see where they themselves
+             went and nothing more; a manager sees the team's. Nobody but the
+             administrator may edit a ping: a trail that can be tidied afterwards
+             proves nothing, and a day sheet built on one is worth less than no map at
+             all. The retention cron deletes as sudo. -->
+        <record id="rule_location_ping_own" model="ir.rule">
+            <field name="name">Location trail: own</field>
+            <field name="model_id" ref="model_lab_location_ping"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_executive'))]"/>
+        </record>
+        <record id="rule_location_ping_all" model="ir.rule">
+            <field name="name">Location trail: all</field>
+            <field name="model_id" ref="model_lab_location_ping"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fieldwork_manager')),
+                                        (4, ref('base.group_system')),
+                                        (4, ref('base.group_erp_manager'))]"/>
+        </record>
+        <record id="rule_location_ping_company" model="ir.rule">
+            <field name="name">Location trail: company</field>
+            <field name="model_id" ref="model_lab_location_ping"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
 </odoo>

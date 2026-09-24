@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================ OVERVIEW -->
+    <template id="page_services" name="Services">
+        <t t-call="website.layout">
+            <t t-set="additional_title" t-value="'What we make'"/>
+            <t t-set="website_meta_description" t-value="'Crown and bridge, implant prosthetics, veneers, dentures, digital dentistry and orthodontic appliances from Arabian Dental Lab, Manjeri.'"/>
+            <div id="wrap" class="oe_structure o_lab">
+                <t t-call="lab_website.page_hero">
+                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/zirconia-bridge.jpg'"/>
+                    <t t-set="hero_kicker" t-value="'Our services'"/>
+                    <t t-set="hero_title" t-value="'Everything a clinic sends, under one roof'"/>
+                    <t t-set="hero_text" t-value="'Six service lines, one quality gate. Where a count is shown it is live from our own catalogue, not a brochure figure.'"/>
+                </t>
+
+                <!-- Jump nav: six services is too many to scroll past on a phone looking
+                     for one. Sticks under the header. -->
+                <nav class="o_lab_jump" aria-label="Jump to a service">
+                    <div class="container">
+                        <a t-foreach="services" t-as="s" t-attf-href="##{s['slug']}" class="o_lab_jump_i">
+                            <i t-attf-class="fa #{s['icon']}"/><span t-esc="s['title']"/>
+                            <b t-if="s['count']" t-esc="s['count']"/>
+                        </a>
+                    </div>
+                </nav>
+
+                <section class="o_lab_sec">
+                    <div class="container">
+                        <div t-foreach="services" t-as="s" t-att-id="s['slug']"
+                             t-attf-class="o_lab_svcrow o_lab_reveal #{'o_lab_svcrow_alt' if s_index % 2 else ''}">
+                            <a t-attf-href="/services/#{s['slug']}" class="o_lab_svcrow_img">
+                                <img t-att-src="s['img']" t-att-alt="s['title']" loading="lazy"/>
+                                <span t-if="s['count']" class="o_lab_pill"><b t-esc="s['count']"/> designs</span>
+                            </a>
+                            <div class="o_lab_svcrow_body">
+                                <span class="o_lab_kicker" t-esc="s['kicker']"/>
+                                <h2><i t-attf-class="fa #{s['icon']} me-2"/><t t-esc="s['title']"/></h2>
+                                <p class="o_lab_lead" t-esc="s['summary']"/>
+                                <div class="o_lab_chips">
+                                    <span t-foreach="s['materials'][:5]" t-as="m" class="o_lab_chip" t-esc="m"/>
+                                </div>
+                                <div class="o_lab_cta">
+                                    <a t-attf-href="/services/#{s['slug']}" class="btn o_lab_btn">About <t t-esc="s['title']"/></a>
+                                    <a href="/send-a-case" class="btn o_lab_link_btn">Send a case <i class="fa fa-long-arrow-right ms-1"/></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <t t-call="lab_website.cta_band">
+                    <t t-set="cta_title" t-value="'Not sure which material fits?'"/>
+                    <t t-set="cta_text" t-value="'Send us the case. We will recommend a design and tell you what it costs before we start.'"/>
+                </t>
+            </div>
+        </t>
+    </template>
+
+    <!-- ================================================================== DETAIL -->
+    <template id="page_service" name="Service">
+        <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+        <t t-call="website.layout">
+            <t t-set="additional_title" t-value="service['title']"/>
+            <t t-set="website_meta_description" t-value="service['summary']"/>
+            <div id="wrap" class="oe_structure o_lab">
+                <t t-call="lab_website.page_hero">
+                    <t t-set="hero_img" t-value="service['img']"/>
+                    <t t-set="hero_kicker" t-value="service['kicker']"/>
+                    <t t-set="hero_title" t-value="service['title']"/>
+                    <t t-set="hero_text" t-value="service['summary']"/>
+                    <t t-set="hero_cta" t-value="('Send a case', '/send-a-case')"/>
+                    <t t-set="hero_cta2" t-value="('Ask a question', '/contactus')"/>
+                </t>
+
+                <section class="o_lab_sec">
+                    <div class="container">
+                        <div class="row g-5">
+                            <div class="col-lg-7 o_lab_reveal">
+                                <span class="o_lab_kicker">How we make it</span>
+                                <h2 class="o_lab_h2">Made to the prescription, checked on the model</h2>
+                                <p t-foreach="service['body']" t-as="para" class="o_lab_lead" t-esc="para"/>
+
+                                <h3 class="o_lab_h3 mt-5">What we offer</h3>
+                                <div class="o_lab_materials">
+                                    <div t-foreach="service['materials']" t-as="m" class="o_lab_material">
+                                        <i class="fa fa-check-circle"/><span t-esc="m"/>
+                                    </div>
+                                </div>
+
+                                <t t-if="service.get('products')">
+                                    <h3 class="o_lab_h3 mt-5">From the catalogue</h3>
+                                    <p class="text-muted">A few of the <t t-esc="service['count']"/> designs in this line, straight from the lab's own price list.</p>
+                                    <div class="o_lab_chips">
+                                        <span t-foreach="service['products']" t-as="p" class="o_lab_chip" t-esc="p"/>
+                                        <span t-if="service['count'] &gt; len(service['products'])" class="o_lab_chip o_lab_chip_ghost">+<t t-esc="service['count'] - len(service['products'])"/> more</span>
+                                    </div>
+                                </t>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="o_lab_sticky">
+                                    <div class="o_lab_panel o_lab_reveal">
+                                        <h4><i class="fa fa-list-ul me-2"/>What to send</h4>
+                                        <ol class="o_lab_checklist">
+                                            <li t-foreach="service['send']" t-as="item" t-esc="item"/>
+                                        </ol>
+                                        <a href="/send-a-case" class="btn o_lab_btn w-100 mt-3">How to send a case</a>
+                                        <a t-attf-href="https://wa.me/#{lab['whatsapp']}?text=#{wa_text}" target="_blank" rel="noopener" class="btn o_lab_btn_outline w-100 mt-2"><i class="fa fa-whatsapp me-2"/>Ask on WhatsApp</a>
+                                    </div>
+                                    <div class="o_lab_panel o_lab_panel_soft mt-3 o_lab_reveal">
+                                        <h4>Already sending us cases?</h4>
+                                        <p>Track every case, see which bench it is on and when it ships.</p>
+                                        <a href="/my/cases" class="o_lab_link">Doctor login <i class="fa fa-long-arrow-right ms-1"/></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Prev / next: a reader who came for one service often wants the next. -->
+                <section class="o_lab_prevnext">
+                    <div class="container">
+                        <a t-attf-href="/services/#{prev_service['slug']}" class="o_lab_prevnext_i">
+                            <small><i class="fa fa-long-arrow-left me-1"/>Previous</small>
+                            <strong t-esc="prev_service['title']"/>
+                        </a>
+                        <a href="/services" class="o_lab_prevnext_all"><i class="fa fa-th-large"/></a>
+                        <a t-attf-href="/services/#{next_service['slug']}" class="o_lab_prevnext_i text-end">
+                            <small>Next<i class="fa fa-long-arrow-right ms-1"/></small>
+                            <strong t-esc="next_service['title']"/>
+                        </a>
+                    </div>
+                </section>
+
+                <t t-call="lab_website.services_rail">
+                    <t t-set="skip_slug" t-value="service['slug']"/>
+                </t>
+                <t t-call="lab_website.cta_band"/>
+            </div>
+        </t>
+    </template>
+
+</odoo>

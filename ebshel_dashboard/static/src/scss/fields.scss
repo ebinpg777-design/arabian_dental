@@ -1,0 +1,1177 @@
+// Dynamic Dashboards - the configuration widgets
+// ---------------------------------------------------------------------------
+// Same rules as dashboard.scss: Bootstrap's unprefixed variables only.
+
+// A field widget placed straight in a sheet, outside a <group>, is laid out
+// inline by the form; these three are pages of their own and take the width.
+.o_field_widget.o_field_dashboard_card_preview,
+.o_field_widget.o_field_dashboard_kind_picker,
+.o_field_widget.o_field_dashboard_icon_picker {
+    display: block;
+    width: 100%;
+}
+
+// --- live preview -------------------------------------------------------
+.o_dbf_preview {
+    margin: 0 0 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: color-mix(in srgb, var(--secondary-color) 5%, transparent);
+
+    .o_dbf_preview_bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    .o_dbf_preview_period {
+        width: auto;
+    }
+
+    .o_dbf_preview_stage {
+        padding: 12px;
+        min-height: 120px;
+    }
+
+    .o_dbf_preview_cell {
+        display: flex;
+        min-width: 260px;
+        max-width: 100%;
+    }
+
+    .o_dbf_preview_empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 96px;
+        color: var(--secondary-color);
+        font-size: 0.85rem;
+    }
+}
+
+// --- the plain-words summary ---------------------------------------------
+.o_dbf_summary {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 4px 0 12px;
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+
+    .o_dbf_summary_text {
+        flex: 1 1 auto;
+        font-style: italic;
+    }
+}
+
+// --- the editor layout --------------------------------------------------
+// Two columns inside the sheet: the editor, and the live preview pinned on
+// the right so it stays in sight whatever tab is open.
+.o_dbf_form .o_form_sheet {
+    max-width: none;
+}
+
+.o_dbf_layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.o_dbf_main {
+    flex: 1 1 60%;
+    min-width: 0;
+}
+
+.o_dbf_aside {
+    flex: 0 0 36%;
+    min-width: 280px;
+    position: sticky;
+    top: 8px;
+}
+
+@media (max-width: 991px) {
+    .o_dbf_layout {
+        flex-direction: column;
+    }
+
+    .o_dbf_aside {
+        position: static;
+        flex-basis: auto;
+        width: 100%;
+    }
+}
+
+.o_dbf_titlebox {
+    margin-bottom: 8px;
+
+    h1 {
+        margin: 0;
+    }
+}
+
+.o_dbf_label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--secondary-color);
+    margin-bottom: 2px;
+}
+
+.o_dbf_section {
+    margin: 0 0 18px;
+    padding: 14px 16px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--body-bg);
+}
+
+.o_dbf_section_head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.o_dbf_section_no {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex: 0 0 auto;
+    align-self: center;
+}
+
+.o_dbf_section_title {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.o_dbf_section_hint {
+    font-size: 0.78rem;
+    color: var(--secondary-color);
+}
+
+.o_dbf_tips {
+    margin-top: 12px;
+}
+
+// Block, not flex: a flex box would turn every <b> in the sentence into a
+// column of its own.
+.o_dbf_tip {
+    display: block;
+    position: relative;
+    padding: 10px 12px 10px 34px;
+    border-radius: 10px;
+    background-color: color-mix(in srgb, #d97706 10%, transparent);
+    color: var(--body-color, inherit);
+    font-size: 0.82rem;
+    line-height: 1.45;
+
+    > i {
+        position: absolute;
+        left: 12px;
+        top: 12px;
+        color: #d97706;
+    }
+}
+
+// --- kind picker --------------------------------------------------------
+.o_dbf_kindgroups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+}
+
+.o_dbf_kindgroup {
+    flex: 1 1 auto;
+}
+
+.o_dbf_kindgroup_head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 0 0 4px 2px;
+}
+
+.o_dbf_kindgroup_label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--secondary-color);
+}
+
+.o_dbf_kindgroup_needs {
+    font-size: 0.68rem;
+    color: var(--secondary-color);
+    opacity: 0.8;
+}
+
+.o_dbf_kind_missing {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--primary);
+}
+
+.o_dbf_kinds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.o_dbf_kind {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 88px;
+    padding: 10px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--body-bg);
+    color: var(--secondary-color);
+    font-size: 0.74rem;
+    cursor: pointer;
+    transition: border-color 0.12s ease-in-out, color 0.12s ease-in-out;
+
+    i {
+        font-size: 1.25rem;
+    }
+
+    &:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    &.o_dbf_kind_on {
+        border-color: var(--primary);
+        background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    &:disabled {
+        cursor: default;
+        opacity: 0.7;
+    }
+}
+
+// --- width picker -------------------------------------------------------
+.o_dbf_width {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.o_dbf_width_track {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 3px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.o_dbf_width_seg {
+    height: 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background-color: var(--body-bg);
+    cursor: pointer;
+    padding: 0;
+
+    &.o_dbf_width_on {
+        background-color: color-mix(in srgb, var(--primary) 55%, var(--body-bg));
+        border-color: var(--primary);
+    }
+
+    &.o_dbf_width_edge {
+        background-color: var(--primary);
+    }
+}
+
+.o_dbf_width_label {
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+    white-space: nowrap;
+}
+
+// --- colour picker ------------------------------------------------------
+.o_dbf_colors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.o_dbf_swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    background-color: var(--dbf-swatch);
+    color: #fff;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: transform 0.1s ease-in-out;
+
+    &:hover {
+        transform: scale(1.12);
+    }
+
+    &.o_dbf_swatch_on {
+        border-color: var(--body-color, #000);
+        box-shadow: 0 0 0 2px var(--body-bg);
+    }
+}
+
+// --- icon picker --------------------------------------------------------
+.o_dbf_icon {
+    position: relative;
+    width: 100%;
+}
+
+.o_dbf_icon_field {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.o_dbf_icon_face {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 34px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: color-mix(in srgb, var(--dbc-color) 12%, transparent);
+    color: var(--dbc-color);
+    font-size: 1.1rem;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.o_dbf_icon_input {
+    flex: 1 1 8rem;
+    min-width: 8rem;
+}
+
+.o_dbf_icon_open {
+    flex: 0 0 auto;
+}
+
+.o_dbf_icon_panel {
+    position: absolute;
+    left: 0;
+    // Its own width, not the field's: a form column is too narrow to browse in.
+    width: 480px;
+    max-width: calc(100vw - 48px);
+    top: calc(100% + 6px);
+    z-index: 20;
+    max-height: 380px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--body-bg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    overflow: hidden;
+}
+
+.o_dbf_icon_search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--secondary-color);
+
+    input {
+        flex: 1 1 auto;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: inherit;
+    }
+}
+
+.o_dbf_icon_count {
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.o_dbf_icon_groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.o_dbf_icon_group {
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--secondary-color);
+    font-size: 0.74rem;
+    padding: 2px 10px;
+    cursor: pointer;
+
+    &.o_dbf_icon_group_on {
+        border-color: var(--primary);
+        color: var(--primary);
+        background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    }
+}
+
+.o_dbf_icon_section {
+    padding: 6px 10px 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-color);
+}
+
+.o_dbf_icon_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    gap: 4px;
+    padding: 8px 10px;
+    overflow-y: auto;
+}
+
+.o_dbf_icon_cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background-color: transparent;
+    color: var(--body-color, inherit);
+    font-size: 1.05rem;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+    }
+
+    &.o_dbf_icon_cell_on {
+        border-color: var(--primary);
+        background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+        color: var(--primary);
+    }
+}
+
+.o_dbf_icon_none {
+    grid-column: 1 / -1;
+    padding: 12px;
+    text-align: center;
+    color: var(--secondary-color);
+    font-size: 0.82rem;
+}
+
+// --- quick find dialog --------------------------------------------------
+.o_dbq_dialog .modal-body {
+    padding: 0;
+}
+
+.o_dbq_search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--secondary-color);
+
+    kbd {
+        font-size: 0.7rem;
+        padding: 1px 6px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: transparent;
+        color: var(--secondary-color);
+    }
+}
+
+.o_dbq_input {
+    flex: 1 1 auto;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 1.05rem;
+    color: var(--body-color, inherit);
+}
+
+.o_dbq_list {
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 6px;
+}
+
+.o_dbq_hit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &.o_dbq_hit_on {
+        background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+    }
+}
+
+.o_dbq_icon {
+    width: 1.4rem;
+    text-align: center;
+    color: var(--primary);
+}
+
+.o_dbq_name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.o_dbq_kind {
+    font-size: 0.72rem;
+    color: var(--secondary-color);
+    white-space: nowrap;
+}
+
+.o_dbq_empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--secondary-color);
+}
+
+.o_dbq_foot {
+    padding: 8px 16px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.72rem;
+    color: var(--secondary-color);
+
+    kbd {
+        font-size: 0.68rem;
+        padding: 0 5px;
+        margin-right: 2px;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        background: transparent;
+        color: var(--secondary-color);
+    }
+}
+
+// --- formula cards ------------------------------------------------------
+.o_dbf_formula_input input,
+.o_dbf_formula_input .o_input {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1rem;
+}
+
+// ======================================================================
+// Suggested fields: the four fields of two hundred that make a card
+// ======================================================================
+.o_dbf_suggest {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 2px 0 8px;
+}
+
+.o_dbf_suggest_label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--secondary-color);
+    margin-right: 2px;
+}
+
+.o_dbf_suggest_chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background-color: var(--body-bg);
+    font-size: 0.78rem;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    &.o_dbf_suggest_on {
+        border-color: var(--primary);
+        background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+}
+
+.o_dbf_suggest_type {
+    font-size: 0.66rem;
+    opacity: 0.65;
+}
+
+// The sketch on a kind button: the chart's own shape, in its own colours at
+// rest - selection is said with the button, a border and a tint, rather than
+// by repainting the drawing. Picking one lifts it slightly instead.
+.o_dbf_kind_sketch {
+    display: block;
+    width: 40px;
+    height: 24px;
+    margin: 0 auto 4px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.12s ease-in-out;
+}
+
+.o_dbf_kind:hover .o_dbf_kind_sketch,
+.o_dbf_kind_on .o_dbf_kind_sketch {
+    transform: scale(1.08);
+}
+
+// ======================================================================
+// How it is drawn: the tabs as chips, what is set as a line of chips,
+// the options as tiles, the rules as sentences
+// ======================================================================
+.o_dbf_fieldhint {
+    font-size: 0.76rem;
+    color: var(--secondary-color);
+    margin: -4px 0 6px;
+}
+
+// --- the tabs -----------------------------------------------------------
+.o_dbf_form .o_dbf_tabs {
+    .o_notebook_headers {
+        margin-bottom: 10px;
+    }
+
+    .nav-tabs {
+        flex-wrap: wrap !important;
+        gap: 6px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .nav-item {
+        margin: 0;
+    }
+
+    .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 5px 13px;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 999px !important;
+        background-color: var(--body-bg);
+        color: var(--secondary-color);
+        font-size: 0.82rem;
+        font-weight: 600;
+        line-height: 1.3;
+        transition: color 0.12s ease-in-out, border-color 0.12s ease-in-out;
+
+        // Each tab wears the icon of what it holds.
+        &::before {
+            font-family: FontAwesome;
+            font-weight: 400;
+            font-size: 0.85rem;
+        }
+
+        &[name="subvalues"]::before { content: "\f0cb"; }
+        &[name="shape"]::before { content: "\f009"; }
+        &[name="numbers"]::before { content: "\f292"; }
+        &[name="chart"]::before { content: "\f1fc"; }
+        &[name="threshold"]::before { content: "\f0a2"; }
+        &[name="visibility"]::before { content: "\f06e"; }
+        &[name="drill"]::before { content: "\f25a"; }
+
+        &:hover {
+            color: var(--primary);
+            border-color: var(--primary) !important;
+        }
+
+        &.active {
+            color: var(--primary);
+            border-color: var(--primary) !important;
+            background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+        }
+
+        &.o_page_invalid {
+            border-color: var(--danger) !important;
+            color: var(--danger);
+        }
+    }
+}
+
+// --- what is set --------------------------------------------------------
+.o_dbf_setup {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+}
+
+.o_dbf_setup_chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border-color));
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--primary) 7%, transparent);
+    color: inherit;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    cursor: pointer;
+    transition: border-color 0.12s ease-in-out;
+
+    i {
+        color: var(--primary);
+        font-size: 0.8rem;
+    }
+
+    &:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    &.o_dbf_setup_quiet {
+        background-color: transparent;
+        border-style: dashed;
+        border-color: var(--border-color);
+        color: var(--secondary-color);
+
+        i {
+            color: var(--secondary-color);
+        }
+    }
+
+    &.o_dbf_setup_warning {
+        border-color: color-mix(in srgb, #d97706 45%, transparent);
+        background-color: color-mix(in srgb, #d97706 10%, transparent);
+
+        i {
+            color: #d97706;
+        }
+    }
+
+    &.o_dbf_setup_danger {
+        border-color: color-mix(in srgb, #e11d48 45%, transparent);
+        background-color: color-mix(in srgb, #e11d48 9%, transparent);
+
+        i {
+            color: #e11d48;
+        }
+    }
+}
+
+.o_dbf_setup_empty {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+
+    i {
+        color: #d97706;
+    }
+}
+
+// --- panels: one box per subject inside a tab ---------------------------
+.o_dbf_page_intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: var(--secondary-color);
+
+    > i {
+        color: var(--primary);
+        margin-top: 3px;
+    }
+
+    b {
+        color: var(--body-color, inherit);
+    }
+}
+
+.o_dbf_panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 12px;
+    align-items: start;
+}
+
+.o_dbf_panel {
+    min-width: 0;
+    padding: 12px 14px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: color-mix(in srgb, var(--secondary-color) 4%, transparent);
+
+    + .o_dbf_panel,
+    + .o_dbf_opts {
+        margin-top: 12px;
+    }
+
+    // A group inside a panel takes the panel's width, label column included.
+    .o_group,
+    .o_inner_group {
+        width: 100%;
+    }
+}
+
+.o_dbf_panel_head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 8px;
+    margin-bottom: 10px;
+
+    > i {
+        grid-row: 1 / span 2;
+        align-self: start;
+        width: 1.2rem;
+        margin-top: 3px;
+        text-align: center;
+        color: var(--primary);
+    }
+
+    .o_dbf_panel_title {
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .o_dbf_panel_hint {
+        grid-column: 2;
+        font-size: 0.76rem;
+        line-height: 1.4;
+        color: var(--secondary-color);
+    }
+}
+
+// --- option tiles -------------------------------------------------------
+.o_dbf_opts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.o_dbf_opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--body-bg);
+    transition: border-color 0.12s ease-in-out, background-color 0.12s ease-in-out;
+
+    &.o_dbf_opt_wide {
+        grid-column: 1 / -1;
+    }
+
+    // A tile lights up while its switch is on.
+    &:has(.o_dbf_opt_switch input:checked) {
+        border-color: color-mix(in srgb, var(--primary) 45%, var(--border-color));
+        background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+    }
+
+    .o_dbf_opt_icon {
+        flex: 0 0 auto;
+        width: 1.2rem;
+        margin-top: 3px;
+        text-align: center;
+        color: var(--primary);
+    }
+
+    .o_dbf_opt_text {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .o_dbf_opt_title,
+    .o_dbf_opt_title.o_form_label {
+        margin: 0;
+        font-size: 0.86rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .o_dbf_opt_desc {
+        font-size: 0.76rem;
+        line-height: 1.35;
+        color: var(--secondary-color);
+    }
+
+    .o_dbf_opt_more {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .o_dbf_opt_switch {
+        flex: 0 0 auto;
+        width: auto;
+        margin-top: 2px;
+    }
+}
+
+// --- rules written as sentences -----------------------------------------
+.o_dbf_sentence {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 0 8px;
+    font-size: 0.88rem;
+
+    .o_dbf_word {
+        color: var(--secondary-color);
+    }
+}
+
+.o_dbf_form .o_dbf_inline {
+    &.o_field_widget {
+        display: inline-flex;
+        width: auto !important;
+        min-width: 0;
+    }
+
+    &.o_dbf_inline_num {
+        width: 7rem !important;
+    }
+
+    &.o_dbf_inline_text {
+        flex: 1 1 220px;
+        min-width: 200px;
+    }
+}
+
+// --- a choice as a segmented control ------------------------------------
+// Chips inside a tray rather than one pill cut by dividers: a long label
+// wraps onto a second line and the control still reads, which a pill with
+// hairline separators does not.
+.o_dbf_form .o_dbf_seg {
+    &.o_field_widget {
+        display: inline-flex;
+        width: auto !important;
+        max-width: 100%;
+    }
+
+    [role="radiogroup"] {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 2px;
+        padding: 2px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background-color: color-mix(in srgb, var(--secondary-color) 6%, transparent);
+    }
+
+    .o_radio_item {
+        margin: 0;
+        padding: 0;
+        min-height: 0;
+
+        .o_radio_input {
+            position: absolute;
+            width: 0;
+            height: 0;
+            margin: 0;
+            opacity: 0;
+        }
+
+        label.o_form_label {
+            display: block;
+            margin: 0;
+            padding: 3px 11px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            line-height: 1.4;
+            color: var(--secondary-color);
+            cursor: pointer;
+        }
+
+        &:hover label.o_form_label {
+            color: var(--primary);
+        }
+
+        &:has(input:checked) label.o_form_label {
+            background-color: var(--body-bg);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+            color: var(--primary);
+            font-weight: 600;
+        }
+    }
+
+    // The threshold's loudness, in its own colours.
+    &.o_dbf_seg_level .o_radio_item {
+        &:has(input[data-value="warning"]:checked) label.o_form_label {
+            background-color: color-mix(in srgb, #d97706 16%, var(--body-bg));
+            color: #b45309;
+        }
+
+        &:has(input[data-value="danger"]:checked) label.o_form_label {
+            background-color: color-mix(in srgb, #e11d48 14%, var(--body-bg));
+            color: #e11d48;
+        }
+    }
+}
+
+// --- the palette picker: each option shows the colours it would paint ---
+.o_dbf_palettes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.o_dbf_pal {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--body-bg);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.12s ease-in-out;
+
+    &:hover:not(:disabled) {
+        border-color: var(--primary);
+    }
+
+    &.o_dbf_pal_on {
+        border-color: var(--primary);
+        background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+
+        .o_dbf_pal_label {
+            color: var(--primary);
+        }
+    }
+
+    &:disabled {
+        cursor: default;
+        opacity: 0.7;
+    }
+}
+
+.o_dbf_pal_dots {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 14px;
+}
+
+.o_dbf_pal_dot {
+    display: block;
+    width: 22px;
+    height: 12px;
+    border-radius: 4px;
+    background-color: var(--dbf-dot);
+}
+
+.o_dbf_pal_link {
+    color: var(--secondary-color);
+}
+
+.o_dbf_pal_label {
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+// --- how the number will read -------------------------------------------
+.o_dbf_sample {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin: 0 0 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background-color: color-mix(in srgb, var(--secondary-color) 8%, transparent);
+    font-size: 0.8rem;
+}
+
+.o_dbf_sample_label {
+    margin-right: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--secondary-color);
+}
+
+.o_dbf_sample_pair {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+
+    .o_dbf_sample_raw,
+    > i {
+        color: var(--secondary-color);
+    }
+
+    > i {
+        font-size: 0.7rem;
+    }
+
+    .o_dbf_sample_out {
+        font-weight: 700;
+    }
+}

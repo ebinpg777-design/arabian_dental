@@ -228,6 +228,22 @@ $fw-teal:        #0d7c8a;
 
     .o_fw_clock_sub { font-size: .8125rem; color: $o-gray-700; margin-top: .125rem; }
 
+    // The light that says the route is being kept. Quiet, but never hidden: this is
+    // the one line on the card that tells an executive something is being recorded
+    // about them, so it sits beside the hours rather than in a settings page.
+    .o_fw_tracking {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        margin-left: .5rem;
+        padding: .05rem .4rem;
+        border-radius: 1rem;
+        background: rgba(15, 157, 88, .12);
+        color: #0b7a45;
+        font-size: .72rem;
+        white-space: nowrap;
+    }
+
     // A slow pulse, so "on duty" reads as live rather than as a static label. Stopped
     // for anyone who has asked the OS for less motion.
     .o_fw_pulse {

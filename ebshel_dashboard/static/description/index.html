@@ -1,0 +1,242 @@
+<!--
+  Odoo Apps store page for Dynamic Dashboards.
+
+  IMPORTANT - why everything is inline:
+  apps.odoo.com sanitises this file with odoo.tools.mail's cleaner. It strips
+  <style> blocks entirely (classes survive but nothing backs them) and filters
+  inline styles against a whitelist. Every declaration below uses whitelisted
+  properties only: background-color / background-image, border*, border-radius,
+  display, width/height/max-width, margin/padding, object-fit, text-*,
+  line-height, opacity and the table properties. No flex layout, no box-shadow,
+  no position, no overflow, no box-sizing - the sanitiser silently drops them.
+
+  Layout = inline-block cells with explicit widths; padding lives on inner divs
+  because box-sizing cannot be set. Adjacent inline-block tags are butted
+  together deliberately: whitespace between them becomes a visible gap.
+
+  ENCODING: this file must stay PURE ASCII. The store's ingestion has decoded
+  such a fragment as Latin-1 before, turning every multi-byte character into
+  mojibake. All special characters are numeric HTML entities. Check with:
+    python3 -c "open('index.html','rb').read().decode('ascii')"
+-->
+<section style="max-width:1140px; margin:0 auto; padding:8px 14px 40px; color:#12123a; line-height:1.6; font-size:16px;">
+
+    <!-- ============================ HERO ============================ -->
+    <div style="margin-top:16px;">
+        <img src="banner.png" alt="Dynamic Dashboards &#8212; build a dashboard on any Odoo model, from the interface"
+             style="width:100%; border-radius:16px; border:1px solid #e6e3f0;"/>
+    </div>
+
+    <div style="text-align:center; margin:32px 0 8px;">
+        <h1 style="font-size:40px; line-height:1.2; margin:0 0 10px; color:#1b1b4b;">Dynamic Dashboards</h1>
+        <p style="font-size:20px; margin:0 auto; max-width:800px; color:#4a4a72;">
+            Build a dashboard on any model, from the interface. Twenty-nine
+            kinds of card, a live preview while you build, a workspace with a
+            sidebar, watchlist and notes &#8212; and every number clicks down to
+            the records behind it, or narrows the whole board.
+        </p>
+    </div>
+
+    <div style="text-align:center; margin:22px 0 34px;">
+        <span style="display:inline-block; background-color:#efeefc; border:1px solid #d9d6f5; border-radius:999px; color:#4338ca; font-size:14px; margin:4px; padding:6px 14px;">No code, no XML</span><span style="display:inline-block; background-color:#efeefc; border:1px solid #d9d6f5; border-radius:999px; color:#4338ca; font-size:14px; margin:4px; padding:6px 14px;">Any model</span><span style="display:inline-block; background-color:#efeefc; border:1px solid #d9d6f5; border-radius:999px; color:#4338ca; font-size:14px; margin:4px; padding:6px 14px;">29 card kinds</span><span style="display:inline-block; background-color:#efeefc; border:1px solid #d9d6f5; border-radius:999px; color:#4338ca; font-size:14px; margin:4px; padding:6px 14px;">Community &amp; Enterprise</span><span style="display:inline-block; background-color:#efeefc; border:1px solid #d9d6f5; border-radius:999px; color:#4338ca; font-size:14px; margin:4px; padding:6px 14px;">No external library</span>
+    </div>
+
+    <!-- ============================ SCREENSHOT: THE BOARD ============================ -->
+    <div style="margin:0 0 30px;"><img src="shot_board.png" alt="A dashboard of numbers, charts and a ranked list, with the sidebar and the header" style="width:100%; border:1px solid #e6e3f0; border-radius:12px;"/><p style="margin:8px 2px 0; font-size:14px; color:#6a6a90; text-align:center;">One dashboard: numbers with their movement, charts, a treemap and a ranked list &#8212; the sidebar on the left, the period, &quot;Mine&quot; and the tools on the right.</p></div>
+
+    <!-- ============================ THE PROBLEM ============================ -->
+    <div style="background-image:linear-gradient(180deg,#f7f7fc,#ffffff); border:1px solid #e6e3f0; border-radius:14px; margin:0 0 34px;">
+        <div style="padding:24px 26px;">
+            <h2 style="font-size:24px; margin:0 0 10px; color:#1b1b4b;">Everyone asks the same four questions</h2>
+            <p style="margin:0 0 8px; color:#4a4a72;">
+                How much did we sell this month. How many are still open. Who is
+                behind. What is it split by. Today, answering those means a
+                developer and a deployment &#8212; or a spreadsheet that is stale
+                the moment it is sent.
+            </p>
+            <p style="margin:0; color:#4a4a72;">
+                This module turns those questions into cards on a page you build
+                yourself, in the interface, on any model in the database. Or lets
+                the module build the first page for you, from the model's own fields.
+            </p>
+        </div>
+    </div>
+
+    <!-- ============================ THE CARDS ============================ -->
+    <h2 style="font-size:26px; margin:0 0 4px; color:#1b1b4b;">Twenty-nine kinds of card</h2>
+    <p style="margin:0 0 18px; color:#6a6a90;">Each one is a filter, a measure and a way of drawing it. Every chart can also be shown as a table in place, and downloaded as an image, CSV, JSON, a PDF or a spreadsheet.</p>
+
+    <div style="margin:0 0 30px;"><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#4f46e5; font-size:15px; font-weight:700; margin:0 0 6px;">&#9632;&nbsp; Number, Gauge, Bullet</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Count, sum, average, max or min. Target ring, half dial or bullet bar; comparison with the previous period or last year; sparkline; ratio of the whole; goal pacing against the calendar.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#0d9488; font-size:15px; font-weight:700; margin:0 0 6px;">&#9685;&nbsp; Sub-values under a number</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">The questions that follow the headline &#8212; how many are late, how many are mine &#8212; each with its share of the big number and its own records one click away.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#0284c7; font-size:15px; font-weight:700; margin:0 0 6px;">&#9644;&nbsp; Bars, stacked, sideways</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Split by any field; stack by a second one, upright or on its side, as amounts or as shares. Values on the bars, a target line, sorted the way you want.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#0891b2; font-size:15px; font-weight:700; margin:0 0 6px;">&#9652;&nbsp; Line, Area, Lollipop</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Along a date field, by day to year, as is, cumulative, smoothed or stepped &#8212; with a dashed forecast to the end of the period.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#d97706; font-size:15px; font-weight:700; margin:0 0 6px;">&#9679;&nbsp; Pie, Donut, Polar, Radar</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Shares of the whole, full or half circle, or a few categories around a wheel. Six colour palettes per board.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#7c3aed; font-size:15px; font-weight:700; margin:0 0 6px;">&#9660;&nbsp; Funnel, Waterfall, Pareto</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Stages narrowing from the widest; a bridge from what added up to what took away; the vital few with their running share drawn over them.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#e11d48; font-size:15px; font-weight:700; margin:0 0 6px;">&#9635;&nbsp; Heat map, Pivot, Treemap</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Two fields crossed as a colour matrix or a table with totals; or the shares as nested rectangles, the biggest filling the most room.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#059669; font-size:15px; font-weight:700; margin:0 0 6px;">&#9638;&nbsp; Calendar heat map</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">One cell per day laid out by week, darker where more happened &#8212; a year at a glance, and a click on a day opens it.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#0369a1; font-size:15px; font-weight:700; margin:0 0 6px;">&#9678;&nbsp; Bubble, Scatter, Bars + Line</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Two measures at once: one point per record, or a group placed by both and sized by how many, or bars with a line over them on its own axis.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#64748b; font-size:15px; font-weight:700; margin:0 0 6px;">&#9636;&nbsp; Table &amp; Top list</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Value, count and share per group with totals; or the records themselves, ranked, with bars in the cells, medals on the first three and a colour rule for the rows that matter.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#4338ca; font-size:15px; font-weight:700; margin:0 0 6px;">&#9998;&nbsp; Note</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">The words a board needs: a title, an explanation, a reminder. No model required.</p>
+        </div></div><div style="display:inline-block; width:25%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:16px 16px 14px; background-color:#ffffff;">
+            <div style="color:#b45309; font-size:15px; font-weight:700; margin:0 0 6px;">&#9873;&nbsp; Thresholds on any of them</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">A number turns amber or red when it crosses, tells the board&#39;s audience once, and can POST to Slack, Teams or any address the moment it does.</p>
+        </div></div>
+    </div>
+
+    <!-- ============================ CLICKABLE ============================ -->
+    <div style="background-image:linear-gradient(180deg,#ffffff,#f7f7fc); border:1px solid #e6e3f0; border-radius:14px; margin:0 0 30px;">
+        <div style="padding:24px 26px;">
+            <h2 style="font-size:24px; margin:0 0 12px; color:#1b1b4b;">Nothing on the page is a dead end</h2>
+            <div>
+                <div style="display:inline-block; width:50%; vertical-align:top;"><div style="padding:0 14px 0 0;">
+                    <p style="margin:0 0 10px; color:#4a4a72;"><span style="color:#4f46e5; font-weight:700;">Click a bar, a slice, a point or a row</span> and the whole board narrows to it: every card on the same model follows, a chip says what the focus is, and one more click opens those records.</p>
+                    <p style="margin:0; color:#4a4a72;"><span style="color:#4f46e5; font-weight:700;">Click a number</span> and the records it counted open &#8212; as a list, a kanban, a graph, a pivot or a calendar, your choice per card.</p>
+                </div></div><div style="display:inline-block; width:50%; vertical-align:top;"><div style="padding:0 0 0 14px;">
+                    <p style="margin:0 0 10px; color:#4a4a72;"><span style="color:#4f46e5; font-weight:700;">"Only My Records"</span> makes one card answer differently for each person; the reader's own <span style="font-weight:700;">Only mine</span> switch does it for the whole board.</p>
+                    <p style="margin:0; color:#4a4a72;"><span style="color:#4f46e5; font-weight:700;">Saved views</span> keep a period, a focus and that switch under a name &#8212; "Belgium, this quarter, mine" is one click next time.</p>
+                </div></div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin:0 0 30px;"><img src="shot_cardmenu.png" alt="The menu of a single card: table view, image, edit, remove, PDF, spreadsheet, CSV, JSON" style="width:100%; border:1px solid #e6e3f0; border-radius:12px;"/><p style="margin:8px 2px 0; font-size:14px; color:#6a6a90; text-align:center;">Every card carries its own menu: show it as a table in place, download it as an image, a PDF, a spreadsheet, CSV or JSON &#8212; or edit and remove it.</p></div>
+
+    <!-- ============================ THE WORKSPACE ============================ -->
+    <h2 style="font-size:26px; margin:0 0 4px; color:#1b1b4b;">A workspace, not a widget</h2>
+    <p style="margin:0 0 16px; color:#6a6a90;">The board page carries the tools a reader reaches for every day.</p>
+    <div style="margin:0 0 30px;"><div style="display:inline-block; width:33.33%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">What stands out</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Under the header, a row of chips written from the numbers on the page: the biggest mover, thresholds crossed, a number out of line with its own past, a goal running behind. Each one jumps to the card it names.</p>
+        </div></div><div style="display:inline-block; width:33.33%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">Tabs &amp; the filter bar</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Several pages under one dashboard, and the questions a board asks every time it opens &#8212; a company, a salesperson, a stage &#8212; as dropdowns whose values come from the data itself.</p>
+        </div></div><div style="display:inline-block; width:33.33%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">It opens at once</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">The layout arrives in one quick call and the numbers fill in a few cards at a time, the page you are looking at first. On a table of 200,000 records the grid is on screen in about ten milliseconds of server time.</p>
+        </div></div><div style="display:inline-block; width:33.33%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">Watchlist &amp; notes</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Pin any number card and it follows you to every dashboard. Keep a private note per board, saved as you type.</p>
+        </div></div><div style="display:inline-block; width:33.33%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">Quick find &amp; keys</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Press Q and it is a command palette: dashboards, cards and actions by name. R refreshes, F presents, E arranges, M is only mine, P prints, Esc clears.</p>
+        </div></div><div style="display:inline-block; width:33.33%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">Any two dates</div>
+            <p style="margin:0; font-size:14px; color:#4a4a72;">Twenty-three periods grouped by the unit they span &#8212; days, weeks, months, quarters, years &#8212; with a custom range at the bottom of the same panel.</p>
+        </div></div>
+    </div>
+
+    <div style="margin:0 0 30px;"><img src="shot_period.png" alt="The period panel open over a board: all time, days, weeks, months, quarters, years, and any two dates" style="width:100%; border:1px solid #e6e3f0; border-radius:12px;"/><p style="margin:8px 2px 0; font-size:14px; color:#6a6a90; text-align:center;">The period panel: &quot;All time&quot; on top, twenty-two periods in five columns, and any two dates at the bottom.</p></div>
+
+    <!-- ============================ BUILT FROM THE UI ============================ -->
+    <h2 style="font-size:26px; margin:0 0 4px; color:#1b1b4b;">Built from the interface</h2>
+    <p style="margin:0 0 16px; color:#6a6a90;">Nothing here is code, and nothing needs a deployment.</p>
+    <div style="margin:0 0 30px;">
+        <div style="display:inline-block; width:50%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 16px 0; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">Build a dashboard from a model</div>
+            <p style="margin:0; color:#4a4a72;">Pick Sales Orders, Tasks, Tickets, Contacts &#8212; the module reads the model's fields (its status, its business date, its amount, the user it is assigned to) and builds a sensible first board. Every card can be changed afterwards.</p>
+        </div></div><div style="display:inline-block; width:50%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 0 16px 8px; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">An editor with a live preview</div>
+            <p style="margin:0; color:#4a4a72;">Numbered steps, the real card with the real number pinned beside them as you type, kinds grouped into families that say what they need, a plain-words summary of what the card computes, and visual pickers for width, colour and icon.</p>
+        </div></div><div style="display:inline-block; width:50%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 8px 0 0; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">Arrange by hand</div>
+            <p style="margin:0; color:#4a4a72;">Drag cards into place, drag their corner to resize them, duplicate them, move them to another dashboard, on a six, eight or twelve column grid. Saved for everybody who sees the board.</p>
+        </div></div><div style="display:inline-block; width:50%; vertical-align:top;"><div style="border:1px solid #e6e3f0; border-radius:12px; margin:0 0 0 8px; padding:18px 20px; background-color:#ffffff;">
+            <div style="color:#1b1b4b; font-size:16px; font-weight:700; margin:0 0 6px;">Every option a card needs</div>
+            <p style="margin:0; color:#4a4a72;">Twenty-three periods or a period of its own; how the numbers are written &#8212; plain, short, or the Indian lakh-and-crore grouping; a multiplier, a prefix and a unit; a background; a "hide when" rule; the groups and the companies it is visible to; the view it opens in. A board gets a palette, a density, a slideshow time, tabs, and a menu of its own &#8212; under Dashboards, under any existing menu, or as an app on the top bar.</p>
+        </div></div>
+    </div>
+
+    <div style="margin:0 0 30px;"><img src="shot_editor.png" alt="The card editor: numbered steps on the left, the live preview pinned on the right" style="width:100%; border:1px solid #e6e3f0; border-radius:12px;"/><p style="margin:8px 2px 0; font-size:14px; color:#6a6a90; text-align:center;">The card editor: what kind, what it counts, how it is drawn, how it looks &#8212; and the real card, on real records, pinned beside them.</p></div>
+    <div style="margin:0 0 30px;"><img src="shot_kinds.png" alt="The kind picker: every card kind drawn as its own shape, grouped into families" style="width:100%; border:1px solid #e6e3f0; border-radius:12px;"/><p style="margin:8px 2px 0; font-size:14px; color:#6a6a90; text-align:center;">Kinds are grouped into families that say what they need, and each is drawn in its own shape and colours rather than named.</p></div>
+    <div style="margin:0 0 30px;"><div style="display:inline-block; width:50%; vertical-align:top;"><div style="padding:0 8px 0 0;">
+        <img src="shot_drawn.png" alt="The drawing options as tiles, each with a sentence saying what it does"
+             style="width:100%; border:1px solid #e6e3f0; border-radius:12px;"/>
+        <p style="margin:8px 2px 0; font-size:14px; color:#6a6a90; text-align:center;">A line of chips says what is already set; every option is a tile that explains itself.</p>
+    </div></div><div style="display:inline-block; width:50%; vertical-align:top;"><div style="padding:0 0 0 8px;">
+        <img src="shot_numbers.png" alt="The Numbers tab, showing three sample values written the way the card will write them"
+             style="width:100%; border:1px solid #e6e3f0; border-radius:12px;"/>
+        <p style="margin:8px 2px 0; font-size:14px; color:#6a6a90; text-align:center;">How the number will read, in the card&#39;s own formatter, as you type.</p>
+    </div></div></div>
+
+    <!-- ============================ WALL AND INBOX ============================ -->
+    <div style="background-image:linear-gradient(180deg,#f7f7fc,#ffffff); border:1px solid #e6e3f0; border-radius:14px; margin:0 0 30px;">
+        <div style="padding:24px 26px;">
+            <h2 style="font-size:24px; margin:0 0 12px; color:#1b1b4b;">For the wall, and for the inbox</h2>
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="width:30%; vertical-align:top; padding:6px 14px 6px 0; color:#1b1b4b; font-weight:700;">Presentation mode</td>
+                    <td style="vertical-align:top; padding:6px 0; color:#4a4a72;">Full screen, the board fitted to the screen, a slideshow from one dashboard to the next, auto-refresh from 15 seconds. A print view for paper.</td>
+                </tr>
+                <tr>
+                    <td style="vertical-align:top; padding:6px 14px 6px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Thresholds</td>
+                    <td style="vertical-align:top; padding:6px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A number turns amber or red when it crosses a limit, and can push a notification to the board's audience the moment it happens &#8212; once, on the crossing, not every hour it stays crossed.</td>
+                </tr>
+                <tr>
+                    <td style="vertical-align:top; padding:6px 14px 6px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">History</td>
+                    <td style="vertical-align:top; padding:6px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Every number card is recorded once a day, so a sparkline can draw the real history, a card can say how it moved since the last point, and a value two standard deviations from its own last thirty days wears an "unusual" badge that shows its working.</td>
+                </tr>
+                <tr>
+                    <td style="vertical-align:top; padding:6px 14px 6px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Export</td>
+                    <td style="vertical-align:top; padding:6px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Any card as an image, CSV, JSON, a <b>PDF</b> or a <b>spreadsheet</b> &#8212; the PDF carries the charts you are looking at, the .xlsx a sheet per card with the numbers behind them. Any board travels as a file another database imports, reporting the cards it could not bring rather than dropping them. And a board can <b>post itself by e-mail</b>, daily, weekly or monthly, computed for each recipient with their own rights.</td>
+                </tr>
+                <tr>
+                    <td style="vertical-align:top; padding:6px 14px 6px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Rights</td>
+                    <td style="vertical-align:top; padding:6px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Building is a role: <b>Dashboards / Manager</b> makes, changes and deletes dashboards and cards &#8212; enforced in the models, not merely in the interface. Everybody else reads, and keeps their own notes, favourites and saved views. A personal board stays its owner's alone; a board or a single card can name the companies it belongs to. Every number is computed with the reader's own rights.</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============================ EVERYTHING ============================ -->
+    <h2 style="font-size:26px; margin:0 0 4px; color:#1b1b4b;">Everything in the box</h2>
+    <p style="margin:0 0 16px; color:#6a6a90;">The whole feature list, in one place.</p>
+    <div style="margin:0 0 30px;">
+        <div style="border:1px solid #e6e3f0; border-radius:14px; margin:0 0 16px; background-color:#ffffff;"><div style="padding:20px 24px;"><h3 style="font-size:19px; margin:0 0 6px; color:#1b1b4b;">Cards</h3><table style="width:100%; border-collapse:collapse;"><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700;">The kinds</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72;">Number, gauge, status light, bullet, formula. Bar, sideways bar, lollipop, stacked (upright, sideways, or as shares), bars with a line over them, waterfall, pareto, funnel. Line, area, calendar heat map. Pie, donut, polar, radar, treemap. Heat map, pivot, table, top list. Bubble, scatter. And a note, which needs no model at all.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">What a card counts</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Any model in the database, any filter (built with Odoo's own domain editor, with shorthands for the current user, the active companies, today and now), count, sum, average, maximum or minimum of any stored numeric field, and a second measure where the kind uses one.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Formula cards</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Name each number by a letter &#8212; each its own aggregate over its own filter &#8212; and combine them: <b>a / b * 100</b> is a rate, <b>a - b</b> a difference. abs, min, max, round, sqrt, floor and ceil are available; division by zero gives zero.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Sub-values</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Small numbers under a headline: the card's own filter plus one more condition, each with the share of the big number it makes up, its own colour, and the records it counted one click away.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Split and time</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Split by any field, stack by a second, group dates by day, week, month, quarter or year, keep the top N and fold the rest into &quot;Others&quot;, sort by value or label, and read the card over the board's period or one of its own.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Comparison and history</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Against the previous period or the same period last year; a sparkline from the records or from the values recorded daily for that card; running total or smoothing; a dashed forecast to the end of an unfinished period; goal pacing that says whether the calendar is ahead of the number.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Anomalies</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A number two standard deviations from its own last thirty days wears an &quot;unusual&quot; badge that shows its working.</td></tr></table></div></div>
+        <div style="border:1px solid #e6e3f0; border-radius:14px; margin:0 0 16px; background-color:#ffffff;"><div style="padding:20px 24px;"><h3 style="font-size:19px; margin:0 0 6px; color:#1b1b4b;">How a card is drawn</h3><table style="width:100%; border-collapse:collapse;"><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700;">Read back to you</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72;">The editor says in plain words what the card computes, and a line of chips says what is set &#8212; &quot;Split by Country, every month&quot;, &quot;Above 10: danger&quot; &#8212; each opening the tab that holds it.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Colours</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Eleven card colours, six chart palettes taken from the dashboard or chosen per card, one colour per bar, and a plain, tinted or solid background.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Chart options</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Values on the chart, legend in any corner or hidden, bar ends rounded, square or pill, grid lines on or off, axis titles, a logarithmic axis, an axis that follows the data instead of starting at zero, steps instead of slopes, half circles, a second axis, the total in the middle of a donut, and one bar or point made to stand out.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Numbers</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A prefix and a unit, decimals, a multiplier, and how figures are written: plain, short (1.2M), or the Indian lakh-and-crore grouping &#8212; with three sample values showing the result as you type.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Rows</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A bar behind each number in a list or a table, medals on the first three, extra columns, and a colour rule that paints a row when one of its fields crosses a line.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Face and place</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A searchable icon picker (search by meaning: late, revenue, team), a width picker on the twelve-column grid, a height in pixels, a tab, a sequence, and a hint shown on hover.</td></tr></table></div></div>
+        <div style="border:1px solid #e6e3f0; border-radius:14px; margin:0 0 16px; background-color:#ffffff;"><div style="padding:20px 24px;"><h3 style="font-size:19px; margin:0 0 6px; color:#1b1b4b;">The page</h3><table style="width:100%; border-collapse:collapse;"><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700;">The shell</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72;">A sidebar listing every dashboard the reader may open, with favourites, personal markers and a filter box; a header with the title, its tag, the period, &quot;Mine&quot;, a refresh that says how old the numbers are and counts down to the next automatic one.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Rename and re-icon</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Click the dashboard's name to rename it and its icon to change it, on the page that shows them; a menu entry follows the new name.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">What stands out</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A row of chips written from the numbers on the page: the biggest mover, thresholds crossed, a value out of line with its own past, a goal running behind.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Tabs and filters</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Several pages under one dashboard, and the questions a board asks every time it opens &#8212; a company, a salesperson, a stage &#8212; as dropdowns whose values come from the data.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Focus</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Click a bar, a slice, a point, a cell or a row and every card on the same model narrows to it; a chip says what the focus is and opens those records.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Tools</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Tile search, quick find (Q) as a command palette, a watchlist that follows you between dashboards, a private note per board, saved views that keep a period, a focus and the &quot;Mine&quot; switch under a name, and hotkeys for refresh, present, arrange, mine and print.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Arrange</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Drag cards into place, drag a corner to resize, duplicate, move to a tab or to another dashboard, tidy the layout, or discard the whole arrangement and put everything back.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Speed</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">The layout arrives in one call and the numbers follow a few cards at a time, the tab you are looking at first; cards that ask the same question of the same model share one answer. On 200,000 records the grid is on screen in about ten milliseconds of server time.</td></tr></table></div></div>
+        <div style="border:1px solid #e6e3f0; border-radius:14px; margin:0 0 16px; background-color:#ffffff;"><div style="padding:20px 24px;"><h3 style="font-size:19px; margin:0 0 6px; color:#1b1b4b;">Out of the page</h3><table style="width:100%; border-collapse:collapse;"><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700;">PDF</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72;">A whole dashboard or a single card, landscape A4, the charts exactly as they are on screen and every figure recomputed with the reader's own rights. Composed with reportlab: no wkhtmltopdf.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Spreadsheet</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">An .xlsx with a sheet per card &#8212; the numbers behind the picture, the period and the filters written at the top of each.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Per card</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">As an image, as CSV, as JSON, or shown as a table in place.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">E-mail digests</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A dashboard posts itself daily, weekly or on a day of the month, at an hour you pick, to users and to plain addresses: the headline numbers with their movement, the whole board attached as a PDF, and each user's copy computed with their own rights.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Webhooks</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A card that crosses its threshold can POST itself &#8212; the card, the value, the message &#8212; to Slack, Teams or any address, with a &quot;send a test&quot; button beside the field.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Portability</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Any board travels as a JSON file another database imports; cards whose model is not installed there are reported, not silently dropped.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">On the wall</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Presentation mode fits the board to the screen, moves from one dashboard to the next on a timer, and refreshes itself from every 15 seconds. A print view for paper.</td></tr></table></div></div>
+        <div style="border:1px solid #e6e3f0; border-radius:14px; margin:0 0 16px; background-color:#ffffff;"><div style="padding:20px 24px;"><h3 style="font-size:19px; margin:0 0 6px; color:#1b1b4b;">Rights and reach</h3><table style="width:100%; border-collapse:collapse;"><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700;">The role</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72;"><b>Dashboards / Manager</b> makes, changes and deletes dashboards and cards &#8212; enforced in the models, not merely hidden in the interface. Everybody else reads, and keeps their own favourites, notes, watchlist and saved views.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Who sees what</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">A personal board stays its owner's; a shared board can be restricted to groups; a board or a single card can name the companies it belongs to, and empty means every company. Every number is computed with the reader's own rights, so one dashboard tells each person the truth.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Menus</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Give a dashboard a menu of its own: under Dashboards, under any existing menu of any app, or as an app of its own on the top bar &#8212; named, placed and restricted from the board itself.</td></tr><tr><td style="width:26%; vertical-align:top; padding:8px 14px 8px 0; color:#1b1b4b; font-weight:700; border-top:1px solid #ecebf6;">Multi-language</td><td style="vertical-align:top; padding:8px 0; color:#4a4a72; border-top:1px solid #ecebf6;">Titles, notes, hints and threshold messages are translatable fields.</td></tr></table></div></div>
+    </div>
+
+    <!-- ============================ COMPATIBILITY ============================ -->
+    <div style="border:1px solid #e6e3f0; border-radius:14px; margin:0 0 26px; background-color:#ffffff;">
+        <div style="padding:22px 26px;">
+            <h2 style="font-size:22px; margin:0 0 10px; color:#1b1b4b;">What it needs</h2>
+            <p style="margin:0 0 6px; color:#4a4a72;">Odoo 19.0, Community or Enterprise.</p>
+            <p style="margin:0 0 6px; color:#4a4a72;">Depends on <span style="font-family:monospace; background-color:#f2f2f8; padding:1px 5px; border-radius:4px;">web</span> and <span style="font-family:monospace; background-color:#f2f2f8; padding:1px 5px; border-radius:4px;">bus</span> only. No Enterprise-only module, no external Python package, no external JavaScript library.</p>
+            <p style="margin:0; color:#4a4a72;">Charts use the Chart.js build that already ships inside Odoo, loaded only when a board is opened.</p>
+        </div>
+    </div>
+
+    <!-- ============================ SUPPORT ============================ -->
+    <div style="background-image:linear-gradient(180deg,#4f46e5,#4338ca); border-radius:14px; text-align:center;">
+        <div style="padding:28px 26px;">
+            <h2 style="font-size:24px; margin:0 0 8px; color:#ffffff;">Ebshel Technologies</h2>
+            <p style="margin:0 0 4px; color:#e4e2fb; font-size:16px;">Questions, or a card you cannot build? Write to us.</p>
+            <p style="margin:0; color:#ffffff; font-size:16px; font-weight:700;">ebinpg777@gmail.com</p>
+        </div>
+    </div>
+
+</section>

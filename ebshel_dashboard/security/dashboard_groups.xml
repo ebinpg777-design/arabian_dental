@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- Technical group: no privilege category, it is not a per-app right. -->
+    <record id="group_dashboard_manager" model="res.groups">
+        <field name="name">Dashboards / Manager</field>
+        <field name="comment">Builds dashboards: makes them, changes them, deletes them, and puts them in the menu. Without this role a user reads the dashboards shared with them - narrowing, drilling through, notes, favourites and downloads - but changes nothing.</field>
+    </record>
+    <!-- Settings users manage dashboards out of the box; everybody else just reads them. -->
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('ebshel_dashboard.group_dashboard_manager'))]"/>
+    </record>
+
+    <!--
+        Ownership model
+        ===============
+        `owner_id` empty  = shared board: everybody sees it, only a manager edits it.
+        `owner_id` set    = personal board: only its owner sees it, and only its owner edits it.
+
+        Regular users get full CRUD rights in ir.model.access.csv; these rules are
+        what keeps them inside their own boards. `create()` stamps their boards as
+        personal, so the write rule below is never a surprise at save time.
+    -->
+    <record id="rule_dashboard_board_read" model="ir.rule">
+        <field name="name">Dashboards: shared ones and my own</field>
+        <field name="model_id" ref="model_dashboard_board"/>
+        <field name="domain_force">['|', ('owner_id', '=', False), ('owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_dashboard_board_own" model="ir.rule">
+        <field name="name">Dashboards: only my own are editable</field>
+        <field name="model_id" ref="model_dashboard_board"/>
+        <field name="domain_force">[('owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- A manager sees and edits everything that is not somebody's private board. -->
+    <record id="rule_dashboard_board_manager" model="ir.rule">
+        <field name="name">Dashboards: managers own the shared boards</field>
+        <field name="model_id" ref="model_dashboard_board"/>
+        <field name="domain_force">['|', ('owner_id', '=', False), ('owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('ebshel_dashboard.group_dashboard_manager'))]"/>
+    </record>
+
+    <!-- Cards follow the board they sit on: one ownership decision, not two. -->
+    <record id="rule_dashboard_item_read" model="ir.rule">
+        <field name="name">Dashboard cards: follow the board</field>
+        <field name="model_id" ref="model_dashboard_item"/>
+        <field name="domain_force">['|', ('board_id.owner_id', '=', False), ('board_id.owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_dashboard_item_own" model="ir.rule">
+        <field name="name">Dashboard cards: only those of my own boards are editable</field>
+        <field name="model_id" ref="model_dashboard_item"/>
+        <field name="domain_force">[('board_id.owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <record id="rule_dashboard_item_manager" model="ir.rule">
+        <field name="name">Dashboard cards: managers own the shared boards</field>
+        <field name="model_id" ref="model_dashboard_item"/>
+        <field name="domain_force">['|', ('board_id.owner_id', '=', False), ('board_id.owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('ebshel_dashboard.group_dashboard_manager'))]"/>
+    </record>
+
+    <!-- A note and a preference belong to the reader who wrote them. -->
+    <record id="rule_dashboard_note_own" model="ir.rule">
+        <field name="name">Dashboard notes: my own only</field>
+        <field name="model_id" ref="model_dashboard_note"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dashboard_filter_follow" model="ir.rule">
+        <field name="name">Dashboard filters: follow the board</field>
+        <field name="model_id" ref="model_dashboard_filter"/>
+        <field name="domain_force">['|', ('board_id.owner_id', '=', False), ('board_id.owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dashboard_tab_follow" model="ir.rule">
+        <field name="name">Dashboard tabs: follow the board</field>
+        <field name="model_id" ref="model_dashboard_tab"/>
+        <field name="domain_force">['|', ('board_id.owner_id', '=', False), ('board_id.owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dashboard_view_own" model="ir.rule">
+        <field name="name">Saved dashboard views: my own only</field>
+        <field name="model_id" ref="model_dashboard_view"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dashboard_subvalue_follow" model="ir.rule">
+        <field name="name">Sub-values: follow the card</field>
+        <field name="model_id" ref="model_dashboard_item_subvalue"/>
+        <field name="domain_force">['|', ('item_id.board_id.owner_id', '=', False), ('item_id.board_id.owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dashboard_variable_follow" model="ir.rule">
+        <field name="name">Formula variables: follow the card</field>
+        <field name="model_id" ref="model_dashboard_item_variable"/>
+        <field name="domain_force">['|', ('item_id.board_id.owner_id', '=', False), ('item_id.board_id.owner_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dashboard_preference_own" model="ir.rule">
+        <field name="name">Dashboard preferences: my own only</field>
+        <field name="model_id" ref="model_dashboard_preference"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dashboard_item_company" model="ir.rule">
+        <field name="name">Dashboard cards: multi-company</field>
+        <field name="model_id" ref="model_dashboard_item"/>
+        <field name="domain_force">['|', ('company_ids', '=', False), ('company_ids', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+    <!-- Multi-company: a board pinned to a company only exists inside it. -->
+    <record id="rule_dashboard_board_company" model="ir.rule">
+        <field name="name">Dashboards: multi-company</field>
+        <field name="model_id" ref="model_dashboard_board"/>
+        <field name="domain_force">['|', ('company_ids', '=', False), ('company_ids', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+</odoo>

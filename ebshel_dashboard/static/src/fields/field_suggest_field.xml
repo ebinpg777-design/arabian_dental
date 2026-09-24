@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.FieldSuggestField">
+        <div class="o_dbf_suggest" t-if="chips.length or state.loading" t-att-data-model="state.modelId">
+            <span class="o_dbf_suggest_label">
+                <t t-esc="label"/>
+                <i t-if="state.loading" class="fa fa-circle-o-notch fa-spin ms-1" role="img" aria-label="Reading the model"/>
+            </span>
+            <t t-foreach="chips" t-as="chip" t-key="chip.id">
+                <button type="button"
+                        t-attf-class="o_dbf_suggest_chip {{ chip.id === currentId ? 'o_dbf_suggest_on' : '' }}"
+                        t-att-disabled="props.readonly"
+                        t-att-title="chip.name"
+                        t-on-click="() => this.pick(chip)">
+                    <span t-esc="chip.label"/>
+                    <span class="o_dbf_suggest_type" t-esc="typeLabel(chip.type)"/>
+                </button>
+            </t>
+        </div>
+        <div class="o_dbf_suggest o_dbf_suggest_none" t-elif="state.modelId"
+             t-att-data-model="state.modelId">
+            <span class="o_dbf_suggest_label">Nothing obvious to suggest on this model</span>
+        </div>
+    </t>
+
+</templates>

@@ -132,6 +132,8 @@
                             <field name="modification"/>
                             <field name="instruction"/>
                             <field name="register_person_id"/>
+                            <field name="technician_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"/>
                         </group>
                         <group string="Work">
                             <field name="is_rework"/>
@@ -175,11 +177,13 @@
                  in the editable list. Target each sub-view explicitly. -->
             <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="before">
                 <field name="ul" optional="show"/>
+                <field name="teeth" optional="show" widget="fdi_teeth"/>
                 <field name="cast" optional="show"/>
                 <field name="color_scheme" optional="show"/>
             </xpath>
             <xpath expr="//field[@name='order_line']/form//div[@name='ordered_qty']" position="after">
                 <field name="ul"/>
+                <field name="teeth" widget="fdi_teeth"/>
                 <field name="cast"/>
                 <field name="color_scheme"/>
             </xpath>

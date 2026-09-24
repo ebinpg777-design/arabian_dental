@@ -3,9 +3,59 @@
     <data noupdate="1">
         <!-- noupdate: the client is expected to rearrange their own menu in the website
              editor, and an upgrade must not put it back. -->
-        <record id="menu_restorations" model="website.menu">
-            <field name="name">What We Make</field>
-            <field name="url">/restorations</field>
+
+        <record id="menu_services" model="website.menu">
+            <field name="name">Services</field>
+            <field name="url">/services</field>
+            <field name="parent_id" ref="website.main_menu"/>
+            <field name="sequence">10</field>
+        </record>
+        <record id="menu_services_all" model="website.menu">
+            <field name="name">All services</field>
+            <field name="url">/services</field>
+            <field name="parent_id" ref="menu_services"/>
+            <field name="sequence">1</field>
+        </record>
+        <record id="menu_service_crown" model="website.menu">
+            <field name="name">Crown &amp; Bridge</field>
+            <field name="url">/services/crown-and-bridge</field>
+            <field name="parent_id" ref="menu_services"/>
+            <field name="sequence">10</field>
+        </record>
+        <record id="menu_service_implant" model="website.menu">
+            <field name="name">Implant Prosthetics</field>
+            <field name="url">/services/implant-prosthetics</field>
+            <field name="parent_id" ref="menu_services"/>
+            <field name="sequence">20</field>
+        </record>
+        <record id="menu_service_veneers" model="website.menu">
+            <field name="name">Veneers &amp; Aesthetics</field>
+            <field name="url">/services/veneers-and-aesthetics</field>
+            <field name="parent_id" ref="menu_services"/>
+            <field name="sequence">30</field>
+        </record>
+        <record id="menu_service_removable" model="website.menu">
+            <field name="name">Removable Prosthetics</field>
+            <field name="url">/services/removable-prosthetics</field>
+            <field name="parent_id" ref="menu_services"/>
+            <field name="sequence">40</field>
+        </record>
+        <record id="menu_service_digital" model="website.menu">
+            <field name="name">Digital Dentistry</field>
+            <field name="url">/services/digital-dentistry</field>
+            <field name="parent_id" ref="menu_services"/>
+            <field name="sequence">50</field>
+        </record>
+        <record id="menu_service_ortho" model="website.menu">
+            <field name="name">Orthodontic &amp; Speciality</field>
+            <field name="url">/services/orthodontic-appliances</field>
+            <field name="parent_id" ref="menu_services"/>
+            <field name="sequence">60</field>
+        </record>
+
+        <record id="menu_technology" model="website.menu">
+            <field name="name">Technology</field>
+            <field name="url">/technology</field>
             <field name="parent_id" ref="website.main_menu"/>
             <field name="sequence">20</field>
         </record>
@@ -13,19 +63,51 @@
             <field name="name">Academy</field>
             <field name="url">/academy</field>
             <field name="parent_id" ref="website.main_menu"/>
-            <field name="sequence">25</field>
-        </record>
-        <record id="menu_about" model="website.menu">
-            <field name="name">About</field>
-            <field name="url">/about-us</field>
-            <field name="parent_id" ref="website.main_menu"/>
             <field name="sequence">30</field>
         </record>
+        <record id="menu_gallery" model="website.menu">
+            <field name="name">Gallery</field>
+            <field name="url">/gallery</field>
+            <field name="parent_id" ref="website.main_menu"/>
+            <field name="sequence">40</field>
+        </record>
+
+        <record id="menu_about" model="website.menu">
+            <field name="name">The Lab</field>
+            <field name="url">/about-us</field>
+            <field name="parent_id" ref="website.main_menu"/>
+            <field name="sequence">50</field>
+        </record>
+        <record id="menu_about_us" model="website.menu">
+            <field name="name">About us</field>
+            <field name="url">/about-us</field>
+            <field name="parent_id" ref="menu_about"/>
+            <field name="sequence">1</field>
+        </record>
+        <record id="menu_send_case" model="website.menu">
+            <field name="name">Send a case</field>
+            <field name="url">/send-a-case</field>
+            <field name="parent_id" ref="menu_about"/>
+            <field name="sequence">10</field>
+        </record>
+        <record id="menu_faq" model="website.menu">
+            <field name="name">FAQ</field>
+            <field name="url">/faq</field>
+            <field name="parent_id" ref="menu_about"/>
+            <field name="sequence">20</field>
+        </record>
+        <record id="menu_careers" model="website.menu">
+            <field name="name">Careers</field>
+            <field name="url">/careers</field>
+            <field name="parent_id" ref="menu_about"/>
+            <field name="sequence">30</field>
+        </record>
+
         <record id="menu_portal" model="website.menu">
             <field name="name">Doctor Login</field>
             <field name="url">/my/cases</field>
             <field name="parent_id" ref="website.main_menu"/>
-            <field name="sequence">60</field>
+            <field name="sequence">90</field>
         </record>
     </data>
 </odoo>

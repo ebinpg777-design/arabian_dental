@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_dashboard_menu_wizard_form" model="ir.ui.view">
+        <field name="name">dashboard.menu.wizard.form</field>
+        <field name="model">dashboard.menu.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add to the Menu">
+                <field name="board_id" invisible="1"/>
+                <field name="has_groups" invisible="1"/>
+                <field name="existing_menu_id" invisible="1"/>
+                <div class="alert alert-info" role="status" invisible="not existing_menu_id">
+                    This dashboard is already in the menu, at
+                    <b><field name="existing_path" readonly="1" nolabel="1" class="oe_inline"/></b>.
+                    Applying moves and renames that entry - it never leaves a second one behind.
+                </div>
+                <group>
+                    <field name="name" placeholder="What the menu says"/>
+                    <field name="placement" widget="radio"/>
+                    <field name="parent_id" invisible="placement != 'menu'"
+                           required="placement == 'menu'" options="{'no_create': True}"
+                           placeholder="Sales, Inventory, Employees…"/>
+                    <field name="sequence"/>
+                    <field name="restrict" widget="boolean_toggle" invisible="not has_groups"/>
+                </group>
+                <div class="text-muted" invisible="placement != 'app'">
+                    <i class="fa fa-lightbulb-o me-1" role="img" aria-label="Tip"/>
+                    An app of its own sits on the top bar with this module's icon, beside
+                    Sales and Inventory - for the board a whole team lives in.
+                </div>
+                <div class="text-muted" invisible="not has_groups or restrict">
+                    <i class="fa fa-lightbulb-o me-1" role="img" aria-label="Tip"/>
+                    The dashboard is restricted to groups but the menu will be visible to
+                    everyone. They will see the entry and an empty page behind it.
+                </div>
+                <footer>
+                    <button name="action_apply" type="object" string="Apply"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button name="action_remove" type="object" string="Remove from the Menu"
+                            class="btn-secondary" invisible="not existing_menu_id"
+                            confirm="Remove this dashboard's menu entry?"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

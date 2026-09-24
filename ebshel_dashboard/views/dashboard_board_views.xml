@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_dashboard_board_form" model="ir.ui.view">
+        <field name="name">dashboard.board.form</field>
+        <field name="model">dashboard.board</field>
+        <field name="arch" type="xml">
+            <form string="Dashboard">
+                <header>
+                    <button name="action_open_board" type="object" string="Open Dashboard"
+                            class="btn-primary"/>
+                    <button name="action_publish" type="object" string="Publish to Everyone"
+                            invisible="not owner_id"
+                            groups="ebshel_dashboard.group_dashboard_manager"
+                            help="Turn this personal dashboard into one everybody sees."/>
+                    <button name="action_copy_to_me" type="object" string="Copy to My Dashboards"
+                            invisible="owner_id"
+                            help="Take a personal copy you can bend to your own taste."/>
+                    <button name="action_export_boards" type="object" string="Export"
+                            help="Download this dashboard as a file another database can import."/>
+                    <button name="action_create_menu" type="object" string="Add to the Menu…"
+                            invisible="menu_id or owner_id"
+                            groups="ebshel_dashboard.group_dashboard_manager"
+                            help="Give this dashboard a menu of its own - under Dashboards, under
+                                  any other menu, or as an app on the top bar."/>
+                    <button name="action_create_menu" type="object" string="Move or Rename…"
+                            invisible="not menu_id"
+                            groups="ebshel_dashboard.group_dashboard_manager"
+                            help="Change where this dashboard sits in the menu, or what it is called."/>
+                    <button name="action_remove_menu" type="object" string="Remove from the Menu"
+                            invisible="not menu_id"
+                            groups="ebshel_dashboard.group_dashboard_manager"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Personal" bg_color="text-bg-info"
+                            invisible="not owner_id"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_items" type="object" class="oe_stat_button"
+                                icon="fa-th-large">
+                            <field name="item_count" widget="statinfo" string="Cards"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Sales Overview"/></h1>
+                        <field name="description" placeholder="What this dashboard answers"/>
+                    </div>
+                    <group>
+                        <group string="How it opens" name="behaviour">
+                            <field name="period"/>
+                            <field name="allow_period"/>
+                            <field name="allow_mine"/>
+                            <field name="allow_range"/>
+                            <field name="auto_refresh"/>
+                            <label for="slide_seconds"/>
+                            <div class="o_row">
+                                <field name="slide_seconds" class="oe_inline"/>
+                                <span class="text-muted">seconds on screen in a slideshow — 0 to stay</span>
+                            </div>
+                            <field name="menu_path" invisible="not menu_id"/>
+                        </group>
+                        <group string="How it looks" name="look">
+                            <field name="icon" widget="dashboard_icon_picker"/>
+                            <field name="color" widget="dashboard_color_picker"/>
+                            <field name="palette"/>
+                            <field name="columns" widget="radio" options="{'horizontal': True}"/>
+                            <field name="density" widget="radio" options="{'horizontal': True}"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Who sees it" name="audience">
+                            <field name="owner_id" options="{'no_create': True}"
+                                   groups="ebshel_dashboard.group_dashboard_manager"/>
+                            <field name="group_ids" widget="many2many_tags"
+                                   invisible="owner_id"
+                                   groups="ebshel_dashboard.group_dashboard_manager"/>
+                            <field name="company_ids" widget="many2many_tags" groups="base.group_multi_company"
+                                   options="{'no_create': True}"/>
+                        </group>
+                        <group string="Order" name="order">
+                            <field name="sequence"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Filters" name="filters">
+                            <div class="text-muted mb-2">
+                                Questions the board asks every time it opens. Each one becomes a
+                                dropdown in the header, and every card on that model follows it -
+                                cards on other models are left whole.
+                            </div>
+                            <field name="filter_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="field_id" options="{'no_create': True}"/>
+                                    <field name="name" placeholder="The field's own label"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Digest" name="digest">
+                            <div class="text-muted mb-2">
+                                Post this dashboard by e-mail on a schedule. Every user on
+                                the list gets it computed with their own rights, so two
+                                people can rightly see different numbers.
+                            </div>
+                            <group>
+                                <group>
+                                    <field name="digest_active" widget="boolean_toggle"/>
+                                    <field name="digest_interval" invisible="not digest_active"/>
+                                    <field name="digest_weekday"
+                                           invisible="not digest_active or digest_interval != 'weekly'"/>
+                                    <field name="digest_monthday"
+                                           invisible="not digest_active or digest_interval != 'monthly'"/>
+                                    <field name="digest_hour" invisible="not digest_active"/>
+                                    <field name="digest_next_send" invisible="not digest_active"/>
+                                </group>
+                                <group>
+                                    <field name="digest_period" invisible="not digest_active"/>
+                                    <field name="digest_attach_pdf" widget="boolean_toggle"
+                                           invisible="not digest_active"/>
+                                    <field name="digest_last_sent" invisible="not digest_active"/>
+                                </group>
+                            </group>
+                            <group invisible="not digest_active">
+                                <field name="digest_user_ids" widget="many2many_tags"
+                                       options="{'no_create': True}"/>
+                                <field name="digest_emails" placeholder="someone@example.com, other@example.com"/>
+                            </group>
+                            <div class="mt-2" invisible="not digest_active">
+                                <button name="action_send_digest" type="object"
+                                        class="btn btn-primary" icon="fa-paper-plane"
+                                        string="Send now"/>
+                            </div>
+                        </page>
+                        <page string="Tabs" name="tabs">
+                            <div class="text-muted mb-2">
+                                Pages of the board. A card with no tab sits on the Overview page;
+                                give a card its tab in the card's own form, or move it from the
+                                board in Arrange mode.
+                            </div>
+                            <field name="tab_ids" context="{'default_board_id': id}">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="icon"/>
+                                    <field name="item_count" string="Cards"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Cards" name="cards">
+                            <field name="item_ids" context="{'default_board_id': id}">
+                                <list string="Cards">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="kind"/>
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="aggregate"/>
+                                    <field name="measure_field_id" optional="hide"
+                                           options="{'no_create': True}"/>
+                                    <field name="group_by_field_id" optional="show"
+                                           options="{'no_create': True}"/>
+                                    <field name="date_field_id" optional="hide"
+                                           options="{'no_create': True}"/>
+                                    <field name="tab_id" optional="show" options="{'no_create': True}"/>
+                                    <field name="width"/>
+                                    <field name="alert_triggered" optional="hide" widget="boolean_toggle" readonly="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dashboard_board_list" model="ir.ui.view">
+        <field name="name">dashboard.board.list</field>
+        <field name="model">dashboard.board</field>
+        <field name="arch" type="xml">
+            <list string="Dashboards">
+                <header>
+                    <button name="action_export_boards" type="object" string="Export"
+                            display="always"
+                            help="Download the selected dashboards as one file."/>
+                </header>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="item_count" string="Cards"/>
+                <field name="period"/>
+                <field name="columns" optional="hide"/>
+                <field name="auto_refresh" optional="hide"/>
+                <field name="owner_id" optional="show"/>
+                <field name="group_ids" widget="many2many_tags" optional="hide"/>
+                <field name="company_ids" widget="many2many_tags" groups="base.group_multi_company" optional="hide"/>
+                <field name="active" optional="hide" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_dashboard_board_kanban" model="ir.ui.view">
+        <field name="name">dashboard.board.kanban</field>
+        <field name="model">dashboard.board</field>
+        <field name="arch" type="xml">
+            <kanban class="o_dashboard_board_kanban" default_order="sequence">
+                <field name="icon"/>
+                <field name="color"/>
+                <field name="item_count"/>
+                <field name="owner_id"/>
+                <templates>
+                    <t t-name="card">
+                        <a type="object" name="action_open_board" class="o_dbb_card text-reset text-decoration-none">
+                            <div class="d-flex align-items-center gap-2">
+                                <i t-attf-class="fa fa-lg #{record.icon.raw_value or 'fa-tachometer'}"
+                                   role="img" aria-label="Dashboard"/>
+                                <span class="fw-bold" t-out="record.name.value"/>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <t t-out="record.item_count.value"/> cards
+                                <t t-if="record.owner_id.raw_value"> · personal</t>
+                            </div>
+                        </a>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_dashboard_board_search" model="ir.ui.view">
+        <field name="name">dashboard.board.search</field>
+        <field name="model">dashboard.board</field>
+        <field name="arch" type="xml">
+            <search string="Dashboards">
+                <field name="name"/>
+                <field name="owner_id"/>
+                <filter name="filter_shared" string="Shared" domain="[('owner_id', '=', False)]"/>
+                <filter name="filter_mine" string="Mine" domain="[('owner_id', '=', uid)]"/>
+                <separator/>
+                <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_owner" string="Owner" context="{'group_by': 'owner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dashboard_board" model="ir.actions.act_window">
+        <field name="name">Dashboards</field>
+        <field name="res_model">dashboard.board</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Build your first dashboard</p>
+            <p>A dashboard is a page of cards, each one a live question asked of
+               a model. Nothing here is code: add cards, drag them into place,
+               and click any of them to see the records behind the number.</p>
+        </field>
+    </record>
+
+    <record id="action_dashboard_open" model="ir.actions.server">
+        <field name="name">Dashboards</field>
+        <field name="model_id" ref="model_dashboard_board"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_dashboards()</field>
+    </record>
+
+</odoo>

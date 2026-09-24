@@ -20,6 +20,9 @@ export class LabMyDay extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
+        // Lives in the web client, not in this component: the watch has to
+        // survive the executive walking off this screen into a visit form.
+        this.tracker = useService("lab_live_track");
         this.state = useState({
             track: { open: false, rows: [], busy: false, query: "", more: false,
                      openId: null, details: {}, here: null, partnerId: null,
@@ -269,6 +272,17 @@ export class LabMyDay extends Component {
         return whole ? `${whole}h ${mins}m` : `${mins}m`;
     }
 
+    /**
+     * Whether the route is being recorded right now.
+     *
+     * Shown on the card, always, whenever it is true. An executive is entitled to know
+     * their movements are being kept, and a light they can see is the difference
+     * between a tool and something done to them behind their back.
+     */
+    get tracking() {
+        return Boolean(this.attendance.tracking);
+    }
+
     get clockLabel() {
         if (this.attendance.state === "no_employee") {
             return "No employee record";
@@ -296,6 +310,9 @@ export class LabMyDay extends Component {
                 longitude: coords ? coords.longitude : false,
             });
             await this.load();
+            // The button has just changed which side of the privacy boundary we are
+            // on, so the watch is told at once rather than on its five-minute timer.
+            this.tracker.refresh();
             this.notification.add(
                 this.onDuty ? "You are on duty. Have a good day." : "Day ended.",
                 { type: "success" }

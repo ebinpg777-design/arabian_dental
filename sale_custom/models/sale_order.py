@@ -394,6 +394,16 @@ class SaleOrder(models.Model):
                 orders=', '.join(duplicates.mapped('name'))),
         }}
 
+    # The technicians who worked the case. Arabian Dental Lab's own system named
+    # them on every order (146,951 links across 71,475 orders), and the incentive
+    # and the "who made this" questions both start here. Going forward the bench
+    # is recorded on the work orders; this is the record for cases that predate
+    # them and the quick answer for the rest. (migration, 2026-09-23)
+    technician_ids = fields.Many2many(
+        'res.partner', 'sale_order_technician_rel', 'order_id', 'partner_id',
+        string='Technicians', copy=False,
+        help="Who worked this case. Filled from the old system for migrated cases; "
+             "new cases record the bench on their work orders.")
     register_person_id = fields.Many2one(
         'res.users', string='Registration User',
         default=lambda self: self.env.user, readonly=True)
@@ -761,6 +771,13 @@ class SaleOrderLine(models.Model):
     cast = fields.Selection(
         [('upper', 'U'), ('lower', 'L'), ('ul', 'UL')], string='Cast',
         help="The cast received for this work: upper, lower, or both.")
+    # Which teeth, in FDI notation ("14, 13, 46"). A crown-and-bridge lab is asked
+    # this on every case and prints it on the job card and the invoice; the ortho
+    # suite this was forked from only needed the arch. One free-text field, the
+    # way the lab already wrote it. (migration, 2026-09-23)
+    teeth = fields.Char(
+        'Teeth (FDI)', size=64,
+        help="Tooth numbers in FDI notation, e.g. 14, 13, 46, 47.")
 
     @api.model
     def _lab_work_numbers(self, lines):
@@ -798,6 +815,7 @@ class SaleOrderLine(models.Model):
         res.update({
             'patient': self.order_id.patient,
             'ul': self.ul,
+            'teeth': self.teeth,
             'work_number': name or self.order_id.name,
         })
         return res

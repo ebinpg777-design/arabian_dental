@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_dashboard_build_form" model="ir.ui.view">
+        <field name="name">dashboard.build.form</field>
+        <field name="model">dashboard.build</field>
+        <field name="arch" type="xml">
+            <form string="Build a Dashboard">
+                <group>
+                    <field name="model_id" options="{'no_create': True}"
+                           placeholder="e.g. Sales Order, Task, Contact"/>
+                    <field name="name" placeholder="Suggested from the model"/>
+                </group>
+                <div class="alert alert-info py-2" role="status" invisible="not hint">
+                    <field name="hint" nolabel="1" readonly="1" class="o_field_char"/>
+                </div>
+                <div class="text-muted">
+                    The cards are chosen from the model itself: a count, the amount it
+                    carries, its status, its business date, the user it is assigned to.
+                    Everything can be changed afterwards.
+                </div>
+                <footer>
+                    <button name="action_build" type="object" string="Build and Open"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_dashboard_build" model="ir.actions.act_window">
+        <field name="name">Build a Dashboard</field>
+        <field name="res_model">dashboard.build</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.NumberSample">
+        <div class="o_dbf_sample">
+            <span class="o_dbf_sample_label">How it will read</span>
+            <t t-foreach="samples" t-as="sample" t-key="sample_index">
+                <span class="o_dbf_sample_pair">
+                    <span class="o_dbf_sample_raw" t-esc="sample.raw"/>
+                    <i class="fa fa-long-arrow-right" role="img" aria-label="becomes"/>
+                    <span class="o_dbf_sample_out" t-esc="sample.text"/>
+                </span>
+            </t>
+        </div>
+    </t>
+
+</templates>

@@ -10,20 +10,26 @@ import psycopg2.extras
 from odoo import fields, models, _
 from odoo.exceptions import AccessError, UserError
 
-from .migration_spec import ENTITY_SPECS
+from .migration_spec import (ENTITY_SPECS, DISTRICT_ALIASES, FISCAL_POSITION_ALIASES,
+                             UOM_ALIASES, UOM_CATEGORY_REFERENCE)
 
 _logger = logging.getLogger(__name__)
 
 
 class MigrationBackend(models.Model):
     _name = 'migration.backend'
-    _description = 'Odoo 10 Migration Backend'
+    _description = 'Odoo 17 Migration Backend'
 
-    name = fields.Char(required=True, default='Odoo 10 Source')
+    name = fields.Char(required=True, default='Odoo 17 Source')
     db_host = fields.Char('Host / URL', required=True, default='127.0.0.1')
     db_port = fields.Integer('Port', required=True, default=5432)
-    db_name = fields.Char('Database', required=True, default='arabian_dental_v10')
+    db_name = fields.Char('Database', required=True, default='adl_prod_v17')
     db_user = fields.Char('DB User', required=True, default='odoo')
+    src_filestore = fields.Char(
+        'Source Filestore',
+        help="Path, on THIS server, of the source database's filestore directory "
+             "(the folder holding the two-letter hash directories). Attachments "
+             "and images are copied from it; leave empty to skip them.")
     # Only the people who may run a sync may see where it connects: the read-only
     # group exists so a failed run can be diagnosed, not to hand out the source
     # database's credentials.
@@ -48,7 +54,7 @@ class MigrationBackend(models.Model):
              "Anything older than this comes across as a single carry-forward line "
              "per partner, so every partner's opening total is unchanged either "
              "way — only the level of detail differs.\n\n"
-             "0 = itemise the whole history. Odoo 10 was barely reconciled, so that "
+             "0 = itemise the whole history. Odoo 17 was barely reconciled, so that "
              "is roughly 327,000 lines going back to 2017.")
     state = fields.Selection(
         [('draft', 'Not connected'), ('ok', 'Connected')], default='draft')
@@ -63,7 +69,7 @@ class MigrationBackend(models.Model):
                 user=self.db_user, password=self.db_password or None,
                 connect_timeout=10)
         except Exception as e:
-            raise UserError(_("Cannot connect to the Odoo 10 database:\n%s") % e)
+            raise UserError(_("Cannot connect to the Odoo 17 database:\n%s") % e)
 
     _MIGRATION_MANAGER_GROUP = 'lab_migration.group_lab_migration_manager'
 
@@ -81,7 +87,7 @@ class MigrationBackend(models.Model):
                 or self.env.user.has_group(self._MIGRATION_MANAGER_GROUP):
             return
         raise AccessError(_("Only members of \"Migration: Run Sync\" can connect to "
-                            "the Odoo 10 database or run the migration."))
+                            "the Odoo 17 database or run the migration."))
 
     def action_test_connection(self):
         self.ensure_one()
@@ -105,30 +111,36 @@ class MigrationBackend(models.Model):
     # ------------------------------------------------------------------ helpers
     @staticmethod
     def _coerce(value):
+        # Odoo 16+ stores every translated field as jsonb ({'en_US': ..., 'en_IN':
+        # ...}); psycopg2 hands it over as a dict, and writing a dict into a Char
+        # raises. The English value is the one every screen showed.
+        if isinstance(value, dict):
+            return value.get('en_US') or next((v for v in value.values() if v), None)
         return bytes(value) if isinstance(value, memoryview) else value
 
     @staticmethod
     def _valid(Model, vals):
-        """Drop keys that aren't real fields of the target model (handles v10→v19
+        """Drop keys that aren't real fields of the target model (handles v17→v19
         field drift, e.g. res.partner.mobile removed)."""
         return {k: v for k, v in vals.items() if k in Model._fields}
 
     def _fetch(self, cur, table, where=None, src_sql=None):
         # src_sql lets a spec read from a JOIN instead of a plain table — needed
-        # where v10 split a record across tables that v19 merged (mrp.workcenter
-        # _inherits resource.resource in v10; v19 has name/code/company_id on the
+        # where v17 split a record across tables that v19 merged (mrp.workcenter
+        # _inherits resource.resource in v17; v19 has name/code/company_id on the
         # model itself).
         q = src_sql or ('SELECT * FROM "%s"' % table)
         if where:
             q += ' WHERE ' + where
         try:
             cur.execute(q)
-            return cur.fetchall()
+            # unwrap jsonb translations / memoryviews once, for every reader
+            return [{k: self._coerce(v) for k, v in row.items()} for row in cur.fetchall()]
         except psycopg2.Error:
             return None
 
     def _company_val(self, spec, row, cache):
-        """Set the target record's company from its Odoo 10 company_id (all
+        """Set the target record's company from its Odoo 17 company_id (all
         companies are synced). Accounts share across companies via company_ids;
         other company-specific models use company_id."""
         field = spec.get('company_field')
@@ -140,31 +152,31 @@ class MigrationBackend(models.Model):
         return {field: cid}
 
     def _put(self, cache, model, o10_id, o19_id):
-        """Record an Odoo10->Odoo19 mapping (persisted in migration.map, so it
-        survives across runs and supports many v10 ids -> one v19 id)."""
+        """Record an Odoo17->Odoo19 mapping (persisted in migration.map, so it
+        survives across runs and supports many v17 ids -> one v19 id)."""
         cache.setdefault(model, {})[o10_id] = o19_id
         Map = self.env['migration.map'].sudo()
-        rec = Map.search([('dst_model', '=', model), ('odoo10_id', '=', o10_id)], limit=1)
+        rec = Map.search([('dst_model', '=', model), ('src_id', '=', o10_id)], limit=1)
         if rec:
-            if rec.odoo19_id != o19_id:
-                rec.odoo19_id = o19_id
+            if rec.dst_id != o19_id:
+                rec.dst_id = o19_id
         else:
-            Map.create({'dst_model': model, 'odoo10_id': o10_id, 'odoo19_id': o19_id})
+            Map.create({'dst_model': model, 'src_id': o10_id, 'dst_id': o19_id})
 
     def _resolve(self, cache, model, o10_id):
-        """Odoo-10 id -> current Odoo-19 id via migration.map (cached), falling back
-        to the record's x_odoo10_id for records tagged before the map existed."""
+        """Odoo-17 id -> current Odoo-19 id via migration.map (cached), falling back
+        to the record's x_src_id for records tagged before the map existed."""
         if not o10_id:
             return False
         mcache = cache.setdefault(model, {})
         if o10_id in mcache:
             return mcache[o10_id]
         rec = self.env['migration.map'].sudo().search(
-            [('dst_model', '=', model), ('odoo10_id', '=', o10_id)], limit=1)
-        rid = rec.odoo19_id or False
-        if not rid and 'x_odoo10_id' in self.env[model]._fields:
+            [('dst_model', '=', model), ('src_id', '=', o10_id)], limit=1)
+        rid = rec.dst_id or False
+        if not rid and 'x_src_id' in self.env[model]._fields:
             legacy = self.env[model].sudo().with_context(active_test=False).search(
-                [('x_odoo10_id', '=', o10_id)], limit=1)
+                [('x_src_id', '=', o10_id)], limit=1)
             if legacy:
                 rid = legacy.id
                 self._put(cache, model, o10_id, rid)  # heal the map
@@ -217,7 +229,8 @@ class MigrationBackend(models.Model):
             return self._sync_companies(cur, spec, cache, stats)
         if spec['key'] == 'product_product':
             return self._sync_products(cur, spec, cache, stats)
-        rows = self._fetch(cur, spec['src'], src_sql=spec.get('src_sql'))  # ALL companies' rows
+        rows = self._fetch(cur, spec['src'], where=spec.get('where'),
+                           src_sql=spec.get('src_sql'))  # ALL companies' rows
         if rows is None:
             stats.append("%-22s SKIPPED (no source table '%s')" % (spec['name'], spec['src']))
             return
@@ -253,6 +266,12 @@ class MigrationBackend(models.Model):
                         tgt_cid = company_val['company_id']
                     if tgt_cid:
                         CModel = Model.with_company(tgt_cid)
+                    # 'normalize' runs BEFORE matching: a hook that cleans a name
+                    # or a code here decides what the record is matched on. Doing it
+                    # after the match (the 'scalars' phase) created a second
+                    # "THRISSUR" tag for "TRISSUR" and a second "A3" shade for "A3,".
+                    if hook:
+                        hook(row, vals, 'normalize', None, cache)
                     rid = self._resolve(cache, spec['dst'], row['id'])
                     rec = CModel.browse(rid) if rid else CModel
                     found = 'map' if rec else None
@@ -283,11 +302,11 @@ class MigrationBackend(models.Model):
                         continue
                     vals = self._valid(Model, vals)
                     vals.update(company_val)
-                    vals['x_odoo10_id'] = row['id']
+                    vals['x_src_id'] = row['id']
                     if rec and found == 'match':
                         # Adopt an existing built-in: tag it, and (accounts only) share
                         # the company via company_ids. Never reassign a single company_id.
-                        tag = {'x_odoo10_id': row['id']}
+                        tag = {'x_src_id': row['id']}
                         if 'company_ids' in company_val:
                             tag['company_ids'] = company_val['company_ids']
                         rec.write(tag)
@@ -317,7 +336,8 @@ class MigrationBackend(models.Model):
             return
         if not spec.get('m2o') and not spec.get('m2m'):
             return
-        rows = self._fetch(cur, spec['src'], src_sql=spec.get('src_sql'))
+        rows = self._fetch(cur, spec['src'], where=spec.get('where'),
+                           src_sql=spec.get('src_sql'))
         if rows is None:
             return
         Model = self.env[spec['dst']].with_context(active_test=False)
@@ -344,7 +364,7 @@ class MigrationBackend(models.Model):
 
     # ------------------------------------------------------------------ special entities
     def _sync_companies(self, cur, spec, cache, stats):
-        """Sync ALL Odoo 10 companies: the lowest-id one maps onto this database's
+        """Sync ALL Odoo 17 companies: the lowest-id one maps onto this database's
         existing company; each additional one is CREATED (with an l10n_in chart of
         accounts, like the main company)."""
         rows = sorted(self._fetch(cur, spec['src']) or [], key=lambda r: r['id'])
@@ -396,33 +416,46 @@ class MigrationBackend(models.Model):
         vals = {}
         if comp.get('name'):
             vals['name'] = comp['name']
-        for f in ('gst_number', 'pan_number', 'emergency_service_perc', 'company_warning',
-                  'logo1', 'logo2', 'invoice_signature', 'excel_logo',
-                  'phone', 'email', 'company_registry'):
+        for f in ('phone', 'email', 'mobile', 'company_registry', 'l10n_in_upi_id',
+                  'report_header', 'report_footer', 'company_details',
+                  'invoice_terms', 'fiscalyear_last_day', 'fiscalyear_last_month',
+                  # inventory & purchase policy
+                  'security_lead', 'po_lead', 'days_to_purchase', 'annual_inventory_day',
+                  'annual_inventory_month', 'po_double_validation', 'po_lock',
+                  'po_double_validation_amount'):
             if comp.get(f) is not None:
                 vals[f] = self._coerce(comp[f])
         if comp.get('partner_id'):
-            cur.execute('SELECT street, street2, city, zip, vat, website, phone, email '
+            cur.execute('SELECT street, street2, city, zip, vat, website, phone, email, '
+                        'mobile, l10n_in_pan, state_id '
                         'FROM res_partner WHERE id = %s', (comp['partner_id'],))
             prow = cur.fetchone() or {}
             for f in ('street', 'street2', 'city', 'zip', 'vat', 'website'):
                 if prow.get(f):
                     vals[f] = prow[f]
-            for f in ('phone', 'email'):
+            for f in ('phone', 'email', 'mobile'):
                 if prow.get(f) and not vals.get(f):
                     vals[f] = prow[f]
-        vals['x_odoo10_id'] = comp['id']
+            # the suite's own statutory fields, from l10n_in's
+            if prow.get('vat'):
+                vals['gst_number'] = prow['vat']
+            if prow.get('l10n_in_pan'):
+                vals['pan_number'] = prow['l10n_in_pan']
+            if prow.get('state_id'):
+                cur.execute('SELECT code, country_id FROM res_country_state WHERE id = %s',
+                            (prow['state_id'],))
+                srow = cur.fetchone()
+                if srow:
+                    state = self.env['res.country.state'].search(
+                        [('code', '=', srow['code']),
+                         ('country_id.code', '=', 'IN')], limit=1)
+                    if state:
+                        vals['state_id'] = state.id
+        vals['x_src_id'] = comp['id']
         company.write(self._valid(company, vals))
-        # set the native company logo (Image field) best-effort — never fail the
-        # company sync over an unparseable image.
-        if not company.logo:
-            for cand in ('logo1', 'excel_logo', 'logo2'):
-                if comp.get(cand):
-                    try:
-                        company.logo = self._coerce(comp[cand])
-                    except Exception as e:
-                        _logger.warning("company logo %s: %s", company.name, e)
-                    break
+        # The source keeps the company's bank details as plain text on the company
+        # (sales_invoice_print). v19 prints bank details from res.partner.bank, so
+        # they are turned into one, on the company's own partner, in _sync_banks.
 
     def _sync_company_rel(self, cur, cache, stats):
         """Per-company relations resolved after products exist (emergency product)."""
@@ -450,7 +483,7 @@ class MigrationBackend(models.Model):
                 missing += 1
                 continue
             tmpl = self.env['product.template'].with_context(active_test=False).browse(tmpl_id)
-            variant = Product.search([('x_odoo10_id', '=', row['id'])], limit=1)
+            variant = Product.search([('x_src_id', '=', row['id'])], limit=1)
             if not variant:
                 variants = tmpl.with_context(active_test=False).product_variant_ids
                 variant = variants.filtered(lambda v: v.default_code == row.get('default_code'))[:1] \
@@ -458,7 +491,7 @@ class MigrationBackend(models.Model):
             if not variant:
                 missing += 1
                 continue
-            wvals = {'x_odoo10_id': row['id']}
+            wvals = {'x_src_id': row['id']}
             if row.get('barcode'):
                 wvals['barcode'] = row['barcode']
             try:
@@ -473,14 +506,14 @@ class MigrationBackend(models.Model):
 
     # ------------------------------------------------------------------ product routes
     def _sync_product_routes(self, cur, cache, stats):
-        """Replicate each v10 product's Manufacture / Make-To-Order / Buy routes.
+        """Replicate each v17 product's Manufacture / Make-To-Order / Buy routes.
 
-        In Odoo 10 (as in 19) a Sale Order regenerates a Manufacturing Order only
+        In Odoo 17 (as in 19) a Sale Order regenerates a Manufacturing Order only
         when the product carries the *Manufacture* route (to resolve a procurement
         into an MO) together with *Replenish on Order (MTO)* (so confirming the SO
         immediately triggers that procurement).  The master-data sync copies the
         products and their BoMs but not ``product.template.route_ids`` -- so this
-        step maps the v10 route links (``stock_route_product.product_id`` is the
+        step maps the v17 route links (``stock_route_product.product_id`` is the
         product *template* id) onto the equivalent built-in v19 routes.
         """
         manufacture = self.env.ref('mrp.route_warehouse0_manufacture', raise_if_not_found=False)
@@ -498,16 +531,16 @@ class MigrationBackend(models.Model):
             cur.execute("""
                 SELECT sp.product_id AS tmpl, r.name AS rname
                 FROM stock_route_product sp
-                JOIN stock_location_route r ON r.id = sp.route_id
+                JOIN stock_route r ON r.id = sp.route_id
             """)
             links = cur.fetchall()
         except psycopg2.Error as e:
             stats.append("%-22s SKIPPED (%s)" % ("Product Routes", e))
             return
 
-        wanted = {}  # v10 template id -> set(v19 route ids)
+        wanted = {}  # v17 template id -> set(v19 route ids)
         for row in links:
-            rname = (row['rname'] or '').lower()
+            rname = (self._coerce(row['rname']) or '').lower()
             if 'manufacture' in rname:
                 tgt = manufacture
             elif 'make to order' in rname or 'mto' in rname:
@@ -543,15 +576,15 @@ class MigrationBackend(models.Model):
                      % ("Product Routes", applied, manufactured, skipped))
 
     # ------------------------------------------------------------------ invoice / bill numbering
-    _SEQ_ANCHOR_REF = 'Odoo 10 numbering anchor - do not delete'
+    _SEQ_ANCHOR_REF = 'Odoo 17 numbering anchor - do not delete'
 
     def _sync_bom_operations(self, cur, cache, stats):
-        """v10 mrp.routing -> v19 BoM operations.
+        """v17 mrp.routing -> v19 BoM operations.
 
         v19 REMOVED mrp.routing: operations hang off the BoM (mrp.routing.workcenter
-        .bom_id). A v10 routing is shared by many BoMs (routing 5 -> 108 BoMs here),
-        so one v10 routing line has to become one operation PER BoM that used it.
-        Idempotency key is therefore (bom_id, x_odoo10_id), not x_odoo10_id alone.
+        .bom_id). A v17 routing is shared by many BoMs (routing 5 -> 108 BoMs here),
+        so one v17 routing line has to become one operation PER BoM that used it.
+        Idempotency key is therefore (bom_id, x_src_id), not x_src_id alone.
         """
         Op = self.env['mrp.routing.workcenter'].with_context(active_test=False)
         rows = self._fetch(cur, 'mrp_routing_workcenter')
@@ -581,12 +614,12 @@ class MigrationBackend(models.Model):
                     'time_mode': op.get('time_mode') or 'manual',
                     'time_mode_batch': op.get('time_mode_batch') or 10,
                     'time_cycle_manual': op.get('time_cycle_manual') or 0.0,
-                    'x_odoo10_id': op['id'],
+                    'x_src_id': op['id'],
                 }
                 try:
                     with self.env.cr.savepoint():
                         rec = Op.search([('bom_id', '=', v19_bom),
-                                         ('x_odoo10_id', '=', op['id'])], limit=1)
+                                         ('x_src_id', '=', op['id'])], limit=1)
                         if rec:
                             rec.write(self._valid(Op, vals))
                             c['updated'] += 1
@@ -634,7 +667,7 @@ class MigrationBackend(models.Model):
     def _make_journal_default(self, journal):
         """Make `journal` the DEFAULT for its (company, type) by giving it the
         lowest `sequence` (account.journal._order = 'sequence, type, code'), so new
-        invoices/bills use the Odoo-10 journal and therefore continue its numbering.
+        invoices/bills use the Odoo-17 journal and therefore continue its numbering.
         Without this, new customer invoices would land on the l10n_in 'Sales'
         journal (INV/<fy>/xxxx) instead of the migrated 'Customer Invoices' (OC...)."""
         sibs = self.env['account.journal'].with_context(active_test=False).search(
@@ -646,8 +679,8 @@ class MigrationBackend(models.Model):
                 journal.sequence = low - 1
 
     def _seed_invoice_numbers(self, cur, cache):
-        """Continue Odoo 10 customer-invoice and vendor-bill numbering in Odoo 19
-        by anchoring each journal with the highest Odoo 10 number it used, and
+        """Continue Odoo 17 customer-invoice and vendor-bill numbering in Odoo 19
+        by anchoring each journal with the highest Odoo 17 number it used, and
         making that journal the default so new documents use it."""
         # Aggregate in the database, not in Python. This needs one row per journal
         # — the highest number it ever issued — and `SELECT *` over every invoice
@@ -658,15 +691,15 @@ class MigrationBackend(models.Model):
         try:
             cur.execute("""
                 SELECT DISTINCT ON (company_id, journal_id)
-                       company_id, journal_id, number, date_invoice
-                  FROM account_invoice
-                 WHERE type IN ('out_invoice', 'in_invoice')
-                   AND number IS NOT NULL AND state IN ('open', 'paid')
-                 ORDER BY company_id, journal_id, number COLLATE "C" DESC
+                       company_id, journal_id, name AS number, invoice_date AS date_invoice
+                  FROM account_move
+                 WHERE move_type IN ('out_invoice', 'in_invoice')
+                   AND name IS NOT NULL AND name <> '/' AND state = 'posted'
+                 ORDER BY company_id, journal_id, name COLLATE "C" DESC
             """)
             rows = cur.fetchall()
         except psycopg2.Error:
-            return "Invoice numbering      : SKIPPED (no account_invoice in source)"
+            return "Invoice numbering      : SKIPPED (no account_move in source)"
         best = {(r['company_id'], r['journal_id']): (r['number'], r['date_invoice'])
                 for r in rows}
         seeded = existing = skipped = 0
@@ -692,11 +725,11 @@ class MigrationBackend(models.Model):
         return out
 
     def _seed_mo_numbers(self, cur, cache):
-        """Continue Odoo 10 Manufacturing Order numbering. Unlike invoices, v19
+        """Continue Odoo 17 Manufacturing Order numbering. Unlike invoices, v19
         numbers MOs from each manufacturing operation type's ir.sequence
         (``stock.picking.type.sequence_id.next_by_id()``), NOT the sequence.mixin
         and NOT the ``mrp.production`` code sequence. So we set that sequence's
-        prefix + number_next from the last Odoo 10 MO name of the same company."""
+        prefix + number_next from the last Odoo 17 MO name of the same company."""
         try:
             cur.execute("""
                 SELECT DISTINCT ON (company_id) company_id, name
@@ -738,7 +771,7 @@ class MigrationBackend(models.Model):
         return out
 
     def action_continue_invoice_numbering(self):
-        """Dedicated button: continue Odoo 10 invoice/bill AND MO numbering."""
+        """Dedicated button: continue Odoo 17 invoice/bill AND MO numbering."""
         self = self._migration_env()
         conn = self._connect()
         conn.autocommit = True
@@ -752,7 +785,7 @@ class MigrationBackend(models.Model):
         self.log = "INVOICE / BILL / MO NUMBERING\n" + msg
         self.state = 'ok'
         return self._notify(
-            _("Invoice, bill and manufacturing numbering continued from Odoo 10. See the log."),
+            _("Invoice, bill and manufacturing numbering continued from Odoo 17. See the log."),
             sticky=True)
 
     # ------------------------------------------------------------------ users & access rights
@@ -760,13 +793,13 @@ class MigrationBackend(models.Model):
     _USER_SKIP_LOGINS = ('default', 'public', 'portaltemplate', '__system__', 'root', 'OdooBot')
 
     def _sync_users(self, cur, cache, stats):
-        """Create/adopt every Odoo 10 internal user in Odoo 19 with the SAME
+        """Create/adopt every Odoo 17 internal user in Odoo 19 with the SAME
         companies and the SAME access rights. Groups are matched across versions
         by their XML-id (module.name), which is stable for the app groups
-        (base/account/stock/mrp/purchase/sales_team/hr/crm). v10 groups whose
+        (base/account/stock/mrp/purchase/sales_team/hr/crm). v17 groups whose
         xml-id no longer exists in v19 (renamed feature toggles) are skipped and
         logged. Original passwords are preserved by copying the pbkdf2 hash."""
-        # v10 group id -> 'module.name'
+        # v17 group id -> 'module.name'
         try:
             cur.execute("SELECT res_id AS gid, module||'.'||name AS xmlid "
                         "FROM ir_model_data WHERE model='res.groups'")
@@ -780,8 +813,9 @@ class MigrationBackend(models.Model):
             for r in cur.fetchall():
                 u_comps.setdefault(r['user_id'], []).append(r['cid'])
             cur.execute("""
-                SELECT u.id, u.login, u.active, u.company_id, u.password_crypt, u.signature,
-                       p.name, p.email, p.lang, p.tz
+                SELECT u.id, u.login, u.active, u.company_id, u.password AS password_crypt,
+                       u.signature, u.notification_type,
+                       p.name, p.email, p.lang, p.tz, p.phone
                 FROM res_users u JOIN res_partner p ON p.id = u.partner_id
                 WHERE u.share = false AND u.login NOT IN %s
             """, (self._USER_SKIP_LOGINS,))
@@ -796,12 +830,18 @@ class MigrationBackend(models.Model):
         base_user = self.env.ref('base.group_user')
         ref_cache, missing = {}, set()
 
+        # v17 group xml-ids that moved module between 17 and 19
+        _RENAMED_GROUPS = {
+            'product.group_discount_per_so_line': 'sale.group_discount_per_so_line',
+        }
+
         def v19_group(xmlid):
+            xmlid = _RENAMED_GROUPS.get(xmlid, xmlid)
             if xmlid not in ref_cache:
                 ref_cache[xmlid] = self.env.ref(xmlid, raise_if_not_found=False)
             return ref_cache[xmlid]
 
-        has_x10 = 'x_odoo10_id' in Users._fields
+        has_x10 = 'x_src_id' in Users._fields
         created = adopted = skipped = 0
         pw_updates = []
         for r in rows:
@@ -833,21 +873,21 @@ class MigrationBackend(models.Model):
                 comp_ids = [main_c]
             is_active = bool(r['active'])
             base_vals = {'name': r['name'] or login}
-            for f in ('email', 'signature', 'lang', 'tz'):
+            for f in ('email', 'signature', 'lang', 'tz', 'phone', 'notification_type'):
                 if r.get(f):
                     base_vals[f] = r[f]
             try:
                 with self.env.cr.savepoint():
                     user = Users.search([('login', '=', login)], limit=1)
                     if not user and has_x10:
-                        user = Users.search([('x_odoo10_id', '=', r['id'])], limit=1)
+                        user = Users.search([('x_src_id', '=', r['id'])], limit=1)
                     if user:
                         # ADOPT: never strip existing access; only add groups/companies
                         wv = dict(base_vals)
                         wv['group_ids'] = [(4, g) for g in gids]
                         wv['company_ids'] = [(4, c) for c in comp_ids]
                         if has_x10:
-                            wv['x_odoo10_id'] = r['id']
+                            wv['x_src_id'] = r['id']
                         user.write(self._valid(Users, wv))
                         adopted += 1
                     else:
@@ -862,7 +902,7 @@ class MigrationBackend(models.Model):
                         cv['company_ids'] = [(6, 0, comp_ids)]
                         cv['company_id'] = main_c or comp_ids[0]
                         if has_x10:
-                            cv['x_odoo10_id'] = r['id']
+                            cv['x_src_id'] = r['id']
                         user = Users.create(self._valid(Users, cv))
                         created += 1
                         if not is_active:
@@ -881,9 +921,9 @@ class MigrationBackend(models.Model):
             except Exception as e:
                 _logger.warning("user password uid=%s: %s", uid, e)
         if missing:
-            _logger.info("users: %d v10 group xml-ids absent in v19 (skipped): %s",
+            _logger.info("users: %d v17 group xml-ids absent in v19 (skipped): %s",
                          len(missing), ', '.join(sorted(missing)))
-        stats.append("%-22s created=%d adopted=%d skipped=%d (groups by xml-id; %d v10 groups absent in v19)"
+        stats.append("%-22s created=%d adopted=%d skipped=%d (groups by xml-id; %d v17 groups absent in v19)"
                      % ("Users", created, adopted, skipped, len(missing)))
 
     # ------------------------------------------------------------------ bank accounts
@@ -891,7 +931,7 @@ class MigrationBackend(models.Model):
         """Sync res.bank + res.partner.bank. The company bank account must attach to
         the v19 COMPANY's partner (company.partner_id) so it shows in the invoice
         footer's bank-details table; the generic partner sync would otherwise map the
-        v10 company partner to a duplicate res.partner, not company.partner_id."""
+        v17 company partner to a duplicate res.partner, not company.partner_id."""
         Bank = self.env['res.bank'].with_context(active_test=False)
         n_bank = 0
         for r in self._fetch(cur, 'res_bank') or []:
@@ -902,10 +942,10 @@ class MigrationBackend(models.Model):
                     if r.get(k) is not None}
             if r.get('active') is not None:
                 vals['active'] = bool(r['active'])
-            vals['x_odoo10_id'] = r['id']
+            vals['x_src_id'] = r['id']
             try:
                 with self.env.cr.savepoint():
-                    rec = Bank.search([('x_odoo10_id', '=', r['id'])], limit=1)
+                    rec = Bank.search([('x_src_id', '=', r['id'])], limit=1)
                     if not rec and r.get('bic'):
                         rec = Bank.search([('bic', '=', r['bic'])], limit=1)
                     if not rec:
@@ -919,7 +959,7 @@ class MigrationBackend(models.Model):
             except Exception as e:
                 _logger.warning("res.bank %s: %s", r.get('name'), e)
 
-        # v10 company-partner id -> v19 company.partner_id
+        # v17 company-partner id -> v19 company.partner_id
         comp_partner = {}
         for r in self._fetch(cur, 'res_company') or []:
             v19c = self._resolve(cache, 'res.company', r['id'])
@@ -928,6 +968,34 @@ class MigrationBackend(models.Model):
 
         PB = self.env['res.partner.bank'].with_context(active_test=False)
         n_pb = skipped = 0
+        # The company's own account, kept as text on res_company in the source.
+        for r in self._fetch(cur, 'res_company') or []:
+            acc = (r.get('acc_number') or '').strip()
+            v19c = self._resolve(cache, 'res.company', r['id'])
+            if not acc or not v19c:
+                continue
+            company = self.env['res.company'].browse(v19c)
+            try:
+                with self.env.cr.savepoint():
+                    bank = False
+                    if r.get('acc_bank_name'):
+                        bank = Bank.search([('name', '=', r['acc_bank_name'])], limit=1) \
+                            or Bank.create({'name': r['acc_bank_name'],
+                                            'bic': r.get('swift_code') or False,
+                                            'street': r.get('bank_branch') or False})
+                    pb = PB.search([('acc_number', '=', acc),
+                                    ('partner_id', '=', company.partner_id.id)], limit=1)
+                    pvals = {'acc_number': acc, 'partner_id': company.partner_id.id,
+                             'company_id': company.id}
+                    if bank:
+                        pvals['bank_id'] = bank.id
+                    if pb:
+                        pb.write(pvals)
+                    else:
+                        PB.create(pvals)
+                    n_pb += 1
+            except Exception as e:
+                _logger.warning("company bank account %s: %s", acc, e)
         for r in self._fetch(cur, 'res_partner_bank') or []:
             acc = r.get('acc_number')
             partner_id = comp_partner.get(r.get('partner_id')) \
@@ -935,7 +1003,7 @@ class MigrationBackend(models.Model):
             if not acc or not partner_id:
                 skipped += 1
                 continue
-            vals = {'acc_number': acc, 'partner_id': partner_id, 'x_odoo10_id': r['id']}
+            vals = {'acc_number': acc, 'partner_id': partner_id, 'x_src_id': r['id']}
             bank_id = self._resolve(cache, 'res.bank', r.get('bank_id'))
             if bank_id:
                 vals['bank_id'] = bank_id
@@ -943,7 +1011,7 @@ class MigrationBackend(models.Model):
                 vals['sequence'] = r['sequence']
             try:
                 with self.env.cr.savepoint():
-                    rec = PB.search([('x_odoo10_id', '=', r['id'])], limit=1) \
+                    rec = PB.search([('x_src_id', '=', r['id'])], limit=1) \
                         or PB.search([('acc_number', '=', acc), ('partner_id', '=', partner_id)], limit=1)
                     if rec:
                         rec.write(vals)
@@ -998,17 +1066,125 @@ class MigrationBackend(models.Model):
         cache, stats = {}, []
         cache['_main_company_'] = self._main_company_id(cur)
         try:
+            # payment-term lines are needed while the terms are being created
+            cache['_pt_lines_'] = {}
+            for ln in self._fetch(cur, 'account_payment_term_line') or []:
+                cache['_pt_lines_'].setdefault(ln['payment_id'], []).append(ln)
+            # unit categories, for the reference each created unit is relative to
+            cache['_uom_categ_'] = {r['id']: (r.get('name') or '')
+                                    for r in self._fetch(cur, 'uom_category') or []}
+            # Users first: employees, teams and partners point at them. The user
+            # sync is independent of every spec (it matches groups by xml-id).
+            self._sync_users(cur, cache, stats)
             for spec in specs:
                 self._sync_pass1(cur, spec, cache, stats)
             for spec in specs:
                 self._sync_pass2(cur, spec, cache, stats)
+            self._sync_doctor_contacts(cur, cache, stats)
+            self._sync_partner_properties(cur, cache, stats)
+            self._sync_product_costs(cur, cache, stats)
             self._sync_product_routes(cur, cache, stats)
             self._sync_bom_operations(cur, cache, stats)
-            self._sync_users(cur, cache, stats)
             self._sync_banks(cur, cache, stats)
         finally:
             conn.close()
         return cache, stats
+
+    # ------------------------------------------------------------------ dental_sale partner fields
+    def _sync_doctor_contacts(self, cur, cache, stats):
+        """dental_sale kept the doctor as two text fields on the clinic (doctor_name,
+        doctor_contact_no). The suite models a doctor as a CONTACT of the clinic —
+        it is what the portal login, the WhatsApp desk and the visit screens key
+        on — so each named doctor becomes a child contact flagged is_doctor.
+
+        Idempotent by (clinic, doctor name): the child has no source id of its own.
+        """
+        try:
+            cur.execute("""SELECT id, doctor_name, doctor_contact_no FROM res_partner
+                            WHERE doctor_name IS NOT NULL AND trim(doctor_name) <> ''""")
+            rows = cur.fetchall()
+        except psycopg2.Error as e:
+            stats.append("Doctor contacts        SKIPPED (%s)" % e)
+            return
+        Partner = self.env['res.partner'].with_context(active_test=False)
+        created = updated = skipped = 0
+        for r in rows:
+            clinic_id = self._resolve(cache, 'res.partner', r['id'])
+            name = ' '.join((r['doctor_name'] or '').split())
+            if not clinic_id or not name:
+                skipped += 1
+                continue
+            clinic = Partner.browse(clinic_id)
+            if clinic.name.strip().upper() == name.upper():
+                # a solo doctor whose clinic record IS the doctor: no child needed
+                if not clinic.is_doctor:
+                    clinic.write({'is_doctor': True})
+                skipped += 1
+                continue
+            vals = {'name': name, 'parent_id': clinic_id, 'type': 'contact',
+                    'is_doctor': True, 'is_clinic': False, 'company_id': False,
+                    'customer_rank': 0}
+            phone = str(r['doctor_contact_no']) if r.get('doctor_contact_no') else ''
+            if phone and phone not in ('0', 'None'):
+                vals['phone'] = phone
+            try:
+                with self.env.cr.savepoint():
+                    child = Partner.search([('parent_id', '=', clinic_id),
+                                            ('name', '=ilike', name)], limit=1)
+                    if child:
+                        child.write(self._valid(Partner, vals))
+                        updated += 1
+                    else:
+                        Partner.create(self._valid(Partner, vals))
+                        created += 1
+            except Exception as e:
+                skipped += 1
+                _logger.warning("doctor contact for partner %s: %s", r['id'], e)
+        stats.append("Doctor contacts        created=%d updated=%d skipped=%d"
+                     % (created, updated, skipped))
+
+    def _sync_partner_properties(self, cur, cache, stats):
+        """Company-dependent partner settings, which v17 keeps in ir_property and
+        v19 as columns: the payment term and the fiscal position (GST: Within
+        Kerala / Inter State) each clinic is billed under."""
+        try:
+            cur.execute("""SELECT name, res_id, value_reference FROM ir_property
+                            WHERE res_id LIKE 'res.partner,%%'
+                              AND name IN ('property_payment_term_id',
+                                           'property_account_position_id',
+                                           'property_supplier_payment_term_id')
+                              AND value_reference IS NOT NULL""")
+            rows = cur.fetchall()
+        except psycopg2.Error as e:
+            stats.append("Partner properties     SKIPPED (%s)" % e)
+            return
+        Partner = self.env['res.partner'].with_context(active_test=False)
+        models_ = {'property_payment_term_id': 'account.payment.term',
+                   'property_supplier_payment_term_id': 'account.payment.term',
+                   'property_account_position_id': 'account.fiscal.position'}
+        n = skipped = 0
+        by_partner = {}
+        for r in rows:
+            try:
+                src_partner = int(r['res_id'].split(',')[1])
+                src_value = int(r['value_reference'].split(',')[1])
+            except (IndexError, ValueError):
+                continue
+            partner_id = self._resolve(cache, 'res.partner', src_partner)
+            value_id = self._resolve(cache, models_[r['name']], src_value)
+            if partner_id and value_id:
+                by_partner.setdefault(partner_id, {})[r['name']] = value_id
+            else:
+                skipped += 1
+        for partner_id, vals in by_partner.items():
+            try:
+                with self.env.cr.savepoint():
+                    Partner.browse(partner_id).write(vals)
+                n += 1
+            except Exception as e:
+                skipped += 1
+                _logger.warning("partner properties %s: %s", partner_id, e)
+        stats.append("Partner properties     partners=%d skipped=%d" % (n, skipped))
 
     def action_sync_master(self):
         self = self._migration_env()
@@ -1033,7 +1209,7 @@ class MigrationBackend(models.Model):
         stats += self._opening_accounting()
         stats += self._opening_inventory()
         stats.append("")
-        # continue Odoo 10 invoice/bill numbering (uses the cache from _run)
+        # continue Odoo 17 invoice/bill numbering (uses the cache from _run)
         conn = self._connect()
         conn.autocommit = True
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1056,12 +1232,12 @@ class MigrationBackend(models.Model):
         return self._notify(_("Full sync + configuration + opening balances done. See the log."), sticky=True)
 
     # ------------------------------------------------------------------ configuration
-    # Technical / DB-specific parameters that must NOT be copied v10 -> v19.
+    # Technical / DB-specific parameters that must NOT be copied v17 -> v19.
     _PARAM_DENY_PREFIX = ('database.', 'web.base')
     _PARAM_DENY_KEYS = {'report.url'}
 
     def _sync_configuration(self):
-        """Sync system-level configuration: number sequences (continue the v10
+        """Sync system-level configuration: number sequences (continue the v17
         numbering), system parameters (safe subset) and decimal precision."""
         self.ensure_one()
         conn = self._connect()
@@ -1070,7 +1246,7 @@ class MigrationBackend(models.Model):
         main = self._main_company_id(cur)
         out = []
         try:
-            # 1) Number sequences — continue the v10 series (prefix/padding/next).
+            # 1) Number sequences — continue the v17 series (prefix/padding/next).
             #    Skip account.* so v19/l10n_in GST-compliant invoice naming is preserved.
             Seq = self.env['ir.sequence'].sudo()
             by_code = {}
@@ -1085,7 +1261,19 @@ class MigrationBackend(models.Model):
                 targets = Seq.search([('code', '=', code)])
                 if not targets:
                     continue
-                vals = {'number_next': r.get('number_next') or 1}
+                number_next = r.get('number_next') or 1
+                if r.get('implementation') == 'standard':
+                    # number_next is stale on a 'standard' sequence: the live
+                    # counter is a PostgreSQL sequence named after the row.
+                    try:
+                        cur.execute('SELECT last_value, is_called FROM ir_sequence_%03d'
+                                    % r['id'])
+                        srow = cur.fetchone()
+                        if srow:
+                            number_next = srow['last_value'] + (1 if srow['is_called'] else 0)
+                    except psycopg2.Error:
+                        pass
+                vals = {'number_next': number_next}
                 for f in ('prefix', 'suffix', 'padding', 'number_increment'):
                     if r.get(f) is not None:
                         vals[f] = r[f]
@@ -1115,7 +1303,7 @@ class MigrationBackend(models.Model):
 
             # 3) Decimal precision by name (some were renamed in v19, e.g.
             #    "Product Unit of Measure" -> "Product Unit"; keep quantities at the
-            #    v10 precision so line quantities print as "1.000" not "1.00").
+            #    v17 precision so line quantities print as "1.000" not "1.00").
             DP = self.env['decimal.precision'].sudo()
             _DP_RENAME = {'Product Unit of Measure': 'Product Unit'}
             n_dp = 0
@@ -1131,13 +1319,13 @@ class MigrationBackend(models.Model):
                         _logger.warning("decimal precision %s: %s", r.get('name'), e)
             out.append("Decimal precision      : %d updated" % n_dp)
 
-            # 4) Currencies — activate every currency active in Odoo 10.
+            # 4) Currencies — activate every currency active in Odoo 17.
             out.append(self._sync_currencies(cur))
             # 5) Company financials — currency, fiscal year, tax policy, lock dates
             #    for EVERY company (not just the one the sync runs in).
             cache = {'_main_company_': main}
             out += self._sync_company_financials(cur, cache)
-            # 6) Journals — every v10 journal, per company (adopt the l10n_in
+            # 6) Journals — every v17 journal, per company (adopt the l10n_in
             #    built-ins, create the rest with a unique code + default account).
             out.append(self._sync_journals(cur, cache))
             # 7) Keep only primary journals on the (kanban) dashboard for speed.
@@ -1148,7 +1336,7 @@ class MigrationBackend(models.Model):
 
     # ------------------------------------------------------------------ config: currencies / company / journals
     def _sync_currencies(self, cur):
-        """Activate in Odoo 19 every currency that is active in Odoo 10 (matched by
+        """Activate in Odoo 19 every currency that is active in Odoo 17 (matched by
         ISO name). Currency *rates* are copied too when present."""
         Currency = self.env['res.currency'].with_context(active_test=False)
         rows = self._fetch(cur, 'res_currency', where='active = true') or []
@@ -1160,7 +1348,7 @@ class MigrationBackend(models.Model):
             vals = {}
             if not rec.active:
                 vals['active'] = True
-            # Match the v10 display format (Indian INR uses symbol AFTER the amount,
+            # Match the v17 display format (Indian INR uses symbol AFTER the amount,
             # e.g. "1,500.00 ₹"; v19 defaults to 'before').
             for f in ('symbol', 'position'):
                 if r.get(f) and r.get(f) != rec[f]:
@@ -1174,7 +1362,7 @@ class MigrationBackend(models.Model):
                     activated += 1
             except Exception as e:
                 _logger.warning("currency %s: %s", r.get('name'), e)
-        # rates (v10 has none in this DB, but keep it faithful/idempotent)
+        # rates (v17 has none in this DB, but keep it faithful/idempotent)
         rates = self._fetch(cur, 'res_currency_rate') or []
         cur_name = {c['id']: c.get('name') for c in self._fetch(cur, 'res_currency') or []}
         Rate = self.env['res.currency.rate'].sudo()
@@ -1219,7 +1407,7 @@ class MigrationBackend(models.Model):
             _logger.warning("currency change %s -> %s: %s", company.name, currency.name, e)
 
     def _sync_company_financials(self, cur, cache):
-        """Push Odoo 10 company-level financial settings onto EVERY mapped Odoo 19
+        """Push Odoo 17 company-level financial settings onto EVERY mapped Odoo 19
         company: currency, fiscal-year end, tax rounding, anglo-saxon, lock dates.
         Unknown-in-v19 fields are dropped by _valid (version drift safe)."""
         Currency = self.env['res.currency'].with_context(active_test=False)
@@ -1258,7 +1446,7 @@ class MigrationBackend(models.Model):
         return ["Company financials     : %d companies (currency, fiscal year, tax policy)" % n]
 
     def _unique_journal_code(self, Journal, company_id, base):
-        """A journal code (<=5 chars) unique within the company; v10 reused codes
+        """A journal code (<=5 chars) unique within the company; v17 reused codes
         across journals but v19 enforces code uniqueness per company."""
         base = re.sub(r'\s+', '', (base or 'JRN'))[:5] or 'JRN'
         code, n = base, 1
@@ -1271,7 +1459,7 @@ class MigrationBackend(models.Model):
         return code
 
     def _sync_journals(self, cur, cache):
-        """Sync every Odoo 10 journal into its mapped company. Adopt the matching
+        """Sync every Odoo 17 journal into its mapped company. Adopt the matching
         l10n_in built-in journal when one exists (by type+name); otherwise create
         it with a unique code and, for sale/purchase/misc, its default account."""
         rows = self._fetch(cur, 'account_journal')
@@ -1288,31 +1476,46 @@ class MigrationBackend(models.Model):
             jtype = r.get('type') if r.get('type') in _TYPES else 'general'
             name = r.get('name') or 'Journal'
             v10code = (r.get('code') or '').strip()[:5]
-            acc = (self._resolve(cache, 'account.account', r.get('default_debit_account_id'))
+            acc = (self._resolve(cache, 'account.account', r.get('default_account_id'))
+                   or self._resolve(cache, 'account.account', r.get('default_debit_account_id'))
                    or self._resolve(cache, 'account.account', r.get('default_credit_account_id')))
             can_default = jtype in ('sale', 'purchase', 'general')
+            bank_acc = self._resolve(cache, 'res.partner.bank', r.get('bank_account_id'))
             try:
                 with self.env.cr.savepoint():
-                    rec = Journal.search([('x_odoo10_id', '=', r['id'])], limit=1)
+                    rec = Journal.search([('x_src_id', '=', r['id'])], limit=1)
                     if rec:
                         if acc and can_default and not rec.default_account_id:
                             rec.default_account_id = acc
                             updated += 1
                     else:
-                        rec = Journal.search([('company_id', '=', comp_id),
-                                              ('type', '=', jtype), ('name', '=', name)], limit=1)
+                        # Same code and type = the same journal (BNK1, BILL, MISC,
+                        # STJ, EXCH, CABA are the chart's own on both sides); it
+                        # takes the lab's name, since that is what everyone calls it.
+                        rec = Journal.search([('company_id', '=', comp_id), ('type', '=', jtype),
+                                              ('code', '=', v10code), ('x_src_id', '=', False)],
+                                             limit=1) if v10code else Journal
+                        if not rec:
+                            rec = Journal.search([('company_id', '=', comp_id),
+                                                  ('type', '=', jtype), ('name', '=', name)], limit=1)
                         if rec:
-                            wv = {'x_odoo10_id': r['id']}
+                            wv = {'x_src_id': r['id'], 'name': name}
                             if acc and can_default and not rec.default_account_id:
                                 wv['default_account_id'] = acc
+                            if bank_acc and jtype == 'bank' and not rec.bank_account_id:
+                                wv['bank_account_id'] = bank_acc
                             rec.write(wv)
                             adopted += 1
                         else:
                             cvals = {'name': name, 'type': jtype, 'company_id': comp_id,
                                      'code': self._unique_journal_code(Journal, comp_id, v10code or name),
-                                     'x_odoo10_id': r['id']}
+                                     'x_src_id': r['id']}
                             if acc and can_default:
                                 cvals['default_account_id'] = acc
+                            if bank_acc and jtype == 'bank':
+                                cvals['bank_account_id'] = bank_acc
+                            if r.get('active') is False:
+                                cvals['active'] = False
                             rec = Journal.create(cvals)
                             created += 1
                     self._put(cache, 'account.journal', r['id'], rec.id)
@@ -1354,25 +1557,152 @@ class MigrationBackend(models.Model):
         return "Dashboard journals     : %d shown, %d hidden (dashboard performance)" % (len(on), len(off))
 
     # ------------------------------------------------------------------ per-entity hooks
-    _V10_TYPE_MAP = {'receivable': 'asset_receivable', 'payable': 'liability_payable',
-                     'liquidity': 'asset_cash'}
-
     def _hook_account(self, row, vals, phase, is_new, cache):
+        if phase == 'normalize':
+            # v19 account codes must be alphanumeric + dots — and the match is on
+            # the cleaned code, or the same account is created twice.
+            code = vals.get('code') or ''
+            clean = re.sub(r'[^A-Za-z0-9.]', '', code)
+            if clean:
+                vals['code'] = clean
+            return
         if phase != 'scalars':
             return
-        # v19 account codes must be alphanumeric + dots (v10 allowed spaces/parens).
-        code = vals.get('code') or ''
-        clean = re.sub(r'[^A-Za-z0-9.]', '', code)
-        if clean:
-            vals['code'] = clean
         if is_new:
-            at = self._V10_TYPE_MAP.get(row.get('internal_type'), 'asset_current')
-            vals['account_type'] = at
+            at = vals.get('account_type') or 'asset_current'
             vals['reconcile'] = (True if at in ('asset_receivable', 'liability_payable')
                                  else bool(row.get('reconcile')))
-        # On re-sync, never overwrite the account_type/reconcile of an existing
-        # (possibly adopted l10n_in) account — that could violate the
-        # receivable/payable-must-reconcile constraint.
+        else:
+            # On re-sync, never overwrite the account_type/reconcile of an existing
+            # (possibly adopted l10n_in) account — that could violate the
+            # receivable/payable-must-reconcile constraint.
+            vals.pop('account_type', None)
+            vals.pop('reconcile', None)
+
+    def _hook_uom(self, row, vals, phase, is_new, cache):
+        Uom = self.env['uom.uom'].with_context(active_test=False)
+        if phase == 'normalize':
+            name = (vals.get('name') or '').strip()
+            name = UOM_ALIASES.get(name.upper(), name)
+            # the built-in's exact spelling, so the match finds it
+            existing = Uom.search([('name', '=ilike', name)], limit=1)
+            vals['name'] = existing.name if existing else name
+        elif phase == 'scalars' and is_new:
+            # v17 factor: 1 reference = factor x this unit; v19 relative_factor:
+            # 1 this unit = relative_factor x the relative unit.
+            factor = float(row.get('factor') or 1.0) or 1.0
+            category = cache.get('_uom_categ_', {}).get(row.get('category_id'), '')
+            ref_name = UOM_CATEGORY_REFERENCE.get(category, 'Units')
+            ref = Uom.search([('name', '=', ref_name)], limit=1)
+            if ref and ref.name != vals.get('name'):
+                vals['relative_uom_id'] = ref.id
+                vals['relative_factor'] = 1.0 / factor
+
+    def _hook_picking_type(self, row, vals, phase, is_new, cache):
+        if phase == 'normalize':
+            wh = self._resolve(cache, 'stock.warehouse', row.get('warehouse_id'))
+            if wh:
+                vals['warehouse_id'] = wh
+        elif phase == 'scalars' and not is_new:
+            # adopted: keep v19's own sequence and locations, take the lab's name
+            for f in ('sequence_code', 'code', 'sequence', 'barcode'):
+                vals.pop(f, None)
+
+    def _sync_product_costs(self, cur, cache, stats):
+        """Cost prices and valuation policy, which Odoo 17 keeps as company-
+        dependent properties in ir_property rather than on the record.
+
+        Without this every product costs 0 here: stock valuation, margin reports
+        and the material requests' estimated cost would all be blank.
+        """
+        try:
+            cur.execute("""SELECT name, res_id, value_float, value_text FROM ir_property
+                            WHERE name IN ('standard_price', 'property_cost_method',
+                                           'property_valuation')
+                              AND res_id IS NOT NULL""")
+            rows = cur.fetchall()
+        except psycopg2.Error as e:
+            stats.append("Product costs          SKIPPED (%s)" % e)
+            return
+        Product = self.env['product.product'].with_context(active_test=False)
+        Category = self.env['product.category']
+        costs = categories = skipped = 0
+        by_category = {}
+        for r in rows:
+            try:
+                model, src_id = r['res_id'].split(',')
+                src_id = int(src_id)
+            except (ValueError, AttributeError):
+                continue
+            if r['name'] == 'standard_price':
+                if model == 'product.product':
+                    target = self._resolve(cache, 'product.product', src_id)
+                elif model == 'product.template':
+                    tmpl = self._resolve(cache, 'product.template', src_id)
+                    target = tmpl and self.env['product.template'].with_context(
+                        active_test=False).browse(tmpl).product_variant_id.id
+                else:
+                    target = None
+                if not target or not r['value_float']:
+                    skipped += 1
+                    continue
+                try:
+                    with self.env.cr.savepoint():
+                        Product.browse(target).with_company(self.env.company).write(
+                            {'standard_price': r['value_float']})
+                    costs += 1
+                except Exception as e:
+                    skipped += 1
+                    _logger.warning("standard_price product=%s: %s", target, e)
+            elif model == 'product.category' and r.get('value_text'):
+                categ = self._resolve(cache, 'product.category', src_id)
+                if categ:
+                    by_category.setdefault(categ, {})[r['name']] = r['value_text']
+        for categ, vals in by_category.items():
+            try:
+                with self.env.cr.savepoint():
+                    Category.browse(categ).with_company(self.env.company).write(
+                        self._valid(Category, vals))
+                categories += 1
+            except Exception as e:
+                skipped += 1
+                _logger.warning("category valuation %s: %s", categ, e)
+        stats.append("Product costs          products=%d categories=%d skipped=%d"
+                     % (costs, categories, skipped))
+
+    def _hook_district(self, row, vals, phase, is_new, cache):
+        if phase == 'normalize':
+            name = (vals.get('name') or '').strip().upper()
+            vals['name'] = DISTRICT_ALIASES.get(name, name)
+
+    def _hook_fiscal_position(self, row, vals, phase, is_new, cache):
+        if phase == 'normalize':
+            name = (vals.get('name') or '').strip()
+            vals['name'] = FISCAL_POSITION_ALIASES.get(name.upper(), name)
+
+    def _hook_colour(self, row, vals, phase, is_new, cache):
+        if phase == 'normalize':
+            # "A3," and "A3" are one shade; so are "2L2.5 2m3" and "2L2.5 2M3".
+            vals['name'] = re.sub(r'[\s,]+$', '', (vals.get('name') or '').strip()).upper()
+
+    def _hook_payment_term(self, row, vals, phase, is_new, cache):
+        """A NEW term gets the source's lines; an adopted one keeps its own.
+
+        v19 puts one default 100% line on every new term, and adding the source's
+        lines on top would sum past 100% and be refused. The lines are read once in
+        _run and kept on the cache.
+        """
+        if phase != 'scalars' or not is_new:
+            return
+        lines = cache.get('_pt_lines_', {}).get(row['id']) or []
+        if lines:
+            vals['line_ids'] = [(5, 0, 0)] + [
+                (0, 0, {'value': ln.get('value') or 'percent',
+                        'value_amount': ln.get('value_amount') or 0.0,
+                        'nb_days': ln.get('nb_days') or 0,
+                        'delay_type': ln.get('delay_type') or 'days_after',
+                        'days_next_month': ln.get('days_next_month') or '0'})
+                for ln in lines]
 
     def _hook_tax_group(self, row, vals, phase, is_new, cache):
         if phase == 'scalars' and is_new:
@@ -1382,8 +1712,8 @@ class MigrationBackend(models.Model):
     def _hook_tax(self, row, vals, phase, is_new, cache):
         if phase == 'scalars':
             # v19 turned price_include into a COMPUTED field driven by
-            # price_include_override; writing the v10 boolean is silently lost and
-            # the tax then behaves as tax-excluded. 12 of the 121 v10 taxes are
+            # price_include_override; writing the v17 boolean is silently lost and
+            # the tax then behaves as tax-excluded. 12 of the 121 v17 taxes are
             # inclusive, and on an inclusive tax that mistake does not just mislabel
             # the invoice — it adds the tax on top of a price that already contained
             # it, inflating the total.
@@ -1399,22 +1729,58 @@ class MigrationBackend(models.Model):
 
     def _hook_partner(self, row, vals, phase, is_new, cache):
         if phase == 'scalars':
-            vals['customer_rank'] = 1 if row.get('customer') else 0
-            vals['supplier_rank'] = 1 if row.get('supplier') else 0
+            # v19 dropped res.partner.mobile; the number must not be lost with it.
             if not vals.get('phone') and row.get('mobile'):
-                vals['phone'] = row.get('mobile')
+                vals['phone'] = row['mobile']
+            elif row.get('mobile') and row['mobile'] != vals.get('phone'):
+                # both filled and different: keep the mobile in the notes
+                note = 'Mobile: %s' % row['mobile']
+                if note not in (vals.get('comment') or ''):
+                    vals['comment'] = ((vals.get('comment') or '') + '\n' + note).strip()
+            # dental_sale's own customer flags are the source of truth over the
+            # ranks, which core only bumps on the first invoice.
+            if row.get('is_customer') and not vals.get('customer_rank'):
+                vals['customer_rank'] = 1
+            if row.get('is_supplier') and not vals.get('supplier_rank'):
+                vals['supplier_rank'] = 1
+            # smbg_contact's "Partner ID" is a reference the clinic was quoted.
+            if not vals.get('ref') and row.get('customer_id'):
+                vals['ref'] = row['customer_id']
+            # Who the customer is, in the suite's terms: every billed customer is a
+            # CLINIC (the account the work is invoiced to); one whose name is a
+            # doctor's is a doctor as well. Solo practices are both.
+            name = (vals.get('name') or '').strip().upper()
+            is_customer = bool(vals.get('customer_rank')) or bool(row.get('is_customer'))
+            if is_customer:
+                vals['is_clinic'] = True
+                if re.match(r'^DR\b', name):
+                    vals['is_doctor'] = True
+            # sales_invoice_print kept clinic-specific invoice terms on the partner
+            if row.get('terms_and_condition'):
+                note = row['terms_and_condition'].strip()
+                if note and note not in (vals.get('comment') or ''):
+                    vals['comment'] = ((vals.get('comment') or '') + '\nTerms: ' + note).strip()
+        elif phase == 'relations':
+            tag = self._resolve(cache, 'res.partner.category', row.get('district_id'))
+            if tag:
+                ids = list(vals.get('category_id', [(6, 0, [])])[0][2]) \
+                    if vals.get('category_id') else []
+                if tag not in ids:
+                    ids.append(tag)
+                vals['category_id'] = [(6, 0, ids)]
 
     def _hook_product_template(self, row, vals, phase, is_new, cache):
         if phase == 'scalars':
-            v10_type = row.get('type')
-            if v10_type == 'product':
+            # v17's detailed_type (product/consu/service) -> v19's type + is_storable
+            src_type = row.get('detailed_type') or row.get('type')
+            if src_type == 'product':
                 vals['type'], vals['is_storable'] = 'consu', True
-            elif v10_type == 'service':
+            elif src_type == 'service':
                 vals['type'] = 'service'
             else:
                 vals['type'], vals['is_storable'] = 'consu', False
         elif phase == 'relations':
-            # Force the tax lists to EXACTLY the v10 set, empty included.
+            # Force the tax lists to EXACTLY the v17 set, empty included.
             # _relation_vals only emits a field when something resolved, so a
             # product the source taxes nowhere would silently keep the l10n_in
             # default (5% GST) that v19 puts on every new product — and that
@@ -1423,22 +1789,23 @@ class MigrationBackend(models.Model):
                 vals.setdefault(f, [(5, 0, 0)])
 
     # ------------------------------------------------------------------ source timestamps
-    # v10 tables the transaction phases read. They have no ENTITY_SPEC, so they are
-    # listed here. The third element restricts the v19 side where one model is fed
-    # by two different v10 tables: account.move comes from account_invoice AND from
-    # account_move, whose id spaces overlap, so the map alone cannot tell them apart.
+    # v17 tables the transaction phases read. They have no ENTITY_SPEC, so they are
+    # listed here. The third element can restrict the v19 side (unused for v17,
+    # where invoices and entries share one account_move table).
     _TXN_TIMESTAMP_SOURCES = [
         ('sale.order', 'sale_order', None),
         ('sale.order.line', 'sale_order_line', None),
-        ('account.move', 'account_invoice', "t.move_type <> 'entry'"),
-        ('account.move', 'account_move', "t.move_type = 'entry'"),
+        ('account.move', 'account_move', None),
         ('mrp.production', 'mrp_production', None),
         ('stock.picking', 'stock_picking', None),
+        ('stock.move', 'stock_move', None),
+        ('stock.move.line', 'stock_move_line', None),
         ('purchase.order', 'purchase_order', None),
+        ('purchase.order.line', 'purchase_order_line', None),
     ]
 
     def _timestamp_sources(self):
-        """[(v19 model, v10 table, extra v19 condition)] — specs first, then documents."""
+        """[(v19 model, v17 table, extra v19 condition)] — specs first, then documents."""
         seen, out = set(), []
         for spec in ENTITY_SPECS:
             key = (spec['dst'], spec['src'])
@@ -1453,7 +1820,7 @@ class MigrationBackend(models.Model):
         return out
 
     def _stamp_timestamps(self, cur, model, table, cond=None):
-        """Restore create_date / write_date from the Odoo 10 row.
+        """Restore create_date / write_date from the Odoo 17 row.
 
         Odoo stamps both itself on create() and ignores whatever you pass in, so
         the source values can only be put back afterwards, by SQL. Left alone,
@@ -1474,8 +1841,8 @@ class MigrationBackend(models.Model):
             return 0          # table absent in this source (version drift)
         if not src:
             return 0
-        q = ('SELECT mm.odoo10_id, mm.odoo19_id FROM migration_map mm '
-             'JOIN "%s" t ON t.id = mm.odoo19_id WHERE mm.dst_model = %%s' % Model._table)
+        q = ('SELECT mm.src_id, mm.dst_id FROM migration_map mm '
+             'JOIN "%s" t ON t.id = mm.dst_id WHERE mm.dst_model = %%s' % Model._table)
         if cond:
             q += ' AND ' + cond
         self.env.cr.execute(q, (model,))
@@ -1519,7 +1886,7 @@ class MigrationBackend(models.Model):
                SET create_date = p.create_date, write_date = p.write_date
               FROM account_move p
               JOIN migration_map mm
-                ON mm.dst_model = 'account.move' AND mm.odoo19_id = p.id
+                ON mm.dst_model = 'account.move' AND mm.dst_id = p.id
              WHERE t.move_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
                  OR t.write_date  IS DISTINCT FROM p.write_date)
@@ -1529,7 +1896,7 @@ class MigrationBackend(models.Model):
                SET create_date = p.create_date, write_date = p.write_date
               FROM purchase_order p
               JOIN migration_map mm
-                ON mm.dst_model = 'purchase.order' AND mm.odoo19_id = p.id
+                ON mm.dst_model = 'purchase.order' AND mm.dst_id = p.id
              WHERE t.order_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
                  OR t.write_date  IS DISTINCT FROM p.write_date)
@@ -1539,7 +1906,7 @@ class MigrationBackend(models.Model):
                SET create_date = p.create_date, write_date = p.write_date
               FROM stock_picking p
               JOIN migration_map mm
-                ON mm.dst_model = 'stock.picking' AND mm.odoo19_id = p.id
+                ON mm.dst_model = 'stock.picking' AND mm.dst_id = p.id
              WHERE t.picking_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
                  OR t.write_date  IS DISTINCT FROM p.write_date)
@@ -1549,7 +1916,7 @@ class MigrationBackend(models.Model):
                SET create_date = p.create_date, write_date = p.write_date
               FROM mrp_production p
               JOIN migration_map mm
-                ON mm.dst_model = 'mrp.production' AND mm.odoo19_id = p.id
+                ON mm.dst_model = 'mrp.production' AND mm.dst_id = p.id
              WHERE t.production_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
                  OR t.write_date  IS DISTINCT FROM p.write_date)
@@ -1559,7 +1926,7 @@ class MigrationBackend(models.Model):
                SET create_date = p.create_date, write_date = p.write_date
               FROM mrp_production p
               JOIN migration_map mm
-                ON mm.dst_model = 'mrp.production' AND mm.odoo19_id = p.id
+                ON mm.dst_model = 'mrp.production' AND mm.dst_id = p.id
              WHERE t.raw_material_production_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
                  OR t.write_date  IS DISTINCT FROM p.write_date)
@@ -1572,9 +1939,9 @@ class MigrationBackend(models.Model):
                AND EXISTS (
                      SELECT 1 FROM migration_map mm
                       WHERE (mm.dst_model = 'stock.picking'
-                             AND mm.odoo19_id = sm.picking_id)
+                             AND mm.dst_id = sm.picking_id)
                          OR (mm.dst_model = 'mrp.production'
-                             AND mm.odoo19_id IN (sm.production_id,
+                             AND mm.dst_id IN (sm.production_id,
                                                   sm.raw_material_production_id)))
                AND (t.create_date IS DISTINCT FROM sm.create_date
                  OR t.write_date  IS DISTINCT FROM sm.write_date)
@@ -1625,11 +1992,11 @@ class MigrationBackend(models.Model):
         return log
 
     # ------------------------------------------------------------------ opening balances
-    _OPENING_REF = 'Opening Balance (Odoo 10 migration)'
+    _OPENING_REF = 'Opening Balance (Odoo 17 migration)'
 
     # Unsettled receivable/payable documents as of the cut-over.
     #
-    # "Unsettled AS OF the cut" is not the same as Odoo 10's own `reconciled` flag,
+    # "Unsettled AS OF the cut" is not the same as Odoo 17's own `reconciled` flag,
     # which reflects today. An invoice paid in June was still open on 31-Mar, so the
     # matched amount only counts when the COUNTERPART line is itself dated on or
     # before the cut — hence the join back to the other side of every partial.
@@ -1637,16 +2004,13 @@ class MigrationBackend(models.Model):
         WITH win AS (
             SELECT aml.id, aml.account_id, aml.partner_id, aml.date, aml.date_maturity,
                    aml.debit - aml.credit AS bal,
-                   COALESCE(NULLIF(inv.number, ''), NULLIF(am.name, ''),
-                            NULLIF(aml.ref, '')) AS doc
+                   COALESCE(NULLIF(am.name, ''), NULLIF(aml.ref, '')) AS doc
               FROM account_move_line aml
               JOIN account_move am  ON am.id = aml.move_id AND am.state = 'posted'
               JOIN account_account aa ON aa.id = aml.account_id
-              JOIN account_account_type aat ON aat.id = aa.user_type_id
-              LEFT JOIN account_invoice inv ON inv.id = aml.invoice_id
              WHERE aml.date <= %(cut)s AND aml.date > %(frm)s
                AND am.company_id = %(cid)s
-               AND aat.type IN ('receivable', 'payable')
+               AND aa.account_type IN ('asset_receivable', 'liability_payable')
         ), matched AS (
             SELECT w.id,
                    COALESCE(sum(apr.amount) FILTER (WHERE apr.debit_move_id  = w.id), 0)
@@ -1769,8 +2133,8 @@ class MigrationBackend(models.Model):
                     FROM account_move_line aml
                     JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
                     JOIN account_account aa ON aa.id = aml.account_id
-                    JOIN account_account_type aat ON aat.id = aa.user_type_id
-                    WHERE aml.date <= %s AND am.company_id = %s AND aat.type IN ('receivable','payable')
+                    WHERE aml.date <= %s AND am.company_id = %s
+                      AND aa.account_type IN ('asset_receivable','liability_payable')
                     GROUP BY aml.account_id, aml.partner_id
                 """, (date, comp['id']))
                 partner_rows = cur.fetchall()
@@ -1779,9 +2143,9 @@ class MigrationBackend(models.Model):
                     FROM account_move_line aml
                     JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
                     JOIN account_account aa ON aa.id = aml.account_id
-                    JOIN account_account_type aat ON aat.id = aa.user_type_id
-                    WHERE aml.date <= %s AND am.company_id = %s AND aat.include_initial_balance = TRUE
-                      AND aat.type NOT IN ('receivable','payable')
+                    WHERE aml.date <= %s AND am.company_id = %s
+                      AND aa.include_initial_balance = TRUE
+                      AND aa.account_type NOT IN ('asset_receivable','liability_payable')
                     GROUP BY aml.account_id
                 """, (date, comp['id']))
                 acc_rows = cur.fetchall()
@@ -1800,7 +2164,7 @@ class MigrationBackend(models.Model):
                          'credit': round(-bal, 2) if bal < 0 else 0.0}
                     if src:
                         # Which document in the old ledger this line stands for.
-                        v['x_odoo10_id'] = src
+                        v['x_src_id'] = src
                     if partner_id:
                         v['partner_id'] = partner_id
                     if maturity:
@@ -1849,7 +2213,7 @@ class MigrationBackend(models.Model):
                             line['debit'] - line['credit']
 
                 # --- everything the detail does not cover: history older than the
-                # itemised window, and the handful of v10 reconciliations that were
+                # itemised window, and the handful of v17 reconciliations that were
                 # made across two different partners (so one side's document is
                 # settled while the group still carries a balance). Derived from the
                 # authoritative per-account total, which is why each partner's
@@ -1968,7 +2332,7 @@ class MigrationBackend(models.Model):
 
     # ------------------------------------------------------------------ opening refresh
     def action_refresh_opening_balances(self):
-        """Bring the opening balances in line with edits made in Odoo 10 since.
+        """Bring the opening balances in line with edits made in Odoo 17 since.
 
         The full sync rebuilds every opening entry, which after go-live means
         breaking every reconciliation made against them. This does the small thing
@@ -2026,7 +2390,7 @@ class MigrationBackend(models.Model):
                                                  src_company_id, label)
         lines = moves.line_ids.filtered(lambda l: l.partner_id)
         stamped = self._stamp_opening_lines(lines, wanted)
-        here = {l.x_odoo10_id: l for l in lines if l.x_odoo10_id}
+        here = {l.x_src_id: l for l in lines if l.x_src_id}
         equity = self._opening_equity_account(company)
         carry_wanted = self._opening_carry(wanted, totals)
         carry_here = {(l.partner_id.id, l.account_id.id): l
@@ -2133,7 +2497,7 @@ class MigrationBackend(models.Model):
                 vals = dict(self._opening_vals(want), account_id=want['account'],
                             partner_id=want['partner'])
                 if src:
-                    vals['x_odoo10_id'] = src
+                    vals['x_src_id'] = src
                 commands.append((0, 0, vals))
                 added += 1
                 running += vals['debit'] - vals['credit']
@@ -2189,7 +2553,7 @@ class MigrationBackend(models.Model):
                 vals = dict(self._opening_vals(want), account_id=want['account'],
                             partner_id=partner.id)
                 if src:
-                    vals['x_odoo10_id'] = src
+                    vals['x_src_id'] = src
                 lines.append((0, 0, vals))
                 running += vals['debit'] - vals['credit']
             total = round(running, 2)
@@ -2243,8 +2607,8 @@ class MigrationBackend(models.Model):
             FROM account_move_line aml
             JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
             JOIN account_account aa ON aa.id = aml.account_id
-            JOIN account_account_type aat ON aat.id = aa.user_type_id
-            WHERE aml.date <= %s AND am.company_id = %s AND aat.type IN ('receivable','payable')
+            WHERE aml.date <= %s AND am.company_id = %s
+              AND aa.account_type IN ('asset_receivable','liability_payable')
             GROUP BY aml.account_id, aml.partner_id
         """, (date, src_company_id))
         rows = cur.fetchall()
@@ -2307,13 +2671,13 @@ class MigrationBackend(models.Model):
         Only where it is beyond doubt: one line, one item. Anything ambiguous is
         left unstamped and simply not touched by the refresh.
         """
-        blanks = lines.filtered(lambda l: not l.x_odoo10_id and l.name)
+        blanks = lines.filtered(lambda l: not l.x_src_id and l.name)
         if not blanks:
             return 0
         by_key = defaultdict(list)
         for src, want in wanted.items():
             by_key[(want['partner'], want['account'], want['name'])].append(src)
-        taken = set(lines.mapped('x_odoo10_id'))
+        taken = set(lines.mapped('x_src_id'))
         pairs = []
         for line in blanks:
             key = (line.partner_id.id, line.account_id.id, line.name)
@@ -2332,14 +2696,14 @@ class MigrationBackend(models.Model):
         self.env.flush_all()
         psycopg2.extras.execute_values(
             self.env.cr._obj,
-            "UPDATE account_move_line SET x_odoo10_id = v.src "
+            "UPDATE account_move_line SET x_src_id = v.src "
             "FROM (VALUES %s) AS v(id, src) WHERE account_move_line.id = v.id",
             pairs, page_size=5000)
         self.env.invalidate_all()
         return len(pairs)
 
     def _opening_inventory(self):
-        """Set opening on-hand PER company (all Odoo 10 companies)."""
+        """Set opening on-hand PER company (all Odoo 17 companies)."""
         self.ensure_one()
         # inventory_as_of lets this be re-run for a later position once the
         # post-opening transfers are in (see action_refresh_inventory).
@@ -2363,18 +2727,22 @@ class MigrationBackend(models.Model):
                 # product_qty, not product_uom_qty: the latter is in the MOVE's unit
                 # (a box of 12 counts as 1), the former in the product's own unit,
                 # which is the unit a quant's quantity is kept in.
+                # Per LOCATION: the lab keeps stock in department stores (Z- Ceramic
+                # Department...) and those were migrated as locations; a store that
+                # did not map falls back to the warehouse's main stock.
                 cur.execute("""
-                    SELECT product_id, sum(qty) qty FROM (
-                        SELECT sm.product_id, sm.product_qty AS qty
+                    SELECT product_id, location_id, sum(qty) qty FROM (
+                        SELECT sm.product_id, sm.location_dest_id AS location_id,
+                               sm.product_qty AS qty
                           FROM stock_move sm JOIN stock_location d ON d.id = sm.location_dest_id
                          WHERE sm.state = 'done' AND d.usage = 'internal'
                            AND sm.date <= %s AND sm.company_id = %s
                         UNION ALL
-                        SELECT sm.product_id, -sm.product_qty
+                        SELECT sm.product_id, sm.location_id, -sm.product_qty
                           FROM stock_move sm JOIN stock_location s ON s.id = sm.location_id
                          WHERE sm.state = 'done' AND s.usage = 'internal'
                            AND sm.date <= %s AND sm.company_id = %s
-                    ) t GROUP BY product_id
+                    ) t GROUP BY product_id, location_id
                 """, (date, comp['id'], date, comp['id']))
                 # No `HAVING sum(qty) <> 0`: a product whose source balance is zero
                 # still has to be written when this runs as a REFRESH, or a product
@@ -2392,9 +2760,11 @@ class MigrationBackend(models.Model):
                     if product.type != 'consu' or not product.is_storable:
                         skipped += 1
                         continue
+                    loc_id = self._resolve(cache, 'stock.location', r.get('location_id')) \
+                        or location.id
                     try:
                         with self.env.cr.savepoint():
-                            quant = Quant.create({'product_id': prod_id, 'location_id': location.id,
+                            quant = Quant.create({'product_id': prod_id, 'location_id': loc_id,
                                                   'inventory_quantity': r['qty']})
                             quant.action_apply_inventory()
                         applied += 1

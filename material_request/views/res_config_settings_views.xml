@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_material_request" model="ir.ui.view">
+        <field name="name">res.config.settings.material.request</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="stock.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@name='operations_setting_container']" position="before">
+                <block title="Material Requests" name="material_request_block"
+                       help="How department requests are picked from the main store.">
+                    <setting id="material_request_type" string="Operation Type"
+                             help="The internal transfer raised when a request is approved. Its source location is the store the material comes from.">
+                        <field name="material_request_type_id" options="{'no_create': True}"/>
+                    </setting>
+                    <setting id="material_request_approver" string="Approver"
+                             help="Gets an activity whenever a request is submitted for approval.">
+                        <field name="material_request_approver_id" options="{'no_create': True}"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

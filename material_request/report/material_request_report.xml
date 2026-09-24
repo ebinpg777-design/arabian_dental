@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_material_request" model="ir.actions.report">
+        <field name="name">Requisition Slip</field>
+        <field name="model">material.request</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">material_request.report_material_request</field>
+        <field name="report_file">material_request.report_material_request</field>
+        <field name="print_report_name">'Requisition %s' % object.name</field>
+        <field name="binding_model_id" ref="model_material_request"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_material_request">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Requisition Slip <span t-field="o.name"/></h2>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Deliver to:</strong> <span t-field="o.location_id"/><br/>
+                                <strong>Requested by:</strong> <span t-field="o.user_id"/><br/>
+                                <strong>Requested on:</strong> <span t-field="o.date_request"/>
+                                <t t-if="o.date_needed"><br/><strong>Needed by:</strong> <span t-field="o.date_needed"/></t>
+                            </div>
+                            <div class="col-6">
+                                <strong>From store:</strong> <span t-field="o.source_location_id"/><br/>
+                                <t t-if="o.approver_id"><strong>Approved by:</strong> <span t-field="o.approver_id"/> on <span t-field="o.date_approved" t-options='{"widget": "date"}'/><br/></t>
+                                <strong>Status:</strong> <span t-field="o.state"/>
+                                <t t-if="o.priority == '1'"><br/><strong class="text-danger">URGENT</strong></t>
+                            </div>
+                        </div>
+                        <p t-if="o.reason"><strong>Purpose:</strong> <span t-field="o.reason"/></p>
+                        <table class="table table-sm o_main_table">
+                            <thead>
+                                <tr>
+                                    <th>#</th><th>Item</th><th>Note</th>
+                                    <th class="text-end">Requested</th>
+                                    <th class="text-end">Approved</th>
+                                    <th class="text-end">Delivered</th>
+                                    <th>Unit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.line_ids" t-as="l">
+                                    <td><t t-esc="l_index + 1"/></td>
+                                    <td><span t-field="l.product_id.display_name"/></td>
+                                    <td><span t-field="l.note"/></td>
+                                    <td class="text-end"><span t-field="l.quantity"/></td>
+                                    <td class="text-end"><span t-field="l.qty_approved"/></td>
+                                    <td class="text-end"><span t-field="l.qty_delivered"/></td>
+                                    <td><span t-field="l.product_uom_id"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="row mt-5">
+                            <div class="col-4">Issued by: ______________</div>
+                            <div class="col-4">Received by: ______________</div>
+                            <div class="col-4">Date: ______________</div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

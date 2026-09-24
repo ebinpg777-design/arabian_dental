@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Shared pieces. One template each so every page prints the same address, the
+         same form and the same closing band, and a change is made once. -->
+
+    <!-- Page hero over a photograph, for every inner page. -->
+    <template id="page_hero" name="Page hero">
+        <section class="o_lab_pagehero" t-attf-style="--hero-img: url('#{hero_img}')">
+            <div class="container">
+                <div class="o_lab_pagehero_in o_lab_reveal">
+                    <span t-if="hero_kicker" class="o_lab_kicker o_lab_kicker_light" t-esc="hero_kicker"/>
+                    <h1 t-esc="hero_title"/>
+                    <p t-if="hero_text" t-esc="hero_text"/>
+                    <div t-if="hero_cta" class="o_lab_cta">
+                        <a t-att-href="hero_cta[1]" class="btn o_lab_btn"><t t-esc="hero_cta[0]"/></a>
+                        <a t-if="hero_cta2" t-att-href="hero_cta2[1]" class="btn o_lab_btn_glass"><t t-esc="hero_cta2[0]"/></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- The lab's address and numbers. -->
+    <template id="contact_rows" name="Contact rows">
+        <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+        <ul class="o_lab_contact_rows list-unstyled">
+            <li>
+                <i class="fa fa-map-marker"/>
+                <span>
+                    <t t-esc="lab['street']"/>,<br/><t t-esc="lab['street2']"/>,<br/>
+                    <t t-esc="lab['city']"/>, <t t-esc="lab['state']"/> <t t-esc="lab['zip']"/>
+                    <a t-att-href="lab['maps']" target="_blank" rel="noopener" class="o_lab_inline_link"><i class="fa fa-external-link me-1"/>Open in Maps</a>
+                </span>
+            </li>
+            <li><i class="fa fa-phone"/><span><a t-attf-href="tel:#{lab['phones'][0][1]}" t-esc="lab['phones'][0][0]"/></span></li>
+            <li><i class="fa fa-whatsapp"/><span><a t-attf-href="https://wa.me/#{lab['whatsapp']}" target="_blank" rel="noopener">Message us on WhatsApp</a></span></li>
+            <li><i class="fa fa-envelope-o"/><span><a t-attf-href="mailto:#{lab['email']}" t-esc="lab['email']"/></span></li>
+            <li><i class="fa fa-clock-o"/><span><t t-esc="lab['hours']"/><br/><t t-esc="lab['closed']"/></span></li>
+            <li><i class="fa fa-instagram"/><span><a t-att-href="lab['instagram']" target="_blank" rel="noopener" t-esc="lab['instagram_handle']"/></span></li>
+        </ul>
+    </template>
+
+    <!-- An enquiry form that lands in the lab's inbox. Odoo's own website form
+         mechanics (the /website/form/ controller writing a mail.mail), so it needs no
+         extra app, validates in the browser and redirects to the thank-you page. The
+         subject is preset per page so the lab knows which page it came from. -->
+    <template id="enquiry_form" name="Enquiry form">
+        <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+        <t t-set="form_id" t-value="form_id or 'lab_enquiry_form'"/>
+        <section class="s_website_form o_lab_form" data-vcss="001" data-snippet="s_website_form">
+            <form t-att-id="form_id" action="/website/form/" method="post" enctype="multipart/form-data"
+                  class="o_mark_required" data-mark="*" data-model_name="mail.mail"
+                  data-success-mode="redirect" data-success-page="/contactus-thank-you">
+                <div class="s_website_form_rows row s_col_no_bgcolor">
+                    <div class="mb-3 col-md-6 s_website_form_field s_website_form_custom s_website_form_required" data-type="char" data-name="Field">
+                        <label class="s_website_form_label" t-attf-for="#{form_id}_name">
+                            <span class="s_website_form_label_content">Your name</span>
+                            <span class="s_website_form_mark"> *</span>
+                        </label>
+                        <input t-attf-id="#{form_id}_name" type="text" class="form-control s_website_form_input" name="name" required="" data-fill-with="name"/>
+                    </div>
+                    <div class="mb-3 col-md-6 s_website_form_field s_website_form_custom" data-type="char" data-name="Field">
+                        <label class="s_website_form_label" t-attf-for="#{form_id}_company">
+                            <span class="s_website_form_label_content"><t t-esc="company_label or 'Clinic / practice'"/></span>
+                        </label>
+                        <input t-attf-id="#{form_id}_company" type="text" class="form-control s_website_form_input" name="company" data-fill-with="commercial_company_name"/>
+                    </div>
+                    <div class="mb-3 col-md-6 s_website_form_field s_website_form_custom s_website_form_required" data-type="char" data-name="Field">
+                        <label class="s_website_form_label" t-attf-for="#{form_id}_phone">
+                            <span class="s_website_form_label_content">Phone / WhatsApp</span>
+                            <span class="s_website_form_mark"> *</span>
+                        </label>
+                        <input t-attf-id="#{form_id}_phone" type="tel" class="form-control s_website_form_input" name="phone" required="" data-fill-with="phone"/>
+                    </div>
+                    <div class="mb-3 col-md-6 s_website_form_field s_website_form_required s_website_form_model_required" data-type="email" data-name="Field">
+                        <label class="s_website_form_label" t-attf-for="#{form_id}_email">
+                            <span class="s_website_form_label_content">Email</span>
+                            <span class="s_website_form_mark"> *</span>
+                        </label>
+                        <input t-attf-id="#{form_id}_email" type="email" class="form-control s_website_form_input" name="email_from" required="" data-fill-with="email"/>
+                    </div>
+                    <div t-if="choices" class="mb-3 col-12 s_website_form_field s_website_form_custom" data-type="selection" data-name="Field">
+                        <label class="s_website_form_label" t-attf-for="#{form_id}_choice">
+                            <span class="s_website_form_label_content" t-esc="choices_label"/>
+                        </label>
+                        <select t-attf-id="#{form_id}_choice" class="form-select s_website_form_input" t-att-name="choices_label">
+                            <option t-foreach="choices" t-as="choice" t-att-value="choice" t-esc="choice"/>
+                        </select>
+                    </div>
+                    <div class="mb-3 col-12 s_website_form_field s_website_form_custom s_website_form_required" data-type="text" data-name="Field">
+                        <label class="s_website_form_label" t-attf-for="#{form_id}_msg">
+                            <span class="s_website_form_label_content"><t t-esc="message_label or 'Your message'"/></span>
+                            <span class="s_website_form_mark"> *</span>
+                        </label>
+                        <textarea t-attf-id="#{form_id}_msg" class="form-control s_website_form_input" name="description" required="" rows="5" t-att-placeholder="message_placeholder or ''"/>
+                    </div>
+                    <div class="s_website_form_field s_website_form_dnone d-none" data-type="char" data-name="Field">
+                        <input type="hidden" class="s_website_form_input" name="subject" t-att-value="subject or 'Website enquiry'"/>
+                    </div>
+                    <div class="s_website_form_field s_website_form_dnone d-none" data-type="char" data-name="Field">
+                        <input type="hidden" class="s_website_form_input" name="email_to" t-att-value="lab['email']"/>
+                    </div>
+                    <div class="col-12 s_website_form_submit s_website_form_no_submit_label" data-name="Submit Button">
+                        <a href="#" role="button" class="btn o_lab_btn s_website_form_send"><t t-esc="submit_label or 'Send'"/><i class="fa fa-paper-plane ms-2"/></a>
+                        <span id="s_website_form_result"/>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </template>
+
+    <!-- The closing band on every page: one more chance to send a case. -->
+    <template id="cta_band" name="Closing band">
+        <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+        <section class="o_lab_ctaband">
+            <div class="container">
+                <div class="o_lab_ctaband_in o_lab_reveal">
+                    <div>
+                        <span class="o_lab_kicker o_lab_kicker_light">Ready when you are</span>
+                        <h2><t t-esc="cta_title or 'Send us your next case'"/></h2>
+                        <p><t t-esc="cta_text or 'Tell us what you need and we will tell you exactly when it will be with you.'"/></p>
+                    </div>
+                    <div class="o_lab_cta">
+                        <a href="/send-a-case" class="btn o_lab_btn o_lab_btn_lg">How to send a case</a>
+                        <a t-attf-href="https://wa.me/#{lab['whatsapp']}" target="_blank" rel="noopener" class="btn o_lab_btn_glass o_lab_btn_lg"><i class="fa fa-whatsapp me-2"/>WhatsApp the lab</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- A rail of the other services, for the bottom of any page that talks about one. -->
+    <template id="services_rail" name="Services rail">
+        <section class="o_lab_sec">
+            <div class="container">
+                <div class="o_lab_sec_head o_lab_sec_head_row o_lab_reveal">
+                    <div>
+                        <span class="o_lab_kicker">Everything under one roof</span>
+                        <h2><t t-esc="rail_title or 'More of what we make'"/></h2>
+                    </div>
+                    <a href="/services" class="o_lab_link">All services <i class="fa fa-long-arrow-right ms-1"/></a>
+                </div>
+                <div class="o_lab_rail">
+                    <button type="button" class="o_lab_rail_btn o_lab_rail_prev" aria-label="Previous"><i class="fa fa-angle-left"/></button>
+                    <div class="o_lab_rail_track">
+                        <a t-foreach="services" t-as="s" t-if="not skip_slug or s['slug'] != skip_slug"
+                           t-attf-href="/services/#{s['slug']}" class="o_lab_svc_card o_lab_rail_item">
+                            <span class="o_lab_svc_card_img"><img t-att-src="s['img']" t-att-alt="s['title']" loading="lazy"/></span>
+                            <span class="o_lab_svc_card_body">
+                                <i t-attf-class="fa #{s['icon']}"/>
+                                <strong t-esc="s['title']"/>
+                                <small t-esc="s['kicker']"/>
+                            </span>
+                        </a>
+                    </div>
+                    <button type="button" class="o_lab_rail_btn o_lab_rail_next" aria-label="Next"><i class="fa fa-angle-right"/></button>
+                </div>
+            </div>
+        </section>
+    </template>
+
+</odoo>

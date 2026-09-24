@@ -11,24 +11,39 @@ Two rules run through all of it.
 state by a direct write, never through ``action_confirm()`` — confirming would
 re-explode procurement and manufacture a second set of MOs and transfers beside
 the ones the source already has. Invoices are the one exception: they are posted,
-because posting is what produces the journal entry, and the v10 invoice's own
+because posting is what produces the journal entry, and the v17 invoice's own
 journal entry is deliberately NOT imported (see ``_txn_journal_entries``).
 
-**Everything is idempotent.** Every document carries ``x_odoo10_id`` plus a
+**Everything is idempotent.** Every document carries ``x_src_id`` plus a
 ``migration.map`` row, so a second run updates in place instead of duplicating.
 
-v19 differences that bite here, all handled below:
+v17 -> v19 differences that bite here, all handled below:
   sale.order.line.product_uom -> product_uom_id ;  tax_id -> tax_ids
-  account.invoice(+line)      -> account.move(+line) with move_type
-  account.move.line.name      is required-ish; v10 allows NULL
+  purchase.order.line.product_uom -> product_uom_id
+  invoices and entries share account_move (move_type tells them apart)
+  translated columns are jsonb (unwrapped by _coerce)
+
+dental_sale's fields land on the suite's own:
+  order.patient_name / line.patient_name -> sale.order.patient
+  order.shade_name (res.shade)           -> line.color_scheme (product.colour)
+  order.material_name                    -> order.instruction ("Material: VITA")
+  order.sale_priority                    -> order.priority
+  order.technitian_name (m2m)            -> order.technician_ids
+  line.jaw                               -> line.ul
+  line.quad1..4 / t_no / quarter         -> line.teeth (FDI numbers)
+  the same on invoice lines              -> account.move.line.patient / ul / teeth
 """
 import logging
+import mimetypes
+import os
 import re
 
 import psycopg2
 import psycopg2.extras
 
 from odoo import fields, models, _
+
+from .migration_spec import JAW_MAP, PRIORITY_MAP, teeth_from_quadrants
 
 _logger = logging.getLogger(__name__)
 
@@ -84,8 +99,8 @@ class MigrationBackend(models.Model):
             if not rows:
                 continue
             alive = set(self.env[model].sudo().with_context(active_test=False)
-                        .browse(rows.mapped('odoo19_id')).exists().ids)
-            dead = rows.filtered(lambda r: r.odoo19_id not in alive)
+                        .browse(rows.mapped('dst_id')).exists().ids)
+            dead = rows.filtered(lambda r: r.dst_id not in alive)
             if dead:
                 pruned += len(dead)
                 dead.unlink()
@@ -99,7 +114,7 @@ class MigrationBackend(models.Model):
         read up front in a single query per model.
         """
         self.env.cr.execute("""
-            SELECT dst_model, odoo10_id, odoo19_id FROM migration_map
+            SELECT dst_model, src_id, dst_id FROM migration_map
              WHERE dst_model IN %s
         """, (tuple(models_),))
         for model, o10, o19 in self.env.cr.fetchall():
@@ -107,9 +122,9 @@ class MigrationBackend(models.Model):
         return cache
 
     def _txn_put_many(self, cache, model, pairs):
-        """Record many Odoo10->Odoo19 mappings at once.
+        """Record many Odoo17->Odoo19 mappings at once.
 
-        Upsert, not insert. migration.map is unique on (dst_model, odoo10_id), and
+        Upsert, not insert. migration.map is unique on (dst_model, src_id), and
         a re-run legitimately produces a NEW v19 id for an old key — the sale-order
         update path deletes and re-creates its lines, for one. A plain create would
         either raise (aborting the whole phase, since this runs outside the per-row
@@ -119,18 +134,18 @@ class MigrationBackend(models.Model):
             return
         Map = self.env['migration.map'].sudo()
         pairs = dict(pairs)                      # last write wins within a batch
-        existing = Map.search([('dst_model', '=', model), ('odoo10_id', 'in', list(pairs))])
+        existing = Map.search([('dst_model', '=', model), ('src_id', 'in', list(pairs))])
         for rec in existing:
-            new_id = pairs.pop(rec.odoo10_id, None)
-            if new_id and rec.odoo19_id != new_id:
-                rec.odoo19_id = new_id
+            new_id = pairs.pop(rec.src_id, None)
+            if new_id and rec.dst_id != new_id:
+                rec.dst_id = new_id
         if pairs:
-            Map.create([{'dst_model': model, 'odoo10_id': o10, 'odoo19_id': o19}
+            Map.create([{'dst_model': model, 'src_id': o10, 'dst_id': o19}
                         for o10, o19 in pairs.items()])
         mc = cache.setdefault(model, {})
         mc.update(pairs)
         for rec in existing:
-            mc[rec.odoo10_id] = rec.odoo19_id
+            mc[rec.src_id] = rec.dst_id
 
     @staticmethod
     def _group(rows, key):
@@ -153,7 +168,7 @@ class MigrationBackend(models.Model):
         return out
 
     def _txn_company(self, cache, row):
-        # No fallback to '_main_company_': that key holds an Odoo 10 company id,
+        # No fallback to '_main_company_': that key holds an Odoo 17 company id,
         # which would be meaningless — and silently wrong — as a v19 company_id.
         return self._resolve(cache, 'res.company', row.get('company_id')) \
             or self.env.company.id
@@ -203,7 +218,7 @@ class MigrationBackend(models.Model):
         return linked
 
     def _txn_adopt_lines(self, lines, line_vals):
-        """Key order lines created before they carried an ``x_odoo10_id``.
+        """Key order lines created before they carried an ``x_src_id``.
 
         Only when the pairing is certain: the same number of lines, in the order
         they were created from the source, each on the same product. Anything
@@ -211,11 +226,11 @@ class MigrationBackend(models.Model):
         """
         ordered = lines.sorted(lambda l: (l.sequence, l.id))
         if len(ordered) != len(line_vals) or any(
-                line.product_id.id != cmd[2].get('product_id') or not cmd[2].get('x_odoo10_id')
+                line.product_id.id != cmd[2].get('product_id') or not cmd[2].get('x_src_id')
                 for line, cmd in zip(ordered, line_vals)):
             return False
         for line, cmd in zip(ordered, line_vals):
-            line.x_odoo10_id = cmd[2]['x_odoo10_id']
+            line.x_src_id = cmd[2]['x_src_id']
         return True
 
     def _txn_merge_lines(self, lines, line_vals):
@@ -223,25 +238,25 @@ class MigrationBackend(models.Model):
 
         A re-run used to delete every line and create it again, which cut every
         invoice line, stock move and MO off the sale/purchase line it came from.
-        Now a line matched by ``x_odoo10_id`` is updated in place and keeps its id;
+        Now a line matched by ``x_src_id`` is updated in place and keeps its id;
         a source line with no match is created. An existing keyed line the source
         no longer has is removed only when nothing points at it. Unkeyed lines —
         added in Odoo 19 after the cut-over — are never touched.
         """
         by_key = {}
         for line in lines.sorted('id'):
-            if line.x_odoo10_id and line.x_odoo10_id not in by_key:
-                by_key[line.x_odoo10_id] = line
+            if line.x_src_id and line.x_src_id not in by_key:
+                by_key[line.x_src_id] = line
         commands, matched = [], set()
         for cmd in line_vals:
             lv = cmd[2]
-            line = by_key.get(lv.get('x_odoo10_id'))
+            line = by_key.get(lv.get('x_src_id'))
             if line and line.id not in matched:
                 matched.add(line.id)
                 commands.append((1, line.id, lv))
             else:
                 commands.append((0, 0, lv))
-        stale = lines.filtered(lambda l: l.x_odoo10_id and l.id not in matched)
+        stale = lines.filtered(lambda l: l.x_src_id and l.id not in matched)
         commands += [(2, line.id) for line in stale - self._txn_linked_lines(stale)]
         return commands
 
@@ -253,7 +268,7 @@ class MigrationBackend(models.Model):
         left exactly as they are rather than doubled.
         """
         lines = order.order_line
-        if lines and not any(lines.mapped('x_odoo10_id')) \
+        if lines and not any(lines.mapped('x_src_id')) \
                 and not self._txn_adopt_lines(lines, line_vals):
             order.write(vals)
             return False
@@ -289,7 +304,7 @@ class MigrationBackend(models.Model):
     def _txn_picking_type(self, cache, company_id, code):
         """v19 operation type of the given code for a company.
 
-        The v10 types are the six stock defaults per warehouse, so they are matched
+        The v17 types are the six stock defaults per warehouse, so they are matched
         by (company, code) rather than migrated — v19 creates its own set with its
         own sequences, and adopting those keeps new documents numbering correctly.
         """
@@ -303,10 +318,10 @@ class MigrationBackend(models.Model):
 
     # ------------------------------------------------------------------ shared records
     def _txn_share_records(self, cur, cache, stats):
-        """Share the records that v10 used across companies, before any document
+        """Share the records that v17 used across companies, before any document
         references them.
 
-        v10 let one company sell another company's product and bill another
+        v17 let one company sell another company's product and bill another
         company's doctor; v19 refuses outright ("no company crossover is allowed")
         and the whole document is lost. In the 2026-08-08 source this costs 314
         sale orders, 300 invoices and 65 journal entries — the same defect class
@@ -332,19 +347,12 @@ class MigrationBackend(models.Model):
                AND pt.company_id IS NOT NULL AND pt.company_id <> so.company_id
              UNION
             SELECT DISTINCT pt.id
-              FROM account_invoice_line il
-              JOIN account_invoice i ON i.id = il.invoice_id
+              FROM account_move_line il
+              JOIN account_move i ON i.id = il.move_id
               JOIN product_product pp ON pp.id = il.product_id
               JOIN product_template pt ON pt.id = pp.product_tmpl_id
-             WHERE i.date_invoice >= %(d)s
+             WHERE i.date >= %(d)s
                AND pt.company_id IS NOT NULL AND pt.company_id <> i.company_id
-             UNION
-            SELECT DISTINCT pt.id
-              FROM mrp_production m
-              JOIN product_product pp ON pp.id = m.product_id
-              JOIN product_template pt ON pt.id = pp.product_tmpl_id
-             WHERE m.date_planned_start >= %(d)s
-               AND pt.company_id IS NOT NULL AND pt.company_id <> m.company_id
         """, {'d': d})
         tmpl_ids = [self._resolve(cache, 'product.template', r['tmpl_id'])
                     for r in cur.fetchall()]
@@ -359,12 +367,12 @@ class MigrationBackend(models.Model):
             shared.write({'company_id': False})
             self.env.cr.commit()
         stats.append("Shared Products        %d product(s) made company-shared "
-                     "(v10 cross-company usage)" % n)
+                     "(v17 cross-company usage)" % n)
 
     def _txn_share_partners(self, cur, cache, stats):
         """Same treatment for contacts.
 
-        Every v10 partner carries a company_id, so v19 scopes all 7055 of them to
+        Every v17 partner carries a company_id, so v19 scopes all 7055 of them to
         one company — while the lab plainly bills the same doctors from both. A
         contact is global in Odoo unless deliberately restricted, so the ones used
         across companies are unscoped here.
@@ -375,11 +383,6 @@ class MigrationBackend(models.Model):
               FROM sale_order so JOIN res_partner p ON p.id = so.partner_id
              WHERE so.date_order >= %(d)s
                AND p.company_id IS NOT NULL AND p.company_id <> so.company_id
-             UNION
-            SELECT DISTINCT p.id
-              FROM account_invoice i JOIN res_partner p ON p.id = i.partner_id
-             WHERE i.date_invoice >= %(d)s
-               AND p.company_id IS NOT NULL AND p.company_id <> i.company_id
              UNION
             SELECT DISTINCT p.id
               FROM account_move_line aml
@@ -404,26 +407,45 @@ class MigrationBackend(models.Model):
             shared.write({'company_id': False})
             self.env.cr.commit()
         stats.append("Shared Partners        %d contact(s) made company-shared "
-                     "(v10 cross-company usage)" % n)
+                     "(v17 cross-company usage)" % n)
 
     # ------------------------------------------------------------------ sale orders
-    # v10 state -> v19 state. sale_custom drops 'done' from the selection, so a
-    # v10 'done' order lands as a plain confirmed order.
+    # v17 state -> v19 state. sale_custom drops 'done' from the selection, so a
+    # v17 'done' order lands as a plain confirmed order.
     _SO_STATE = {'draft': 'draft', 'sent': 'sent', 'sale': 'sale',
                  'done': 'sale', 'cancel': 'cancel'}
 
     _SO_SCALARS = (
         'client_order_ref', 'origin', 'note', 'picking_policy', 'validity_date',
-        # dental / lab fields carried 1:1 by sale_custom in v19
-        'patient', 'age', 'gender', 'modification', 'instruction', 'priority',
-        'is_dd_cheque', 'is_screw', 'is_bite', 'is_bands', 'is_wires', 'is_teeth',
-        'is_facebow', 'is_others', 'is_rework', 'is_pending_work', 'active',
-        'impression_type', 'scanned_impression', 'impression_tray', 'wax_bite',
-        'company_warning',
+        'commitment_date', 'reference',
     )
 
     _SOL_SCALARS = ('name', 'sequence', 'product_uom_qty', 'price_unit', 'discount',
-                    'customer_lead', 'ul', 'is_urgent', 'is_urgent_service')
+                    'customer_lead', 'display_type')
+
+    @staticmethod
+    def _dental_patient(row, lines):
+        """The patient of an order: dental_sale kept it on the LINE (97% filled)
+        and only sometimes on the order (2%). One order is one patient in 99.7% of
+        cases; the rare multi-patient order lists them all."""
+        names = []
+        for value in [row.get('patient_name')] + [ln.get('patient_name') for ln in lines]:
+            value = ' '.join((value or '').split())
+            if value and value.upper() not in [n.upper() for n in names]:
+                names.append(value)
+        return ' / '.join(names)
+
+    @staticmethod
+    def _dental_line_extras(ln):
+        """jaw -> ul, quadrants -> teeth, for a sale or invoice line."""
+        extras = {}
+        ul = JAW_MAP.get(ln.get('jaw'))
+        if ul:
+            extras['ul'] = ul
+        teeth = teeth_from_quadrants(ln)
+        if teeth:
+            extras['teeth'] = teeth
+        return extras
 
     def _txn_sale_orders(self, cur, cache, stats):
         d = self._txn_dates()
@@ -442,6 +464,10 @@ class MigrationBackend(models.Model):
         lines_by_order = self._group(cur.fetchall(), 'order_id')
         line_taxes = self._rel(cur, 'account_tax_sale_order_line_rel',
                                'sale_order_line_id', 'account_tax_id')
+        technicians = self._rel(cur, 'res_partner_sale_order_rel',
+                                'sale_order_id', 'res_partner_id')
+        cur.execute("SELECT id, name FROM res_material")
+        materials = {r['id']: r['name'] for r in cur.fetchall()}
 
         counts = {'created': 0, 'updated': 0, 'failed': 0, 'skipped': 0, 'lines_kept': 0}
         pending, batch, processed = [], [], 0
@@ -463,54 +489,72 @@ class MigrationBackend(models.Model):
                     if existing and self.txn_only_new:
                         counts['skipped'] += 1
                         continue
+                    src_lines = lines_by_order.get(row['id'], [])
                     vals = {f: row[f] for f in self._SO_SCALARS if row.get(f) is not None}
                     vals.update({
                         'name': row.get('name') or '/',
                         'partner_id': partner,
                         'date_order': row.get('date_order'),
                         'company_id': cid,
-                        'x_odoo10_id': row['id'],
+                        'x_src_id': row['id'],
+                        # dental_sale -> the suite
+                        'patient': self._dental_patient(row, src_lines),
+                        'priority': PRIORITY_MAP.get(row.get('sale_priority'), 'normal'),
                     })
+                    material = materials.get(row.get('material_name'))
+                    if material:
+                        vals['instruction'] = 'Material: %s' % material.strip()
                     for dst, (src, model) in {
                             'partner_invoice_id': ('partner_invoice_id', 'res.partner'),
                             'partner_shipping_id': ('partner_shipping_id', 'res.partner'),
                             'user_id': ('user_id', 'res.users'),
                             'team_id': ('team_id', 'crm.team'),
                             'payment_term_id': ('payment_term_id', 'account.payment.term'),
-                            'send_through': ('send_through', 'send.through'),
-                            'register_person_id': ('register_person_id', 'res.users'),
+                            'fiscal_position_id': ('fiscal_position_id', 'account.fiscal.position'),
+                            # who typed the order in is the suite's "registered by"
+                            'register_person_id': ('create_uid', 'res.users'),
                     }.items():
                         val = self._resolve(cache, model, row.get(src))
                         if val:
                             vals[dst] = val
+                    techs = [t for t in (self._resolve(cache, 'res.partner', p)
+                                         for p in technicians.get(row['id'], [])) if t]
+                    vals['technician_ids'] = [(6, 0, techs)]
                     wh = self._txn_warehouse(cache, cid)
                     if wh:
                         vals['warehouse_id'] = wh
+                    colour = self._resolve(cache, 'product.colour', row.get('shade_name'))
                     line_vals = []
-                    for ln in lines_by_order.get(row['id'], []):
+                    for ln in src_lines:
+                        lv = {f: ln[f] for f in self._SOL_SCALARS if ln.get(f) is not None}
+                        if ln.get('display_type') in ('line_section', 'line_note'):
+                            # a heading or a note between the works: no product
+                            lv['x_src_id'] = ln['id']
+                            line_vals.append((0, 0, self._valid(self.env['sale.order.line'], lv)))
+                            continue
                         product = self._resolve(cache, 'product.product', ln.get('product_id'))
                         if not product:
                             continue
-                        lv = {f: ln[f] for f in self._SOL_SCALARS if ln.get(f) is not None}
+                        lv.pop('display_type', None)
                         lv['product_id'] = product
                         uom = self._resolve(cache, 'uom.uom', ln.get('product_uom'))
                         if uom:
                             lv['product_uom_id'] = uom          # v19 rename
-                        colour = self._resolve(cache, 'product.colour', ln.get('color_scheme'))
                         if colour:
                             lv['color_scheme'] = colour
+                        lv.update(self._dental_line_extras(ln))
                         # ALWAYS set tax_ids, empty included. v19 fills a line's taxes
                         # from product.taxes_id when the key is absent, and the master
-                        # sync gave the products their v10 taxes — which would add 5%
+                        # sync gave the products their v17 taxes — which would add 5%
                         # GST to lines the source deliberately booked tax-free.
                         lv['tax_ids'] = [(6, 0, [
                             t for t in (self._resolve(cache, 'account.tax', t)
                                         for t in line_taxes.get(ln['id'], [])) if t])]
-                        lv['x_odoo10_id'] = ln['id']
+                        lv['x_src_id'] = ln['id']
                         line_vals.append((0, 0, self._valid(self.env['sale.order.line'], lv)))
                     vals = self._valid(self.env['sale.order'], vals)
                     # sale_custom.create() renames any order created with
-                    # is_edit_number set to "Old Work"; keep the v10 number and
+                    # is_edit_number set to "Old Work"; keep the v17 number and
                     # restore the flag right after.
                     edit_number = vals.pop('is_edit_number', None)
                     if existing:
@@ -535,12 +579,12 @@ class MigrationBackend(models.Model):
                         post['verification_state'] = \
                             'verified' if post['state'] == 'sale' else 'draft'
                     order.write(post)
-                    # Each line already carries its own x_odoo10_id, so read the
+                    # Each line already carries its own x_src_id, so read the
                     # pairing back off the records rather than zipping two lists
                     # that only happen to be in the same order.
                     for rec in order.order_line:
-                        if rec.x_odoo10_id:
-                            pending.append((rec.x_odoo10_id, rec.id))
+                        if rec.x_src_id:
+                            pending.append((rec.x_src_id, rec.id))
             except Exception as e:
                 counts['failed'] += 1
                 # the savepoint undid the create; undo the bookkeeping too
@@ -566,32 +610,53 @@ class MigrationBackend(models.Model):
                         counts['lines_kept']))
 
     # ------------------------------------------------------------------ invoices
-    # v10 account.invoice.type -> v19 account.move.move_type
     _INV_TYPE = {'out_invoice': 'out_invoice', 'in_invoice': 'in_invoice',
                  'out_refund': 'out_refund', 'in_refund': 'in_refund'}
-    # v10 invoice state -> what to do in v19. 'open'/'paid' are posted; payment
-    # matching itself is not migrated (see the run report).
-    _INV_POST = {'open', 'paid'}
+    # v17 invoices are posted here when posted there; matching against payments
+    # is replayed afterwards by _txn_reconcile.
+    _INV_POST = {'posted'}
+
+    def _txn_journal_for(self, cache, company_id, journal_id, move_type):
+        """The journal to post `move_type` in: the mapped one when its type fits,
+        else the company's default journal of the fitting type."""
+        wanted = 'purchase' if move_type in ('in_invoice', 'in_refund') else 'sale'
+        Journal = self.env['account.journal'].sudo()
+        if Journal.browse(journal_id).type == wanted:
+            return journal_id
+        key = ('_journal_', company_id, wanted)
+        if key not in cache:
+            cache[key] = Journal.search([('company_id', '=', company_id),
+                                         ('type', '=', wanted)], limit=1).id
+        return cache[key] or journal_id
 
     def _txn_invoices(self, cur, cache, stats):
         d = self._txn_dates()
         Move = self.env['account.move'].sudo().with_context(
             active_test=False, mail_create_nolog=True, mail_notrack=True,
             tracking_disable=True)
-        cur.execute("SELECT * FROM account_invoice WHERE date_invoice >= %s ORDER BY id"
-                    + self._txn_tail(), (d,))
+        cur.execute("""SELECT * FROM account_move
+                        WHERE move_type IN ('out_invoice', 'in_invoice', 'out_refund', 'in_refund')
+                          AND COALESCE(invoice_date, date) >= %s
+                        ORDER BY id""" + self._txn_tail(), (d,))
         invoices = cur.fetchall()
         if not invoices:
             stats.append("Invoices               nothing to migrate")
             return
         ids = tuple(i['id'] for i in invoices)
-        cur.execute("SELECT * FROM account_invoice_line WHERE invoice_id IN %s ORDER BY invoice_id, sequence, id",
-                    (ids,))
-        lines_by_inv = self._group(cur.fetchall(), 'invoice_id')
-        line_taxes = self._rel(cur, 'account_invoice_line_tax', 'invoice_line_id', 'tax_id')
+        # Only the lines a person typed: products, sections and notes. Tax and
+        # receivable lines are rebuilt by posting, exactly as the source built them.
+        cur.execute("""SELECT * FROM account_move_line
+                        WHERE move_id IN %s
+                          AND display_type IN ('product', 'line_section', 'line_note')
+                        ORDER BY move_id, sequence, id""", (ids,))
+        lines_by_inv = self._group(cur.fetchall(), 'move_id')
+        line_taxes = self._rel(cur, 'account_move_line_account_tax_rel',
+                               'account_move_line_id', 'account_tax_id')
+        sale_lines = self._rel(cur, 'sale_order_line_invoice_rel',
+                               'invoice_line_id', 'order_line_id')
 
         # The master sync posts a zero-amount "numbering anchor" per journal, named
-        # after the LAST v10 invoice number, so that new invoices continue the v10
+        # after the LAST v17 invoice number, so that new invoices continue the v17
         # series. That was written for a balance-forward cut-over where the invoices
         # themselves never arrive. They do now — and the anchor sits on exactly the
         # number the last real invoice needs, so it loses account_move_unique_name.
@@ -616,11 +681,16 @@ class MigrationBackend(models.Model):
                 with self.env.cr.savepoint():
                     partner = self._resolve(cache, 'res.partner', row.get('partner_id'))
                     journal = self._resolve(cache, 'account.journal', row.get('journal_id'))
-                    move_type = self._INV_TYPE.get(row.get('type'))
+                    move_type = self._INV_TYPE.get(row.get('move_type'))
                     if not (partner and journal and move_type):
                         counts['skipped'] += 1
                         continue
                     cid = self._txn_company(cache, row)
+                    # Odoo 17 let the lab book 13 vendor bills and refunds in the B2B
+                    # SALE journal; Odoo 19 refuses a purchase document there. Such a
+                    # document goes to the company's default journal of the right
+                    # type, keeping its own number.
+                    journal = self._txn_journal_for(cache, cid, journal, move_type)
                     existing = self._resolve(cache, 'account.move', row['id'])
                     if existing and self._txn_keep_move(existing, counts, row['id']):
                         continue
@@ -629,53 +699,76 @@ class MigrationBackend(models.Model):
                         'partner_id': partner,
                         'journal_id': journal,
                         'company_id': cid,
-                        'invoice_date': row.get('date_invoice'),
-                        'date': row.get('date') or row.get('date_invoice'),
-                        'invoice_date_due': row.get('date_due'),
-                        'invoice_origin': row.get('origin'),
-                        'ref': row.get('reference') or row.get('name'),
-                        'narration': row.get('comment'),
-                        'x_odoo10_id': row['id'],
+                        'invoice_date': row.get('invoice_date'),
+                        'date': row.get('date') or row.get('invoice_date'),
+                        'invoice_date_due': row.get('invoice_date_due'),
+                        'invoice_origin': row.get('invoice_origin'),
+                        'ref': row.get('ref'),
+                        'payment_reference': row.get('payment_reference'),
+                        'narration': row.get('narration'),
+                        'l10n_in_gst_treatment': row.get('l10n_in_gst_treatment'),
+                        'x_src_id': row['id'],
                     }
-                    # Keep the v10 document number. _seed_invoice_numbers() already
-                    # points the v19 sequence past the v10 maximum, so new invoices
+                    # Keep the v17 document number. _seed_invoice_numbers() already
+                    # points the v19 sequence past the v17 maximum, so new invoices
                     # continue the same series instead of colliding with these.
-                    if row.get('number'):
-                        vals['name'] = row['number']
-                        anchor = anchors.pop((journal, row['number']), None)
+                    number = row.get('name')
+                    if number and number != '/':
+                        vals['name'] = number
+                        anchor = anchors.pop((journal, number), None)
                         if anchor:
                             if anchor.state == 'posted':
                                 anchor.button_draft()
                             anchor.unlink()
-                    pt = self._resolve(cache, 'account.payment.term', row.get('payment_term_id'))
-                    if pt:
-                        vals['invoice_payment_term_id'] = pt
-                    user = self._resolve(cache, 'res.users', row.get('user_id'))
-                    if user:
-                        vals['invoice_user_id'] = user
-                    team = self._resolve(cache, 'crm.team', row.get('team_id'))
-                    if team:
-                        vals['team_id'] = team
+                    for dst, (src, model) in {
+                            'invoice_payment_term_id': ('invoice_payment_term_id', 'account.payment.term'),
+                            'invoice_user_id': ('invoice_user_id', 'res.users'),
+                            'team_id': ('team_id', 'crm.team'),
+                            'fiscal_position_id': ('fiscal_position_id', 'account.fiscal.position'),
+                            'partner_shipping_id': ('partner_shipping_id', 'res.partner'),
+                    }.items():
+                        val = self._resolve(cache, model, row.get(src))
+                        if val:
+                            vals[dst] = val
                     line_vals = []
                     for ln in lines_by_inv.get(row['id'], []):
+                        if ln.get('display_type') in ('line_section', 'line_note'):
+                            line_vals.append((0, 0, {
+                                'display_type': ln['display_type'],
+                                'name': ln.get('name') or '/',
+                                'sequence': ln.get('sequence') or 10,
+                                'x_src_id': ln['id'],
+                            }))
+                            continue
                         lv = {
                             'name': ln.get('name') or '/',
                             'quantity': ln.get('quantity') or 0.0,
                             'price_unit': ln.get('price_unit') or 0.0,
                             'discount': ln.get('discount') or 0.0,
                             'sequence': ln.get('sequence') or 10,
-                            'patient': ln.get('patient'),
-                            'ul': ln.get('ul'),
+                            'patient': ' '.join((ln.get('patient_name') or '').split()) or False,
+                            'x_src_id': ln['id'],
                         }
+                        lv.update(self._dental_line_extras(ln))
                         product = self._resolve(cache, 'product.product', ln.get('product_id'))
                         if product:
                             lv['product_id'] = product
                         account = self._resolve(cache, 'account.account', ln.get('account_id'))
                         if account:
                             lv['account_id'] = account
-                        uom = self._resolve(cache, 'uom.uom', ln.get('uom_id'))
+                        uom = self._resolve(cache, 'uom.uom', ln.get('product_uom_id'))
                         if uom:
                             lv['product_uom_id'] = uom
+                        # the order line(s) this invoice line bills: what makes the
+                        # order read "invoiced" and the invoice open from the order
+                        sol = [s for s in (self._resolve(cache, 'sale.order.line', s)
+                                           for s in sale_lines.get(ln['id'], [])) if s]
+                        if sol:
+                            lv['sale_line_ids'] = [(6, 0, sol)]
+                        # and a bill line onto its purchase line, for the same reasons
+                        pol = self._resolve(cache, 'purchase.order.line', ln.get('purchase_line_id'))
+                        if pol:
+                            lv['purchase_line_id'] = pol
                         # See the sale-order note: absent tax_ids means "use the
                         # product default", and 20,481 of the source invoices are
                         # deliberately tax-free.
@@ -723,21 +816,20 @@ class MigrationBackend(models.Model):
 
     # ------------------------------------------------------------------ journal entries
     def _txn_journal_entries(self, cur, cache, stats):
-        """Every posted v10 move that is NOT an invoice's own move.
+        """Every posted v17 move that is NOT an invoice's own move.
 
         Invoices re-post in v19 and generate their entry there, so importing the
-        v10 invoice moves as well would double every sale. What is left is the
+        v17 invoice moves as well would double every sale. What is left is the
         cash side of the business — receipts, bank entries, miscellaneous — and
         those are copied line for line, debit and credit exactly as booked, which
-        is the only way the v19 trial balance can tie back to v10.
+        is the only way the v19 trial balance can tie back to v17.
         """
         d = self._txn_dates()
         Move = self.env['account.move'].sudo().with_context(
             mail_create_nolog=True, mail_notrack=True, tracking_disable=True)
         cur.execute("""
             SELECT m.* FROM account_move m
-             WHERE m.date >= %s AND m.state = 'posted'
-               AND NOT EXISTS (SELECT 1 FROM account_invoice i WHERE i.move_id = m.id)
+             WHERE m.date >= %s AND m.state = 'posted' AND m.move_type = 'entry'
              ORDER BY m.id
         """ + self._txn_tail(), (d,))
         moves = cur.fetchall()
@@ -783,6 +875,8 @@ class MigrationBackend(models.Model):
                             'debit': ln.get('debit') or 0.0,
                             'credit': ln.get('credit') or 0.0,
                             'date_maturity': ln.get('date_maturity'),
+                            # keyed, so the reconciliation phase can find this line
+                            'x_src_id': ln['id'],
                         }
                         partner = self._resolve(cache, 'res.partner', ln.get('partner_id'))
                         if partner:
@@ -798,7 +892,7 @@ class MigrationBackend(models.Model):
                         'journal_id': journal, 'company_id': cid,
                         'date': row.get('date'), 'ref': row.get('ref'),
                         'narration': row.get('narration'),
-                        'x_odoo10_id': row['id'],
+                        'x_src_id': row['id'],
                     }
                     if row.get('name') and row['name'] != '/':
                         vals['name'] = row['name']
@@ -839,7 +933,7 @@ class MigrationBackend(models.Model):
                         counts['kept'], counts['protected']))
 
     # ------------------------------------------------------------------ manufacturing
-    # v10 mrp.production states -> v19. v19 dropped 'planned' (scheduling moved
+    # v17 mrp.production states -> v19. v19 dropped 'planned' (scheduling moved
     # onto the work orders), so a planned MO arrives as confirmed.
     _MO_STATE = {'draft': 'draft', 'confirmed': 'confirmed', 'planned': 'confirmed',
                  'progress': 'progress', 'done': 'done', 'cancel': 'cancel'}
@@ -855,9 +949,13 @@ class MigrationBackend(models.Model):
         d = self._txn_dates()
         MO = self.env['mrp.production'].sudo().with_context(
             mail_create_nolog=True, mail_notrack=True, tracking_disable=True)
-        cur.execute("SELECT * FROM mrp_production WHERE date_planned_start >= %s ORDER BY id"
-                    + self._txn_tail(), (d,))
-        rows = cur.fetchall()
+        try:
+            cur.execute("SELECT * FROM mrp_production WHERE COALESCE(date_start, create_date) >= %s "
+                        "ORDER BY id" + self._txn_tail(), (d,))
+            rows = cur.fetchall()
+        except psycopg2.Error as e:
+            stats.append("Manufacturing Orders   SKIPPED (%s)" % str(e).split('\n')[0])
+            return
         if not rows:
             stats.append("Manufacturing Orders   nothing to migrate")
             return
@@ -884,9 +982,9 @@ class MigrationBackend(models.Model):
                         'product_qty': row.get('product_qty') or 1.0,
                         'company_id': cid,
                         'origin': row.get('origin'),
-                        'date_start': row.get('date_planned_start'),
+                        'date_start': row.get('date_start') or row.get('date_planned_start'),
                         'date_finished': row.get('date_planned_finished'),
-                        'x_odoo10_id': row['id'],
+                        'x_src_id': row['id'],
                     }
                     if pt:
                         vals['picking_type_id'] = pt
@@ -978,11 +1076,14 @@ class MigrationBackend(models.Model):
             return
         ids = tuple(r['id'] for r in rows)
         cur.execute("""SELECT id, picking_id, product_id, product_uom, product_uom_qty,
-                              name, origin, state, date, price_unit
+                              quantity, name, origin, state, date, price_unit,
+                              location_id, location_dest_id, description_picking,
+                              sale_line_id, purchase_line_id, reference, date_deadline,
+                              procure_method, is_inventory
                          FROM stock_move WHERE picking_id IN %s ORDER BY picking_id, id""",
                     (ids,))
         moves_by_pick = self._group(cur.fetchall(), 'picking_id')
-        # v10 type id -> code, so the v19 operation type can be matched per company
+        # v17 type id -> code, so the v19 operation type can be matched per company
         cur.execute("SELECT id, code FROM stock_picking_type")
         type_code = {r['id']: r['code'] for r in cur.fetchall()}
 
@@ -999,13 +1100,21 @@ class MigrationBackend(models.Model):
                 with self.env.cr.savepoint():
                     cid = self._txn_company(cache, row)
                     code = type_code.get(row.get('picking_type_id'), 'internal')
-                    pt = self._txn_picking_type(cache, cid, code)
+                    # the transfer's own operation type when it was adopted, else
+                    # the company's type of the same kind
+                    pt = self._resolve(cache, 'stock.picking.type', row.get('picking_type_id')) \
+                        or self._txn_picking_type(cache, cid, code)
                     if not pt:
                         counts['skipped'] += 1
                         continue
                     ptype = self.env['stock.picking.type'].browse(pt)
-                    src = ptype.default_location_src_id.id
-                    dest = ptype.default_location_dest_id.id
+                    # The lab's own stores were migrated as locations; a transfer
+                    # keeps its real from/to and only falls back to the operation
+                    # type's defaults when a location did not map.
+                    src = self._resolve(cache, 'stock.location', row.get('location_id')) \
+                        or ptype.default_location_src_id.id
+                    dest = self._resolve(cache, 'stock.location', row.get('location_dest_id')) \
+                        or ptype.default_location_dest_id.id
                     move_vals = []
                     for mv in moves_by_pick.get(row['id'], []):
                         product = self._resolve(cache, 'product.product', mv.get('product_id'))
@@ -1014,15 +1123,30 @@ class MigrationBackend(models.Model):
                         m = {
                             'product_id': product,
                             'product_uom_qty': mv.get('product_uom_qty') or 0.0,
-                            'description_picking': mv.get('name'),   # v19: name removed
+                            'description_picking': mv.get('description_picking') or mv.get('name'),
                             'company_id': cid,
                             'date': mv.get('date'),
+                            'x_src_id': mv['id'],
                         }
+                        if mv.get('state') == 'done':
+                            m['quantity'] = mv.get('quantity') or mv.get('product_uom_qty') or 0.0
+                            m['picked'] = True
+                        for f in ('origin', 'reference', 'date_deadline', 'procure_method',
+                                  'is_inventory', 'price_unit'):
+                            if mv.get(f) is not None:
+                                m[f] = mv[f]
+                        # the sale / purchase line this move serves: delivered and
+                        # received quantities on the orders come from these
+                        for dst, model in (('sale_line_id', 'sale.order.line'),
+                                           ('purchase_line_id', 'purchase.order.line')):
+                            target = self._resolve(cache, model, mv.get(dst))
+                            if target:
+                                m[dst] = target
                         uom = self._resolve(cache, 'uom.uom', mv.get('product_uom'))
                         if uom:
                             m['product_uom'] = uom
-                        if src and dest:
-                            m['location_id'], m['location_dest_id'] = src, dest
+                        m['location_id'] = self._resolve(cache, 'stock.location', mv.get('location_id')) or src
+                        m['location_dest_id'] = self._resolve(cache, 'stock.location', mv.get('location_dest_id')) or dest
                         move_vals.append((0, 0, self._valid(self.env['stock.move'], m)))
                     vals = {
                         'name': row.get('name') or '/',
@@ -1030,17 +1154,24 @@ class MigrationBackend(models.Model):
                         'company_id': cid,
                         'origin': row.get('origin'),
                         'note': row.get('note'),
-                        'scheduled_date': row.get('min_date') or row.get('date'),
+                        'scheduled_date': row.get('scheduled_date') or row.get('min_date') or row.get('date'),
                         'date_done': row.get('date_done'),
+                        'date_deadline': row.get('date_deadline'),
                         'move_type': row.get('move_type') or 'direct',
-                        'courier_company': row.get('courier_company'),
-                        'courier_option': row.get('courier_option'),
-                        'consignment_number': row.get('consignment_number'),
-                        'x_odoo10_id': row['id'],
+                        'x_src_id': row['id'],
                     }
-                    partner = self._resolve(cache, 'res.partner', row.get('partner_id'))
-                    if partner:
-                        vals['partner_id'] = partner
+                    for f in ('priority', 'note'):
+                        if row.get(f):
+                            vals[f] = row[f]
+                    for dst, (src, model) in {
+                            'partner_id': ('partner_id', 'res.partner'),
+                            'sale_id': ('sale_id', 'sale.order'),
+                            'user_id': ('user_id', 'res.users'),
+                            'owner_id': ('owner_id', 'res.partner'),
+                    }.items():
+                        val = self._resolve(cache, model, row.get(src))
+                        if val:
+                            vals[dst] = val
                     if src and dest:
                         vals['location_id'], vals['location_dest_id'] = src, dest
                     vals = self._valid(self.env['stock.picking'], vals)
@@ -1089,15 +1220,180 @@ class MigrationBackend(models.Model):
         self._txn_put_many(cache, 'stock.picking', batch)
         self._txn_apply_picking_states(states)
         self.env.cr.commit()
+        self._txn_link_backorders(rows, cache)
         self._txn_seed_picking_numbers(cur, cache, stats)
         stats.append("Transfers              created=%d (%d moves) updated=%d skipped=%d failed=%d"
                      % (counts['created'], counts['moves'], counts['updated'],
                         counts['skipped'], counts['failed']))
 
-    def _txn_seed_picking_numbers(self, cur, cache, stats):
-        """Continue the v10 transfer numbering.
+    def _txn_link_backorders(self, rows, cache):
+        """A backorder points at the transfer it continues; both exist now."""
+        Picking = self.env['stock.picking'].sudo()
+        for row in rows:
+            if not row.get('backorder_id'):
+                continue
+            this = self._resolve(cache, 'stock.picking', row['id'])
+            parent = self._resolve(cache, 'stock.picking', row['backorder_id'])
+            if this and parent:
+                try:
+                    with self.env.cr.savepoint():
+                        Picking.browse(this).write({'backorder_id': parent})
+                except Exception as e:
+                    _logger.warning("backorder link picking=%s: %s", row['id'], e)
+        self.env.cr.commit()
 
-        The transfers keep their v10 references, but the v19 operation types they
+    def _txn_stock_moves(self, cur, cache, stats):
+        """Moves that belong to no transfer: inventory adjustments (and scraps).
+
+        They are what makes the stock history complete; without them the count
+        of a product jumps at every adjustment with nothing to show why.
+        """
+        d = self._txn_dates()
+        cur.execute("""SELECT * FROM stock_move
+                        WHERE picking_id IS NULL AND date >= %s AND state IN ('done', 'cancel')
+                        ORDER BY date, id""" + self._txn_tail(), (d,))
+        rows = cur.fetchall()
+        if not rows:
+            stats.append("Stock Moves (no transfer) nothing to migrate")
+            return
+        Move = self.env['stock.move'].sudo()
+        counts = {'created': 0, 'skipped': 0, 'failed': 0}
+        batch, states, processed = [], {}, 0
+        for mv in rows:
+            processed += 1
+            mark = len(batch)
+            try:
+                with self.env.cr.savepoint():
+                    if self._resolve(cache, 'stock.move', mv['id']):
+                        counts['skipped'] += 1
+                        continue
+                    product = self._resolve(cache, 'product.product', mv.get('product_id'))
+                    src = self._resolve(cache, 'stock.location', mv.get('location_id'))
+                    dest = self._resolve(cache, 'stock.location', mv.get('location_dest_id'))
+                    if not (product and src and dest):
+                        counts['skipped'] += 1
+                        continue
+                    cid = self._txn_company(cache, mv)
+                    vals = {
+                        'product_id': product, 'location_id': src, 'location_dest_id': dest,
+                        'product_uom_qty': mv.get('product_uom_qty') or 0.0,
+                        'quantity': mv.get('quantity') or 0.0,
+                        'description_picking': mv.get('description_picking') or mv.get('name'),
+                        'name': mv.get('name'), 'origin': mv.get('origin'),
+                        'reference': mv.get('reference'), 'date': mv.get('date'),
+                        'company_id': cid, 'is_inventory': bool(mv.get('is_inventory')),
+                        'picked': mv.get('state') == 'done', 'x_src_id': mv['id'],
+                    }
+                    uom = self._resolve(cache, 'uom.uom', mv.get('product_uom'))
+                    if uom:
+                        vals['product_uom'] = uom
+                    move = Move.with_company(cid).create(self._valid(Move, vals))
+                    batch.append((mv['id'], move.id))
+                    states.setdefault(mv['state'], []).append(move.id)
+                    counts['created'] += 1
+            except Exception as e:
+                counts['failed'] += 1
+                if len(batch) > mark:
+                    del batch[mark:]
+                    counts['created'] -= 1
+                _logger.warning("txn stock.move id=%s: %s", mv['id'], e)
+            if processed % self._TXN_BATCH == 0:
+                self._txn_put_many(cache, 'stock.move', batch)
+                self._txn_apply_move_states(states)
+                batch, states = [], {}
+                self.env.cr.commit()
+        self._txn_put_many(cache, 'stock.move', batch)
+        self._txn_apply_move_states(states)
+        self.env.cr.commit()
+        stats.append("Stock Moves (no transfer) created=%d skipped=%d failed=%d"
+                     % (counts['created'], counts['skipped'], counts['failed']))
+
+    def _txn_apply_move_states(self, states):
+        if not states:
+            return
+        self.env.flush_all()
+        for state, ids in states.items():
+            if ids:
+                self.env.cr.execute("UPDATE stock_move SET state=%s WHERE id IN %s",
+                                    (state, tuple(ids)))
+        self.env.invalidate_all()
+
+    def _txn_move_lines(self, cur, cache, stats):
+        """The detail lines of every done move - and, through them, the stock.
+
+        Odoo 19 applies a move line created on a done move to the quants at
+        once, so replaying the lines in date order rebuilds on-hand from the
+        history itself, location by location, exactly as the old system arrived
+        at it. The inventory phase afterwards only has to confirm the figures.
+        """
+        d = self._txn_dates()
+        cur.execute("""SELECT l.* FROM stock_move_line l
+                        JOIN stock_move m ON m.id = l.move_id
+                       WHERE m.state = 'done' AND l.date >= %s
+                       ORDER BY l.date, l.id""" + self._txn_tail(), (d,))
+        rows = cur.fetchall()
+        if not rows:
+            stats.append("Stock Move Lines       nothing to migrate")
+            return
+        # every move mapped, in one query, rather than one search per line
+        self.env.cr.execute("SELECT src_id, dst_id FROM migration_map WHERE dst_model = 'stock.move'")
+        move_map = dict(self.env.cr.fetchall())
+        self.env.cr.execute("SELECT x_src_id, id FROM stock_move WHERE x_src_id IS NOT NULL")
+        move_map.update({k: v for k, v in self.env.cr.fetchall() if k not in move_map})
+        Line = self.env['stock.move.line'].sudo()
+        counts = {'created': 0, 'skipped': 0, 'unmapped': 0, 'failed': 0}
+        batch, processed = [], 0
+        for ln in rows:
+            processed += 1
+            mark = len(batch)
+            try:
+                with self.env.cr.savepoint():
+                    if self._resolve(cache, 'stock.move.line', ln['id']):
+                        counts['skipped'] += 1
+                        continue
+                    move_id = move_map.get(ln['move_id'])
+                    product = self._resolve(cache, 'product.product', ln.get('product_id'))
+                    src = self._resolve(cache, 'stock.location', ln.get('location_id'))
+                    dest = self._resolve(cache, 'stock.location', ln.get('location_dest_id'))
+                    if not (move_id and product and src and dest):
+                        counts['unmapped'] += 1
+                        continue
+                    move = self.env['stock.move'].sudo().browse(move_id)
+                    vals = {
+                        'move_id': move_id, 'picking_id': move.picking_id.id or False,
+                        'product_id': product, 'location_id': src, 'location_dest_id': dest,
+                        'quantity': ln.get('quantity') or 0.0, 'picked': True,
+                        'date': ln.get('date'), 'company_id': move.company_id.id,
+                        'x_src_id': ln['id'],
+                    }
+                    uom = self._resolve(cache, 'uom.uom', ln.get('product_uom_id'))
+                    if uom:
+                        vals['product_uom_id'] = uom
+                    line = Line.with_company(move.company_id).create(self._valid(Line, vals))
+                    if line.date != ln.get('date') and ln.get('date'):
+                        self.env.cr.execute("UPDATE stock_move_line SET date=%s WHERE id=%s",
+                                            (ln['date'], line.id))
+                    batch.append((ln['id'], line.id))
+                    counts['created'] += 1
+            except Exception as e:
+                counts['failed'] += 1
+                if len(batch) > mark:
+                    del batch[mark:]
+                    counts['created'] -= 1
+                _logger.warning("txn stock.move.line id=%s: %s", ln['id'], e)
+            if processed % self._TXN_BATCH == 0:
+                self._txn_put_many(cache, 'stock.move.line', batch)
+                batch = []
+                self.env.cr.commit()
+        self._txn_put_many(cache, 'stock.move.line', batch)
+        self.env.cr.commit()
+        stats.append("Stock Move Lines       created=%d skipped=%d unmapped=%d failed=%d"
+                     % (counts['created'], counts['skipped'], counts['unmapped'], counts['failed']))
+
+    def _txn_seed_picking_numbers(self, cur, cache, stats):
+        """Continue the v17 transfer numbering.
+
+        The transfers keep their v17 references, but the v19 operation types they
         are attached to carry their own sequences starting at 1 — and v19 enforces
         ``unique(name, company_id)`` on stock.picking. Left alone, the first new
         delivery in v19 would eventually walk straight into a migrated reference.
@@ -1191,7 +1487,7 @@ class MigrationBackend(models.Model):
         line_taxes = self._rel(cur, 'account_tax_purchase_order_line_rel',
                                'purchase_order_line_id', 'account_tax_id')
         counts = {'created': 0, 'updated': 0, 'failed': 0, 'skipped': 0, 'lines_kept': 0}
-        batch, processed = [], 0
+        batch, pending, processed = [], [], 0
         for row in rows:
             processed += 1
             # A savepoint rolls the DATABASE back, but not these Python lists —
@@ -1218,7 +1514,7 @@ class MigrationBackend(models.Model):
                             'price_unit': ln.get('price_unit') or 0.0,
                             'sequence': ln.get('sequence') or 10,
                             'date_planned': ln.get('date_planned'),
-                            'x_odoo10_id': ln['id'],
+                            'x_src_id': ln['id'],
                             # explicit, empty included — see the sale-order note
                             'tax_ids': [(6, 0, [
                                 t for t in (self._resolve(cache, 'account.tax', t)
@@ -1234,14 +1530,22 @@ class MigrationBackend(models.Model):
                         'company_id': cid,
                         'date_order': row.get('date_order'),
                         'date_approve': row.get('date_approve'),
+                        'date_planned': row.get('date_planned'),
                         'partner_ref': row.get('partner_ref'),
                         'origin': row.get('origin'),
                         'notes': row.get('notes'),
-                        'x_odoo10_id': row['id'],
+                        'x_src_id': row['id'],
                     }
-                    pt = self._resolve(cache, 'account.payment.term', row.get('payment_term_id'))
-                    if pt:
-                        vals['payment_term_id'] = pt
+                    for dst, (src, model) in {
+                            'payment_term_id': ('payment_term_id', 'account.payment.term'),
+                            'fiscal_position_id': ('fiscal_position_id', 'account.fiscal.position'),
+                            'picking_type_id': ('picking_type_id', 'stock.picking.type'),
+                            'dest_address_id': ('dest_address_id', 'res.partner'),
+                            'user_id': ('user_id', 'res.users'),
+                    }.items():
+                        val = self._resolve(cache, model, row.get(src))
+                        if val:
+                            vals[dst] = val
                     vals = self._valid(self.env['purchase.order'], vals)
                     existing = self._resolve(cache, 'purchase.order', row['id'])
                     if existing and self.txn_only_new:
@@ -1262,6 +1566,9 @@ class MigrationBackend(models.Model):
                     if row.get('state') == 'done' and 'locked' in po._fields:
                         post['locked'] = True
                     po.write(post)
+                    for rec in po.order_line:
+                        if rec.x_src_id:
+                            pending.append((rec.x_src_id, rec.id))
             except Exception as e:
                 counts['failed'] += 1
                 # the savepoint undid the create; undo the bookkeeping too
@@ -1271,28 +1578,511 @@ class MigrationBackend(models.Model):
                 _logger.warning("txn purchase.order id=%s: %s", row['id'], e)
             if processed % self._TXN_BATCH == 0:
                 self._txn_put_many(cache, 'purchase.order', batch)
-                batch = []
+                self._txn_put_many(cache, 'purchase.order.line', pending)
+                batch, pending = [], []
                 self.env.cr.commit()
         self._txn_put_many(cache, 'purchase.order', batch)
+        self._txn_put_many(cache, 'purchase.order.line', pending)
         self.env.cr.commit()
         stats.append("Purchase Orders        created=%d updated=%d skipped=%d failed=%d "
                      "lines-left-unpaired=%d"
                      % (counts['created'], counts['updated'], counts['skipped'], counts['failed'],
                         counts['lines_kept']))
 
+    # ------------------------------------------------------------------ reconciliation
+    def _txn_source_line_map(self, cur, cache, src_ids):
+        """{source aml id: target aml id} for the given source lines.
+
+        An entry's lines carry their source id (x_src_id) directly. An invoice's
+        receivable line is generated by posting and carries none, so it is found
+        through the invoice: the target move of the source move, then the line on
+        the same account for the same partner.
+        """
+        out = {}
+        if not src_ids:
+            return out
+        src_ids = tuple(set(src_ids))
+        self.env.cr.execute(
+            "SELECT x_src_id, id FROM account_move_line WHERE x_src_id IN %s", (src_ids,))
+        out.update(dict(self.env.cr.fetchall()))
+        missing = [i for i in src_ids if i not in out]
+        if not missing:
+            return out
+        cur.execute("""SELECT id, move_id, account_id, partner_id, debit, credit
+                         FROM account_move_line WHERE id IN %s""", (tuple(missing),))
+        rows = cur.fetchall()
+        move_ids = {self._resolve(cache, 'account.move', r['move_id']) for r in rows}
+        move_ids.discard(False)
+        by_move = {}
+        if move_ids:
+            self.env.cr.execute("""SELECT id, move_id, account_id, partner_id, debit, credit
+                                    FROM account_move_line
+                                   WHERE move_id IN %s AND display_type IN ('payment_term', 'product', 'cogs')
+                                      OR move_id IN %s AND display_type IS NULL""",
+                                (tuple(move_ids), tuple(move_ids)))
+            for lid, mid, aid, pid, debit, credit in self.env.cr.fetchall():
+                by_move.setdefault(mid, []).append((lid, aid, pid, debit, credit))
+        used = set(out.values())
+        for r in rows:
+            mid = self._resolve(cache, 'account.move', r['move_id'])
+            aid = self._resolve(cache, 'account.account', r['account_id'])
+            pid = self._resolve(cache, 'res.partner', r['partner_id'])
+            side = 'debit' if (r['debit'] or 0) > 0 else 'credit'
+            for lid, laid, lpid, debit, credit in by_move.get(mid, []):
+                if lid in used or laid != aid or (pid and lpid and lpid != pid):
+                    continue
+                if (side == 'debit' and (debit or 0) > 0) or (side == 'credit' and (credit or 0) > 0):
+                    out[r['id']] = lid
+                    used.add(lid)
+                    break
+        return out
+
+    def _txn_reconcile(self, cur, cache, stats):
+        """Replay the source ledger's matching, one partial at a time, in the order
+        it happened there.
+
+        Every invoice and payment is already in, with the same amounts, so
+        matching the same pairs in the same order reproduces the same partials —
+        and with them the invoices' paid / partial / in-payment states and every
+        clinic's open balance. Nothing is invented: a pair the source never
+        matched is never matched here, however obvious it looks.
+        """
+        d = self._txn_dates()
+        cur.execute("""
+            SELECT apr.id, apr.debit_move_id, apr.credit_move_id, apr.amount
+              FROM account_partial_reconcile apr
+              JOIN account_move_line dl ON dl.id = apr.debit_move_id
+              JOIN account_move_line cl ON cl.id = apr.credit_move_id
+             WHERE dl.date >= %s AND cl.date >= %s
+             ORDER BY apr.id
+        """ + self._txn_tail(), (d, d))
+        partials = cur.fetchall()
+        if not partials:
+            stats.append("Reconciliation         nothing to replay")
+            return
+        line_map = {}
+        src_ids = []
+        for r in partials:
+            src_ids += [r['debit_move_id'], r['credit_move_id']]
+        for start in range(0, len(src_ids), 5000):
+            line_map.update(self._txn_source_line_map(cur, cache, src_ids[start:start + 5000]))
+        Line = self.env['account.move.line'].sudo()
+        counts = {'matched': 0, 'already': 0, 'unmapped': 0, 'failed': 0}
+        processed = 0
+        for r in partials:
+            processed += 1
+            dl, cl = line_map.get(r['debit_move_id']), line_map.get(r['credit_move_id'])
+            if not (dl and cl):
+                counts['unmapped'] += 1
+                continue
+            try:
+                with self.env.cr.savepoint():
+                    lines = Line.browse([dl, cl]).exists()
+                    if len(lines) < 2:
+                        counts['unmapped'] += 1
+                        continue
+                    if any(l.reconciled for l in lines):
+                        counts['already'] += 1
+                        continue
+                    if lines[0].account_id != lines[1].account_id or not lines[0].account_id.reconcile:
+                        counts['unmapped'] += 1
+                        continue
+                    lines.with_context(skip_account_move_synchronization=True).reconcile()
+                    counts['matched'] += 1
+            except Exception as e:
+                counts['failed'] += 1
+                _logger.warning("reconcile partial id=%s: %s", r['id'], e)
+            if processed % 500 == 0:
+                self.env.cr.commit()
+                _logger.info("reconciliation: %d/%d", processed, len(partials))
+        self.env.cr.commit()
+        stats.append("Reconciliation         matched=%d already=%d unmapped=%d failed=%d"
+                     % (counts['matched'], counts['already'], counts['unmapped'], counts['failed']))
+
+    # ------------------------------------------------------------------ cheques
+    # post_dated_cheque's status -> the suite's cheque register
+    _CHEQUE_STATE = {'received': 'received', 'hold': 'received', 'submitted': 'deposited',
+                     'accepted': 'cleared', 'bounced': 'bounced'}
+
+    def _txn_cheques(self, cur, cache, stats):
+        """Cheques received, into the suite's cheque register.
+
+        The source kept cheque number, date and status on the payment; the suite
+        keeps a register (lab.cheque) whose entries point at the payment's journal
+        entry. Only cheques RECEIVED are registered — an issued cheque is the
+        lab's own and has no place in a register of what clinics handed over.
+        """
+        if 'lab.cheque' not in self.env:
+            stats.append("Cheques                SKIPPED (lab_finance_ops not installed)")
+            return
+        d = self._txn_dates()
+        try:
+            cur.execute("""
+                SELECT p.id, p.cheque_nos, p.cheque_dates, p.cheque_status, p.amount,
+                       p.partner_id, p.check_submitted_date, p.pay_reference,
+                       m.date, m.journal_id, m.company_id, m.name AS move_name
+                  FROM account_payment p JOIN account_move m ON m.id = p.move_id
+                 WHERE p.cheque_status IS NOT NULL AND p.payment_type = 'inbound'
+                   AND m.state = 'posted' AND m.date >= %s
+                 ORDER BY p.id
+            """ + self._txn_tail(), (d,))
+            rows = cur.fetchall()
+        except psycopg2.Error as e:
+            stats.append("Cheques                SKIPPED (%s)" % str(e).split('\n')[0])
+            return
+        Cheque = self.env['lab.cheque'].sudo().with_context(
+            mail_create_nolog=True, mail_notrack=True, tracking_disable=True)
+        counts = {'created': 0, 'updated': 0, 'skipped': 0, 'failed': 0}
+        batch = []
+        for r in rows:
+            partner = self._resolve(cache, 'res.partner', r['partner_id'])
+            state = self._CHEQUE_STATE.get(r['cheque_status'])
+            number = (r.get('cheque_nos') or '').strip() or (r.get('pay_reference') or '').strip()
+            if not (partner and state and number):
+                counts['skipped'] += 1
+                continue
+            vals = {
+                'cheque_number': number, 'partner_id': partner,
+                'cheque_date': r.get('cheque_dates') or r['date'],
+                'received_date': r['date'], 'amount': float(r['amount'] or 0.0),
+                'state': state, 'x_src_id': r['id'],
+                'company_id': self._txn_company(cache, r),
+                'note': 'Source payment %s' % (r.get('move_name') or r['id']),
+            }
+            journal = self._resolve(cache, 'account.journal', r.get('journal_id'))
+            if journal:
+                vals['journal_id'] = journal
+            if state in ('deposited', 'cleared'):
+                vals['deposit_date'] = r.get('check_submitted_date') or r['date']
+            if state == 'cleared':
+                vals['clear_date'] = r.get('check_submitted_date') or r['date']
+            try:
+                with self.env.cr.savepoint():
+                    existing = self._resolve(cache, 'lab.cheque', r['id'])
+                    rec = Cheque.browse(existing) if existing else Cheque
+                    if rec:
+                        # a closed cheque is locked by the register's own rule; sudo
+                        # (which this run is) is how history is allowed to be rewritten
+                        rec.write(self._valid(Cheque, vals))
+                        counts['updated'] += 1
+                    else:
+                        rec = Cheque.create(self._valid(Cheque, vals))
+                        batch.append((r['id'], rec.id))
+                        counts['created'] += 1
+            except Exception as e:
+                counts['failed'] += 1
+                _logger.warning("cheque payment id=%s: %s", r['id'], e)
+        self._txn_put_many(cache, 'lab.cheque', batch)
+        self.env.cr.commit()
+        stats.append("Cheques                created=%d updated=%d skipped=%d failed=%d"
+                     % (counts['created'], counts['updated'], counts['skipped'], counts['failed']))
+
+    # ------------------------------------------------------------------ bill ↔ purchase links
+    def _txn_bill_links(self, cur, cache, stats):
+        """Point already-migrated bill lines at their purchase lines.
+
+        The invoice phase writes this link when the purchase lines are mapped
+        before it runs; a database migrated in the old phase order (or before
+        purchases were in) has the bills but not the links. This fills them in
+        without rewriting a single posted bill.
+        """
+        cur.execute("""SELECT l.id, l.purchase_line_id FROM account_move_line l
+                        JOIN account_move m ON m.id = l.move_id
+                       WHERE l.purchase_line_id IS NOT NULL
+                         AND m.move_type IN ('in_invoice', 'in_refund')""")
+        rows = cur.fetchall()
+        if not rows:
+            stats.append("Bill ↔ Purchase links  nothing to link")
+            return
+        self.env.cr.execute("""SELECT x_src_id, id, purchase_line_id FROM account_move_line
+                                WHERE x_src_id IN %s""", (tuple(r['id'] for r in rows),))
+        here = {src: (aml_id, pol) for src, aml_id, pol in self.env.cr.fetchall()}
+        linked = already = unmapped = 0
+        updates = []
+        for r in rows:
+            aml_id, current = here.get(r['id'], (None, None))
+            pol = self._resolve(cache, 'purchase.order.line', r['purchase_line_id'])
+            if not (aml_id and pol):
+                unmapped += 1
+                continue
+            if current == pol:
+                already += 1
+                continue
+            updates.append((pol, aml_id))
+        if updates:
+            # a stored many2one with no dependants: SQL is exact and does not touch
+            # the posted bill's hash, dates or reconciliation
+            self.env.cr.executemany(
+                "UPDATE account_move_line SET purchase_line_id=%s WHERE id=%s", updates)
+            self.env.invalidate_all()
+            linked = len(updates)
+        self.env.cr.commit()
+        stats.append("Bill ↔ Purchase links  linked=%d already=%d unmapped=%d"
+                     % (linked, already, unmapped))
+
+    # ------------------------------------------------------------------ material requests
+    # The lab's own module of the same name was rewritten for this suite; the
+    # models kept their names, so the 1,015 requests land on the new screens.
+    _MR_STATE = {'draft': 'draft', 'confirm': 'confirm', 'approved': 'approved',
+                 'cancelled': 'cancelled'}
+
+    def _txn_material_requests(self, cur, cache, stats):
+        """Department requests for consumables, with their lines and transfers.
+
+        Runs after the transfers, so a request's own transfer (raised on approval
+        in the old system) is linked back to it and its delivered quantities come
+        out of the moves; an approved request whose transfer is done is Delivered.
+        """
+        if 'material.request' not in self.env:
+            stats.append("Material Requests      SKIPPED (material_request not installed)")
+            return
+        d = self._txn_dates()
+        try:
+            cur.execute("SELECT * FROM material_request WHERE create_date >= %s ORDER BY id"
+                        + self._txn_tail(), (d,))
+            rows = cur.fetchall()
+        except psycopg2.Error as e:
+            stats.append("Material Requests      SKIPPED (%s)" % str(e).split('\n')[0])
+            return
+        if not rows:
+            stats.append("Material Requests      nothing to migrate")
+            return
+        ids = tuple(r['id'] for r in rows)
+        cur.execute("SELECT * FROM material_request_lines WHERE material_request_id IN %s ORDER BY id",
+                    (ids,))
+        lines_by_req = self._group(cur.fetchall(), 'material_request_id')
+        cur.execute("SELECT id, material_request_id FROM stock_picking WHERE material_request_id IN %s",
+                    (ids,))
+        pickings_by_req = self._group(cur.fetchall(), 'material_request_id')
+        cur.execute("""SELECT m.id, m.picking_id, m.product_id FROM stock_move m
+                        JOIN stock_picking p ON p.id = m.picking_id
+                       WHERE p.material_request_id IN %s""", (ids,))
+        moves_by_pick = self._group(cur.fetchall(), 'picking_id')
+
+        Request = self.env['material.request'].sudo().with_context(
+            mail_create_nolog=True, mail_notrack=True, tracking_disable=True,
+            mail_auto_subscribe_no_notify=True)
+        Picking = self.env['stock.picking'].sudo()
+        Move = self.env['stock.move'].sudo()
+        counts = {'created': 0, 'updated': 0, 'skipped': 0, 'failed': 0, 'linked': 0}
+        batch, processed = [], 0
+        for row in rows:
+            processed += 1
+            mark = len(batch)
+            try:
+                with self.env.cr.savepoint():
+                    location = self._resolve(cache, 'stock.location', row.get('location_id'))
+                    if not location:
+                        counts['skipped'] += 1
+                        continue
+                    existing = self._resolve(cache, 'material.request', row['id'])
+                    if existing and self.txn_only_new:
+                        counts['skipped'] += 1
+                        continue
+                    cid = self._txn_company(cache, row)
+                    state = self._MR_STATE.get(row.get('state'), 'draft')
+                    line_vals = []
+                    for ln in lines_by_req.get(row['id'], []):
+                        product = self._resolve(cache, 'product.product', ln.get('product_id'))
+                        if not product:
+                            continue
+                        qty = float(ln.get('quantity') or 0.0)
+                        line_vals.append((0, 0, self._valid(self.env['material.request.lines'], {
+                            'product_id': product, 'quantity': qty,
+                            'qty_approved': qty if state == 'approved' else 0.0,
+                            'qty_approved_set': state == 'approved',
+                            'x_src_id': ln['id'],
+                        })))
+                    vals = {
+                        'name': row.get('name') or '/',
+                        'company_id': cid, 'location_id': location,
+                        'user_id': self._resolve(cache, 'res.users', row.get('create_uid'))
+                        or self.env.user.id,
+                        'date_request': (row.get('create_date') or fields.Datetime.now()).date(),
+                        'x_src_id': row['id'],
+                    }
+                    vals = self._valid(Request, vals)
+                    if existing:
+                        request = Request.browse(existing)
+                        request.line_ids.unlink()
+                        request.write(dict(vals, line_ids=line_vals))
+                        counts['updated'] += 1
+                    else:
+                        request = Request.with_company(cid).create(dict(vals, line_ids=line_vals))
+                        batch.append((row['id'], request.id))
+                        counts['created'] += 1
+                    # its transfer(s), and each move onto the line it fulfils
+                    pickings = Picking.browse([p for p in (
+                        self._resolve(cache, 'stock.picking', pk['id'])
+                        for pk in pickings_by_req.get(row['id'], [])) if p]).exists()
+                    if pickings:
+                        pickings.write({'material_request_id': request.id})
+                        counts['linked'] += len(pickings)
+                        by_product = {}
+                        for line in request.line_ids:
+                            by_product.setdefault(line.product_id.id, line)
+                        for move in pickings.move_ids:
+                            line = by_product.get(move.product_id.id)
+                            if line and not move.material_request_line_id:
+                                move.material_request_line_id = line.id
+                    post = {'state': state}
+                    if state == 'approved':
+                        post['approver_id'] = vals['user_id']
+                        post['date_approved'] = row.get('write_date')
+                        done = pickings.filtered(lambda p: p.state != 'cancel')
+                        if done and all(p.state == 'done' for p in done):
+                            post['state'] = 'done'
+                    request.write(post)
+            except Exception as e:
+                counts['failed'] += 1
+                if len(batch) > mark:
+                    del batch[mark:]
+                    counts['created'] -= 1
+                _logger.warning("txn material.request id=%s: %s", row['id'], e)
+            if processed % self._TXN_BATCH == 0:
+                self._txn_put_many(cache, 'material.request', batch)
+                batch = []
+                self.env.cr.commit()
+        self._txn_put_many(cache, 'material.request', batch)
+        self.env.cr.commit()
+        stats.append("Material Requests      created=%d updated=%d linked-transfers=%d skipped=%d failed=%d"
+                     % (counts['created'], counts['updated'], counts['linked'],
+                        counts['skipped'], counts['failed']))
+
+    # ------------------------------------------------------------------ attachments
+    # Source models whose attachments and images come across, with the map used
+    # to find the target record.
+    _ATTACHMENT_MODELS = ('sale.order', 'res.partner', 'product.template', 'hr.employee',
+                          'account.move', 'purchase.order', 'stock.picking')
+
+    def _txn_attachments(self, cur, cache, stats):
+        """Files and images, read from the source filestore on disk.
+
+        An attachment row only names its file (store_fname); the bytes live in
+        the filestore, which is why the backend needs a path to a copy of it. The
+        bytes are handed to Odoo as `raw`, so the target computes its own
+        checksum and store path — nothing about the old filestore layout is
+        assumed beyond "<filestore>/<store_fname>".
+        """
+        root = (self.src_filestore or '').strip()
+        if not root:
+            stats.append("Attachments            SKIPPED (no source filestore path set)")
+            return
+        if not os.path.isdir(root):
+            stats.append("Attachments            SKIPPED (%s is not a directory)" % root)
+            return
+        d = self._txn_dates()
+        cur.execute("""
+            SELECT id, name, res_model, res_id, res_field, mimetype, store_fname,
+                   file_size, public, create_date
+              FROM ir_attachment
+             WHERE res_model IN %s AND res_id IS NOT NULL AND store_fname IS NOT NULL
+               AND (res_field IS NULL OR res_field = 'image_1920')
+             ORDER BY id
+        """, (self._ATTACHMENT_MODELS,))
+        rows = cur.fetchall()
+        if not rows:
+            stats.append("Attachments            nothing to migrate")
+            return
+        Attachment = self.env['ir.attachment'].sudo()
+        counts = {'files': 0, 'images': 0, 'missing_file': 0, 'unmapped': 0, 'failed': 0,
+                  'already': 0}
+        batch, processed = [], 0
+        for r in rows:
+            processed += 1
+            target = self._resolve(cache, r['res_model'], r['res_id'])
+            if not target:
+                counts['unmapped'] += 1
+                continue
+            path = os.path.join(root, r['store_fname'])
+            if not os.path.isfile(path):
+                counts['missing_file'] += 1
+                continue
+            try:
+                with self.env.cr.savepoint():
+                    if r['res_field'] == 'image_1920':
+                        Model = self.env[r['res_model']].sudo().with_context(active_test=False)
+                        rec = Model.browse(target).exists()
+                        if rec and 'image_1920' in rec._fields and not rec.image_1920:
+                            with open(path, 'rb') as fh:
+                                rec.write({'image_1920': fh.read()})
+                            counts['images'] += 1
+                        else:
+                            counts['already'] += 1
+                        continue
+                    if self._resolve(cache, 'ir.attachment', r['id']):
+                        counts['already'] += 1
+                        continue
+                    with open(path, 'rb') as fh:
+                        data = fh.read()
+                    att = Attachment.create({
+                        'name': r['name'] or 'file',
+                        'res_model': r['res_model'], 'res_id': target,
+                        'mimetype': r['mimetype'] or mimetypes.guess_type(r['name'] or '')[0]
+                        or 'application/octet-stream',
+                        'raw': data, 'public': bool(r.get('public')),
+                    })
+                    batch.append((r['id'], att.id))
+                    counts['files'] += 1
+            except Exception as e:
+                counts['failed'] += 1
+                _logger.warning("attachment id=%s: %s", r['id'], e)
+            if processed % self._TXN_BATCH == 0:
+                self._txn_put_many(cache, 'ir.attachment', batch)
+                batch = []
+                self.env.cr.commit()
+        self._txn_put_many(cache, 'ir.attachment', batch)
+        self.env.cr.commit()
+        stats.append("Attachments            files=%d images=%d already=%d unmapped=%d "
+                     "missing-file=%d failed=%d"
+                     % (counts['files'], counts['images'], counts['already'],
+                        counts['unmapped'], counts['missing_file'], counts['failed']))
+
     # ------------------------------------------------------------------ orchestration
     _TXN_MAP_MODELS = (
         'res.company', 'res.partner', 'res.users', 'product.product', 'product.template',
         'uom.uom', 'account.account', 'account.journal', 'account.tax',
-        'account.payment.term', 'crm.team', 'send.through', 'product.colour',
-        'sale.order', 'sale.order.line', 'account.move',
-        'mrp.bom', 'mrp.production', 'stock.picking', 'purchase.order',
+        'account.payment.term', 'account.fiscal.position', 'crm.team', 'product.colour',
+        'stock.location', 'stock.warehouse', 'stock.picking.type', 'hr.employee',
+        'sale.order', 'sale.order.line', 'account.move', 'account.move.line',
+        'mrp.bom', 'mrp.production', 'stock.picking', 'stock.move', 'stock.move.line',
+        'purchase.order', 'purchase.order.line',
+        'lab.cheque', 'ir.attachment', 'material.request',
     )
 
-    # Phases in dependency order: MOs and transfers reference the sale orders, and
-    # the GL phases must precede the inventory refresh.
-    _TXN_PHASES = ['share_records', 'sale_orders', 'invoices', 'journal_entries',
-                   'manufacturing', 'pickings', 'purchases']
+    # Phases in dependency order: invoices point at order lines, reconciliation
+    # needs every entry in, transfers reference the orders, attachments the lot.
+    # Purchases come before invoices (bills point at purchase lines) and before
+    # transfers (receipts point at them too); move lines come last among the
+    # stock phases because they rebuild the quants from every done move.
+    _TXN_PHASES = ['share_records', 'sale_orders', 'purchases', 'invoices',
+                   'journal_entries', 'reconcile', 'cheques', 'manufacturing',
+                   'pickings', 'stock_moves', 'move_lines', 'material_requests',
+                   'attachments']
+
+    def _txn_map_user_partners(self, cur, cache):
+        """A user's partner resolves to the migrated user's partner.
+
+        The partner spec skips the partners behind internal users (the user sync
+        creates its own), so a document pointing at one — 5,993 technician links on
+        the lab's orders are the technicians who also log in — would otherwise
+        lose the reference. Only fills gaps; a partner already mapped stays as is.
+        """
+        try:
+            cur.execute("SELECT id, partner_id FROM res_users WHERE share = false")
+            rows = cur.fetchall()
+        except psycopg2.Error:
+            return
+        partners = cache.setdefault('res.partner', {})
+        Users = self.env['res.users'].sudo().with_context(active_test=False)
+        for r in rows:
+            if r['partner_id'] in partners:
+                continue
+            user_id = self._resolve(cache, 'res.users', r['id'])
+            if user_id:
+                partner = Users.browse(user_id).partner_id.id
+                if partner:
+                    partners[r['partner_id']] = partner
 
     def _txn_run(self, phases):
         self = self._migration_env()
@@ -1306,10 +2096,11 @@ class MigrationBackend(models.Model):
             if pruned:
                 stats.append("Pruned Map             %d stale mapping(s) removed" % pruned)
             self._txn_preload(cache, self._TXN_MAP_MODELS)
+            self._txn_map_user_partners(cur, cache)
             for name in phases:
                 _logger.info("transaction migration: %s", name)
                 getattr(self, '_txn_%s' % name)(cur, cache, stats)
-            # Documents carry the date they were created in Odoo 10, not the date
+            # Documents carry the date they were created in Odoo 17, not the date
             # this ran. Odoo overwrites create_date/write_date on create(), so the
             # source values have to be put back once the documents exist — and it
             # belongs here rather than behind a button somebody has to remember.
@@ -1331,18 +2122,27 @@ class MigrationBackend(models.Model):
         return self._notify(_("Transactions migrated. See the transaction log."), sticky=True)
 
     def action_sync_transactions_gl(self):
-        """The accounting spine only: sale orders, invoices, journal entries."""
+        """The accounting spine only: sale orders, invoices, journal entries,
+        the matching between them, and the cheque register."""
         self = self._migration_env()
-        stats = self._txn_run(['share_records', 'sale_orders', 'invoices',
-                               'journal_entries'])
+        stats = self._txn_run(['share_records', 'sale_orders', 'purchases', 'invoices',
+                               'journal_entries', 'reconcile', 'cheques'])
         self.txn_log = "TRANSACTION SYNC — GL (from %s)\n%s" % (
             self._txn_dates(), "\n".join(stats))
         return self._notify(_("Sales and accounting documents migrated."), sticky=True)
 
     def action_sync_transactions_ops(self):
-        """The operational documents: MOs, transfers, purchase orders."""
+        """The operational documents: MOs, transfers, purchase orders, attachments."""
         self = self._migration_env()
-        stats = self._txn_run(['manufacturing', 'pickings', 'purchases'])
+        stats = self._txn_run(['manufacturing', 'pickings', 'stock_moves', 'move_lines',
+                               'material_requests', 'attachments'])
+
+    def action_sync_reconciliation(self):
+        """Replay the source ledger's matching on its own, after a GL run."""
+        self = self._migration_env()
+        stats = self._txn_run(['reconcile'])
+        self.txn_log = "RECONCILIATION\n%s" % "\n".join(stats)
+        return self._notify(_("Reconciliation replayed. See the transaction log."), sticky=True)
         self.txn_log = "TRANSACTION SYNC — OPS (from %s)\n%s" % (
             self._txn_dates(), "\n".join(stats))
         return self._notify(_("Operational documents migrated."), sticky=True)

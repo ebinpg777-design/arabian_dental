@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.QuickFindDialog">
+        <Dialog title="'Quick find'" size="'md'" footer="false" contentClass="'o_dbq_dialog'">
+            <div class="o_dbq">
+                <div class="o_dbq_search">
+                    <i class="fa fa-search" role="img" aria-label="Search"/>
+                    <input type="text" t-ref="input" class="o_dbq_input"
+                           placeholder="Find a dashboard, a card or an action…"
+                           t-att-value="state.query" t-on-input="onInput" t-on-keydown="onKeydown"/>
+                    <i t-if="state.searching" class="fa fa-circle-o-notch fa-spin" role="img" aria-label="Searching"/>
+                    <kbd>Esc</kbd>
+                </div>
+                <div class="o_dbq_list">
+                    <t t-if="!hits.length">
+                        <div class="o_dbq_empty" t-esc="emptyLabel"/>
+                    </t>
+                    <t t-foreach="hits" t-as="hit" t-key="hit.key">
+                        <div t-attf-class="o_dbq_hit {{ hit_index === state.cursor ? 'o_dbq_hit_on' : '' }}"
+                             role="option" t-att-aria-selected="hit_index === state.cursor"
+                             t-on-mouseenter="() => this.state.cursor = hit_index"
+                             t-on-click="() => this.pick(hit)">
+                            <t t-if="hit.type === 'board'">
+                                <i t-attf-class="fa #{hit.board.icon} o_dbq_icon" role="img" aria-label="Dashboard"/>
+                                <span class="o_dbq_name" t-esc="hit.board.name"/>
+                                <span class="o_dbq_kind">Dashboard</span>
+                            </t>
+                            <t t-elif="hit.type === 'action'">
+                                <i t-attf-class="fa #{hit.action.icon} o_dbq_icon" role="img" aria-label="Action"/>
+                                <span class="o_dbq_name" t-esc="hit.action.label"/>
+                                <span class="o_dbq_kind">Action</span>
+                            </t>
+                            <t t-else="">
+                                <i t-attf-class="fa #{hit.card.icon} o_dbq_icon" role="img" aria-label="Card"/>
+                                <span class="o_dbq_name" t-esc="hit.card.name"/>
+                                <span class="o_dbq_kind"><t t-esc="hit.card.board_name"/> · <t t-esc="hit.card.kind"/></span>
+                            </t>
+                        </div>
+                    </t>
+                </div>
+                <div class="o_dbq_foot">
+                    <kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Enter</kbd> open
+                </div>
+            </div>
+        </Dialog>
+    </t>
+
+</templates>

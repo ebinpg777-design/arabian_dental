@@ -34,6 +34,7 @@ def _configure_company(env):
         'city': LAB['city'],
         'zip': LAB['zip'],
         'phone': LAB['phones'][0][0],
+        'email': LAB['email'],
         'website': LAB['website'],
         'social_instagram': LAB['instagram'],
     }
@@ -60,7 +61,8 @@ THANKS_ARCH = """<data>
             <ul class="list-unstyled mb-0 ps-2">
                 <li><i class="fa fa-map-marker fa-fw me-2"/><span class="o_force_ltr">%(address)s</span></li>
                 <li><i class="fa fa-phone fa-fw me-2"/><a href="tel:%(tel)s"><span class="o_force_ltr">%(phone)s</span></a></li>
-                <li><i class="fa fa-clock-o fa-fw me-2"/><span>Mon – Sat, 9:00 AM – 6:00 PM</span></li>
+                <li><i class="fa fa-envelope fa-fw me-2"/><a href="mailto:%(email)s">%(email)s</a></li>
+                <li><i class="fa fa-clock-o fa-fw me-2"/><span>%(hours)s</span></li>
             </ul>
         </div>
     </xpath>
@@ -93,10 +95,39 @@ def _fix_contact_thanks_page(env):
             'address': '%s, %s, %s %s' % (LAB['street'], LAB['street2'], LAB['city'], LAB['zip']),
             'tel': LAB['phones'][0][1],
             'phone': LAB['phones'][0][0],
+            'email': LAB['email'],
+            'hours': LAB['hours_short'],
         },
     })
-    env['ir.model.data']._update_xmlids([{'xml_id': THANKS_VIEW_KEY, 'record': view, 'noupdate': False}])
+    # noupdate: at the end of a module upgrade Odoo deletes this module's xmlids that
+    # the data files did not touch — which is every record made by a hook. A noupdate
+    # xmlid is left alone.
+    env['ir.model.data']._update_xmlids([{'xml_id': THANKS_VIEW_KEY, 'record': view, 'noupdate': True}])
     _logger.info("lab_website: added the lab's sidebar to the contact thank-you page")
+
+
+def _set_logos(env, website):
+    """The lab's mark on the site header and the company, where nothing else is.
+
+    Each is replaced only while it is still Odoo's own placeholder (the company's
+    res_company_logo.png, the website's website_logo.svg — they differ). A logo somebody
+    uploaded stays.
+    """
+    import base64
+    from odoo.tools import file_open
+    with file_open('lab_website/static/src/img/logo-h.png', 'rb') as fh:
+        lockup = base64.b64encode(fh.read())
+    with file_open('lab_website/static/src/img/logo.png', 'rb') as fh:
+        stacked = base64.b64encode(fh.read())
+    company = env.company
+    stock = company._get_logo() if hasattr(company, '_get_logo') else None
+    if not company.logo or (stock and company.logo == stock):
+        company.write({'logo': stacked})
+        _logger.info("lab_website: set the company logo")
+    site_stock = website._default_logo() if hasattr(website, '_default_logo') else None
+    if not website.logo or website.logo in (stock, site_stock):
+        website.write({'logo': lockup})
+        _logger.info("lab_website: set the website logo")
 
 
 def post_init_hook(env):
@@ -115,6 +146,7 @@ def post_init_hook(env):
         vals['homepage_url'] = '/'
     website.write(vals)
     _fill_blanks(website, {'social_instagram': LAB['instagram']})
+    _set_logos(env, website)
 
     # Replace what "/" renders with our homepage, leaving the stock one intact so the
     # change is reversible by pointing the page back at it.

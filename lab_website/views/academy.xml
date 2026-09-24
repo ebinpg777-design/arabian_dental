@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="page_academy" name="Academy">
+        <t t-call="website.layout">
+            <t t-set="additional_title" t-value="lab['academy']"/>
+            <t t-set="website_meta_description" t-value="'ADL Dental Academy: hands-on dental technology training in a working laboratory in Manjeri, and the Crown Conference Hall for clinicians.'"/>
+            <div id="wrap" class="oe_structure o_lab o_lab_academy">
+                <t t-call="lab_website.page_hero">
+                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/technician-bench.jpg'"/>
+                    <t t-set="hero_kicker" t-value="'Training · Manjeri'"/>
+                    <t t-set="hero_title" t-value="lab['academy']"/>
+                    <t t-set="hero_text" t-value="'Hands-on dental technology training in a working laboratory, and a conference hall for the clinicians who send it work.'"/>
+                    <t t-set="hero_cta" t-value="('Enquire about a batch', '#enquire')"/>
+                    <t t-set="hero_cta2" t-value="('The programmes', '#programmes')"/>
+                </t>
+
+                <!-- Three numbers the academy stands on, over the hero edge. -->
+                <div class="container o_lab_hero_strip_wrap o_lab_hero_strip_wrap_inner">
+                    <div class="o_lab_hero_strip">
+                        <div><i class="fa fa-users"/><div><strong>Small batches</strong><span>Taught at the bench</span></div></div>
+                        <div><i class="fa fa-flask"/><div><strong>A working lab</strong><span>Real cases, real deadlines</span></div></div>
+                        <div><i class="fa fa-building-o"/><div><strong><t t-esc="lab['hall']"/></strong><span>Lectures &amp; study clubs</span></div></div>
+                        <div><i class="fa fa-user-md"/><div><strong>Clinicians welcome</strong><span>CDE programmes</span></div></div>
+                    </div>
+                </div>
+
+                <section class="o_lab_sec" id="programmes">
+                    <div class="container">
+                        <div class="o_lab_sec_head o_lab_reveal">
+                            <span class="o_lab_kicker">Programmes</span>
+                            <h2 class="o_lab_h2">Learn the bench that ships the work</h2>
+                            <p>Taught by the technicians who do the work every day, on the cases the lab is making that week.</p>
+                        </div>
+                        <div class="row g-4">
+                            <div t-foreach="content['courses']" t-as="c" class="col-md-6 col-lg-4 o_lab_reveal" t-attf-style="--d: #{c_index * 60}ms">
+                                <div class="o_lab_course">
+                                    <span class="o_lab_course_n" t-esc="'%02d' % (c_index + 1)"/>
+                                    <i t-attf-class="fa #{c[0]}"/>
+                                    <h3 t-esc="c[1]"/>
+                                    <p t-esc="c[2]"/>
+                                    <small t-esc="c[3]"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="o_lab_sec o_lab_sec_dark">
+                    <div class="container">
+                        <div class="row g-5 align-items-center">
+                            <div class="col-lg-6 o_lab_reveal">
+                                <span class="o_lab_kicker o_lab_kicker_light"><t t-esc="lab['hall']"/></span>
+                                <h2 class="o_lab_h2">A hall for the clinicians</h2>
+                                <p class="o_lab_lead">Continuing dental education programmes, study clubs and product evenings, on site at the laboratory — so a lecture on a material can be followed by seeing it layered at the bench.</p>
+                                <ul class="o_lab_facts o_lab_facts_light">
+                                    <li><span>For</span><strong>Practising dentists &amp; postgraduates</strong></li>
+                                    <li><span>Format</span><strong>Lectures, hands-on, study clubs</strong></li>
+                                    <li><span>Where</span><strong><t t-esc="lab['city']"/>, <t t-esc="lab['district']"/></strong></li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="o_lab_who o_lab_reveal">
+                                    <h4>Who it is for</h4>
+                                    <div t-foreach="content['audience']" t-as="a" class="o_lab_who_i">
+                                        <i t-attf-class="fa #{a[0]}"/>
+                                        <div><strong t-esc="a[1]"/><span t-esc="a[2]"/></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="o_lab_sec">
+                    <div class="container">
+                        <div class="row g-5 align-items-center">
+                            <div class="col-lg-6 o_lab_reveal">
+                                <div class="o_lab_intro_art o_lab_intro_art_sm">
+                                    <img src="/lab_website/static/src/img/anterior-crowns-model.jpg" alt="Anterior crowns on the model" class="o_lab_intro_img1" loading="lazy"/>
+                                    <img src="/lab_website/static/src/img/single-crown.jpg" alt="A single crown on its die" class="o_lab_intro_img2" loading="lazy"/>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 o_lab_reveal">
+                                <span class="o_lab_kicker">How a batch runs</span>
+                                <h2 class="o_lab_h2">Morning at the bench, afternoon on your own case</h2>
+                                <ol class="o_lab_checklist o_lab_checklist_lg">
+                                    <li><strong>Demonstration</strong> — the technician makes it in front of you, on a live case.</li>
+                                    <li><strong>Your turn</strong> — the same step on your own model, with the instructor beside you.</li>
+                                    <li><strong>Review</strong> — every piece checked the way the lab's quality gate checks it.</li>
+                                    <li><strong>Certificate</strong> — and a bench to come back to.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="o_lab_sec o_lab_sec_paper" id="enquire">
+                    <div class="container">
+                        <div class="row g-5">
+                            <div class="col-lg-5 o_lab_reveal">
+                                <span class="o_lab_kicker">Enquire</span>
+                                <h2 class="o_lab_h2">Ask about the next batch</h2>
+                                <p class="o_lab_lead">Tell us which programme you are interested in and we will send you the dates and the fee.</p>
+                                <t t-call="lab_website.contact_rows"/>
+                            </div>
+                            <div class="col-lg-7 o_lab_reveal">
+                                <div class="o_lab_formcard">
+                                    <t t-call="lab_website.enquiry_form">
+                                        <t t-set="form_id" t-value="'lab_academy_form'"/>
+                                        <t t-set="subject" t-value="'Academy enquiry'"/>
+                                        <t t-set="company_label" t-value="'College / clinic / lab'"/>
+                                        <t t-set="choices_label" t-value="'Programme'"/>
+                                        <t t-set="choices" t-value="[c[1] for c in content['courses']] + ['Crown Conference Hall (CDE)', 'Not sure yet']"/>
+                                        <t t-set="message_label" t-value="'About you'"/>
+                                        <t t-set="message_placeholder" t-value="'Student, technician or clinician — and what you want to learn.'"/>
+                                        <t t-set="submit_label" t-value="'Send my enquiry'"/>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <t t-call="lab_website.cta_band">
+                    <t t-set="cta_title" t-value="'Sending cases, not students?'"/>
+                    <t t-set="cta_text" t-value="'The same benches make your work. Here is how to send a case.'"/>
+                </t>
+            </div>
+        </t>
+    </template>
+
+</odoo>

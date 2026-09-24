@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.ColorPickerField">
+        <div class="o_dbf_colors" role="radiogroup">
+            <t t-foreach="palette" t-as="entry" t-key="entry.key">
+                <button type="button"
+                        t-attf-class="o_dbf_swatch {{ entry.key === current ? 'o_dbf_swatch_on' : '' }}"
+                        t-att-style="'--dbf-swatch: ' + entry.hex"
+                        role="radio" t-att-aria-checked="entry.key === current"
+                        t-att-title="entry.label"
+                        t-att-disabled="props.readonly"
+                        t-on-click="() => this.select(entry.key)">
+                    <i t-if="entry.key === current" class="fa fa-check" role="img" aria-label="Selected"/>
+                </button>
+            </t>
+        </div>
+    </t>
+
+</templates>

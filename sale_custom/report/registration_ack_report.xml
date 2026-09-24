@@ -29,6 +29,7 @@
                             <th>Product</th>
                             <th>Colour</th>
                             <th>U/L</th>
+                            <th>Teeth</th>
                             <th class="text-end">Qty</th>
                         </tr>
                     </thead>
@@ -37,6 +38,7 @@
                             <td><span t-field="line.product_id.display_name"/></td>
                             <td><span t-field="line.color_scheme.name"/></td>
                             <td><span t-field="line.ul"/></td>
+                            <td><span t-field="line.teeth"/></td>
                             <td class="text-end"><span t-field="line.product_uom_qty"/></td>
                         </tr>
                     </tbody>

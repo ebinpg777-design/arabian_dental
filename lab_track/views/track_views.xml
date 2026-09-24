@@ -17,7 +17,7 @@
          hunting through Sales or Management. Every internal user may open it; what it
          shows of a case is still governed by that user's own read rights on the order. -->
     <menuitem id="menu_track_root" name="Track Order"
-              web_icon="lab_track,static/description/icon.svg"
+              web_icon="lab_track,static/description/icon.png"
               action="action_track" sequence="12"
               groups="base.group_user"/>
 </odoo>

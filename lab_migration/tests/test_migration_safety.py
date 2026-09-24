@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Re-running the migration must never be more destructive than the first run.
 
-No Odoo 10 database is needed: the source cursor is replaced by a stand-in that
+No Odoo 17 database is needed: the source cursor is replaced by a stand-in that
 answers each query by a marker in its SQL, so these run on any test database.
-Odoo 10 ids here are deliberately huge so they cannot collide with the real
+Odoo 17 ids here are deliberately huge so they cannot collide with the real
 migration.map rows of a database copied from production.
 """
 from unittest.mock import patch
@@ -14,11 +14,11 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import new_test_user
 
-SRC = 9_900_000     # offset for every fake Odoo 10 id
+SRC = 9_900_000     # offset for every fake Odoo 17 id
 
 
 class FakeSource:
-    """The Odoo 10 cursor: the rows of the first marker found in the query."""
+    """The Odoo 17 cursor: the rows of the first marker found in the query."""
 
     def __init__(self, answers):
         self.answers = answers
@@ -152,9 +152,9 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
             self._sale_line(9002, 12, 'Bridge', sequence=2),
             self._sale_line(9003, 11, 'Retainer', sequence=3),
         ])
-        order = self.env['sale.order'].search([('x_odoo10_id', '=', SRC + 900)])
+        order = self.env['sale.order'].search([('x_src_id', '=', SRC + 900)])
         self.assertEqual(len(order.order_line), 3)
-        by_key = {l.x_odoo10_id: l for l in order.order_line}
+        by_key = {l.x_src_id: l for l in order.order_line}
         crown, bridge, retainer = (by_key[SRC + k] for k in (9001, 9002, 9003))
 
         invoice = self.env['account.move'].create({
@@ -167,7 +167,7 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
                                 'price_unit': 100.0, 'sale_line_ids': [Command.set(bridge.ids)]}),
             ],
         })
-        # a line added in Odoo 19 after the cut-over carries no Odoo 10 key
+        # a line added in Odoo 19 after the cut-over carries no Odoo 17 key
         order.write({'state': 'draft'})
         manual = self.env['sale.order.line'].create({
             'order_id': order.id, 'product_id': self.product_b.id, 'name': 'Added later'})
@@ -183,8 +183,8 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
         self.assertEqual(crown.product_uom_qty, 2.0)
         self.assertTrue(bridge.exists(), "an invoiced line is never deleted")
         self.assertFalse(retainer.exists(), "a stale line nothing points at is dropped")
-        self.assertTrue(manual.exists(), "a line without an Odoo 10 key is not ours")
-        self.assertIn(SRC + 9004, order.order_line.mapped('x_odoo10_id'))
+        self.assertTrue(manual.exists(), "a line without an Odoo 17 key is not ours")
+        self.assertIn(SRC + 9004, order.order_line.mapped('x_src_id'))
         self.assertEqual(invoice.invoice_line_ids.sale_line_ids, crown | bridge)
         self.assertEqual(order.state, 'sale')
 
@@ -196,18 +196,18 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
                 Command.create({'product_id': self.product_b.id, 'sequence': 2}),
             ],
         })
-        mismatched = [(0, 0, {'product_id': self.product_b.id, 'x_odoo10_id': SRC + 1}),
-                      (0, 0, {'product_id': self.product_a.id, 'x_odoo10_id': SRC + 2})]
+        mismatched = [(0, 0, {'product_id': self.product_b.id, 'x_src_id': SRC + 1}),
+                      (0, 0, {'product_id': self.product_a.id, 'x_src_id': SRC + 2})]
         before = order.order_line.ids
         self.assertFalse(self.backend._txn_rewrite_lines(order, {}, mismatched))
         self.assertEqual(order.order_line.ids, before, "unpairable lines are left alone")
-        self.assertFalse(any(order.order_line.mapped('x_odoo10_id')))
+        self.assertFalse(any(order.order_line.mapped('x_src_id')))
 
-        paired = [(0, 0, {'product_id': self.product_a.id, 'x_odoo10_id': SRC + 1}),
-                  (0, 0, {'product_id': self.product_b.id, 'x_odoo10_id': SRC + 2})]
+        paired = [(0, 0, {'product_id': self.product_a.id, 'x_src_id': SRC + 1}),
+                  (0, 0, {'product_id': self.product_b.id, 'x_src_id': SRC + 2})]
         self.assertTrue(self.backend._txn_rewrite_lines(order, {}, paired))
         self.assertEqual(order.order_line.ids, before, "adopted lines keep their ids")
-        self.assertEqual(sorted(order.order_line.mapped('x_odoo10_id')), [SRC + 1, SRC + 2])
+        self.assertEqual(sorted(order.order_line.mapped('x_src_id')), [SRC + 1, SRC + 2])
 
     # ------------------------------------------------------------ journal entries
     def _entry(self, amount, ref=False):
@@ -241,7 +241,7 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
         cache = self._cache()
         with self._no_commit():
             self.backend._txn_journal_entries(cur, cache, [])
-        move = self.env['account.move'].search([('x_odoo10_id', '=', SRC + 700)])
+        move = self.env['account.move'].search([('x_src_id', '=', SRC + 700)])
         self.assertEqual(move.state, 'posted')
         line_ids = move.line_ids.ids
 
@@ -271,10 +271,10 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
     def _opening_source(self):
         Map = self.env['migration.map']
         Map.create([
-            {'dst_model': 'res.company', 'odoo10_id': SRC + 1, 'odoo19_id': self.env.company.id},
-            {'dst_model': 'account.account', 'odoo10_id': SRC + 20, 'odoo19_id': self.receivable.id},
-            {'dst_model': 'res.partner', 'odoo10_id': SRC + 5, 'odoo19_id': self.partner_a.id},
-            {'dst_model': 'res.partner', 'odoo10_id': SRC + 6, 'odoo19_id': self.partner_b.id},
+            {'dst_model': 'res.company', 'src_id': SRC + 1, 'dst_id': self.env.company.id},
+            {'dst_model': 'account.account', 'src_id': SRC + 20, 'dst_id': self.receivable.id},
+            {'dst_model': 'res.partner', 'src_id': SRC + 5, 'dst_id': self.partner_a.id},
+            {'dst_model': 'res.partner', 'src_id': SRC + 6, 'dst_id': self.partner_b.id},
         ])
         cur = FakeSource([
             ('WITH win', []),
@@ -304,18 +304,18 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
         self.assertEqual(new.mapped('state'), ['posted', 'posted'])
         self.assertEqual(new.line_ids.partner_id, self.partner_a | self.partner_b)
 
-    # ------------------------------------------------- opening refresh (v10 edits)
+    # ------------------------------------------------- opening refresh (v17 edits)
     def _opening_with_items(self, items, totals):
         """A source whose open items are `items` and whose account totals are
         `totals`, both as the SQL returns them."""
         Map = self.env['migration.map']
         if not Map.search_count([('dst_model', '=', 'res.company'),
-                                 ('odoo10_id', '=', SRC + 1)]):
+                                 ('src_id', '=', SRC + 1)]):
             Map.create([
-                {'dst_model': 'res.company', 'odoo10_id': SRC + 1, 'odoo19_id': self.env.company.id},
-                {'dst_model': 'account.account', 'odoo10_id': SRC + 20, 'odoo19_id': self.receivable.id},
-                {'dst_model': 'res.partner', 'odoo10_id': SRC + 5, 'odoo19_id': self.partner_a.id},
-                {'dst_model': 'res.partner', 'odoo10_id': SRC + 6, 'odoo19_id': self.partner_b.id},
+                {'dst_model': 'res.company', 'src_id': SRC + 1, 'dst_id': self.env.company.id},
+                {'dst_model': 'account.account', 'src_id': SRC + 20, 'dst_id': self.receivable.id},
+                {'dst_model': 'res.partner', 'src_id': SRC + 5, 'dst_id': self.partner_a.id},
+                {'dst_model': 'res.partner', 'src_id': SRC + 6, 'dst_id': self.partner_b.id},
             ])
         cur = FakeSource([
             ('WITH win', items),
@@ -350,7 +350,7 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
             self.backend._opening_accounting()
 
     def test_the_refresh_follows_an_edit_made_in_the_old_system(self):
-        """An invoice corrected in Odoo 10 after the cut: the opening item follows
+        """An invoice corrected in Odoo 17 after the cut: the opening item follows
         it, and nobody else's entry is touched. (client, 2026-09-18)"""
         self._build_opening(
             [self._item(SRC + 100, SRC + 5, 330.0, 'OC132437'),
@@ -366,7 +366,7 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
         self.assertIn('1 changed', note)
         item = self._opening_lines(self.partner_a).filtered(lambda l: l.name == 'OC132437')
         self.assertEqual(item.debit, 450.0, "the corrected amount")
-        self.assertEqual(item.x_odoo10_id, SRC + 100, "matched by the old line id")
+        self.assertEqual(item.x_src_id, SRC + 100, "matched by the old line id")
         self.assertEqual(item.move_id.state, 'posted', "and posted again")
         self.assertEqual(
             round(sum(self._opening_lines(self.partner_a).mapped(
@@ -435,7 +435,7 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
         lines = self._opening_lines(self.partner_b)
         self.assertEqual(lines.mapped('name'), ['OC150000'])
         self.assertEqual(lines.debit, 275.0)
-        self.assertEqual(lines.x_odoo10_id, SRC + 103, "kept by its old line id")
+        self.assertEqual(lines.x_src_id, SRC + 103, "kept by its old line id")
         self.assertEqual(lines.move_id.state, 'posted')
         self.assertIn('1 of them new', note)
         self.assertIn(self.partner_b.name, note)
@@ -456,14 +456,14 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
         self._build_opening([self._item(SRC + 100, SRC + 5, 330.0, 'OC132437')],
                             [self._total(SRC + 5, 330.0)])
         item = self._opening_lines(self.partner_a).filtered(lambda l: l.name == 'OC132437')
-        item.with_context(check_move_validity=False).x_odoo10_id = False
+        item.with_context(check_move_validity=False).x_src_id = False
         connect, ref = self._opening_with_items(
             [self._item(SRC + 100, SRC + 5, 400.0, 'OC132437')],
             [self._total(SRC + 5, 400.0)])
         with connect, ref:
             [note] = self.backend._refresh_opening()
         self.assertIn('matched to their old line', note)
-        self.assertEqual(item.x_odoo10_id, SRC + 100)
+        self.assertEqual(item.x_src_id, SRC + 100)
         self.assertEqual(item.debit, 400.0)
 
     def test_a_failing_opening_entry_rolls_the_whole_opening_back(self):

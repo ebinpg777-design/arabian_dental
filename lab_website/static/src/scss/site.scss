@@ -1,0 +1,535 @@
+// Arabian Dental Lab — public site.
+//
+// Photo-led and editorial: a serif for the headlines, the lab's own red and grey from
+// its mark, deep navy for the dark bands, warm paper for the light ones. Built
+// mobile-first — the dentists this is aimed at open it on a phone between patients —
+// and nothing depends on hover.
+
+$lab-red:      #e31e25;   // the red of the mark
+$lab-red-deep: #b3121a;
+$lab-grey:     #7c7d81;   // the grey of the mark
+$lab-ink:      #14181d;
+$lab-navy:     #0b1220;
+$lab-navy-2:   #16213a;
+$lab-paper:    #f6f3ee;
+$lab-line:     rgba(20, 24, 29, .1);
+$lab-muted:    #5c6570;
+$lab-serif:    "Playfair Display", Georgia, "Times New Roman", serif;
+$lab-sans:     "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+$lab-ease: cubic-bezier(.2, .7, .2, 1);
+
+// ------------------------------------------------------------------ site chrome
+// Type for the whole frontend, header and footer included: the lab's pages are all
+// the site is, so the theme's own fonts have nothing left to cover.
+#wrapwrap {
+    font-family: $lab-sans;
+    color: $lab-ink;
+    -webkit-font-smoothing: antialiased;
+}
+
+#wrapwrap > header {
+    background: rgba(255, 255, 255, .94);
+    backdrop-filter: saturate(1.3) blur(12px);
+    border-bottom: 1px solid $lab-line;
+
+    .navbar-brand img, .o_website_logo { max-height: 54px; width: auto; }
+    .nav-link {
+        font-weight: 600; font-size: .95rem; color: $lab-ink;
+        &:hover, &:focus { color: $lab-red; }
+    }
+    .nav-item.active > .nav-link, .nav-link.active { color: $lab-red; }
+    .dropdown-menu {
+        border: 1px solid $lab-line; border-radius: 14px; padding: .5rem;
+        box-shadow: 0 18px 48px rgba(11, 18, 32, .14);
+        .dropdown-item { border-radius: 9px; font-weight: 500; padding: .55rem .9rem; }
+        .dropdown-item:hover, .dropdown-item.active, .dropdown-item:active { background: $lab-paper; color: $lab-red; }
+    }
+    .btn_cta, .btn-primary {
+        background: $lab-red; border-color: $lab-red; color: #fff;
+        border-radius: 999px; font-weight: 700; padding: .55rem 1.25rem;
+        &:hover, &:focus { background: $lab-red-deep; border-color: $lab-red-deep; color: #fff; }
+    }
+}
+
+#wrapwrap > footer {
+    background: $lab-navy; color: rgba(255, 255, 255, .78);
+    a { color: rgba(255, 255, 255, .78); text-decoration: none; &:hover { color: #fff; } }
+    h5 { color: #fff; font-family: $lab-sans; font-weight: 700; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1rem; }
+    .o_footer_copyright { border-top: 1px solid rgba(255, 255, 255, .08); }
+}
+.o_lab_footer {
+    padding: 3.5rem 0 2rem;
+    ul li { padding: .22rem 0; font-size: .95rem; }
+    .o_lab_footer_logo { height: 74px; width: auto; margin-bottom: 1rem; }
+    .o_lab_footer_tag { font-family: $lab-serif; font-size: 1.25rem; color: #fff; margin-bottom: .6rem; }
+    .o_lab_footer_text { font-size: .92rem; line-height: 1.65; max-width: 30em; }
+    .o_lab_footer_social {
+        display: flex; gap: .5rem; margin-top: 1rem;
+        a { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255, 255, 255, .08); color: #fff; font-size: 1.05rem;
+            transition: background .15s ease, transform .15s ease;
+            &:hover { background: $lab-red; transform: translateY(-2px); } }
+    }
+    .o_lab_footer_contact li { display: grid; grid-template-columns: 24px 1fr; gap: .4rem; align-items: start; i { color: $lab-red; margin-top: .2rem; } }
+}
+
+// ------------------------------------------------------------------ foundations
+.o_lab {
+    color: $lab-ink;
+    overflow-x: clip;
+
+    h1, h2, h3, h4 { font-family: $lab-serif; color: $lab-ink; font-weight: 600; letter-spacing: -.01em; }
+    h3, h4 { font-family: $lab-sans; font-weight: 700; }
+    p { line-height: 1.7; }
+    img, svg, iframe { max-width: 100%; }
+
+    .o_lab_display {
+        font-size: clamp(2.4rem, calc(1.4rem + 4.2vw), 4.9rem);
+        line-height: 1.02; margin-bottom: 1.1rem; color: #fff;
+        text-shadow: 0 2px 30px rgba(0, 0, 0, .25);
+    }
+    .o_lab_h2 { font-size: clamp(1.75rem, calc(1.2rem + 2vw), 2.9rem); line-height: 1.1; margin-bottom: 1rem; }
+    .o_lab_h3 { font-size: 1.2rem; }
+    .o_lab_lead { font-size: clamp(1rem, calc(.95rem + .3vw), 1.18rem); color: $lab-muted; max-width: 36em; }
+    .o_lab_kicker {
+        display: inline-flex; align-items: center; gap: .6rem;
+        font-size: .76rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+        color: $lab-red; margin-bottom: .9rem;
+        &::before { content: ""; width: 26px; height: 2px; background: currentColor; border-radius: 2px; }
+    }
+    .o_lab_kicker_light { color: #f5b8bb; }
+
+    .o_lab_cta { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.5rem; align-items: center; }
+    .btn { border-radius: 999px; font-weight: 700; padding: .72rem 1.5rem; border: 2px solid transparent;
+           transition: transform .14s $lab-ease, box-shadow .14s $lab-ease, background .14s ease, color .14s ease;
+           &:hover { transform: translateY(-2px); }
+           &:focus-visible { outline: 3px solid rgba(227, 30, 37, .4); outline-offset: 2px; } }
+    .o_lab_btn { background: $lab-red; color: #fff; box-shadow: 0 10px 26px rgba(227, 30, 37, .28);
+                 &:hover { background: $lab-red-deep; color: #fff; } }
+    .o_lab_btn_lg { padding: .9rem 1.9rem; font-size: 1.02rem; }
+    .o_lab_btn_outline { border-color: rgba(20, 24, 29, .22); color: $lab-ink; background: transparent;
+                         &:hover { border-color: $lab-red; color: $lab-red; } }
+    .o_lab_btn_glass { background: rgba(255, 255, 255, .14); color: #fff; border-color: rgba(255, 255, 255, .45);
+                       backdrop-filter: blur(6px); &:hover { background: rgba(255, 255, 255, .26); color: #fff; } }
+    .o_lab_link_btn { padding-left: .4rem; padding-right: .4rem; color: $lab-ink; font-weight: 700;
+                      &:hover { color: $lab-red; transform: none; } }
+    .o_lab_link { font-weight: 700; color: $lab-red; text-decoration: none; white-space: nowrap;
+                  &:hover { color: $lab-red-deep; text-decoration: underline; } }
+    .o_lab_inline_link { display: inline-block; margin-top: .3rem; font-size: .82rem; font-weight: 700; color: $lab-red; text-decoration: none; }
+
+    .o_lab_sec { padding: clamp(3rem, 7vw, 5.5rem) 0; position: relative; }
+    .o_lab_sec_paper { background: $lab-paper; }
+    .o_lab_sec_dark {
+        background:
+            radial-gradient(900px 400px at 90% -10%, rgba(227, 30, 37, .25), transparent 60%),
+            linear-gradient(160deg, $lab-navy, $lab-navy-2);
+        color: rgba(255, 255, 255, .82);
+        h1, h2, h3, h4 { color: #fff; }
+        .o_lab_lead, p { color: rgba(255, 255, 255, .78); }
+    }
+    .o_lab_sec_head {
+        max-width: 46em; margin: 0 auto 2.5rem; text-align: center;
+        p { color: $lab-muted; }
+        .o_lab_kicker { justify-content: center; }
+    }
+    .o_lab_sec_head_row {
+        max-width: none; text-align: left; display: flex; align-items: end; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+        .o_lab_kicker { justify-content: flex-start; }
+        h2 { margin-bottom: 0; }
+    }
+    .o_lab_sec_dark .o_lab_sec_head p { color: rgba(255, 255, 255, .72); }
+
+    .o_lab_sticky { position: sticky; top: 96px; }
+
+    // Reveal-on-scroll. `--d` staggers siblings; without JS everything is simply visible.
+    .o_lab_reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s $lab-ease var(--d, 0ms), transform .7s $lab-ease var(--d, 0ms); }
+    .o_lab_reveal.is-in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .o_lab_reveal { opacity: 1; transform: none; transition: none; } }
+}
+// A visitor without JavaScript (or a crawler) must still see the page.
+html:not(.o_lab_js) .o_lab .o_lab_reveal { opacity: 1; transform: none; }
+
+// ------------------------------------------------------------------ hero slider
+.o_lab_hero {
+    position: relative; background: $lab-navy;
+    .o_lab_hero_carousel, .carousel-inner, .carousel-item { height: clamp(560px, 86vh, 860px); }
+    .carousel-item { position: relative; overflow: hidden; }
+    .o_lab_hero_img {
+        position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center;
+        transform: scale(1.06); transition: transform 7s linear;
+    }
+    .carousel-item.active .o_lab_hero_img { transform: scale(1.14); }
+    .o_lab_hero_shade {
+        position: absolute; inset: 0;
+        background:
+            linear-gradient(90deg, rgba(11, 18, 32, .86) 0%, rgba(11, 18, 32, .62) 45%, rgba(11, 18, 32, .18) 100%),
+            linear-gradient(180deg, rgba(11, 18, 32, .35), transparent 40%, rgba(11, 18, 32, .75) 100%);
+        // A phone shows one column: shade from the top down instead, so the photograph
+        // is seen above the copy rather than buried under a side gradient.
+        @media (max-width: 991.98px) {
+            background: linear-gradient(180deg, rgba(11, 18, 32, .2) 0%, rgba(11, 18, 32, .45) 30%, rgba(11, 18, 32, .88) 62%, rgba(11, 18, 32, .94) 100%);
+        }
+    }
+
+    .o_lab_hero_body { position: relative; height: 100%; display: flex; align-items: center; padding-bottom: 4.5rem; }
+    .o_lab_hero_copy {
+        max-width: 42rem; color: rgba(255, 255, 255, .86);
+        p { font-size: clamp(1rem, calc(.95rem + .35vw), 1.22rem); max-width: 34em; }
+        .o_lab_kicker { margin-bottom: 1.2rem; }
+    }
+    // Slide copy animates in after the fade so the photo lands first.
+    .carousel-item .o_lab_hero_copy > * { opacity: 0; transform: translateY(16px); transition: opacity .6s $lab-ease, transform .6s $lab-ease; }
+    .carousel-item.active .o_lab_hero_copy > * { opacity: 1; transform: none; }
+    .carousel-item.active .o_lab_hero_copy > :nth-child(2) { transition-delay: .12s; }
+    .carousel-item.active .o_lab_hero_copy > :nth-child(3) { transition-delay: .24s; }
+    .carousel-item.active .o_lab_hero_copy > :nth-child(4) { transition-delay: .36s; }
+
+    .o_lab_hero_nav {
+        position: absolute; left: 0; right: 0; bottom: 5.5rem; z-index: 3;
+        display: flex; justify-content: space-between; align-items: center; pointer-events: none;
+        > * { pointer-events: auto; }
+    }
+    .o_lab_hero_dots {
+        position: static; margin: 0; display: flex; gap: .5rem;
+        button { width: 34px; height: 3px; border: 0; border-radius: 3px; background: rgba(255, 255, 255, .35); opacity: 1; margin: 0; transition: background .2s, width .2s; }
+        button.active { background: $lab-red; width: 54px; }
+    }
+    .o_lab_hero_arrows {
+        display: flex; gap: .5rem;
+        .carousel-control-prev, .carousel-control-next {
+            position: static; width: 46px; height: 46px; opacity: 1; border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, .4); background: rgba(255, 255, 255, .08); color: #fff; font-size: 1rem;
+            display: grid; place-items: center; transition: background .15s;
+            &:hover { background: $lab-red; border-color: $lab-red; }
+        }
+    }
+    .o_lab_hero_strip_wrap { position: relative; z-index: 4; margin-top: -3.4rem; }
+    // Last in the block so it wins over the base rule above at equal specificity.
+    @media (max-width: 991.98px) {
+        .o_lab_hero_body { align-items: flex-end; padding-bottom: 7rem; }
+    }
+}
+.o_lab_hero_strip_wrap_inner { margin-top: -2.4rem; position: relative; z-index: 4; }
+.o_lab_hero_strip {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(11, 18, 32, .18);
+    border: 1px solid $lab-line; overflow: hidden;
+    > div {
+        display: flex; align-items: center; gap: .8rem; padding: 1rem 1.1rem;
+        border-right: 1px solid $lab-line; border-bottom: 1px solid $lab-line;
+        i { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: rgba(227, 30, 37, .1); color: $lab-red; font-size: 1.05rem; flex: 0 0 auto; }
+        strong { display: block; font-size: .92rem; line-height: 1.2; }
+        span { font-size: .78rem; color: $lab-muted; }
+    }
+    @media (min-width: 992px) { grid-template-columns: repeat(4, 1fr); > div { border-bottom: 0; } > div:last-child { border-right: 0; } }
+    @media (max-width: 991.98px) { > div:nth-child(2n) { border-right: 0; } > div:nth-last-child(-n + 2) { border-bottom: 0; } }
+}
+
+// ------------------------------------------------------------------ marquee
+.o_lab_marquee {
+    margin-top: 2.2rem; overflow: hidden; white-space: nowrap;
+    border-top: 1px solid $lab-line; border-bottom: 1px solid $lab-line; padding: .8rem 0;
+    display: flex;
+    .o_lab_marquee_track { display: inline-flex; flex: 0 0 auto; animation: lab-marquee 38s linear infinite; }
+    span { font-family: $lab-serif; font-size: 1.15rem; color: $lab-grey; padding: 0 1rem; display: inline-flex; align-items: center; gap: 2rem; }
+    span i { width: 6px; height: 6px; border-radius: 50%; background: $lab-red; display: inline-block; }
+    &:hover .o_lab_marquee_track { animation-play-state: paused; }
+    @media (prefers-reduced-motion: reduce) { .o_lab_marquee_track { animation: none; } }
+}
+@keyframes lab-marquee { to { transform: translateX(-100%); } }
+
+// ------------------------------------------------------------------ intro art
+.o_lab_intro_art {
+    position: relative; min-height: 420px;
+    img { border-radius: 18px; box-shadow: 0 24px 60px rgba(11, 18, 32, .2); object-fit: cover; position: absolute; }
+    .o_lab_intro_img1 { width: 68%; aspect-ratio: 4 / 3; left: 0; top: 0; }
+    .o_lab_intro_img2 { width: 52%; aspect-ratio: 4 / 3; right: 0; bottom: 0; border: 6px solid #fff; }
+    .o_lab_intro_badge {
+        position: absolute; left: 6%; bottom: 8%; display: flex; align-items: center; gap: .7rem;
+        background: #fff; border-radius: 14px; padding: .7rem .9rem; box-shadow: 0 14px 34px rgba(11, 18, 32, .16);
+        img { position: static; width: 34px; height: auto; border-radius: 0; box-shadow: none; }
+        span { font-size: .82rem; font-weight: 700; line-height: 1.25; }
+    }
+    @media (max-width: 575.98px) { min-height: 300px; .o_lab_intro_badge { display: none; } }
+}
+.o_lab_intro_art_sm { min-height: 340px; }
+
+// ------------------------------------------------------------------ bento
+.o_lab_bento {
+    display: grid; gap: 1rem; grid-template-columns: 1fr;
+    @media (min-width: 576px) { grid-template-columns: repeat(2, 1fr); }
+    @media (min-width: 992px) { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 250px;
+        .o_lab_bento_item_lg { grid-column: span 2; grid-row: span 2; }
+        .o_lab_bento_item_wide { grid-column: span 4; .o_lab_bento_body { flex-direction: row; align-items: end; gap: 1rem; strong { flex: 1; } } } }
+}
+.o_lab_bento_item {
+    position: relative; display: block; min-height: 250px; border-radius: 18px; overflow: hidden;
+    color: #fff; text-decoration: none; background: $lab-navy;
+    img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .8s $lab-ease; }
+    .o_lab_bento_shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 18, 32, .05) 20%, rgba(11, 18, 32, .88) 100%); transition: opacity .3s; }
+    .o_lab_bento_body {
+        position: absolute; inset: auto 0 0 0; padding: 1.3rem; display: flex; flex-direction: column; gap: .25rem;
+        i { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: rgba(255, 255, 255, .16); backdrop-filter: blur(4px); margin-bottom: .5rem; }
+        .o_lab_bento_kicker { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 800; color: #f5b8bb; }
+        strong { font-family: $lab-serif; font-size: 1.35rem; line-height: 1.15; color: #fff; }
+        .o_lab_bento_text { font-size: .9rem; color: rgba(255, 255, 255, .8); max-width: 34em; margin-top: .3rem; }
+        .o_lab_bento_more { font-size: .82rem; font-weight: 700; margin-top: .5rem; color: #fff; opacity: .85; i { display: inline; width: auto; height: auto; background: none; margin: 0 0 0 .3rem; } }
+    }
+    &:hover { color: #fff; img { transform: scale(1.06); } .o_lab_bento_more { text-decoration: underline; } }
+    &.o_lab_bento_item_lg .o_lab_bento_body strong { font-size: clamp(1.6rem, 3vw, 2.3rem); }
+}
+
+// ------------------------------------------------------------------ numbers
+.o_lab_numbers {
+    background: $lab-ink; color: #fff; padding: clamp(2.5rem, 5vw, 4rem) 0;
+    .o_lab_number { text-align: center; padding: .8rem 0; }
+    .o_lab_number_n { display: block; font-family: $lab-serif; font-size: clamp(2.2rem, calc(1.6rem + 2.4vw), 4rem); line-height: 1; color: #fff; }
+    .o_lab_number_l { display: block; font-size: .82rem; color: rgba(255, 255, 255, .62); margin-top: .5rem; letter-spacing: .02em; }
+    [class*="col-"] + [class*="col-"] .o_lab_number { border-left: 1px solid rgba(255, 255, 255, .1); }
+    @media (max-width: 991.98px) { .col-6:nth-child(odd) .o_lab_number { border-left: 0; } .col-6:nth-child(n + 3) .o_lab_number { border-top: 1px solid rgba(255, 255, 255, .1); } }
+}
+
+// ------------------------------------------------------------------ reasons / values
+.o_lab_reasons { display: grid; gap: 1rem; grid-template-columns: 1fr; @media (min-width: 768px) { grid-template-columns: repeat(2, 1fr); } }
+.o_lab_reason, .o_lab_value {
+    padding: 1.5rem; border-radius: 16px; background: #fff; border: 1px solid $lab-line; height: 100%;
+    transition: transform .2s $lab-ease, box-shadow .2s $lab-ease;
+    i { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 13px; background: rgba(227, 30, 37, .1); color: $lab-red; font-size: 1.2rem; margin-bottom: .9rem; }
+    h3 { font-size: 1.1rem; margin-bottom: .4rem; }
+    p { font-size: .92rem; color: $lab-muted; margin: 0; }
+    &:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(11, 18, 32, .1); }
+}
+.o_lab_why_img { width: 100%; border-radius: 16px; margin-top: 1.5rem; box-shadow: 0 18px 44px rgba(11, 18, 32, .18); }
+
+// ------------------------------------------------------------------ steps
+.o_lab_steps {
+    list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; counter-reset: step;
+    @media (min-width: 768px) { grid-template-columns: repeat(5, 1fr); }
+    li { position: relative; padding: 1.4rem 1.2rem 1.2rem; border-radius: 16px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); }
+    .o_lab_step_n { font-family: $lab-serif; font-size: 2rem; color: $lab-red; line-height: 1; display: block; margin-bottom: .6rem; }
+    h3 { font-size: 1.02rem; color: #fff; margin-bottom: .35rem; }
+    p { font-size: .84rem; margin: 0; color: rgba(255, 255, 255, .7); }
+    @media (min-width: 768px) {
+        li:not(:last-child)::after { content: ""; position: absolute; right: -1rem; top: 2.2rem; width: 1rem; height: 2px; background: rgba(255, 255, 255, .25); }
+    }
+}
+
+// ------------------------------------------------------------------ rails & gallery
+.o_lab_rail {
+    position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .6rem;
+    .o_lab_rail_track {
+        display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: .5rem .25rem 1rem;
+        scrollbar-width: none; &::-webkit-scrollbar { display: none; }
+        > * { scroll-snap-align: start; flex: 0 0 auto; }
+    }
+    .o_lab_rail_btn {
+        width: 44px; height: 44px; border-radius: 50%; border: 1px solid $lab-line; background: #fff; color: $lab-ink; font-size: 1.2rem;
+        display: grid; place-items: center; cursor: pointer; transition: background .15s, color .15s;
+        &:hover { background: $lab-red; border-color: $lab-red; color: #fff; }
+    }
+    @media (max-width: 575.98px) { grid-template-columns: 1fr; .o_lab_rail_btn { display: none; } }
+}
+// Sass hijacks max() when an argument is a calc(); unquote hands it to the browser.
+.o_lab_rail_bleed { padding: 0 unquote("max(1rem, calc((100vw - 1320px) / 2))"); }
+.o_lab_svc_card {
+    width: 260px; border-radius: 16px; overflow: hidden; background: #fff; border: 1px solid $lab-line; text-decoration: none; color: $lab-ink;
+    display: flex; flex-direction: column; transition: transform .2s $lab-ease, box-shadow .2s $lab-ease;
+    .o_lab_svc_card_img { display: block; aspect-ratio: 16 / 10; overflow: hidden; img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s $lab-ease; } }
+    .o_lab_svc_card_body { padding: 1rem 1.1rem 1.2rem; display: grid; gap: .15rem; i { color: $lab-red; margin-bottom: .3rem; } strong { font-family: $lab-serif; font-size: 1.15rem; } small { color: $lab-muted; } }
+    &:hover { color: $lab-ink; transform: translateY(-3px); box-shadow: 0 16px 40px rgba(11, 18, 32, .12); img { transform: scale(1.05); } }
+}
+.o_lab_gcard {
+    position: relative; display: block; width: 340px; aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; background: $lab-navy;
+    img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s $lab-ease; }
+    .o_lab_gcard_cap {
+        position: absolute; inset: auto 0 0 0; padding: 2.2rem 1rem .9rem; color: #fff;
+        background: linear-gradient(180deg, transparent, rgba(11, 18, 32, .85));
+        strong { display: block; font-size: .95rem; } small { color: rgba(255, 255, 255, .7); }
+    }
+    &:hover img { transform: scale(1.06); }
+}
+.o_lab_masonry {
+    columns: 1; column-gap: 1rem;
+    @media (min-width: 576px) { columns: 2; } @media (min-width: 992px) { columns: 3; }
+    .o_lab_gcard { width: 100%; aspect-ratio: auto; margin-bottom: 1rem; break-inside: avoid; img { height: auto; display: block; } }
+}
+.o_lab_gallery_filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; }
+.o_lab_big_icon { font-size: 3rem; color: $lab-red; margin-bottom: 1rem; }
+
+.o_lab_lightbox {
+    .modal-content { background: transparent; border: 0; box-shadow: none; align-items: center; }
+    .o_lab_lightbox_img { max-height: 84vh; width: auto; max-width: 100%; border-radius: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, .5); }
+    .o_lab_lightbox_cap { color: #fff; margin-top: .8rem; font-size: .95rem; }
+    .o_lab_lightbox_close { position: fixed; top: 1rem; right: 1rem; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .15); color: #fff; font-size: 1.2rem; }
+}
+.modal-backdrop.show { opacity: .88; }
+
+// ------------------------------------------------------------------ technology grid / timeline
+.o_lab_tech_grid { display: grid; gap: .8rem; grid-template-columns: repeat(2, 1fr); @media (min-width: 768px) { grid-template-columns: repeat(3, 1fr); } }
+.o_lab_tech {
+    padding: 1.2rem 1rem; border-radius: 14px; background: #fff; border: 1px solid $lab-line; display: grid; gap: .5rem; justify-items: start;
+    i { color: $lab-red; font-size: 1.3rem; } strong { font-size: .95rem; }
+}
+.o_lab_timeline {
+    position: relative; max-width: 900px; margin: 0 auto; padding-left: 2.6rem;
+    &::before { content: ""; position: absolute; left: 1.15rem; top: 0; bottom: 0; width: 2px; background: linear-gradient($lab-red, $lab-line); }
+    .o_lab_tl_item { position: relative; margin-bottom: 1.5rem; }
+    .o_lab_tl_dot { position: absolute; left: -2.6rem; top: .3rem; width: 2.3rem; height: 2.3rem; border-radius: 50%; background: #fff; border: 2px solid $lab-red; display: grid; place-items: center; color: $lab-red; font-size: .95rem; }
+    .o_lab_tl_card { background: #fff; border: 1px solid $lab-line; border-radius: 16px; padding: 1.4rem 1.5rem; position: relative;
+        .o_lab_tl_n { position: absolute; right: 1.2rem; top: .9rem; font-family: $lab-serif; font-size: 1.6rem; color: rgba(20, 24, 29, .12); }
+        h3 { font-size: 1.1rem; margin-bottom: .3rem; } p { margin: 0; color: $lab-muted; font-size: .94rem; } }
+    @media (min-width: 992px) {
+        padding: 0; &::before { left: 50%; }
+        .o_lab_tl_item { width: calc(50% - 2.4rem); }
+        .o_lab_tl_item .o_lab_tl_dot { left: auto; right: -3.55rem; }
+        .o_lab_tl_item_alt { margin-left: auto; .o_lab_tl_dot { right: auto; left: -3.55rem; } }
+    }
+}
+
+// ------------------------------------------------------------------ academy band / courses
+.o_lab_academy_band {
+    position: relative; padding: clamp(3.5rem, 9vw, 7rem) 0; color: #fff; overflow: hidden; background: $lab-navy;
+    .o_lab_band_bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .5; }
+    &::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(11, 18, 32, .92), rgba(11, 18, 32, .5)); }
+    .container { position: relative; z-index: 1; }
+    h2 { color: #fff; } .o_lab_lead { color: rgba(255, 255, 255, .8); }
+}
+.o_lab_course {
+    position: relative; height: 100%; padding: 1.6rem; border-radius: 16px; background: #fff; border: 1px solid $lab-line;
+    .o_lab_course_n { position: absolute; right: 1.2rem; top: 1rem; font-family: $lab-serif; font-size: 1.5rem; color: rgba(20, 24, 29, .12); }
+    i { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(227, 30, 37, .1); color: $lab-red; font-size: 1.15rem; margin-bottom: .9rem; }
+    h3 { font-size: 1.05rem; margin-bottom: .4rem; } p { font-size: .9rem; color: $lab-muted; margin-bottom: .6rem; }
+    small { font-weight: 700; color: $lab-red; font-size: .76rem; letter-spacing: .06em; text-transform: uppercase; }
+}
+.o_lab_who {
+    background: #fff; color: $lab-ink; border-radius: 18px; padding: 1.6rem; box-shadow: 0 24px 60px rgba(0, 0, 0, .25);
+    h4 { margin-bottom: 1rem; }
+    .o_lab_who_i { display: grid; grid-template-columns: 40px 1fr; gap: .8rem; padding: .8rem 0; border-top: 1px solid $lab-line; &:first-of-type { border-top: 0; padding-top: 0; }
+        i { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: $lab-paper; color: $lab-red; }
+        strong { display: block; font-size: .95rem; } span { font-size: .86rem; color: $lab-muted; } }
+}
+
+// ------------------------------------------------------------------ inner pages
+.o_lab_pagehero {
+    position: relative; padding: clamp(5rem, 14vw, 9rem) 0 clamp(3.5rem, 8vw, 6rem); color: #fff; background: $lab-navy;
+    background-image: linear-gradient(100deg, rgba(11, 18, 32, .92) 10%, rgba(11, 18, 32, .55) 60%, rgba(11, 18, 32, .35)), var(--hero-img);
+    background-size: cover; background-position: center;
+    h1 { color: #fff; font-size: clamp(2.1rem, calc(1.4rem + 3vw), 4rem); line-height: 1.05; margin-bottom: .8rem; }
+    p { color: rgba(255, 255, 255, .84); max-width: 40em; font-size: clamp(1rem, calc(.95rem + .3vw), 1.15rem); margin-bottom: 0; }
+    .o_lab_pagehero_in { max-width: 48rem; }
+}
+.o_lab_jump {
+    position: sticky; top: 0; z-index: 5; background: rgba(255, 255, 255, .94); backdrop-filter: blur(10px); border-bottom: 1px solid $lab-line;
+    > .container { display: flex; gap: .5rem; overflow-x: auto; padding-block: .6rem; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+}
+.o_lab_jump_i {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: .5rem; padding: .4rem .9rem; border-radius: 999px; border: 1px solid $lab-line; background: #fff;
+    color: $lab-ink; text-decoration: none; font-size: .84rem; font-weight: 700; white-space: nowrap;
+    i { color: $lab-red; } b { font-size: .72rem; color: $lab-red; background: rgba(227, 30, 37, .1); border-radius: 999px; padding: .05rem .45rem; }
+    &:hover { border-color: $lab-red; color: $lab-red; }
+}
+.o_lab_svcrow {
+    display: grid; gap: 1.5rem; grid-template-columns: 1fr; padding: clamp(1.5rem, 4vw, 2.5rem) 0; border-bottom: 1px solid $lab-line; scroll-margin-top: 120px;
+    &:last-child { border-bottom: 0; }
+    h2 { font-size: clamp(1.6rem, 2.4vw, 2.2rem); i { color: $lab-red; font-size: .8em; } }
+    @media (min-width: 992px) { grid-template-columns: 5fr 7fr; gap: 3rem; align-items: center; &.o_lab_svcrow_alt { .o_lab_svcrow_img { order: 2; } .o_lab_svcrow_body { order: 1; } } }
+}
+.o_lab_svcrow_img {
+    position: relative; display: block; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 50px rgba(11, 18, 32, .16);
+    img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; transition: transform .5s $lab-ease; }
+    &:hover img { transform: scale(1.04); }
+}
+.o_lab_pill { position: absolute; left: .9rem; bottom: .9rem; background: rgba(255, 255, 255, .95); color: $lab-ink; border-radius: 999px; padding: .3rem .8rem; font-size: .78rem; font-weight: 600; b { color: $lab-red; } }
+.o_lab_chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .9rem; }
+.o_lab_chip { display: inline-block; font-size: .8rem; font-weight: 600; color: $lab-ink; background: $lab-paper; border: 1px solid $lab-line; border-radius: 999px; padding: .3rem .8rem; }
+.o_lab_chip_ghost { background: transparent; color: $lab-muted; }
+.o_lab_chip_btn { cursor: pointer; background: #fff; &.active, &:hover { background: $lab-red; border-color: $lab-red; color: #fff; } }
+.o_lab_chips_light .o_lab_chip { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .2); color: #fff; }
+.o_lab_materials { display: grid; gap: .5rem; grid-template-columns: 1fr; @media (min-width: 576px) { grid-template-columns: repeat(2, 1fr); } }
+.o_lab_material { display: flex; gap: .6rem; align-items: center; padding: .7rem .9rem; border-radius: 12px; background: $lab-paper; font-weight: 600; font-size: .92rem; i { color: $lab-red; } }
+.o_lab_panel {
+    background: #fff; border-radius: 18px; padding: 1.6rem; border: 1px solid $lab-line; box-shadow: 0 16px 44px rgba(11, 18, 32, .08);
+    h4 { font-size: 1.05rem; margin-bottom: .8rem; } p { color: $lab-muted; font-size: .92rem; }
+}
+.o_lab_panel_soft { box-shadow: none; background: $lab-paper; }
+.o_lab_checklist {
+    list-style: none; padding: 0; margin: 0; counter-reset: item;
+    li { position: relative; padding: .5rem 0 .5rem 2.2rem; border-bottom: 1px solid $lab-line; font-size: .94rem; &:last-child { border-bottom: 0; }
+        &::before { counter-increment: item; content: counter(item, decimal-leading-zero); position: absolute; left: 0; top: .55rem; font-family: $lab-serif; color: $lab-red; font-weight: 600; } }
+}
+.o_lab_checklist_lg li { padding: .75rem 0 .75rem 2.6rem; font-size: 1rem; line-height: 1.5; strong { color: $lab-ink; } }
+.o_lab_ticks { list-style: none; padding: 0; margin: 1rem 0 0; li { padding: .45rem 0 .45rem 1.8rem; position: relative; &::before { content: "\f00c"; font-family: FontAwesome; position: absolute; left: 0; color: $lab-red; } } }
+.o_lab_facts {
+    list-style: none; padding: 0; margin: 0;
+    li { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid $lab-line; &:last-child { border-bottom: 0; }
+        span { color: $lab-muted; font-size: .87rem; } strong { font-size: .87rem; text-align: right; } }
+}
+.o_lab_facts_light { margin-top: 1.2rem; max-width: 30em; li { border-color: rgba(255, 255, 255, .12); } span { color: rgba(255, 255, 255, .6); } strong { color: #fff; } }
+.o_lab_photo { width: 100%; border-radius: 18px; box-shadow: 0 24px 60px rgba(11, 18, 32, .2); }
+.o_lab_prevnext {
+    border-top: 1px solid $lab-line; border-bottom: 1px solid $lab-line; background: $lab-paper;
+    .container { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: 1.2rem; }
+    .o_lab_prevnext_i { text-decoration: none; color: $lab-ink; display: grid; gap: .1rem; small { color: $lab-muted; font-weight: 700; font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; } strong { font-family: $lab-serif; font-size: 1.1rem; } &:hover strong { color: $lab-red; } }
+    .o_lab_prevnext_all { color: $lab-grey; font-size: 1.2rem; &:hover { color: $lab-red; } }
+}
+.o_lab_way {
+    position: relative; height: 100%; padding: 1.8rem 1.5rem; border-radius: 18px; background: #fff; border: 1px solid $lab-line;
+    .o_lab_way_n { position: absolute; right: 1.3rem; top: 1rem; font-family: $lab-serif; font-size: 2rem; color: rgba(20, 24, 29, .1); }
+    i { font-size: 1.6rem; color: $lab-red; margin-bottom: 1rem; display: block; }
+    h3 { font-size: 1.15rem; } p { font-size: .92rem; color: $lab-muted; }
+}
+.o_lab_formcard { background: #fff; border-radius: 20px; padding: clamp(1.4rem, 3vw, 2.2rem); border: 1px solid $lab-line; box-shadow: 0 24px 60px rgba(11, 18, 32, .1); }
+.o_lab_form {
+    .s_website_form_label { font-weight: 700; font-size: .84rem; color: $lab-ink; margin-bottom: .3rem; }
+    .form-control, .form-select { border-radius: 12px; border: 1px solid rgba(20, 24, 29, .18); padding: .7rem .9rem; &:focus { border-color: $lab-red; box-shadow: 0 0 0 3px rgba(227, 30, 37, .15); } }
+    .s_website_form_submit { margin-top: .5rem; }
+}
+.o_lab_contact_rows {
+    display: grid; gap: .75rem; margin: 1.2rem 0 1.5rem;
+    li { display: grid; grid-template-columns: 28px 1fr; align-items: start; gap: .2rem; line-height: 1.5; }
+    i { color: $lab-red; margin-top: .3rem; }
+    a { color: $lab-ink; text-decoration: none; font-weight: 600; &:hover { color: $lab-red; } }
+}
+.o_lab_map { border-radius: 18px; overflow: hidden; box-shadow: 0 20px 50px rgba(11, 18, 32, .16); border: 1px solid $lab-line; iframe { display: block; width: 100%; height: 420px; border: 0; } }
+.o_lab_map_sm iframe { height: 240px; }
+.o_lab_contactpage .form-control { border-radius: 12px; }
+
+.o_lab_accordion {
+    .accordion-item { border: 1px solid $lab-line; border-radius: 14px !important; margin-bottom: .7rem; overflow: hidden; background: #fff; }
+    .accordion-button { font-family: $lab-sans; font-weight: 700; font-size: 1.02rem; padding: 1.1rem 1.3rem; background: #fff; color: $lab-ink; box-shadow: none;
+        &:not(.collapsed) { color: $lab-red; background: $lab-paper; } &:focus { box-shadow: none; } }
+    .o_lab_faq_n { font-family: $lab-serif; color: $lab-red; margin-right: .9rem; font-weight: 600; }
+    .accordion-body { color: $lab-muted; line-height: 1.7; padding: 1rem 1.3rem 1.3rem 3.6rem; }
+}
+
+// ------------------------------------------------------------------ google / promises
+.o_lab_google {
+    height: 100%; padding: 1.8rem; border-radius: 18px; background: $lab-paper; border: 1px solid $lab-line; text-align: center;
+    .o_lab_google_score { font-family: $lab-serif; font-size: 4rem; line-height: 1; }
+    .o_lab_stars { color: #f5b301; font-size: 1.1rem; margin: .4rem 0 .8rem; letter-spacing: .1em; }
+    p { color: $lab-muted; font-size: .92rem; }
+}
+.o_lab_promises { display: grid; gap: .8rem; grid-template-columns: 1fr; @media (min-width: 768px) { grid-template-columns: repeat(2, 1fr); } }
+.o_lab_promise {
+    display: grid; grid-template-columns: 36px 1fr; gap: .7rem; padding: 1.1rem 1.2rem; border-radius: 14px; background: #fff; border: 1px solid $lab-line;
+    i { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(227, 30, 37, .1); color: $lab-red; font-size: .8rem; }
+    strong { display: block; font-size: .95rem; } span { font-size: .86rem; color: $lab-muted; }
+}
+.o_lab_quote { margin: 0; padding: 2rem; background: #fff; border-radius: 18px; border: 1px solid $lab-line; p { font-family: $lab-serif; font-size: 1.3rem; } footer { strong { display: block; } span { color: $lab-muted; font-size: .88rem; } } }
+
+// ------------------------------------------------------------------ closing band
+.o_lab_ctaband {
+    position: relative; overflow: hidden; color: #fff; padding: clamp(3rem, 7vw, 5rem) 0;
+    background: radial-gradient(800px 300px at 10% 0%, rgba(255, 255, 255, .15), transparent 60%), linear-gradient(120deg, $lab-red, $lab-red-deep);
+    h2 { color: #fff; font-size: clamp(1.8rem, 3vw, 2.6rem); margin-bottom: .4rem; }
+    p { color: rgba(255, 255, 255, .86); max-width: 40em; margin: 0; }
+    .o_lab_kicker_light { color: rgba(255, 255, 255, .8); }
+    .o_lab_ctaband_in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem; }
+    .o_lab_btn { background: #fff; color: $lab-red; box-shadow: 0 10px 26px rgba(0, 0, 0, .18); &:hover { background: $lab-paper; color: $lab-red-deep; } }
+    .o_lab_cta { margin-top: 0; }
+}
+
+// ------------------------------------------------------------------ mobile menu
+// The closed offcanvas drawer must not claim layout width (see the Ortho site notes).
+.offcanvas:not(.show):not(.showing):not(.hiding) { max-width: 0; overflow: hidden; }

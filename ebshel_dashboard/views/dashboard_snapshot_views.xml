@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_dashboard_snapshot_list" model="ir.ui.view">
+        <field name="name">dashboard.snapshot.list</field>
+        <field name="model">dashboard.snapshot</field>
+        <field name="arch" type="xml">
+            <list string="Card History" create="0" default_order="day desc">
+                <field name="day"/>
+                <field name="board_id" optional="show"/>
+                <field name="item_id"/>
+                <field name="value" sum="Total"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_dashboard_snapshot_graph" model="ir.ui.view">
+        <field name="name">dashboard.snapshot.graph</field>
+        <field name="model">dashboard.snapshot</field>
+        <field name="arch" type="xml">
+            <graph string="Card History" type="line" sample="1">
+                <field name="day" interval="day"/>
+                <field name="value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_dashboard_snapshot_search" model="ir.ui.view">
+        <field name="name">dashboard.snapshot.search</field>
+        <field name="model">dashboard.snapshot</field>
+        <field name="arch" type="xml">
+            <search string="Card History">
+                <field name="item_id"/>
+                <field name="board_id"/>
+                <filter name="filter_month" string="This Month"
+                        domain="[('day', '>=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter name="group_item" string="Card" context="{'group_by': 'item_id'}"/>
+                    <filter name="group_board" string="Dashboard" context="{'group_by': 'board_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dashboard_snapshot" model="ir.actions.act_window">
+        <field name="name">Card History</field>
+        <field name="res_model">dashboard.snapshot</field>
+        <field name="view_mode">list,graph</field>
+        <field name="context">{'search_default_group_item': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No history recorded yet</p>
+            <p>Every night, each number card is recorded once. Come back tomorrow,
+               or run the "Dashboards: record card history" scheduled action.</p>
+        </field>
+    </record>
+
+</odoo>

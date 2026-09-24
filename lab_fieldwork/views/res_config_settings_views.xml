@@ -42,6 +42,20 @@
                                  help="An executive must mark attendance before checking in at a clinic or starting travel. Marked on Odoo's own hr.attendance, so payroll and HR see it without anything being copied across.">
                             <field name="fw_require_attendance"/>
                         </setting>
+                        <setting id="fw_track" string="Record the Route"
+                                 help="Draw the route an executive actually took between clinics on the day sheet. The phone only reports its position between Start my day and End the day, and only while the app is open — a locked phone leaves a gap in the trail rather than a guess.">
+                            <field name="fw_track_live"/>
+                            <div class="content-group mt-2" invisible="not fw_track_live">
+                                <div class="row">
+                                    <label for="fw_track_interval" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_track_interval"/>
+                                </div>
+                                <div class="row">
+                                    <label for="fw_track_keep_days" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_track_keep_days"/>
+                                </div>
+                            </div>
+                        </setting>
                     </block>
 
                     <block title="Coverage Policy" name="fw_coverage_block"

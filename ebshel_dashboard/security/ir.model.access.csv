@@ -1,0 +1,17 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_dashboard_board_user,dashboard.board.user,model_dashboard_board,base.group_user,1,1,1,1
+access_dashboard_board_manager,dashboard.board.manager,model_dashboard_board,ebshel_dashboard.group_dashboard_manager,1,1,1,1
+access_dashboard_item_user,dashboard.item.user,model_dashboard_item,base.group_user,1,1,1,1
+access_dashboard_item_manager,dashboard.item.manager,model_dashboard_item,ebshel_dashboard.group_dashboard_manager,1,1,1,1
+access_dashboard_import_user,dashboard.import.user,model_dashboard_import,base.group_user,1,1,1,1
+access_dashboard_snapshot_user,dashboard.snapshot.user,model_dashboard_snapshot,base.group_user,1,0,0,0
+access_dashboard_snapshot_manager,dashboard.snapshot.manager,model_dashboard_snapshot,ebshel_dashboard.group_dashboard_manager,1,1,1,1
+access_dashboard_preference_user,dashboard.preference.user,model_dashboard_preference,base.group_user,1,1,1,1
+access_dashboard_build_user,dashboard.build.user,model_dashboard_build,base.group_user,1,1,1,1
+access_dashboard_note_user,dashboard.note.user,model_dashboard_note,base.group_user,1,1,1,1
+access_dashboard_item_variable_user,dashboard.item.variable.user,model_dashboard_item_variable,base.group_user,1,1,1,1
+access_dashboard_view_user,dashboard.view.user,model_dashboard_view,base.group_user,1,1,1,1
+access_dashboard_tab_user,dashboard.tab.user,model_dashboard_tab,base.group_user,1,1,1,1
+access_dashboard_filter_user,dashboard.filter.user,model_dashboard_filter,base.group_user,1,1,1,1
+access_dashboard_menu_wizard,dashboard.menu.wizard,model_dashboard_menu_wizard,base.group_user,1,1,1,1
+access_dashboard_subvalue_user,dashboard.item.subvalue.user,model_dashboard_item_subvalue,base.group_user,1,1,1,1

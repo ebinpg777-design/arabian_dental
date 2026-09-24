@@ -21,6 +21,7 @@
             <t t-set="patients" t-value="o._dental_patients()"/>
             <t t-set="show_patient" t-value="len(patients) > 1"/>
             <t t-set="show_ul" t-value="any(l.ul for l in lines)"/>
+            <t t-set="show_teeth" t-value="any(l.teeth for l in lines)"/>
             <t t-set="show_tax" t-value="bool(o.amount_tax) or any(l.tax_ids for l in lines)"/>
             <t t-set="paid" t-value="o.amount_total - o.amount_residual"/>
             <t t-set="footer_note">Thank you for your business.</t>
@@ -170,6 +171,7 @@
                             <th t-if="show_hsn" style="width:8%">HSN</th>
                             <th t-if="show_patient" style="width:14%">Patient</th>
                             <th t-if="show_ul" class="mid" style="width:6%">U/L</th>
+                            <th t-if="show_teeth" class="mid" style="width:10%">Teeth</th>
                             <th class="num" style="width:8%">Qty</th>
                             <th class="num" style="width:13%">Unit Price</th>
                             <th t-if="show_disc" class="num" style="width:7%">Disc %</th>
@@ -183,6 +185,7 @@
                             <td t-if="show_hsn"><span t-field="l.product_id.hsn_number"/></td>
                             <td t-if="show_patient"><span t-field="l.patient"/></td>
                             <td t-if="show_ul" class="mid"><span t-field="l.ul"/></td>
+                            <td t-if="show_teeth" class="mid"><span t-field="l.teeth"/></td>
                             <td class="num">
                                 <span t-field="l.quantity"/>
                                 <span t-field="l.product_uom_id" groups="uom.group_uom"/>

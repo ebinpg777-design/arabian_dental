@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <!--
+        The app menu opens the board itself, not its configuration: the first
+        thing a user wants from "Dashboards" is a dashboard.
+
+        Everything that *builds* one - the generator, the Configuration menu
+        and everything under it - is for the Dashboards / Manager role, which
+        is the only role that may build at all. A reader without it would see
+        entries that could only refuse them.
+    -->
+    <menuitem id="menu_dashboard_root"
+              name="Dashboards"
+              web_icon="ebshel_dashboard,static/description/icon.png"
+              sequence="12"/>
+
+    <menuitem id="menu_dashboard_open"
+              name="Dashboard"
+              parent="menu_dashboard_root"
+              action="action_dashboard_open"
+              sequence="1"/>
+
+    <menuitem id="menu_dashboard_build_top"
+              name="Build from a Model"
+              parent="menu_dashboard_root"
+              action="action_dashboard_build"
+              groups="ebshel_dashboard.group_dashboard_manager"
+              sequence="2"/>
+
+    <menuitem id="menu_dashboard_config"
+              name="Configuration"
+              parent="menu_dashboard_root"
+              groups="ebshel_dashboard.group_dashboard_manager"
+              sequence="90"/>
+
+    <menuitem id="menu_dashboard_board"
+              name="Dashboards"
+              parent="menu_dashboard_config"
+              action="action_dashboard_board"
+              sequence="1"
+              groups="ebshel_dashboard.group_dashboard_manager"/>
+
+    <menuitem id="menu_dashboard_item"
+              name="Cards"
+              parent="menu_dashboard_config"
+              action="action_dashboard_item"
+              sequence="2"
+              groups="ebshel_dashboard.group_dashboard_manager"/>
+
+    <menuitem id="menu_dashboard_snapshot"
+              name="Card History"
+              parent="menu_dashboard_config"
+              action="action_dashboard_snapshot"
+              sequence="3"
+              groups="ebshel_dashboard.group_dashboard_manager"/>
+
+    <menuitem id="menu_dashboard_import"
+              name="Import a Dashboard"
+              parent="menu_dashboard_config"
+              action="action_dashboard_import"
+              sequence="10"
+              groups="ebshel_dashboard.group_dashboard_manager"/>
+
+</odoo>

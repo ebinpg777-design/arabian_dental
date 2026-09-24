@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.SetupChips">
+        <div class="o_dbf_setup" t-ref="root">
+            <t t-if="chips.length">
+                <t t-foreach="chips" t-as="chip" t-key="chip_index">
+                    <button type="button"
+                            t-attf-class="o_dbf_setup_chip {{ chip.quiet ? 'o_dbf_setup_quiet' : '' }} {{ chip.tone ? 'o_dbf_setup_' + chip.tone : '' }}"
+                            t-on-click="() => this.jump(chip)" title="Open this setting">
+                        <i t-attf-class="fa #{chip.icon}" role="img" aria-label="Setting"/>
+                        <span t-esc="chip.text"/>
+                    </button>
+                </t>
+            </t>
+            <t t-else="">
+                <span class="o_dbf_setup_empty">
+                    <i class="fa fa-magic" role="img" aria-label="Defaults"/>
+                    Nothing tuned yet: the defaults draw a clean card. Each tab below changes one thing about it.
+                </span>
+            </t>
+        </div>
+    </t>
+
+</templates>

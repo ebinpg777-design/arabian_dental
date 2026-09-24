@@ -360,7 +360,9 @@
     gap: 6px;
     // A tile that was given a width keeps it; the rest use the standard one
     // (which compact mode narrows further, below).
-    width: var(--dft-width, 186px);
+    // Arabian Dental Lab: three-quarters of the stock 186px, so a ribbon shows
+    // more of the queue without scrolling. (client, 2026-09-24)
+    width: var(--dft-width, 140px);
     padding: 6px 9px 8px;
     border: 1px solid var(--border-color);
     border-radius: 10px;
@@ -762,7 +764,7 @@
     &.o_dft_compact {
         // `--dft-width` still wins when the tile carries its own width: an
         // explicit choice outranks the density preference.
-        width: var(--dft-width, 132px);
+        width: var(--dft-width, 100px);
         padding: 6px 8px 8px;
 
         .o_dft_value {
@@ -774,6 +776,43 @@
             height: 16px;
             font-size: 0.62rem;
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Default density for Arabian Dental Lab (client, 2026-09-24): a row that has
+// not been dragged to a height sits at about half the stock tile height - the
+// sparkline is dropped, the number steps down, the padding tightens. Drag the
+// row taller and the strip gets a size class, which takes over from these.
+// ---------------------------------------------------------------------------
+.o_dft_strip:not(.o_dft_strip_sized) .o_dft_tile {
+    padding: 3px 8px 4px;
+
+    .o_dft_body {
+        gap: 0;
+    }
+
+    .o_dft_spark {
+        display: none;
+    }
+
+    .o_dft_value {
+        font-size: 1.05rem;
+        line-height: 1.1;
+    }
+
+    .o_dft_icon {
+        width: 16px;
+        height: 16px;
+        font-size: 0.6rem;
+    }
+
+    .o_dft_label {
+        font-size: 0.7rem;
+    }
+
+    .o_dft_ring {
+        width: 30px;
     }
 }
 

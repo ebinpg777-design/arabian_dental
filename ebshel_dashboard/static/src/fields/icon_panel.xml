@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.IconPanel">
+        <div class="o_dbf_icon_panel" t-ref="root">
+            <div class="o_dbf_icon_search">
+                <i class="fa fa-search" role="img" aria-label="Search"/>
+                <input type="text" t-ref="search" class="o_input"
+                       placeholder="Search by name or meaning: late, revenue, team..."
+                       t-att-value="state.query" t-on-input="onQueryInput" t-on-keydown="onQueryKeydown"/>
+                <span class="o_dbf_icon_count"><t t-esc="matches.length"/> icons</span>
+            </div>
+            <div class="o_dbf_icon_groups">
+                <t t-foreach="groups" t-as="group" t-key="group.key">
+                    <button type="button"
+                            t-attf-class="o_dbf_icon_group {{ group.key === state.group ? 'o_dbf_icon_group_on' : '' }}"
+                            t-on-click="() => this.pickGroup(group.key)" t-esc="group.label"/>
+                </t>
+            </div>
+            <t t-if="recent.length">
+                <div class="o_dbf_icon_section">Recent</div>
+                <div class="o_dbf_icon_grid">
+                    <t t-foreach="recent" t-as="icon" t-key="'r' + icon">
+                        <button type="button"
+                                t-attf-class="o_dbf_icon_cell {{ icon === props.current ? 'o_dbf_icon_cell_on' : '' }}"
+                                t-att-title="icon" t-on-click="() => this.select(icon)">
+                            <i t-attf-class="fa #{icon}" role="img" t-att-aria-label="icon"/>
+                        </button>
+                    </t>
+                </div>
+            </t>
+            <div class="o_dbf_icon_grid">
+                <t t-foreach="matches" t-as="icon" t-key="icon">
+                    <button type="button"
+                            t-attf-class="o_dbf_icon_cell {{ icon === props.current ? 'o_dbf_icon_cell_on' : '' }}"
+                            t-att-title="icon" t-on-click="() => this.select(icon)">
+                        <i t-attf-class="fa #{icon}" role="img" t-att-aria-label="icon"/>
+                    </button>
+                </t>
+                <t t-if="!matches.length">
+                    <div class="o_dbf_icon_none">No icon matches. Any FontAwesome 4 class can still be typed in the box.</div>
+                </t>
+            </div>
+        </div>
+    </t>
+
+</templates>

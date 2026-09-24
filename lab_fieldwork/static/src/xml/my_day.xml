@@ -132,6 +132,10 @@
                         </t>
                         <t t-elif="onDuty">
                             Since <t t-esc="attendance.since"/> · <t t-esc="hoursToday"/> today
+                            <span t-if="tracking" class="o_fw_tracking"
+                                  title="Your route is recorded while your day is running, and stops when you end it.">
+                                <i class="fa fa-location-arrow"/> route recording
+                            </span>
                         </t>
                         <t t-elif="attendance.checked_out_at">
                             Ended <t t-esc="attendance.checked_out_at"/> · <t t-esc="hoursToday"/> today

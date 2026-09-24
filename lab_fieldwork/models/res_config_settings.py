@@ -65,6 +65,25 @@ class ResConfigSettings(models.TransientModel):
         'Hand over above', default=10000.0,
         config_parameter='lab_fieldwork.cash_ceiling')
 
+    # --- The trail between the doors -------------------------------------------
+    fw_track_live = fields.Boolean(
+        'Record the route while on duty', default=True,
+        config_parameter='lab_fieldwork.track_live',
+        help="While an executive's day is running, their phone reports where it is and "
+             "the day sheet draws the route taken between clinics. Nothing is recorded "
+             "before the day is started or after it is ended.")
+    fw_track_interval = fields.Integer(
+        'Ask the phone every (seconds)', default=90,
+        config_parameter='lab_fieldwork.track_interval',
+        help="How often the phone offers a position. Shorter draws a finer route and "
+             "uses more battery; positions that show no movement are discarded either "
+             "way.")
+    fw_track_keep_days = fields.Integer(
+        'Keep routes for (days)', default=90,
+        config_parameter='lab_fieldwork.track_keep_days',
+        help="Routes older than this are deleted every night. A day sheet keeps its "
+             "visits and its odometer for good; only the between-the-doors trail goes.")
+
     # Booleans whose default is True. Odoo's own config_parameter machinery hands False
     # straight to set_param, which deletes the key — and a missing key then reads as the
     # default, so unticking any of these did nothing at all.
@@ -73,6 +92,7 @@ class ResConfigSettings(models.TransientModel):
         ('fw_require_attendance', 'lab_fieldwork.require_attendance'),
         ('fw_auto_close_day', 'lab_fieldwork.auto_close_day'),
         ('fw_auto_float', 'lab_fieldwork.auto_float'),
+        ('fw_track_live', 'lab_fieldwork.track_live'),
     )
 
     def set_values(self):

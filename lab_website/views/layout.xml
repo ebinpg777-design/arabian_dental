@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Type. Two families the theme does not ship: a serif for display and a
+         humanist sans for everything else. Linked from the head rather than
+         @imported from SCSS, which the bundler would leave mid-file where a
+         browser ignores it. -->
+    <template id="lab_head" inherit_id="website.layout" name="Arabian Dental Lab: head">
+        <xpath expr="//head" position="inside">
+            <script>document.documentElement.classList.add('o_lab_js');</script>
+            <link rel="preconnect" href="https://fonts.googleapis.com"/>
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap"/>
+        </xpath>
+    </template>
+
+    <!-- The header's call to action: a dentist arriving here has one job, sending a
+         case, so the button says so. -->
+    <template id="header_cta_lab" inherit_id="website.header_call_to_action" name="Header CTA: Send a case">
+        <xpath expr="//a[hasclass('btn_cta')]" position="replace">
+            <a href="/send-a-case" class="oe_unremovable btn btn-primary btn_cta">Send a case</a>
+        </xpath>
+    </template>
+
+    <!-- The header's text element ships with +1 555-555-5556 and
+         info@yourcompany.example.com typed into every one of its branches (phone+mail,
+         mail, stretched, and the plain phone the default header uses). An xpath replace
+         only touches its first match, so each branch is addressed on its own. -->
+    <template id="header_text_element_lab" inherit_id="website.header_text_element" name="Header text: Arabian Dental Lab">
+        <xpath expr="//t[contains(@t-elif, 'phone_mail')]//a[starts-with(@href, 'tel:')]" position="replace">
+            <a href="tel:+919447849858" class="nav-link o_nav-link_secondary">
+                <small>
+                    <i class="fa fa-1x fa-fw fa-phone me-1"/>&#847;
+                    <span class="o_force_ltr">+91 94478 49858</span>
+                </small>
+            </a>
+        </xpath>
+        <xpath expr="//t[contains(@t-elif, 'phone_mail')]//a[starts-with(@href, 'mailto:')]" position="replace">
+            <a href="mailto:arabiandentallab@gmail.com" class="nav-link o_nav-link_secondary">
+                <small>
+                    <i class="fa fa-1x fa-fw fa-envelope me-1"/>
+                    arabiandentallab@gmail.com
+                </small>
+            </a>
+        </xpath>
+        <xpath expr="//t[@t-elif=&quot;_txt_elt_content == 'mail'&quot;]//a" position="replace">
+            <a href="mailto:arabiandentallab@gmail.com" class="nav-link o_nav-link_secondary">
+                <small><i class="fa fa-1x fa-fw fa-envelope me-1"/> arabiandentallab@gmail.com</small>
+            </a>
+        </xpath>
+        <xpath expr="//t[contains(@t-elif, 'mail_stretched')]//a" position="replace">
+            <a href="tel:+919447849858" class="nav-link o_nav-link_secondary p-2 o_navlink_background_hover d-flex align-items-center h-100 text-reset">
+                <i class="fa fa-1x fa-fw fa-phone me-1"/>
+                <span class="o_force_ltr"><small>+91 94478 49858</small></span>
+            </a>
+        </xpath>
+        <xpath expr="//t[@t-else]//a[starts-with(@href, 'tel:')]" position="replace">
+            <a href="tel:+919447849858" class="nav-link o_nav-link_secondary p-2">
+                <i class="fa fa-1x fa-fw fa-phone me-1"/>
+                <span class="o_force_ltr"><small>+91 94478 49858</small></span>
+            </a>
+        </xpath>
+    </template>
+
+    <!-- Footer. Odoo's default is three placeholder columns; the lab's is four real
+         ones: who we are, what we make, the company, and how to reach us. Still an
+         oe_structure, so anything the lab edits afterwards is kept per website. -->
+    <template id="footer_lab" inherit_id="website.footer_custom" name="Footer: Arabian Dental Lab">
+        <xpath expr="//div[@id='footer']/section" position="replace">
+            <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
+            <t t-set="footer_services" t-value="env['website'].sudo().lab_services()"/>
+            <section class="s_text_block o_lab_footer" data-snippet="s_text_block" data-name="Container">
+                <div class="container">
+                    <div class="row g-4 g-lg-5">
+                        <div class="col-lg-4">
+                            <img src="/lab_website/static/src/img/logo-white.png" alt="Arabian Dental Lab" class="o_lab_footer_logo" loading="lazy"/>
+                            <p class="o_lab_footer_tag"><t t-esc="lab['tagline']"/></p>
+                            <p class="o_lab_footer_text">
+                                A full-service dental laboratory in Manjeri, Kerala — crowns,
+                                bridges, implants, veneers, dentures and appliances, collected
+                                from your clinic and delivered back on the promised date. Home
+                                of the <t t-esc="lab['academy']"/>.
+                            </p>
+                            <div class="o_lab_footer_social">
+                                <a t-att-href="lab['instagram']" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa fa-instagram"/></a>
+                                <a t-attf-href="https://wa.me/#{lab['whatsapp']}" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa fa-whatsapp"/></a>
+                                <a t-att-href="lab['maps']" target="_blank" rel="noopener" aria-label="Google Maps"><i class="fa fa-map-marker"/></a>
+                                <a t-attf-href="mailto:#{lab['email']}" aria-label="Email"><i class="fa fa-envelope-o"/></a>
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg-2">
+                            <h5>What we make</h5>
+                            <ul class="list-unstyled">
+                                <li t-foreach="footer_services" t-as="s"><a t-attf-href="/services/#{s['slug']}" t-esc="s['title']"/></li>
+                                <li><a href="/technology">Technology</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-6 col-lg-2">
+                            <h5>The lab</h5>
+                            <ul class="list-unstyled">
+                                <li><a href="/about-us">About us</a></li>
+                                <li><a href="/academy">ADL Dental Academy</a></li>
+                                <li><a href="/gallery">Gallery</a></li>
+                                <li><a href="/send-a-case">Send a case</a></li>
+                                <li><a href="/faq">FAQ</a></li>
+                                <li><a href="/careers">Careers</a></li>
+                                <li><a href="/my/cases">Doctor login</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-lg-4">
+                            <h5>Find us</h5>
+                            <ul class="list-unstyled o_lab_footer_contact">
+                                <li><i class="fa fa-map-marker fa-fw"/><span><t t-esc="lab['street']"/>, <t t-esc="lab['street2']"/>, <t t-esc="lab['city']"/>, <t t-esc="lab['state']"/> <t t-esc="lab['zip']"/></span></li>
+                                <li><i class="fa fa-phone fa-fw"/><a t-attf-href="tel:#{lab['phones'][0][1]}"><span class="o_force_ltr" t-esc="lab['phones'][0][0]"/></a></li>
+                                <li><i class="fa fa-whatsapp fa-fw"/><a t-attf-href="https://wa.me/#{lab['whatsapp']}" target="_blank" rel="noopener">WhatsApp the lab</a></li>
+                                <li><i class="fa fa-envelope-o fa-fw"/><a t-attf-href="mailto:#{lab['email']}" t-esc="lab['email']"/></li>
+                                <li><i class="fa fa-clock-o fa-fw"/><span><t t-esc="lab['hours']"/> · <t t-esc="lab['closed']"/></span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </xpath>
+    </template>
+
+</odoo>

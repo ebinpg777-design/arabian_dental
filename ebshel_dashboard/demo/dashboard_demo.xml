@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!--
+        Demo boards built on res.partner, which every database has - so the
+        module shows working dashboards straight after installation, whatever
+        apps are installed. noupdate so an upgrade never overwrites a board the
+        user has since made their own.
+    -->
+    <data noupdate="1">
+
+        <!-- ====================== Contacts Overview ========================= -->
+        <record id="board_contacts" model="dashboard.board">
+            <field name="name">Contacts Overview</field>
+            <field name="description">A live look at the address book: how it grows, who is in it, and where they are.</field>
+            <field name="icon">fa-address-book</field>
+            <field name="color">indigo</field>
+            <field name="period">this_year</field>
+            <field name="allow_period" eval="True"/>
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="item_contacts_total" model="dashboard.item">
+            <field name="name">Contacts</field>
+            <field name="board_id" ref="board_contacts"/>
+            <field name="kind">kpi</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="date_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'create_date')]"/>
+            <field name="compare" eval="True"/>
+            <field name="icon">fa-users</field>
+            <field name="color">indigo</field>
+            <field name="width">3</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="item_contacts_companies" model="dashboard.item">
+            <field name="name">Companies</field>
+            <field name="board_id" ref="board_contacts"/>
+            <field name="kind">kpi</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('is_company', '=', True)]</field>
+            <field name="aggregate">count</field>
+            <field name="date_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'create_date')]"/>
+            <field name="compare" eval="True"/>
+            <field name="icon">fa-building</field>
+            <field name="color">teal</field>
+            <field name="width">3</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="item_contacts_customers" model="dashboard.item">
+            <field name="name">Reachable</field>
+            <field name="board_id" ref="board_contacts"/>
+            <field name="kind">kpi</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('email', '!=', False)]</field>
+            <field name="aggregate">count</field>
+            <field name="date_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'create_date')]"/>
+            <field name="icon">fa-envelope</field>
+            <field name="color">emerald</field>
+            <field name="width">3</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <record id="item_contacts_mine" model="dashboard.item">
+            <field name="name">My Contacts</field>
+            <field name="board_id" ref="board_contacts"/>
+            <field name="kind">kpi</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="only_mine" eval="True"/>
+            <field name="user_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'user_id')]"/>
+            <field name="icon">fa-user</field>
+            <field name="color">violet</field>
+            <field name="width">3</field>
+            <field name="sequence">40</field>
+        </record>
+
+        <record id="item_contacts_growth" model="dashboard.item">
+            <field name="name">New Contacts</field>
+            <field name="board_id" ref="board_contacts"/>
+            <field name="kind">line</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="date_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'create_date')]"/>
+            <field name="group_by_interval">month</field>
+            <field name="icon">fa-line-chart</field>
+            <field name="color">sky</field>
+            <field name="width">8</field>
+            <field name="sequence">50</field>
+        </record>
+
+        <record id="item_contacts_by_country" model="dashboard.item">
+            <field name="name">By Country</field>
+            <field name="board_id" ref="board_contacts"/>
+            <field name="kind">pie</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'country_id')]"/>
+            <field name="limit">6</field>
+            <field name="icon">fa-globe</field>
+            <field name="color">amber</field>
+            <field name="width">4</field>
+            <field name="sequence">60</field>
+        </record>
+
+        <record id="item_contacts_by_type" model="dashboard.item">
+            <field name="name">By Address Type</field>
+            <field name="board_id" ref="board_contacts"/>
+            <field name="kind">bar</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'type')]"/>
+            <field name="icon">fa-bar-chart</field>
+            <field name="color">orange</field>
+            <field name="width">6</field>
+            <field name="sequence">70</field>
+        </record>
+
+        <record id="item_contacts_recent" model="dashboard.item">
+            <field name="name">Latest Contacts</field>
+            <field name="board_id" ref="board_contacts"/>
+            <field name="kind">list</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="date_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'create_date')]"/>
+            <field name="limit">8</field>
+            <field name="icon">fa-list</field>
+            <field name="color">slate</field>
+            <field name="width">6</field>
+            <field name="sequence">80</field>
+        </record>
+
+        <!-- ====================== Card Showcase ============================ -->
+        <!-- Every kind of card once, on the same model, so the whole range is
+             one click away in a fresh database. -->
+        <record id="board_showcase" model="dashboard.board">
+            <field name="name">Card Showcase</field>
+            <field name="description">One of every card, all on Contacts. Click a bar or a slice to focus the whole board on it.</field>
+            <field name="icon">fa-th-large</field>
+            <field name="color">violet</field>
+            <field name="period">all</field>
+            <field name="allow_period" eval="True"/>
+            <field name="sequence">2</field>
+        </record>
+
+        <record id="item_show_note" model="dashboard.item">
+            <field name="name">About this board</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">text</field>
+            <field name="note"><![CDATA[<p><strong>Every card kind, once.</strong> Click a bar, a slice, a row of the table or a point to focus the board on that value; press <b>F</b> to present, <b>E</b> to arrange, <b>Esc</b> to clear.</p>]]></field>
+            <field name="icon">fa-sticky-note-o</field>
+            <field name="color">slate</field>
+            <field name="width">12</field>
+            <field name="sequence">5</field>
+        </record>
+
+        <record id="item_show_gauge" model="dashboard.item">
+            <field name="name">Address Book Target</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">gauge</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="target_value">100</field>
+            <field name="icon">fa-tachometer</field>
+            <field name="color">indigo</field>
+            <field name="width">3</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="item_show_status" model="dashboard.item">
+            <field name="name">Missing E-mails</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">status</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('email', '=', False)]</field>
+            <field name="aggregate">count</field>
+            <field name="alert_operator">gt</field>
+            <field name="alert_value">5</field>
+            <field name="alert_level">warning</field>
+            <field name="alert_message">More than five contacts have no e-mail</field>
+            <field name="icon">fa-envelope-o</field>
+            <field name="color">emerald</field>
+            <field name="width">3</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="item_show_ratio" model="dashboard.item">
+            <field name="name">Companies Share</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">kpi</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('is_company', '=', True)]</field>
+            <field name="aggregate">count</field>
+            <field name="as_ratio" eval="True"/>
+            <field name="date_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'create_date')]"/>
+            <field name="icon">fa-percent</field>
+            <field name="color">teal</field>
+            <field name="width">3</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <record id="item_show_today" model="dashboard.item">
+            <field name="name">Created Today</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">kpi</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="date_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'create_date')]"/>
+            <field name="period_mode">own</field>
+            <field name="own_period">today</field>
+            <field name="icon">fa-calendar-check-o</field>
+            <field name="color">sky</field>
+            <field name="width">3</field>
+            <field name="sequence">40</field>
+        </record>
+
+        <record id="item_show_area" model="dashboard.item">
+            <field name="name">Growth</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">area</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="date_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'create_date')]"/>
+            <field name="group_by_interval">month</field>
+            <field name="show_values" eval="True"/>
+            <field name="icon">fa-area-chart</field>
+            <field name="color">sky</field>
+            <field name="width">8</field>
+            <field name="sequence">50</field>
+        </record>
+
+        <record id="item_show_donut" model="dashboard.item">
+            <field name="name">People vs Companies</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">donut</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'is_company')]"/>
+            <field name="show_values" eval="True"/>
+            <field name="legend">bottom</field>
+            <field name="icon">fa-circle-o-notch</field>
+            <field name="color">amber</field>
+            <field name="width">4</field>
+            <field name="sequence">60</field>
+        </record>
+
+        <record id="item_show_hbar" model="dashboard.item">
+            <field name="name">Top Countries</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">hbar</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'country_id')]"/>
+            <field name="limit">6</field>
+            <field name="multicolor" eval="True"/>
+            <field name="show_values" eval="True"/>
+            <field name="icon">fa-align-left</field>
+            <field name="color">orange</field>
+            <field name="width">6</field>
+            <field name="sequence">70</field>
+        </record>
+
+        <record id="item_show_stacked" model="dashboard.item">
+            <field name="name">Address Types by Kind</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">stacked</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'type')]"/>
+            <field name="stack_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'is_company')]"/>
+            <field name="icon">fa-th-large</field>
+            <field name="color">rose</field>
+            <field name="width">6</field>
+            <field name="sequence">80</field>
+        </record>
+
+        <record id="item_show_funnel" model="dashboard.item">
+            <field name="name">Country Funnel</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">funnel</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'country_id')]"/>
+            <field name="limit">5</field>
+            <field name="multicolor" eval="True"/>
+            <field name="show_values" eval="True"/>
+            <field name="icon">fa-filter</field>
+            <field name="color">cyan</field>
+            <field name="width">4</field>
+            <field name="sequence">90</field>
+        </record>
+
+        <record id="item_show_polar" model="dashboard.item">
+            <field name="name">Address Types</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">polar</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'type')]"/>
+            <field name="legend">bottom</field>
+            <field name="icon">fa-bullseye</field>
+            <field name="color">lime</field>
+            <field name="width">4</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <record id="item_show_radar" model="dashboard.item">
+            <field name="name">Country Radar</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">radar</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'country_id')]"/>
+            <field name="limit">5</field>
+            <field name="icon">fa-dot-circle-o</field>
+            <field name="color">violet</field>
+            <field name="width">4</field>
+            <field name="sequence">110</field>
+        </record>
+
+        <record id="item_show_progress" model="dashboard.item">
+            <field name="name">Share by Country</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">progress</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'country_id')]"/>
+            <field name="limit">5</field>
+            <field name="multicolor" eval="True"/>
+            <field name="icon">fa-tasks</field>
+            <field name="color">emerald</field>
+            <field name="width">6</field>
+            <field name="sequence">120</field>
+        </record>
+
+        <record id="item_show_table" model="dashboard.item">
+            <field name="name">Countries Table</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">table</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="aggregate">count</field>
+            <field name="group_by_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'country_id')]"/>
+            <field name="limit">6</field>
+            <field name="icon">fa-table</field>
+            <field name="color">slate</field>
+            <field name="width">6</field>
+            <field name="sequence">130</field>
+        </record>
+
+        <record id="item_show_bullet" model="dashboard.item">
+            <field name="name">Companies vs Target</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">bullet</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('is_company', '=', True)]</field>
+            <field name="aggregate">count</field>
+            <field name="target_value">15</field>
+            <field name="icon">fa-bullseye</field>
+            <field name="color">teal</field>
+            <field name="width">4</field>
+            <field name="sequence">140</field>
+        </record>
+
+        <record id="item_show_formula" model="dashboard.item">
+            <field name="name">Reach Rate</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">formula</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[]</field>
+            <field name="formula">a / b * 100</field>
+            <!-- The variables ride along in the same create: the formula is
+                 checked against them the moment the card exists. -->
+            <field name="variable_ids" eval="[
+                (0, 0, {'name': 'a', 'label': 'With an e-mail', 'domain': &quot;[('email', '!=', False)]&quot;, 'aggregate': 'count'}),
+                (0, 0, {'name': 'b', 'label': 'All contacts', 'domain': '[]', 'aggregate': 'count'}),
+            ]"/>
+            <field name="symbol">%</field>
+            <field name="digits">1</field>
+            <field name="icon">fa-percent</field>
+            <field name="color">emerald</field>
+            <field name="background">tint</field>
+            <field name="width">4</field>
+            <field name="sequence">150</field>
+        </record>
+
+        <record id="item_show_scatter" model="dashboard.item">
+            <field name="name">Where They Are</field>
+            <field name="board_id" ref="board_showcase"/>
+            <field name="kind">scatter</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="domain">[('partner_latitude', '!=', 0)]</field>
+            <field name="aggregate">count</field>
+            <field name="measure_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'partner_longitude')]"/>
+            <field name="measure2_field_id" search="[('model', '=', 'res.partner'), ('name', '=', 'partner_latitude')]"/>
+            <field name="limit">10</field>
+            <field name="multicolor" eval="True"/>
+            <field name="icon">fa-map-marker</field>
+            <field name="color">sky</field>
+            <field name="width">4</field>
+            <field name="sequence">160</field>
+        </record>
+
+    </data>
+</odoo>

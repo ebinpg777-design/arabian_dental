@@ -52,3 +52,6 @@ access_cash_handover_line_mgr,cash handover line manager,model_lab_cash_handover
 access_cash_handover_line_pc,cash handover line petty cash officer,model_lab_cash_handover_line,petty_cash.group_petty_cash_officer,1,1,1,1
 access_cash_receive_mgr,receive field cash manager,model_lab_cash_receive,group_fieldwork_manager,1,1,1,0
 access_cash_receive_pc,receive field cash petty cash officer,model_lab_cash_receive,petty_cash.group_petty_cash_officer,1,1,1,0
+access_location_ping_exec,location ping executive,model_lab_location_ping,group_fieldwork_executive,1,0,1,0
+access_location_ping_mgr,location ping manager,model_lab_location_ping,group_fieldwork_manager,1,0,0,0
+access_location_ping_admin,location ping admin,model_lab_location_ping,base.group_system,1,1,1,1

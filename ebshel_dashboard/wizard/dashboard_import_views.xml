@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_dashboard_import_form" model="ir.ui.view">
+        <field name="name">dashboard.import.form</field>
+        <field name="model">dashboard.import</field>
+        <field name="arch" type="xml">
+            <form string="Import a Dashboard">
+                <group invisible="state == 'done'">
+                    <field name="state" invisible="1"/>
+                    <field name="file_data" filename="file_name" widget="binary"/>
+                    <field name="file_name" invisible="1"/>
+                    <field name="replace"/>
+                </group>
+                <div invisible="state == 'done'" class="text-muted">
+                    Pick a file exported from another database. Cards whose model is
+                    not installed here are skipped and listed, not silently dropped.
+                </div>
+                <group invisible="state != 'done'">
+                    <field name="result" nolabel="1" colspan="2" readonly="1"
+                           widget="text"/>
+                    <field name="board_ids" invisible="1"/>
+                </group>
+                <footer>
+                    <button name="action_import" type="object" string="Import"
+                            class="btn-primary" invisible="state == 'done'"/>
+                    <button name="action_open_imported" type="object"
+                            string="Open the Dashboard" class="btn-primary"
+                            invisible="state != 'done' or not board_ids"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_dashboard_import" model="ir.actions.act_window">
+        <field name="name">Import a Dashboard</field>
+        <field name="res_model">dashboard.import</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

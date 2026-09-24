@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Dynamic Filter Tiles',
-    'version': '19.0.2.1.0',
+    'version': '19.0.2.2.0',
     'summary': 'Turn any filter into a one-click tile on every list and kanban view - live counts, '
                'KPIs, trends, thresholds, breakdowns and a tile wall. Built from the UI, no code.',
     'description': """

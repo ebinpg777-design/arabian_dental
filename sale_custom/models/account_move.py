@@ -233,6 +233,7 @@ class AccountMoveLine(models.Model):
     patient = fields.Char(string='Patient')
     ul = fields.Selection(
         [('upper', 'U'), ('lower', 'L'), ('ul', 'UL')], string='U/L')
+    teeth = fields.Char('Teeth (FDI)', size=64)
     work_number = fields.Char(string='Work Number')
     # The invoice's patient list, read from the move that already stores it.
     #

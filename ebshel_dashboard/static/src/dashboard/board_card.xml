@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_dashboard.BoardCard">
+        <div t-att-class="cardClass"
+             t-att-style="'--dbc-color: ' + color + '; min-height: ' + item.height + 'px'"
+             t-att-data-item-id="item.id"
+             t-att-title="item.tooltip or false">
+
+            <div class="o_dbc_head">
+                <i t-attf-class="fa #{item.icon} o_dbc_icon" role="img" t-att-aria-label="item.name"/>
+                <span class="o_dbc_title" t-esc="item.name"/>
+                <span t-if="periodBadge" class="o_dbc_badge" t-esc="periodBadge"/>
+                <span t-if="item.focused" class="o_dbc_badge o_dbc_badge_focus" title="Narrowed by the focus">
+                    <i class="fa fa-filter" role="img" aria-label="Focused"/>
+                </span>
+                <span t-if="alert" t-attf-class="o_dbc_badge o_dbc_badge_{{ alert }}"
+                      t-att-title="item.alert_message or 'Threshold crossed'">
+                    <i class="fa fa-exclamation-triangle" role="img" aria-label="Threshold"/>
+                </span>
+                <span t-if="!isNumber and item.compare and deltaLabel" t-attf-class="o_dbc_badge o_dbc_delta_badge {{ deltaClass }}"
+                      t-att-title="compareLabel">
+                    <i t-attf-class="fa {{ (item.delta or 0) &gt;= 0 ? 'fa-arrow-up' : 'fa-arrow-down' }}" role="img" aria-label="Change"/>
+                    <t t-esc="deltaLabel"/>
+                </span>
+                <span class="o_dbc_spacer"/>
+                <t t-if="item.kind !== 'text' and !item.error">
+                    <span class="o_dbc_info" t-att-title="infoTitle" tabindex="0">
+                        <i class="fa fa-info-circle" role="img" aria-label="What this card computes"/>
+                    </span>
+                    <button t-if="isNumber and props.onPin"
+                            t-attf-class="o_dbc_tool o_dbc_pin {{ props.pinned ? 'o_dbc_pin_on' : '' }}"
+                            t-on-click="onPinClick"
+                            t-att-title="props.pinned ? 'Unpin from the watchlist' : 'Pin to the watchlist'">
+                        <i class="fa fa-thumb-tack" role="img" aria-label="Pin"/>
+                    </button>
+                    <button class="o_dbc_tool" t-on-click="onRefreshClick"
+                            t-if="props.onRefresh" title="Refresh this card">
+                        <i class="fa fa-refresh" role="img" aria-label="Refresh"/>
+                    </button>
+                    <button class="o_dbc_tool" t-on-click="onOpenClick"
+                            title="Open the records">
+                        <i class="fa fa-external-link" role="img" aria-label="Open"/>
+                    </button>
+                    <span class="o_dbc_menu_wrap" t-ref="menu">
+                        <button class="o_dbc_tool" t-on-click="toggleMenu" title="More">
+                            <i class="fa fa-ellipsis-v" role="img" aria-label="More"/>
+                        </button>
+                        <div t-if="state.menuOpen" class="dropdown-menu show o_dbc_menu" role="menu">
+                            <a t-if="isChart" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="toggleTable">
+                                <i t-attf-class="fa {{ state.showTable ? 'fa-bar-chart' : 'fa-table' }}"/>
+                                <t t-if="state.showTable">Show as a chart</t>
+                                <t t-else="">Show as a table</t>
+                            </a>
+                            <a t-if="isChart and !state.showTable" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="exportImage">
+                                <i class="fa fa-picture-o"/> Download as image
+                            </a>
+                            <t t-if="props.canEdit">
+                                <a t-if="props.onEdit" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="onEditClick">
+                                    <i class="fa fa-pencil"/> Edit this card
+                                </a>
+                                <a t-if="props.onRemove" href="#" class="dropdown-item text-danger" role="menuitem"
+                                   t-on-click.prevent="() => this.props.onRemove(item)">
+                                    <i class="fa fa-trash-o"/> Remove this card
+                                </a>
+                                <div class="dropdown-divider"/>
+                            </t>
+                            <a t-if="props.onPdf" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="exportPdf">
+                                <i class="fa fa-file-pdf-o"/> Download as PDF
+                            </a>
+                            <a t-if="props.onXlsx" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="exportXlsx">
+                                <i class="fa fa-file-excel-o"/> Download as a spreadsheet
+                            </a>
+                            <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="exportCsv">
+                                <i class="fa fa-file-text-o"/> Download as CSV
+                            </a>
+                            <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="exportJson">
+                                <i class="fa fa-code"/> Download as JSON
+                            </a>
+                        </div>
+                    </span>
+                </t>
+                <t t-if="props.canEdit and !props.editable and props.onEdit">
+                    <button class="o_dbc_tool" t-on-click="onEditClick" title="Edit this card">
+                        <i class="fa fa-pencil" role="img" aria-label="Edit"/>
+                    </button>
+                </t>
+                <t t-if="props.editable">
+                    <button t-if="props.onRemove" class="o_dbc_tool o_dbc_tool_danger"
+                            t-on-click="() => this.props.onRemove(item)" title="Remove this card">
+                        <i class="fa fa-trash-o" role="img" aria-label="Remove"/>
+                    </button>
+                    <button class="o_dbc_tool" t-on-click="onEditClick"
+                            title="Edit this card">
+                        <i class="fa fa-pencil" role="img" aria-label="Edit"/>
+                    </button>
+                    <span class="o_dbc_handle" title="Drag to move">
+                        <i class="fa fa-arrows" role="img" aria-label="Move"/>
+                    </span>
+                </t>
+            </div>
+
+            <!-- ============================ a number ============================ -->
+            <!-- ============================ still loading ===================== -->
+            <t t-if="item.pending">
+                <div class="o_dbc_body o_dbc_waiting" aria-busy="true">
+                    <span class="o_dbc_wait_line o_dbc_wait_value"/>
+                    <span class="o_dbc_wait_line o_dbc_wait_sub"/>
+                </div>
+            </t>
+
+            <t t-elif="item.kind === 'kpi' or item.kind === 'formula'">
+                <div class="o_dbc_body o_dbc_kpi_body" role="button" t-on-click="onCardClick">
+                    <t t-if="item.target">
+                        <div class="o_dbc_ring">
+                            <svg viewBox="0 0 36 36" class="o_dbc_ring_svg" aria-hidden="true">
+                                <circle class="o_dbc_ring_track" cx="18" cy="18" r="15.9155"
+                                        fill="none" stroke-width="2.5"/>
+                                <circle class="o_dbc_ring_fill" cx="18" cy="18" r="15.9155"
+                                        fill="none" stroke-width="2.5"
+                                        stroke-dasharray="100"
+                                        t-att-stroke-dashoffset="ringOffset"
+                                        transform="rotate(-90 18 18)"/>
+                            </svg>
+                            <span class="o_dbc_ring_label" t-esc="Math.round(targetPercent) + '%'"/>
+                        </div>
+                    </t>
+                    <div class="o_dbc_numbers">
+                        <div class="o_dbc_value">
+                            <span t-if="item.prefix" class="o_dbc_prefix" t-esc="item.prefix"/>
+                            <span t-esc="displayValue"/>
+                            <span t-if="displayUnit" class="o_dbc_unit" t-esc="displayUnit"/>
+                        </div>
+                        <div t-if="item.as_ratio and item.ratio !== undefined" class="o_dbc_sub">
+                            <t t-esc="formatValue(item.value)"/> of <t t-esc="formatValue(item.whole)"/>
+                        </div>
+                        <div t-elif="item.show_count and item.aggregate !== 'count'" class="o_dbc_sub">
+                            <t t-esc="formatValue(item.count)"/> records
+                        </div>
+                        <div t-if="item.kind === 'formula' and item.variables" class="o_dbc_vars">
+                            <t t-foreach="item.variables" t-as="variable" t-key="variable.name">
+                                <span class="o_dbc_var" t-att-title="variable.label">
+                                    <b t-esc="variable.name"/>
+                                    <span t-esc="formatValue(variable.value)"/>
+                                </span>
+                            </t>
+                        </div>
+                        <div t-if="item.compare and deltaLabel" class="o_dbc_delta_row">
+                            <span t-attf-class="o_dbc_pill {{ deltaClass }}">
+                                <i t-attf-class="fa {{ (item.delta or 0) &gt;= 0 ? 'fa-arrow-up' : 'fa-arrow-down' }}"
+                                   role="img" aria-label="Change"/>
+                                <span t-esc="deltaLabel"/>
+                            </span>
+                            <span class="o_dbc_delta_note" t-esc="compareLabel"/>
+                        </div>
+                        <div t-elif="snapshotLabel" class="o_dbc_delta_row">
+                            <span class="o_dbc_delta_note" t-esc="snapshotLabel"/>
+                        </div>
+                        <div t-elif="item.target" class="o_dbc_delta_row">
+                            <span class="o_dbc_delta_note">Target <t t-esc="formatValue(item.target)"/></span>
+                        </div>
+                        <div t-if="anomaly" t-attf-class="o_dbc_anomaly o_dbc_anomaly_{{ anomaly.above ? 'up' : 'down' }}"
+                             t-att-title="anomaly.text">
+                            <i t-attf-class="fa {{ anomaly.above ? 'fa-arrow-up' : 'fa-arrow-down' }}" role="img" aria-label="Unusual"/>
+                            <span>Unusual · <t t-esc="anomaly.z"/>σ</span>
+                        </div>
+                        <div t-if="item.subvalues and item.subvalues.length" class="o_dbc_subs">
+                            <t t-foreach="item.subvalues" t-as="sub" t-key="sub.id">
+                                <button type="button" class="o_dbc_sub" t-att-style="subStyle(sub)"
+                                        t-att-title="subTitle(sub)"
+                                        t-on-click.stop="() => this.onSubClick(sub)">
+                                    <span class="o_dbc_sub_label" t-esc="sub.label"/>
+                                    <span class="o_dbc_sub_value" t-esc="formatValue(sub.value)"/>
+                                    <span t-if="sub.share !== null and sub.share !== undefined"
+                                          class="o_dbc_sub_share" t-esc="sub.share + '%'"/>
+                                    <span t-if="sub.share !== null and sub.share !== undefined"
+                                          class="o_dbc_sub_bar" t-att-style="subBarStyle(sub)"/>
+                                </button>
+                            </t>
+                        </div>
+                        <div t-if="pace" t-attf-class="o_dbc_pace o_dbc_pace_{{ pace.status }}" t-att-title="pace.text">
+                            <div class="o_dbc_pace_track">
+                                <div class="o_dbc_pace_fill" t-att-style="'width: ' + pace.fill + '%'"/>
+                                <div class="o_dbc_pace_mark" t-att-style="'left: ' + pace.mark + '%'" title="Where the calendar stands"/>
+                            </div>
+                            <div class="o_dbc_pace_text">
+                                <b t-esc="pace.label"/> · <span t-esc="pace.text"/>
+                            </div>
+                        </div>
+                        <div t-if="alert and item.alert_message" class="o_dbc_alert_text" t-esc="item.alert_message"/>
+                    </div>
+                    <t t-if="spark">
+                        <div class="o_dbc_spark_col" t-att-title="sparkTitle">
+                            <svg class="o_dbc_spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
+                                <path class="o_dbc_spark_area" t-att-d="spark.area"/>
+                                <polyline class="o_dbc_spark_line" fill="none" t-att-points="spark.line"/>
+                                <circle class="o_dbc_spark_dot" r="2" t-att-cx="spark.last[0]" t-att-cy="spark.last[1]"/>
+                            </svg>
+                            <span class="o_dbc_spark_caption" t-esc="sparkCaption"/>
+                        </div>
+                    </t>
+                </div>
+            </t>
+
+            <!-- ============================ a gauge ============================= -->
+            <t t-elif="item.kind === 'gauge'">
+                <div class="o_dbc_body o_dbc_gauge_body" role="button" t-on-click="onCardClick">
+                    <svg viewBox="0 0 100 58" class="o_dbc_gauge" aria-hidden="true">
+                        <path class="o_dbc_gauge_track" d="M10,52 A40,40 0 0 1 90,52" fill="none"
+                              stroke-width="9" pathLength="100" stroke-linecap="round"/>
+                        <path class="o_dbc_gauge_fill" d="M10,52 A40,40 0 0 1 90,52" fill="none"
+                              stroke-width="9" pathLength="100" stroke-linecap="round"
+                              t-att-stroke-dasharray="Math.max(0.5, targetPercent) + ' 100'"/>
+                    </svg>
+                    <div class="o_dbc_gauge_value">
+                        <span t-if="item.prefix" class="o_dbc_prefix" t-esc="item.prefix"/>
+                        <span t-esc="displayValue"/>
+                        <span t-if="displayUnit" class="o_dbc_unit" t-esc="displayUnit"/>
+                    </div>
+                    <div class="o_dbc_gauge_foot">
+                        <span t-esc="Math.round(targetPercent) + '%'"/> of <span t-esc="formatValue(item.target)"/>
+                        <t t-if="item.compare and deltaLabel">
+                            · <span t-attf-class="{{ deltaClass }}" t-esc="deltaLabel"/>
+                        </t>
+                    </div>
+                    <div t-if="alert and item.alert_message" class="o_dbc_alert_text" t-esc="item.alert_message"/>
+                </div>
+            </t>
+
+            <!-- ============================ a bullet ============================ -->
+            <t t-elif="item.kind === 'bullet'">
+                <div class="o_dbc_body o_dbc_bullet_body" role="button" t-on-click="onCardClick">
+                    <div class="o_dbc_value">
+                        <span t-if="item.prefix" class="o_dbc_prefix" t-esc="item.prefix"/>
+                        <span t-esc="displayValue"/>
+                        <span t-if="displayUnit" class="o_dbc_unit" t-esc="displayUnit"/>
+                        <span class="o_dbc_sub ms-2">of <t t-esc="formatValue(item.target)"/> · <t t-esc="Math.round(targetPercent)"/>%</span>
+                    </div>
+                    <div class="o_dbc_bullet_track">
+                        <div class="o_dbc_bullet_range" t-att-style="'width: ' + bullet.range + '%'"/>
+                        <div class="o_dbc_bullet_fill" t-att-style="'width: ' + bullet.fill + '%'"/>
+                        <div class="o_dbc_bullet_mark" t-att-style="'left: ' + bullet.mark + '%'" title="Target"/>
+                    </div>
+                    <div class="o_dbc_bullet_scale">
+                        <span>0</span>
+                        <span t-if="item.compare and deltaLabel" t-attf-class="{{ deltaClass }}">
+                            <t t-esc="deltaLabel"/> <t t-esc="compareLabel"/>
+                        </span>
+                        <span t-esc="bullet.max"/>
+                    </div>
+                    <div t-if="alert and item.alert_message" class="o_dbc_alert_text" t-esc="item.alert_message"/>
+                </div>
+            </t>
+
+            <!-- ============================ a status light ===================== -->
+            <t t-elif="item.kind === 'status'">
+                <div t-attf-class="o_dbc_body o_dbc_status_body {{ statusClass }}" role="button" t-on-click="onCardClick">
+                    <span class="o_dbc_light" aria-hidden="true"/>
+                    <div class="o_dbc_numbers">
+                        <div class="o_dbc_value">
+                            <span t-if="item.prefix" class="o_dbc_prefix" t-esc="item.prefix"/>
+                            <span t-esc="displayValue"/>
+                            <span t-if="displayUnit" class="o_dbc_unit" t-esc="displayUnit"/>
+                        </div>
+                        <div class="o_dbc_sub">
+                            <t t-if="alert and item.alert_message"><t t-esc="item.alert_message"/></t>
+                            <t t-elif="alert">Threshold crossed</t>
+                            <t t-elif="item.alert_operator !== 'none'">Within limits</t>
+                            <t t-else="">No threshold set</t>
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ============================ a chart ============================= -->
+            <t t-elif="isChart">
+                <div t-if="state.showTable and hasContent" class="o_dbc_body o_dbc_astable">
+                    <table class="o_dbc_table">
+                        <thead>
+                            <tr>
+                                <t t-foreach="tableHead" t-as="head" t-key="head_index">
+                                    <th t-att-class="head_index ? 'o_dbc_num' : ''" t-esc="head"/>
+                                </t>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="tableRows" t-as="row" t-key="row_index">
+                                <tr>
+                                    <td t-esc="row.label"/>
+                                    <t t-foreach="row.cells" t-as="cell" t-key="cell_index">
+                                        <td class="o_dbc_num" t-esc="cell"/>
+                                    </t>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+                <div t-else="" class="o_dbc_body o_dbc_chart_body">
+                    <t t-if="hasContent">
+                        <!-- The box has the size; the canvas is sized by Chart.js to fit it. -->
+                        <div class="o_dbc_chart_box">
+                            <canvas t-ref="canvas" class="o_dbc_canvas"/>
+                        </div>
+                    </t>
+                    <t t-elif="!item.error">
+                        <div class="o_dbc_empty">
+                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <span t-esc="emptyLabel"/>
+                        </div>
+                    </t>
+                </div>
+                <div t-if="hasContent and dataInfo" class="o_dbc_foot o_dbc_datastrip" role="button"
+                     t-on-click="onCardClick" title="Open the records behind this chart">
+                    <t t-foreach="dataInfo" t-as="fact" t-key="fact_index">
+                        <span class="o_dbc_fact">
+                            <span class="o_dbc_fact_label" t-esc="fact[0]"/>
+                            <span class="o_dbc_fact_value" t-esc="fact[1]"/>
+                        </span>
+                    </t>
+                    <i class="fa fa-angle-right ms-auto" role="img" aria-label="Open"/>
+                </div>
+            </t>
+
+            <!-- ============================ a treemap ========================= -->
+            <t t-elif="item.kind === 'treemap'">
+                <div class="o_dbc_body o_dbc_svg_body">
+                    <t t-if="hasContent">
+                        <svg class="o_dbc_treemap" viewBox="0 0 100 60" preserveAspectRatio="none" role="img"
+                             t-att-aria-label="item.name">
+                            <t t-foreach="treemapCells" t-as="cell" t-key="cell.index">
+                                <g t-attf-class="o_dbc_tm_cell {{ isFocused(cell.point) ? 'o_dbc_tm_on' : '' }}"
+                                   role="button" t-on-click="() => this.onPointClick(cell.point)">
+                                    <title t-esc="cell.point.label + ': ' + formatFull(cell.point.value) + (cell.point.share !== undefined ? ' · ' + cell.point.share + '%' : '')"/>
+                                    <rect t-att-x="cell.x" t-att-y="cell.y" t-att-width="cell.w" t-att-height="cell.h"
+                                          t-att-fill="cell.color" rx="0.6"/>
+                                    <text t-if="cell.w &gt; 14 and cell.h &gt; 9" t-att-x="cell.x + 1.6" t-att-y="cell.y + 4.2"
+                                          class="o_dbc_tm_label" t-esc="cell.point.label"/>
+                                    <text t-if="cell.w &gt; 14 and cell.h &gt; 14" t-att-x="cell.x + 1.6" t-att-y="cell.y + 8.6"
+                                          class="o_dbc_tm_value" t-esc="formatValue(cell.point.value)"/>
+                                </g>
+                            </t>
+                        </svg>
+                    </t>
+                    <t t-elif="!item.error">
+                        <div class="o_dbc_empty"><i class="fa fa-inbox me-2" role="img" aria-label="Empty"/><span t-esc="emptyLabel"/></div>
+                    </t>
+                </div>
+            </t>
+
+            <!-- ============================ a calendar heat map ================ -->
+            <t t-elif="item.kind === 'calendar'">
+                <div class="o_dbc_body o_dbc_svg_body">
+                    <t t-if="hasContent">
+                        <t t-set="cal" t-value="calendarCells"/>
+                        <svg class="o_dbc_calendar" t-attf-viewBox="0 0 {{ cal.weeks * 13 + 24 }} 104" role="img"
+                             t-att-aria-label="item.name">
+                            <t t-foreach="['Mon', '', 'Wed', '', 'Fri', '', 'Sun']" t-as="dayName" t-key="dayName_index">
+                                <text t-if="dayName" x="0" t-att-y="14 + dayName_index * 13 + 9" class="o_dbc_cal_axis" t-esc="dayName"/>
+                            </t>
+                            <t t-foreach="cal.months" t-as="month" t-key="month.week">
+                                <text t-att-x="24 + month.week * 13" y="8" class="o_dbc_cal_axis" t-esc="month.label"/>
+                            </t>
+                            <t t-foreach="cal.cells" t-as="cell" t-key="cell.point.key">
+                                <rect t-attf-class="o_dbc_cal_cell {{ isFocused(cell.point) ? 'o_dbc_cal_on' : '' }}"
+                                      t-att-x="24 + cell.week * 13" t-att-y="14 + cell.weekday * 13"
+                                      width="11" height="11" rx="2"
+                                      t-att-fill="calendarFill(cell)" role="button"
+                                      t-on-click="() => this.onPointClick(cell.point, true)">
+                                    <title t-esc="cell.point.label + ': ' + formatFull(cell.point.value)"/>
+                                </rect>
+                            </t>
+                        </svg>
+                    </t>
+                    <t t-elif="!item.error">
+                        <div class="o_dbc_empty"><i class="fa fa-inbox me-2" role="img" aria-label="Empty"/><span t-esc="emptyLabel"/></div>
+                    </t>
+                </div>
+            </t>
+
+            <!-- ============================ a heat map / a pivot =============== -->
+            <t t-elif="isMatrix">
+                <div class="o_dbc_body o_dbc_list_body o_dbc_matrix_body">
+                    <t t-if="hasContent">
+                        <t t-set="m" t-value="matrix"/>
+                        <table t-attf-class="o_dbc_table o_dbc_matrix {{ item.kind === 'heatmap' ? 'o_dbc_heat' : '' }}">
+                            <thead>
+                                <tr>
+                                    <th t-esc="item.group_label or 'Group'"/>
+                                    <t t-foreach="m.columns" t-as="column" t-key="column_index">
+                                        <th class="o_dbc_num" t-esc="column.label"/>
+                                    </t>
+                                    <th t-if="item.kind === 'pivot'" class="o_dbc_num">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="m.rows" t-as="row" t-key="row_index">
+                                    <tr t-attf-class="{{ isFocused(row) ? 'o_dbc_row_focused' : '' }}"
+                                        role="button" t-on-click="() => this.onPointClick(row)">
+                                        <td t-esc="row.label"/>
+                                        <t t-foreach="row.cells" t-as="cell" t-key="cell_index">
+                                            <td class="o_dbc_num o_dbc_cell"
+                                                t-att-style="item.kind === 'heatmap' ? heat(cell, m.max) : ''"
+                                                t-esc="cell ? formatValue(cell) : (item.kind === 'heatmap' ? '' : '0')"/>
+                                        </t>
+                                        <td t-if="item.kind === 'pivot'" class="o_dbc_num o_dbc_total" t-esc="formatValue(row.total)"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot t-if="item.kind === 'pivot'">
+                                <tr>
+                                    <td>Total</td>
+                                    <t t-foreach="m.columns" t-as="column" t-key="column_index">
+                                        <td class="o_dbc_num" t-esc="formatValue(column.total)"/>
+                                    </t>
+                                    <td class="o_dbc_num" t-esc="formatValue(m.total)"/>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </t>
+                    <t t-elif="!item.error">
+                        <div class="o_dbc_empty">
+                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <span t-esc="emptyLabel"/>
+                        </div>
+                    </t>
+                </div>
+            </t>
+
+            <!-- ============================ progress bars ====================== -->
+            <t t-elif="item.kind === 'progress'">
+                <div class="o_dbc_body o_dbc_list_body">
+                    <t t-if="hasContent">
+                        <t t-foreach="item.points" t-as="point" t-key="point_index">
+                            <div t-attf-class="o_dbc_progress {{ isFocused(point) ? 'o_dbc_row_focused' : '' }}"
+                                 role="button" t-on-click="() => this.onPointClick(point)">
+                                <div class="o_dbc_progress_head">
+                                    <span class="o_dbc_row_label" t-esc="point.label"/>
+                                    <span class="o_dbc_row_value">
+                                        <t t-esc="formatValue(point.value)"/>
+                                        <span class="o_dbc_share" t-esc="' · ' + point.share + '%'"/>
+                                    </span>
+                                </div>
+                                <div class="o_dbc_progress_track">
+                                    <div class="o_dbc_progress_fill"
+                                         t-att-style="'width: ' + pointWidth(point) + '; background-color: ' + pointColor(point_index)"/>
+                                </div>
+                            </div>
+                        </t>
+                    </t>
+                    <t t-elif="!item.error">
+                        <div class="o_dbc_empty">
+                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <span t-esc="emptyLabel"/>
+                        </div>
+                    </t>
+                </div>
+            </t>
+
+            <!-- ============================ a table ============================= -->
+            <t t-elif="item.kind === 'table'">
+                <div class="o_dbc_body o_dbc_list_body o_dbc_table_body">
+                    <t t-if="hasContent">
+                        <table class="o_dbc_table">
+                            <thead>
+                                <tr>
+                                    <th t-esc="item.group_label or 'Group'"/>
+                                    <th class="o_dbc_num" t-esc="item.aggregate === 'count' ? 'Count' : (item.measure_label or 'Value')"/>
+                                    <th t-if="item.aggregate !== 'count'" class="o_dbc_num">Count</th>
+                                    <th class="o_dbc_num">Share</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="item.points" t-as="point" t-key="point_index">
+                                    <tr t-attf-class="{{ isFocused(point) ? 'o_dbc_row_focused' : '' }}"
+                                        role="button" t-on-click="() => this.onPointClick(point)">
+                                        <td t-esc="point.label"/>
+                                        <td class="o_dbc_num" t-esc="formatValue(point.value)"/>
+                                        <td t-if="item.aggregate !== 'count'" class="o_dbc_num" t-esc="point.count"/>
+                                        <td class="o_dbc_num"><t t-esc="point.share"/>%</td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td>Total</td>
+                                    <td class="o_dbc_num" t-esc="formatValue(item.value)"/>
+                                    <td t-if="item.aggregate !== 'count'" class="o_dbc_num" t-esc="item.count"/>
+                                    <td class="o_dbc_num">100%</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </t>
+                    <t t-elif="!item.error">
+                        <div class="o_dbc_empty">
+                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <span t-esc="emptyLabel"/>
+                        </div>
+                    </t>
+                </div>
+            </t>
+
+            <!-- ============================ a top list ========================== -->
+            <t t-elif="item.kind === 'list'">
+                <div class="o_dbc_body o_dbc_list_body">
+                    <t t-if="hasContent">
+                        <t t-if="item.columns and item.columns.length">
+                            <table class="o_dbc_table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Record</th>
+                                        <th t-if="item.measure" class="o_dbc_num" t-esc="item.measure_label or item.measure"/>
+                                        <t t-foreach="item.columns" t-as="column" t-key="column.name">
+                                            <th t-att-class="['integer', 'float', 'monetary'].includes(column.type) ? 'o_dbc_num' : ''" t-esc="column.label"/>
+                                        </t>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="item.rows" t-as="row" t-key="row.id">
+                                        <tr role="button" t-on-click="() => this.onRowClick(row)"
+                                            t-att-class="row.flagged ? 'o_dbc_row_flagged' : ''"
+                                            t-att-style="rowFlagStyle(row)">
+                                            <td class="o_dbc_row_rank">
+                                                <span t-if="medal(row_index)" t-attf-class="o_dbc_medal o_dbc_medal_{{ medal(row_index) }}"
+                                                      t-att-title="medal(row_index)"/>
+                                                <t t-else="" t-esc="row_index + 1"/>
+                                            </td>
+                                            <td t-esc="row.label"/>
+                                            <td t-if="item.measure" class="o_dbc_num o_dbc_row_value">
+                                                <span t-if="item.show_bars" class="o_dbc_cell_bar"
+                                                      t-att-style="cellBarStyle(row)"/>
+                                                <span t-esc="formatValue(row.value)"/>
+                                            </td>
+                                            <t t-foreach="row.cells" t-as="cell" t-key="cell_index">
+                                                <td t-att-class="['integer', 'float', 'monetary'].includes(item.columns[cell_index].type) ? 'o_dbc_num' : ''" t-esc="cell"/>
+                                            </t>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </t>
+                        <t t-else="">
+                            <t t-foreach="item.rows" t-as="row" t-key="row.id">
+                                <div t-attf-class="o_dbc_row {{ row.flagged ? 'o_dbc_row_flagged' : '' }}"
+                                     role="button" t-on-click="() => this.onRowClick(row)"
+                                     t-att-style="rowFlagStyle(row)">
+                                    <span t-if="item.measure and item.show_bars" class="o_dbc_row_bar"
+                                          t-att-style="'width: ' + rowWidth(row)"/>
+                                    <span class="o_dbc_row_rank">
+                                        <span t-if="medal(row_index)" t-attf-class="o_dbc_medal o_dbc_medal_{{ medal(row_index) }}"
+                                              t-att-title="medal(row_index)"/>
+                                        <t t-else="" t-esc="row_index + 1"/>
+                                    </span>
+                                    <span class="o_dbc_row_label" t-esc="row.label"/>
+                                    <span t-if="item.measure" class="o_dbc_row_value"
+                                          t-esc="formatValue(row.value)"/>
+                                </div>
+                            </t>
+                        </t>
+                    </t>
+                    <t t-elif="!item.error">
+                        <div class="o_dbc_empty">
+                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <span t-esc="emptyLabel"/>
+                        </div>
+                    </t>
+                </div>
+                <div class="o_dbc_foot" role="button" t-on-click="onCardClick">
+                    <span t-esc="formatValue(item.count or 0)"/> records
+                    <i class="fa fa-angle-right ms-1" role="img" aria-label="Open"/>
+                </div>
+            </t>
+
+            <!-- ============================ a note ============================== -->
+            <t t-elif="item.kind === 'text'">
+                <div class="o_dbc_body o_dbc_note" t-out="note"/>
+            </t>
+
+            <t t-if="item.error">
+                <div class="o_dbc_empty o_dbc_empty_error">
+                    <i class="fa fa-exclamation-triangle me-2" role="img" aria-label="Error"/>
+                    <span t-esc="emptyLabel"/>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>
