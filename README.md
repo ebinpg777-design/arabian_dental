@@ -99,8 +99,8 @@ as well made an ordinary save look like a warning.
 | --- | --- |
 | `ceramic` | Charcoal, with the lab's own layered ceramic work held in the bottom right |
 | `midnight` | The same charcoal lit from two corners, nothing in it to look at |
-| `studio` | Pearl white, a red bloom off the top corner, the shield watermarked faintly |
-| `daylight` *(default)* | White, swept diagonally by the brand red, no photograph |
+| `studio` *(default)* | Pearl white, a red bloom off the top corner, the shield watermarked faintly |
+| `daylight` | White, swept diagonally by the brand red, no photograph |
 
 Set the system parameter to switch; a name nobody shipped falls back to the
 default rather than leaving the screen blank. Each variant declares whether it
@@ -275,6 +275,8 @@ into this suite, mapping each custom field onto the field the suite already has.
 | move ↔ sale line, move ↔ purchase line, bill line ↔ purchase line, backorder ↔ transfer | the same links, so delivered / received / billed quantities on orders come out of the documents |
 | `hr.employee` (+ departments, jobs) | the same, linked to the migrated users |
 | attachments on orders, partners, products, employees | copied from the source filestore (`Source Filestore` on the connection) |
+| the chatter on every migrated record (`mail.message` + `mail.tracking.value`) | the same threads, with their dates, authors, subtypes and tracked field changes. Messages on models that were not migrated (payments, leave) are left behind: there is nothing here for them to hang on |
+| `create_date`, `write_date`, `create_uid`, `write_uid` on every migrated record | put back from the source by SQL, because Odoo stamps all four itself on create() and ignores what it is given |
 | `material.request` + lines (1,015 requisitions) | the rewritten `material_request` module: same model names, transfers linked back, delivered quantities from the moves, approved + delivered → **Delivered** |
 
 Two fields were added to the suite for this, because the lab cannot work without
@@ -287,8 +289,9 @@ lines (printed on the tax invoice and the registration acknowledgement) and
 (0 rows filled); `smbg_contact` registration enquiries (0 rows);
 TDS/TCS on partners (0 partners); `om_account_followup` levels (Odoo 19 has its own
 follow-ups); asset/budget/payroll data from the OM accounting kit (19 assets, 7
-payslips — not carried); e-invoice portal credentials; the 754,000 chatter
-notifications (4 real notes existed).
+payslips — not carried); e-invoice portal credentials; and, out of the 754,000
+chatter rows, the 50,562 that carry neither a body nor a tracked change — they
+would migrate as blank lines in somebody's thread.
 
 ### What is migrated
 
@@ -305,7 +308,8 @@ partial by partial** (so paid / partial / in-payment states and open balances ma
 the source), the cheque register, transfers with their moves (exact operation type,
 real locations, sale and purchase line links, backorders), inventory adjustments,
 **move lines replayed to rebuild the stock**, material requests, attachments and
-images, and finally the source create/write timestamps.
+images, **the chatter of every record**, and finally the source create/write
+stamps — dates and users both.
 
 ### Running it
 

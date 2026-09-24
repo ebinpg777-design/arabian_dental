@@ -20,7 +20,7 @@ class IrHttp(models.AbstractModel):
     # to fall back to something rather than leave the home screen blank.
     WALLPAPERS = ('studio', 'daylight', 'midnight', 'ceramic')
     DARK_WALLPAPERS = ('midnight', 'ceramic')
-    DEFAULT_WALLPAPER = 'daylight'
+    DEFAULT_WALLPAPER = 'studio'
 
     def session_info(self):
         info = super().session_info()

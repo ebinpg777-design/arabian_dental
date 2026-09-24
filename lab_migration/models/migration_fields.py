@@ -63,6 +63,9 @@ XREF_MODELS = [
     'hr.department', 'hr.job', 'hr.employee', 'stock.move', 'stock.move.line',
     'stock.warehouse', 'stock.picking.type', 'stock.warehouse.orderpoint',
     'lab.cheque', 'ir.attachment',
+    # the chatter: keyed so a re-run adds what is missing instead of doubling
+    # every thread
+    'mail.message',
 ]
 
 _generated = [_xref(m) for m in XREF_MODELS]

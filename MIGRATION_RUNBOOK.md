@@ -37,7 +37,8 @@ against the source as of the dump.
 **Left behind on purpose** — the 68 modules (the material-request one was rewritten for
 this suite and its rows DO migrate); OM accounting-kit data (assets, budgets, payslips, follow-up levels);
 `smbg_contact` enquiries; TDS/TCS settings (0 partners); e-invoice credentials; the
-754,000 chatter notifications (4 real notes existed); the `sale.order` fields that were
+50,562 chatter rows that carry neither a body nor a tracked change (the other 703,000 DO
+migrate); the `sale.order` fields that were
 never filled (work_type, impression_*, opposing/pre-cutting model, wax_bite).
 
 ---
@@ -111,10 +112,20 @@ printf 'exec(open("projects/arabian_dental/tools/run_migration.py").read())' | \
     > backups/adl_20260923/full_run.log 2>&1
 ```
 
-Phases, in order: `master, config, opening, numbering, gl, ops, inventory, timestamps`
+Phases, in order: `master, config, opening, numbering, gl, ops, inventory, chatter,
+timestamps`
 (`gl` = orders, purchases, invoices, entries, reconciliation, cheques; `ops` = MOs,
-transfers, adjustment moves, move lines, material requests, attachments; `stock` re-runs
-only the three stock phases).
+transfers, adjustment moves, move lines, material requests, attachments; `chatter` is
+the message history and has to come last, since a message needs its record to exist;
+`stock` re-runs only the three stock phases).
+
+`chatter` writes its rows with raw INSERTs. `message_post` on 670,000 messages would
+recompute followers, notifications and access rules for each one and run for days,
+and these are a copy of a history that has already happened. It is keyed on
+`x_src_id`, so a second run adds only what is missing instead of doubling every
+thread, and the tracked changes are matched field by field on model+name — never on
+`ir_model_fields` ids, which are assigned in install order and mean nothing across two
+databases.
 `MIG_PHASES` picks a subset, `MIG_LIMIT=50` smoke-tests with fifty documents per phase,
 `MIG_RESUME=1` skips documents already mapped. **Export the variables** — a
 `VAR=x printf … | python` prefix reaches only `printf`.

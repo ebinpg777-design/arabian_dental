@@ -440,3 +440,96 @@ class TestMenuIcons(TransactionCase):
     def test_icons_that_are_there_are_left_alone(self):
         line = self.backend._repair_menu_icons()
         self.assertTrue(line.startswith("App icons: 0 of "), line)
+
+
+@tagged('post_install', '-at_install')
+class TestSourceStamps(TransactionCase):
+    """Who created a migrated record, and when.
+
+    Odoo stamps create_date, write_date, create_uid and write_uid itself and
+    ignores anything passed to create(), so all four can only be put back
+    afterwards by SQL. Left alone, 70,000 orders say they were raised on the day
+    of the migration by whoever ran it.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.backend = cls.env['migration.backend'].search([], limit=1) \
+            or cls.env['migration.backend'].create({})
+
+    def test_the_author_columns_are_written_by_the_same_statement(self):
+        """A guard on the SQL, not on a run: the four columns have to travel
+        together, because a record whose date came back but whose author did not
+        is harder to spot than one that kept both."""
+        import inspect
+        sql = inspect.getsource(type(self.backend)._stamp_timestamps)
+        for column in ('create_date', 'write_date', 'create_uid', 'write_uid'):
+            self.assertIn(column, sql, column)
+        self.assertIn('COALESCE(v.cu, t.create_uid)', sql,
+                      "an unmigrated user must leave the target's own value alone: "
+                      "create_uid is NOT NULL")
+
+    def test_children_take_their_parents_author_too(self):
+        """Invoice lines and move lines never get a mapping of their own, so they
+        are stamped from the document they belong to - which has to include who
+        wrote it."""
+        for label, sql in type(self.backend)._CHILD_TIMESTAMP_SOURCES:
+            self.assertIn('create_uid', sql, label)
+            self.assertIn('write_uid', sql, label)
+
+    def test_the_user_map_is_read_from_the_migration_map(self):
+        users = self.backend._user_map()
+        self.assertIsInstance(users, dict)
+        for src, dst in list(users.items())[:5]:
+            self.assertTrue(self.env['res.users'].browse(dst).exists(),
+                            "the map points at a user that is gone: %s" % src)
+
+
+@tagged('post_install', '-at_install')
+class TestChatter(TransactionCase):
+    """The message history that comes with a migrated record."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.backend = cls.env['migration.backend'].search([], limit=1) \
+            or cls.env['migration.backend'].create({})
+
+    def test_a_message_is_keyed_to_the_source_row(self):
+        """Without x_src_id a second run doubles every thread."""
+        self.assertIn('x_src_id', self.env['mail.message']._fields)
+
+    def test_chatter_is_the_last_phase(self):
+        """A message has nowhere to go until its record exists."""
+        phases = type(self.backend)._TXN_PHASES
+        self.assertEqual(phases[-1], 'chatter')
+
+    def test_only_models_that_were_migrated_are_offered(self):
+        """Payments are the case that matters: they arrive as journal entries, so
+        a message pointing at account.payment has no record to attach to and must
+        be left behind rather than attached to the wrong one."""
+        models_wanted = self.backend._chatter_models()
+        for model in models_wanted:
+            self.assertIn(model, self.env,
+                          "%s is not a model in this database" % model)
+        self.assertNotIn('account.payment', models_wanted)
+
+    def test_blank_messages_are_not_carried(self):
+        """50,562 of the source's messages have neither a body nor a tracked
+        change. Migrated, each one is an empty line in somebody's thread."""
+        import inspect
+        sql = inspect.getsource(type(self.backend)._txn_chatter)
+        self.assertIn('_CHATTER_BLANK_BODIES', sql)
+        self.assertIn('mail_tracking_value', sql,
+                      "a message with no body may still say everything through "
+                      "its tracked changes")
+
+    def test_fields_are_matched_by_name_and_not_by_id(self):
+        """ir_model_fields ids are assigned in install order and mean nothing
+        across two databases; matching on them would attach "Status changed" to
+        whatever field happens to hold that id here."""
+        import inspect
+        sql = inspect.getsource(type(self.backend)._txn_tracking_values)
+        self.assertIn("f.model AS field_model", sql)
+        self.assertIn("fields_here.get((r['field_model'], r['field_name']))", sql)

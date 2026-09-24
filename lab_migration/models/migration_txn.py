@@ -2136,6 +2136,236 @@ class MigrationBackend(models.Model):
         'lab.cheque', 'ir.attachment', 'material.request',
     )
 
+    # ------------------------------------------------------------------ chatter
+    # A record's history: who said what about it, and which field changed when.
+    # 754,000 rows in the source, of which 50,000 carry neither a body nor a
+    # tracked change and would migrate as blank lines in the thread.
+    _CHATTER_BLANK_BODIES = ('', '<p><br></p>', '<p></p>', '<p><br/></p>')
+    _CHATTER_BATCH = 5000
+
+    def _txn_chatter(self, cur, cache, stats):
+        """Every migrated record's chatter: the messages and their tracked changes.
+
+        Written with raw INSERTs rather than the ORM. `message_post` on 670,000
+        messages would recompute followers, notifications and access rules for
+        each one and run for days; these rows are a copy of a history that has
+        already happened, not new activity, so nothing about them needs computing.
+
+        Idempotent through `x_src_id` on mail.message: a re-run inserts only what
+        is not already there, which also makes it resumable after a stop.
+        """
+        models_wanted = self._chatter_models()
+        if not models_wanted:
+            stats.append("Chatter                nothing mapped to attach messages to")
+            return
+        targets = self._chatter_targets(models_wanted)
+        subtypes = self._chatter_subtypes(cur)
+        partners = self._chatter_partners()
+        users = self._user_map()
+
+        self.env.cr.execute("SELECT x_src_id FROM mail_message WHERE x_src_id IS NOT NULL")
+        already = {r[0] for r in self.env.cr.fetchall()}
+
+        counts = {'created': 0, 'already': 0, 'unmapped': 0}
+        # Walked by id rather than read in one go: 670,000 message bodies is a
+        # third of a gigabyte held for no reason, on a machine that swaps.
+        last_id, batch = 0, []
+        while True:
+            cur.execute("""
+                SELECT m.id, m.model, m.res_id, m.body, m.date, m.subject,
+                       m.message_type, m.subtype_id, m.author_id, m.email_from,
+                       m.is_internal, m.message_id,
+                       m.create_date, m.write_date, m.create_uid, m.write_uid
+                  FROM mail_message m
+                 WHERE m.model IN %s AND m.res_id IS NOT NULL AND m.id > %s
+                   AND (COALESCE(m.body, '') NOT IN %s
+                        OR EXISTS (SELECT 1 FROM mail_tracking_value t
+                                    WHERE t.mail_message_id = m.id))
+                 ORDER BY m.id
+                 LIMIT %s
+            """, (tuple(models_wanted), last_id, self._CHATTER_BLANK_BODIES,
+                  self._CHATTER_BATCH))
+            rows = cur.fetchall()
+            if not rows:
+                break
+            last_id = rows[-1]['id']
+            for r in rows:
+                if r['id'] in already:
+                    counts['already'] += 1
+                    continue
+                res_id = targets.get((r['model'], r['res_id']))
+                if not res_id:
+                    counts['unmapped'] += 1
+                    continue
+                batch.append((
+                    r['model'], res_id, self._coerce(r['body']) or '',
+                    r['date'], self._coerce(r['subject']),
+                    r['message_type'] or 'notification',
+                    subtypes.get(r['subtype_id']), partners.get(r['author_id']),
+                    r['email_from'], bool(r['is_internal']), r['message_id'],
+                    r['create_date'] or r['date'], r['write_date'] or r['date'],
+                    users.get(r['create_uid']), users.get(r['write_uid']), r['id'],
+                ))
+            counts['created'] += self._chatter_insert(batch)
+            batch = []
+            if counts['created'] and not counts['created'] % 50000:
+                _logger.info("chatter: %d messages", counts['created'])
+        tracked = self._txn_tracking_values(cur)
+        stats.append("Chatter                messages=%d already=%d unmapped=%d "
+                     "tracked-changes=%d"
+                     % (counts['created'], counts['already'], counts['unmapped'], tracked))
+
+    def _chatter_models(self):
+        """The source models whose chatter can land somewhere.
+
+        Read off migration_map rather than listed: whatever was migrated can
+        carry its history, and a model that was not migrated has nothing for a
+        message to point at. Payments are the notable absence - they arrive as
+        journal entries, so their threads have no home.
+        """
+        self.env.cr.execute("SELECT DISTINCT dst_model FROM migration_map")
+        return tuple(sorted(
+            m for (m,) in self.env.cr.fetchall()
+            if m in self.env and self.env[m]._name not in ('res.users',)))
+
+    def _chatter_targets(self, models_wanted):
+        """{(model, source id): target id} for every mapped record, in one read.
+
+        _resolve() would do this one message at a time, and there are 670,000 of
+        them.
+        """
+        self.env.cr.execute(
+            "SELECT dst_model, src_id, dst_id FROM migration_map WHERE dst_model IN %s",
+            (tuple(models_wanted),))
+        return {(model, src): dst for model, src, dst in self.env.cr.fetchall()}
+
+    def _chatter_subtypes(self, cur):
+        """{source subtype id: target subtype id}, matched on the xml id.
+
+        The xml id and not the name: "Invoice Created" exists three times over in
+        the source (one per module that declared it), and names are translated.
+        """
+        cur.execute("""
+            SELECT s.id, d.module || '.' || d.name AS xmlid
+              FROM mail_message_subtype s
+              LEFT JOIN ir_model_data d
+                ON d.model = 'mail.message.subtype' AND d.res_id = s.id
+        """)
+        source = {r['id']: r['xmlid'] for r in cur.fetchall()}
+        wanted = tuple(x for x in source.values() if x)
+        here = {}
+        if wanted:
+            self.env.cr.execute("""
+                SELECT module || '.' || name AS xmlid, res_id
+                  FROM ir_model_data
+                 WHERE model = 'mail.message.subtype' AND module || '.' || name IN %s
+            """, (wanted,))
+            here = dict(self.env.cr.fetchall())
+        return {sid: here.get(xmlid) for sid, xmlid in source.items() if here.get(xmlid)}
+
+    def _chatter_partners(self):
+        self.env.cr.execute(
+            "SELECT src_id, dst_id FROM migration_map WHERE dst_model = 'res.partner'")
+        return dict(self.env.cr.fetchall())
+
+    def _chatter_insert(self, batch):
+        if not batch:
+            return 0
+        psycopg2.extras.execute_values(self.env.cr._obj, """
+            INSERT INTO mail_message
+                (model, res_id, body, date, subject, message_type, subtype_id,
+                 author_id, email_from, is_internal, message_id,
+                 create_date, write_date, create_uid, write_uid, x_src_id)
+            VALUES %s
+        """, batch, page_size=1000)
+        self.env.cr.commit()
+        return len(batch)
+
+    def _txn_tracking_values(self, cur):
+        """The "Status: Draft -> Posted" lines inside the messages.
+
+        Without them half the migrated thread is empty: 337,000 of the source's
+        messages have no body at all and say everything through their tracked
+        changes.
+
+        Fields are matched by model and name, never by id - ir_model_fields ids
+        are assigned in install order and mean nothing across two databases.
+        """
+        self.env.cr.execute(
+            "SELECT id, x_src_id FROM mail_message WHERE x_src_id IS NOT NULL")
+        messages = dict((src, mid) for mid, src in self.env.cr.fetchall())
+        if not messages:
+            return 0
+        # Per message, not per run: a stopped run leaves some threads done and
+        # some not, and re-reading them all is cheaper than being wrong about it.
+        # As a subquery and not an IN list - there are 650,000 of these ids, and
+        # handing them to Postgres as literals builds a five-megabyte statement.
+        self.env.cr.execute("""
+            SELECT DISTINCT t.mail_message_id
+              FROM mail_tracking_value t
+              JOIN mail_message m ON m.id = t.mail_message_id
+             WHERE m.x_src_id IS NOT NULL
+        """)
+        done = {r[0] for r in self.env.cr.fetchall()}
+        self.env.cr.execute("SELECT model, name, id FROM ir_model_fields")
+        fields_here = {(m, n): i for m, n, i in self.env.cr.fetchall()}
+        written, last_id = 0, 0
+        while True:
+            cur.execute("""
+                SELECT t.id, t.mail_message_id, f.model AS field_model,
+                       f.name AS field_name, t.field_info,
+                       t.old_value_char, t.new_value_char,
+                       t.old_value_text, t.new_value_text,
+                       t.old_value_integer, t.new_value_integer,
+                       t.old_value_float, t.new_value_float,
+                       t.old_value_datetime, t.new_value_datetime,
+                       t.create_date, t.write_date
+                  FROM mail_tracking_value t
+                  JOIN ir_model_fields f ON f.id = t.field_id
+                 WHERE t.id > %s
+                 ORDER BY t.id
+                 LIMIT %s
+            """, (last_id, self._CHATTER_BATCH))
+            source_rows = cur.fetchall()
+            if not source_rows:
+                break
+            last_id = source_rows[-1]['id']
+            rows = []
+            for r in source_rows:
+                message = messages.get(r['mail_message_id'])
+                field = fields_here.get((r['field_model'], r['field_name']))
+                if not (message and field) or message in done:
+                    continue
+                info = r['field_info']
+                rows.append((
+                    message, field,
+                    psycopg2.extras.Json(info) if isinstance(info, dict) else info,
+                    r['old_value_char'], r['new_value_char'],
+                    r['old_value_text'], r['new_value_text'],
+                    r['old_value_integer'], r['new_value_integer'],
+                    r['old_value_float'], r['new_value_float'],
+                    r['old_value_datetime'], r['new_value_datetime'],
+                    r['create_date'], r['write_date'],
+                ))
+            written += self._tracking_insert(rows)
+        return written
+
+    def _tracking_insert(self, rows):
+        if not rows:
+            return 0
+        psycopg2.extras.execute_values(self.env.cr._obj, """
+            INSERT INTO mail_tracking_value
+                (mail_message_id, field_id, field_info,
+                 old_value_char, new_value_char, old_value_text, new_value_text,
+                 old_value_integer, new_value_integer,
+                 old_value_float, new_value_float,
+                 old_value_datetime, new_value_datetime,
+                 create_date, write_date)
+            VALUES %s
+        """, rows, page_size=1000)
+        self.env.cr.commit()
+        return len(rows)
+
     # Phases in dependency order: invoices point at order lines, reconciliation
     # needs every entry in, transfers reference the orders, attachments the lot.
     # Purchases come before invoices (bills point at purchase lines) and before
@@ -2144,7 +2374,7 @@ class MigrationBackend(models.Model):
     _TXN_PHASES = ['share_records', 'sale_orders', 'purchases', 'invoices',
                    'journal_entries', 'reconcile', 'cheques', 'manufacturing',
                    'pickings', 'stock_moves', 'move_lines', 'material_requests',
-                   'attachments']
+                   'attachments', 'chatter']
 
     def _txn_map_user_partners(self, cur, cache):
         """A user's partner resolves to the migrated user's partner.

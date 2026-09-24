@@ -14,7 +14,7 @@ Environment:
     MIG_SRC_DB        source database name        (default adl_prod_v17)
     MIG_SRC_HOST/PORT/USER/PASSWORD                (default 127.0.0.1/5432/odoo/odoo)
     MIG_FILESTORE     path to the source filestore directory (attachments)
-    MIG_PHASES        comma list: master,config,opening,numbering,gl,ops,inventory,timestamps
+    MIG_PHASES        comma list: master,config,opening,numbering,gl,ops,inventory,chatter,timestamps
     MIG_INVENTORY_AS_OF on-hand as of this date (default today)
                       (default: all, in that order)
     MIG_FROM          documents from this date   (default 2025-01-01 = everything)
@@ -31,7 +31,7 @@ _logger = logging.getLogger('run_migration')
 logging.getLogger('odoo.addons.lab_migration').setLevel(logging.INFO)
 
 phases = [p.strip() for p in os.environ.get(
-    'MIG_PHASES', 'master,config,opening,numbering,gl,ops,inventory,timestamps').split(',') if p.strip()]
+    'MIG_PHASES', 'master,config,opening,numbering,gl,ops,inventory,chatter,timestamps').split(',') if p.strip()]
 from_date = os.environ.get('MIG_FROM', '2025-01-01')
 
 Backend = env['migration.backend'].sudo()
@@ -91,6 +91,9 @@ for phase in phases:
         stats = backend._txn_run(['manufacturing', 'pickings', 'stock_moves', 'move_lines',
                                   'material_requests', 'attachments'])
         show('DOCUMENTS (OPS)', stats)
+    elif phase == 'chatter':
+        # Last: a message can only be attached to a record that is already here.
+        show('CHATTER', backend._txn_run(['chatter']))
     elif phase == 'bill_links':
         show('BILL LINKS', backend._txn_run(['bill_links']))
     elif phase == 'stock':

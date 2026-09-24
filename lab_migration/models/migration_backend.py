@@ -1821,15 +1821,35 @@ class MigrationBackend(models.Model):
                 out.append(entry)
         return out
 
-    def _stamp_timestamps(self, cur, model, table, cond=None):
-        """Restore create_date / write_date from the Odoo 17 row.
+    def _user_map(self):
+        """{source uid: target uid}, read once per run.
 
-        Odoo stamps both itself on create() and ignores whatever you pass in, so
-        the source values can only be put back afterwards, by SQL. Left alone,
+        Every migrated record is created by whoever ran the migration, so the
+        person who actually raised the order is lost unless it is put back here.
+        Users are migrated first, so the map is complete by the time this runs.
+        """
+        if self._users_by_src is None:
+            self.env.cr.execute(
+                "SELECT src_id, dst_id FROM migration_map WHERE dst_model = 'res.users'")
+            type(self)._users_by_src = dict(self.env.cr.fetchall())
+        return self._users_by_src
+
+    _users_by_src = None
+
+    def _stamp_timestamps(self, cur, model, table, cond=None):
+        """Restore create_date / write_date / create_uid / write_uid from the
+        Odoo 17 row.
+
+        Odoo stamps all four itself on create() and ignores whatever you pass in,
+        so the source values can only be put back afterwards, by SQL. Left alone,
         every migrated record claims to have been created on the day the migration
-        ran: "new customers this month" returns the whole customer list, the
-        oldest-first sorts are meaningless, and nothing can be audited against the
-        old system.
+        ran, by whoever ran it: "new customers this month" returns the whole
+        customer list, the oldest-first sorts are meaningless, "created by" names
+        one person on 70,000 orders, and nothing can be audited against the old
+        system.
+
+        A user that did not migrate leaves the target's own value alone rather
+        than blanking it - create_uid is NOT NULL on most tables.
         """
         if model not in self.env:
             return 0
@@ -1837,18 +1857,21 @@ class MigrationBackend(models.Model):
         if not (Model._auto and Model._log_access):
             return 0
         try:
-            cur.execute('SELECT id, create_date, write_date FROM "%s"' % table)
-            src = {r['id']: (r['create_date'], r['write_date']) for r in cur.fetchall()}
+            cur.execute('SELECT id, create_date, write_date, create_uid, write_uid '
+                        'FROM "%s"' % table)
+            src = {r['id']: (r['create_date'], r['write_date'],
+                             r['create_uid'], r['write_uid']) for r in cur.fetchall()}
         except psycopg2.Error:
             return 0          # table absent in this source (version drift)
         if not src:
             return 0
+        users = self._user_map()
         q = ('SELECT mm.src_id, mm.dst_id FROM migration_map mm '
              'JOIN "%s" t ON t.id = mm.dst_id WHERE mm.dst_model = %%s' % Model._table)
         if cond:
             q += ' AND ' + cond
         self.env.cr.execute(q, (model,))
-        ids, cds, wds = [], [], []
+        ids, cds, wds, cus, wus = [], [], [], [], []
         for o10, o19 in self.env.cr.fetchall():
             ts = src.get(o10)
             if not ts or not ts[0]:
@@ -1856,20 +1879,28 @@ class MigrationBackend(models.Model):
             ids.append(o19)
             cds.append(ts[0])
             wds.append(ts[1] or ts[0])
+            cus.append(users.get(ts[2]))
+            wus.append(users.get(ts[3]) or users.get(ts[2]))
         if not ids:
             return 0
         # One statement per model rather than one per row: these run over ~100k
         # records and the ORM cannot write these columns at all.
         self.env.cr.execute("""
             UPDATE "%s" AS t
-               SET create_date = v.cd, write_date = v.wd
+               SET create_date = v.cd, write_date = v.wd,
+                   create_uid = COALESCE(v.cu, t.create_uid),
+                   write_uid  = COALESCE(v.wu, t.write_uid)
               FROM (SELECT unnest(%%s::int[])       AS id,
                            unnest(%%s::timestamp[]) AS cd,
-                           unnest(%%s::timestamp[]) AS wd) v
+                           unnest(%%s::timestamp[]) AS wd,
+                           unnest(%%s::int[])       AS cu,
+                           unnest(%%s::int[])       AS wu) v
              WHERE t.id = v.id
                AND (t.create_date IS DISTINCT FROM v.cd
-                 OR t.write_date  IS DISTINCT FROM v.wd)
-        """ % Model._table, (ids, cds, wds))
+                 OR t.write_date  IS DISTINCT FROM v.wd
+                 OR t.create_uid  IS DISTINCT FROM COALESCE(v.cu, t.create_uid)
+                 OR t.write_uid   IS DISTINCT FROM COALESCE(v.wu, t.write_uid))
+        """ % Model._table, (ids, cds, wds, cus, wus))
         return self.env.cr.rowcount
 
     # Child rows the ORM creates as part of their parent's create(), through a
@@ -1885,57 +1916,73 @@ class MigrationBackend(models.Model):
     _CHILD_TIMESTAMP_SOURCES = [
         ('account.move.line', """
             UPDATE account_move_line t
-               SET create_date = p.create_date, write_date = p.write_date
+               SET create_date = p.create_date, write_date = p.write_date,
+                   create_uid = p.create_uid, write_uid = p.write_uid
               FROM account_move p
               JOIN migration_map mm
                 ON mm.dst_model = 'account.move' AND mm.dst_id = p.id
              WHERE t.move_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
-                 OR t.write_date  IS DISTINCT FROM p.write_date)
+                 OR t.write_date  IS DISTINCT FROM p.write_date
+                 OR t.create_uid  IS DISTINCT FROM p.create_uid
+                 OR t.write_uid   IS DISTINCT FROM p.write_uid)
         """),
         ('purchase.order.line', """
             UPDATE purchase_order_line t
-               SET create_date = p.create_date, write_date = p.write_date
+               SET create_date = p.create_date, write_date = p.write_date,
+                   create_uid = p.create_uid, write_uid = p.write_uid
               FROM purchase_order p
               JOIN migration_map mm
                 ON mm.dst_model = 'purchase.order' AND mm.dst_id = p.id
              WHERE t.order_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
-                 OR t.write_date  IS DISTINCT FROM p.write_date)
+                 OR t.write_date  IS DISTINCT FROM p.write_date
+                 OR t.create_uid  IS DISTINCT FROM p.create_uid
+                 OR t.write_uid   IS DISTINCT FROM p.write_uid)
         """),
         ('stock.move (picking)', """
             UPDATE stock_move t
-               SET create_date = p.create_date, write_date = p.write_date
+               SET create_date = p.create_date, write_date = p.write_date,
+                   create_uid = p.create_uid, write_uid = p.write_uid
               FROM stock_picking p
               JOIN migration_map mm
                 ON mm.dst_model = 'stock.picking' AND mm.dst_id = p.id
              WHERE t.picking_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
-                 OR t.write_date  IS DISTINCT FROM p.write_date)
+                 OR t.write_date  IS DISTINCT FROM p.write_date
+                 OR t.create_uid  IS DISTINCT FROM p.create_uid
+                 OR t.write_uid   IS DISTINCT FROM p.write_uid)
         """),
         ('stock.move (MO finished)', """
             UPDATE stock_move t
-               SET create_date = p.create_date, write_date = p.write_date
+               SET create_date = p.create_date, write_date = p.write_date,
+                   create_uid = p.create_uid, write_uid = p.write_uid
               FROM mrp_production p
               JOIN migration_map mm
                 ON mm.dst_model = 'mrp.production' AND mm.dst_id = p.id
              WHERE t.production_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
-                 OR t.write_date  IS DISTINCT FROM p.write_date)
+                 OR t.write_date  IS DISTINCT FROM p.write_date
+                 OR t.create_uid  IS DISTINCT FROM p.create_uid
+                 OR t.write_uid   IS DISTINCT FROM p.write_uid)
         """),
         ('stock.move (MO raw)', """
             UPDATE stock_move t
-               SET create_date = p.create_date, write_date = p.write_date
+               SET create_date = p.create_date, write_date = p.write_date,
+                   create_uid = p.create_uid, write_uid = p.write_uid
               FROM mrp_production p
               JOIN migration_map mm
                 ON mm.dst_model = 'mrp.production' AND mm.dst_id = p.id
              WHERE t.raw_material_production_id = p.id
                AND (t.create_date IS DISTINCT FROM p.create_date
-                 OR t.write_date  IS DISTINCT FROM p.write_date)
+                 OR t.write_date  IS DISTINCT FROM p.write_date
+                 OR t.create_uid  IS DISTINCT FROM p.create_uid
+                 OR t.write_uid   IS DISTINCT FROM p.write_uid)
         """),
         ('stock.move.line', """
             UPDATE stock_move_line t
-               SET create_date = sm.create_date, write_date = sm.write_date
+               SET create_date = sm.create_date, write_date = sm.write_date,
+                   create_uid = sm.create_uid, write_uid = sm.write_uid
               FROM stock_move sm
              WHERE t.move_id = sm.id
                AND EXISTS (
@@ -1946,7 +1993,9 @@ class MigrationBackend(models.Model):
                              AND mm.dst_id IN (sm.production_id,
                                                   sm.raw_material_production_id)))
                AND (t.create_date IS DISTINCT FROM sm.create_date
-                 OR t.write_date  IS DISTINCT FROM sm.write_date)
+                 OR t.write_date  IS DISTINCT FROM sm.write_date
+                 OR t.create_uid  IS DISTINCT FROM sm.create_uid
+                 OR t.write_uid   IS DISTINCT FROM sm.write_uid)
         """),
     ]
 
@@ -1962,6 +2011,10 @@ class MigrationBackend(models.Model):
         return total, stats
 
     def _sync_timestamps(self, cur):
+        # Reloaded per run: the map is cached on the class so that 30 models do
+        # not read it 30 times, which would otherwise outlive the run in a
+        # long-lived worker and go stale.
+        type(self)._users_by_src = None
         stats, total = [], 0
         for model, table, cond in self._timestamp_sources():
             n = self._stamp_timestamps(cur, model, table, cond)
