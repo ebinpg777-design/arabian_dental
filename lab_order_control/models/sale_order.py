@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class SaleOrder(models.Model):
@@ -330,6 +334,52 @@ class SaleOrder(models.Model):
         for order in self:
             order._lab_stop_productions()
         return res
+
+    def write(self, vals):
+        # THE THIRD NET: a state written straight to 'cancel'. `_action_cancel` is
+        # the door the buttons use, and it is not the only door - an import, a
+        # server action, a data fix or `write({'state': 'cancel'})` from a script
+        # all walk past it, and the floor is left building a cancelled case. Four
+        # orders on staging were cancelled that way on 2026-09-19 and kept six live
+        # MOs between them, two of them already in progress. (client, 2026-09-25)
+        if vals.get('state') == 'cancel':
+            for order in self.filtered(lambda o: o.state != 'cancel'):
+                order._lab_stop_productions()
+        return super().write(vals)
+
+    @api.model
+    def _lab_stop_orphan_productions(self, limit=None, orders=None):
+        """Stop work still running under orders that are already cancelled.
+
+        The hook below only fires AS an order is cancelled, so everything
+        cancelled before 19.0.1.9.0 shipped kept whatever the floor had already
+        been told to make - four such orders were still open on the live
+        database in September 2026, two of them with a step in progress. A
+        straggler like that is reachable by nothing except a sweep. (client,
+        2026-09-25)
+
+        Goes through `_lab_stop_productions`, so it obeys the same rules a
+        cancel does today: finished work is left alone, and what was stopped is
+        written on the order. Idempotent - the second run has nothing to find.
+        """
+        empty = {'orders': self.browse(), 'names': []}
+        if 'mrp.production' not in self.env:
+            return empty
+        stopped, names = self.browse(), []
+        # `orders` narrows the sweep to a given set, which is what a test hands
+        # it. Run database-wide from a test against a copy of the live database,
+        # this cancelled six real jobs under four real orders and the chatter it
+        # posted outlived the rollback. A sweep is a maintenance action; a test
+        # gives it its own rows. (2026-09-25)
+        candidates = orders.filtered(lambda o: o.state == 'cancel') \
+            if orders is not None \
+            else self.sudo().search([('state', '=', 'cancel')], limit=limit)
+        for order in candidates:
+            if not order._lab_open_productions():
+                continue
+            names += order._lab_stop_productions().mapped('name')
+            stopped |= order
+        return {'orders': stopped, 'names': names}
 
     def action_confirm(self):
         for order in self:

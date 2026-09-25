@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Order Control — Maker/Checker & Credit Limit',
-    'version': '19.0.1.9.0',
+    'version': '19.0.1.10.0',
     'category': 'Sales/Sales',
     'summary': 'Second-person verification of registered cases before processing, plus '
                'enforced customer credit limits',

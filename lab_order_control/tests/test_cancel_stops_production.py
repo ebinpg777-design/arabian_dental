@@ -110,3 +110,107 @@ class TestCancelStopsProduction(TransactionCase):
         self.assertEqual(order.state, 'cancel')
         self.assertEqual(len(order.message_ids), before,
                          "nothing to stop, nothing to say")
+    # ------------------------------------------- the doors the buttons do not use
+    def test_a_state_written_straight_to_cancel_stops_production_too(self):
+        """`_action_cancel` is the door the buttons use and not the only one. An
+        import, a server action or a data fix writing the state directly walked
+        past it, and the floor kept building: four orders on staging were
+        cancelled this way and kept six live jobs between them."""
+        order = self._order()
+        order.action_confirm()
+        mo = self._mo(order)
+        order.write({'state': 'cancel'})
+        self.assertEqual(mo.state, 'cancel')
+        self.assertEqual(order.state, 'cancel')
+
+    def test_writing_cancel_over_a_cancelled_order_does_nothing_twice(self):
+        order = self._order()
+        order.action_confirm()
+        mo = self._mo(order)
+        order.action_cancel()
+        before = len(order.message_ids)
+        order.write({'state': 'cancel'})
+        self.assertEqual(mo.state, 'cancel')
+        self.assertEqual(len(order.message_ids), before,
+                         "an order already cancelled has nothing left to say")
+
+    def test_writing_any_other_field_leaves_production_alone(self):
+        """The guard is on the state, not on write: an ordinary edit of a live
+        order must not stop its jobs."""
+        order = self._order()
+        order.action_confirm()
+        mo = self._mo(order)
+        order.write({'client_order_ref': 'still running'})
+        self.assertEqual(mo.state, 'confirmed')
+
+    # --------------------------------------------------- putting the old ones right
+    def test_the_sweep_finds_a_job_left_running_under_a_cancelled_order(self):
+        """Everything cancelled before these nets existed is still out there, so
+        there has to be a way to go and find it."""
+        order = self._order()
+        order.action_confirm()
+        mo = self._mo(order)
+        # cancelled the way the stragglers were: no hook, no chatter
+        # Flush FIRST. action_confirm leaves the order in the write queue, and
+        # the next ORM search flushes that queued state='sale' straight back over
+        # this UPDATE - so the sweep looks and sees a live order.
+        self.env.flush_all()
+        # Flush BEFORE the raw update, invalidate after: the ORM still had the
+        # confirm's own write pending, and the next flush wrote 'sale' straight
+        # back over the cancel this test had just put in the table.
+        self.env.flush_all()
+        self.env.cr.execute("UPDATE sale_order SET state = 'cancel' WHERE id = %s", (order.id,))
+        order.invalidate_recordset(['state'])
+        self.assertEqual(mo.state, 'confirmed', "the straggler this sweep is for")
+
+        result = self.env['sale.order']._lab_stop_orphan_productions(orders=order)
+        self.assertEqual(mo.state, 'cancel')
+        self.assertIn(mo.name, result['names'])
+
+    def test_the_sweep_can_be_run_twice(self):
+        order = self._order()
+        order.action_confirm()
+        mo = self._mo(order)
+        # Flush FIRST. action_confirm leaves the order in the write queue, and
+        # the next ORM search flushes that queued state='sale' straight back over
+        # this UPDATE - so the sweep looks and sees a live order.
+        self.env.flush_all()
+        # Flush BEFORE the raw update, invalidate after: the ORM still had the
+        # confirm's own write pending, and the next flush wrote 'sale' straight
+        # back over the cancel this test had just put in the table.
+        self.env.flush_all()
+        self.env.cr.execute("UPDATE sale_order SET state = 'cancel' WHERE id = %s", (order.id,))
+        order.invalidate_recordset(['state'])
+        self.env['sale.order']._lab_stop_orphan_productions(orders=order)
+        again = self.env['sale.order']._lab_stop_orphan_productions(orders=order)
+        self.assertEqual(mo.state, 'cancel')
+        self.assertNotIn(mo.name, again['names'],
+                         "a job already stopped is not in the query a second time")
+
+    def test_the_sweep_leaves_a_live_order_alone(self):
+        """The direction that matters: a sweep that cancelled production under
+        orders that are still selling would empty the floor."""
+        order = self._order()
+        order.action_confirm()
+        mo = self._mo(order)
+        self.env['sale.order']._lab_stop_orphan_productions(orders=order)
+        self.assertEqual(mo.state, 'confirmed')
+
+    def test_the_sweep_leaves_finished_work_alone(self):
+        order = self._order()
+        order.action_confirm()
+        mo = self._mo(order)
+        mo.qty_producing = 1
+        mo.button_mark_done()
+        # Flush FIRST. action_confirm leaves the order in the write queue, and
+        # the next ORM search flushes that queued state='sale' straight back over
+        # this UPDATE - so the sweep looks and sees a live order.
+        self.env.flush_all()
+        # Flush BEFORE the raw update, invalidate after: the ORM still had the
+        # confirm's own write pending, and the next flush wrote 'sale' straight
+        # back over the cancel this test had just put in the table.
+        self.env.flush_all()
+        self.env.cr.execute("UPDATE sale_order SET state = 'cancel' WHERE id = %s", (order.id,))
+        order.invalidate_recordset(['state'])
+        self.env['sale.order']._lab_stop_orphan_productions(orders=order)
+        self.assertEqual(mo.state, 'done', "a finished job is history")
