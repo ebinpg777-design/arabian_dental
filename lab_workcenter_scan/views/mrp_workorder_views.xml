@@ -84,4 +84,43 @@
             </field>
         </field>
     </record>
+
+    <!-- THE STOCK "Work Orders" ACTION, made readable. Odoo's own list names an
+         operation by station and product; this lab says a job out loud by its
+         sale order, its doctor and its patient, and the drill-down lists have
+         carried those columns since 2026-09-09. The main menu still did not.
+         Shown, not hidden: a column somebody has to go and enable is a column
+         nobody knows is there. (client, 2026-09-25) -->
+    <record id="view_workorder_tree_case_columns" model="ir.ui.view">
+        <field name="name">mrp.workorder.list.case.columns</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="mrp.mrp_production_workorder_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='workcenter_id']" position="before">
+                <field name="sale_order_id" string="Case" optional="show"/>
+                <field name="clinic_id" string="Customer" optional="show"/>
+                <field name="patient" string="Patient" optional="show"/>
+                <field name="order_date" string="Ordered" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- WHICH BENCH, down the side. The group-by filter answers "how many at
+         each station" once; the panel keeps the answer on screen and lets a
+         supervisor step between benches without reopening a menu. Counters are
+         one grouped query for the whole panel, and the action's own default
+         filters keep that query small. (client, 2026-09-25) -->
+    <record id="view_workorder_search_workcenter_panel" model="ir.ui.view">
+        <field name="name">mrp.workorder.search.workcentre.panel</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="mrp.view_mrp_production_workorder_form_view_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <searchpanel>
+                    <field name="workcenter_id" string="Work Centre"
+                           icon="fa-industry" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
 </odoo>
