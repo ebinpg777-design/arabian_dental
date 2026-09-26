@@ -123,4 +123,23 @@
         </xpath>
     </template>
 
+    <!-- The footer's copyright line ships reading "Copyright (c) Company name",
+         literally, because the website module replaces the layout's dynamic one
+         with a piece of editable text for the site owner to type over. Nobody
+         typed over it, so the lab's own footer named a placeholder.
+
+         Put the field back rather than typing the name in: the lab is renamed
+         in one place, and the footer follows. `oe_unremovable` is left off on
+         purpose - somebody editing the site may still want to write their own
+         line here, and this only decides what it says until they do. -->
+    <template id="footer_copyright_lab"
+              inherit_id="website.footer_copyright_company_name"
+              name="Footer copyright: the lab's own name">
+        <xpath expr="//span[hasclass('o_footer_copyright_name')]" position="replace">
+            <span class="o_footer_copyright_name me-2 small">
+                Copyright &amp;copy; <span t-field="res_company.name" itemprop="name"/>
+            </span>
+        </xpath>
+    </template>
+
 </odoo>

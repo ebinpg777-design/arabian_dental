@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Arabian Dental Lab Website',
-    'version': '19.0.3.4.0',
+    'version': '19.0.3.5.0',
     'summary': "The lab's public site — services, technology, academy, gallery, doctor login",
     'description': """
 Arabian Dental Lab Website

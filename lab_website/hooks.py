@@ -107,11 +107,18 @@ def _fix_contact_thanks_page(env):
 
 
 def _set_logos(env, website):
-    """The lab's mark on the site header and the company, where nothing else is.
+    """The lab's mark on the site header, the company and the installed app.
 
     Each is replaced only while it is still Odoo's own placeholder (the company's
-    res_company_logo.png, the website's website_logo.svg — they differ). A logo somebody
-    uploaded stays.
+    res_company_logo.png, the website's website_logo.svg - they differ) or while it
+    is EMPTY. A logo somebody uploaded stays.
+
+    Empty covers more than it looks. A binary field whose attachment row survives
+    but whose file does not - which is what a database copied without its
+    filestore gives you - reads back as empty rather than raising, because Odoo
+    swallows the missing file. The header then falls back to the img alt text and
+    a 95 pixel navbar box clips "Arabian Dental Lab" to "Arabian Dental La".
+    Repairing it is the same write as setting it the first time.
     """
     import base64
     from odoo.tools import file_open
@@ -119,6 +126,8 @@ def _set_logos(env, website):
         lockup = base64.b64encode(fh.read())
     with file_open('lab_website/static/src/img/logo.png', 'rb') as fh:
         stacked = base64.b64encode(fh.read())
+    with file_open('lab_website/static/src/img/icon-512.png', 'rb') as fh:
+        app_icon = base64.b64encode(fh.read())
     company = env.company
     stock = company._get_logo() if hasattr(company, '_get_logo') else None
     if not company.logo or (stock and company.logo == stock):
@@ -128,6 +137,11 @@ def _set_logos(env, website):
     if not website.logo or website.logo in (stock, site_stock):
         website.write({'logo': lockup})
         _logger.info("lab_website: set the website logo")
+    # The icon a doctor sees once they have added the site to a phone's home
+    # screen. Square, because Android crops anything else to a circle.
+    if 'pwa_icon' in website._fields and not website.pwa_icon:
+        website.write({'pwa_icon': app_icon})
+        _logger.info("lab_website: set the app icon")
 
 
 def post_init_hook(env):
