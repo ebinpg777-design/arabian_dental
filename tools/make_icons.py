@@ -89,6 +89,7 @@ ICONS = {
     'lab_dashboards':        ('f080', STEEL),    # bar chart
     'lab_pwa':               ('f10b', STEEL),    # mobile
     # the money, and the keys
+    'lab_cost_centre':       ('f200', INK),      # pie chart
     'lab_finance_ops':       ('f1ec', INK),      # calculator
     'lab_bank_reconciliation': ('f19c', INK),    # bank
     'lab_access_control':    ('f023', INK),      # lock

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- The three masters the derivation reads. Each is one field on a form the
+         lab already uses, so nobody has a new screen to learn. -->
+
+    <record id="view_workcenter_form_department" model="ir.ui.view">
+        <field name="name">mrp.workcenter.form.department</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+        <field name="arch" type="xml">
+            <field name="resource_calendar_id" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+                <field name="cost_centre_id" readonly="1"
+                       invisible="not cost_centre_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_workcenter_list_department" model="ir.ui.view">
+        <field name="name">mrp.workcenter.list.department</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="department_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_location_form_department" model="ir.ui.view">
+        <field name="name">stock.location.form.department</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_form"/>
+        <field name="arch" type="xml">
+            <field name="location_id" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_location_list_department" model="ir.ui.view">
+        <field name="name">stock.location.list.department</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_tree2"/>
+        <field name="arch" type="xml">
+            <field name="usage" position="after">
+                <field name="department_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_category_form_department" model="ir.ui.view">
+        <field name="name">product.category.form.department</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_form_view"/>
+        <field name="arch" type="xml">
+            <field name="parent_id" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

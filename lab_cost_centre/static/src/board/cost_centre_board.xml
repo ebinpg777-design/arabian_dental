@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="lab_cost_centre.CostCentreBoard">
+        <div class="o_lab_cc_board h-100 overflow-auto">
+
+            <div class="o_lab_cc_head">
+                <div class="o_lab_cc_title">
+                    <h2>Cost Centre Cockpit</h2>
+                    <span class="o_lab_cc_dates" t-if="state.data.from">
+                        <t t-out="state.data.from"/> to <t t-out="state.data.to"/>
+                    </span>
+                </div>
+                <div class="o_lab_cc_periods">
+                    <button t-foreach="periods" t-as="p" t-key="p.key"
+                            class="btn btn-sm"
+                            t-att-class="state.period === p.key ? 'btn-primary' : 'btn-light'"
+                            t-on-click="() => this.setPeriod(p.key)">
+                        <t t-out="p.label"/>
+                    </button>
+                </div>
+            </div>
+
+            <div t-if="state.loading" class="o_lab_cc_loading">
+                <i class="fa fa-circle-o-notch fa-spin fa-2x"/>
+            </div>
+
+            <t t-else="">
+                <!-- What the whole lab did, so a card can be read as a share of it. -->
+                <div class="o_lab_cc_totals">
+                    <div class="o_lab_cc_total">
+                        <span class="o_lab_cc_total_label">Spent</span>
+                        <span class="o_lab_cc_total_value" t-out="money(state.data.totals.spend)"/>
+                    </div>
+                    <div class="o_lab_cc_total">
+                        <span class="o_lab_cc_total_label">Earned</span>
+                        <span class="o_lab_cc_total_value" t-out="money(state.data.totals.earned)"/>
+                    </div>
+                    <div class="o_lab_cc_total">
+                        <span class="o_lab_cc_total_label">Jobs in hand</span>
+                        <span class="o_lab_cc_total_value" t-out="state.data.totals.jobs"/>
+                    </div>
+                    <div class="o_lab_cc_total">
+                        <span class="o_lab_cc_total_label">Requests open</span>
+                        <span class="o_lab_cc_total_value" t-out="state.data.totals.requests"/>
+                    </div>
+                    <div class="o_lab_cc_total" t-if="state.data.totals.uncosted">
+                        <span class="o_lab_cc_total_label">Without a cost centre</span>
+                        <span class="o_lab_cc_total_value text-danger"
+                              t-out="state.data.totals.uncosted"/>
+                    </div>
+                </div>
+
+                <div class="o_lab_cc_filters" t-if="kinds.length > 1">
+                    <button t-foreach="kinds" t-as="k" t-key="k.key"
+                            class="btn btn-sm o_lab_cc_chip"
+                            t-att-class="state.kind === k.key ? 'btn-secondary' : 'btn-outline-secondary'"
+                            t-on-click="() => this.setKind(k.key)">
+                        <t t-out="k.label"/>
+                    </button>
+                </div>
+
+                <div class="o_lab_cc_grid">
+                    <div t-foreach="rows" t-as="row" t-key="row.id"
+                         t-attf-class="o_lab_cc_card o_lab_cc_kind_{{row.kind}}">
+
+                        <div class="o_lab_cc_card_head">
+                            <span class="o_lab_cc_code" t-if="row.code" t-out="row.code"/>
+                            <span class="o_lab_cc_name" t-out="row.name"/>
+                            <span class="o_lab_cc_parent" t-if="row.parent_name"
+                                  t-out="row.parent_name"/>
+                        </div>
+
+                        <div class="o_lab_cc_amounts">
+                            <div class="o_lab_cc_amount">
+                                <span class="o_lab_cc_amount_label">Spent</span>
+                                <span class="o_lab_cc_amount_value" t-out="money(row.spend)"/>
+                            </div>
+                            <div class="o_lab_cc_amount" t-if="row.earned">
+                                <span class="o_lab_cc_amount_label">Earned</span>
+                                <span class="o_lab_cc_amount_value" t-out="money(row.earned)"/>
+                            </div>
+                            <div class="o_lab_cc_amount" t-if="margin(row) !== null">
+                                <span class="o_lab_cc_amount_label">Margin</span>
+                                <span class="o_lab_cc_amount_value"
+                                      t-att-class="margin(row) &lt; 0 ? 'text-danger' : 'text-success'">
+                                    <t t-out="margin(row)"/>%
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- The bar is the department's spend against the biggest
+                             spender's, which is the only comparison a card can make
+                             on its own. -->
+                        <div class="o_lab_cc_bar">
+                            <div class="o_lab_cc_bar_fill" t-attf-style="width: {{row.share}}%"/>
+                        </div>
+
+                        <div class="o_lab_cc_stats">
+                            <span t-if="row.jobs" class="o_lab_cc_stat">
+                                <i class="fa fa-cogs"/> <t t-out="row.jobs"/> jobs
+                            </span>
+                            <span t-if="row.steps" class="o_lab_cc_stat">
+                                <i class="fa fa-list-ol"/> <t t-out="row.steps"/> steps
+                            </span>
+                            <span t-if="row.orders" class="o_lab_cc_stat">
+                                <i class="fa fa-shopping-cart"/> <t t-out="row.orders"/> orders
+                            </span>
+                            <span t-if="row.requests" class="o_lab_cc_stat">
+                                <i class="fa fa-inbox"/> <t t-out="row.requests"/> requests
+                            </span>
+                            <span t-if="row.benches" class="o_lab_cc_stat">
+                                <i class="fa fa-industry"/> <t t-out="row.benches"/> benches
+                            </span>
+                            <span t-if="row.people" class="o_lab_cc_stat">
+                                <i class="fa fa-users"/> <t t-out="row.people"/> people
+                            </span>
+                        </div>
+
+                        <div class="o_lab_cc_actions">
+                            <button class="btn btn-sm btn-link px-0"
+                                    t-on-click="() => this.openDepartment(row)">
+                                Department
+                            </button>
+                            <button t-if="row.centre" class="btn btn-sm btn-link px-0"
+                                    t-on-click="() => this.openItems(row)">
+                                Analytic items
+                            </button>
+                            <span t-else="" class="o_lab_cc_warn">
+                                <i class="fa fa-exclamation-triangle"/> no cost centre
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div t-if="!rows.length" class="o_lab_cc_empty">
+                    No department to show. Create the lab's departments first.
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

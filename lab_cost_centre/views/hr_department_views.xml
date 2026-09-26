@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- The department as the lab uses it: its code, its cost centre, its
+         benches and its store, beside the staff Odoo already keeps here. -->
+    <record id="view_department_form_lab" model="ir.ui.view">
+        <field name="name">hr.department.form.lab</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_create_cost_centre" type="object"
+                            string="Create Cost Centre" class="btn-primary"
+                            invisible="cost_centre_id"/>
+                </header>
+            </xpath>
+            <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                <button name="action_view_workcenters" type="object"
+                        class="oe_stat_button" icon="fa-industry"
+                        invisible="not workcenter_count">
+                    <field name="workcenter_count" widget="statinfo" string="Benches"/>
+                </button>
+                <button name="action_view_analytic_items" type="object"
+                        class="oe_stat_button" icon="fa-money"
+                        invisible="not cost_centre_id">
+                    <span class="o_stat_text">Analytic<br/>Items</span>
+                </button>
+            </xpath>
+            <field name="parent_id" position="after">
+                <field name="code" placeholder="PRD-CR"/>
+                <field name="dept_type"/>
+            </field>
+            <xpath expr="//group" position="after">
+                <group string="Cost Centre and Stores" name="lab_cost_centre">
+                    <group>
+                        <field name="cost_centre_id" options="{'no_create': True}"/>
+                    </group>
+                    <group>
+                        <field name="store_location_id" options="{'no_create': True}"/>
+                        <field name="consumption_location_id" options="{'no_create': True}"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_department_list_lab" model="ir.ui.view">
+        <field name="name">hr.department.list.lab</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_tree"/>
+        <field name="arch" type="xml">
+            <field name="name" position="before">
+                <field name="code" optional="show"/>
+            </field>
+            <field name="name" position="after">
+                <field name="dept_type" optional="show"/>
+                <field name="cost_centre_id" optional="show"/>
+                <field name="store_location_id" optional="hide"/>
+                <field name="workcenter_count" string="Benches" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- The whole structure at once. A tree is the only view that shows a lab
+         somebody can recognise: five functions, seventeen places under them. -->
+    <record id="action_department_structure" model="ir.actions.act_window">
+        <field name="name">Departments</field>
+        <field name="res_model">hr.department</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_group_parent': 1}</field>
+    </record>
+
+    <record id="view_department_search_lab" model="ir.ui.view">
+        <field name="name">hr.department.search.lab</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_filter"/>
+        <field name="arch" type="xml">
+            <filter name="inactive" position="after">
+                <separator/>
+                <filter string="Production" name="production"
+                        domain="[('dept_type', '=', 'production')]"/>
+                <filter string="Without a Cost Centre" name="no_centre"
+                        domain="[('cost_centre_id', '=', False)]"/>
+                <!-- A bare <group>: the Odoo 19 search grammar rejects `expand`
+                     and `string` on it, and the whole view is then refused. -->
+                <group>
+                    <filter string="Parent" name="group_parent"
+                            context="{'group_by': 'parent_id'}"/>
+                    <filter string="Kind" name="group_kind"
+                            context="{'group_by': 'dept_type'}"/>
+                </group>
+            </filter>
+        </field>
+    </record>
+
+</odoo>

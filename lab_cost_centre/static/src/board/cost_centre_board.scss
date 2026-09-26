@@ -1,0 +1,214 @@
+// The Cost Centre Cockpit.
+//
+// Read on a desk, not a phone: the cards are wide enough to hold a figure and a
+// row of counters, and they stay in one grid so twenty departments can be
+// compared by eye. The lab's own red marks production; everything else is grey,
+// because the point of the screen is the numbers, not the decoration.
+
+$lab-red: #ed1c24;
+$lab-grey: #606a70;
+
+.o_lab_cc_board {
+    padding: 1.25rem 1.5rem 3rem;
+    background: var(--o-bg, #f7f8fa);
+
+    .o_lab_cc_head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+
+        h2 {
+            margin: 0;
+            font-weight: 600;
+        }
+    }
+
+    .o_lab_cc_dates {
+        color: #{$lab-grey};
+        font-size: 0.85rem;
+    }
+
+    .o_lab_cc_periods {
+        display: flex;
+        gap: 0.35rem;
+    }
+
+    .o_lab_cc_loading {
+        padding: 4rem;
+        text-align: center;
+        color: #{$lab-grey};
+    }
+
+    // ------------------------------------------------------------- the totals
+    .o_lab_cc_totals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .o_lab_cc_total {
+        flex: 1 1 8rem;
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 0.6rem;
+        padding: 0.6rem 0.9rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+    }
+
+    .o_lab_cc_total_label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #{$lab-grey};
+    }
+
+    .o_lab_cc_total_value {
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+
+    .o_lab_cc_filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+    }
+
+    .o_lab_cc_chip {
+        border-radius: 999px;
+    }
+
+    // -------------------------------------------------------------- the cards
+    .o_lab_cc_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+        gap: 0.9rem;
+    }
+
+    .o_lab_cc_card {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-left: 3px solid #{$lab-grey};
+        border-radius: 0.6rem;
+        padding: 0.85rem 1rem 0.7rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        transition: box-shadow 0.15s ease, transform 0.15s ease;
+
+        &:hover {
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+        }
+
+        &.o_lab_cc_kind_production {
+            border-left-color: #{$lab-red};
+        }
+    }
+
+    .o_lab_cc_card_head {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
+    .o_lab_cc_code {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #fff;
+        background: #{$lab-grey};
+        border-radius: 0.3rem;
+        padding: 0.1rem 0.35rem;
+    }
+
+    .o_lab_cc_kind_production .o_lab_cc_code {
+        background: #{$lab-red};
+    }
+
+    .o_lab_cc_name {
+        font-weight: 600;
+    }
+
+    .o_lab_cc_parent {
+        font-size: 0.75rem;
+        color: #{$lab-grey};
+        margin-left: auto;
+    }
+
+    .o_lab_cc_amounts {
+        display: flex;
+        gap: 1.1rem;
+        flex-wrap: wrap;
+    }
+
+    .o_lab_cc_amount {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .o_lab_cc_amount_label {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #{$lab-grey};
+    }
+
+    .o_lab_cc_amount_value {
+        font-size: 1.05rem;
+        font-weight: 600;
+    }
+
+    .o_lab_cc_bar {
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+
+    .o_lab_cc_bar_fill {
+        height: 100%;
+        background: #{$lab-red};
+        opacity: 0.75;
+    }
+
+    .o_lab_cc_stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.15rem 0.75rem;
+        font-size: 0.78rem;
+        color: #{$lab-grey};
+
+        i {
+            width: 0.95rem;
+            text-align: center;
+            opacity: 0.8;
+        }
+    }
+
+    .o_lab_cc_actions {
+        display: flex;
+        gap: 0.9rem;
+        align-items: center;
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        padding-top: 0.35rem;
+        font-size: 0.82rem;
+    }
+
+    .o_lab_cc_warn {
+        color: #b45309;
+        font-size: 0.78rem;
+    }
+
+    .o_lab_cc_empty {
+        padding: 3rem;
+        text-align: center;
+        color: #{$lab-grey};
+    }
+}

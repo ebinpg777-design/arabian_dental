@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- The department on every document that costs or earns money. Shown as an
+         optional column on the lists (so a manager can group by it without
+         being given a new report) and beside the dates on the forms. -->
+
+    <record id="view_sale_order_form_department" model="ir.ui.view">
+        <field name="name">sale.order.form.department</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <field name="payment_term_id" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+                <field name="cost_centre_id" invisible="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_sale_order_list_department" model="ir.ui.view">
+        <field name="name">sale.order.list.department</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="department_id" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_purchase_order_form_department" model="ir.ui.view">
+        <field name="name">purchase.order.form.department</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <field name="date_planned" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_purchase_order_list_department" model="ir.ui.view">
+        <field name="name">purchase.order.list.department</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="department_id" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_move_form_department" model="ir.ui.view">
+        <field name="name">account.move.form.department</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <field name="invoice_payment_term_id" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_picking_form_department" model="ir.ui.view">
+        <field name="name">stock.picking.form.department</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <field name="scheduled_date" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_production_form_department" model="ir.ui.view">
+        <field name="name">mrp.production.form.department</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <field name="date_start" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_production_list_department" model="ir.ui.view">
+        <field name="name">mrp.production.list.department</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="department_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_material_request_form_department" model="ir.ui.view">
+        <field name="name">material.request.form.department</field>
+        <field name="model">material.request</field>
+        <field name="inherit_id" ref="material_request.view_material_request_form"/>
+        <field name="arch" type="xml">
+            <field name="location_id" position="after">
+                <field name="department_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

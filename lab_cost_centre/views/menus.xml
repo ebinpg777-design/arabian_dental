@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- A menu of its own, because this crosses every other one: the question
+         "what did Ceramic cost this month" is not a Sales question, nor a
+         Manufacturing one, and burying it inside either hides it from the
+         people who ask it. -->
+    <menuitem id="menu_cost_centre_root" name="Cost Centres"
+              web_icon="lab_cost_centre,static/description/icon.png"
+              groups="account.group_account_readonly,hr.group_hr_user,mrp.group_mrp_manager"
+              sequence="72"/>
+
+    <menuitem id="menu_cost_centre_board" name="Cockpit"
+              parent="menu_cost_centre_root"
+              action="action_cost_centre_board" sequence="10"/>
+
+    <menuitem id="menu_cost_centre_departments" name="Departments"
+              parent="menu_cost_centre_root"
+              action="action_department_structure" sequence="20"/>
+
+    <menuitem id="menu_cost_centre_accounts" name="Cost Centres"
+              parent="menu_cost_centre_root"
+              action="action_cost_centre_accounts" sequence="30"
+              groups="account.group_account_readonly"/>
+
+    <menuitem id="menu_cost_centre_items" name="Analytic Items"
+              parent="menu_cost_centre_root"
+              action="action_cost_centre_items" sequence="40"
+              groups="account.group_account_readonly"/>
+
+    <menuitem id="menu_cost_centre_plans" name="Plans"
+              parent="menu_cost_centre_root"
+              action="analytic.account_analytic_plan_action" sequence="50"
+              groups="account.group_account_manager"/>
+
+</odoo>

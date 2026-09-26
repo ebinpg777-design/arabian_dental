@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_analytic_plan_form_lab" model="ir.ui.view">
+        <field name="name">account.analytic.plan.form.lab</field>
+        <field name="model">account.analytic.plan</field>
+        <field name="inherit_id" ref="analytic.account_analytic_plan_form_view"/>
+        <field name="arch" type="xml">
+            <field name="parent_id" position="after">
+                <field name="is_cost_centre_plan"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_analytic_account_list_lab" model="ir.ui.view">
+        <field name="name">account.analytic.account.list.lab</field>
+        <field name="model">account.analytic.account</field>
+        <field name="inherit_id" ref="analytic.view_account_analytic_account_list"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="department_code" string="Department" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- The lab's own two ways in, because the core ones do not fit a menu.
+         `analytic.account_analytic_line_action` is a drill-down FROM an
+         analytic account: its context and domain both read `active_id`, and
+         clicked from a menu there is no active record, so the client refuses
+         the whole action with "Name 'active_id' is not defined".
+
+         Server actions rather than window actions, because both need the cost
+         centre plan, and which column on a line holds it is decided at runtime
+         (`plan._column_name()` is `account_id` for the first plan and
+         `x_plan<id>_id` for the rest). An XML domain would have to guess. -->
+    <record id="action_cost_centre_items" model="ir.actions.server">
+        <field name="name">Analytic Items</field>
+        <field name="model_id" ref="analytic.model_account_analytic_line"/>
+        <field name="state">code</field>
+        <field name="code">
+plan = env['account.analytic.plan']._lab_cost_centre_plan()
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Analytic Items',
+    'res_model': 'account.analytic.line',
+    'view_mode': 'list,pivot,graph,form',
+    # Written out: a menu click preprocesses the action in the browser, and the
+    # client reads `views`, not `view_mode`.
+    'views': [(False, 'list'), (False, 'pivot'), (False, 'graph'), (False, 'form')],
+    'domain': [(plan._column_name(), '!=', False)],
+    # The Analytic Account column is computed from whichever plan the context
+    # names; without this it is blank on every row.
+    'context': {'analytic_plan_id': plan.id, 'search_default_group_date': 1},
+}
+        </field>
+    </record>
+
+    <record id="action_cost_centre_accounts" model="ir.actions.server">
+        <field name="name">Cost Centres</field>
+        <field name="model_id" ref="analytic.model_account_analytic_account"/>
+        <field name="state">code</field>
+        <field name="code">
+plan = env['account.analytic.plan']._lab_cost_centre_plan()
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Cost Centres',
+    'res_model': 'account.analytic.account',
+    'view_mode': 'list,form',
+    'views': [(False, 'list'), (False, 'form')],
+    'domain': [('plan_id', 'child_of', plan.id)],
+    'context': {'default_plan_id': plan.id},
+}
+        </field>
+    </record>
+
+</odoo>

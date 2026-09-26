@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_cost_centre_board" model="ir.actions.client">
+        <field name="name">Cost Centre Cockpit</field>
+        <field name="tag">lab_cost_centre_board</field>
+    </record>
+
+</odoo>
