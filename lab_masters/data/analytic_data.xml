@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        COST CENTRES: one per department, in a plan of their own.
+
+        Two plans, because the lab asks two different questions of the same
+        rupee. "What did Ceramic spend" is a cost centre question and is answered
+        by the department plan. "What does a zirconia crown earn" is a product
+        line question and is answered by the second. Odoo allows a distribution
+        to carry both at once, so a journal item can answer both without being
+        posted twice.
+    -->
+    <data noupdate="1">
+
+        <record id="plan_cost_centre" model="account.analytic.plan">
+            <field name="name">Cost Centres</field>
+            <field name="is_cost_centre_plan" eval="True"/>
+            <field name="default_applicability">optional</field>
+        </record>
+
+        <record id="plan_product_line" model="account.analytic.plan">
+            <field name="name">Product Lines</field>
+            <field name="default_applicability">optional</field>
+        </record>
+
+        <!-- ================================================= departments' centres -->
+        <record id="cc_production" model="account.analytic.account">
+            <field name="name">Production</field>
+            <field name="code">PRD</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_work_entry" model="account.analytic.account">
+            <field name="name">Work Entry</field>
+            <field name="code">PRD-WE</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_wax_up" model="account.analytic.account">
+            <field name="name">Wax Up</field>
+            <field name="code">PRD-WX</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_cadcam" model="account.analytic.account">
+            <field name="name">CAD/CAM</field>
+            <field name="code">PRD-CC</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_metal" model="account.analytic.account">
+            <field name="name">Metal</field>
+            <field name="code">PRD-MT</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_ceramic" model="account.analytic.account">
+            <field name="name">Ceramic</field>
+            <field name="code">PRD-CR</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_acrylic" model="account.analytic.account">
+            <field name="name">Acrylic</field>
+            <field name="code">PRD-AC</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_ortho" model="account.analytic.account">
+            <field name="name">Orthodontic</field>
+            <field name="code">PRD-OR</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_quality" model="account.analytic.account">
+            <field name="name">Quality</field>
+            <field name="code">QLT</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_qc" model="account.analytic.account">
+            <field name="name">Quality Control</field>
+            <field name="code">QLT-QC</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_commercial" model="account.analytic.account">
+            <field name="name">Commercial</field>
+            <field name="code">COM</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_field_sales" model="account.analytic.account">
+            <field name="name">Field Sales</field>
+            <field name="code">COM-FS</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_marketing" model="account.analytic.account">
+            <field name="name">Marketing</field>
+            <field name="code">COM-MK</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_customer_care" model="account.analytic.account">
+            <field name="name">Customer Care</field>
+            <field name="code">COM-CC</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_supply" model="account.analytic.account">
+            <field name="name">Supply Chain</field>
+            <field name="code">SCM</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_store" model="account.analytic.account">
+            <field name="name">Main Store</field>
+            <field name="code">SCM-ST</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_purchase" model="account.analytic.account">
+            <field name="name">Purchase</field>
+            <field name="code">SCM-PU</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_packing" model="account.analytic.account">
+            <field name="name">Packing</field>
+            <field name="code">SCM-PK</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_logistics" model="account.analytic.account">
+            <field name="name">Logistics</field>
+            <field name="code">SCM-LG</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_admin" model="account.analytic.account">
+            <field name="name">Administration</field>
+            <field name="code">ADM</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_accounts" model="account.analytic.account">
+            <field name="name">Accounts &amp; Finance</field>
+            <field name="code">ADM-AC</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_hr" model="account.analytic.account">
+            <field name="name">Human Resources</field>
+            <field name="code">ADM-HR</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+        <record id="cc_it" model="account.analytic.account">
+            <field name="name">IT &amp; Systems</field>
+            <field name="code">ADM-IT</field>
+            <field name="plan_id" ref="plan_cost_centre"/>
+        </record>
+
+        <!-- ==================================================== the product lines -->
+        <record id="pl_zirconia" model="account.analytic.account">
+            <field name="name">Zirconia</field>
+            <field name="code">PL-ZR</field>
+            <field name="plan_id" ref="plan_product_line"/>
+        </record>
+        <record id="pl_metal_ceramic" model="account.analytic.account">
+            <field name="name">Metal Ceramic</field>
+            <field name="code">PL-MC</field>
+            <field name="plan_id" ref="plan_product_line"/>
+        </record>
+        <record id="pl_full_metal" model="account.analytic.account">
+            <field name="name">Full Metal</field>
+            <field name="code">PL-FM</field>
+            <field name="plan_id" ref="plan_product_line"/>
+        </record>
+        <record id="pl_veneer" model="account.analytic.account">
+            <field name="name">Veneers &amp; Pressed</field>
+            <field name="code">PL-VN</field>
+            <field name="plan_id" ref="plan_product_line"/>
+        </record>
+        <record id="pl_acrylic" model="account.analytic.account">
+            <field name="name">Dentures</field>
+            <field name="code">PL-DN</field>
+            <field name="plan_id" ref="plan_product_line"/>
+        </record>
+        <record id="pl_ortho" model="account.analytic.account">
+            <field name="name">Orthodontic Appliances</field>
+            <field name="code">PL-OR</field>
+            <field name="plan_id" ref="plan_product_line"/>
+        </record>
+
+        <!-- ============================== each department points at its own centre -->
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_production')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_production')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_work_entry')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_work_entry')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_wax_up')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_wax_up')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_cadcam')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_cadcam')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_metal')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_metal')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_ceramic')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_ceramic')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_acrylic')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_acrylic')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_ortho')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_ortho')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_quality')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_quality')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_qc')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_qc')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_commercial')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_commercial')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_field_sales')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_field_sales')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_marketing')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_marketing')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_customer_care')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_customer_care')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_supply')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_supply')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_store')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_store')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_purchase')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_purchase')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_packing')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_packing')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_logistics')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_logistics')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_admin')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_admin')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_accounts')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_accounts')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_hr')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_hr')}"/>
+        </function>
+        <function model="hr.department" name="write">
+            <value eval="[ref('lab_masters.dept_it')]"/>
+            <value eval="{'cost_centre_id': ref('lab_masters.cc_it')}"/>
+        </function>
+
+    </data>
+</odoo>

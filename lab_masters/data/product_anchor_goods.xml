@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        THE COSTED PRODUCTS BECOME GOODS.
+
+        Everything the lab sells is a `service` today. That is why a database
+        with twenty-six thousand orders and eighty-five thousand order lines
+        holds not one manufacturing order: Odoo will not raise a job for a
+        service, and a bill of materials cannot be written against one.
+
+        The suite was built expecting otherwise. `sale_custom.action_confirm`
+        has planned "the generated Manufacturing Orders (dental lab workflow)"
+        since before this module existed, and `lab_workcenter_scan` is a station
+        board for their work orders. Only the product type stood in the way.
+
+        Fifteen products change, the ones *PRODUCTION DETAILS.xlsx* costs. Each
+        gets Manufacture and Replenish on Order, so confirming a sale raises the
+        job for that patient's case rather than for a forecast. `is_storable`
+        stays off: the lab does not hold finished crowns, so a crown gets a job
+        and a route but no quants and no valuation layer of its own.
+
+        Before the bills of materials, because those point at these.
+    -->
+    <data noupdate="1">
+        <function model="lab.masters.loader" name="make_anchors_manufacturable"/>
+    </data>
+</odoo>

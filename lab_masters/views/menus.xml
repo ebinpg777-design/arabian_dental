@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Beside the cockpit, because the two answer the same question from the
+         two ends: the cockpit says what a department spent, this says what a
+         case was supposed to cost. -->
+    <menuitem id="menu_case_cost" name="Case Cost"
+              parent="lab_cost_centre.menu_cost_centre_root"
+              action="action_case_cost_explorer" sequence="15"/>
+
+    <menuitem id="menu_raw_materials" name="Consumption Materials"
+              parent="lab_cost_centre.menu_cost_centre_root"
+              action="action_raw_materials" sequence="60"
+              groups="stock.group_stock_user"/>
+
+    <!-- And under Manufacturing, where a production manager will look for it
+         first. One action, two ways in. -->
+    <menuitem id="menu_case_cost_mrp" name="Case Cost"
+              parent="mrp.menu_mrp_reporting"
+              action="action_case_cost_explorer" sequence="45"
+              groups="mrp.group_mrp_manager"/>
+
+</odoo>

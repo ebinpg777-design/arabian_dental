@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        THE BENCHES, one per stage of the lab's own SOPs.
+
+        Names are the stage names the SOP and the floor already use, because the
+        station board prints them and a technician has to recognise the one in
+        front of them. The minutes per unit are NOT here: Odoo reads
+        `time_start` as setup time and adds it to every work order on top of the
+        operation's own duration, so the cycle from *Process Time Cycle* belongs
+        to the operation in the bill of materials, where it is also allowed to
+        differ from one product to the next.
+
+        Cost per hour
+        105.77 is the lab's own labour rate: 846.15 a day (their figure, used in
+        every costing block) over an eight hour day. It reproduces their numbers
+        exactly - model preparation at 60 units a day is 8 minutes a unit, and
+        8 x 105.77 / 60 = 14.10, which is the figure in their sheet.
+
+        A bench where nobody stands - a furnace, a printer, a curing unit -
+        carries 0. That is not an omission: the lab's costing puts machine
+        depreciation, power and compressed air in overheads, not in the hour
+        rate, and inventing a machine rate would double-count them. The minutes
+        are still recorded, so the schedule is right even where the cost is nil.
+
+        A stage that exists in several departments is named for its department -
+        "Acrylic Trimming", "Ortho Trimming" - because the department is what
+        tells two otherwise identical benches apart.
+
+        noupdate: the lab will re-time and re-rate these as it measures them,
+        and an upgrade must not put this version back. (2026-09-25)
+    -->
+    <data noupdate="1">
+
+        <!-- ============================================================= WORK ENTRY -->
+        <record id="wc_work_entry" model="mrp.workcenter">
+            <field name="name">Work Entry</field>
+            <field name="code">WE-01</field>
+            <field name="department_id" ref="lab_masters.dept_work_entry"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="wc_barcode" model="mrp.workcenter">
+            <field name="name">Barcode &amp; Allocation</field>
+            <field name="code">WE-02</field>
+            <field name="department_id" ref="lab_masters.dept_work_entry"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <!-- ================================================================= WAX UP -->
+        <record id="wc_model_preparation" model="mrp.workcenter">
+            <field name="name">Model Preparation</field>
+            <field name="code">WX-01</field>
+            <field name="department_id" ref="lab_masters.dept_wax_up"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="wc_margin_scooping" model="mrp.workcenter">
+            <field name="name">Margin Scooping</field>
+            <field name="code">WX-02</field>
+            <field name="department_id" ref="lab_masters.dept_wax_up"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">40</field>
+        </record>
+        <record id="wc_undercut_blocking" model="mrp.workcenter">
+            <field name="name">Undercut Blocking</field>
+            <field name="code">WX-03</field>
+            <field name="department_id" ref="lab_masters.dept_wax_up"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">50</field>
+        </record>
+        <record id="wc_articulation" model="mrp.workcenter">
+            <field name="name">Articulation</field>
+            <field name="code">WX-04</field>
+            <field name="department_id" ref="lab_masters.dept_wax_up"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">60</field>
+        </record>
+        <record id="wc_wax_up_bench" model="mrp.workcenter">
+            <field name="name">Wax Up</field>
+            <field name="code">WX-05</field>
+            <field name="department_id" ref="lab_masters.dept_wax_up"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">70</field>
+        </record>
+        <record id="wc_spruing" model="mrp.workcenter">
+            <field name="name">Spruing</field>
+            <field name="code">WX-06</field>
+            <field name="department_id" ref="lab_masters.dept_wax_up"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">80</field>
+        </record>
+        <record id="wc_investing" model="mrp.workcenter">
+            <field name="name">Investing</field>
+            <field name="code">WX-07</field>
+            <field name="department_id" ref="lab_masters.dept_wax_up"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">90</field>
+        </record>
+
+        <!-- ================================================================ CAD/CAM -->
+        <record id="wc_scanning" model="mrp.workcenter">
+            <field name="name">Scanning</field>
+            <field name="code">CC-01</field>
+            <field name="department_id" ref="lab_masters.dept_cadcam"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">100</field>
+        </record>
+        <record id="wc_designing" model="mrp.workcenter">
+            <field name="name">Designing</field>
+            <field name="code">CC-02</field>
+            <field name="department_id" ref="lab_masters.dept_cadcam"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">110</field>
+        </record>
+        <record id="wc_resin_printing" model="mrp.workcenter">
+            <field name="name">Resin Printing</field>
+            <field name="code">CC-03</field>
+            <field name="department_id" ref="lab_masters.dept_cadcam"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">120</field>
+            <field name="note">One hour for a plate of many units, per the cycle sheet.</field>
+        </record>
+        <record id="wc_light_curing" model="mrp.workcenter">
+            <field name="name">Light Curing &amp; Washing</field>
+            <field name="code">CC-04</field>
+            <field name="department_id" ref="lab_masters.dept_cadcam"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">130</field>
+        </record>
+        <record id="wc_milling" model="mrp.workcenter">
+            <field name="name">Milling</field>
+            <field name="code">CC-05</field>
+            <field name="department_id" ref="lab_masters.dept_cadcam"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">140</field>
+        </record>
+        <record id="wc_sintering" model="mrp.workcenter">
+            <field name="name">Sintering</field>
+            <field name="code">CC-06</field>
+            <field name="department_id" ref="lab_masters.dept_cadcam"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">150</field>
+            <field name="note">Thirteen hours for a full furnace, per the cycle sheet.</field>
+        </record>
+
+        <!-- ================================================================== METAL -->
+        <record id="wc_dewaxing" model="mrp.workcenter">
+            <field name="name">Dewaxing</field>
+            <field name="code">MT-01</field>
+            <field name="department_id" ref="lab_masters.dept_metal"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">160</field>
+        </record>
+        <record id="wc_burn_out" model="mrp.workcenter">
+            <field name="name">Burn Out</field>
+            <field name="code">MT-02</field>
+            <field name="department_id" ref="lab_masters.dept_metal"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">170</field>
+        </record>
+        <record id="wc_casting" model="mrp.workcenter">
+            <field name="name">Casting</field>
+            <field name="code">MT-03</field>
+            <field name="department_id" ref="lab_masters.dept_metal"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">180</field>
+        </record>
+        <record id="wc_quenching" model="mrp.workcenter">
+            <field name="name">Quenching</field>
+            <field name="code">MT-04</field>
+            <field name="department_id" ref="lab_masters.dept_metal"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">190</field>
+        </record>
+        <record id="wc_sand_blasting" model="mrp.workcenter">
+            <field name="name">Sand Blasting</field>
+            <field name="code">MT-05</field>
+            <field name="department_id" ref="lab_masters.dept_metal"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">200</field>
+        </record>
+        <record id="wc_metal_model_prep" model="mrp.workcenter">
+            <field name="name">Metal Model Preparation</field>
+            <field name="code">MT-06</field>
+            <field name="department_id" ref="lab_masters.dept_metal"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">210</field>
+        </record>
+        <record id="wc_metal_polishing" model="mrp.workcenter">
+            <field name="name">Metal Polishing</field>
+            <field name="code">MT-07</field>
+            <field name="department_id" ref="lab_masters.dept_metal"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">220</field>
+        </record>
+
+        <!-- ================================================================ CERAMIC -->
+        <record id="wc_model_checking" model="mrp.workcenter">
+            <field name="name">Model Checking &amp; Correction</field>
+            <field name="code">CR-01</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">230</field>
+        </record>
+        <record id="wc_wash_opaque" model="mrp.workcenter">
+            <field name="name">Wash Opaque &amp; Firing</field>
+            <field name="code">CR-02</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">240</field>
+        </record>
+        <record id="wc_opaque_firing" model="mrp.workcenter">
+            <field name="name">Opaque Firing</field>
+            <field name="code">CR-03</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">250</field>
+        </record>
+        <record id="wc_second_opaque" model="mrp.workcenter">
+            <field name="name">Second Opaque &amp; Firing</field>
+            <field name="code">CR-04</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">260</field>
+        </record>
+        <record id="wc_wash_firing" model="mrp.workcenter">
+            <field name="name">Wash Firing</field>
+            <field name="code">CR-05</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">270</field>
+            <field name="note">The zirconia and veneer route's first firing.</field>
+        </record>
+        <record id="wc_first_build_up" model="mrp.workcenter">
+            <field name="name">First Build Up</field>
+            <field name="code">CR-06</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">280</field>
+        </record>
+        <record id="wc_first_build_firing" model="mrp.workcenter">
+            <field name="name">First Build Up Firing</field>
+            <field name="code">CR-07</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">290</field>
+        </record>
+        <record id="wc_second_build_up" model="mrp.workcenter">
+            <field name="name">Second Build Up</field>
+            <field name="code">CR-08</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">300</field>
+        </record>
+        <record id="wc_second_build_firing" model="mrp.workcenter">
+            <field name="name">Second Build Up Firing</field>
+            <field name="code">CR-09</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">310</field>
+        </record>
+        <record id="wc_trimming_carving" model="mrp.workcenter">
+            <field name="name">Trimming &amp; Carving</field>
+            <field name="code">CR-10</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">320</field>
+        </record>
+        <record id="wc_correction_firing" model="mrp.workcenter">
+            <field name="name">Correction Firing</field>
+            <field name="code">CR-11</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">330</field>
+        </record>
+        <record id="wc_staining_glazing" model="mrp.workcenter">
+            <field name="name">Staining &amp; Glazing</field>
+            <field name="code">CR-12</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">340</field>
+        </record>
+        <record id="wc_final_firing" model="mrp.workcenter">
+            <field name="name">Final Firing</field>
+            <field name="code">CR-13</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">350</field>
+        </record>
+        <record id="wc_micro_blasting" model="mrp.workcenter">
+            <field name="name">Micro Blasting</field>
+            <field name="code">CR-14</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">360</field>
+        </record>
+        <record id="wc_pressing" model="mrp.workcenter">
+            <field name="name">Pressing</field>
+            <field name="code">CR-15</field>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">370</field>
+            <field name="note">The veneer route: an invested ingot pressed at 930°.</field>
+        </record>
+
+        <!-- ================================================================ ACRYLIC -->
+        <record id="wc_acr_model_prep" model="mrp.workcenter">
+            <field name="name">Acrylic Model Preparation</field>
+            <field name="code">AC-01</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">380</field>
+        </record>
+        <record id="wc_teeth_setting" model="mrp.workcenter">
+            <field name="name">Teeth Setting</field>
+            <field name="code">AC-02</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">390</field>
+        </record>
+        <record id="wc_acr_wax_up" model="mrp.workcenter">
+            <field name="name">Acrylic Wax Up</field>
+            <field name="code">AC-03</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">400</field>
+        </record>
+        <record id="wc_flasking" model="mrp.workcenter">
+            <field name="name">Flasking</field>
+            <field name="code">AC-04</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">410</field>
+        </record>
+        <record id="wc_acr_dewaxing" model="mrp.workcenter">
+            <field name="name">Acrylic Dewaxing</field>
+            <field name="code">AC-05</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">420</field>
+        </record>
+        <record id="wc_packing_material" model="mrp.workcenter">
+            <field name="name">Material Packing</field>
+            <field name="code">AC-06</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">430</field>
+        </record>
+        <record id="wc_curing" model="mrp.workcenter">
+            <field name="name">Curing</field>
+            <field name="code">AC-07</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">440</field>
+        </record>
+        <record id="wc_acr_trimming" model="mrp.workcenter">
+            <field name="name">Acrylic Trimming</field>
+            <field name="code">AC-08</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">450</field>
+        </record>
+        <record id="wc_acr_polishing" model="mrp.workcenter">
+            <field name="name">Acrylic Polishing</field>
+            <field name="code">AC-09</field>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">460</field>
+        </record>
+
+        <!-- =========================================================== ORTHODONTIC -->
+        <record id="wc_ortho_model_prep" model="mrp.workcenter">
+            <field name="name">Ortho Model Preparation</field>
+            <field name="code">OR-01</field>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">470</field>
+        </record>
+        <record id="wc_wire_bending" model="mrp.workcenter">
+            <field name="name">Wire Bending</field>
+            <field name="code">OR-02</field>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">480</field>
+        </record>
+        <record id="wc_sealing" model="mrp.workcenter">
+            <field name="name">Sealing</field>
+            <field name="code">OR-03</field>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">490</field>
+        </record>
+        <record id="wc_acrylisation" model="mrp.workcenter">
+            <field name="name">Acrylisation</field>
+            <field name="code">OR-04</field>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">500</field>
+        </record>
+        <record id="wc_soldering" model="mrp.workcenter">
+            <field name="name">Soldering &amp; Banding</field>
+            <field name="code">OR-05</field>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">510</field>
+        </record>
+        <record id="wc_ortho_trimming" model="mrp.workcenter">
+            <field name="name">Ortho Trimming</field>
+            <field name="code">OR-06</field>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">520</field>
+        </record>
+        <record id="wc_ortho_polishing" model="mrp.workcenter">
+            <field name="name">Ortho Polishing</field>
+            <field name="code">OR-07</field>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">530</field>
+        </record>
+        <record id="wc_pressing_ortho" model="mrp.workcenter">
+            <field name="name">Vacuum Pressing</field>
+            <field name="code">OR-08</field>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+            <field name="costs_hour">0.00</field>
+            <field name="sequence">540</field>
+            <field name="note">The Essix route: a sheet pressed over the cast.</field>
+        </record>
+
+        <!-- ============================================= QUALITY, PACKING, DISPATCH -->
+        <record id="wc_quality_control" model="mrp.workcenter">
+            <field name="name">Final Quality Control</field>
+            <field name="code">QC-01</field>
+            <field name="department_id" ref="lab_masters.dept_qc"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">550</field>
+            <field name="note">The parameter check in the QC checklist: shade,
+                contacts, occlusion, margins, finish.</field>
+        </record>
+        <record id="wc_packing" model="mrp.workcenter">
+            <field name="name">Packing</field>
+            <field name="code">PK-01</field>
+            <field name="department_id" ref="lab_masters.dept_packing"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">560</field>
+        </record>
+        <record id="wc_dispatch" model="mrp.workcenter">
+            <field name="name">Dispatch</field>
+            <field name="code">LG-01</field>
+            <field name="department_id" ref="lab_masters.dept_logistics"/>
+            <field name="costs_hour">105.77</field>
+            <field name="sequence">570</field>
+        </record>
+
+    </data>
+</odoo>

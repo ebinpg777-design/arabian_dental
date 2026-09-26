@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        THE MATERIALS A CASE CONSUMES, and what they cost.
+
+        Where the rates come from
+        *PRODUCTION DETAILS.xlsx* costs every product twice over: it states a
+        purchase rate ("2800 a bottle") and, separately, a rupee figure per
+        crown ("10.33"). The two do not always agree, and the sheet's own
+        totals are built from the per-crown figures - the Ceramic block adds up
+        to 416.821 exactly, to the third decimal, using them.
+
+        So the per-crown figure is taken as the lab's truth, and the rate here
+        is derived from it and the stated quantity. Two places where that
+        matters:
+
+        * Base dentine is priced per 50 g, not the 25 g the sheet's note says.
+          2800/50 x 0.183 = 10.25, which is their 10.33; 2800/25 would be 20.5,
+          which is nothing they have ever written down. The store's own
+          purchase items are 50 g bottles, so the note is the error.
+        * Investment is stated at 6700/kg, which for the 400 g per 30 units
+          the same line gives would be 89.33 a unit, not the 0.60 they total.
+          0.045/g is what their own figure implies; the stated rate is wrong by
+          a factor of 150 and the lab should be told.
+
+        Quantities in the bills of materials are rounded to two decimals,
+        because that is this database's precision for quantities. The loss is
+        under a rupee on a 143 rupee material cost, and raising a global
+        setting for it would put three decimals on every quantity in the lab.
+
+        Units
+        Powders in grams, liquids in millilitres, everything countable in
+        units, because that is what the sheet measures them in. Existing
+        purchase items in the store are labelled BOTTLE or BOX with no
+        conversion behind them (a legacy of the Odoo 17 data), which is why
+        these are separate records: a bill of materials cannot consume 0.183 of
+        a thing whose size nobody recorded. Each one names the purchase items
+        it stands for.
+
+        noupdate: a rate the lab corrects must survive an upgrade. (2026-09-25)
+    -->
+    <data noupdate="1">
+
+        <!-- ============================================================ CATEGORIES -->
+        <!-- Under the RAW MATERIAL category that already exists and holds
+             nothing: the lab made it and never filled it. Each one points at
+             the department that consumes it, so every consumption move lands
+             on the right cost centre without anyone choosing one. -->
+        <record id="categ_raw_zirconia" model="product.category">
+            <field name="name">Zirconia Blanks</field>
+            <field name="parent_id" ref="lab_masters.categ_raw_material"/>
+            <field name="department_id" ref="lab_masters.dept_cadcam"/>
+        </record>
+        <record id="categ_raw_cadcam" model="product.category">
+            <field name="name">CAD/CAM Consumables</field>
+            <field name="parent_id" ref="lab_masters.categ_raw_material"/>
+            <field name="department_id" ref="lab_masters.dept_cadcam"/>
+        </record>
+        <record id="categ_raw_waxup" model="product.category">
+            <field name="name">Wax Up Consumables</field>
+            <field name="parent_id" ref="lab_masters.categ_raw_material"/>
+            <field name="department_id" ref="lab_masters.dept_wax_up"/>
+        </record>
+        <record id="categ_raw_metal" model="product.category">
+            <field name="name">Metal Consumables</field>
+            <field name="parent_id" ref="lab_masters.categ_raw_material"/>
+            <field name="department_id" ref="lab_masters.dept_metal"/>
+        </record>
+        <record id="categ_raw_ceramic" model="product.category">
+            <field name="name">Ceramic Consumables</field>
+            <field name="parent_id" ref="lab_masters.categ_raw_material"/>
+            <field name="department_id" ref="lab_masters.dept_ceramic"/>
+        </record>
+        <record id="categ_raw_acrylic" model="product.category">
+            <field name="name">Acrylic Consumables</field>
+            <field name="parent_id" ref="lab_masters.categ_raw_material"/>
+            <field name="department_id" ref="lab_masters.dept_acrylic"/>
+        </record>
+        <record id="categ_raw_ortho" model="product.category">
+            <field name="name">Orthodontic Consumables</field>
+            <field name="parent_id" ref="lab_masters.categ_raw_material"/>
+            <field name="department_id" ref="lab_masters.dept_ortho"/>
+        </record>
+
+        <!-- ======================================================= ZIRCONIA BLANKS -->
+        <!-- Priced per crown blank, not per disc. A disc yields 25-30 crowns
+             and the lab costs it at 28, which is the figure in every zirconia
+             block; counting stock in discs would make a bill of materials
+             consume 0.04 of one, below this database's quantity precision. -->
+        <record id="mat_zircad_emerald" model="product.product">
+            <field name="name">Zirconia Blank - Emerald (per crown)</field>
+            <field name="default_code">ZB-EMR</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_zirconia"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">705.00</field>
+            <field name="description">Ivoclar ZirCAD, Emerald grade. Bought as a
+                disc at 19,740; 28 crowns to a disc.</field>
+        </record>
+        <record id="mat_zircad_ruby" model="product.product">
+            <field name="name">Zirconia Blank - Ruby (per crown)</field>
+            <field name="default_code">ZB-RUB</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_zirconia"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">528.57</field>
+            <field name="description">Ceramotion grade. Disc at 14,800; 28 crowns
+                to a disc.</field>
+        </record>
+        <record id="mat_zircad_diamond" model="product.product">
+            <field name="name">Zirconia Blank - Diamond (per crown)</field>
+            <field name="default_code">ZB-DIA</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_zirconia"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">290.36</field>
+            <field name="description">EXPLOR grade. Disc at 8,130; 28 crowns to a
+                disc.</field>
+        </record>
+        <record id="mat_zircad_premium" model="product.product">
+            <field name="name">Zirconia Blank - Premium (per crown)</field>
+            <field name="default_code">ZB-PRM</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_zirconia"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">107.15</field>
+            <field name="description">Noblecam grade. Disc at 3,000; 28 crowns to
+                a disc.</field>
+        </record>
+        <record id="mat_zircad_classic" model="product.product">
+            <field name="name">Zirconia Blank - Classic (per crown)</field>
+            <field name="default_code">ZB-CLS</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_zirconia"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">125.00</field>
+            <field name="description">Dentgallop grade, finished with e.max. Disc
+                at 3,500; 28 crowns to a disc.</field>
+        </record>
+        <record id="mat_zircad_basic" model="product.product">
+            <field name="name">Zirconia Blank - Basic (per crown)</field>
+            <field name="default_code">ZB-BSC</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_zirconia"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">137.14</field>
+            <field name="description">Dentgallop grade, finished with VITA. Disc
+                at 3,840; 28 crowns to a disc. Dearer than Classic, which is what
+                the lab's sheet says.</field>
+        </record>
+
+        <!-- ==================================================== CAD/CAM CONSUMABLES -->
+        <record id="mat_print_resin_cast" model="product.product">
+            <field name="name">Casting Resin (print)</field>
+            <field name="default_code">RM-RESC</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_cadcam"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">16.50</field>
+            <field name="description">Shine 3D DC12 and the castable resins. The
+                store's items: 3D PRINT RESIN CAST DC 12, CASTABLE RESIN 500 GRMS.</field>
+        </record>
+        <record id="mat_print_resin_model" model="product.product">
+            <field name="name">Model Resin (print)</field>
+            <field name="default_code">RM-RESM</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_cadcam"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">16.50</field>
+            <field name="description">The printed working model. The store's
+                items: MODEL RESIN GREY / BEIGE / WHITE 1 KG.</field>
+        </record>
+        <record id="mat_light_cure_spirit" model="product.product">
+            <field name="name">Light Curing Spirit</field>
+            <field name="default_code">RM-SPRT</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_cadcam"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">0.20</field>
+        </record>
+        <record id="mat_milling_burr" model="product.product">
+            <field name="name">Milling Burr &amp; Disc (per unit milled)</field>
+            <field name="default_code">RM-BURR</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_cadcam"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">5.00</field>
+            <field name="description">The sheet costs milling at 5 a unit as a
+                lump sum for tool wear. Carried as a consumable so a bill of
+                materials can show it.</field>
+        </record>
+
+        <!-- ==================================================== WAX UP CONSUMABLES -->
+        <record id="mat_modelling_wax" model="product.product">
+            <field name="name">Modelling Wax</field>
+            <field name="default_code">RM-WAX</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_waxup"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">0.65</field>
+            <field name="description">650 a kilogram. The store's items: BRULON
+                MODELLING WAX, CHROMAWAX MODELLING WAX.</field>
+        </record>
+        <record id="mat_sprue_wax" model="product.product">
+            <field name="name">Sprue Wax 2 mm</field>
+            <field name="default_code">RM-SPRU</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_waxup"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">1.50</field>
+            <field name="description">1,400 a packet. The store's item: SPRUE WAX
+                2MM.</field>
+        </record>
+        <record id="mat_pop" model="product.product">
+            <field name="name">Plaster of Paris</field>
+            <field name="default_code">RM-POP</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_waxup"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">0.017</field>
+            <field name="description">17 a kilogram, for articulation and
+                flasking. The store's items: POP 25KG BAG, POP WHITE GOLD 3KG.</field>
+        </record>
+        <record id="mat_investment" model="product.product">
+            <field name="name">Investment Powder &amp; Liquid</field>
+            <field name="default_code">RM-INVS</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_waxup"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">0.045</field>
+            <field name="description">Derived from the lab's own 0.60 a unit over
+                the 400 g per 30 units the same line states. Their stated 6,700 a
+                kilogram would make it 89.33 a unit and would not add up to the
+                total they print - one of the two figures is wrong and the lab
+                should settle it. The store's items: BREVEST ECO INVESTMENT,
+                BELLAVEST SH INVESTMENT.</field>
+        </record>
+
+        <!-- ===================================================== METAL CONSUMABLES -->
+        <record id="mat_casting_nicr" model="product.product">
+            <field name="name">Casting Alloy Ni-Cr (pellet)</field>
+            <field name="default_code">RM-NICR</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_metal"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">6.00</field>
+            <field name="description">6 a pellet, the lab's own figure; 157
+                pellets to the kilogram.</field>
+        </record>
+        <record id="mat_casting_wiron" model="product.product">
+            <field name="name">Casting Alloy Wiron 99</field>
+            <field name="default_code">RM-WIRN</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_metal"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">29.00</field>
+            <field name="description">29,000 a kilogram.</field>
+        </record>
+        <record id="mat_casting_wirobond" model="product.product">
+            <field name="name">Casting Alloy Wirobond C</field>
+            <field name="default_code">RM-WIRB</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_metal"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">38.00</field>
+            <field name="description">38,000 a kilogram.</field>
+        </record>
+        <record id="mat_sand_250" model="product.product">
+            <field name="name">Blasting Sand 250</field>
+            <field name="default_code">RM-SND250</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_metal"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">0.25</field>
+            <field name="description">250 a kilogram. The store's item: SAND 250.</field>
+        </record>
+        <record id="mat_sand_110" model="product.product">
+            <field name="name">Blasting Sand 110</field>
+            <field name="default_code">RM-SND110</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_metal"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">0.11</field>
+            <field name="description">110 a kilogram, the finer grade used after
+                pressing.</field>
+        </record>
+        <record id="mat_solder_paste" model="product.product">
+            <field name="name">Solder Paste &amp; Flux</field>
+            <field name="default_code">RM-SLDR</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_metal"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">147.50</field>
+            <field name="description">2,950 for 20 g. The store's item: SOLDERING
+                FLUX.</field>
+        </record>
+
+        <!-- =================================================== CERAMIC CONSUMABLES -->
+        <record id="mat_base_dentine_window" model="product.product">
+            <field name="name">Base Dentine - Window</field>
+            <field name="default_code">RM-BDW</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">56.00</field>
+            <field name="description">2,800 for a 50 g bottle. The store's items:
+                VITA VM9 BASE DENTINE 50G, in every shade.</field>
+        </record>
+        <record id="mat_base_dentine_enl" model="product.product">
+            <field name="name">Base Dentine - ENL</field>
+            <field name="default_code">RM-BDE</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">56.00</field>
+            <field name="description">2,800 for a 50 g bottle. The store's item:
+                VITA VM9 50G ENL.</field>
+        </record>
+        <record id="mat_wash_opaque" model="product.product">
+            <field name="name">Wash Opaque (powder &amp; liquid)</field>
+            <field name="default_code">RM-WOPQ</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">4.48</field>
+            <field name="description">1,120 for 250 ml, mixed. Twelve crowns to a
+                millilitre.</field>
+        </record>
+        <record id="mat_opaque_powder" model="product.product">
+            <field name="name">Opaque Powder</field>
+            <field name="default_code">RM-OPQP</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">34.00</field>
+            <field name="description">1,700 for a 50 g bottle, VITA or Ivoclar.</field>
+        </record>
+        <record id="mat_opaque_liquid" model="product.product">
+            <field name="name">Opaque Liquid</field>
+            <field name="default_code">RM-OPQL</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">13.44</field>
+            <field name="description">3,360 for 250 ml (VITA Fluid).</field>
+        </record>
+        <record id="mat_build_up_liquid" model="product.product">
+            <field name="name">Build Up Liquid</field>
+            <field name="default_code">RM-BULQ</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">5.90</field>
+            <field name="description">1,475 for 250 ml. The store's item: BUILD UP
+                LIQUID (SUPERGLAZE).</field>
+        </record>
+        <record id="mat_glaze_powder" model="product.product">
+            <field name="name">Glaze Powder</field>
+            <field name="default_code">RM-GLZP</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">67.50</field>
+            <field name="description">1,350 for 20 g - the lab writes the 67.5 a
+                gram out in the sheet itself. The store's item: GLAZE POWDER.</field>
+        </record>
+        <record id="mat_glaze_liquid" model="product.product">
+            <field name="name">Glaze Liquid</field>
+            <field name="default_code">RM-GLZL</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">55.00</field>
+            <field name="description">1,100 for 20 ml. The store's item: GLAZE
+                LIQUID.</field>
+        </record>
+        <record id="mat_stain" model="product.product">
+            <field name="name">Ceramic Stain</field>
+            <field name="default_code">RM-STN</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">72.80</field>
+            <field name="description">1,456 for 20 ml. The store's items: VITA
+                AKZENT PLUS CHROMA and EFFECT STAIN.</field>
+        </record>
+        <record id="mat_emax_ingot" model="product.product">
+            <field name="name">e.max Press Ingot</field>
+            <field name="default_code">RM-EMAX</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">1360.00</field>
+            <field name="description">MO 1 and MO 2, 1,360 each. One ingot presses
+                several units; the bill of materials consumes the share.</field>
+        </record>
+        <record id="mat_deep_dentine" model="product.product">
+            <field name="name">Deep Dentine Powder</field>
+            <field name="default_code">RM-DDNT</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">141.70</field>
+            <field name="description">2,834 for a 20 g bottle. The store's items:
+                E MAX DEEP DENTIN 20G, in every shade.</field>
+        </record>
+        <record id="mat_transpa_incisal" model="product.product">
+            <field name="name">Transpa Incisal</field>
+            <field name="default_code">RM-TRIN</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">136.85</field>
+            <field name="description">2,737 for a 20 g bottle.</field>
+        </record>
+        <record id="mat_transpa_neutral" model="product.product">
+            <field name="name">Transpa Neutral</field>
+            <field name="default_code">RM-TRNT</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ceramic"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">201.50</field>
+            <field name="description">4,030 for a 20 g bottle.</field>
+        </record>
+
+        <!-- =================================================== ACRYLIC CONSUMABLES -->
+        <record id="mat_cure_powder" model="product.product">
+            <field name="name">Acrylic Powder (heat cure)</field>
+            <field name="default_code">RM-ACRP</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_acrylic"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">1.20</field>
+            <field name="description">1,200 a kilogram. The store's items: ACRYTON
+                R COLD CURE POWDER, COLD CURE POWDER ROCKRYL.</field>
+        </record>
+        <record id="mat_cure_liquid" model="product.product">
+            <field name="name">Acrylic Liquid (monomer)</field>
+            <field name="default_code">RM-ACRL</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_acrylic"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">0.70</field>
+            <field name="description">700 a litre.</field>
+        </record>
+        <record id="mat_sep_medium" model="product.product">
+            <field name="name">Cold Mould Seal (separating medium)</field>
+            <field name="default_code">RM-SEP</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_acrylic"/>
+            <field name="uom_id" ref="uom.product_uom_milliliter"/>
+            <field name="standard_price">1.00</field>
+            <field name="description">162.50 a litre by the sheet's rate; 1.00 a
+                millilitre by its own 0.50 for 0.5 ml. The per-unit figure is the
+                one their totals use.</field>
+        </record>
+        <record id="mat_denture_teeth" model="product.product">
+            <field name="name">Synthetic Resin Teeth (per tooth)</field>
+            <field name="default_code">RM-TEETH</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_acrylic"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">10.94</field>
+            <field name="description">The sheet's teeth setting figure. The
+                store's items: SYNTHETIC RESIN TEETH A2 / A3, by set.</field>
+        </record>
+        <record id="mat_bps_cartridge" model="product.product">
+            <field name="name">Ivobase Cartridge (BPS)</field>
+            <field name="default_code">RM-BPSC</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_acrylic"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">550.00</field>
+            <field name="description">550 a cartridge, one to a denture. The
+                store's items: FLEXIBLE DENTURE CARTRIDGE, CATRIDGE FOR PRESTO.</field>
+        </record>
+        <record id="mat_polishing_stone" model="product.product">
+            <field name="name">Polishing Stone &amp; Powder</field>
+            <field name="default_code">RM-POL</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_acrylic"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">2.00</field>
+            <field name="description">A lump sum of 2 a unit in the sheet. The
+                store's item: POLISHING CAKE.</field>
+        </record>
+        <record id="mat_sanding" model="product.product">
+            <field name="name">Sanding Consumable</field>
+            <field name="default_code">RM-SAND</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_acrylic"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">1.50</field>
+        </record>
+
+        <!-- =============================================== ORTHODONTIC CONSUMABLES -->
+        <record id="mat_ortho_wire" model="product.product">
+            <field name="name">Ortho Wire</field>
+            <field name="default_code">RM-WIRE</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ortho"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="standard_price">3.20</field>
+            <field name="description">800 for 250 g. 30 cm weighs 4-5 g, which is
+                the 16 a Hawley's in the sheet. The store's items: ORTHO WIRE 19G
+                to 23G.</field>
+        </record>
+        <record id="mat_hyrax_screw" model="product.product">
+            <field name="name">Hyrax Expansion Screw</field>
+            <field name="default_code">RM-HYRX</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ortho"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">1400.00</field>
+            <field name="description">1,400 each - the single dearest thing in an
+                appliance, and 85% of a banded RME's cost. The store's item: HYRAX.</field>
+        </record>
+        <record id="mat_molar_band" model="product.product">
+            <field name="name">Molar Band</field>
+            <field name="default_code">RM-BAND</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ortho"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">11.00</field>
+            <field name="description">22 a pair.</field>
+        </record>
+        <record id="mat_essix_sheet" model="product.product">
+            <field name="name">Essix Sheet</field>
+            <field name="default_code">RM-ESSX</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="categ_id" ref="categ_raw_ortho"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="standard_price">20.00</field>
+            <field name="description">20 a sheet, in 1 mm, 1.5 mm and 2 mm.</field>
+        </record>
+
+    </data>
+</odoo>

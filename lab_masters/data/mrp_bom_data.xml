@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        THE FIFTEEN ROUTES THE LAB COSTS.
+
+        One bill of materials for each block in *PRODUCTION DETAILS.xlsx*: the
+        six zirconia grades, metal ceramic, full metal, the pressed veneer, four
+        orthodontic appliances and two dentures. Each one carries what the sheet
+        says it consumes and the stages the SOP says it passes through, in order.
+
+        Quantities are the sheet's. Where the sheet gives a figure for a batch -
+        a plate of printed copings, a furnace of sintered crowns, an ingot that
+        presses several units - the bill of materials carries the share of one
+        unit, because that is what a job is raised for.
+
+        Operation durations come from *Process Time Cycle*, which is the lab's
+        measured time at the bench. They are deliberately NOT the capacity
+        figures in the costing sheet: 60 models a day is 8 minutes a model, but
+        the bench itself takes 1. The difference is the bench standing idle, and
+        seeing it is the point - the costing sheet already absorbs it and hides
+        it. The cockpit compares what a department actually spent with what it
+        earned; this compares the bench with itself.
+
+        `consumption` is left at Odoo's default of a warning rather than
+        `strict`: a technician who used a second sprue is telling the truth, and
+        a lab that blocks them will get a job card with a lie on it.
+
+        noupdate: the lab will correct quantities as it weighs them, and an
+        upgrade must not put these back. (2026-09-25)
+    -->
+    <data noupdate="1">
+
+        <!-- ================================================== ZIRCONIA: SIX GRADES -->
+        <!-- Every grade walks the same road. Only the blank differs, which is
+             the whole of the price difference between a 3,000 rupee Emerald and
+             a 1,714 rupee Basic: 705 of blank against 137. -->
+
+        <record id="bom_zirconia_emerald" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_zirconia_emerald"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">ZR-EMR</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_zircad_emerald'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_window'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_enl'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_build_up_liquid'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_powder'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_liquid'), 'product_qty': 0.35}),
+                Command.create({'product_id': ref('lab_masters.mat_stain'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_milling_burr'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Milling', 'workcenter_id': ref('lab_masters.wc_milling'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 14}),
+                Command.create({'name': 'Sintering', 'workcenter_id': ref('lab_masters.wc_sintering'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 28}),
+                Command.create({'name': 'Wash Firing', 'workcenter_id': ref('lab_masters.wc_wash_firing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'First Build Up', 'workcenter_id': ref('lab_masters.wc_first_build_up'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'First Build Up Firing', 'workcenter_id': ref('lab_masters.wc_first_build_firing'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Second Build Up', 'workcenter_id': ref('lab_masters.wc_second_build_up'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 8}),
+                Command.create({'name': 'Second Build Up Firing', 'workcenter_id': ref('lab_masters.wc_second_build_firing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Trimming and Carving', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Correction Firing', 'workcenter_id': ref('lab_masters.wc_correction_firing'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 17}),
+                Command.create({'name': 'Staining and Glazing', 'workcenter_id': ref('lab_masters.wc_staining_glazing'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Firing', 'workcenter_id': ref('lab_masters.wc_final_firing'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Micro Blasting', 'workcenter_id': ref('lab_masters.wc_micro_blasting'), 'sequence': 150, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 160, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 170, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <record id="bom_zirconia_ruby" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_zirconia_ruby"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">ZR-RUB</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_zircad_ruby'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_window'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_enl'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_build_up_liquid'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_powder'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_liquid'), 'product_qty': 0.35}),
+                Command.create({'product_id': ref('lab_masters.mat_stain'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_milling_burr'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Milling', 'workcenter_id': ref('lab_masters.wc_milling'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 14}),
+                Command.create({'name': 'Sintering', 'workcenter_id': ref('lab_masters.wc_sintering'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 28}),
+                Command.create({'name': 'Wash Firing', 'workcenter_id': ref('lab_masters.wc_wash_firing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'First Build Up', 'workcenter_id': ref('lab_masters.wc_first_build_up'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Second Build Up', 'workcenter_id': ref('lab_masters.wc_second_build_up'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 8}),
+                Command.create({'name': 'Trimming and Carving', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Staining and Glazing', 'workcenter_id': ref('lab_masters.wc_staining_glazing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Firing', 'workcenter_id': ref('lab_masters.wc_final_firing'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Micro Blasting', 'workcenter_id': ref('lab_masters.wc_micro_blasting'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <record id="bom_zirconia_diamond" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_zirconia_diamond"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">ZR-DIA</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_zircad_diamond'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_window'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_enl'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_build_up_liquid'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_powder'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_liquid'), 'product_qty': 0.35}),
+                Command.create({'product_id': ref('lab_masters.mat_stain'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_milling_burr'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Milling', 'workcenter_id': ref('lab_masters.wc_milling'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 14}),
+                Command.create({'name': 'Sintering', 'workcenter_id': ref('lab_masters.wc_sintering'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 28}),
+                Command.create({'name': 'Wash Firing', 'workcenter_id': ref('lab_masters.wc_wash_firing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'First Build Up', 'workcenter_id': ref('lab_masters.wc_first_build_up'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Second Build Up', 'workcenter_id': ref('lab_masters.wc_second_build_up'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 8}),
+                Command.create({'name': 'Trimming and Carving', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Staining and Glazing', 'workcenter_id': ref('lab_masters.wc_staining_glazing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Firing', 'workcenter_id': ref('lab_masters.wc_final_firing'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Micro Blasting', 'workcenter_id': ref('lab_masters.wc_micro_blasting'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <record id="bom_zirconia_premium" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_zirconia_premium"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">ZR-PRM</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_zircad_premium'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_window'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_enl'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_build_up_liquid'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_powder'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_liquid'), 'product_qty': 0.35}),
+                Command.create({'product_id': ref('lab_masters.mat_stain'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_milling_burr'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Milling', 'workcenter_id': ref('lab_masters.wc_milling'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 14}),
+                Command.create({'name': 'Sintering', 'workcenter_id': ref('lab_masters.wc_sintering'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 28}),
+                Command.create({'name': 'Wash Firing', 'workcenter_id': ref('lab_masters.wc_wash_firing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'First Build Up', 'workcenter_id': ref('lab_masters.wc_first_build_up'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Second Build Up', 'workcenter_id': ref('lab_masters.wc_second_build_up'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 8}),
+                Command.create({'name': 'Trimming and Carving', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Staining and Glazing', 'workcenter_id': ref('lab_masters.wc_staining_glazing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Firing', 'workcenter_id': ref('lab_masters.wc_final_firing'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Micro Blasting', 'workcenter_id': ref('lab_masters.wc_micro_blasting'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <record id="bom_zirconia_classic" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_zirconia_classic"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">ZR-CLS</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_zircad_classic'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_window'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_enl'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_build_up_liquid'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_powder'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_liquid'), 'product_qty': 0.35}),
+                Command.create({'product_id': ref('lab_masters.mat_stain'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_milling_burr'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Milling', 'workcenter_id': ref('lab_masters.wc_milling'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 14}),
+                Command.create({'name': 'Sintering', 'workcenter_id': ref('lab_masters.wc_sintering'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 28}),
+                Command.create({'name': 'Wash Firing', 'workcenter_id': ref('lab_masters.wc_wash_firing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'First Build Up', 'workcenter_id': ref('lab_masters.wc_first_build_up'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Second Build Up', 'workcenter_id': ref('lab_masters.wc_second_build_up'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 8}),
+                Command.create({'name': 'Trimming and Carving', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Staining and Glazing', 'workcenter_id': ref('lab_masters.wc_staining_glazing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Firing', 'workcenter_id': ref('lab_masters.wc_final_firing'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Micro Blasting', 'workcenter_id': ref('lab_masters.wc_micro_blasting'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <record id="bom_zirconia_basic" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_zirconia_basic"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">ZR-BSC</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_zircad_basic'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_window'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_enl'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_build_up_liquid'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_powder'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_liquid'), 'product_qty': 0.35}),
+                Command.create({'product_id': ref('lab_masters.mat_stain'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_milling_burr'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Milling', 'workcenter_id': ref('lab_masters.wc_milling'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 14}),
+                Command.create({'name': 'Sintering', 'workcenter_id': ref('lab_masters.wc_sintering'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 28}),
+                Command.create({'name': 'Wash Firing', 'workcenter_id': ref('lab_masters.wc_wash_firing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'First Build Up', 'workcenter_id': ref('lab_masters.wc_first_build_up'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Second Build Up', 'workcenter_id': ref('lab_masters.wc_second_build_up'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 8}),
+                Command.create({'name': 'Trimming and Carving', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Staining and Glazing', 'workcenter_id': ref('lab_masters.wc_staining_glazing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Firing', 'workcenter_id': ref('lab_masters.wc_final_firing'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Micro Blasting', 'workcenter_id': ref('lab_masters.wc_micro_blasting'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <!-- ========================================================= METAL CERAMIC -->
+        <!-- The lab's oldest and busiest product: 25,715 order lines, a third of
+             everything they have ever sold. The whole route, wax to glaze, and
+             the only one whose costing block reconciles to the third decimal. -->
+        <record id="bom_metal_ceramic" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_metal_ceramic"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">MC-BSC</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_modelling_wax'), 'product_qty': 3}),
+                Command.create({'product_id': ref('lab_masters.mat_sprue_wax'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_pop'), 'product_qty': 100}),
+                Command.create({'product_id': ref('lab_masters.mat_print_resin_cast'), 'product_qty': 0.1}),
+                Command.create({'product_id': ref('lab_masters.mat_light_cure_spirit'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_milling_burr'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_investment'), 'product_qty': 13.33}),
+                Command.create({'product_id': ref('lab_masters.mat_casting_nicr'), 'product_qty': 1.34}),
+                Command.create({'product_id': ref('lab_masters.mat_sand_250'), 'product_qty': 1.2}),
+                Command.create({'product_id': ref('lab_masters.mat_wash_opaque'), 'product_qty': 0.08}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_window'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_base_dentine_enl'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_powder'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_liquid'), 'product_qty': 0.35}),
+                Command.create({'product_id': ref('lab_masters.mat_stain'), 'product_qty': 0.25}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Margin Scooping', 'workcenter_id': ref('lab_masters.wc_margin_scooping'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Undercut Blocking', 'workcenter_id': ref('lab_masters.wc_undercut_blocking'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Articulation', 'workcenter_id': ref('lab_masters.wc_articulation'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Resin Printing', 'workcenter_id': ref('lab_masters.wc_resin_printing'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Light Curing and Washing', 'workcenter_id': ref('lab_masters.wc_light_curing'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 6}),
+                Command.create({'name': 'Spruing', 'workcenter_id': ref('lab_masters.wc_spruing'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Investing', 'workcenter_id': ref('lab_masters.wc_investing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Dewaxing', 'workcenter_id': ref('lab_masters.wc_dewaxing'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Burn Out', 'workcenter_id': ref('lab_masters.wc_burn_out'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Casting', 'workcenter_id': ref('lab_masters.wc_casting'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Quenching', 'workcenter_id': ref('lab_masters.wc_quenching'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 15}),
+                Command.create({'name': 'Sand Blasting', 'workcenter_id': ref('lab_masters.wc_sand_blasting'), 'sequence': 150, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Metal Model Preparation', 'workcenter_id': ref('lab_masters.wc_metal_model_prep'), 'sequence': 160, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Metal Polishing', 'workcenter_id': ref('lab_masters.wc_metal_polishing'), 'sequence': 170, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Model Checking and Correction', 'workcenter_id': ref('lab_masters.wc_model_checking'), 'sequence': 180, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Wash Opaque and Firing', 'workcenter_id': ref('lab_masters.wc_wash_opaque'), 'sequence': 190, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Opaque Firing', 'workcenter_id': ref('lab_masters.wc_opaque_firing'), 'sequence': 200, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Second Opaque and Firing', 'workcenter_id': ref('lab_masters.wc_second_opaque'), 'sequence': 210, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'First Build Up', 'workcenter_id': ref('lab_masters.wc_first_build_up'), 'sequence': 220, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'First Build Up Firing', 'workcenter_id': ref('lab_masters.wc_first_build_firing'), 'sequence': 230, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Second Build Up', 'workcenter_id': ref('lab_masters.wc_second_build_up'), 'sequence': 240, 'time_mode': 'manual', 'time_cycle_manual': 8}),
+                Command.create({'name': 'Second Build Up Firing', 'workcenter_id': ref('lab_masters.wc_second_build_firing'), 'sequence': 250, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Trimming and Carving', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 260, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Correction Firing', 'workcenter_id': ref('lab_masters.wc_correction_firing'), 'sequence': 270, 'time_mode': 'manual', 'time_cycle_manual': 17}),
+                Command.create({'name': 'Staining and Glazing', 'workcenter_id': ref('lab_masters.wc_staining_glazing'), 'sequence': 280, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Firing', 'workcenter_id': ref('lab_masters.wc_final_firing'), 'sequence': 290, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Micro Blasting', 'workcenter_id': ref('lab_masters.wc_micro_blasting'), 'sequence': 300, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 310, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 320, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <!-- ============================================================ FULL METAL -->
+        <!-- The same road as metal ceramic, stopping at the polish: no opaque,
+             no build up, no glaze. -->
+        <record id="bom_full_metal" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_full_metal"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">FM-01</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_modelling_wax'), 'product_qty': 3}),
+                Command.create({'product_id': ref('lab_masters.mat_sprue_wax'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_print_resin_cast'), 'product_qty': 0.1}),
+                Command.create({'product_id': ref('lab_masters.mat_light_cure_spirit'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_investment'), 'product_qty': 13.33}),
+                Command.create({'product_id': ref('lab_masters.mat_casting_nicr'), 'product_qty': 1.34}),
+                Command.create({'product_id': ref('lab_masters.mat_sand_250'), 'product_qty': 1.2}),
+                Command.create({'product_id': ref('lab_masters.mat_polishing_stone'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Resin Printing', 'workcenter_id': ref('lab_masters.wc_resin_printing'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Spruing', 'workcenter_id': ref('lab_masters.wc_spruing'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Investing', 'workcenter_id': ref('lab_masters.wc_investing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Dewaxing', 'workcenter_id': ref('lab_masters.wc_dewaxing'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Burn Out', 'workcenter_id': ref('lab_masters.wc_burn_out'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Casting', 'workcenter_id': ref('lab_masters.wc_casting'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Quenching', 'workcenter_id': ref('lab_masters.wc_quenching'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 15}),
+                Command.create({'name': 'Sand Blasting', 'workcenter_id': ref('lab_masters.wc_sand_blasting'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Metal Model Preparation', 'workcenter_id': ref('lab_masters.wc_metal_model_prep'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Metal Polishing', 'workcenter_id': ref('lab_masters.wc_metal_polishing'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 7}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 150, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <!-- ================================================================ VENEER -->
+        <!-- Pressed, not cast and not milled: an e.max ingot into an invested
+             mould at 930 degrees. One ingot presses several units, so the bill
+             carries a sixth of one. -->
+        <record id="bom_veneer" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_veneer"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">VN-01</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_modelling_wax'), 'product_qty': 2}),
+                Command.create({'product_id': ref('lab_masters.mat_sprue_wax'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_print_resin_cast'), 'product_qty': 0.1}),
+                Command.create({'product_id': ref('lab_masters.mat_investment'), 'product_qty': 13.33}),
+                Command.create({'product_id': ref('lab_masters.mat_emax_ingot'), 'product_qty': 0.17}),
+                Command.create({'product_id': ref('lab_masters.mat_sand_110'), 'product_qty': 1.2}),
+                Command.create({'product_id': ref('lab_masters.mat_deep_dentine'), 'product_qty': 0.18}),
+                Command.create({'product_id': ref('lab_masters.mat_transpa_incisal'), 'product_qty': 0.1}),
+                Command.create({'product_id': ref('lab_masters.mat_transpa_neutral'), 'product_qty': 0.05}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_powder'), 'product_qty': 0.25}),
+                Command.create({'product_id': ref('lab_masters.mat_glaze_liquid'), 'product_qty': 0.35}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Model Preparation', 'workcenter_id': ref('lab_masters.wc_model_preparation'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Margin Scooping', 'workcenter_id': ref('lab_masters.wc_margin_scooping'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Undercut Blocking', 'workcenter_id': ref('lab_masters.wc_undercut_blocking'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Resin Printing', 'workcenter_id': ref('lab_masters.wc_resin_printing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Light Curing', 'workcenter_id': ref('lab_masters.wc_light_curing'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 6}),
+                Command.create({'name': 'Spruing', 'workcenter_id': ref('lab_masters.wc_spruing'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Investing', 'workcenter_id': ref('lab_masters.wc_investing'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Dewaxing', 'workcenter_id': ref('lab_masters.wc_dewaxing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Pressing', 'workcenter_id': ref('lab_masters.wc_pressing'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 26}),
+                Command.create({'name': 'Sand Blasting', 'workcenter_id': ref('lab_masters.wc_sand_blasting'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Trimming', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 130, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Wash Firing', 'workcenter_id': ref('lab_masters.wc_wash_firing'), 'sequence': 140, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'First Build Up', 'workcenter_id': ref('lab_masters.wc_first_build_up'), 'sequence': 150, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Second Build Up', 'workcenter_id': ref('lab_masters.wc_second_build_up'), 'sequence': 160, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Trimming and Carving', 'workcenter_id': ref('lab_masters.wc_trimming_carving'), 'sequence': 170, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Correction Firing', 'workcenter_id': ref('lab_masters.wc_correction_firing'), 'sequence': 180, 'time_mode': 'manual', 'time_cycle_manual': 20}),
+                Command.create({'name': 'Staining and Glazing', 'workcenter_id': ref('lab_masters.wc_staining_glazing'), 'sequence': 190, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Firing', 'workcenter_id': ref('lab_masters.wc_final_firing'), 'sequence': 200, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Micro Blasting', 'workcenter_id': ref('lab_masters.wc_micro_blasting'), 'sequence': 210, 'time_mode': 'manual', 'time_cycle_manual': 1}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 220, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 230, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+            ]"/>
+        </record>
+
+        <!-- ================================================== ORTHODONTIC: HAWLEY'S -->
+        <record id="bom_hawleys" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_hawleys"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">OR-HAW</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_ortho_wire'), 'product_qty': 5}),
+                Command.create({'product_id': ref('lab_masters.mat_sep_medium'), 'product_qty': 0.5}),
+                Command.create({'product_id': ref('lab_masters.mat_cure_powder'), 'product_qty': 8}),
+                Command.create({'product_id': ref('lab_masters.mat_cure_liquid'), 'product_qty': 3.5}),
+                Command.create({'product_id': ref('lab_masters.mat_polishing_stone'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Ortho Model Preparation', 'workcenter_id': ref('lab_masters.wc_ortho_model_prep'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Wire Bending', 'workcenter_id': ref('lab_masters.wc_wire_bending'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 15}),
+                Command.create({'name': 'Sealing', 'workcenter_id': ref('lab_masters.wc_sealing'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Acrylisation', 'workcenter_id': ref('lab_masters.wc_acrylisation'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Ortho Trimming', 'workcenter_id': ref('lab_masters.wc_ortho_trimming'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Ortho Polishing', 'workcenter_id': ref('lab_masters.wc_ortho_polishing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+            ]"/>
+        </record>
+
+        <!-- ===================================================== ORTHODONTIC: ESSIX -->
+        <!-- A sheet pressed over the cast. Ten minutes of work, and the
+             cheapest thing the lab makes. -->
+        <record id="bom_essix" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_essix"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">OR-ESX</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_essix_sheet'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_polishing_stone'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Ortho Model Preparation', 'workcenter_id': ref('lab_masters.wc_ortho_model_prep'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Vacuum Pressing', 'workcenter_id': ref('lab_masters.wc_pressing_ortho'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Ortho Trimming', 'workcenter_id': ref('lab_masters.wc_ortho_trimming'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Ortho Polishing', 'workcenter_id': ref('lab_masters.wc_ortho_polishing'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+            ]"/>
+        </record>
+
+        <!-- ================================================ ORTHODONTIC: BANDED RME -->
+        <!-- 1,400 of the 1,646 this costs is one Hyrax screw. Nothing else the
+             lab makes has a single component worth 85% of it, which is why this
+             one is worth watching in the cockpit. -->
+        <record id="bom_banded_rme" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_banded_rme"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">OR-RME</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_hyrax_screw'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_molar_band'), 'product_qty': 2}),
+                Command.create({'product_id': ref('lab_masters.mat_solder_paste'), 'product_qty': 0.04}),
+                Command.create({'product_id': ref('lab_masters.mat_polishing_stone'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Ortho Model Preparation', 'workcenter_id': ref('lab_masters.wc_ortho_model_prep'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Wire Bending', 'workcenter_id': ref('lab_masters.wc_wire_bending'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Soldering and Banding', 'workcenter_id': ref('lab_masters.wc_soldering'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 6}),
+                Command.create({'name': 'Ortho Trimming', 'workcenter_id': ref('lab_masters.wc_ortho_trimming'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 8}),
+                Command.create({'name': 'Ortho Polishing', 'workcenter_id': ref('lab_masters.wc_ortho_polishing'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+            ]"/>
+        </record>
+
+        <!-- ================================================ ORTHODONTIC: TWIN BLOCK -->
+        <record id="bom_twin_block" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_twin_block"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">OR-TWB</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_ortho_wire'), 'product_qty': 4.38}),
+                Command.create({'product_id': ref('lab_masters.mat_pop'), 'product_qty': 100}),
+                Command.create({'product_id': ref('lab_masters.mat_modelling_wax'), 'product_qty': 3}),
+                Command.create({'product_id': ref('lab_masters.mat_cure_powder'), 'product_qty': 20}),
+                Command.create({'product_id': ref('lab_masters.mat_cure_liquid'), 'product_qty': 14}),
+                Command.create({'product_id': ref('lab_masters.mat_polishing_stone'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Ortho Model Preparation', 'workcenter_id': ref('lab_masters.wc_ortho_model_prep'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Articulation', 'workcenter_id': ref('lab_masters.wc_articulation'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Wire Bending', 'workcenter_id': ref('lab_masters.wc_wire_bending'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 15}),
+                Command.create({'name': 'Sealing', 'workcenter_id': ref('lab_masters.wc_sealing'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Acrylisation', 'workcenter_id': ref('lab_masters.wc_acrylisation'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Ortho Trimming', 'workcenter_id': ref('lab_masters.wc_ortho_trimming'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Ortho Polishing', 'workcenter_id': ref('lab_masters.wc_ortho_polishing'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+            ]"/>
+        </record>
+
+        <!-- ============================================================ ACRYLIC: RPD -->
+        <record id="bom_rpd" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_rpd"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">AC-RPD</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_ortho_wire'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_denture_teeth'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_modelling_wax'), 'product_qty': 5}),
+                Command.create({'product_id': ref('lab_masters.mat_pop'), 'product_qty': 200}),
+                Command.create({'product_id': ref('lab_masters.mat_cure_powder'), 'product_qty': 5}),
+                Command.create({'product_id': ref('lab_masters.mat_cure_liquid'), 'product_qty': 5}),
+                Command.create({'product_id': ref('lab_masters.mat_sanding'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_polishing_stone'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Acrylic Model Preparation', 'workcenter_id': ref('lab_masters.wc_acr_model_prep'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 15}),
+                Command.create({'name': 'Teeth Setting', 'workcenter_id': ref('lab_masters.wc_teeth_setting'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Acrylic Wax Up', 'workcenter_id': ref('lab_masters.wc_acr_wax_up'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Flasking', 'workcenter_id': ref('lab_masters.wc_flasking'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 20}),
+                Command.create({'name': 'Acrylic Dewaxing', 'workcenter_id': ref('lab_masters.wc_acr_dewaxing'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Material Packing', 'workcenter_id': ref('lab_masters.wc_packing_material'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Curing', 'workcenter_id': ref('lab_masters.wc_curing'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 45}),
+                Command.create({'name': 'Sand Blasting', 'workcenter_id': ref('lab_masters.wc_sand_blasting'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Acrylic Trimming', 'workcenter_id': ref('lab_masters.wc_acr_trimming'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 15}),
+                Command.create({'name': 'Acrylic Polishing', 'workcenter_id': ref('lab_masters.wc_acr_polishing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+            ]"/>
+        </record>
+
+        <!-- ============================================================ ACRYLIC: BPS -->
+        <!-- Injected, not packed: an Ivobase cartridge at 550, which is two
+             thirds of what this denture costs to make. -->
+        <record id="bom_bps" model="mrp.bom">
+            <field name="product_tmpl_id" ref="lab_masters.product_bps"/>
+            <field name="product_qty">1</field>
+            <field name="type">normal</field>
+            <field name="code">AC-BPS</field>
+            <field name="bom_line_ids" eval="[
+                Command.create({'product_id': ref('lab_masters.mat_bps_cartridge'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_denture_teeth'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_cure_powder'), 'product_qty': 3}),
+                Command.create({'product_id': ref('lab_masters.mat_modelling_wax'), 'product_qty': 10}),
+                Command.create({'product_id': ref('lab_masters.mat_pop'), 'product_qty': 200}),
+                Command.create({'product_id': ref('lab_masters.mat_sanding'), 'product_qty': 1}),
+                Command.create({'product_id': ref('lab_masters.mat_polishing_stone'), 'product_qty': 1}),
+            ]"/>
+            <field name="operation_ids" eval="[
+                Command.create({'name': 'Acrylic Model Preparation', 'workcenter_id': ref('lab_masters.wc_acr_model_prep'), 'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': 15}),
+                Command.create({'name': 'Teeth Setting', 'workcenter_id': ref('lab_masters.wc_teeth_setting'), 'sequence': 20, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Scanning', 'workcenter_id': ref('lab_masters.wc_scanning'), 'sequence': 30, 'time_mode': 'manual', 'time_cycle_manual': 3}),
+                Command.create({'name': 'Designing', 'workcenter_id': ref('lab_masters.wc_designing'), 'sequence': 40, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+                Command.create({'name': 'Acrylic Wax Up', 'workcenter_id': ref('lab_masters.wc_acr_wax_up'), 'sequence': 50, 'time_mode': 'manual', 'time_cycle_manual': 30}),
+                Command.create({'name': 'Flasking', 'workcenter_id': ref('lab_masters.wc_flasking'), 'sequence': 60, 'time_mode': 'manual', 'time_cycle_manual': 20}),
+                Command.create({'name': 'Acrylic Dewaxing', 'workcenter_id': ref('lab_masters.wc_acr_dewaxing'), 'sequence': 70, 'time_mode': 'manual', 'time_cycle_manual': 10}),
+                Command.create({'name': 'Curing', 'workcenter_id': ref('lab_masters.wc_curing'), 'sequence': 80, 'time_mode': 'manual', 'time_cycle_manual': 60}),
+                Command.create({'name': 'Acrylic Trimming', 'workcenter_id': ref('lab_masters.wc_acr_trimming'), 'sequence': 90, 'time_mode': 'manual', 'time_cycle_manual': 20}),
+                Command.create({'name': 'Acrylic Polishing', 'workcenter_id': ref('lab_masters.wc_acr_polishing'), 'sequence': 100, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Final Quality Control', 'workcenter_id': ref('lab_masters.wc_quality_control'), 'sequence': 110, 'time_mode': 'manual', 'time_cycle_manual': 5}),
+                Command.create({'name': 'Packing', 'workcenter_id': ref('lab_masters.wc_packing'), 'sequence': 120, 'time_mode': 'manual', 'time_cycle_manual': 2}),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>

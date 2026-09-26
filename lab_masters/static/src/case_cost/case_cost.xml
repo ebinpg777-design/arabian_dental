@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="lab_masters.CaseCostExplorer">
+        <div class="o_lab_case_cost">
+
+            <div class="o_lcc_head">
+                <div class="o_lcc_title">
+                    <h2>Case Cost</h2>
+                    <span class="o_lcc_sub">
+                        What a case costs to make, from the bill of materials the
+                        floor consumes against.
+                    </span>
+                </div>
+                <div class="o_lcc_counts" t-if="!state.loading">
+                    <div class="o_lcc_count">
+                        <span class="o_lcc_count_n" t-esc="state.data.totals.routes"/>
+                        <span class="o_lcc_count_l">routes</span>
+                    </div>
+                    <div class="o_lcc_count">
+                        <span class="o_lcc_count_n" t-esc="state.data.totals.benches"/>
+                        <span class="o_lcc_count_l">benches</span>
+                    </div>
+                    <div class="o_lcc_count o_lcc_warn" t-if="state.data.totals.uncosted">
+                        <span class="o_lcc_count_n" t-esc="state.data.totals.uncosted"/>
+                        <span class="o_lcc_count_l">still uncosted</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_lcc_sorts" t-if="!state.loading">
+                <button t-foreach="[
+                            {key: 'volume', label: 'By volume'},
+                            {key: 'margin', label: 'By margin'},
+                            {key: 'cost', label: 'By cost'},
+                            {key: 'name', label: 'By name'}]"
+                        t-as="sort" t-key="sort.key"
+                        class="o_lcc_chip"
+                        t-att-class="{o_lcc_chip_on: state.sort === sort.key}"
+                        t-on-click="() => this.setSort(sort.key)">
+                    <t t-esc="sort.label"/>
+                </button>
+            </div>
+
+            <div t-if="state.loading" class="o_lcc_loading">Reading the bills of materials…</div>
+
+            <div t-elif="!state.data.rows.length" class="o_lcc_empty">
+                No bill of materials yet. Once a product has one, its cost appears here.
+            </div>
+
+            <div t-else="" class="o_lcc_body">
+
+                <!-- The routes, one row each, sorted. -->
+                <div class="o_lcc_list">
+                    <div t-foreach="rows" t-as="row" t-key="row.bom_id"
+                         class="o_lcc_row"
+                         t-att-class="{o_lcc_row_on: row.bom_id === state.selected}"
+                         t-on-click="() => this.select(row.bom_id)">
+                        <div class="o_lcc_row_top">
+                            <span class="o_lcc_code" t-esc="row.code"/>
+                            <span class="o_lcc_name" t-esc="row.name"/>
+                            <span class="o_lcc_pct"
+                                  t-att-class="{o_lcc_pct_low: row.margin_pct &lt; 30,
+                                                o_lcc_pct_partial: !row.costed_fully}"
+                                  t-attf-title="{{row.costed_fully
+                                      ? 'Against the full cost, overheads included'
+                                      : 'Material and labour only: the lab has no overhead figure for this one'}}">
+                                <t t-esc="row.margin_pct.toFixed(0) + '%'"/>
+                                <t t-if="!row.costed_fully">*</t>
+                            </span>
+                        </div>
+                        <div class="o_lcc_bar">
+                            <t t-set="b" t-value="bands(row)"/>
+                            <div class="o_lcc_seg o_lcc_material"
+                                 t-attf-style="width: {{b.material}}%"
+                                 t-attf-title="Material {{money(row.material)}}"/>
+                            <div class="o_lcc_seg o_lcc_labour"
+                                 t-attf-style="width: {{b.labour}}%"
+                                 t-attf-title="Labour {{money(row.labour)}}"/>
+                            <div class="o_lcc_seg o_lcc_overhead"
+                                 t-attf-style="width: {{b.overhead}}%"
+                                 title="Overhead, from the lab's own sheet"/>
+                            <div class="o_lcc_seg o_lcc_margin"
+                                 t-attf-style="width: {{b.margin}}%"
+                                 title="What is left"/>
+                            <div class="o_lcc_seg o_lcc_loss"
+                                 t-attf-style="width: {{b.loss}}%"
+                                 title="Costs more than it sells for"/>
+                        </div>
+                        <div class="o_lcc_row_foot">
+                            <span t-esc="money(row.works)"/> to make
+                            <span class="o_lcc_dot">·</span>
+                            <span t-esc="money(row.price)"/> list
+                            <t t-if="row.sold_qty">
+                                <span class="o_lcc_dot">·</span>
+                                <span t-esc="row.sold_qty.toFixed(0)"/> sold this year
+                            </t>
+                        </div>
+                    </div>
+                    <p class="o_lcc_note">
+                        * Material and labour only. The lab's costing sheet has no
+                        overhead figure for these, so their margin is not
+                        comparable with the rest.
+                    </p>
+                </div>
+
+                <!-- The one that is open. -->
+                <div class="o_lcc_detail" t-if="current">
+                    <div class="o_lcc_detail_head">
+                        <div>
+                            <h3 t-esc="current.name"/>
+                            <span class="o_lcc_sub" t-esc="current.category"/>
+                        </div>
+                        <div class="o_lcc_detail_acts">
+                            <button class="btn btn-sm btn-secondary"
+                                    t-on-click="() => this.openBom(current.bom_id)">
+                                Bill of materials
+                            </button>
+                            <button class="btn btn-sm btn-secondary"
+                                    t-on-click="() => this.openProduct(current.product_id)">
+                                Product
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="o_lcc_figures">
+                        <div class="o_lcc_figure">
+                            <span class="o_lcc_fig_l">Material</span>
+                            <span class="o_lcc_fig_n" t-esc="money(current.material)"/>
+                        </div>
+                        <div class="o_lcc_figure">
+                            <span class="o_lcc_fig_l">Labour</span>
+                            <span class="o_lcc_fig_n" t-esc="money(current.labour)"/>
+                        </div>
+                        <div class="o_lcc_figure">
+                            <span class="o_lcc_fig_l">Works cost</span>
+                            <span class="o_lcc_fig_n o_lcc_fig_strong"
+                                  t-esc="money(current.works)"/>
+                        </div>
+                        <div class="o_lcc_figure" t-if="current.costed_fully">
+                            <span class="o_lcc_fig_l">Overhead (their sheet)</span>
+                            <span class="o_lcc_fig_n" t-esc="money(current.overhead)"/>
+                        </div>
+                        <div class="o_lcc_figure">
+                            <span class="o_lcc_fig_l">Full cost</span>
+                            <span class="o_lcc_fig_n o_lcc_fig_strong"
+                                  t-esc="money(current.full_cost)"/>
+                        </div>
+                        <div class="o_lcc_figure">
+                            <span class="o_lcc_fig_l">List price</span>
+                            <span class="o_lcc_fig_n" t-esc="money(current.price)"/>
+                        </div>
+                        <div class="o_lcc_figure">
+                            <span class="o_lcc_fig_l">Margin</span>
+                            <span class="o_lcc_fig_n"
+                                  t-att-class="{o_lcc_fig_loss: current.margin &lt; 0}">
+                                <t t-esc="money(current.margin)"/>
+                            </span>
+                        </div>
+                        <div class="o_lcc_figure">
+                            <span class="o_lcc_fig_l">Bench time</span>
+                            <span class="o_lcc_fig_n">
+                                <t t-esc="hours(current.minutes)"/> h
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Where the money and the minutes go, by department. -->
+                    <h4 class="o_lcc_h">By department</h4>
+                    <table class="o_lcc_table">
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th class="text-end">Material</th>
+                                <th class="text-end">Labour</th>
+                                <th class="text-end">Minutes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="current.departments" t-as="slot"
+                                t-key="slot.name">
+                                <td t-esc="slot.name"/>
+                                <td class="text-end" t-esc="money(slot.material)"/>
+                                <td class="text-end" t-esc="money(slot.labour)"/>
+                                <td class="text-end" t-esc="slot.minutes.toFixed(0)"/>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 class="o_lcc_h">What it consumes</h4>
+                    <table class="o_lcc_table">
+                        <thead>
+                            <tr>
+                                <th>Material</th>
+                                <th class="text-end">Quantity</th>
+                                <th class="text-end">Rate</th>
+                                <th class="text-end">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="current.materials" t-as="line"
+                                t-key="line_index">
+                                <td>
+                                    <span t-esc="line.name"/>
+                                    <span class="o_lcc_tag" t-if="line.department"
+                                          t-esc="line.department"/>
+                                </td>
+                                <td class="text-end">
+                                    <t t-esc="line.qty"/> <t t-esc="line.uom"/>
+                                </td>
+                                <td class="text-end" t-esc="money(line.rate)"/>
+                                <td class="text-end" t-esc="money(line.cost)"/>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 class="o_lcc_h">Where it is worked</h4>
+                    <table class="o_lcc_table">
+                        <thead>
+                            <tr>
+                                <th>Stage</th>
+                                <th>Bench</th>
+                                <th class="text-end">Minutes</th>
+                                <th class="text-end">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="current.stages" t-as="stage"
+                                t-key="stage_index">
+                                <td t-esc="stage.name"/>
+                                <td>
+                                    <span t-esc="stage.bench"/>
+                                    <span class="o_lcc_tag" t-if="stage.department"
+                                          t-esc="stage.department"/>
+                                </td>
+                                <td class="text-end" t-esc="stage.minutes"/>
+                                <td class="text-end">
+                                    <span t-if="stage.unattended" class="o_lcc_muted"
+                                          title="A machine hour: no wages, and the
+                                                 lab books the machine to overheads">
+                                        machine
+                                    </span>
+                                    <t t-else="" t-esc="money(stage.cost)"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

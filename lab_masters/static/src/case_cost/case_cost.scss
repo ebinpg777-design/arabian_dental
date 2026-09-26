@@ -1,0 +1,338 @@
+// The Case Cost Explorer.
+//
+// Two columns on a desk: the routes on the left, one of them open on the right.
+// The bar under each route is the whole point of the screen, so it gets the only
+// colour - the lab's red for what the case costs, grey for the overhead their
+// own sheet absorbs, green for what is left. Everything else stays quiet.
+//
+// Below 1100px the two columns stack, because a store manager checking a rate on
+// a phone still needs to read the list.
+
+$lab-red: #ed1c24;
+$lab-grey: #606a70;
+$lcc-material: #ed1c24;
+$lcc-labour: #f08c8f;
+$lcc-overhead: #c3c9cd;
+$lcc-margin: #2e7d64;
+$lcc-loss: #7a1216;
+
+.o_lab_case_cost {
+    padding: 1.25rem 1.5rem 3rem;
+    background: var(--o-bg, #f7f8fa);
+
+    .o_lcc_head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+
+        h2 {
+            margin: 0;
+            font-weight: 600;
+        }
+    }
+
+    .o_lcc_sub {
+        display: block;
+        color: #{$lab-grey};
+        font-size: 0.85rem;
+        max-width: 46ch;
+    }
+
+    .o_lcc_counts {
+        display: flex;
+        gap: 1.5rem;
+    }
+
+    .o_lcc_count {
+        text-align: right;
+
+        .o_lcc_count_n {
+            display: block;
+            font-size: 1.35rem;
+            font-weight: 600;
+            line-height: 1.1;
+        }
+
+        .o_lcc_count_l {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #{$lab-grey};
+        }
+
+        &.o_lcc_warn .o_lcc_count_n {
+            color: #{$lab-red};
+        }
+    }
+
+    .o_lcc_sorts {
+        display: flex;
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+    }
+
+    .o_lcc_chip {
+        border: 1px solid #dfe3e7;
+        background: #fff;
+        border-radius: 999px;
+        padding: 0.2rem 0.8rem;
+        font-size: 0.8rem;
+        color: #{$lab-grey};
+        cursor: pointer;
+
+        &:hover {
+            border-color: #{$lab-grey};
+        }
+
+        &.o_lcc_chip_on {
+            background: #{$lab-red};
+            border-color: #{$lab-red};
+            color: #fff;
+        }
+    }
+
+    .o_lcc_loading,
+    .o_lcc_empty {
+        padding: 4rem 1rem;
+        text-align: center;
+        color: #{$lab-grey};
+    }
+
+    .o_lcc_body {
+        display: grid;
+        grid-template-columns: minmax(320px, 420px) 1fr;
+        gap: 1.25rem;
+        align-items: start;
+    }
+
+    // ------------------------------------------------------------- the routes
+    .o_lcc_list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .o_lcc_row {
+        background: #fff;
+        border: 1px solid #e6e9ec;
+        border-left: 3px solid transparent;
+        border-radius: 6px;
+        padding: 0.6rem 0.75rem;
+        cursor: pointer;
+
+        &:hover {
+            border-color: #cfd5da;
+        }
+
+        &.o_lcc_row_on {
+            border-left-color: #{$lab-red};
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+    }
+
+    .o_lcc_row_top {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .o_lcc_code {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: #{$lab-grey};
+        background: #f1f3f5;
+        border-radius: 3px;
+        padding: 0.1rem 0.35rem;
+        flex: none;
+    }
+
+    .o_lcc_name {
+        flex: 1 1 auto;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .o_lcc_pct {
+        flex: none;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        color: #{$lcc-margin};
+
+        // Under forty per cent the lab is not covering its overheads on this
+        // one, whatever the bar looks like.
+        &.o_lcc_pct_low {
+            color: #{$lab-red};
+        }
+    }
+
+    .o_lcc_bar {
+        display: flex;
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #f1f3f5;
+    }
+
+    .o_lcc_seg {
+        height: 100%;
+
+        &.o_lcc_material { background: #{$lcc-material}; }
+        &.o_lcc_labour { background: #{$lcc-labour}; }
+        &.o_lcc_overhead { background: #{$lcc-overhead}; }
+        &.o_lcc_margin { background: #{$lcc-margin}; }
+        &.o_lcc_loss {
+            background: repeating-linear-gradient(
+                45deg, #{$lcc-loss}, #{$lcc-loss} 3px, #fff 3px, #fff 6px);
+        }
+    }
+
+    // Not a margin anybody should compare with the others: the lab has no
+    // overhead figure for this route.
+    .o_lcc_pct_partial {
+        color: #{$lab-grey} !important;
+    }
+
+    .o_lcc_fig_loss {
+        color: #{$lab-red};
+    }
+
+    .o_lcc_note {
+        margin: 0.75rem 0.25rem 0;
+        font-size: 0.75rem;
+        color: #{$lab-grey};
+    }
+
+    .o_lcc_row_foot {
+        margin-top: 0.4rem;
+        font-size: 0.78rem;
+        color: #{$lab-grey};
+    }
+
+    .o_lcc_dot {
+        margin: 0 0.35rem;
+        opacity: 0.6;
+    }
+
+    // ------------------------------------------------------------ the details
+    .o_lcc_detail {
+        background: #fff;
+        border: 1px solid #e6e9ec;
+        border-radius: 8px;
+        padding: 1rem 1.25rem 1.25rem;
+    }
+
+    .o_lcc_detail_head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        border-bottom: 1px solid #eef0f2;
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+
+        h3 {
+            margin: 0 0 0.15rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+    }
+
+    .o_lcc_detail_acts {
+        display: flex;
+        gap: 0.35rem;
+        flex: none;
+    }
+
+    .o_lcc_figures {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .o_lcc_figure {
+        .o_lcc_fig_l {
+            display: block;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #{$lab-grey};
+        }
+
+        .o_lcc_fig_n {
+            font-size: 1.05rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .o_lcc_fig_strong {
+            font-weight: 600;
+        }
+    }
+
+    .o_lcc_h {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #{$lab-grey};
+        margin: 1.25rem 0 0.4rem;
+    }
+
+    .o_lcc_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+
+        th {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #{$lab-grey};
+            font-weight: 600;
+            border-bottom: 1px solid #eef0f2;
+            padding: 0.3rem 0.4rem;
+        }
+
+        td {
+            padding: 0.3rem 0.4rem;
+            border-bottom: 1px solid #f4f6f7;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+
+    .o_lcc_tag {
+        display: inline-block;
+        margin-left: 0.4rem;
+        font-size: 0.68rem;
+        color: #{$lab-grey};
+        background: #f1f3f5;
+        border-radius: 3px;
+        padding: 0 0.3rem;
+    }
+
+    .o_lcc_muted {
+        color: #{$lab-grey};
+        font-style: italic;
+    }
+
+    @media (max-width: 1100px) {
+        .o_lcc_body {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 576px) {
+        padding: 0.75rem 1rem 2rem;
+
+        .o_lcc_counts {
+            gap: 1rem;
+        }
+    }
+}

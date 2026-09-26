@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        NAMING WHAT THE LAB ALREADY HAS, so that the data files after this one
+        can point at it.
+
+        Sixteen hundred products, twenty locations and two dozen categories came
+        across from Odoo 17 with no external identifiers, so `ref()` has nothing
+        to resolve. This runs first and writes those identifiers, matching on the
+        name the way a person would; see `models/masters_loader.py` for the list
+        and for what happens when a name matches twice or not at all.
+
+        It has to be the first file in the manifest: everything after it refers
+        to what it names.
+    -->
+    <data noupdate="1">
+        <function model="lab.masters.loader" name="tag_existing"/>
+    </data>
+</odoo>

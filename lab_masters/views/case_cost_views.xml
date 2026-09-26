@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_case_cost_explorer" model="ir.actions.client">
+        <field name="name">Case Cost</field>
+        <field name="tag">lab_case_cost_explorer</field>
+    </record>
+
+    <!-- The store's own screen: every consumption material with its rate, so a
+         rate that has gone stale can be corrected where it is noticed. The lab
+         buys shade by shade and consumes generically, which is why these are a
+         list of their own rather than a filter on sixteen hundred products. -->
+    <record id="action_raw_materials" model="ir.actions.act_window">
+        <field name="name">Consumption Materials</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form,kanban</field>
+        <!-- `eval`, not a plain field: a domain is stored as written and then
+             evaluated IN THE BROWSER, where py.js has no `ref`. Written as text
+             this action opens on an "Oops!" and nothing says why. With `eval`
+             the category id is resolved here, at load, and what reaches the
+             browser is a number. -->
+        <field name="domain"
+               eval="[('categ_id', 'child_of', ref('lab_masters.categ_raw_material'))]"/>
+        <field name="context">{'search_default_group_by_categ_id': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing here yet</p>
+            <p>These are the materials a bill of materials consumes, with the
+               rate each one costs. They come from the lab's own costing sheet.</p>
+        </field>
+    </record>
+
+    <record id="view_raw_material_list" model="ir.ui.view">
+        <field name="name">product.template.list.raw.material</field>
+        <field name="model">product.template</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <list string="Consumption Materials" editable="bottom">
+                <field name="default_code" string="Code"/>
+                <field name="name"/>
+                <field name="categ_id" string="Category"/>
+                <field name="uom_id" string="Unit"/>
+                <field name="standard_price" string="Cost per unit"/>
+                <field name="qty_available" string="On hand" readonly="1" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Bills of materials, with the code the costing sheet uses. -->
+    <record id="action_lab_boms" model="ir.actions.act_window">
+        <field name="name">Bills of Materials</field>
+        <field name="res_model">mrp.bom</field>
+        <field name="view_mode">list,form,kanban</field>
+    </record>
+
+</odoo>

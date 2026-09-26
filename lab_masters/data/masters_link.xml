@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        TYING THE SETUP TOGETHER, once every record it needs exists.
+
+        Three steps:
+
+        1. Each department gets the sub-store it draws material into, and the
+           main store gets WH/Stock. From here a consumption move knows which
+           cost centre it belongs to without anyone choosing one.
+        2. The lab's own product categories get a department each, so a purchase
+           of ceramic powder lands on Ceramic and a purchase of burrs on CAD/CAM.
+        3. Every bench gets the analytic distribution its department implies. A
+           data file creates records without firing an onchange, so this is the
+           only place the benches can get one.
+    -->
+    <data noupdate="1">
+        <function model="lab.masters.loader" name="link_departments"/>
+        <function model="lab.masters.loader" name="link_categories"/>
+        <function model="lab.masters.loader" name="stamp_workcenter_analytic"/>
+    </data>
+</odoo>

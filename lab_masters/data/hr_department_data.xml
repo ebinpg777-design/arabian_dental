@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        THE LAB, AS IT IS ACTUALLY ORGANISED.
+
+        Five functions, seventeen places under them. The production branch is the
+        one a case walks through, in the order the SOPs list it: work entry, wax
+        up, CAD/CAM, metal, ceramic, acrylic, orthodontic. The rest exist because
+        they spend money and someone has to answer for it.
+
+        noupdate: the day the lab renames a department or moves one under another,
+        an upgrade must not put this version back. (2026-09-25)
+    -->
+    <data noupdate="1">
+
+        <!-- ============================================================ PRODUCTION -->
+        <record id="dept_production" model="hr.department">
+            <field name="name">Production</field>
+            <field name="code">PRD</field>
+            <field name="dept_type">production</field>
+        </record>
+
+        <record id="dept_work_entry" model="hr.department">
+            <field name="name">Work Entry</field>
+            <field name="code">PRD-WE</field>
+            <field name="dept_type">production</field>
+            <field name="parent_id" ref="dept_production"/>
+            <field name="note">Receives every case, categorises it by product,
+                urgency and clinic, and allocates it to a department.</field>
+        </record>
+
+        <record id="dept_wax_up" model="hr.department">
+            <field name="name">Wax Up</field>
+            <field name="code">PRD-WX</field>
+            <field name="dept_type">production</field>
+            <field name="parent_id" ref="dept_production"/>
+            <field name="note">Model preparation, margin scooping, undercut
+                blocking, articulation; later spruing and investing.</field>
+        </record>
+
+        <record id="dept_cadcam" model="hr.department">
+            <field name="name">CAD/CAM</field>
+            <field name="code">PRD-CC</field>
+            <field name="dept_type">production</field>
+            <field name="parent_id" ref="dept_production"/>
+            <field name="note">Scanning, designing, resin printing, milling and
+                sintering.</field>
+        </record>
+
+        <record id="dept_metal" model="hr.department">
+            <field name="name">Metal</field>
+            <field name="code">PRD-MT</field>
+            <field name="dept_type">production</field>
+            <field name="parent_id" ref="dept_production"/>
+            <field name="note">Dewaxing, burn out, casting, quenching, sand
+                blasting, model preparation and polishing.</field>
+        </record>
+
+        <record id="dept_ceramic" model="hr.department">
+            <field name="name">Ceramic</field>
+            <field name="code">PRD-CR</field>
+            <field name="dept_type">production</field>
+            <field name="parent_id" ref="dept_production"/>
+            <field name="note">Opaque, build up and firing, trimming and carving,
+                staining, glazing and the final firing.</field>
+        </record>
+
+        <record id="dept_acrylic" model="hr.department">
+            <field name="name">Acrylic</field>
+            <field name="code">PRD-AC</field>
+            <field name="dept_type">production</field>
+            <field name="parent_id" ref="dept_production"/>
+            <field name="note">Dentures and partials: teeth setting, wax up,
+                flasking, curing, trimming and polishing.</field>
+        </record>
+
+        <record id="dept_ortho" model="hr.department">
+            <field name="name">Orthodontic</field>
+            <field name="code">PRD-OR</field>
+            <field name="dept_type">production</field>
+            <field name="parent_id" ref="dept_production"/>
+            <field name="note">Appliances: wire bending, acrylisation, soldering,
+                banding, trimming and polishing.</field>
+        </record>
+
+        <!-- =============================================================== QUALITY -->
+        <record id="dept_quality" model="hr.department">
+            <field name="name">Quality</field>
+            <field name="code">QLT</field>
+            <field name="dept_type">quality</field>
+        </record>
+
+        <record id="dept_qc" model="hr.department">
+            <field name="name">Quality Control</field>
+            <field name="code">QLT-QC</field>
+            <field name="dept_type">quality</field>
+            <field name="parent_id" ref="dept_quality"/>
+            <field name="note">The final parameter check before billing, and the
+                inspection at the end of each department's own stage.</field>
+        </record>
+
+        <!-- ============================================================ COMMERCIAL -->
+        <record id="dept_commercial" model="hr.department">
+            <field name="name">Commercial</field>
+            <field name="code">COM</field>
+            <field name="dept_type">commercial</field>
+        </record>
+
+        <record id="dept_field_sales" model="hr.department">
+            <field name="name">Field Sales</field>
+            <field name="code">COM-FS</field>
+            <field name="dept_type">commercial</field>
+            <field name="parent_id" ref="dept_commercial"/>
+            <field name="note">The executives on the routes: clinic visits, case
+                collection, cash collection and delivery.</field>
+        </record>
+
+        <record id="dept_marketing" model="hr.department">
+            <field name="name">Marketing</field>
+            <field name="code">COM-MK</field>
+            <field name="dept_type">commercial</field>
+            <field name="parent_id" ref="dept_commercial"/>
+        </record>
+
+        <record id="dept_customer_care" model="hr.department">
+            <field name="name">Customer Care</field>
+            <field name="code">COM-CC</field>
+            <field name="dept_type">commercial</field>
+            <field name="parent_id" ref="dept_commercial"/>
+            <field name="note">The call desk that completes a case's details with
+                the doctor before it reaches a bench.</field>
+        </record>
+
+        <!-- ========================================================== SUPPLY CHAIN -->
+        <record id="dept_supply" model="hr.department">
+            <field name="name">Supply Chain</field>
+            <field name="code">SCM</field>
+            <field name="dept_type">supply</field>
+        </record>
+
+        <record id="dept_store" model="hr.department">
+            <field name="name">Main Store</field>
+            <field name="code">SCM-ST</field>
+            <field name="dept_type">supply</field>
+            <field name="parent_id" ref="dept_supply"/>
+            <field name="note">Holds every raw material and issues it to the
+                department sub-stores against a material request.</field>
+        </record>
+
+        <record id="dept_purchase" model="hr.department">
+            <field name="name">Purchase</field>
+            <field name="code">SCM-PU</field>
+            <field name="dept_type">supply</field>
+            <field name="parent_id" ref="dept_supply"/>
+        </record>
+
+        <record id="dept_packing" model="hr.department">
+            <field name="name">Packing</field>
+            <field name="code">SCM-PK</field>
+            <field name="dept_type">supply</field>
+            <field name="parent_id" ref="dept_supply"/>
+        </record>
+
+        <record id="dept_logistics" model="hr.department">
+            <field name="name">Logistics</field>
+            <field name="code">SCM-LG</field>
+            <field name="dept_type">supply</field>
+            <field name="parent_id" ref="dept_supply"/>
+            <field name="note">Dispatch by route, courier and transport, and the
+                receipt of everything coming back.</field>
+        </record>
+
+        <!-- ======================================================== ADMINISTRATION -->
+        <record id="dept_admin" model="hr.department">
+            <field name="name">Administration</field>
+            <field name="code">ADM</field>
+            <field name="dept_type">admin</field>
+        </record>
+
+        <record id="dept_accounts" model="hr.department">
+            <field name="name">Accounts &amp; Finance</field>
+            <field name="code">ADM-AC</field>
+            <field name="dept_type">admin</field>
+            <field name="parent_id" ref="dept_admin"/>
+        </record>
+
+        <record id="dept_hr" model="hr.department">
+            <field name="name">Human Resources</field>
+            <field name="code">ADM-HR</field>
+            <field name="dept_type">admin</field>
+            <field name="parent_id" ref="dept_admin"/>
+        </record>
+
+        <record id="dept_it" model="hr.department">
+            <field name="name">IT &amp; Systems</field>
+            <field name="code">ADM-IT</field>
+            <field name="dept_type">admin</field>
+            <field name="parent_id" ref="dept_admin"/>
+        </record>
+
+    </data>
+</odoo>
