@@ -1238,6 +1238,25 @@ class MigrationBackend(models.Model):
     _PARAM_DENY_PREFIX = ('database.', 'web.base')
     _PARAM_DENY_KEYS = {'report.url'}
 
+    def _param_module_is_absent(self, key):
+        """Does this key belong to a module this database has not installed?
+
+        A parameter is named `<module>.<something>` by convention. Where that
+        module exists and is installed, the setting means something here and is
+        worth carrying. Where it is not installed, the setting means nothing -
+        and copying it leaves a row with no external id that the module's own
+        data file will collide with the day somebody installs it.
+
+        A prefix that is not a module at all (`database.`, `report.`) is not
+        this rule's business and is left to the deny lists.
+        """
+        prefix = (key or '').split('.', 1)[0]
+        if not prefix:
+            return False
+        module = self.env['ir.module.module'].sudo().search(
+            [('name', '=', prefix)], limit=1)
+        return bool(module) and module.state != 'installed'
+
     def _sync_configuration(self):
         """Sync system-level configuration: number sequences (continue the v17
         numbering), system parameters (safe subset) and decimal precision."""
@@ -1290,10 +1309,21 @@ class MigrationBackend(models.Model):
             # 2) System parameters — safe business subset.
             ICP = self.env['ir.config_parameter'].sudo()
             n_p = 0
+            n_skip = 0
             for r in self._fetch(cur, 'ir_config_parameter') or []:
                 key = r.get('key')
                 if (not key or key in self._PARAM_DENY_KEYS
                         or any(key.startswith(p) for p in self._PARAM_DENY_PREFIX)):
+                    continue
+                # A setting for a module this database has not installed is
+                # meaningless AND a landmine. `set_param` writes a row with no
+                # external id; when the module is later installed, its own data
+                # file tries to CREATE the same key and dies on the unique
+                # index - "duplicate key ... crm.pls_fields already exists" -
+                # taking the whole install down with it. Two of these stopped
+                # the lab installing CRM. (2026-09-26)
+                if self._param_module_is_absent(key):
+                    n_skip += 1
                     continue
                 try:
                     with self.env.cr.savepoint():
@@ -1301,7 +1331,8 @@ class MigrationBackend(models.Model):
                     n_p += 1
                 except Exception as e:
                     _logger.warning("config param %s: %s", key, e)
-            out.append("System parameters      : %d set" % n_p)
+            out.append("System parameters      : %d set%s" % (
+                n_p, (", %d skipped (module not installed)" % n_skip) if n_skip else ""))
 
             # 3) Decimal precision by name (some were renamed in v19, e.g.
             #    "Product Unit of Measure" -> "Product Unit"; keep quantities at the
