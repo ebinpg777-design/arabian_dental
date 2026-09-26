@@ -97,7 +97,7 @@ body.o_lab_wall_dark {
         }
 
         &::after {
-            background-image: url("/lab_home/static/src/img/wordmark-white.png");
+            background-image: url("/lab_home/static/src/img/wordmark-white.png?v=2");
             opacity: 0.92;
         }
     }
@@ -111,18 +111,33 @@ body.o_lab_wall_dark {
     position: relative;
 
     // Full strength, and the box is the artwork's own proportion: 1500x193 is
-    // 7.77:1, so 480x62 leaves no padding for `contain` to shrink into. It was
-    // drawing 38 pixels tall inside a 64-pixel box - the rest was the export's
-    // padding - which put "Since 2000" at five and a half pixels.
-    // (client, 2026-09-24)
+    // 7.77:1, so 340x44 leaves no padding for `contain` to shrink into. An
+    // earlier box was 64 tall with the artwork drawing 38 inside it - the rest
+    // was the export's padding - which put "Since 2000" at five and a half
+    // pixels. Matching the ratio is what stops that happening again at any
+    // size. (client, 2026-09-24)
+    //
+    // 340x44, down from 480x62: the plate was taking a third of the width of
+    // the screen. "Since 2000" is 17.6% of the artwork's height, so it draws
+    // about 8 pixels here - small, but it is a tagline and not a thing anybody
+    // reads twice. Below about 40 tall it stops being legible at all, and the
+    // lock-up would need a version with the tagline removed rather than a
+    // smaller box. (client, 2026-09-25)
+    //
+    // `?v=` because a module's static file is served with a long cache life and
+    // the URL alone never changes. Replacing the artwork on disk left every
+    // browser that had already loaded the screen showing the old plate - white
+    // capitals and a location line instead of the lock-up - and a hard refresh
+    // is not a fix anybody can be asked to remember. Bump the number whenever
+    // the artwork changes. (client, 2026-09-25)
     &::after {
         content: "";
         position: fixed;
         left: 2rem;
         bottom: 1.5rem;
-        width: 480px;
-        height: 62px;
-        background: url("/lab_home/static/src/img/wordmark.png") no-repeat left bottom / contain;
+        width: 340px;
+        height: 44px;
+        background: url("/lab_home/static/src/img/wordmark.png?v=2") no-repeat left bottom / contain;
         opacity: 1;
         pointer-events: none;
     }
