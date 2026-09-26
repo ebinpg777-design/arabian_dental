@@ -268,3 +268,55 @@ class MrpProductionTracking(models.Model):
             'type': 'ir.actions.act_window', 'res_model': 'res.partner',
             'res_id': self.clinic_id.id, 'view_mode': 'form',
         }
+
+
+class MrpProductionCaseColumns(models.Model):
+    """The case behind the job, and every bench it passes through.
+
+    A list of manufacturing orders named by product and reference is unreadable
+    on this floor: the lab says a job out loud by its sales order, its doctor
+    and its patient. The same four columns the Work Orders list already carries,
+    on the jobs themselves. (client, 2026-09-25)
+    """
+    _inherit = 'mrp.production'
+
+    # No customer field here: `MrpProductionTracking.clinic_id` above already
+    # computes `sale_id.partner_id`, and two fields with one meaning is a trap
+    # in a filter and worse in an export.
+    #
+    # Not stored: a related over a table this size is a migration, and a list
+    # reads these rather than sorts by them. Same reasoning as the work order's
+    # own case columns.
+    patient = fields.Char(
+        related='sale_id.patient', string='Patient', readonly=True)
+    order_date = fields.Date(
+        compute='_compute_order_date', string='Ordered',
+        help="The day the case was ordered, in the lab's own time.")
+
+    @api.depends('sale_id.date_order')
+    def _compute_order_date(self):
+        # The DAY, in the lab's time, not the order's UTC timestamp: the list is
+        # read for which day a case came in, and a midnight-UTC boundary puts a
+        # 9pm order on tomorrow's date.
+        for mo in self:
+            when = mo.sale_id.date_order if 'sale_id' in mo._fields else False
+            mo.order_date = self.env['lab.station']._lab_time(when).date() \
+                if when else False
+
+    # EVERY bench this job passes through, so the list can be filtered by one.
+    # A many2many and not "the bench it is at now": the question the floor asks
+    # is "how many jobs are to be done or have been done in Ceramic", and a job
+    # routed Wax Up -> CAD/CAM -> Metal -> Ceramic is all four departments'
+    # business in turn. Stored, because a search panel filters and counts in
+    # SQL and cannot do either through a computed field that is not there.
+    workcenter_ids = fields.Many2many(
+        'mrp.workcenter', 'mrp_production_workcenter_rel',
+        'production_id', 'workcenter_id',
+        string='Work Centres', compute='_compute_workcenter_ids',
+        store=True, readonly=True,
+        help="Every work centre this job has an operation at.")
+
+    @api.depends('workorder_ids.workcenter_id')
+    def _compute_workcenter_ids(self):
+        for mo in self:
+            mo.workcenter_ids = mo.workorder_ids.workcenter_id

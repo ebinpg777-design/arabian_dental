@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- THE CASE, on the job. A list of manufacturing orders named by product
+         and reference cannot be read on this floor: the lab says a job out loud
+         by its sales order, its doctor and its patient. The same columns the
+         Work Orders list already carries. (client, 2026-09-25) -->
+    <record id="view_mrp_production_list_case_columns" model="ir.ui.view">
+        <field name="name">mrp.production.list.case.columns</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="product_id" position="before">
+                <field name="order_date" string="SO Date" optional="show"/>
+                <field name="patient" string="Patient" optional="show"/>
+                <field name="clinic_id" string="Customer" optional="show"/>
+            </field>
+
+            <!-- Off, not deleted. `optional="hide"` takes them out of the list
+                 the floor reads while leaving them in the column picker, so a
+                 planner who wants the start date back has it in one click and
+                 nobody has to edit a view to get it. -->
+            <field name="date_start" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </field>
+            <field name="activity_ids" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </field>
+            <field name="components_availability" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </field>
+        </field>
+    </record>
+
+    <!-- WHICH BENCH, counted in JOBS. The Work Orders panel counts operations,
+         which is the right number for a bench's queue and the wrong one for
+         "how many cases is Ceramic holding" - a case with three ceramic steps
+         is one job and three operations. Counting on the job list answers the
+         second question. (client, 2026-09-25) -->
+    <record id="view_mrp_production_search_workcentre_panel" model="ir.ui.view">
+        <field name="name">mrp.production.search.workcentre.panel</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.view_mrp_production_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <searchpanel>
+                    <field name="workcenter_ids" string="Work Centre"
+                           icon="fa-industry" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+</odoo>

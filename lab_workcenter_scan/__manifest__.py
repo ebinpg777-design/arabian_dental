@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Work Centre Scanning',
-    'version': '19.0.3.14.0',
+    'version': '19.0.3.14.1',
     'summary': 'Move a work order to another work centre by scanning the station QR code',
     'description': """
 Work Centre Scanning
@@ -39,6 +39,7 @@ typing on a shared terminal.
         'views/mrp_workcenter_views.xml',
         'views/work_target_views.xml',
         'views/mrp_workorder_views.xml',
+        'views/mrp_production_list_views.xml',
         'views/station_views.xml',
         'views/flow_views.xml',
         'views/tracking_views.xml',
