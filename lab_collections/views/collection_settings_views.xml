@@ -48,6 +48,28 @@
                             </div>
                         </div>
                     </setting>
+                    <!-- Which figure the percentage divides by. Two readings of
+                         the same money; the screen shows both figures either way
+                         and leads with this one. -->
+                    <setting id="lab_collection_basis_setting"
+                             string="Collection % Against"
+                             help="What the collection percentage on the Collections
+                                   screen and its PDF divides the receipts by.">
+                        <div class="content-group">
+                            <div class="mt16">
+                                <field name="lab_collection_basis" widget="radio"
+                                       class="o_light_label"/>
+                            </div>
+                            <div class="text-muted mt8">
+                                Last period's invoicing is the lab's own framing: last
+                                month's bills against this month's money. The opening
+                                receivable reads the same money against everything that
+                                was owed on the day before the receipts period began.
+                                The screen shows both figures either way, and can be
+                                flipped to the other reading for one look.
+                            </div>
+                        </div>
+                    </setting>
                 </block>
             </xpath>
         </field>

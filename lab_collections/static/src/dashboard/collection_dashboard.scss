@@ -206,3 +206,89 @@
         &:hover { opacity: 1; color: #1f3a5f; } }
     .o_coll_boards_note { font-size: .74rem; color: var(--muted, #6c757d); }
 }
+
+// ---------------------------------------------------------------------------
+// The opening receivable, the basis switch, the movement strip - and the whole
+// screen on a phone. (client, 2026-09-27)
+// ---------------------------------------------------------------------------
+.o_coll_dash {
+    // The page no longer scrolls sideways as a whole: the table has a scroller
+    // of its own below, so the header and the cards stay put on a narrow screen
+    // and only the columns move.
+    .o_coll_body { overflow-x: hidden; }
+
+    .o_coll_kpi.o_coll_kpi_opening .o_coll_kpi_value { color: #1f3a5f; }
+
+    // The lab-wide sparkline beside the headline's label, no taller than it.
+    .o_coll_headline_spark { display: inline-flex; align-items: flex-end; gap: 2px;
+        height: 12px; margin-left: .5rem; vertical-align: bottom;
+        .o_coll_spark_bar { width: 4px; border-radius: 1px; min-height: 2px; opacity: .8; } }
+
+    .o_coll_basis .btn { white-space: nowrap; }
+    .o_coll_default_mark { font-size: .6em; opacity: .75; vertical-align: super; margin-left: .2rem; }
+
+    // ---------------------------------------------------------------- movement
+    .o_coll_flow { border: 1px solid var(--border-color, #dee2e6); border-radius: .5rem;
+        padding: .6rem .9rem; background: var(--bs-body-bg, #fff);
+        .o_coll_flow_title { font-size: .7rem; text-transform: uppercase; letter-spacing: .4px;
+            color: var(--muted, #6c757d); margin-bottom: .45rem; }
+        .o_coll_flow_row { display: flex; align-items: stretch; gap: .5rem; flex-wrap: wrap; }
+        .o_coll_flow_cell { flex: 1 1 130px; min-width: 0; display: flex; flex-direction: column;
+            padding: .35rem .6rem; border-radius: .4rem; background: #f6f8fa; }
+        .o_coll_flow_l { font-size: .66rem; text-transform: uppercase; letter-spacing: .4px;
+            color: var(--muted, #6c757d); }
+        .o_coll_flow_v { font-size: 1.05rem; font-weight: 700; color: #1f3a5f; white-space: nowrap; }
+        .o_coll_flow_s { font-size: .68rem; color: var(--muted, #6c757d); }
+        .o_coll_flow_op { align-self: center; flex: 0 0 auto; font-size: 1.1rem; font-weight: 700;
+            color: var(--muted, #6c757d); }
+        .o_coll_flow_close { background: #eef2f7; box-shadow: inset 0 0 0 1px rgba(31, 58, 95, .15); }
+        .o_coll_flow_other .o_coll_flow_v { color: #b45309; }
+    }
+
+    // ---------------------------------------------------------------- the table scrolls
+    // Ten columns do not fit a phone and must not be squeezed until they lie: the
+    // table keeps its width and scrolls sideways inside its own box, with the first
+    // column pinned so a route is never read against the wrong number.
+    .o_coll_table_wrap { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+    .o_coll_table { min-width: 1000px; margin-bottom: 0;
+        thead th:first-child, tbody td:first-child, tfoot td:first-child {
+            position: sticky; left: 0; z-index: 2; background: var(--bs-body-bg, #fff);
+            box-shadow: 1px 0 0 var(--border-color, #dee2e6); }
+        .o_coll_row:hover > td:first-child { background: #f6f8fa; }
+        .o_coll_row.o_coll_row_open > td:first-child { background: #eef2f7; }
+        .o_coll_total_row > td:first-child { background: #f6f8fa; }
+        // The breakdown spans every column; pinning it would drag the whole
+        // panel along as the user scrolls.
+        .o_coll_detail_row > td:first-child { position: static; box-shadow: none; }
+    }
+
+    // ---------------------------------------------------------------- narrow screens
+    @media (max-width: 991.98px) {
+        .o_coll_table { min-width: 900px; }
+    }
+    @media (max-width: 767.98px) {
+        .o_coll_head { padding-left: .75rem; padding-right: .75rem; gap: .75rem;
+            > div:last-child { width: 100%; } }
+        .o_coll_head h2 { font-size: 1.25rem; }
+        // A period picker takes the full width, its two dates sharing it.
+        .o_coll_period { flex: 1 1 100%;
+            > div { width: 100%; }
+            input { max-width: none; flex: 1 1 0; min-width: 0; } }
+        .o_coll_basis .btn-group { display: flex; .btn { flex: 1 1 0; } }
+        .o_coll_body { padding-left: .75rem; padding-right: .75rem; }
+        .o_coll_kpi { flex: 1 1 calc(50% - .375rem); padding: .5rem .7rem;
+            .o_coll_kpi_value { font-size: 1.1rem; } }
+        .o_coll_board { flex: 1 1 100%; }
+        .o_coll_search { flex: 1 1 100%; input { width: 100%; } }
+        .o_coll_flow .o_coll_flow_cell { flex: 1 1 calc(50% - 1.25rem); }
+        .o_coll_detail { gap: 1rem; }
+        .o_coll_detail_row > td { padding: .5rem; }
+    }
+    @media (max-width: 575.98px) {
+        .o_coll_kpi { flex: 1 1 100%; }
+        .o_coll_kpi .o_coll_flag { display: block; margin: .15rem 0 0; width: fit-content; }
+        .o_coll_flow .o_coll_flow_cell { flex: 1 1 100%; }
+        .o_coll_flow .o_coll_flow_op { align-self: flex-start; padding-left: .6rem; }
+        .o_coll_age_legend { gap: .5rem .8rem; }
+    }
+}

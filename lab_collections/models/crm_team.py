@@ -10,6 +10,21 @@ class ResCompany(models.Model):
         help="The share of a month's invoicing the lab expects to collect. Used for "
              "every Sales Route that does not set a target of its own.")
 
+    # What the collection percentage is read AGAINST. The lab's own framing is
+    # "last month's invoicing, this month's receipts"; a credit controller's is
+    # "of everything that was owed when the month opened, how much came in".
+    # Both are true readings of the same money and give different numbers, so
+    # the company says which one its screens and its PDF lead with; the screen
+    # can still be flipped to the other for one reading. Kept in step with
+    # BASES in collection_performance.py. (client, 2026-09-27)
+    lab_collection_basis = fields.Selection(
+        [('sales', "Last period's invoicing"),
+         ('opening', 'Open receivable at the start of the receipts period')],
+        string='Collection % Against', default='sales', required=True,
+        help="What the collection percentage divides the receipts by: the "
+             "invoicing of the sales period (the default), or everything that "
+             "was still open on the day before the receipts period began.")
+
 
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
@@ -17,6 +32,9 @@ class ResConfigSettings(models.TransientModel):
     lab_collection_target = fields.Float(
         related='company_id.lab_collection_target', readonly=False,
         string='Collection Target (%)')
+    lab_collection_basis = fields.Selection(
+        related='company_id.lab_collection_basis', readonly=False,
+        string='Collection % Against')
 
 
 class ResUsers(models.Model):

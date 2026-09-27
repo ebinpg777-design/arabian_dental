@@ -1,6 +1,6 @@
 {
     'name': 'Collections by Sales Route',
-    'version': '19.0.2.13.0',
+    'version': '19.0.2.14.0',
     'summary': 'Route-wise payment tracking and a collection-performance dashboard',
     'description': """
 Collections by Sales Route

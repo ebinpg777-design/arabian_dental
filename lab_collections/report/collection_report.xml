@@ -33,13 +33,16 @@
                         <tr>
                             <td class="ocl-card"><div class="oi-label">Invoiced in period</div>
                                 <div class="ocl-card-value" t-out="money(totals['sales'])"/></td>
+                            <td class="ocl-card"><div class="oi-label">Open at start</div>
+                                <div class="ocl-card-value" t-out="money(totals['opening'])"/>
+                                <div class="ocl-card-note">as of <t t-out="opening_date"/></div></td>
                             <td class="ocl-card"><div class="oi-label">Collected</div>
                                 <div class="ocl-card-value" t-out="money(totals['collected'])"/></td>
                             <td class="ocl-card ocl-card-due"><div class="oi-label">Still to collect</div>
                                 <div class="ocl-card-value" t-out="money(totals['pending'])"/></td>
                             <td class="ocl-card"><div class="oi-label">Collection</div>
                                 <div class="ocl-card-value"><t t-out="totals['percent']"/>%</div>
-                                <div class="ocl-card-note">target <t t-out="target"/>%</div></td>
+                                <div class="ocl-card-note"><t t-out="basis_note"/> · target <t t-out="target"/>%</div></td>
                         </tr>
                     </table>
 
@@ -88,13 +91,14 @@
                         <thead>
                             <tr>
                                 <th><t t-out="group_label"/></th>
-                                <th class="num" style="width:8%">Invoices</th>
-                                <th class="num" style="width:15%">Invoiced</th>
-                                <th class="num" style="width:15%">Collected</th>
-                                <th class="num" style="width:15%">Still to collect</th>
-                                <th class="num" style="width:7%">%</th>
-                                <th class="num" style="width:14%">Sales target</th>
-                                <th class="num" style="width:14%">Overdue 30d+</th>
+                                <th class="num" style="width:5%">Invoices</th>
+                                <th class="num" style="width:12%">Invoiced</th>
+                                <th class="num" style="width:12%">Open at start</th>
+                                <th class="num" style="width:12%">Collected</th>
+                                <th class="num" style="width:12%">Still to collect</th>
+                                <th class="num" style="width:6%">%</th>
+                                <th class="num" style="width:10%">Sales target</th>
+                                <th class="num" style="width:11%">Overdue 30d+</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -103,6 +107,7 @@
                                     t-if="row.get('excluded')" class="ocl-unranked"> · not ranked</span></td>
                                 <td class="num"><t t-out="row['invoices']"/></td>
                                 <td class="num"><t t-out="money(row['sales'])"/></td>
+                                <td class="num"><t t-out="money(row['opening'])"/></td>
                                 <td class="num"><t t-out="money(row['collected'])"/></td>
                                 <td t-attf-class="num {{'ocl-hot' if row['pending'] > 0 else ''}}"
                                     t-out="money(row['pending'])"/>
@@ -118,12 +123,13 @@
                                     t-out="money(row['overdue'])"/>
                             </tr>
                             <tr t-if="not rows">
-                                <td colspan="8" class="ocl-empty">Nothing invoiced or collected in these periods.</td>
+                                <td colspan="9" class="ocl-empty">Nothing invoiced or collected in these periods.</td>
                             </tr>
                             <tr class="ocl-total" t-if="rows">
                                 <td>TOTAL</td>
                                 <td class="num" t-out="totals['invoices']"/>
                                 <td class="num" t-out="money(totals['sales'])"/>
+                                <td class="num" t-out="money(totals['opening'])"/>
                                 <td class="num" t-out="money(totals['collected'])"/>
                                 <td class="num" t-out="money(totals['pending'])"/>
                                 <td class="num"><t t-out="totals['percent']"/>%</td>

@@ -42,6 +42,21 @@
                                            onChange="(v) => this.onDateChange('pay_to', v)"/>
                         </div>
                     </div>
+                    <!-- What the percentage divides by. The company's default is
+                         starred; "Current" puts it back along with the periods. -->
+                    <div class="o_coll_period o_coll_basis" t-if="state.data">
+                        <span>Collection against</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button t-foreach="state.data.bases" t-as="b" t-key="b[0]"
+                                    type="button" class="btn"
+                                    t-att-class="basis === b[0] ? 'btn-primary' : 'btn-outline-primary'"
+                                    t-att-title="b[2] + (isDefaultBasis(b[0]) ? ' (company default)' : '')"
+                                    t-on-click="() => this.setBasis(b[0])">
+                                <t t-esc="b[1]"/>
+                                <i t-if="isDefaultBasis(b[0])" class="fa fa-star o_coll_default_mark"/>
+                            </button>
+                        </div>
+                    </div>
                     <div class="btn-group btn-group-sm" role="group">
                         <button class="btn btn-outline-secondary" title="Previous month"
                                 t-on-click="() => this.shiftPeriod(-1)">
@@ -85,22 +100,49 @@
                             <div class="o_coll_kpi_value o_coll_good" t-esc="money(state.data.totals.collected)"/>
                             <div class="o_coll_kpi_sub"><t t-esc="state.data.totals.receipts"/> receipts</div>
                         </div>
+                        <!-- The book the day before the receipts began: the ledger
+                             closed at that date, both sides. No drill: the open-item
+                             list is today's, and a click that opened the wrong list
+                             would be worse than none. -->
+                        <div class="o_coll_kpi o_coll_kpi_opening"
+                             t-attf-title="Every rupee still owed on {{ state.data.opening_date }}, the day before the receipts period begins">
+                            <div class="o_coll_kpi_label">Open at start</div>
+                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.opening)"/>
+                            <div class="o_coll_kpi_sub">unpaid as of <t t-esc="state.data.opening_date"/></div>
+                        </div>
                         <div class="o_coll_kpi o_coll_kpi_pct">
-                            <div class="o_coll_kpi_label">Collection</div>
+                            <div class="o_coll_kpi_label">
+                                Collection
+                                <span class="o_coll_headline_spark" t-if="state.headline.length"
+                                      title="The lab as a whole, month by month: received ÷ invoiced">
+                                    <t t-foreach="state.headline" t-as="pt" t-key="pt.label">
+                                        <span t-att-class="'o_coll_spark_bar ' + barClass(pt.percent, state.data.totals.target)"
+                                              t-attf-style="height: {{ sparkHeight(pt, state.headline) }}%;"
+                                              t-attf-title="{{ pt.label }}: {{ pt.percent }}%"/>
+                                    </t>
+                                </span>
+                            </div>
                             <div class="o_coll_kpi_value">
                                 <t t-esc="state.data.totals.percent"/>%
                                 <small t-att-class="flagClass(state.data.totals.percent, state.data.totals.target)"
                                        t-esc="targetGap(state.data.totals.percent, state.data.totals.target)"/>
                             </div>
                             <div class="o_coll_kpi_sub">
-                                of what was invoiced · target <t t-esc="state.data.totals.target"/>%
+                                <t t-esc="basisNote"/> · target <t t-esc="state.data.totals.target"/>%
                             </div>
                         </div>
                         <div class="o_coll_kpi o_coll_clickable"
                              t-on-click="() => this.drill('open', null)">
                             <div class="o_coll_kpi_label">Open receivable <i class="fa fa-external-link ms-1 o_coll_hint"/></div>
                             <div class="o_coll_kpi_value" t-esc="money(state.data.totals.open)"/>
-                            <div class="o_coll_kpi_sub">unpaid, all periods</div>
+                            <div class="o_coll_kpi_sub">
+                                unpaid, all periods
+                                <t t-if="state.data.dso">
+                                    · <b t-esc="state.data.dso"/> days of sales
+                                    <i class="fa fa-question-circle-o o_coll_hint"
+                                       title="Days sales outstanding: the open book divided by the last 90 days' average daily invoicing. Rising means the lab is being paid slower, not just selling more."/>
+                                </t>
+                            </div>
                         </div>
                         <div class="o_coll_kpi o_coll_kpi_pending o_coll_clickable"
                              t-on-click="() => this.drill('overdue', null)">
@@ -132,6 +174,54 @@
                                     <strong class="ms-1" t-esc="shortMoney(b.amount)"/>
                                 </span>
                             </t>
+                        </div>
+                    </div>
+
+                    <!-- Where the receivable went over the receipts period. The two
+                         bases the switch can read are the two ends of this line, so
+                         it is the picture that reconciles them. -->
+                    <div class="o_coll_flow mb-3" t-if="movement">
+                        <div class="o_coll_flow_title">
+                            Receivable movement ·
+                            <t t-esc="movement.from_date"/> – <t t-esc="movement.closing_date"/>
+                            <span t-if="state.data.scope_label" class="text-muted"> · whole lab</span>
+                        </div>
+                        <div class="o_coll_flow_row">
+                            <div class="o_coll_flow_cell">
+                                <span class="o_coll_flow_l">Open at start</span>
+                                <span class="o_coll_flow_v" t-esc="shortMoney(movement.opening)"/>
+                                <span class="o_coll_flow_s">as of <t t-esc="movement.opening_date"/></span>
+                            </div>
+                            <span class="o_coll_flow_op">+</span>
+                            <div class="o_coll_flow_cell">
+                                <span class="o_coll_flow_l">Invoiced</span>
+                                <span class="o_coll_flow_v" t-esc="shortMoney(movement.billed)"/>
+                                <span class="o_coll_flow_s">in the receipts period</span>
+                            </div>
+                            <span class="o_coll_flow_op">−</span>
+                            <div class="o_coll_flow_cell">
+                                <span class="o_coll_flow_l">Received</span>
+                                <span class="o_coll_flow_v o_coll_good" t-esc="shortMoney(movement.received)"/>
+                                <span class="o_coll_flow_s"><t t-esc="movement.receipts"/> receipts</span>
+                            </div>
+                            <t t-if="movement.other">
+                                <span class="o_coll_flow_op" t-esc="movement.other > 0 ? '+' : '−'"/>
+                                <div class="o_coll_flow_cell o_coll_flow_other"
+                                     title="Movement that is neither an invoice nor a receipt: credit notes on plain entries, write-offs, opening entries, and clinics in credit. Reported rather than hidden - if it is large, somebody should look.">
+                                    <span class="o_coll_flow_l">Other movements</span>
+                                    <span class="o_coll_flow_v" t-esc="shortMoney(abs(movement.other))"/>
+                                    <span class="o_coll_flow_s">adjustments</span>
+                                </div>
+                            </t>
+                            <span class="o_coll_flow_op">=</span>
+                            <div class="o_coll_flow_cell o_coll_flow_close">
+                                <span class="o_coll_flow_l">Open at end</span>
+                                <span class="o_coll_flow_v" t-esc="shortMoney(movement.closing)"/>
+                                <span class="o_coll_flow_s">
+                                    <t t-if="movement.closing_is_today">today</t>
+                                    <t t-else="">as of <t t-esc="movement.closing_date"/></t>
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -186,6 +276,10 @@
                         </div>
                     </div>
 
+                    <!-- Ten columns do not fit a phone and must not be squeezed
+                         until they lie: the table keeps its width and scrolls
+                         sideways inside this box, the first column pinned. -->
+                    <div class="o_coll_table_wrap">
                     <table class="table table-sm o_coll_table">
                         <thead>
                             <tr>
@@ -199,7 +293,12 @@
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('collected')">
                                     Received <i t-att-class="sortIcon('collected')"/>
                                 </th>
-                                <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('pending')">
+                                <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('opening')"
+                                    t-attf-title="Open on {{ state.data.opening_date }}, the day before the receipts period">
+                                    Open at start <i t-att-class="sortIcon('opening')"/>
+                                </th>
+                                <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('pending')"
+                                    t-att-title="shortfallTitle">
                                     Shortfall <i t-att-class="sortIcon('pending')"/>
                                 </th>
                                 <th class="o_coll_sortable" style="width:18%"
@@ -244,6 +343,7 @@
                                     <td class="text-end o_coll_link o_coll_good"
                                         t-on-click="(ev) => this.drill('receipts', row, ev)"
                                         t-esc="money(row.collected)"/>
+                                    <td class="text-end o_coll_opening" t-esc="money(row.opening)"/>
                                     <td class="text-end"
                                         t-att-class="row.pending > 0 ? 'text-end text-danger' : 'text-end'"
                                         t-esc="money(row.pending)"/>
@@ -317,7 +417,7 @@
                                     </td>
                                 </tr>
                                 <tr t-if="state.expanded === row.key" class="o_coll_detail_row">
-                                    <td t-att-colspan="state.tab === 'route' ? 9 : 8">
+                                    <td t-att-colspan="state.tab === 'route' ? 10 : 9">
                                         <t t-set="detail" t-value="detailFor(row.key)"/>
                                         <div t-if="!detail" class="text-muted py-2">
                                             <i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the ledger…
@@ -422,7 +522,7 @@
                                 </tr>
                             </t>
                             <tr t-if="!rows.length">
-                                <td t-att-colspan="state.tab === 'route' ? 9 : 8" class="text-muted text-center py-4">
+                                <td t-att-colspan="state.tab === 'route' ? 10 : 9" class="text-muted text-center py-4">
                                     Nothing invoiced or collected in these periods.
                                 </td>
                             </tr>
@@ -432,6 +532,7 @@
                                 <td class="fw-bold">Total</td>
                                 <td class="text-end fw-bold" t-esc="money(state.data.totals.sales)"/>
                                 <td class="text-end fw-bold" t-esc="money(state.data.totals.collected)"/>
+                                <td class="text-end fw-bold" t-esc="money(state.data.totals.opening)"/>
                                 <td class="text-end fw-bold" t-esc="money(state.data.totals.pending)"/>
                                 <td class="fw-bold"><t t-esc="state.data.totals.percent"/>%</td>
                                 <td class="text-end fw-bold"><t t-esc="state.data.totals.target"/>%</td>
@@ -441,6 +542,7 @@
                             </tr>
                         </tfoot>
                     </table>
+                    </div>
                 </t>
             </div>
         </div>

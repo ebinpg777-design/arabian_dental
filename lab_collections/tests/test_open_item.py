@@ -140,6 +140,15 @@ class TestOpenItemPatientProductAndPrinting(TransactionCase):
         order._create_invoices()
         cls.invoice = order.invoice_ids
         cls.invoice.action_post()
+        # `report_action()` hands an ADMINISTRATOR the "configure your document
+        # layout" wizard - an act_window - instead of the report, for as long as
+        # the company has no external report layout set. This database has none
+        # (the lab prints on its own letterhead, sale_custom.external_layout_lab),
+        # so the assertion below read a wizard where it expected a report and
+        # failed on a condition of the data, not of the code. Set for the test,
+        # rolled back with it. (2026-09-27)
+        cls.env.company.external_report_layout_id = cls.env.ref(
+            'web.external_layout_standard')
 
     def _item_for(self, invoice):
         Perf = self.env['lab.collection.performance']

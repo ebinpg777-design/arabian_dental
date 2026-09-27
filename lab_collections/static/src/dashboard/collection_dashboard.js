@@ -60,6 +60,9 @@ export class CollectionDashboard extends Component {
             boards: null,
             people: null,
             showBoards: true,
+            // The lab-wide sparkline beside the headline: arrives after the
+            // figures, with the rest of the trend.
+            headline: [],
         });
         onWillStart(() => this.load());
     }
@@ -82,6 +85,9 @@ export class CollectionDashboard extends Component {
             this.state.people = data.people || null;
             // A reload invalidates whatever breakdowns were open: the periods moved.
             this.state.details = {};
+            // The row sparklines arrive blank with the new figures; the headline's
+            // goes blank with them rather than showing the old period's shape.
+            this.state.headline = [];
         } finally {
             this.state.loading = false;
         }
@@ -89,8 +95,9 @@ export class CollectionDashboard extends Component {
         // the table paints without them and they arrive a moment later. Not awaited:
         // `load()` must resolve as soon as the numbers are up. The token guards
         // against a stale answer landing after the user has moved the period on.
-        // Only the sparklines are still deferred: they are the slowest figure and
-        // the least urgent, so the table paints without them.
+        // Everything else - the movement strip included - comes in the one call
+        // above, cut from the countbacks the server has already run for the
+        // figures; fetched on its own it ran them again. (2026-09-27)
         this.loadTrend(token);
     }
 
@@ -110,6 +117,55 @@ export class CollectionDashboard extends Component {
         for (const row of this.state.data.by_route) {
             row.trend = trend[row.key] || [];
         }
+        // The lab as a whole, drawn beside the headline percentage.
+        this.state.headline = trend.total || [];
+    }
+
+    /** Where the receivable went over the receipts period: opening, invoiced,
+     *  received, closing - from the same call as the figures. */
+    get movement() {
+        return (this.state.data && this.state.data.movement) || null;
+    }
+
+    // ------------------------------------------------------------------ basis
+    /** What the percentage divides by: "sales" (last period's invoicing) or
+     *  "opening" (what was owed the day before the receipts period). */
+    get basis() {
+        return (this.state.data && this.state.data.basis) || "sales";
+    }
+
+    /** Read the same money against the other figure. The company's default is
+     *  marked on the switch; "Current" puts everything back. */
+    setBasis(basis) {
+        if (basis === this.basis) {
+            return;
+        }
+        this.state.options = { ...this.state.options, basis };
+        this.load();
+    }
+
+    isDefaultBasis(basis) {
+        return !!(this.state.data && this.state.data.basis_default === basis);
+    }
+
+    /** "of what was invoiced" / "of what was open on 31/08/2026" */
+    get basisNote() {
+        if (!this.state.data) {
+            return "";
+        }
+        return this.basis === "opening"
+            ? `of what was open on ${this.state.data.opening_date}`
+            : "of what was invoiced";
+    }
+
+    get shortfallTitle() {
+        return this.basis === "opening"
+            ? "What was open at the start of the receipts period, less what was received"
+            : "Invoiced in the sales period, less what was received";
+    }
+
+    abs(value) {
+        return Math.abs(value || 0);
     }
 
     // ------------------------------------------------------------------ periods

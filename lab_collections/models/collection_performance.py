@@ -58,6 +58,18 @@ _logger = logging.getLogger(__name__)
 
 GROUPINGS = [('team_id', 'Sales Route'), ('user_id', 'Salesperson')]
 
+# What the collection percentage is measured AGAINST: (key, short label, long
+# label). `sales` is the lab's own framing - last month's invoicing, this
+# month's receipts. `opening` reads the same receipts against everything that
+# was owed on the day before they started, which is the credit controller's
+# question: of what was out, how much came back? The company chooses the
+# default; the screen can read either. (client, 2026-09-27)
+BASES = [
+    ('sales', "Last period's invoicing", "Received ÷ invoiced in the sales period"),
+    ('opening', 'Opening receivable',
+     'Received ÷ everything open on the day before the receipts period began'),
+]
+
 # Open money older than this many days counts as overdue. Due dates carry no signal
 # in this database (they equal the invoice date), so the threshold is the deal the
 # lab actually works on: the month's bill is settled within the following month.
@@ -110,6 +122,23 @@ class CollectionPerformance(models.AbstractModel):
             value = (options or {}).get(key)
             out[key] = fields.Date.to_date(value) if value else base[key]
         return out
+
+    @api.model
+    def _basis(self, options, company):
+        """Which figure the collection %% is read against, for this call.
+
+        The screen's own choice first, then the company's setting, then the
+        lab's historical framing. An unknown value falls back rather than
+        raising: a stale bookmark must not take the screen down.
+        """
+        basis = (options or {}).get('basis') or company.lab_collection_basis
+        return basis if basis in {key for key, *_rest in BASES} else 'sales'
+
+    @api.model
+    def _opening_day(self, dates):
+        """The day before the receipts period begins - the statement date the
+        opening figure is read at."""
+        return dates['pay_from'] - relativedelta(days=1)
 
     # ------------------------------------------------------------------ who sees what
     # A field-work Executive works one round and sees that round's money - their
@@ -359,14 +388,22 @@ class CollectionPerformance(models.AbstractModel):
 
     # ------------------------------------------------------------------ open money
     @api.model
-    def _open_debits(self, company, as_of=None, partner_ids=None):
+    def _open_debits(self, company, as_of=None, partner_ids=None, cutoff=None):
         """Every open rupee of receivable, FIFO-counted, one row per open debit.
 
         Per clinic: total receipts pay off the receivable debits oldest-first, and
         each debit's uncovered remainder is returned with its age in days and the
         clinic's current route. See the module docstring for why this — and not
         ``amount_residual`` — is the truth on this database.
+
+        ``cutoff`` closes the ledger at a day: only lines dated on or before it
+        count, on BOTH sides, so the answer is the position as of that day the
+        way a statement reads it - what was owed on 31 August, not what is owed
+        today aged back to August. ``as_of`` is only the day ages are measured
+        from; with a cutoff it defaults to the cutoff itself.
         """
+        if cutoff and not as_of:
+            as_of = cutoff
         as_of = as_of or fields.Date.context_today(self)
         # The line's own parent_state / company_id / account_id stand in for the
         # account_move and account_account joins the first version made: they are
@@ -398,20 +435,26 @@ class CollectionPerformance(models.AbstractModel):
         # page after a posting) was missing from the countback.
         self.env['account.move.line'].flush_model()
         self.env['account.move'].flush_model()
-        self.env.cr.execute(self._countback_sql(company, receivable, partner_sql, as_of))
+        self.env.cr.execute(self._countback_sql(
+            company, receivable, partner_sql, as_of, cutoff=cutoff))
         return [
             {'partner_id': r[0], 'team_key': r[1], 'move_id': r[2], 'date': r[3],
              'open': float(r[4]), 'days': r[5], 'billed': float(r[6])}
             for r in self.env.cr.fetchall() if r[4]
         ]
 
-    def _countback_sql(self, company, receivable, partner_sql, as_of):
+    def _countback_sql(self, company, receivable, partner_sql, as_of, cutoff=None):
         """The FIFO countback, as one SQL statement.
 
         The single definition of what "open" means: `_open_debits` reads it for the
         cards, and `_populate_open_items` inserts from it for the list behind them.
         One statement, so the figure and the list it opens cannot drift apart.
+
+        With ``cutoff`` both halves stop at that date - the receipts that settle
+        each clinic and the debits they are counted against. Cutting only one
+        side would pay September's invoices with August's money.
         """
+        cutoff_sql = SQL("AND l.date <= %s", cutoff) if cutoff else SQL("")
         return SQL("""
             WITH bal AS (
                 SELECT l.partner_id, SUM(l.credit) AS paid
@@ -420,6 +463,7 @@ class CollectionPerformance(models.AbstractModel):
                    AND l.company_id = %s
                    AND l.account_id IN %s
                    AND l.partner_id IS NOT NULL
+                   %s
                    %s
                  GROUP BY 1
                 HAVING SUM(l.debit) > SUM(l.credit)
@@ -434,6 +478,7 @@ class CollectionPerformance(models.AbstractModel):
                    AND l.company_id = %s
                    AND l.account_id IN %s
                    AND l.debit > 0
+                   %s
                    %s
             )
             SELECT d.partner_id,
@@ -471,8 +516,8 @@ class CollectionPerformance(models.AbstractModel):
               -- costs a few thousand probes rather than a few hundred thousand
               LEFT JOIN account_move m ON m.id = d.move_id
              WHERE d.cum > b.paid
-        """, company.id, receivable, partner_sql,
-             company.id, receivable, partner_sql, as_of)
+        """, company.id, receivable, partner_sql, cutoff_sql,
+             company.id, receivable, partner_sql, cutoff_sql, as_of)
 
     @api.model
     def _partner_user_map(self, company, partner_ids):
@@ -938,6 +983,19 @@ class CollectionPerformance(models.AbstractModel):
         received = {(r[0], r[1]): float(r[2] or 0) for r in self.env.cr.fetchall()}
         teams = {t for t, _m in list(invoiced) + list(received)}
         trend = {}
+        # The lab as a whole, under a key no route can have (route keys are
+        # ints): the headline card draws this one above the per-route bars.
+        sold_by_month, got_by_month = {}, {}
+        for (_team, month), value in invoiced.items():
+            sold_by_month[month] = sold_by_month.get(month, 0.0) + value
+        for (_team, month), value in received.items():
+            got_by_month[month] = got_by_month.get(month, 0.0) + value
+        trend['total'] = [{
+            'label': month.strftime('%b %Y'),
+            'percent': (max(round(got_by_month.get(month, 0.0)
+                                  / sold_by_month[month] * 100, 1), 0.0)
+                        if sold_by_month.get(month, 0.0) > 0 else 0.0),
+        } for month in months]
         for team in teams:
             points = []
             for month in months:
@@ -1023,23 +1081,66 @@ class CollectionPerformance(models.AbstractModel):
                 entry['overdue'] += debit['open']
         return out
 
+    def _ledger_snapshot(self, company, dates, debits=None, opening_debits=None,
+                         with_users=True):
+        """The two countbacks every figure on the screen is cut from, and the
+        clinic→salesperson map laid over both - run ONCE per call.
+
+        ``debits`` is the book today, ``opening_debits`` the book closed on the
+        day before the receipts period began. Whatever the caller already holds
+        is reused and only the rest is run: the countback is the most expensive
+        thing on the screen, and before this the screen ran it four times over
+        (today and opening for the figures, opening again and closing for the
+        movement strip). The map covers both sets, since a clinic that has paid
+        up since the period opened is in the opening rows only. (2026-09-27)
+        """
+        if debits is None:
+            debits = self._open_debits(company)
+        if opening_debits is None:
+            opening_debits = self._open_debits(
+                company, cutoff=self._opening_day(dates))
+        users = None
+        if with_users:
+            users = self._partner_user_map(
+                company, {d['partner_id'] for d in debits}
+                | {d['partner_id'] for d in opening_debits})
+        return debits, opening_debits, users
+
     @api.model
     def report_rows(self, group='team_id', options=None, _debits=None, _trend=None,
-                    _users=None):
-        """One row per route (or salesperson), sorted by what is still uncollected."""
+                    _users=None, _opening=None, _basis=None):
+        """One row per route (or salesperson), sorted by what is still uncollected.
+
+        ``_opening`` is {key: {open}} as of the day before the receipts period,
+        laid at each row's door the way the overdue column is; computed here
+        when the caller has not already. ``_basis`` says what the row's
+        percentage and shortfall are read against (see BASES).
+        """
         self._check_collections_access()
         options = options or {}
         company = self._company(options)
         dates = self._dates(options)
+        basis = _basis or self._basis(options, company)
         sales = self._sales_by(group, dates, company)
         pays = self._payments_by(group, dates, company)
-        debits = self._open_debits(company) if _debits is None else _debits
+        if _debits is None or _opening is None:
+            # Called on its own: run what is missing, once. The salesperson map
+            # is only needed to lay money at a person's door.
+            _debits, opening_debits, users = self._ledger_snapshot(
+                company, dates, debits=_debits,
+                with_users=(group == 'user_id' and _users is None))
+            if _users is None:
+                _users = users
+            if _opening is None:
+                _opening = self._overdue_by(group, opening_debits, company,
+                                            users=_users)
+        debits = _debits
         overdue = self._overdue_by(group, debits, company, users=_users)
         if _trend is not None:
             trend = _trend
         else:
             trend = self._trend_by_route(dates, company) if group == 'team_id' else {}
-        labels = self._labels(group, set(sales) | set(pays) | set(overdue))
+        labels = self._labels(group, set(sales) | set(pays) | set(overdue) | set(_opening))
         targets = self._targets(company)
         # A salesperson works several routes, so no single route's target is theirs:
         # that column follows the company figure rather than inventing a number.
@@ -1047,9 +1148,13 @@ class CollectionPerformance(models.AbstractModel):
         sales_targets = self._sales_targets(group, company)
         excluded = self._excluded_users() if group == 'user_id' else set()
         rows = []
-        for key in set(sales) | set(pays) | set(overdue):
+        for key in set(sales) | set(pays) | set(overdue) | set(_opening):
             sold = sales.get(key, {}).get('amount', 0.0)
             got = pays.get(key, {}).get('amount', 0.0)
+            opening = _opening.get(key, {}).get('open', 0.0)
+            # What the money is measured against: last period's invoicing, or
+            # what was owed on the day before the receipts began.
+            base = opening if basis == 'opening' else sold
             rows.append({
                 'key': key,
                 'label': labels.get(key, 'Unassigned'),
@@ -1058,8 +1163,10 @@ class CollectionPerformance(models.AbstractModel):
                 'refunds': sales.get(key, {}).get('refunds', 0),
                 'collected': round(got, 2),
                 'receipts': pays.get(key, {}).get('count', 0),
-                'pending': round(sold - got, 2),
-                'percent': round(got / sold * 100, 1) if sold else 0.0,
+                'opening': round(opening, 2),
+                'base': round(base, 2),
+                'pending': round(base - got, 2),
+                'percent': round(got / base * 100, 1) if base > 0 else 0.0,
                 'open': round(overdue.get(key, {}).get('open', 0.0), 2),
                 'overdue': round(overdue.get(key, {}).get('overdue', 0.0), 2),
                 'trend': trend.get(key, []),
@@ -1112,14 +1219,31 @@ class CollectionPerformance(models.AbstractModel):
         dates = self._dates(options)
         company = self._company(options)
         as_of = fields.Date.context_today(self)
-        debits = self._open_debits(company, as_of)
+        basis = self._basis(options, company)
+        opening_day = self._opening_day(dates)
+        # The book today, the book as it stood the day before the receipts began
+        # (the ledger closed at that date, both sides - the figure the lab asked
+        # to see beside the rest, and the denominator on the `opening` basis),
+        # and the clinic→salesperson map over both. Run once here and handed to
+        # every figure below: report_rows() for the overdue and opening columns,
+        # performance() for the clinic counts, and the movement strip, which
+        # reads the same two sets instead of running its own.
+        debits, opening_debits, users = self._ledger_snapshot(company, dates)
+        # Whole lab, before the viewer's scope narrows anything: billed and
+        # received are read from the ledger by date, not by route.
+        movement = self._movement(company, dates, opening_debits=opening_debits,
+                                  today_debits=debits)
         trend = None if with_trend else {}
-        # Resolved once and shared: report_rows() needs it for the salesperson
-        # overdue column and performance() for the clinic counts.
-        users = self._partner_user_map(company, {d['partner_id'] for d in debits})
-        by_route = self.report_rows('team_id', options, _debits=debits, _trend=trend)
+        opening_by = {
+            'team_id': self._overdue_by('team_id', opening_debits, company),
+            'user_id': self._overdue_by('user_id', opening_debits, company,
+                                        users=users),
+        }
+        by_route = self.report_rows('team_id', options, _debits=debits, _trend=trend,
+                                    _opening=opening_by['team_id'], _basis=basis)
         by_user = self.report_rows('user_id', options, _debits=debits, _trend={},
-                                   _users=users)
+                                   _users=users, _opening=opening_by['user_id'],
+                                   _basis=basis)
         # The boards are built from EVERY salesperson, whatever the viewer is
         # allowed to see below - kept before the scope narrows the rows.
         all_user_rows = by_user
@@ -1130,8 +1254,11 @@ class CollectionPerformance(models.AbstractModel):
             # Narrowing the countback narrows open, overdue and the ageing strip
             # with it, because all three are derived from these rows further down.
             debits = [d for d in debits if d['team_key'] in scope]
+            opening_debits = [d for d in opening_debits if d['team_key'] in scope]
         sales = round(sum(r['sales'] for r in by_route), 2)
         collected = round(sum(r['collected'] for r in by_route), 2)
+        opening = round(sum(d['open'] for d in opening_debits), 2)
+        base = opening if basis == 'opening' else sales
         ageing = self._ageing_from(debits)
         # The company target is one number, but each route may carry its own, so the
         # figure the whole table should be judged against is the blend: every route's
@@ -1164,11 +1291,23 @@ class CollectionPerformance(models.AbstractModel):
                            if scope is not None else '',
             'dates': {k: fields.Date.to_string(v) for k, v in dates.items()},
             'as_of': as_of.strftime('%d/%m/%Y'),
+            # The basis in force for this reading, the company's own default so
+            # the screen can mark it, and the choices to offer.
+            'basis': basis,
+            'basis_default': company.lab_collection_basis or 'sales',
+            'bases': [[key, _(short), _(long)] for key, short, long in BASES],
+            'opening_date': opening_day.strftime('%d/%m/%Y'),
+            # Days of invoicing the open book represents. Company-wide by
+            # construction, so a viewer scoped to one round is not handed a
+            # figure that mixes their debt with everyone's billing.
+            'dso': self._dso(company, ageing['total']) if scope is None else None,
             'totals': {
                 'sales': sales,
                 'collected': collected,
-                'pending': round(sales - collected, 2),
-                'percent': round(collected / sales * 100, 1) if sales else 0.0,
+                'opening': opening,
+                'base': round(base, 2),
+                'pending': round(base - collected, 2),
+                'percent': round(collected / base * 100, 1) if base > 0 else 0.0,
                 'target': target,
                 'invoices': sum(r['invoices'] for r in by_route),
                 'credit_notes': sum(r['refunds'] for r in by_route),
@@ -1178,6 +1317,7 @@ class CollectionPerformance(models.AbstractModel):
                     d['open'] for d in debits if d['days'] > OVERDUE_DAYS), 2),
             },
             'ageing': ageing,
+            'movement': movement,
             'by_route': by_route,
             'by_user': by_user,
         }
@@ -1207,13 +1347,100 @@ class CollectionPerformance(models.AbstractModel):
         # for the overdue column and performance() a second time for the clinic
         # counts — the same 1,88,000-line scan twice per screen. Same for the
         # clinic→salesperson map, which both halves need. (2026-08-21)
-        debits = self._open_debits(company)
-        users = self._partner_user_map(company, {d['partner_id'] for d in debits})
-        rows = self.report_rows('user_id', options, _debits=debits, _users=users)
+        debits, opening_debits, users = self._ledger_snapshot(
+            company, self._dates(options))
+        rows = self.report_rows(
+            'user_id', options, _debits=debits, _users=users,
+            _opening=self._overdue_by('user_id', opening_debits, company, users=users))
         return {
             'boards': self.leaderboards(options, limit=limit, _rows=rows),
             'people': self.performance(options, _rows=rows, _debits=debits,
                                        _users=users),
+        }
+
+    # ------------------------------------------------------------------ movement
+    @api.model
+    def _billed_between(self, company, date_from, date_to):
+        """Posted customer paper dated in the window, net of credit notes - the
+        receivable debits ADDED to the book over those days."""
+        [[value]] = self.env['account.move'].sudo()._read_group(
+            [('move_type', 'in', ('out_invoice', 'out_refund')),
+             ('state', '=', 'posted'), ('company_id', '=', company.id),
+             ('invoice_date', '>=', date_from), ('invoice_date', '<=', date_to)],
+            [], ['amount_total_signed:sum'])
+        return round(value or 0.0, 2)
+
+    @api.model
+    def _dso(self, company, open_total, days=90):
+        """Days sales outstanding: how many days of invoicing the open book is.
+
+        Open ÷ (the last ninety days' invoicing ÷ 90). The one number that says
+        whether a growing receivable is the lab selling more or the lab being
+        paid slower - which the open total alone cannot.
+        """
+        today = fields.Date.context_today(self)
+        billed = self._billed_between(
+            company, today - relativedelta(days=days - 1), today)
+        if billed <= 0:
+            return None
+        return int(round(open_total / (billed / days)))
+
+    @api.model
+    def movement_data(self, options=None):
+        """Where the receivable went over the receipts period, as one line:
+
+            open at start + invoiced - received (+/- other) = open at end
+
+        The two bases the screen can read are the two ends of this line, so
+        this is the picture that reconciles them. ``other`` is the plug: credit
+        notes on non-invoice entries, write-offs, opening entries, and clinics
+        in credit (the countback floors each clinic at zero). Reported, never
+        hidden - a movement that does not add up is exactly what somebody
+        should look at.
+
+        Whole lab, whatever the viewer's scope: billed and received are read
+        from the ledger by date, not by route, and the screen says so.
+
+        The screen gets this inside ``dashboard_data``, cut from the countbacks
+        already run there; asked on its own it runs its own.
+        """
+        self._check_collections_access()
+        options = options or {}
+        return self._movement(self._company(options), self._dates(options))
+
+    def _movement(self, company, dates, opening_debits=None, today_debits=None):
+        today = fields.Date.context_today(self)
+        opening_day = self._opening_day(dates)
+        # The book cannot be read past today: a receipts period still running
+        # closes at today, and the strip says which.
+        closing_day = min(dates['pay_to'], today)
+        if opening_debits is None:
+            opening_debits = self._open_debits(company, cutoff=opening_day)
+        if closing_day == today:
+            # "Open at end" of a period still running IS the Open receivable
+            # card: the same rows, so the two can never disagree - a second,
+            # separately cut countback could, on a post-dated entry.
+            closing_debits = today_debits if today_debits is not None \
+                else self._open_debits(company)
+        else:
+            closing_debits = self._open_debits(company, cutoff=closing_day)
+        opening = round(sum(d['open'] for d in opening_debits), 2)
+        closing = round(sum(d['open'] for d in closing_debits), 2)
+        billed = self._billed_between(company, dates['pay_from'], closing_day)
+        received, receipts = self._received_total(
+            company, dates['pay_from'], closing_day)
+        received = round(received, 2)
+        return {
+            'opening': opening,
+            'billed': billed,
+            'received': received,
+            'other': round(closing - (opening + billed - received), 2),
+            'closing': closing,
+            'receipts': receipts,
+            'opening_date': opening_day.strftime('%d/%m/%Y'),
+            'from_date': dates['pay_from'].strftime('%d/%m/%Y'),
+            'closing_date': closing_day.strftime('%d/%m/%Y'),
+            'closing_is_today': closing_day == today,
         }
 
     @api.model
