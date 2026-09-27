@@ -668,3 +668,29 @@ html .o_web_client > .o_action_manager > .o_action {
 }
 
 .o_fwd .o_fwd_rowlink { cursor: pointer; }
+
+// ---------------------------------------------------------------------------
+// Nothing leaves its panel on a phone. (client, 2026-09-27: "do not override or
+// UI broken in any devices")
+// ---------------------------------------------------------------------------
+.o_fwd {
+    // "This week's sales": `repeat(2, 1fr)` is really `minmax(auto, 1fr)`, so a
+    // cell holding one long rupee figure cannot shrink below it, and the pair
+    // ran six pixels past the panel on a phone and on a tablet alike. A true
+    // zero floor, and a figure that may break rather than push.
+    .o_fwd_biz {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        > div { min-width: 0; overflow-wrap: anywhere; }
+    }
+
+    // "The field, right now" is seven columns in a panel that spans the grid,
+    // and the sideways-scroll rule above stops at `:not(.o_fwd_span2)` - so on
+    // a phone the table simply left the screen. Below a tablet every table
+    // scrolls inside its own panel, span or not, the way the cover table does.
+    @media (max-width: 767.98px) {
+        .o_fwd_panel .o_fwd_table {
+            display: block; overflow-x: auto; white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+}

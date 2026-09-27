@@ -593,3 +593,35 @@ $mp-age-old: #b91c1c;
         color: $o-gray-600;
     }
 }
+
+// ---------------------------------------------------------------------------
+// A row must never leave its panel. (client, 2026-09-27: "do not override or
+// UI broken in any devices")
+//
+// The quiet-debtor row carries a name, a "last paid ... d ago" note and an
+// amount. On a tablet's two-column grid the three do not fit one line, and the
+// amount - nowrap, never shrinking - ran past the panel and was clipped by the
+// shell. The note is the part that can give way: it shrinks with an ellipsis,
+// and below a tablet the row wraps so the amount drops to its own line rather
+// than off the screen. The same rule guards every other row and mix row.
+// ---------------------------------------------------------------------------
+.o_mp .o_mp_quiet_when {
+    flex: 1 1 6rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.o_mp .o_mp_row,
+.o_mp .o_mp_mixrow { min-width: 0; }
+.o_mp .o_mp_row > *,
+.o_mp .o_mp_mixrow > * { min-width: 0; }
+
+@media (max-width: 991.98px) {
+    .o_mp .o_mp_row,
+    .o_mp .o_mp_mixrow { flex-wrap: wrap; row-gap: .15rem; }
+    .o_mp .o_mp_row_v { margin-left: auto; }
+    // A wrapped row's second line is the note and the amount, not the name.
+    .o_mp .o_mp_quiet_when { flex-basis: 100%; margin-left: 0; order: 2; }
+    .o_mp .o_mp_row > .o_mp_row_v { order: 1; }
+}
