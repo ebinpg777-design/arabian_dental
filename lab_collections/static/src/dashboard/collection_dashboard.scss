@@ -292,3 +292,32 @@
         .o_coll_age_legend { gap: .5rem .8rem; }
     }
 }
+
+// ---------------------------------------------------------------------------
+// The opening basis's own reading: what became of the book that was open when
+// the receipts began. Same box as the movement strip, plus a recovery bar per
+// age band. (client, 2026-09-27)
+// ---------------------------------------------------------------------------
+.o_coll_dash {
+    .o_coll_book {
+        .o_coll_flow_cell.o_coll_clickable:hover { background: #eef2f7; }
+        .o_coll_book_bands { display: flex; flex-wrap: wrap; gap: .6rem 1rem; margin-top: .7rem; }
+        .o_coll_book_band { flex: 1 1 170px; min-width: 0; font-size: .72rem;
+            color: var(--muted, #6c757d); }
+        .o_coll_book_band_head { display: flex; align-items: center; gap: .35rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1f3a5f;
+            b { color: #1f3a5f; } }
+        .o_coll_book_track { height: 8px; border-radius: 4px; background: #e6eaf0;
+            margin: .3rem 0 .2rem; overflow: hidden; }
+        .o_coll_book_fill { height: 100%; border-radius: 4px; min-width: 0; }
+        .o_coll_book_band_foot { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    }
+    // One more column on the opening basis; the box scrolls, the columns do not squeeze.
+    .o_coll_table.o_coll_table_opening { min-width: 1100px; }
+    @media (max-width: 991.98px) {
+        .o_coll_table.o_coll_table_opening { min-width: 1000px; }
+    }
+    @media (max-width: 575.98px) {
+        .o_coll_book .o_coll_book_band { flex: 1 1 100%; }
+    }
+}

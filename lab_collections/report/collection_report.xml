@@ -17,14 +17,25 @@
                                 <div class="ocl-sub">By <t t-out="group_label"/> · printed <t t-out="printed_on"/></div>
                             </td>
                             <td style="text-align:right;vertical-align:bottom;">
-                                <div class="oi-numlabel">Invoiced period</div>
-                                <div class="ocl-period">
-                                    <span t-out="dates['sales_from']"/> — <span t-out="dates['sales_to']"/>
-                                </div>
-                                <div class="oi-numlabel" style="margin-top:4px;">Receipts period</div>
-                                <div class="ocl-period">
-                                    <span t-out="dates['pay_from']"/> — <span t-out="dates['pay_to']"/>
-                                </div>
+                                <!-- One period on the opening basis: the invoicing shown is its own. -->
+                                <t t-if="basis == 'opening'">
+                                    <div class="oi-numlabel">Period</div>
+                                    <div class="ocl-period">
+                                        <span t-out="dates['pay_from']"/> — <span t-out="dates['pay_to']"/>
+                                    </div>
+                                    <div class="oi-numlabel" style="margin-top:4px;">Against the book open on</div>
+                                    <div class="ocl-period"><span t-out="opening_date"/></div>
+                                </t>
+                                <t t-else="">
+                                    <div class="oi-numlabel">Invoiced period</div>
+                                    <div class="ocl-period">
+                                        <span t-out="dates['sales_from']"/> — <span t-out="dates['sales_to']"/>
+                                    </div>
+                                    <div class="oi-numlabel" style="margin-top:4px;">Receipts period</div>
+                                    <div class="ocl-period">
+                                        <span t-out="dates['pay_from']"/> — <span t-out="dates['pay_to']"/>
+                                    </div>
+                                </t>
                             </td>
                         </tr>
                     </table>
@@ -43,6 +54,32 @@
                             <td class="ocl-card"><div class="oi-label">Collection</div>
                                 <div class="ocl-card-value"><t t-out="totals['percent']"/>%</div>
                                 <div class="ocl-card-note"><t t-out="basis_note"/> · target <t t-out="target"/>%</div></td>
+                        </tr>
+                    </table>
+
+                    <!-- The opening book's fate: the opening basis's own reading. -->
+                    <table class="ocl-kpis" t-if="basis == 'opening' and book and book['opening'] > 0">
+                        <tr>
+                            <td class="ocl-card"><div class="oi-label">Cleared from the opening book</div>
+                                <div class="ocl-card-value" t-out="money(book['cleared'])"/>
+                                <div class="ocl-card-note"><t t-out="book['cleared_pct']"/>% · oldest first, per clinic</div></td>
+                            <td class="ocl-card ocl-card-due"><div class="oi-label">Carried forward</div>
+                                <div class="ocl-card-value" t-out="money(book['carried'])"/>
+                                <div class="ocl-card-note" t-if="book['days_to_clear'] is not None">at this pace, clear in <t t-out="book['days_to_clear']"/> days</div></td>
+                            <td class="ocl-card" t-if="book['cei'] is not None"><div class="oi-label">Effectiveness (CEI)</div>
+                                <div class="ocl-card-value"><t t-out="book['cei']"/>%</div>
+                                <div class="ocl-card-note">of what could have been collected</div></td>
+                            <td class="ocl-card"><div class="oi-label">Paid nothing</div>
+                                <div class="ocl-card-value"><t t-out="book['silent_count']"/> clinics</div>
+                                <div class="ocl-card-note"><t t-out="money(book['silent_amount'])"/> untouched since <t t-out="opening_date"/></div></td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="ocl-card-note" style="padding:4px 8px 0;">
+                                Recovery by age on <t t-out="opening_date"/>:
+                                <t t-foreach="[b for b in book['bands'] if b['opening'] > 0]" t-as="b">
+                                    <span style="white-space:nowrap;"><t t-out="b['label']"/> <b><t t-out="b['pct']"/>%</b> (<t t-out="money(b['cleared'])"/> of <t t-out="money(b['opening'])"/>)</span><t t-if="not b_last"> · </t>
+                                </t>
+                            </td>
                         </tr>
                     </table>
 
@@ -95,6 +132,7 @@
                                 <th class="num" style="width:12%">Invoiced</th>
                                 <th class="num" style="width:12%">Open at start</th>
                                 <th class="num" style="width:12%">Collected</th>
+                                <th class="num" style="width:11%" t-if="basis == 'opening'">Carried fwd</th>
                                 <th class="num" style="width:12%">Still to collect</th>
                                 <th class="num" style="width:6%">%</th>
                                 <th class="num" style="width:10%">Sales target</th>
@@ -109,6 +147,7 @@
                                 <td class="num"><t t-out="money(row['sales'])"/></td>
                                 <td class="num"><t t-out="money(row['opening'])"/></td>
                                 <td class="num"><t t-out="money(row['collected'])"/></td>
+                                <td class="num" t-if="basis == 'opening'"><t t-out="money(row['carried'] or 0.0)"/></td>
                                 <td t-attf-class="num {{'ocl-hot' if row['pending'] > 0 else ''}}"
                                     t-out="money(row['pending'])"/>
                                 <td class="num"><t t-out="row['percent']"/>%</td>
@@ -123,7 +162,7 @@
                                     t-out="money(row['overdue'])"/>
                             </tr>
                             <tr t-if="not rows">
-                                <td colspan="9" class="ocl-empty">Nothing invoiced or collected in these periods.</td>
+                                <td t-att-colspan="10 if basis == 'opening' else 9" class="ocl-empty">Nothing invoiced or collected in these periods.</td>
                             </tr>
                             <tr class="ocl-total" t-if="rows">
                                 <td>TOTAL</td>
@@ -131,6 +170,7 @@
                                 <td class="num" t-out="money(totals['sales'])"/>
                                 <td class="num" t-out="money(totals['opening'])"/>
                                 <td class="num" t-out="money(totals['collected'])"/>
+                                <td class="num" t-if="basis == 'opening'" t-out="money(totals['carried'])"/>
                                 <td class="num" t-out="money(totals['pending'])"/>
                                 <td class="num"><t t-out="totals['percent']"/>%</td>
                                 <td class="num" t-out="money(totals['sales_target'])"/>

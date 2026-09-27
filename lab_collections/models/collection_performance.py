@@ -115,12 +115,40 @@ class CollectionPerformance(models.AbstractModel):
         }
 
     @api.model
+    def _period_before(self, date_from, date_to):
+        """The span just before a window: the previous month before a whole
+        month, the same number of days before anything else."""
+        month_end = (date_from + relativedelta(months=1)) - relativedelta(days=1)
+        if date_from.day == 1 and date_to == month_end:
+            return date_from - relativedelta(months=1), date_from - relativedelta(days=1)
+        span = (date_to - date_from).days
+        end = date_from - relativedelta(days=1)
+        return end - relativedelta(days=span), end
+
+    @api.model
     def _dates(self, options):
+        """The two windows, as dates.
+
+        Receipts: as given, else this month. Invoicing: as given, else THE
+        PERIOD BEFORE the receipts window - so a screen moved to August reads
+        July's bills, not "last month from today". On the opening basis last
+        period's invoicing has no part in the question ("of what was owed when
+        the period opened, how much came in"), so the invoicing shown beside
+        the receipts is the receipts period's own. (client, 2026-09-27)
+        """
+        options = options or {}
         base = self.default_periods()
         out = {}
-        for key in ('sales_from', 'sales_to', 'pay_from', 'pay_to'):
-            value = (options or {}).get(key)
+        for key in ('pay_from', 'pay_to'):
+            value = options.get(key)
             out[key] = fields.Date.to_date(value) if value else base[key]
+        before = dict(zip(('sales_from', 'sales_to'),
+                          self._period_before(out['pay_from'], out['pay_to'])))
+        for key in ('sales_from', 'sales_to'):
+            value = options.get(key)
+            out[key] = fields.Date.to_date(value) if value else before[key]
+        if self._basis(options, self._company(options)) == 'opening':
+            out['sales_from'], out['sales_to'] = out['pay_from'], out['pay_to']
         return out
 
     @api.model
@@ -1108,7 +1136,7 @@ class CollectionPerformance(models.AbstractModel):
 
     @api.model
     def report_rows(self, group='team_id', options=None, _debits=None, _trend=None,
-                    _users=None, _opening=None, _basis=None):
+                    _users=None, _opening=None, _basis=None, _carried=None):
         """One row per route (or salesperson), sorted by what is still uncollected.
 
         ``_opening`` is {key: {open}} as of the day before the receipts period,
@@ -1164,6 +1192,13 @@ class CollectionPerformance(models.AbstractModel):
                 'collected': round(got, 2),
                 'receipts': pays.get(key, {}).get('count', 0),
                 'opening': round(opening, 2),
+                # The part of that opening money the period's receipts did not
+                # reach (FIFO, per clinic) - when the caller has the closing
+                # book to read it from; None otherwise, never a fake zero.
+                'carried': (round(_carried.get(key, 0.0), 2)
+                            if _carried is not None else None),
+                'cleared_pct': (round((opening - _carried.get(key, 0.0)) / opening * 100, 1)
+                                if _carried is not None and opening > 0 else None),
                 'base': round(base, 2),
                 'pending': round(base - got, 2),
                 'percent': round(got / base * 100, 1) if base > 0 else 0.0,
@@ -1231,8 +1266,17 @@ class CollectionPerformance(models.AbstractModel):
         debits, opening_debits, users = self._ledger_snapshot(company, dates)
         # Whole lab, before the viewer's scope narrows anything: billed and
         # received are read from the ledger by date, not by route.
+        closing = self._closing(company, dates, today_debits=debits)
         movement = self._movement(company, dates, opening_debits=opening_debits,
-                                  today_debits=debits)
+                                  today_debits=debits, _closing=closing)
+        closing_day, closing_debits, _is_today = closing
+        # What the period's receipts did to the opening book, laid at each
+        # row's door: the opening-day debits still standing in the closing book.
+        carried_rows = [d for d in closing_debits if d['date'] <= opening_day]
+        carried_by = {
+            'team_id': self._carried_by('team_id', carried_rows, company),
+            'user_id': self._carried_by('user_id', carried_rows, company, users=users),
+        }
         trend = None if with_trend else {}
         opening_by = {
             'team_id': self._overdue_by('team_id', opening_debits, company),
@@ -1240,10 +1284,11 @@ class CollectionPerformance(models.AbstractModel):
                                         users=users),
         }
         by_route = self.report_rows('team_id', options, _debits=debits, _trend=trend,
-                                    _opening=opening_by['team_id'], _basis=basis)
+                                    _opening=opening_by['team_id'], _basis=basis,
+                                    _carried=carried_by['team_id'])
         by_user = self.report_rows('user_id', options, _debits=debits, _trend={},
                                    _users=users, _opening=opening_by['user_id'],
-                                   _basis=basis)
+                                   _basis=basis, _carried=carried_by['user_id'])
         # The boards are built from EVERY salesperson, whatever the viewer is
         # allowed to see below - kept before the scope narrows the rows.
         all_user_rows = by_user
@@ -1255,6 +1300,13 @@ class CollectionPerformance(models.AbstractModel):
             # with it, because all three are derived from these rows further down.
             debits = [d for d in debits if d['team_key'] in scope]
             opening_debits = [d for d in opening_debits if d['team_key'] in scope]
+            closing_debits = [d for d in closing_debits if d['team_key'] in scope]
+        # The opening book's fate, for the rows this viewer sees. The CEI needs
+        # the period's billing, which is read by invoice route rather than by
+        # clinic route, so it is only offered on the whole lab.
+        book = self._opening_book(dates, opening_debits, closing_debits, closing_day,
+                                  billed=movement['billed'] if scope is None else None)
+        book.pop('silent_partner_ids')
         sales = round(sum(r['sales'] for r in by_route), 2)
         collected = round(sum(r['collected'] for r in by_route), 2)
         opening = round(sum(d['open'] for d in opening_debits), 2)
@@ -1305,6 +1357,7 @@ class CollectionPerformance(models.AbstractModel):
                 'sales': sales,
                 'collected': collected,
                 'opening': opening,
+                'carried': book['carried'],
                 'base': round(base, 2),
                 'pending': round(base - collected, 2),
                 'percent': round(collected / base * 100, 1) if base > 0 else 0.0,
@@ -1318,6 +1371,7 @@ class CollectionPerformance(models.AbstractModel):
             },
             'ageing': ageing,
             'movement': movement,
+            'opening_book': book,
             'by_route': by_route,
             'by_user': by_user,
         }
@@ -1408,22 +1462,31 @@ class CollectionPerformance(models.AbstractModel):
         options = options or {}
         return self._movement(self._company(options), self._dates(options))
 
-    def _movement(self, company, dates, opening_debits=None, today_debits=None):
+    def _closing(self, company, dates, today_debits=None):
+        """(closing day, the book on it, whether that day is today).
+
+        The book cannot be read past today: a receipts period still running
+        closes at today - and today's book IS the Open receivable card's rows
+        when the caller has them, so the two can never disagree; a second,
+        separately cut countback could, on a post-dated entry.
+        """
         today = fields.Date.context_today(self)
-        opening_day = self._opening_day(dates)
-        # The book cannot be read past today: a receipts period still running
-        # closes at today, and the strip says which.
         closing_day = min(dates['pay_to'], today)
-        if opening_debits is None:
-            opening_debits = self._open_debits(company, cutoff=opening_day)
         if closing_day == today:
-            # "Open at end" of a period still running IS the Open receivable
-            # card: the same rows, so the two can never disagree - a second,
-            # separately cut countback could, on a post-dated entry.
-            closing_debits = today_debits if today_debits is not None \
+            debits = today_debits if today_debits is not None \
                 else self._open_debits(company)
         else:
-            closing_debits = self._open_debits(company, cutoff=closing_day)
+            debits = self._open_debits(company, cutoff=closing_day)
+        return closing_day, debits, closing_day == today
+
+    def _movement(self, company, dates, opening_debits=None, today_debits=None,
+                  _closing=None):
+        today = fields.Date.context_today(self)
+        opening_day = self._opening_day(dates)
+        closing_day, closing_debits, _is_today = \
+            _closing or self._closing(company, dates, today_debits=today_debits)
+        if opening_debits is None:
+            opening_debits = self._open_debits(company, cutoff=opening_day)
         opening = round(sum(d['open'] for d in opening_debits), 2)
         closing = round(sum(d['open'] for d in closing_debits), 2)
         billed = self._billed_between(company, dates['pay_from'], closing_day)
@@ -1442,6 +1505,79 @@ class CollectionPerformance(models.AbstractModel):
             'closing_date': closing_day.strftime('%d/%m/%Y'),
             'closing_is_today': closing_day == today,
         }
+
+    def _opening_book(self, dates, opening_debits, closing_debits, closing_day,
+                      billed=None):
+        """What became of the book that was open when the receipts began.
+
+        The closing countback is the same FIFO as the opening one, so the
+        remainder of the debits dated on or before the opening day is exactly
+        the part of the opening book the period's receipts did not reach -
+        per clinic, oldest first. That is a stricter reading than the
+        headline's received ÷ opening: a clinic that owed 100 at the start
+        and paid 1,000 (its new bills) clears 100 here, not 1,000.
+
+        With it: the recovery of each age band the book was made of, the
+        clinics that paid nothing at all on theirs, the pace (at this rate
+        the remainder clears in N days) and, when the period's billing is
+        given, the Collection Effectiveness Index - of everything that could
+        have been collected (opening + billed, less what is not yet due),
+        how much was. (client, 2026-09-27)
+        """
+        opening_day = self._opening_day(dates)
+        carried_rows = [d for d in closing_debits if d['date'] <= opening_day]
+        opening = round(sum(d['open'] for d in opening_debits), 2)
+        carried = round(sum(d['open'] for d in carried_rows), 2)
+        cleared = round(opening - carried, 2)
+        open_by = {key: 0.0 for key, *_rest in AGE_BUCKETS}
+        carry_by = {key: 0.0 for key, *_rest in AGE_BUCKETS}
+        open_pp, carry_pp = {}, {}
+        for d in opening_debits:
+            open_by[self._bucket(d['days'])] += d['open']
+            open_pp[d['partner_id']] = open_pp.get(d['partner_id'], 0.0) + d['open']
+        for d in carried_rows:
+            # aged as the opening book was: from the opening day, not from today
+            carry_by[self._bucket((opening_day - d['date']).days)] += d['open']
+            carry_pp[d['partner_id']] = carry_pp.get(d['partner_id'], 0.0) + d['open']
+        bands = []
+        for key, label, _lo, _hi in AGE_BUCKETS:
+            band_open = round(open_by[key], 2)
+            band_cleared = round(open_by[key] - carry_by[key], 2)
+            bands.append({
+                'key': key, 'label': label, 'opening': band_open,
+                'cleared': band_cleared, 'carried': round(carry_by[key], 2),
+                'pct': round(band_cleared / band_open * 100, 1) if band_open > 0 else 0.0,
+            })
+        silent = [pid for pid, amount in open_pp.items()
+                  if amount > 0.005 and carry_pp.get(pid, 0.0) >= amount - 0.005]
+        closing_total = round(sum(d['open'] for d in closing_debits), 2)
+        closing_current = round(sum(d['open'] for d in closing_debits
+                                    if d['days'] <= OVERDUE_DAYS), 2)
+        cei = None
+        if billed is not None:
+            collectable = round(opening + billed - closing_current, 2)
+            if collectable > 0:
+                cei = round((opening + billed - closing_total) / collectable * 100, 1)
+        elapsed = (closing_day - dates['pay_from']).days + 1
+        pace = cleared / elapsed if elapsed > 0 else 0.0
+        return {
+            'opening': opening, 'cleared': cleared, 'carried': carried,
+            'cleared_pct': round(cleared / opening * 100, 1) if opening > 0 else 0.0,
+            'bands': bands,
+            'silent_count': len(silent),
+            'silent_amount': round(sum(open_pp[pid] for pid in silent), 2),
+            'silent_partner_ids': silent,
+            'cei': cei,
+            'closing': closing_total, 'closing_current': closing_current,
+            'elapsed_days': elapsed,
+            'days_to_clear': (int(round(carried / pace))
+                              if pace > 0 and carried > 0 else None),
+        }
+
+    def _carried_by(self, group, carried_rows, company, users=None):
+        """{key: amount} of the opening book carried forward, per row."""
+        return {key: round(v['open'], 2) for key, v in
+                self._overdue_by(group, carried_rows, company, users=users).items()}
 
     @api.model
     def leaderboards(self, options=None, limit=5, _rows=None):
@@ -1677,6 +1813,8 @@ class CollectionPerformance(models.AbstractModel):
                 "Open receivable and Overdue still open, item by item."))
         company = self._company(options)
         dates = self._dates(options)
+        if kind == 'silent':
+            return self._silent_clinic_action(group, key, dates, company, scope)
         if kind == 'receipts':
             # Journal items, NOT the entries: a receipt is booked as a plain journal
             # entry whose partner sits on the RECEIVABLE LINE, and the move itself
@@ -1711,6 +1849,36 @@ class CollectionPerformance(models.AbstractModel):
             'view_mode': 'list,form',
             'views': [(list_view.id if list_view else False, 'list'), (False, 'form')],
             'domain': [('id', 'in', ids)],
+            'context': {'create': False},
+        }
+
+    def _silent_clinic_action(self, group, key, dates, company, scope):
+        """The clinics that paid nothing on their opening book over the period,
+        as a partner list - for the whole lab, or one row of it."""
+        debits, opening_debits, users = self._ledger_snapshot(
+            company, dates, with_users=(group == 'user_id'))
+        closing_day, closing_debits, _is_today = self._closing(
+            company, dates, today_debits=debits)
+
+        def mine(d):
+            if scope is not None and d['team_key'] not in scope:
+                return False
+            if key is None:
+                return True
+            return (d['team_key'] == key if group == 'team_id'
+                    else (users or {}).get(d['partner_id'], 0) == key)
+
+        book = self._opening_book(
+            dates, [d for d in opening_debits if mine(d)],
+            [d for d in closing_debits if mine(d)], closing_day)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Paid nothing on what they owed on %s',
+                      self._opening_day(dates).strftime('%d/%m/%Y')),
+            'res_model': 'res.partner',
+            'view_mode': 'list,form',
+            'views': [(False, 'list'), (False, 'form')],
+            'domain': [('id', 'in', book['silent_partner_ids'])],
             'context': {'create': False},
         }
 

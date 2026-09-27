@@ -18,7 +18,8 @@
                     </small>
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-end">
-                    <div class="o_coll_period">
+                    <!-- Last period's invoicing has no part on the opening basis. -->
+                    <div class="o_coll_period" t-if="!isOpening">
                         <span>Invoiced between</span>
                         <div class="d-flex align-items-center gap-1">
                             <DateTimeInput type="'date'" format="dateFormat"
@@ -31,7 +32,7 @@
                         </div>
                     </div>
                     <div class="o_coll_period">
-                        <span>Received between</span>
+                        <span t-esc="isOpening ? 'Period' : 'Received between'"/>
                         <div class="d-flex align-items-center gap-1">
                             <DateTimeInput type="'date'" format="dateFormat"
                                            value="dateValue('pay_from')"
@@ -92,13 +93,8 @@
                                 <t t-if="state.data.totals.credit_notes">
                                     · <t t-esc="state.data.totals.credit_notes"/> credit notes netted off
                                 </t>
+                                <t t-if="isOpening"> · in this period</t>
                             </div>
-                        </div>
-                        <div t-att-class="'o_coll_kpi' + (canDrillDocuments ? ' o_coll_clickable' : '')"
-                             t-on-click="() => canDrillDocuments and this.drill('receipts', null)">
-                            <div class="o_coll_kpi_label">Received <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></div>
-                            <div class="o_coll_kpi_value o_coll_good" t-esc="money(state.data.totals.collected)"/>
-                            <div class="o_coll_kpi_sub"><t t-esc="state.data.totals.receipts"/> receipts</div>
                         </div>
                         <!-- The book the day before the receipts began: the ledger
                              closed at that date, both sides. No drill: the open-item
@@ -109,6 +105,12 @@
                             <div class="o_coll_kpi_label">Open at start</div>
                             <div class="o_coll_kpi_value" t-esc="money(state.data.totals.opening)"/>
                             <div class="o_coll_kpi_sub">unpaid as of <t t-esc="state.data.opening_date"/></div>
+                        </div>
+                        <div t-att-class="'o_coll_kpi' + (canDrillDocuments ? ' o_coll_clickable' : '')"
+                             t-on-click="() => canDrillDocuments and this.drill('receipts', null)">
+                            <div class="o_coll_kpi_label">Received <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></div>
+                            <div class="o_coll_kpi_value o_coll_good" t-esc="money(state.data.totals.collected)"/>
+                            <div class="o_coll_kpi_sub"><t t-esc="state.data.totals.receipts"/> receipts</div>
                         </div>
                         <div class="o_coll_kpi o_coll_kpi_pct">
                             <div class="o_coll_kpi_label">
@@ -149,6 +151,69 @@
                             <div class="o_coll_kpi_label">Overdue <i class="fa fa-external-link ms-1 o_coll_hint"/></div>
                             <div class="o_coll_kpi_value" t-esc="money(state.data.totals.overdue)"/>
                             <div class="o_coll_kpi_sub">open beyond 30 days, as of <t t-esc="state.data.as_of"/></div>
+                        </div>
+                    </div>
+
+                    <!-- What became of the book that was open when the receipts
+                         began - the opening basis's own analysis. Cleared is FIFO
+                         per clinic, so paying this month's bills does not count as
+                         clearing last month's; the headline percentage would. -->
+                    <t t-set="book" t-value="isOpening ? state.data.opening_book : null"/>
+                    <div class="o_coll_flow o_coll_book mb-3" t-if="book and book.opening > 0">
+                        <div class="o_coll_flow_title">
+                            What became of the opening book ·
+                            <t t-esc="money(book.opening)"/> open on <t t-esc="state.data.opening_date"/>
+                            <span t-if="state.data.scope_label" class="text-muted"> · your routes</span>
+                        </div>
+                        <div class="o_coll_flow_row">
+                            <div class="o_coll_flow_cell"
+                                 title="Receipts in the period, applied to each clinic's opening book oldest first. A clinic that paid more than it owed at the start clears its opening book and no more.">
+                                <span class="o_coll_flow_l">Cleared</span>
+                                <span class="o_coll_flow_v o_coll_good" t-esc="shortMoney(book.cleared)"/>
+                                <span class="o_coll_flow_s"><b t-esc="book.cleared_pct"/>% of the opening book</span>
+                            </div>
+                            <div class="o_coll_flow_cell">
+                                <span class="o_coll_flow_l">Carried forward</span>
+                                <span class="o_coll_flow_v" t-esc="shortMoney(book.carried)"/>
+                                <span class="o_coll_flow_s">
+                                    <t t-if="book.days_to_clear !== null">at this pace, clear in <b t-esc="book.days_to_clear"/> days</t>
+                                    <t t-elif="book.carried > 0">nothing of it has moved</t>
+                                    <t t-else="">all of it came in</t>
+                                </span>
+                            </div>
+                            <div class="o_coll_flow_cell" t-if="book.cei !== null"
+                                 title="Collection Effectiveness Index: of everything that could have been collected in the period - what was open at the start plus what was invoiced, less what is not yet 30 days old - how much was.">
+                                <span class="o_coll_flow_l">Effectiveness (CEI)</span>
+                                <span class="o_coll_flow_v"><t t-esc="book.cei"/>%</span>
+                                <span class="o_coll_flow_s">of what could have been collected</span>
+                            </div>
+                            <div class="o_coll_flow_cell o_coll_flow_other o_coll_clickable"
+                                 title="Clinics that owed money on the opening day and have paid nothing on it since. Opens the list."
+                                 t-on-click="() => this.drill('silent', null)">
+                                <span class="o_coll_flow_l">Paid nothing <i class="fa fa-external-link ms-1 o_coll_hint"/></span>
+                                <span class="o_coll_flow_v"><t t-esc="book.silent_count"/> clinics</span>
+                                <span class="o_coll_flow_s"><t t-esc="shortMoney(book.silent_amount)"/> untouched since <t t-esc="state.data.opening_date"/></span>
+                            </div>
+                        </div>
+                        <!-- Recovery by the age the money had on the opening day. -->
+                        <div class="o_coll_book_bands">
+                            <t t-foreach="book.bands" t-as="b" t-key="b.key">
+                                <div class="o_coll_book_band" t-if="b.opening > 0"
+                                     t-attf-title="{{ b.label }} on {{ state.data.opening_date }}: {{ money(b.opening) }}, of which {{ money(b.cleared) }} came in">
+                                    <div class="o_coll_book_band_head">
+                                        <i t-att-class="'o_coll_age_dot ' + ageClass(b.key)"/>
+                                        <t t-esc="b.label"/>
+                                        <b class="ms-auto"><t t-esc="b.pct"/>%</b>
+                                    </div>
+                                    <div class="o_coll_book_track">
+                                        <div t-att-class="'o_coll_book_fill ' + ageClass(b.key)"
+                                             t-attf-style="width: {{ b.pct }}%;"/>
+                                    </div>
+                                    <div class="o_coll_book_band_foot">
+                                        <t t-esc="shortMoney(b.cleared)"/> of <t t-esc="shortMoney(b.opening)"/> cleared
+                                    </div>
+                                </div>
+                            </t>
                         </div>
                     </div>
 
@@ -280,7 +345,7 @@
                          until they lie: the table keeps its width and scrolls
                          sideways inside this box, the first column pinned. -->
                     <div class="o_coll_table_wrap">
-                    <table class="table table-sm o_coll_table">
+                    <table t-att-class="'table table-sm o_coll_table' + (isOpening ? ' o_coll_table_opening' : '')">
                         <thead>
                             <tr>
                                 <th class="o_coll_sortable" t-on-click="() => this.sortBy('label')">
@@ -290,12 +355,17 @@
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('sales')">
                                     Invoiced <i t-att-class="sortIcon('sales')"/>
                                 </th>
-                                <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('collected')">
-                                    Received <i t-att-class="sortIcon('collected')"/>
-                                </th>
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('opening')"
                                     t-attf-title="Open on {{ state.data.opening_date }}, the day before the receipts period">
                                     Open at start <i t-att-class="sortIcon('opening')"/>
+                                </th>
+                                <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('collected')">
+                                    Received <i t-att-class="sortIcon('collected')"/>
+                                </th>
+                                <th class="text-end o_coll_sortable" t-if="isOpening"
+                                    t-on-click="() => this.sortBy('carried')"
+                                    title="What is left of the opening money after the period's receipts, oldest first per clinic">
+                                    Carried fwd <i t-att-class="sortIcon('carried')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('pending')"
                                     t-att-title="shortfallTitle">
@@ -340,10 +410,16 @@
                                     <td class="text-end o_coll_link"
                                         t-on-click="(ev) => this.drill('invoices', row, ev)"
                                         t-esc="money(row.sales)"/>
+                                    <td class="text-end o_coll_opening" t-esc="money(row.opening)"/>
                                     <td class="text-end o_coll_link o_coll_good"
                                         t-on-click="(ev) => this.drill('receipts', row, ev)"
                                         t-esc="money(row.collected)"/>
-                                    <td class="text-end o_coll_opening" t-esc="money(row.opening)"/>
+                                    <td class="text-end" t-if="isOpening">
+                                        <t t-esc="money(row.carried)"/>
+                                        <small t-if="row.cleared_pct !== null" class="d-block text-muted">
+                                            <t t-esc="row.cleared_pct"/>% cleared
+                                        </small>
+                                    </td>
                                     <td class="text-end"
                                         t-att-class="row.pending > 0 ? 'text-end text-danger' : 'text-end'"
                                         t-esc="money(row.pending)"/>
@@ -417,7 +493,7 @@
                                     </td>
                                 </tr>
                                 <tr t-if="state.expanded === row.key" class="o_coll_detail_row">
-                                    <td t-att-colspan="state.tab === 'route' ? 10 : 9">
+                                    <td t-att-colspan="(state.tab === 'route' ? 10 : 9) + (isOpening ? 1 : 0)">
                                         <t t-set="detail" t-value="detailFor(row.key)"/>
                                         <div t-if="!detail" class="text-muted py-2">
                                             <i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the ledger…
@@ -522,7 +598,7 @@
                                 </tr>
                             </t>
                             <tr t-if="!rows.length">
-                                <td t-att-colspan="state.tab === 'route' ? 10 : 9" class="text-muted text-center py-4">
+                                <td t-att-colspan="(state.tab === 'route' ? 10 : 9) + (isOpening ? 1 : 0)" class="text-muted text-center py-4">
                                     Nothing invoiced or collected in these periods.
                                 </td>
                             </tr>
@@ -531,8 +607,9 @@
                             <tr class="o_coll_total_row">
                                 <td class="fw-bold">Total</td>
                                 <td class="text-end fw-bold" t-esc="money(state.data.totals.sales)"/>
-                                <td class="text-end fw-bold" t-esc="money(state.data.totals.collected)"/>
                                 <td class="text-end fw-bold" t-esc="money(state.data.totals.opening)"/>
+                                <td class="text-end fw-bold" t-esc="money(state.data.totals.collected)"/>
+                                <td class="text-end fw-bold" t-if="isOpening" t-esc="money(state.data.totals.carried)"/>
                                 <td class="text-end fw-bold" t-esc="money(state.data.totals.pending)"/>
                                 <td class="fw-bold"><t t-esc="state.data.totals.percent"/>%</td>
                                 <td class="text-end fw-bold"><t t-esc="state.data.totals.target"/>%</td>

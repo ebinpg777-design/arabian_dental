@@ -148,6 +148,12 @@ export class CollectionDashboard extends Component {
         return !!(this.state.data && this.state.data.basis_default === basis);
     }
 
+    /** On the opening basis last period's invoicing plays no part: one period,
+     *  and the invoicing shown is that period's own. */
+    get isOpening() {
+        return this.basis === "opening";
+    }
+
     /** "of what was invoiced" / "of what was open on 31/08/2026" */
     get basisNote() {
         if (!this.state.data) {
@@ -189,13 +195,27 @@ export class CollectionDashboard extends Component {
             return;
         }
         const options = { ...this.state.options };
-        for (const key of ["sales_from", "sales_to", "pay_from", "pay_to"]) {
-            const shifted = deserializeDate(dates[key]).plus({ months });
+        const shift = (iso) => {
+            const date = deserializeDate(iso);
+            const shifted = date.plus({ months });
             // Keep month ends on month ends: 31 Jul + 1 month must be 31 Aug, and
             // luxon would otherwise land on the 30th and stay there for good.
-            const isMonthEnd = deserializeDate(dates[key]).endOf("month").hasSame(
-                deserializeDate(dates[key]), "day");
-            options[key] = serializeDate(isMonthEnd ? shifted.endOf("month") : shifted);
+            const isMonthEnd = date.endOf("month").hasSame(date, "day");
+            return serializeDate(isMonthEnd ? shifted.endOf("month") : shifted);
+        };
+        for (const key of ["pay_from", "pay_to"]) {
+            options[key] = shift(dates[key]);
+        }
+        // The invoicing window follows the receipts window on the server ("the
+        // period before") unless the user pinned one, in which case theirs moves
+        // along. On the opening basis it has no part to play and is never pinned:
+        // the dates the server shows for it there are the receipts period's own.
+        for (const key of ["sales_from", "sales_to"]) {
+            if (!this.isOpening && options[key]) {
+                options[key] = shift(dates[key]);
+            } else {
+                delete options[key];
+            }
         }
         this.state.options = options;
         this.load();

@@ -25,13 +25,18 @@ class CollectionReportRender(models.AbstractModel):
         # countback four times. Nothing on paper draws a sparkline, so the
         # trend is not computed either. (2026-09-27)
         debits, opening_debits, users = Perf._ledger_snapshot(company, dates_raw)
+        closing_day, closing_debits, _is_today = Perf._closing(
+            company, dates_raw, today_debits=debits)
+        opening_day_raw = Perf._opening_day(dates_raw)
+        carried_rows = [d for d in closing_debits if d['date'] <= opening_day_raw]
 
         def rows_for(grouping):
             return Perf.report_rows(
                 grouping, options, _debits=debits, _users=users, _trend={},
                 _opening=Perf._overdue_by(grouping, opening_debits, company,
                                           users=users),
-                _basis=basis)
+                _basis=basis,
+                _carried=Perf._carried_by(grouping, carried_rows, company, users=users))
 
         all_rows = rows_for(group)
         # The same fence the screen puts up (dashboard_data): an executive's PDF is
@@ -54,6 +59,17 @@ class CollectionReportRender(models.AbstractModel):
             'invoices': sum(r['invoices'] for r in rows),
             'overdue': round(sum(r['overdue'] for r in rows), 2),
         }
+        # The opening book's fate for the rows on this paper; the CEI needs the
+        # period's billing, which is only read for the whole lab.
+        if scope is not None:
+            opening_debits = [d for d in opening_debits if d['team_key'] in scope]
+            closing_debits = [d for d in closing_debits if d['team_key'] in scope]
+        book = Perf._opening_book(
+            dates_raw, opening_debits, closing_debits, closing_day,
+            billed=(Perf._billed_between(company, dates_raw['pay_from'], closing_day)
+                    if scope is None else None))
+        book.pop('silent_partner_ids')
+        totals['carried'] = book['carried']
         totals['base'] = totals['opening'] if basis == 'opening' else totals['sales']
         totals['pending'] = round(totals['base'] - totals['collected'], 2)
         totals['percent'] = round(totals['collected'] / totals['base'] * 100, 1) \
@@ -72,6 +88,7 @@ class CollectionReportRender(models.AbstractModel):
             'excluded_names': excluded_names,
             'target': Perf._targets(company)[0],
             'basis': basis,
+            'book': book,
             'basis_note': (_('of what was open on %s', opening_date)
                            if basis == 'opening' else _('of what was invoiced')),
             'opening_date': opening_date,

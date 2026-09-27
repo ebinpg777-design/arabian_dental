@@ -22,6 +22,11 @@ class TestCollectionBasis(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        # The lab's own setting is whatever the accounts desk last chose (on
+        # the live database it is the opening receivable); these tests read
+        # each basis by name, so they start from the install default and put
+        # nothing back - the transaction does.
+        cls.company.lab_collection_basis = 'sales'
         cls.perf = cls.env['lab.collection.performance'].sudo()
         cls.receivable = cls.env['account.account'].search([
             ('account_type', '=', 'asset_receivable'),
@@ -281,3 +286,117 @@ class TestCollectionBasis(TransactionCase):
         data = self.perf.dashboard_data(self._running_period())
         self.assertTrue(data['movement']['closing_is_today'])
         self.assertAlmostEqual(data['movement']['closing'], data['totals']['open'], 2)
+
+    # ------------------------------------------------------- the windows
+    def test_the_invoicing_window_is_the_period_before_the_receipts(self):
+        """Not "last month from today": a screen moved to August reads July."""
+        dates = self.perf._dates({'pay_from': '2026-08-01', 'pay_to': '2026-08-31'})
+        self.assertEqual((dates['sales_from'], dates['sales_to']),
+                         (date(2026, 7, 1), date(2026, 7, 31)))
+        dates = self.perf._dates({'pay_from': '2026-08-11', 'pay_to': '2026-08-20'})
+        self.assertEqual((dates['sales_from'], dates['sales_to']),
+                         (date(2026, 8, 1), date(2026, 8, 10)))
+        # A pinned window is kept.
+        dates = self.perf._dates(dict(self.options, sales_from='2026-01-10'))
+        self.assertEqual(dates['sales_from'], date(2026, 1, 10))
+
+    def test_on_the_opening_basis_the_invoicing_is_this_periods(self):
+        before = self.perf.dashboard_data(dict(self.options, basis='opening'))
+        self._invoice(300.0, '2026-02-10')                  # inside the receipts period
+        after = self.perf.dashboard_data(dict(self.options, basis='opening'))
+        self.assertEqual(after['dates']['sales_from'], '2026-02-01')
+        self.assertEqual(after['dates']['sales_to'], '2026-02-28')
+        self.assertAlmostEqual(after['totals']['sales'] - before['totals']['sales'], 300.0, 2)
+        # On the invoicing basis the same bill is not in January's window.
+        plain_before = self.perf.dashboard_data(self.options)
+        self.assertEqual(plain_before['dates']['sales_from'], '2026-01-01')
+        self._invoice(300.0, '2026-02-11')
+        plain_after = self.perf.dashboard_data(self.options)
+        self.assertAlmostEqual(plain_after['totals']['sales'], plain_before['totals']['sales'], 2)
+
+    # ---------------------------------------------------- the opening book
+    def _book(self, **extra):
+        return self.perf.dashboard_data(dict(self.options, basis='opening', **extra))
+
+    def test_the_opening_book_is_cleared_or_carried_and_nothing_else(self):
+        before = self._book()
+        book = before['opening_book']
+        self.assertAlmostEqual(book['cleared'] + book['carried'], book['opening'], 2)
+        self.assertAlmostEqual(sum(b['opening'] for b in book['bands']), book['opening'], 2)
+        self.assertAlmostEqual(sum(b['cleared'] for b in book['bands']), book['cleared'], 2)
+        self.assertEqual(before['totals']['carried'], book['carried'])
+        self.assertAlmostEqual(sum(r['carried'] for r in before['by_route']), book['carried'], 2)
+        self.assertAlmostEqual(sum(r['carried'] for r in before['by_user']), book['carried'], 2)
+        # 500 owed on the opening day, 200 of it received in the period.
+        self._invoice(500.0, '2026-01-15')
+        self._journal_receipt(200.0, '2026-02-10')
+        after = self._book()['opening_book']
+        self.assertAlmostEqual(after['opening'] - book['opening'], 500.0, 2)
+        self.assertAlmostEqual(after['cleared'] - book['cleared'], 200.0, 2)
+        self.assertAlmostEqual(after['carried'] - book['carried'], 300.0, 2)
+        current = next(b for b in after['bands'] if b['key'] == 'current')
+        was = next(b for b in book['bands'] if b['key'] == 'current')
+        self.assertAlmostEqual(current['cleared'] - was['cleared'], 200.0, 2,
+                               "a 16-day-old debt on the opening day is in the current band")
+
+    def test_paying_this_periods_bills_does_not_clear_last_periods(self):
+        """The headline counts every rupee received against the opening book;
+        the cleared figure counts only what actually reached it."""
+        before = self._book()
+        book = before['opening_book']
+        self._invoice(100.0, '2026-01-15')                  # owed on the opening day
+        self._invoice(900.0, '2026-02-05')                  # this period's bill
+        self._journal_receipt(1000.0, '2026-02-10')          # pays both
+        after = self._book()
+        self.assertAlmostEqual(after['totals']['collected'] - before['totals']['collected'],
+                               1000.0, 2, "the headline counts every rupee")
+        self.assertAlmostEqual(after['opening_book']['cleared'] - book['cleared'], 100.0, 2)
+        self.assertAlmostEqual(after['opening_book']['carried'], book['carried'], 2)
+
+    def test_the_clinics_that_paid_nothing_and_the_list_behind_them(self):
+        before = self._book()['opening_book']
+        self._invoice(400.0, '2026-01-15')
+        after = self._book()['opening_book']
+        self.assertEqual(after['silent_count'] - before['silent_count'], 1)
+        self.assertAlmostEqual(after['silent_amount'] - before['silent_amount'], 400.0, 2)
+        action = self.perf.action_drill('silent', 'team_id', None,
+                                        dict(self.options, basis='opening'))
+        self.assertEqual(action['res_model'], 'res.partner')
+        self.assertIn(self.clinic.id, action['domain'][0][2])
+        self._journal_receipt(1.0, '2026-02-10')             # one rupee is not nothing
+        self.assertEqual(self._book()['opening_book']['silent_count'], before['silent_count'])
+        action = self.perf.action_drill('silent', 'team_id', None,
+                                        dict(self.options, basis='opening'))
+        self.assertNotIn(self.clinic.id, action['domain'][0][2])
+
+    def test_the_effectiveness_index_reads_from_the_parts_it_shows(self):
+        data = self._book()
+        book = data['opening_book']
+        movement = data['movement']
+        self.assertIsNotNone(book['cei'])
+        collectable = book['opening'] + movement['billed'] - book['closing_current']
+        self.assertAlmostEqual(
+            book['cei'],
+            round((book['opening'] + movement['billed'] - book['closing']) / collectable * 100, 1), 1)
+        self.assertAlmostEqual(book['closing'], movement['closing'], 2)
+
+    def test_the_opening_book_costs_no_extra_countback(self):
+        running = self._countbacks_during(
+            lambda: self.perf.dashboard_data(dict(self._running_period(), basis='opening'),
+                                             with_extras=True))
+        self.assertEqual(len(running), 2, running)
+        closed = self._countbacks_during(lambda: self._book(with_extras=True))
+        self.assertEqual(len(closed), 3, closed)
+        self.assertEqual(sorted(str(c) for c in closed),
+                         sorted(['None', '2026-01-31', '2026-02-28']))
+
+    def test_the_paper_carries_the_opening_book_on_that_basis(self):
+        self._invoice(120.0, '2026-01-12')
+        values = self.env['report.lab_collections.report_collection'].sudo() \
+            ._get_report_values([], {'options': dict(self.options, basis='opening'),
+                                     'tab': 'route'})
+        self.assertGreater(values['book']['opening'], 0.0)
+        self.assertEqual(values['totals']['carried'], values['book']['carried'])
+        self.assertAlmostEqual(sum(r['carried'] for r in values['rows']),
+                               values['book']['carried'], 2)
+        self.assertEqual(values['dates']['sales_from'], values['dates']['pay_from'])
