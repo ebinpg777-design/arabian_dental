@@ -7,7 +7,7 @@
              in `.o_content` - the class the web client gives `overflow: auto`.
              (client, 2026-08-21: "scrolling is not working in the widget") -->
         <div class="o_coll_dash o_action d-flex flex-column">
-            <div class="o_coll_head d-flex flex-wrap align-items-end justify-content-between gap-3 px-3 pt-3 pb-2">
+            <div class="o_coll_head d-flex flex-wrap align-items-end justify-content-between gap-2 px-3 pt-2 pb-1">
                 <div>
                     <h2 class="mb-0">Collections</h2>
                     <small class="text-muted">
@@ -76,14 +76,14 @@
                 </div>
             </div>
 
-            <div class="o_content o_coll_body px-3 pb-4">
+            <div class="o_content o_coll_body px-3 pb-2">
                 <div t-if="state.loading" class="text-muted p-4">
                     <i class="fa fa-circle-o-notch fa-spin me-2"/>Loading…
                 </div>
 
                 <t t-if="state.data and !state.loading">
                     <!-- Every card opens the documents behind it. -->
-                    <div class="o_coll_kpis mb-3">
+                    <div class="o_coll_kpis mb-2">
                         <div t-att-class="'o_coll_kpi' + (canDrillDocuments ? ' o_coll_clickable' : '')"
                              t-on-click="() => canDrillDocuments and this.drill('invoices', null)">
                             <div class="o_coll_kpi_label">Invoiced <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></div>
@@ -159,7 +159,7 @@
                          per clinic, so paying this month's bills does not count as
                          clearing last month's; the headline percentage would. -->
                     <t t-set="book" t-value="isOpening ? state.data.opening_book : null"/>
-                    <div class="o_coll_flow o_coll_book mb-3" t-if="book and book.opening > 0">
+                    <div class="o_coll_flow o_coll_book mb-2" t-if="book and book.opening > 0">
                         <div class="o_coll_flow_title">
                             What became of the opening book ·
                             <t t-esc="money(book.opening)"/> open on <t t-esc="state.data.opening_date"/>
@@ -218,7 +218,7 @@
                     </div>
 
                     <!-- Where the open money is sitting, oldest first. -->
-                    <div class="o_coll_age_strip mb-3" t-if="state.data.ageing.total">
+                    <div class="o_coll_age_strip mb-2" t-if="state.data.ageing.total">
                         <div class="o_coll_age_title">Open receivable by age</div>
                         <div class="o_coll_age_bar">
                             <t t-foreach="state.data.ageing.buckets" t-as="b" t-key="b.key">
@@ -245,7 +245,7 @@
                     <!-- Where the receivable went over the receipts period. The two
                          bases the switch can read are the two ends of this line, so
                          it is the picture that reconciles them. -->
-                    <div class="o_coll_flow mb-3" t-if="movement">
+                    <div class="o_coll_flow mb-2" t-if="movement">
                         <div class="o_coll_flow_title">
                             Receivable movement ·
                             <t t-esc="movement.from_date"/> – <t t-esc="movement.closing_date"/>
@@ -291,7 +291,7 @@
                     </div>
 
                     <!-- Who wrote the most, who collected the most, who collects best. -->
-                    <div class="o_coll_boards mb-3" t-if="state.boards">
+                    <div class="o_coll_boards mb-2" t-if="state.boards">
                         <t t-foreach="boardRows" t-as="board" t-key="board.key">
                             <div class="o_coll_board">
                                 <div class="o_coll_board_head">
@@ -317,7 +317,7 @@
                         </t>
                     </div>
 
-                    <div class="o_coll_boards_note mb-3"
+                    <div class="o_coll_boards_note mb-2"
                          t-if="state.boards and (state.boards.excluded or []).length">
                         <i class="fa fa-info-circle me-1"/>Not ranked on these boards:
                         <t t-foreach="state.boards.excluded" t-as="ex" t-key="ex.key"><t t-if="ex_index"> · </t><span t-esc="ex.label"/></t>.
@@ -371,7 +371,7 @@
                                     t-att-title="shortfallTitle">
                                     Shortfall <i t-att-class="sortIcon('pending')"/>
                                 </th>
-                                <th class="o_coll_sortable" style="width:18%"
+                                <th class="o_coll_sortable" style="width:14%"
                                     t-on-click="() => this.sortBy('percent')">
                                     Collection <i t-att-class="sortIcon('percent')"/>
                                 </th>
@@ -379,14 +379,14 @@
                                     t-on-click="() => this.sortBy('target')">
                                     Collect % <i t-att-class="sortIcon('target')"/>
                                 </th>
-                                <th class="text-end o_coll_sortable" style="width:11%"
+                                <th class="text-end o_coll_sortable" style="width:9%"
                                     t-on-click="() => this.sortBy('sales_target')">
                                     Sales target <i t-att-class="sortIcon('sales_target')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('overdue')">
                                     Overdue <i t-att-class="sortIcon('overdue')"/>
                                 </th>
-                                <th class="text-center" style="width:9%"
+                                <th class="text-center" style="width:7%"
                                     t-if="state.tab === 'route'">Last 6 months</th>
                             </tr>
                         </thead>
@@ -416,9 +416,8 @@
                                         t-esc="money(row.collected)"/>
                                     <td class="text-end" t-if="isOpening">
                                         <t t-esc="money(row.carried)"/>
-                                        <small t-if="row.cleared_pct !== null" class="d-block text-muted">
-                                            <t t-esc="row.cleared_pct"/>% cleared
-                                        </small>
+                                        <small t-if="row.cleared_pct !== null" class="ms-1 text-muted"
+                                               title="Share of this row's opening money cleared in the period"><t t-esc="row.cleared_pct"/>%</small>
                                     </td>
                                     <td class="text-end"
                                         t-att-class="row.pending > 0 ? 'text-end text-danger' : 'text-end'"

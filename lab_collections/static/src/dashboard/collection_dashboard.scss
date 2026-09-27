@@ -7,21 +7,25 @@
     .o_coll_head { flex: 0 0 auto; border-bottom: 1px solid var(--border-color, #dee2e6); }
     .o_coll_body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: auto; }
 
+    .o_coll_head h2 { font-size: 1.3rem; }
     .o_coll_period { display: flex; flex-direction: column; font-size: .75rem;
         color: var(--muted, #6c757d);
-        > span { margin-bottom: .15rem; }
+        > span { margin-bottom: .05rem; }
         input { max-width: 8.5rem; }
     }
 
     // ---------------------------------------------------------------- KPI cards
-    .o_coll_kpis { display: flex; flex-wrap: wrap; gap: .75rem; }
+    // Tight on purpose: the lab reads this board on one screen, and every
+    // rem of air here is a row of the table pushed below the fold. (client,
+    // 2026-09-27: "remove unwanted spaces and paddings")
+    .o_coll_kpis { display: flex; flex-wrap: wrap; gap: .5rem; }
     .o_coll_kpi {
         flex: 1 1 170px; border: 1px solid var(--border-color, #dee2e6);
-        border-radius: .5rem; padding: .6rem .9rem; background: var(--bs-body-bg, #fff);
-        .o_coll_kpi_label { font-size: .7rem; text-transform: uppercase;
+        border-radius: .5rem; padding: .4rem .7rem; background: var(--bs-body-bg, #fff);
+        .o_coll_kpi_label { font-size: .68rem; text-transform: uppercase;
             letter-spacing: .4px; color: var(--muted, #6c757d); }
-        .o_coll_kpi_value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
-        .o_coll_kpi_sub { font-size: .72rem; color: var(--muted, #6c757d); }
+        .o_coll_kpi_value { font-size: 1.25rem; font-weight: 700; line-height: 1.15; }
+        .o_coll_kpi_sub { font-size: .7rem; line-height: 1.25; color: var(--muted, #6c757d); }
         &.o_coll_kpi_pending .o_coll_kpi_value { color: #b42318; }
         &.o_coll_kpi_pct .o_coll_kpi_value { color: #1f3a5f; }
         .o_coll_good { color: #067647; }
@@ -35,17 +39,17 @@
     // ---------------------------------------------------------------- ageing strip
     .o_coll_age_strip {
         border: 1px solid var(--border-color, #dee2e6); border-radius: .5rem;
-        padding: .6rem .9rem;
-        .o_coll_age_title { font-size: .7rem; text-transform: uppercase;
-            letter-spacing: .4px; color: var(--muted, #6c757d); margin-bottom: .35rem; }
-        .o_coll_age_bar { display: flex; height: 18px; border-radius: 4px;
+        padding: .4rem .7rem;
+        .o_coll_age_title { font-size: .68rem; text-transform: uppercase;
+            letter-spacing: .4px; color: var(--muted, #6c757d); margin-bottom: .25rem; }
+        .o_coll_age_bar { display: flex; height: 15px; border-radius: 4px;
             overflow: hidden; background: #eef1f4; }
         .o_coll_age_seg { cursor: pointer; color: #fff; font-size: .68rem;
             font-weight: 600; display: flex; align-items: center;
             justify-content: center; transition: filter .12s;
             &:hover { filter: brightness(1.15); } }
         .o_coll_age_legend { display: flex; flex-wrap: wrap; gap: .9rem;
-            margin-top: .4rem; font-size: .72rem; color: var(--muted, #6c757d); }
+            margin-top: .25rem; font-size: .7rem; color: var(--muted, #6c757d); }
     }
     .o_coll_age_dot { display: inline-block; width: 8px; height: 8px;
         border-radius: 2px; margin-right: .3rem; }
@@ -64,6 +68,10 @@
     .o_coll_table {
         thead th { white-space: nowrap; }
         tbody td { vertical-align: middle; }
+        thead th, tbody td { padding: .28rem .45rem; }
+        // A figure never breaks over two lines: "₹" on one and the amount on
+        // the next stretched the row, and a route name did the same.
+        tbody td.text-end, tbody tr.o_coll_row > td:first-child { white-space: nowrap; }
         .o_coll_sortable { cursor: pointer; user-select: none;
             i { margin-left: .25rem; font-size: .75em; }
             .o_coll_sort_idle { opacity: .25; }
@@ -89,12 +97,12 @@
 
     // ---------------------------------------------------------------- sparkline
     .o_coll_spark { display: flex; align-items: flex-end; justify-content: center;
-        gap: 2px; height: 26px;
+        gap: 2px; height: 20px;
         .o_coll_spark_bar { width: 5px; border-radius: 1px; min-height: 2px;
             opacity: .85; &:hover { opacity: 1; } } }
 
     // ---------------------------------------------------------------- breakdown
-    .o_coll_detail_row > td { background: #fbfcfd; padding: .75rem 1rem; }
+    .o_coll_detail_row > td { background: #fbfcfd; padding: .5rem .75rem; }
     .o_coll_detail { display: flex; flex-wrap: wrap; gap: 1.5rem;
         .o_coll_detail_col { flex: 1 1 320px; min-width: 0; }
         .o_coll_detail_title { font-size: .7rem; text-transform: uppercase;
@@ -136,19 +144,19 @@
     }
 
     // ---------------------------------------------------------------- boards
-    .o_coll_boards { display: flex; flex-wrap: wrap; gap: .75rem; }
+    .o_coll_boards { display: flex; flex-wrap: wrap; gap: .5rem; }
     .o_coll_board {
         flex: 1 1 260px; min-width: 0;
         border: 1px solid var(--border-color, #dee2e6); border-radius: .5rem;
-        background: var(--bs-body-bg, #fff); padding: .55rem .75rem;
+        background: var(--bs-body-bg, #fff); padding: .4rem .6rem;
         .o_coll_board_head { display: flex; align-items: baseline;
-            margin-bottom: .35rem; color: #1f3a5f; }
+            margin-bottom: .2rem; color: #1f3a5f; }
         .o_coll_board_title { font-size: .78rem; font-weight: 700;
             text-transform: uppercase; letter-spacing: .3px; }
         .o_coll_board_sub { font-size: .68rem; color: var(--muted, #6c757d);
             margin-left: .4rem; }
         .o_coll_board_row { display: flex; align-items: center; gap: .5rem;
-            padding: .18rem .15rem; border-radius: .25rem; font-size: .82rem;
+            padding: .08rem .15rem; border-radius: .25rem; font-size: .8rem;
             &:hover { background: #f6f8fa; } }
         .o_coll_board_name { flex: 1 1 auto; min-width: 0; overflow: hidden;
             text-overflow: ellipsis; white-space: nowrap; }
@@ -229,15 +237,15 @@
 
     // ---------------------------------------------------------------- movement
     .o_coll_flow { border: 1px solid var(--border-color, #dee2e6); border-radius: .5rem;
-        padding: .6rem .9rem; background: var(--bs-body-bg, #fff);
-        .o_coll_flow_title { font-size: .7rem; text-transform: uppercase; letter-spacing: .4px;
-            color: var(--muted, #6c757d); margin-bottom: .45rem; }
+        padding: .4rem .7rem; background: var(--bs-body-bg, #fff);
+        .o_coll_flow_title { font-size: .68rem; text-transform: uppercase; letter-spacing: .4px;
+            color: var(--muted, #6c757d); margin-bottom: .3rem; }
         .o_coll_flow_row { display: flex; align-items: stretch; gap: .5rem; flex-wrap: wrap; }
         .o_coll_flow_cell { flex: 1 1 130px; min-width: 0; display: flex; flex-direction: column;
-            padding: .35rem .6rem; border-radius: .4rem; background: #f6f8fa; }
+            padding: .25rem .5rem; border-radius: .4rem; background: #f6f8fa; }
         .o_coll_flow_l { font-size: .66rem; text-transform: uppercase; letter-spacing: .4px;
             color: var(--muted, #6c757d); }
-        .o_coll_flow_v { font-size: 1.05rem; font-weight: 700; color: #1f3a5f; white-space: nowrap; }
+        .o_coll_flow_v { font-size: .98rem; font-weight: 700; color: #1f3a5f; white-space: nowrap; }
         .o_coll_flow_s { font-size: .68rem; color: var(--muted, #6c757d); }
         .o_coll_flow_op { align-self: center; flex: 0 0 auto; font-size: 1.1rem; font-weight: 700;
             color: var(--muted, #6c757d); }
@@ -301,7 +309,7 @@
 .o_coll_dash {
     .o_coll_book {
         .o_coll_flow_cell.o_coll_clickable:hover { background: #eef2f7; }
-        .o_coll_book_bands { display: flex; flex-wrap: wrap; gap: .6rem 1rem; margin-top: .7rem; }
+        .o_coll_book_bands { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .45rem; }
         .o_coll_book_band { flex: 1 1 170px; min-width: 0; font-size: .72rem;
             color: var(--muted, #6c757d); }
         .o_coll_book_band_head { display: flex; align-items: center; gap: .35rem;
