@@ -20,7 +20,7 @@ technicians, districts → tags, doctors → contacts).
 * Documents are written, not replayed; invoices are posted and reconciled the
   way the source ledger was.
 """,
-    'author': 'ISPG',
+    'author': 'Ebshel Technologies',
     'depends': [
         'sale_custom',
         'lab_reports',
