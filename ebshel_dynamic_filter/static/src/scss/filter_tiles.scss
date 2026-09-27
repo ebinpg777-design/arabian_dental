@@ -816,43 +816,6 @@
 }
 
 // ---------------------------------------------------------------------------
-// Default density for Arabian Dental Lab (client, 2026-09-24): a row that has
-// not been dragged to a height sits at about half the stock tile height - the
-// sparkline is dropped, the number steps down, the padding tightens. Drag the
-// row taller and the strip gets a size class, which takes over from these.
-// ---------------------------------------------------------------------------
-.o_dft_strip:not(.o_dft_strip_sized) .o_dft_tile {
-    padding: 3px 8px 4px;
-
-    .o_dft_body {
-        gap: 0;
-    }
-
-    .o_dft_spark {
-        display: none;
-    }
-
-    .o_dft_value {
-        font-size: 1.05rem;
-        line-height: 1.1;
-    }
-
-    .o_dft_icon {
-        width: 16px;
-        height: 16px;
-        font-size: 0.6rem;
-    }
-
-    .o_dft_label {
-        font-size: 0.7rem;
-    }
-
-    .o_dft_ring {
-        width: 30px;
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Density: what a tile drops when the row it sits on gets shorter.
 //
 // The order is deliberate - the sparkline is decoration, the sub-label is a

@@ -18,10 +18,11 @@ export function tileDomain(def) {
     if (!def.mine_field) {
         return base;
     }
-    // The server resolves what "mine" means for the model - a dental lab's work
-    // order belongs to the technician who did it AND to the one who finished
-    // it, so its leaf is an OR of two fields. Rebuilding a single leaf here
-    // would filter to less than the tile counted. (client, 2026-09-10)
+    // The server resolves what "mine" means for the model. A model may answer
+    // with more than one field - a work order belonging to the technician who
+    // did it AND to the one who finished it - so its leaf can be an OR.
+    // Rebuilding a single leaf here would filter to less than the tile counted.
+    // (client, 2026-09-10)
     const mine =
         def.mine_domain && def.mine_domain.length
             ? new Domain(def.mine_domain)

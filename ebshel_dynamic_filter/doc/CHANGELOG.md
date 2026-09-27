@@ -2,6 +2,34 @@
 
 All notable changes to *Dynamic Filter Tiles*.
 
+## 19.0.2.4.0
+
+### Added
+
+* **Headline tiles.** A tile can be told to count regardless of what else is filtered on
+  screen (`ignore_filters`), for a figure like "Finished" on a list whose default filter
+  hides finished work - which otherwise reads 0 for ever. Such a tile is counted against
+  the screen's own domain rather than the reader's filters, and applying one clears those
+  filters, so the list the user lands on matches the number they clicked.
+* **A model can say what "mine" means.** `only_mine` compares one user field. A model that
+  defines `_dft_mine_leaf(field_name, uid)` can answer with a whole domain instead - a work
+  order belonging to the technician who did it *or* to the one who finished it. The
+  resolved condition travels to the browser, so clicking the tile filters the way the tile
+  counted.
+
+### Fixed
+
+* **A filter the browser cannot evaluate no longer takes the view down.** A tile's domain is
+  evaluated twice: in Python to count it, and in the browser to apply it and draw its facet.
+  The browser's interpreter has a far smaller vocabulary and does not fail politely - an
+  expression it cannot work out throws inside the rendering, every time that view is opened,
+  for everybody. Such a domain is now refused when the tile is saved, with the offending name
+  and a hint; a tile saved before this check is shown greyed, flagged, and never applied.
+* **Only a manager can share a tile.** Record rules are checked before a write, so a plain
+  user could publish their own tile to everybody by writing `owner_id = False` over RPC,
+  skipping `action_publish`, or hand it to somebody else, or restrict it to groups. `write`
+  now refuses all three unless the writer is a Filter Tiles manager.
+
 ## 19.0.2.3.0
 
 ### Added

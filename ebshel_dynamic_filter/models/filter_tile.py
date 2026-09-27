@@ -624,10 +624,10 @@ class FilterTile(models.Model):
         if field is None or field.type != 'many2one' \
                 or field.comodel_name != 'res.users' or not field.store:
             return []
-        # A model may have its own idea of whose record this is. A dental lab's
-        # work order carries two people - the technician who did it and the one
-        # who finished it - and "mine" means either. A model says so by
-        # implementing `_dft_mine_leaf`; everything else keeps the plain leaf.
+        # A model may have its own idea of whose record this is. A work order
+        # can carry two people - the technician who did it and the one who
+        # finished it - and "mine" means either. A model says so by implementing
+        # `_dft_mine_leaf`; everything else keeps the plain leaf.
         # (client, 2026-09-10)
         if hasattr(Model, '_dft_mine_leaf'):
             leaf = Model._dft_mine_leaf(name, self.env.uid)
@@ -705,7 +705,7 @@ class FilterTile(models.Model):
             'mine_field': fields_sudo.user_field_id.name if self.only_mine else '',
             # The whole "and it is mine" condition, resolved here rather than
             # rebuilt in the browser: a model whose "mine" is two fields (a work
-            # order's technician OR its finisher) must filter the same way it
+            # order's technician OR its finisher) has to filter the same way it
             # counted. (client, 2026-09-10)
             'mine_domain': self._mine_leaf(
                 self.env[self.model_name],
