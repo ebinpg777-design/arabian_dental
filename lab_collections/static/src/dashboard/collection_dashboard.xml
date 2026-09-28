@@ -177,13 +177,13 @@
                             <span t-if="state.data.scope_label" class="text-muted"> · your routes</span>
                         </div>
                         <div class="o_coll_flow_row">
-                            <div class="o_coll_flow_cell"
+                            <div class="o_coll_flow_cell o_coll_book_cleared"
                                  title="Receipts in the period, applied to each clinic's opening book oldest first. A clinic that paid more than it owed at the start clears its opening book and no more.">
                                 <span class="o_coll_flow_l">Cleared</span>
                                 <span class="o_coll_flow_v o_coll_good" t-esc="shortMoney(book.cleared)"/>
                                 <span class="o_coll_flow_s"><b t-esc="book.cleared_pct"/>% of the opening book</span>
                             </div>
-                            <div class="o_coll_flow_cell">
+                            <div class="o_coll_flow_cell o_coll_book_carried">
                                 <span class="o_coll_flow_l">Carried forward</span>
                                 <span class="o_coll_flow_v" t-esc="shortMoney(book.carried)"/>
                                 <span class="o_coll_flow_s">
@@ -192,13 +192,13 @@
                                     <t t-else="">all of it came in</t>
                                 </span>
                             </div>
-                            <div class="o_coll_flow_cell" t-if="book.cei !== null"
+                            <div class="o_coll_flow_cell o_coll_book_cei" t-if="book.cei !== null"
                                  title="Collection Effectiveness Index: of everything that could have been collected in the period - what was open at the start plus what was invoiced, less what is not yet 30 days old - how much was.">
                                 <span class="o_coll_flow_l">Effectiveness (CEI)</span>
                                 <span class="o_coll_flow_v"><t t-esc="book.cei"/>%</span>
                                 <span class="o_coll_flow_s">of what could have been collected</span>
                             </div>
-                            <div class="o_coll_flow_cell o_coll_flow_other o_coll_clickable"
+                            <div class="o_coll_flow_cell o_coll_book_silent o_coll_clickable"
                                  title="Clinics that owed money on the opening day and have paid nothing on it since. Opens the list."
                                  t-on-click="() => this.drill('silent', null)">
                                 <span class="o_coll_flow_l">Paid nothing <i class="fa fa-external-link ms-1 o_coll_hint"/></span>
@@ -263,19 +263,19 @@
                             <span t-if="state.data.scope_label" class="text-muted"> · whole lab</span>
                         </div>
                         <div class="o_coll_flow_row">
-                            <div class="o_coll_flow_cell">
+                            <div class="o_coll_flow_cell o_coll_flow_open">
                                 <span class="o_coll_flow_l">Open at start</span>
                                 <span class="o_coll_flow_v" t-esc="shortMoney(movement.opening)"/>
                                 <span class="o_coll_flow_s">as of <t t-esc="movement.opening_date"/></span>
                             </div>
                             <span class="o_coll_flow_op">+</span>
-                            <div class="o_coll_flow_cell">
+                            <div class="o_coll_flow_cell o_coll_flow_inv">
                                 <span class="o_coll_flow_l">Invoiced</span>
                                 <span class="o_coll_flow_v" t-esc="shortMoney(movement.billed)"/>
                                 <span class="o_coll_flow_s">in the receipts period</span>
                             </div>
                             <span class="o_coll_flow_op">−</span>
-                            <div class="o_coll_flow_cell">
+                            <div class="o_coll_flow_cell o_coll_flow_recv">
                                 <span class="o_coll_flow_l">Received</span>
                                 <span class="o_coll_flow_v o_coll_good" t-esc="shortMoney(movement.received)"/>
                                 <span class="o_coll_flow_s"><t t-esc="movement.receipts"/> receipts</span>

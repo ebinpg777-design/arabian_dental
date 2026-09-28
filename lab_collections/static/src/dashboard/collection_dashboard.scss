@@ -346,3 +346,44 @@
         .o_coll_book .o_coll_book_band { flex: 1 1 100%; }
     }
 }
+
+// ---------------------------------------------------------------------------
+// The cards at the lab's own width (a 2x screen: ~1370 CSS px, six cards of
+// ~215px). A note with no room beside its label drops under it instead of
+// squeezing into a column; the figure's pill and sparkline wrap under the
+// figure instead of running out of the card. The strips borrow the cards'
+// coloured edge so the same figure looks the same everywhere.
+// (client, 2026-09-28, with a screenshot)
+// ---------------------------------------------------------------------------
+.o_coll_dash {
+    .o_coll_kpi .o_coll_kpi_top { flex-wrap: wrap; }
+    .o_coll_kpi .o_coll_kpi_sub { flex: 1 1 130px; }
+    .o_coll_kpi .o_coll_kpi_value { display: flex; flex-wrap: wrap; align-items: center;
+        gap: .1rem .45rem; white-space: normal;
+        .o_coll_flag { margin-left: 0; }
+        .o_coll_headline_spark { margin-left: 0; } }
+    // The collection bar keeps a track worth reading whatever the other columns take.
+    .o_coll_table .o_coll_barcell { min-width: 9rem; }
+    // The strips: a coloured edge per figure, like the cards.
+    .o_coll_flow .o_coll_flow_cell { border-left: 3px solid #5b6b8a; }
+    .o_coll_flow_cell.o_coll_flow_inv { border-left-color: #1f3a5f; }
+    .o_coll_flow_cell.o_coll_flow_recv { border-left-color: #067647; }
+    .o_coll_flow_cell.o_coll_flow_other { border-left-color: #b45309; }
+    .o_coll_flow_cell.o_coll_flow_close { border-left-color: #3730a3;
+        .o_coll_flow_v { color: #3730a3; } }
+    .o_coll_flow_cell.o_coll_book_cleared { border-left-color: #067647; }
+    .o_coll_flow_cell.o_coll_book_carried { border-left-color: #b45309;
+        .o_coll_flow_v { color: #b45309; } }
+    .o_coll_flow_cell.o_coll_book_cei { border-left-color: #3730a3;
+        .o_coll_flow_v { color: #3730a3; } }
+    .o_coll_flow_cell.o_coll_book_silent { border-left-color: #b42318;
+        .o_coll_flow_v { color: #b42318; } }
+    .o_coll_flow .o_coll_flow_op { color: #1f3a5f; opacity: .55; font-size: 1.25rem; }
+}
+
+// Below 1500px the figure, its pill and the lab-wide sparkline no longer share
+// a line in a six-across card; the sparkline steps aside (the routes keep
+// theirs in the table) so the card stays three lines at the lab's own width.
+@media (max-width: 1499.98px) {
+    .o_coll_dash .o_coll_kpi_pct .o_coll_headline_spark { display: none; }
+}
