@@ -75,12 +75,12 @@ class LabCeoDashboard(models.AbstractModel):
         ('field', 'Field Force', 'fa-map-marker',
          'lab_ceo_dashboard.action_field_command',
          'Visits, rounds and coverage'),
-        ('floor', 'Production Floor', 'fa-cogs',
-         'lab_workcenter_scan.action_flow_board',
-         'Where every live job is standing'),
-        ('production', 'Production Reports', 'fa-users',
-         'lab_workcenter_scan.action_mrp_report',
-         'Who got through what, by week'),
+        # One Production tile, two screens behind it (the floor and the
+        # reports) on the same switcher the Field Force tile uses: the two
+        # tabs side by side were one subject twice. (client, 2026-09-28)
+        ('production', 'Production', 'fa-cogs',
+         'lab_ceo_dashboard.action_production_command',
+         'Where the work is, and who got through what'),
         ('clinics', 'New Clinics', 'fa-hospital-o',
          'lab_fieldwork.action_new_clinics',
          'The doors the rounds opened'),
@@ -144,6 +144,46 @@ class LabCeoDashboard(models.AbstractModel):
             [('state', 'in', states)])
 
     @api.model
+    def _floor_jobs(self):
+        Floor = self.env['report.lab.floor']
+        return self.env['mrp.production'].search_count(Floor._live_domain())
+
+    @api.model
+    def _week_operations(self):
+        today = fields.Date.context_today(self)
+        monday = today - timedelta(days=today.weekday())
+        return self.env['lab.production.performance'].search_count([
+            ('handed_over_at', '>=', fields.Datetime.to_string(
+                self.env['lab.mgmt.pulse']._utc_start(monday)))])
+
+    @api.model
+    def get_command(self, command='field'):
+        """The screens behind one hub tile that holds several: `field` (the
+        desks and the analysis) or `production` (the floor and the reports).
+        Same shape either way, so one switcher serves both."""
+        if command == 'production':
+            if not self.env.user.has_group('lab_ceo_dashboard.group_lab_executive'):
+                raise AccessError(_("The Management hub is for whoever runs the lab."))
+            screens = []
+            for key, tag, label, icon, hint, figure, unit in (
+                    ('floor', 'lab_flow', _('Where the work is'), 'fa-cogs',
+                     _('Where every live job is standing'),
+                     self._floor_jobs, _("jobs on the floor")),
+                    ('reports', 'lab_mrp_report', _('Reports'), 'fa-users',
+                     _('Who got through what, by week'),
+                     self._week_operations, _("operations this week"))):
+                try:
+                    badge = figure()
+                except Exception:                                  # noqa: BLE001
+                    _logger.exception("management hub: badge for %s failed", key)
+                    badge = 0
+                screens.append({'key': key, 'kind': 'client', 'tag': tag,
+                                'label': label, 'icon': icon, 'hint': hint,
+                                'badge': badge, 'badge_title': unit})
+            return {'screens': screens}
+        return self.get_field_command()
+
+    @api.model
     def get_field_command(self):
         """Everything behind the hub's Field Force tile, for this user.
 
@@ -203,16 +243,8 @@ class LabCeoDashboard(models.AbstractModel):
                 n = self.env['lab.visit'].search_count([
                     ('date', '=', today), ('state', '=', 'done')])
                 return n, _("visits done today")
-            if key == 'floor':
-                Floor = self.env['report.lab.floor']
-                n = self.env['mrp.production'].search_count(Floor._live_domain())
-                return n, _("jobs on the floor")
             if key == 'production':
-                monday = today - timedelta(days=today.weekday())
-                n = self.env['lab.production.performance'].search_count([
-                    ('handed_over_at', '>=', fields.Datetime.to_string(
-                        utc_start(monday)))])
-                return n, _("operations this week")
+                return self._floor_jobs(), _("jobs on the floor")
             if key == 'clinics':
                 return self.env['lab.new.clinics'].count_new_clinics(), _("this month")
             if key == 'redo':

@@ -28,7 +28,7 @@
                     </ErrorHandler>
                 </t>
                 <div t-else="" class="o_fcmd_empty">
-                    Nothing here is open to you yet — ask for a field work role.
+                    Nothing here is open to you yet.
                 </div>
             </div>
         </t>

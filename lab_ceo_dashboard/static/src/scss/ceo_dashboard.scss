@@ -16,32 +16,23 @@ $hub-brand-b: #0d7c8a;
     position: sticky;
     top: 0;
     z-index: 5;
-    // brand | tabs (may wrap) | full-screen: the button stays on the first row
-    // however many rows the tabs take.
+    // tabs (may wrap) | full-screen: the button stays on the first row however
+    // many rows the tabs take. Tight: every rem here is taken from the screen
+    // below on every visit. (client, 2026-09-28)
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
-    gap: .5rem .75rem;
-    padding: .5rem .875rem;
+    gap: .3rem .5rem;
+    padding: .35rem .6rem;
     background: linear-gradient(120deg, $hub-brand-a, $hub-brand-b);
     color: #fff;
     box-shadow: 0 .125rem .5rem rgba($hub-ink, .18);
 }
 
-.o_ceo_dash .o_ceo_strip_brand {
-    display: inline-flex;
-    align-items: center;
-    font-weight: 700;
-    font-size: .9375rem;
-    letter-spacing: .01em;
-    padding-right: .5rem;
-    border-right: 1px solid rgba(255, 255, 255, .25);
-}
-
 .o_ceo_dash .o_ceo_tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: .375rem;
+    gap: .25rem;
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -50,14 +41,14 @@ $hub-brand-b: #0d7c8a;
 .o_ceo_dash .o_ceo_tab {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    min-height: 34px;
-    padding: .25rem .7rem .25rem .6rem;
+    gap: .3rem;
+    min-height: 30px;
+    padding: .15rem .55rem .15rem .5rem;
     border: 1px solid rgba(255, 255, 255, .28);
     border-radius: 2rem;
     background: rgba(255, 255, 255, .12);
     color: #fff;
-    font-size: .8125rem;
+    font-size: .78rem;
     font-weight: 600;
     white-space: nowrap;
     transition: background-color .12s ease, transform .12s ease;
@@ -82,7 +73,7 @@ $hub-brand-b: #0d7c8a;
     font-size: .6875rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    padding: .1rem .45rem;
+    padding: .05rem .4rem;
     border-radius: 1rem;
     background: rgba(255, 255, 255, .22);
     color: #fff;
@@ -98,9 +89,9 @@ $hub-brand-b: #0d7c8a;
     border-radius: .5rem;
     background: transparent;
     color: #fff;
-    font-size: .75rem;
-    padding: .3rem .6rem;
-    min-height: 32px;
+    font-size: .72rem;
+    padding: .2rem .5rem;
+    min-height: 28px;
 
     &:hover { background: rgba(255, 255, 255, .18); }
 }
@@ -129,7 +120,6 @@ $hub-brand-b: #0d7c8a;
 // header eating a third of the screen. Figures go; the screen shows them.
 @media (max-width: 767.98px) {
     .o_ceo_dash .o_ceo_strip { grid-template-columns: minmax(0, 1fr); padding: .4rem .5rem; }
-    .o_ceo_dash .o_ceo_strip_brand { display: none; }
     .o_ceo_dash .o_ceo_tabs {
         flex-wrap: nowrap;
         overflow-x: auto;

@@ -6,11 +6,9 @@
         <!-- The strip. It never leaves the screen: the chosen screen opens under
              it, so switching is one click or one number key and there is nothing
              to go back from. (client, 2026-08-28) -->
+        <!-- No brand block: the app's own name is already in the navbar above,
+             and the strip's width is for the tiles. (client, 2026-09-28) -->
         <div class="o_ceo_strip">
-            <div class="o_ceo_strip_brand">
-                <i class="fa fa-th-large me-2" aria-hidden="true"/>
-                <span>Management</span>
-            </div>
             <div t-if="state.loading" class="text-muted small">
                 <i class="fa fa-circle-o-notch fa-spin me-1" title="Loading"/> Loading…
             </div>

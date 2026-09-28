@@ -107,6 +107,13 @@
         <field name="name">Field Force</field>
         <field name="tag">lab_field_command</field>
     </record>
+    <!-- Production: the floor and the reports behind one tile, on the same
+         switcher (the component reads which set from `command`). -->
+    <record id="action_production_command" model="ir.actions.client">
+        <field name="name">Production</field>
+        <field name="tag">lab_field_command</field>
+        <field name="params" eval="{'command': 'production'}"/>
+    </record>
     <record id="action_pulse_money" model="ir.actions.client">
         <field name="name">Money</field>
         <field name="tag">lab_mgmt_pulse</field>

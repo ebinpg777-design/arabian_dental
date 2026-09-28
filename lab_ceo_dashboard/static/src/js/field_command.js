@@ -32,15 +32,22 @@ export class LabFieldCommand extends Component {
         onWillStart(() => this.load());
     }
 
+    /** Which set of screens this tile holds: "field" (the desks and the
+     *  analysis) or "production" (the floor and the reports). */
+    get command() {
+        const params = (this.props.action && this.props.action.params) || {};
+        return params.command || "field";
+    }
+
     async load() {
-        const data = await this.orm.call("lab.ceo.dashboard", "get_field_command", []);
+        const data = await this.orm.call("lab.ceo.dashboard", "get_command", [this.command]);
         // A tag not in the registry (module removed, asset failure) is a tab
         // that cannot open; better absent than a white screen behind a click.
         this.state.screens = data.screens.filter(
             (s) => registry.category("actions").get(s.tag, null));
         let remembered = null;
         try {
-            remembered = browser.localStorage.getItem(REMEMBER);
+            remembered = browser.localStorage.getItem(REMEMBER + "." + this.command);
         } catch {
             remembered = null;
         }
@@ -57,7 +64,7 @@ export class LabFieldCommand extends Component {
     select(screen) {
         this.state.active = screen.key;
         try {
-            browser.localStorage.setItem(REMEMBER, screen.key);
+            browser.localStorage.setItem(REMEMBER + "." + this.command, screen.key);
         } catch {
             // private mode: nothing to remember it in
         }

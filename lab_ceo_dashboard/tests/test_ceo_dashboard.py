@@ -93,16 +93,27 @@ class TestManagementDashboards(TransactionCase):
     def test_the_boards_are_on_the_hub(self):
         keys = {r['key'] for r in self.env['lab.ceo.dashboard'].with_user(
             self.env.ref('base.user_admin')).get_launchers()}
-        for key in ('sales', 'field', 'floor', 'money'):
+        for key in ('sales', 'field', 'production', 'money'):
             self.assertIn(key, keys)
+        self.assertNotIn('floor', keys, "the floor and the reports share one tile now")
 
     def test_production_reuses_the_boards_the_lab_already_has(self):
-        # Two entries because they answer two different questions: where the work
-        # is standing right now, and who got through what.
-        self.assertEqual(self._launcher_action('floor'),
-                         self.env.ref('lab_workcenter_scan.action_flow_board').id)
+        # One tile, two screens behind it - they answer two different questions
+        # (where the work is standing right now, and who got through what), and
+        # the switcher keeps both one click away. (client, 2026-09-28)
         self.assertEqual(self._launcher_action('production'),
-                         self.env.ref('lab_workcenter_scan.action_mrp_report').id)
+                         self.env.ref('lab_ceo_dashboard.action_production_command').id)
+        screens = self.env['lab.ceo.dashboard'].with_user(
+            self.env.ref('base.user_admin')).get_command('production')['screens']
+        self.assertEqual([s['tag'] for s in screens], ['lab_flow', 'lab_mrp_report'])
+        for screen in screens:
+            self.assertIsInstance(screen['badge'], int)
+            self.assertTrue(screen['label'] and screen['badge_title'])
+
+    def test_the_field_tile_is_the_same_switcher(self):
+        Dash = self.env['lab.ceo.dashboard'].with_user(self.env.ref('base.user_admin'))
+        self.assertEqual(Dash.get_command('field'), Dash.get_field_command())
+        self.assertEqual(Dash.get_command(), Dash.get_field_command())
 
     def test_new_clinics_is_the_same_screen_the_field_team_uses(self):
         self.assertEqual(self._launcher_action('clinics'),
@@ -150,7 +161,7 @@ class TestLaunchers(TransactionCase):
         names = [r['name'] for r in self.Dash.with_user(
             self.env.ref('base.user_admin')).get_launchers()]
         for expected in ('Collections', 'Sales & Cases', 'Field Force',
-                         'Production Floor', 'Production Reports', 'New Clinics',
+                         'Production', 'New Clinics',
                          'Redo Works', 'Money'):
             self.assertIn(expected, names)
         for name in names:

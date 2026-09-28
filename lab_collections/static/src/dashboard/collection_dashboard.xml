@@ -7,17 +7,19 @@
              in `.o_content` - the class the web client gives `overflow: auto`.
              (client, 2026-08-21: "scrolling is not working in the widget") -->
         <div class="o_coll_dash o_action d-flex flex-column">
-            <div class="o_coll_head d-flex flex-wrap align-items-end justify-content-between gap-2 px-3 pt-2 pb-1">
-                <div>
+            <!-- One line, half the height it had: the title beside its subtitle,
+                 every picker's label beside its inputs. (client, 2026-09-28) -->
+            <div class="o_coll_head d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-1">
+                <div class="d-flex align-items-baseline gap-2 min-w-0">
                     <h2 class="mb-0">Collections</h2>
-                    <small class="text-muted">
+                    <small class="text-muted o_coll_subtitle">
                         What was invoiced, against what has actually come in
                         <t t-if="state.data and state.data.scope_label">
                             · <b t-esc="state.data.scope_label"/> only
                         </t>
                     </small>
                 </div>
-                <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
                     <!-- Last period's invoicing has no part on the opening basis. -->
                     <div class="o_coll_period" t-if="!isOpening">
                         <span>Invoiced between</span>
@@ -84,17 +86,18 @@
                 <t t-if="state.data and !state.loading">
                     <!-- Every card opens the documents behind it. -->
                     <div class="o_coll_kpis mb-2">
-                        <div t-att-class="'o_coll_kpi' + (canDrillDocuments ? ' o_coll_clickable' : '')"
+                        <div t-att-class="'o_coll_kpi o_coll_kpi_inv' + (canDrillDocuments ? ' o_coll_clickable' : '')"
                              t-on-click="() => canDrillDocuments and this.drill('invoices', null)">
-                            <div class="o_coll_kpi_label">Invoiced <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></div>
-                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.sales)"/>
-                            <div class="o_coll_kpi_sub">
-                                <t t-esc="state.data.totals.invoices"/> invoices
-                                <t t-if="state.data.totals.credit_notes">
-                                    · <t t-esc="state.data.totals.credit_notes"/> credit notes netted off
-                                </t>
-                                <t t-if="isOpening"> · in this period</t>
+                            <div class="o_coll_kpi_top">
+                                <span class="o_coll_kpi_label">Invoiced <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></span>
+                                <span class="o_coll_kpi_sub">
+                                    <t t-esc="state.data.totals.invoices"/> invoices
+                                    <t t-if="state.data.totals.credit_notes">
+                                        · <t t-esc="state.data.totals.credit_notes"/> credit notes
+                                    </t>
+                                </span>
                             </div>
+                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.sales)"/>
                         </div>
                         <!-- The book the day before the receipts began: the ledger
                              closed at that date, both sides. No drill: the open-item
@@ -102,19 +105,31 @@
                              would be worse than none. -->
                         <div class="o_coll_kpi o_coll_kpi_opening"
                              t-attf-title="Every rupee still owed on {{ state.data.opening_date }}, the day before the receipts period begins">
-                            <div class="o_coll_kpi_label">Open at start</div>
+                            <div class="o_coll_kpi_top">
+                                <span class="o_coll_kpi_label">Open at start</span>
+                                <span class="o_coll_kpi_sub">unpaid as of <t t-esc="state.data.opening_date"/></span>
+                            </div>
                             <div class="o_coll_kpi_value" t-esc="money(state.data.totals.opening)"/>
-                            <div class="o_coll_kpi_sub">unpaid as of <t t-esc="state.data.opening_date"/></div>
                         </div>
-                        <div t-att-class="'o_coll_kpi' + (canDrillDocuments ? ' o_coll_clickable' : '')"
+                        <div t-att-class="'o_coll_kpi o_coll_kpi_recv' + (canDrillDocuments ? ' o_coll_clickable' : '')"
                              t-on-click="() => canDrillDocuments and this.drill('receipts', null)">
-                            <div class="o_coll_kpi_label">Received <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></div>
+                            <div class="o_coll_kpi_top">
+                                <span class="o_coll_kpi_label">Received <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></span>
+                                <span class="o_coll_kpi_sub"><t t-esc="state.data.totals.receipts"/> receipts</span>
+                            </div>
                             <div class="o_coll_kpi_value o_coll_good" t-esc="money(state.data.totals.collected)"/>
-                            <div class="o_coll_kpi_sub"><t t-esc="state.data.totals.receipts"/> receipts</div>
                         </div>
                         <div class="o_coll_kpi o_coll_kpi_pct">
-                            <div class="o_coll_kpi_label">
-                                Collection
+                            <div class="o_coll_kpi_top">
+                                <span class="o_coll_kpi_label">Collection</span>
+                                <span class="o_coll_kpi_sub" t-esc="basisNote"/>
+                            </div>
+                            <div class="o_coll_kpi_value">
+                                <t t-esc="state.data.totals.percent"/>%
+                                <small t-att-class="flagClass(state.data.totals.percent, state.data.totals.target)"
+                                       t-esc="targetGap(state.data.totals.percent, state.data.totals.target)"/>
+                                <!-- The lab-wide sparkline sits by the figure, not in the label,
+                                     so the label line stays short enough for its note. -->
                                 <span class="o_coll_headline_spark" t-if="state.headline.length"
                                       title="The lab as a whole, month by month: received ÷ invoiced">
                                     <t t-foreach="state.headline" t-as="pt" t-key="pt.label">
@@ -124,33 +139,29 @@
                                     </t>
                                 </span>
                             </div>
-                            <div class="o_coll_kpi_value">
-                                <t t-esc="state.data.totals.percent"/>%
-                                <small t-att-class="flagClass(state.data.totals.percent, state.data.totals.target)"
-                                       t-esc="targetGap(state.data.totals.percent, state.data.totals.target)"/>
-                            </div>
-                            <div class="o_coll_kpi_sub">
-                                <t t-esc="basisNote"/> · target <t t-esc="state.data.totals.target"/>%
-                            </div>
                         </div>
-                        <div class="o_coll_kpi o_coll_clickable"
+                        <div class="o_coll_kpi o_coll_kpi_open o_coll_clickable"
                              t-on-click="() => this.drill('open', null)">
-                            <div class="o_coll_kpi_label">Open receivable <i class="fa fa-external-link ms-1 o_coll_hint"/></div>
-                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.open)"/>
-                            <div class="o_coll_kpi_sub">
-                                unpaid, all periods
-                                <t t-if="state.data.dso">
-                                    · <b t-esc="state.data.dso"/> days of sales
-                                    <i class="fa fa-question-circle-o o_coll_hint"
-                                       title="Days sales outstanding: the open book divided by the last 90 days' average daily invoicing. Rising means the lab is being paid slower, not just selling more."/>
-                                </t>
+                            <div class="o_coll_kpi_top">
+                                <span class="o_coll_kpi_label">Open receivable <i class="fa fa-external-link ms-1 o_coll_hint"/></span>
+                                <span class="o_coll_kpi_sub">
+                                    all periods
+                                    <t t-if="state.data.dso">
+                                        · DSO <b t-esc="state.data.dso"/>d
+                                        <i class="fa fa-question-circle-o o_coll_hint"
+                                           title="Days sales outstanding: the open book divided by the last 90 days' average daily invoicing. Rising means the lab is being paid slower, not just selling more."/>
+                                    </t>
+                                </span>
                             </div>
+                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.open)"/>
                         </div>
                         <div class="o_coll_kpi o_coll_kpi_pending o_coll_clickable"
                              t-on-click="() => this.drill('overdue', null)">
-                            <div class="o_coll_kpi_label">Overdue <i class="fa fa-external-link ms-1 o_coll_hint"/></div>
+                            <div class="o_coll_kpi_top">
+                                <span class="o_coll_kpi_label">Overdue <i class="fa fa-external-link ms-1 o_coll_hint"/></span>
+                                <span class="o_coll_kpi_sub">30+ days · as of <t t-esc="state.data.as_of"/></span>
+                            </div>
                             <div class="o_coll_kpi_value" t-esc="money(state.data.totals.overdue)"/>
-                            <div class="o_coll_kpi_sub">open beyond 30 days, as of <t t-esc="state.data.as_of"/></div>
                         </div>
                     </div>
 

@@ -397,7 +397,8 @@ export class CollectionDashboard extends Component {
     targetGap(percent, target) {
         if (!target) { return ""; }
         const gap = Math.round((percent - target) * 10) / 10;
-        if (gap >= 0) { return `on target (+${gap})`; }
+        // The target is named either way: the card's note no longer repeats it.
+        if (gap >= 0) { return `on target ${target}% (+${gap})`; }
         return `${Math.abs(gap)} short of ${target}%`;
     }
 

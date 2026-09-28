@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Work Centre Scanning',
-    'version': '19.0.3.14.1',
+    'version': '19.0.3.14.2',
     'summary': 'Move a work order to another work centre by scanning the station QR code',
     'description': """
 Work Centre Scanning
