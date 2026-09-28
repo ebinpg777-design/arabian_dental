@@ -36,3 +36,4 @@ from . import daily_update
 from . import day_track
 from . import location_ping
 from . import weekly_report
+from . import ir_http

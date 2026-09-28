@@ -426,6 +426,15 @@
                      (client, 2026-09-10) -->
                 <filter name="this_week" string="This Week"
                         domain="[('date', '&gt;=', (context_today() + relativedelta(weekday=0, days=-6)).strftime('%Y-%m-%d'))]"/>
+                <!-- The desks read this list one person at a time - "show me
+                     LIJO's week" - which was a type-into-the-box job on a screen
+                     already carrying 76 rows for a single week. The panel puts the
+                     field force down the side with a count each.
+                     (client, 2026-09-28) -->
+                <searchpanel>
+                    <field name="user_id" string="Executive" icon="fa-user"
+                           select="multi" enable_counters="1"/>
+                </searchpanel>
                 <group>
                     <filter name="group_user" string="Executive"
                             context="{'group_by': 'user_id'}"/>

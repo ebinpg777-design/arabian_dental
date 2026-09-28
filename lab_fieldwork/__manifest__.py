@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '19.0.5.11.1',
+    'version': '19.0.5.12.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -64,6 +64,7 @@ in the server, not merely in the form.
         'data/ir_cron_data.xml',
         'views/my_day_views.xml',
         'views/desk_views.xml',
+        'views/res_users_views.xml',
         'views/lab_beat_views.xml',
         'views/lab_case_views.xml',
         'views/lab_visit_views.xml',

@@ -10,3 +10,4 @@ from . import test_live_track
 from . import test_browser_domains
 from . import test_template_handlers
 from . import test_sibling_modules
+from . import test_phone_exceptions

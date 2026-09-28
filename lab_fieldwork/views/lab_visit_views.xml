@@ -209,7 +209,8 @@
                             <field name="gps_state" widget="badge" readonly="1"
                                    decoration-success="gps_state == 'ok'"
                                    decoration-danger="gps_state == 'far'"
-                                   decoration-warning="gps_state in ('nofix', 'nopin')"/>
+                                   decoration-warning="gps_state in ('nofix', 'nopin')"
+                                   decoration-info="gps_state == 'exempt'"/>
                             <field name="distance_m" readonly="1"
                                    invisible="gps_state not in ('ok', 'far')"/>
                             <field name="gps_reason" invisible="gps_state != 'far'"
@@ -223,7 +224,8 @@
                                    invisible="not check_out"
                                    decoration-success="out_gps_state == 'ok'"
                                    decoration-danger="out_gps_state == 'far'"
-                                   decoration-warning="out_gps_state in ('nofix', 'nopin')"/>
+                                   decoration-warning="out_gps_state in ('nofix', 'nopin')"
+                                   decoration-info="out_gps_state == 'exempt'"/>
                             <field name="out_distance_m" readonly="1"
                                    invisible="out_gps_state not in ('ok', 'far')"/>
                         </group>

@@ -222,7 +222,8 @@ class LabVisit(models.Model):
     distance_m = fields.Float('Metres from Clinic', readonly=True, copy=False)
     gps_state = fields.Selection(
         [('ok', 'At the clinic'), ('far', 'Away from the clinic'),
-         ('nofix', 'No location'), ('nopin', 'Recorded — clinic not pinned')],
+         ('nofix', 'No location'), ('nopin', 'Recorded — clinic not pinned'),
+         ('exempt', 'Not required')],
         string='Location Check', compute='_compute_gps', store=True)
     gps_reason = fields.Char(
         'Reason', tracking=True,
@@ -237,7 +238,8 @@ class LabVisit(models.Model):
                                   copy=False)
     out_gps_state = fields.Selection(
         [('ok', 'At the clinic'), ('far', 'Away from the clinic'),
-         ('nofix', 'No location'), ('nopin', 'Recorded — clinic not pinned')],
+         ('nofix', 'No location'), ('nopin', 'Recorded — clinic not pinned'),
+         ('exempt', 'Not required')],
         string='Location Check (finish)', compute='_compute_gps', store=True)
     # The two fixes as links the phone can open. A `geo:` URI for the same
     # reason the clinic's own Navigate link is one (see partner_map_uri): it is
@@ -345,19 +347,24 @@ class LabVisit(models.Model):
     @api.depends('check_in', 'gps_lat', 'gps_lon',
                  'check_out', 'out_gps_lat', 'out_gps_lon',
                  'partner_id.partner_latitude',
-                 'partner_id.partner_longitude', 'partner_id.visit_radius_m')
+                 'partner_id.partner_longitude', 'partner_id.visit_radius_m',
+                 'user_id.fw_location_exception')
     def _compute_gps(self):
         default_radius = float(self.env['ir.config_parameter'].sudo().get_param(
             'lab_fieldwork.visit_radius_m', 300))
         for v in self:
             clinic = v.partner_id
             radius = clinic.visit_radius_m or default_radius
+            # An excused phone's missing fix is 'not required', never 'no
+            # location': the sheet must not raise what the lab has waived.
+            exempt = bool(v.user_id.sudo().fw_location_exception)
             v.distance_m, v.gps_state = v._judge_fix(
-                v.check_in, v.gps_lat, v.gps_lon, clinic, radius)
+                v.check_in, v.gps_lat, v.gps_lon, clinic, radius, exempt=exempt)
             v.out_distance_m, v.out_gps_state = v._judge_fix(
-                v.check_out, v.out_gps_lat, v.out_gps_lon, clinic, radius)
+                v.check_out, v.out_gps_lat, v.out_gps_lon, clinic, radius,
+                exempt=exempt)
 
-    def _judge_fix(self, when, lat, lon, clinic, radius):
+    def _judge_fix(self, when, lat, lon, clinic, radius, exempt=False):
         """(metres, state) for one end of the visit — start or finish.
 
         Both ends are judged the same way and by the same code: a rule that
@@ -374,7 +381,9 @@ class LabVisit(models.Model):
         if not has_fix(lat, lon):
             # A denied location permission is a different problem from being in
             # the wrong place, and must never be reported as the wrong place.
-            return 0.0, 'nofix'
+            # A phone the lab has excused is a third thing again: nothing to
+            # report at all.
+            return 0.0, ('exempt' if exempt else 'nofix')
         if not clinic.is_geolocated:
             # Recorded, but nothing to measure it against yet.
             return 0.0, 'nopin'
@@ -476,6 +485,10 @@ class LabVisit(models.Model):
         denied permission and a wrapper that helpfully sends 0,0 must fail the
         same way, or the check is decoration. Null Island is not in Kerala.
         """
+        if self.user_id.sudo().fw_location_exception:
+            # The lab has excused this phone from giving a position: the time
+            # is the record, and nobody is told to switch anything on.
+            return
         if not has_fix(latitude, longitude):
             raise UserError(_(
                 "Switch your location on to %(what)s.\n\n"

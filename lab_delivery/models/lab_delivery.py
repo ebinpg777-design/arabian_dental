@@ -170,7 +170,8 @@ class LabDelivery(models.Model):
         groups='lab_fieldwork.group_fieldwork_manager,base.group_system')
     delivered_gps_state = fields.Selection(
         [('ok', 'At the clinic'), ('far', 'Away from the clinic'),
-         ('nopin', 'Clinic not pinned'), ('nofix', 'No location')],
+         ('nopin', 'Clinic not pinned'), ('nofix', 'No location'),
+         ('exempt', 'Not required')],
         string='Where It Was Delivered', compute='_compute_delivered_gps', store=True,
         groups='lab_fieldwork.group_fieldwork_manager,base.group_system')
     delivered_map_url = fields.Char(
@@ -224,7 +225,8 @@ class LabDelivery(models.Model):
     last_escalation_at = fields.Datetime(readonly=True, copy=False)
 
     @api.depends('delivered_lat', 'delivered_lon', 'partner_id.partner_latitude',
-                 'partner_id.partner_longitude', 'partner_id.visit_radius_m')
+                 'partner_id.partner_longitude', 'partner_id.visit_radius_m',
+                 'delivered_by_id.fw_location_exception')
     def _compute_delivered_gps(self):
         """How far from the clinic the handover was confirmed.
 
@@ -246,7 +248,10 @@ class LabDelivery(models.Model):
                                     clinic.partner_latitude, clinic.partner_longitude)
             if not (delivery.delivered_lat or delivery.delivered_lon):
                 delivery.delivered_distance_m = 0.0
-                delivery.delivered_gps_state = 'nofix'
+                # Excused phone: nothing to report, not 'no location'.
+                delivery.delivered_gps_state = (
+                    'exempt' if delivery.delivered_by_id.sudo().fw_location_exception
+                    else 'nofix')
             elif not (clinic and clinic.partner_latitude and clinic.partner_longitude):
                 delivery.delivered_distance_m = 0.0
                 delivery.delivered_gps_state = 'nopin'

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The two phone exceptions, on the person (Field Roles opens this form).
+         Only the field-work administrator and the system administrator see the
+         page: it changes what the lab can check about somebody. (client, 2026-09-28) -->
+    <record id="view_users_form_fieldwork" model="ir.ui.view">
+        <field name="name">res.users.form.fieldwork</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook/page[@name='access_rights']" position="after">
+                <page string="Field Work" name="fieldwork"
+                      groups="lab_fieldwork.group_fieldwork_admin,base.group_system">
+                    <group string="Phone exceptions">
+                        <field name="fw_location_exception"/>
+                        <field name="fw_camera_exception"/>
+                    </group>
+                    <div class="text-muted">
+                        <p><b>Location:</b> field work records the time only for this
+                        person — no position is asked for on visits, deliveries or the
+                        day trail, and no location warning is shown to them or raised on
+                        their day sheet.</p>
+                        <p class="mb-0"><b>Camera:</b> on dispatched deliveries they type
+                        the invoice number instead of scanning it.</p>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

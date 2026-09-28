@@ -237,6 +237,11 @@
                             the phone refused the fix, or the courier feed closed it.
                         </div>
                         <div colspan="2" class="text-muted"
+                             invisible="delivered_gps_state != 'exempt'">
+                            No location, by arrangement: this person's phone is excused
+                            from giving one, so only the time was taken.
+                        </div>
+                        <div colspan="2" class="text-muted"
                              invisible="delivered_gps_state != 'nopin'">
                             This clinic has no map pin, so the distance cannot be
                             worked out. Pin it on the contact to make this useful.

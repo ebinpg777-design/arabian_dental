@@ -114,7 +114,7 @@
                                t-model="state.manual"
                                inputmode="text" autocomplete="off"
                                autocapitalize="characters" spellcheck="false"
-                               placeholder="Invoice / order / delivery no."
+                               t-att-placeholder="cameraExempt ? 'Invoice number' : 'Invoice / order / delivery no.'"
                                t-on-keydown="onManualKeydown"/>
                         <button class="o_fws_go" t-att-disabled="!state.manual.trim() or state.busy"
                                 t-on-click="() => this.submitManual()">
@@ -122,8 +122,10 @@
                         </button>
                     </div>
                     <div class="o_fws_typehint">
-                        A handheld scanner works anywhere on this screen — it types
-                        the code and presses Enter by itself.
+                        <t t-if="cameraExempt">Scanning is switched off for this login:
+                        type the invoice number and press Enter.</t>
+                        <t t-else="">A handheld scanner works anywhere on this screen — it types
+                        the code and presses Enter by itself.</t>
                     </div>
                 </t>
                 <div class="o_fws_busyline" t-if="state.busy and state.mode !== 'photo'">
@@ -138,7 +140,7 @@
                         t-on-click="() => this.setMode('camera')">
                     <i class="fa fa-video-camera me-1"/>Camera
                 </button>
-                <button class="o_fws_mode"
+                <button class="o_fws_mode" t-if="!cameraExempt"
                         t-att-class="state.mode === 'photo' ? 'o_fws_mode_on' : ''"
                         t-on-click="() => this.setMode('photo')">
                     <i class="fa fa-camera me-1"/>Photo

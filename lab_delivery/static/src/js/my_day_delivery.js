@@ -3,6 +3,7 @@
 import { patch } from "@web/core/utils/patch";
 import { LabMyDay } from "@lab_fieldwork/js/my_day";
 import { _t } from "@web/core/l10n/translation";
+import { session } from "@web/session";
 import { ScanStation } from "@lab_delivery/js/scan_station";
 
 /**
@@ -83,7 +84,7 @@ patch(LabMyDay.prototype, {
 
     /** The inbound mirror of Mark Delivered: the lab takes the bag in. */
     async receiveAtLab(d) {
-        const coords = await this.getPosition();
+        const coords = session.fw_location_exception ? null : await this.getPosition();
         const action = await this.orm.call("lab.delivery", "action_receive_at_lab", [
             [d.id],
             coords ? coords.latitude : false,
@@ -113,7 +114,7 @@ patch(LabMyDay.prototype, {
     async markDelivered(d) {
         // The fix is taken at THIS moment - pressing Delivered - because that is
         // when standing at the clinic means something. (client, 2026-08-28)
-        const coords = await this.getPosition();
+        const coords = session.fw_location_exception ? null : await this.getPosition();
         const action = await this.orm.call("lab.delivery", "action_mark_delivered", [
             [d.id],
             coords ? coords.latitude : false,

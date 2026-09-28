@@ -3,6 +3,7 @@
 import { Component } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { session } from "@web/session";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
 
 /**
@@ -46,8 +47,10 @@ export class FwGeoButton extends Component {
         if (record.isDirty) {
             await record.save();
         }
-        const coords = await this.getPosition();
-        if (!coords) {
+        // An excused phone is not asked, and not warned. (client, 2026-09-28)
+        const exempt = Boolean(session.fw_location_exception);
+        const coords = exempt ? null : await this.getPosition();
+        if (!coords && !exempt) {
             this.notification.add(
                 "Turn on Location for this browser, wait for the arrow to appear, " +
                 "then try again. A visit cannot be recorded without it.",
@@ -56,8 +59,8 @@ export class FwGeoButton extends Component {
             return;
         }
         await this.orm.call(record.resModel, this.props.method, [[record.resId]], {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
+            latitude: coords ? coords.latitude : false,
+            longitude: coords ? coords.longitude : false,
         });
         await record.model.root.load();
     }

@@ -4,6 +4,7 @@ import { Component, onMounted, onWillUnmount, useRef, useState } from "@odoo/owl
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
+import { session } from "@web/session";
 import { isBarcodeScannerSupported } from "@web/core/barcode/barcode_video_scanner";
 import {
     decodeBarcodes,
@@ -44,10 +45,12 @@ export class ScanStation extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
-        this.live = isBarcodeScannerSupported();
+        // A phone the lab has excused from scanning gets the keyboard and
+        // nothing else: the invoice number is typed. (client, 2026-09-28)
+        this.live = isBarcodeScannerSupported() && !this.cameraExempt;
         this.state = useState({
             // 'camera' only ever offered when the live scanner can exist at all.
-            mode: this.live ? "camera" : "photo",
+            mode: this.cameraExempt ? "type" : (this.live ? "camera" : "photo"),
             cameraReady: false,
             // What the loop is going through, said out loud: a camera that sees
             // the wrong thing and says nothing reads as a broken scanner.
@@ -110,12 +113,18 @@ export class ScanStation extends Component {
             window.addEventListener("keydown", this.onWedgeKey, true);
             if (this.state.mode === "camera") {
                 this.startCamera();
+            } else if (this.state.mode === "type") {
+                setTimeout(() => this.manualRef.el && this.manualRef.el.focus(), 80);
             }
         });
         onWillUnmount(() => {
             window.removeEventListener("keydown", this.onWedgeKey, true);
             this.stopCamera();
         });
+    }
+
+    get cameraExempt() {
+        return Boolean(session.fw_camera_exception);
     }
 
     // ------------------------------------------------------------- live camera
@@ -594,6 +603,9 @@ export class ScanStation extends Component {
 
     /** A location fix, or nothing, but never a wait. */
     positionOrNothing(ms) {
+        if (session.fw_location_exception) {
+            return Promise.resolve(null);   // an excused phone is not asked
+        }
         return Promise.race([
             new Promise((resolve) => {
                 try {

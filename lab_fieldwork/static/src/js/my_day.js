@@ -4,6 +4,7 @@ import { Component, onPatched, onWillStart, useRef, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { session } from "@web/session";
 import { formatMonetary } from "@web/views/fields/formatters";
 
 /**
@@ -144,8 +145,12 @@ export class LabMyDay extends Component {
         this.state.busy = v.id;
         try {
             if (v.state === "planned") {
-                const coords = await this.getPosition();
-                if (!coords) {
+                // A phone the lab has excused from giving a position is not
+                // asked for one, and never told to switch it on: the time is
+                // the record. (client, 2026-09-28)
+                const exempt = Boolean(session.fw_location_exception);
+                const coords = exempt ? null : await this.getPosition();
+                if (!coords && !exempt) {
                     // The server refuses this too; saying so here means the
                     // executive gets an instruction instead of an error dialog.
                     this.notification.add(
@@ -157,8 +162,8 @@ export class LabMyDay extends Component {
                     return;
                 }
                 await this.orm.call("lab.visit", "do_check_in", [[v.id]], {
-                    latitude: coords.latitude,
-                    longitude: coords.longitude,
+                    latitude: coords ? coords.latitude : false,
+                    longitude: coords ? coords.longitude : false,
                 });
                 await this.load();
             } else {
@@ -304,7 +309,7 @@ export class LabMyDay extends Component {
         }
         this.state.busy = "att";
         try {
-            const coords = await this.getPosition();
+            const coords = session.fw_location_exception ? null : await this.getPosition();
             await this.orm.call("lab.my.day", "attendance_toggle", [], {
                 latitude: coords ? coords.latitude : false,
                 longitude: coords ? coords.longitude : false,

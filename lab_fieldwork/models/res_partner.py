@@ -247,6 +247,29 @@ class ResUsers(models.Model):
         help="The Field Work menu and everything under it. Read by the menu record "
              "rule that gives an executive this one menu and no other.")
 
+    # Two exceptions the lab grants a person whose phone cannot do what the
+    # field screens ask of it. Read by every screen through the session (see
+    # ir_http.session_info) and by the server rules that would otherwise
+    # refuse or flag the record. (client, 2026-09-28)
+    fw_location_exception = fields.Boolean(
+        string='Location Access Exception',
+        help="This person's phone cannot give a position. Field work then "
+             "records the time only: no location is asked for or stored on "
+             "their visits, deliveries or day trail, and no location warning "
+             "is shown to them or raised on their day sheet.")
+    fw_camera_exception = fields.Boolean(
+        string='Camera Access Exception',
+        help="This person's phone cannot scan. On dispatched deliveries they "
+             "type the invoice number instead of scanning it.")
+
+    def _fw_phone_exceptions(self):
+        """{'location': bool, 'camera': bool} for one user, read elevated: a
+        person may not be able to read their own user record's fields."""
+        self.ensure_one()
+        me = self.sudo()
+        return {'location': bool(me.fw_location_exception),
+                'camera': bool(me.fw_camera_exception)}
+
     def _compute_fw_routes(self):
         # sudo: an executive cannot read crm.team, and must still resolve their own.
         Team = self.env['crm.team'].sudo()

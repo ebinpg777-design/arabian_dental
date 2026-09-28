@@ -247,7 +247,9 @@ class LabMyDay(models.AbstractModel):
         """
         pings = self.env['lab.location.ping']
         payload = self._attendance_payload()
-        enabled = pings._tracking_enabled()
+        # An excused phone is never watched: the trail is a location too.
+        enabled = pings._tracking_enabled() and \
+            not self.env.user._fw_phone_exceptions()['location']
         try:
             interval = max(30, int(self.env['ir.config_parameter'].sudo().get_param(
                 'lab_fieldwork.track_interval', '90')))
