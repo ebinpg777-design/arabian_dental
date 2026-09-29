@@ -2797,7 +2797,12 @@ class MigrationBackend(models.Model):
         # A date in the past has to be rebuilt from the moves; the present position
         # is read off the source's own quants instead, which is the only figure the
         # lab itself would recognise (see the query below).
-        from_quants = date >= fields.Date.context_today(self)
+        # "Today" in EITHER clock. An odoo process runs with TZ=UTC, so a driver that
+        # stamps the date with time.strftime writes the UTC date, while context_today
+        # is the user's (India). Between 00:00 and 05:30 IST the two differ, and a
+        # present-day run read as the past: stock was rebuilt from moves (87,445)
+        # instead of taken from the lab's own quants (72,340). (2026-09-30)
+        from_quants = date >= min(fields.Date.today(), fields.Date.context_today(self))
         conn = self._connect()
         conn.autocommit = True
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)

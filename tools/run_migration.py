@@ -27,6 +27,8 @@ import logging
 import os
 import time
 
+import odoo
+
 _logger = logging.getLogger('run_migration')
 logging.getLogger('odoo.addons.lab_migration').setLevel(logging.INFO)
 
@@ -102,8 +104,10 @@ for phase in phases:
         show('MATERIAL REQUESTS', backend._txn_run(['material_requests']))
     elif phase == 'inventory':
         # on-hand as of the dump, per department store, once the transfers are in
+        # the lab's date, not the process clock's: odoo runs with TZ=UTC, so
+        # time.strftime gave yesterday for the first 5.5 hours of an Indian day
         backend.write({'inventory_as_of': os.environ.get('MIG_INVENTORY_AS_OF')
-                       or time.strftime('%Y-%m-%d')})
+                       or odoo.fields.Date.context_today(backend)})
         show('INVENTORY', backend._opening_inventory()); env.cr.commit()
     elif phase == 'timestamps':
         backend.action_sync_timestamps(); env.cr.commit()
