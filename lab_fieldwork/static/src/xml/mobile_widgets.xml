@@ -6,7 +6,7 @@
     <div class="o_fw_choice" t-att-class="props.readonly ? 'o_fw_choice_ro' : ''">
         <button t-foreach="choices" t-as="c" t-key="c[0]" type="button"
                 class="o_fw_choice_chip"
-                t-att-class="value === c[0] ? 'o_fw_choice_on' : ''"
+                t-att-class="(value === c[0] ? 'o_fw_choice_on ' : '') + tone(c[0])"
                 t-att-aria-pressed="value === c[0] ? 'true' : 'false'"
                 t-att-disabled="props.readonly"
                 t-on-click="() => this.onPick(c[0])">
@@ -166,7 +166,7 @@
 <t t-name="lab_fieldwork.FwToggles">
     <div class="o_fw_choice">
         <button t-foreach="items" t-as="item" t-key="item.name" type="button"
-                class="o_fw_choice_chip" t-att-class="item.on ? 'o_fw_choice_on' : ''"
+                class="o_fw_choice_chip" t-att-class="(item.on ? 'o_fw_choice_on ' : '') + item.tone"
                 t-att-aria-pressed="item.on ? 'true' : 'false'"
                 t-att-disabled="props.readonly"
                 t-on-click="() => this.toggle(item)">

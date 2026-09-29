@@ -28,7 +28,13 @@ import { useSpecialData } from "@web/views/fields/relational_utils";
 // ---------------------------------------------------------------------------
 export class FwChoice extends Component {
     static template = "lab_fieldwork.FwChoice";
-    static props = { ...standardFieldProps };
+    static props = { ...standardFieldProps, colors: { type: Object, optional: true } };
+
+    /** The colour class of one option: `options="{'colors': {'urgent': 'amber'}}"`. */
+    tone(value) {
+        const name = this.props.colors && this.props.colors[value];
+        return name ? `o_fw_c_${name}` : "";
+    }
 
     get choices() {
         return this.props.record.fields[this.props.name].selection.filter(
@@ -57,6 +63,7 @@ export const fwChoice = {
     displayName: _t("Touch choice"),
     supportedTypes: ["selection"],
     isEmpty: (record, fieldName) => record.data[fieldName] === false,
+    extractProps: ({ options }) => ({ colors: options && options.colors }),
 };
 registry.category("fields").add("fw_choice", fwChoice);
 
@@ -417,16 +424,19 @@ export class FwToggles extends Component {
     static props = {
         ...standardWidgetProps,
         fieldNames: { type: Array },
+        colors: { type: Array, optional: true },
     };
 
     get items() {
         const record = this.props.record;
         return this.props.fieldNames
             .filter((name) => name in record.fields)
-            .map((name) => ({
+            .map((name, index) => ({
                 name,
                 label: record.fields[name].string,
                 on: !!record.data[name],
+                tone: this.props.colors && this.props.colors.length
+                    ? `o_fw_c_${this.props.colors[index % this.props.colors.length]}` : "",
             }));
     }
 
@@ -442,6 +452,7 @@ export const fwToggles = {
     component: FwToggles,
     extractProps: ({ attrs }) => ({
         fieldNames: (attrs.fields || "").split(",").map((f) => f.trim()).filter(Boolean),
+        colors: (attrs.colors || "").split(",").map((f) => f.trim()).filter(Boolean),
     }),
     fieldDependencies: [],
 };

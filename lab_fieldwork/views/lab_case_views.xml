@@ -18,17 +18,19 @@
                     <!-- The one thing to do on this screen, so it is the only primary
                          button and it is first. -->
                     <button name="action_submit" type="object" string="Submit Case"
-                            class="btn-primary" invisible="state != 'draft'"
-                            data-hotkey="v"/>
+                            class="btn-primary o_fw_btn_submit" icon="fa-paper-plane"
+                            invisible="state != 'draft'" data-hotkey="v"/>
                     <button name="action_reset_to_draft" type="object" string="Reopen"
+                            class="o_fw_btn_reopen" icon="fa-undo"
                             invisible="state != 'submitted'"/>
                     <button name="action_create_order" type="object"
-                            string="Create Order Now" class="btn-secondary"
+                            string="Create Order Now" class="o_fw_btn_order" icon="fa-file-text-o"
                             invisible="state != 'submitted'"
                             groups="lab_fieldwork.group_fieldwork_manager"/>
                     <button name="action_view_order" type="object" string="View Order"
                             class="btn-primary" invisible="not sale_order_id"/>
                     <button name="action_cancel" type="object" string="Cancel"
+                            class="o_fw_btn_cancel" icon="fa-times"
                             invisible="state not in ('draft', 'submitted')"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,registered"/>
@@ -83,66 +85,76 @@
                         </button>
                     </div>
 
-                    <div class="oe_title">
-                        <label for="patient" class="o_fw_case_label"/>
-                        <h1>
-                            <field name="patient" placeholder="Patient name"
-                                   readonly="state != 'draft'"/>
-                        </h1>
-                        <div class="text-muted">
-                            <field name="partner_id" readonly="1" nolabel="1"
-                                   options="{'no_open': True}"/>
-                            <span class="mx-1">&#8226;</span>
-                            <field name="date" readonly="1" nolabel="1" class="oe_inline"/>
-                        </div>
-                    </div>
-
                     <field name="visit_id" invisible="1"/>
                     <field name="patient_key" invisible="1"/>
                     <field name="duplicate_ids" invisible="1" widget="many2many_tags"/>
                     <field name="company_id" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
-
-                    <group>
-                        <group>
-                            <field name="age" widget="fw_stepper"
-                                   readonly="state != 'draft'"/>
-                            <field name="gender" widget="fw_choice"
-                                   readonly="state != 'draft'"/>
-                        </group>
-                        <group>
-                            <field name="priority" widget="fw_choice"
-                                   readonly="state != 'draft'"/>
-                        </group>
-                    </group>
-
-                    <!-- The work. One row per appliance, arch chosen by tapping it. -->
-                    <separator string="What is being made"/>
-                    <div class="alert alert-light border m-0 mb-2 rounded small text-muted"
-                         role="status" invisible="line_count != 0 or state != 'draft'">
-                        <i class="fa fa-arrow-down me-1" title="Add work"/>
-                        Add at least one item — a case with no work on it cannot be saved.
-                    </div>
                     <field name="line_count" invisible="1"/>
-                    <field name="needs_doctor_call" invisible="1"/>
-                    <field name="line_ids" readonly="state != 'draft'"
-                           context="{'default_ul': 'upper'}">
-                        <list editable="bottom" class="o_fw_case_lines"
-                              no_open="1">
-                            <field name="sequence" widget="handle"/>
-                            <field name="product_id"
-                                   options="{'no_quick_create': True}"/>
-                            <field name="ul" widget="fw_arch"/>
-                            <field name="quantity" widget="fw_stepper"/>
-                            <field name="colour_id" optional="show"
-                                   options="{'no_quick_create': True}"/>
-                            <field name="is_urgent" optional="hide"/>
-                            <field name="note" optional="hide"/>
-                            <field name="company_id" column_invisible="1"/>
-                        </list>
-                    </field>
 
-                    <!-- Before the bag contents: it changes whether the lab starts at
+                    <!-- 1. Who. Violet: the patient is the case. -->
+                    <div class="o_fw_sec o_fw_sec_violet">
+                        <div class="o_fw_sec_h">
+                            <span class="o_fw_sec_i"><i class="fa fa-user" title="Patient"/></span>
+                            <div>
+                                <div class="o_fw_sec_t">Patient</div>
+                                <div class="o_fw_where">
+                                    <span class="o_fw_where_c"><i class="fa fa-hospital-o me-1" title="Clinic"/><field name="partner_id" readonly="1" nolabel="1" options="{'no_open': True}"/></span>
+                                    <span class="o_fw_where_d"><i class="fa fa-calendar-o me-1" title="Date"/><field name="date" readonly="1" nolabel="1" class="oe_inline"/></span>
+                                </div>
+                            </div>
+                        </div>
+                        <h1 class="o_fw_patient mb-1">
+                            <field name="patient" placeholder="Patient name"
+                                   readonly="state != 'draft'"/>
+                        </h1>
+                        <div class="o_fw_sec_l">Age</div>
+                        <field name="age" widget="fw_stepper" readonly="state != 'draft'"/>
+                        <div class="o_fw_sec_l">Gender</div>
+                        <field name="gender" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'colors': {'male': 'blue', 'female': 'pink'}}"/>
+                    </div>
+
+                    <!-- 2. How soon. The colour climbs with the hurry. -->
+                    <div class="o_fw_sec o_fw_sec_amber">
+                        <div class="o_fw_sec_h">
+                            <span class="o_fw_sec_i"><i class="fa fa-clock-o" title="How soon"/></span>
+                            <div>
+                                <div class="o_fw_sec_t">How soon</div>
+                                <div class="o_fw_sec_s">Normal unless the doctor asked for it sooner.</div>
+                            </div>
+                        </div>
+                        <field name="priority" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'colors': {'low': 'slate', 'normal': 'blue', 'urgent': 'amber', 'emergency': 'red'}}"/>
+                    </div>
+
+                    <!-- 3. The work. One card per appliance; every choice is a tap. -->
+                    <div class="o_fw_sec o_fw_sec_green">
+                        <div class="o_fw_sec_h">
+                            <span class="o_fw_sec_i"><i class="fa fa-medkit" title="Work"/></span>
+                            <div>
+                                <div class="o_fw_sec_t">What is being made</div>
+                                <div class="o_fw_sec_s">Blue is upper, teal is lower. Tap both for upper and lower.</div>
+                            </div>
+                        </div>
+                        <field name="line_ids" widget="fw_case_items" nolabel="1"
+                               readonly="state != 'draft'"
+                               context="{'default_ul': 'upper'}">
+                            <!-- names the fields to load; the widget draws them as cards -->
+                            <list>
+                                <field name="sequence"/>
+                                <field name="product_id"/>
+                                <field name="ul"/>
+                                <field name="quantity"/>
+                                <field name="colour_id"/>
+                                <field name="is_urgent"/>
+                                <field name="note"/>
+                                <field name="company_id"/>
+                            </list>
+                        </field>
+                    </div>
+
+                    <!-- 4. Before the bag contents: it changes whether the lab starts at
                          all, so it is not buried under six checkboxes. -->
                     <field name="needs_doctor_call" widget="fw_flag"
                            options="{'icon': 'fa-phone'}" nolabel="1"
@@ -153,42 +165,72 @@
                                placeholder="What does the lab need to ask? e.g. confirm shade on 21, or which clasp design"/>
                     </group>
 
-                    <separator string="What came in the bag"/>
-                    <field name="is_screw" invisible="1"/>
-                    <field name="is_bite" invisible="1"/>
-                    <field name="is_bands" invisible="1"/>
-                    <field name="is_wires" invisible="1"/>
-                    <field name="is_teeth" invisible="1"/>
-                    <field name="is_facebow" invisible="1"/>
-                    <widget name="fw_toggles"
-                            fields="is_screw,is_bite,is_bands,is_wires,is_teeth,is_facebow"/>
+                    <!-- 5. What came with it. -->
+                    <div class="o_fw_sec o_fw_sec_teal">
+                        <div class="o_fw_sec_h">
+                            <span class="o_fw_sec_i"><i class="fa fa-shopping-bag" title="Bag"/></span>
+                            <div>
+                                <div class="o_fw_sec_t">What came in the bag</div>
+                                <div class="o_fw_sec_s">Tap everything the doctor handed over.</div>
+                            </div>
+                        </div>
+                        <field name="is_screw" invisible="1"/>
+                        <field name="is_bite" invisible="1"/>
+                        <field name="is_bands" invisible="1"/>
+                        <field name="is_wires" invisible="1"/>
+                        <field name="is_teeth" invisible="1"/>
+                        <field name="is_facebow" invisible="1"/>
+                        <widget name="fw_toggles"
+                                fields="is_screw,is_bite,is_bands,is_wires,is_teeth,is_facebow"
+                                colors="indigo,teal,amber,blue,pink,green"/>
+                    </div>
 
-                    <group>
-                        <group string="Impression">
-                            <field name="impression_type" widget="fw_choice"
-                                   readonly="state != 'draft'"/>
-                            <field name="impression_tray" widget="fw_choice"
-                                   readonly="state != 'draft'"/>
-                        </group>
-                        <group string="Also">
-                            <field name="scanned_impression" widget="fw_choice"
-                                   readonly="state != 'draft'"/>
-                            <field name="wax_bite" widget="fw_choice"
-                                   readonly="state != 'draft'"/>
-                            <field name="send_through_id" readonly="state != 'draft'"
-                                   options="{'no_quick_create': True}"/>
-                        </group>
-                    </group>
+                    <!-- 6. The impression. -->
+                    <div class="o_fw_sec o_fw_sec_blue">
+                        <div class="o_fw_sec_h">
+                            <span class="o_fw_sec_i"><i class="fa fa-hand-paper-o" title="Impression"/></span>
+                            <div>
+                                <div class="o_fw_sec_t">Impression</div>
+                                <div class="o_fw_sec_s">What it was taken in, and with what.</div>
+                            </div>
+                        </div>
+                        <div class="o_fw_sec_l">Material</div>
+                        <field name="impression_type" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'colors': {'Alginate': 'teal', 'Rubber Base': 'indigo'}}"/>
+                        <div class="o_fw_sec_l">Tray</div>
+                        <field name="impression_tray" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'colors': {'Upper': 'blue', 'Lower': 'teal', 'Both': 'violet'}}"/>
+                        <div class="o_fw_sec_l">Scanned</div>
+                        <field name="scanned_impression" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'colors': {'Yes': 'green', 'No': 'slate'}}"/>
+                        <div class="o_fw_sec_l">Wax bite</div>
+                        <field name="wax_bite" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'colors': {'Yes': 'green', 'No': 'slate'}}"/>
+                        <div class="o_fw_sec_l">Send through</div>
+                        <field name="send_through_id" readonly="state != 'draft'"
+                               options="{'no_quick_create': True}"/>
+                    </div>
 
-                    <group string="Anything special">
+                    <!-- 7. Anything special, and the photo. -->
+                    <div class="o_fw_sec o_fw_sec_pink">
+                        <div class="o_fw_sec_h">
+                            <span class="o_fw_sec_i"><i class="fa fa-pencil" title="Notes"/></span>
+                            <div>
+                                <div class="o_fw_sec_t">Anything special</div>
+                                <div class="o_fw_sec_s">Only what the lab would not guess.</div>
+                            </div>
+                        </div>
+                        <div class="o_fw_sec_l">Modifications</div>
                         <field name="modification" readonly="state != 'draft'"
                                placeholder="e.g. extra clasp on 16"/>
+                        <div class="o_fw_sec_l">Special instructions</div>
                         <field name="instruction" readonly="state != 'draft'"
                                placeholder="e.g. deliver before Friday"/>
+                        <div class="o_fw_sec_l">Notes for the lab</div>
                         <field name="note" placeholder="Notes for the lab…"/>
-                        <field name="photo" widget="fw_camera"
-                               readonly="state != 'draft'"/>
-                    </group>
+                        <div class="o_fw_sec_l">Photo of the case</div>
+                        <field name="photo" widget="fw_camera" readonly="state != 'draft'"/>
+                    </div>
                 </sheet>
                 <chatter/>
             </form>
@@ -229,21 +271,27 @@
                 <field name="duplicate_ack"/>
                 <templates>
                     <t t-name="card">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <strong class="fs-6"><field name="patient"/></strong>
-                            <field name="priority" widget="badge"/>
+                        <div t-attf-class="o_fw_casecard o_fw_cs_#{record.state.raw_value}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <strong class="fs-6"><field name="patient"/></strong>
+                                <field name="priority" widget="badge"
+                                       decoration-danger="priority == 'emergency'"
+                                       decoration-warning="priority == 'urgent'"
+                                       decoration-info="priority == 'normal'"/>
+                            </div>
+                            <div class="text-muted small"><i class="fa fa-hospital-o me-1" title="Clinic"/><field name="partner_id"/></div>
+                            <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                                <span class="o_fw_cs_chip o_fw_cs_items"><i class="fa fa-cubes me-1" title="Items"/><field name="line_count"/> item(s)</span>
+                                <span t-if="record.duplicate_warning.raw_value and !record.duplicate_ack.raw_value"
+                                      class="o_fw_cs_chip o_fw_cs_dup"><i class="fa fa-clone me-1" title="Possible duplicate"/>Possible duplicate</span>
+                                <field name="state" widget="badge" class="ms-auto"
+                                       decoration-warning="state == 'draft'"
+                                       decoration-info="state == 'submitted'"
+                                       decoration-success="state == 'registered'"
+                                       decoration-danger="state == 'cancel'"/>
+                            </div>
+                            <field name="duplicate_warning" invisible="1"/>
                         </div>
-                        <div class="text-muted small"><field name="partner_id"/></div>
-                        <div class="small mt-1">
-                            <i class="fa fa-medkit me-1" title="Items"/>
-                            <field name="line_count"/> item(s)
-                        </div>
-                        <div t-if="record.duplicate_warning.raw_value and !record.duplicate_ack.raw_value"
-                             class="text-warning small mt-1">
-                            <i class="fa fa-clone me-1" title="Possible duplicate"/>
-                            Possible duplicate
-                        </div>
-                        <field name="duplicate_warning" invisible="1"/>
                     </t>
                 </templates>
             </kanban>

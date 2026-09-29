@@ -2,6 +2,7 @@
 import re
 from datetime import timedelta
 
+from odoo.tools import SQL
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
@@ -523,6 +524,78 @@ class LabCase(models.Model):
                                      order.name))
             created |= order
         return created
+
+
+    # ------------------------------------------------------------------ the phone's item picker
+    @api.model
+    def _usage(self, column, since_days, partner_id=None, limit=400):
+        """How often each product (or shade) went on an order lately: {id: count}."""
+        self.env['sale.order.line'].flush_model()
+        self.env['sale.order'].flush_model()
+        where = SQL("AND o.partner_id = %s", int(partner_id)) if partner_id else SQL("")
+        rows = self.env.execute_query(SQL("""
+            SELECT l.%s, COUNT(*) FROM sale_order_line l JOIN sale_order o ON o.id = l.order_id
+             WHERE o.state IN ('sale', 'done') AND o.company_id = %s
+               AND o.date_order >= (CURRENT_DATE - %s * INTERVAL '1 day') AND l.%s IS NOT NULL %s
+             GROUP BY 1 ORDER BY 2 DESC LIMIT %s
+        """, SQL.identifier(column), self.env.company.id, since_days, SQL.identifier(column), where, limit))
+        return {r[0]: r[1] for r in rows}
+
+    @api.model
+    def picker_products(self, query='', categ_id=None, partner_id=None, limit=40):
+        """What an executive can add to a case, the likely ones first.
+
+        Three shelves: what THIS clinic usually orders, what the whole lab makes most,
+        and the search or category results - each sorted by how often the product went
+        on an order in the last half year, so the common appliance is one tap and the
+        rare one is one search.
+        """
+        Product = self.env['product.product']
+        base = [('sale_ok', '=', True)]
+        usage = self._usage('product_id', 180)
+
+        def rows(products):
+            return [{'id': p.id, 'name': p.display_name, 'categ_id': p.categ_id.id, 'categ': p.categ_id.name,
+                     'uses': usage.get(p.id, 0)} for p in products]
+
+        def ranked(products, n):
+            return rows(sorted(products, key=lambda p: (-usage.get(p.id, 0), p.display_name or ''))[:n])
+        out = {'frequent': [], 'clinic': [], 'results': [], 'categories': []}
+        query = (query or '').strip()
+        if query or categ_id:
+            domain = list(base)
+            if categ_id:
+                domain.append(('categ_id', '=', int(categ_id)))
+            if query:
+                domain += ['|', ('name', 'ilike', query), ('default_code', 'ilike', query)]
+            out['results'] = ranked(Product.search(domain, limit=300), limit)
+        else:
+            top = [pid for pid in usage if pid][:60]
+            out['frequent'] = ranked(Product.browse(top).exists().filtered(lambda p: p.sale_ok), 12)
+            if partner_id:
+                mine = self._usage('product_id', 365, partner_id=partner_id, limit=30)
+                clinic = Product.browse(list(mine)).exists().filtered(lambda p: p.sale_ok)
+                out['clinic'] = [dict(r, uses=mine.get(r['id'], 0)) for r in rows(
+                    sorted(clinic, key=lambda p: (-mine.get(p.id, 0), p.display_name or ''))[:8])]
+            groups = Product._read_group(base, ['categ_id'], ['__count'])
+            cats = sorted(((c, n) for c, n in groups if c), key=lambda g: -g[1])
+            out['categories'] = [{'id': c.id, 'name': c.name, 'count': n} for c, n in cats[:14]]
+        return out
+
+    @api.model
+    def picker_colours(self, query='', limit=18):
+        """Shades, the ones actually ordered first: 737 exist and a dozen do the work."""
+        Colour = self.env['product.colour']
+        usage = self._usage('color_scheme', 365)
+        query = (query or '').strip()
+        if query:
+            colours = Colour.search([('name', 'ilike', query)], limit=200)
+        else:
+            colours = Colour.browse([cid for cid in usage if cid][:limit * 2]).exists()
+            if len(colours) < limit:
+                colours |= Colour.search([('id', 'not in', colours.ids)], limit=limit - len(colours))
+        ranked = sorted(colours, key=lambda c: (-usage.get(c.id, 0), c.name or ''))[:limit]
+        return [{'id': c.id, 'name': c.name, 'uses': usage.get(c.id, 0)} for c in ranked]
 
 
 class LabCaseLine(models.Model):

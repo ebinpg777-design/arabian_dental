@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_fieldwork.FwCaseItems">
+    <div class="o_fwci" t-att-class="readonly ? 'o_fwci_ro' : ''">
+        <!-- what is on the slip so far, in one line -->
+        <div class="o_fwci_sum" t-if="lines.length">
+            <span class="o_fwci_pill o_fwci_p_items"><i class="fa fa-cubes me-1" title="Items"/><b t-esc="summary.items"/> item<t t-if="summary.items !== 1">s</t></span>
+            <span class="o_fwci_pill o_fwci_p_units"><i class="fa fa-hashtag me-1" title="Units"/><b t-esc="qtyLabel(summary.units)"/> unit<t t-if="summary.units !== 1">s</t></span>
+            <span class="o_fwci_pill o_fwci_p_urgent" t-if="summary.urgent"><i class="fa fa-bolt me-1" title="Urgent"/><b t-esc="summary.urgent"/> urgent</span>
+        </div>
+
+        <div t-if="!lines.length" class="o_fwci_empty">
+            <i class="fa fa-medkit" title="Nothing yet"/>
+            <div class="o_fwci_empty_t">Nothing on this case yet</div>
+            <div class="o_fwci_empty_s" t-if="!readonly">Tap the green button and pick what the doctor handed over.</div>
+        </div>
+
+        <div t-foreach="lines" t-as="l" t-key="l.key" t-att-class="'o_fwci_card o_fwci_t_' + l.tone + (l.urgent ? ' o_fwci_card_urgent' : '')">
+            <div class="o_fwci_head">
+                <span class="o_fwci_no" t-esc="l_index + 1"/>
+                <div class="o_fwci_name">
+                    <div class="o_fwci_product" t-esc="l.product or 'Pick what is being made'"/>
+                    <div class="o_fwci_meta">
+                        <span class="o_fwci_tag o_fwci_tag_arch" t-esc="archLabel(l)"/>
+                        <span class="o_fwci_tag o_fwci_tag_shade" t-if="l.shade"><i class="fa fa-tint me-1" title="Shade"/><t t-esc="l.shade"/></span>
+                        <span class="o_fwci_tag o_fwci_tag_urgent" t-if="l.urgent"><i class="fa fa-bolt me-1" title="Urgent"/>Urgent</span>
+                        <span class="o_fwci_tag o_fwci_tag_note" t-if="l.note and state.noteFor !== l.key"><i class="fa fa-comment-o me-1" title="Remark"/><t t-esc="l.note"/></span>
+                    </div>
+                </div>
+                <span class="o_fwci_qtybadge" t-if="readonly">× <t t-esc="qtyLabel(l.qty)"/></span>
+                <button t-if="!readonly" type="button" class="o_fwci_x" aria-label="Remove this item" t-on-click="() => this.remove(l)">
+                    <i class="fa fa-trash-o" title="Remove"/>
+                </button>
+            </div>
+
+            <div class="o_fwci_controls" t-if="!readonly">
+                <!-- the arch: two toggles that combine, drawn as the arches -->
+                <div class="o_fwci_arch" role="group" aria-label="Arch">
+                    <button type="button" class="o_fwci_archbtn o_fwci_upper" t-att-class="has(l, 'upper') ? 'on' : ''"
+                            t-att-aria-pressed="has(l, 'upper') ? 'true' : 'false'" t-on-click="() => this.toggleArch(l, 'upper')">
+                        <svg viewBox="0 0 60 34" aria-hidden="true"><path d="M6 30 A24 26 0 0 1 54 30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></svg>
+                        <span>Upper</span>
+                    </button>
+                    <button type="button" class="o_fwci_archbtn o_fwci_lower" t-att-class="has(l, 'lower') ? 'on' : ''"
+                            t-att-aria-pressed="has(l, 'lower') ? 'true' : 'false'" t-on-click="() => this.toggleArch(l, 'lower')">
+                        <svg viewBox="0 0 60 34" aria-hidden="true"><path d="M6 4 A24 26 0 0 0 54 4" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></svg>
+                        <span>Lower</span>
+                    </button>
+                </div>
+                <!-- quantity: two big targets, and a number pad for the rare large one -->
+                <div class="o_fwci_qty" role="group" aria-label="Quantity">
+                    <button type="button" class="o_fwci_qbtn" aria-label="One less" t-att-disabled="l.qty &lt;= 1" t-on-click="() => this.step(l, -1)"><i class="fa fa-minus" title="One less"/></button>
+                    <input type="text" inputmode="decimal" class="o_fwci_qin" t-att-value="qtyLabel(l.qty)" aria-label="Quantity" t-on-change="(ev) => this.onQty(l, ev)"/>
+                    <button type="button" class="o_fwci_qbtn" aria-label="One more" t-on-click="() => this.step(l, 1)"><i class="fa fa-plus" title="One more"/></button>
+                </div>
+            </div>
+
+            <div class="o_fwci_actions" t-if="!readonly">
+                <button type="button" class="o_fwci_act o_fwci_a_shade" t-att-class="l.shade ? 'on' : ''" t-on-click="() => this.openShades(l)">
+                    <i class="fa fa-tint" title="Shade"/><span t-esc="l.shade or 'Shade'"/>
+                </button>
+                <button type="button" class="o_fwci_act o_fwci_a_urgent" t-att-class="l.urgent ? 'on' : ''"
+                        t-att-aria-pressed="l.urgent ? 'true' : 'false'" t-on-click="() => this.toggleUrgent(l)">
+                    <i class="fa fa-bolt" title="Urgent"/><span>Urgent</span>
+                </button>
+                <button type="button" class="o_fwci_act o_fwci_a_note" t-att-class="l.note ? 'on' : ''" t-on-click="() => this.toggleNote(l)">
+                    <i class="fa fa-comment-o" title="Remark"/><span>Remark</span>
+                </button>
+                <button type="button" class="o_fwci_act o_fwci_a_copy" t-on-click="() => this.duplicate(l)" title="The same item for the other arch">
+                    <i class="fa fa-clone" title="Copy"/><span>Other arch</span>
+                </button>
+            </div>
+            <input t-if="!readonly and state.noteFor === l.key" type="text" class="o_fwci_notein" t-att-value="l.note"
+                   placeholder="e.g. extra clasp on 16" t-on-change="(ev) => this.onNote(l, ev)"/>
+        </div>
+
+        <button t-if="!readonly" type="button" class="o_fwci_add" t-on-click="openPicker">
+            <i class="fa fa-plus-circle" title="Add"/>
+            <span t-esc="lines.length ? 'Add another item' : 'Add what is being made'"/>
+        </button>
+
+        <!-- ================================================= the product picker -->
+        <div class="o_fwci_sheet" t-if="state.sheet === 'product'" role="dialog" aria-label="Pick what is being made">
+            <div class="o_fwci_sheet_h o_fwci_sh_green">
+                <button type="button" class="o_fwci_back" aria-label="Close" t-on-click="closeSheet"><i class="fa fa-arrow-left" title="Back"/></button>
+                <div class="o_fwci_sheet_t">
+                    <div>What is being made</div>
+                    <small t-if="state.added"><t t-esc="state.added"/> added · last: <t t-esc="state.lastAdded"/></small>
+                    <small t-else="">Tap an item to add it. Add as many as you need.</small>
+                </div>
+                <button type="button" class="o_fwci_done" t-on-click="closeSheet">Done<t t-if="state.added"> (<t t-esc="state.added"/>)</t></button>
+            </div>
+            <div class="o_fwci_search">
+                <i class="fa fa-search" title="Search"/>
+                <input type="search" inputmode="search" placeholder="Search by name or code" t-att-value="state.query" t-on-input="onQuery"/>
+                <button t-if="state.query" type="button" class="o_fwci_clear" aria-label="Clear the search" t-on-click="clearQuery"><i class="fa fa-times-circle" title="Clear"/></button>
+            </div>
+            <div class="o_fwci_cats" t-if="state.catalog and state.catalog.categories.length">
+                <button type="button" t-foreach="state.catalog.categories" t-as="c" t-key="c.id"
+                        t-att-class="'o_fwci_cat o_fwci_t_' + tone(c.id) + (state.categ === c.id ? ' on' : '')" t-on-click="() => this.pickCateg(c.id)">
+                    <t t-esc="c.name"/><small t-esc="c.count"/>
+                </button>
+            </div>
+            <div class="o_fwci_sheet_b">
+                <div t-if="state.loading and !state.catalog" class="o_fwci_wait"><i class="fa fa-circle-o-notch fa-spin" title="Loading"/></div>
+                <t t-if="state.catalog">
+                    <t t-set="cat" t-value="state.catalog"/>
+                    <t t-if="cat.clinic.length">
+                        <div class="o_fwci_shelf o_fwci_shelf_clinic"><i class="fa fa-hospital-o me-1" title="This clinic"/>This clinic usually orders</div>
+                        <t t-foreach="cat.clinic" t-as="p" t-key="'c' + p.id"><t t-call="lab_fieldwork.FwCaseItems.Product"/></t>
+                    </t>
+                    <t t-if="cat.frequent.length">
+                        <div class="o_fwci_shelf o_fwci_shelf_top"><i class="fa fa-star me-1" title="Most made"/>The lab makes these most</div>
+                        <t t-foreach="cat.frequent" t-as="p" t-key="'f' + p.id"><t t-call="lab_fieldwork.FwCaseItems.Product"/></t>
+                    </t>
+                    <t t-if="state.query or state.categ">
+                        <div class="o_fwci_shelf o_fwci_shelf_find"><i class="fa fa-search me-1" title="Found"/><t t-esc="cat.results.length"/> found</div>
+                        <t t-foreach="cat.results" t-as="p" t-key="'r' + p.id"><t t-call="lab_fieldwork.FwCaseItems.Product"/></t>
+                        <div t-if="!cat.results.length" class="o_fwci_none">Nothing matches. Try fewer letters, or another category.</div>
+                    </t>
+                </t>
+            </div>
+        </div>
+
+        <!-- ================================================= the shade picker -->
+        <div class="o_fwci_sheet" t-if="state.sheet === 'shade'" role="dialog" aria-label="Pick a shade">
+            <div class="o_fwci_sheet_h o_fwci_sh_pink">
+                <button type="button" class="o_fwci_back" aria-label="Close" t-on-click="closeSheet"><i class="fa fa-arrow-left" title="Back"/></button>
+                <div class="o_fwci_sheet_t">
+                    <div>Shade</div>
+                    <small t-if="shadeLine" t-esc="shadeLine.product"/>
+                </div>
+                <button type="button" class="o_fwci_done" t-on-click="() => this.pickShade(false)">No shade</button>
+            </div>
+            <div class="o_fwci_search">
+                <i class="fa fa-search" title="Search"/>
+                <input type="search" placeholder="A2, 2M2, B3…" t-att-value="state.shadeQuery" t-on-input="onShadeQuery"/>
+            </div>
+            <div class="o_fwci_sheet_b">
+                <div class="o_fwci_shelf o_fwci_shelf_top" t-if="!state.shadeQuery"><i class="fa fa-star me-1" title="Most used"/>Most used first</div>
+                <div class="o_fwci_shades">
+                    <button type="button" t-foreach="state.shades" t-as="s" t-key="s.id" class="o_fwci_shade"
+                            t-att-class="shadeLine and shadeLine.shade === s.name ? 'on' : ''" t-on-click="() => this.pickShade(s)">
+                        <t t-esc="s.name"/>
+                    </button>
+                </div>
+                <div t-if="!state.shades.length" class="o_fwci_none">No shade with that name.</div>
+            </div>
+        </div>
+    </div>
+</t>
+
+<t t-name="lab_fieldwork.FwCaseItems.Product">
+    <button type="button" t-att-class="'o_fwci_prod o_fwci_t_' + tone(p.categ_id)" t-on-click="() => this.add(p)">
+        <span class="o_fwci_prod_dot"/>
+        <span class="o_fwci_prod_main">
+            <span class="o_fwci_prod_name" t-esc="p.name"/>
+            <span class="o_fwci_prod_sub"><t t-esc="p.categ"/><t t-if="p.uses"> · ordered <t t-esc="p.uses"/>×</t></span>
+        </span>
+        <span class="o_fwci_prod_in" t-if="inCase(p.id)">× <t t-esc="inCase(p.id)"/></span>
+        <span class="o_fwci_prod_add"><i class="fa fa-plus" title="Add"/></span>
+    </button>
+</t>
+
+</templates>
