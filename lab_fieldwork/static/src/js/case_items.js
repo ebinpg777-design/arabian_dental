@@ -6,6 +6,7 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { useDebounced } from "@web/core/utils/timing";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
+import { ARCHES, formatTeeth, parseTeeth } from "@sale_custom/js/fdi_teeth_field";
 
 /**
  * What is being made, entered with a thumb.
@@ -20,6 +21,18 @@ import { standardFieldProps } from "@web/views/fields/standard_field_props";
  */
 const PALETTE = ["blue", "teal", "violet", "amber", "pink", "green", "indigo", "orange", "cyan", "rose"];
 
+// The mouth as four rows a thumb can hit: a quadrant is eight teeth, and eight fit the
+// width of a phone at a size that can be tapped. Read as on any chart - the patient's
+// right first, from the back tooth to the midline.
+const QUADRANTS = ARCHES.flatMap((arch) => [
+    { key: arch.key + "_r", arch: arch.key.startsWith("upper") ? "upper" : "lower", primary: arch.primary,
+      name: arch.key.startsWith("upper") ? _t("Upper right") : _t("Lower right"), teeth: arch.right.map(String) },
+    { key: arch.key + "_l", arch: arch.key.startsWith("upper") ? "upper" : "lower", primary: arch.primary,
+      name: arch.key.startsWith("upper") ? _t("Upper left") : _t("Lower left"), teeth: arch.left.map(String) },
+]);
+const UPPER_FRONT = ["13", "12", "11", "21", "22", "23"];
+const LOWER_FRONT = ["43", "42", "41", "31", "32", "33"];
+
 export class FwCaseItems extends Component {
     static template = "lab_fieldwork.FwCaseItems";
     static props = { ...standardFieldProps };
@@ -28,7 +41,8 @@ export class FwCaseItems extends Component {
         this.orm = useService("orm");
         this.notification = useService("notification");
         this.state = useState({
-            sheet: null,            // null | "product" | "shade"
+            sheet: null,            // null | "product" | "shade" | "teeth"
+            teethFor: null, teeth: [], extras: [], primary: false, follow: true,
             query: "", categ: null, catalog: null, loading: false, added: 0, lastAdded: "",
             shadeFor: null, shades: [], shadeQuery: "",
             noteFor: null,
@@ -54,6 +68,7 @@ export class FwCaseItems extends Component {
                 productId: product ? product.id : false,
                 ul: d.ul, qty: d.quantity || 0,
                 shade: d.colour_id ? d.colour_id.display_name : "",
+                teeth: d.teeth || "", teethCount: parseTeeth(d.teeth).teeth.length, cast: d.cast || false,
                 urgent: !!d.is_urgent, note: d.note || "",
                 tone: this.tone(product ? product.id : 0),
             };
@@ -65,6 +80,7 @@ export class FwCaseItems extends Component {
             items: lines.length,
             units: lines.reduce((t, l) => t + l.qty, 0),
             urgent: lines.filter((l) => l.urgent).length,
+            teeth: lines.reduce((t, l) => t + l.teethCount, 0),
         };
     }
     tone(n) {
@@ -137,8 +153,100 @@ export class FwCaseItems extends Component {
         await this.list.addNewRecord({
             position: "bottom", mode: "readonly",
             context: { default_product_id: line.productId, default_ul: other, default_quantity: line.qty || 1,
-                       default_colour_id: line.record.data.colour_id ? line.record.data.colour_id.id : false },
+                       default_colour_id: line.record.data.colour_id ? line.record.data.colour_id.id : false,
+                       default_cast: line.cast || false },
         });
+    }
+
+    // ------------------------------------------------------------ the cast that came
+    setCast(line, cast) {
+        if (!this.readonly) {
+            // a second tap takes it off: not every case comes with a cast
+            line.record.update({ cast: line.cast === cast ? false : cast });
+        }
+    }
+
+    // ------------------------------------------------------------ the teeth
+    get quadrants() {
+        return QUADRANTS.filter((q) => !q.primary || this.state.primary);
+    }
+    get teethLine() {
+        return this.lines.find((l) => l.key === this.state.teethFor);
+    }
+    openTeeth(line) {
+        if (this.readonly) {
+            return;
+        }
+        const parsed = parseTeeth(line.teeth);
+        this.state.teethFor = line.key;
+        this.state.teeth = parsed.teeth;
+        this.state.extras = parsed.extras;
+        this.state.primary = parsed.teeth.some((t) => t[0] >= "5");
+        // the quantity follows the teeth while it still says what the teeth said
+        this.state.follow = line.qty === 1 || line.qty === parsed.teeth.length;
+        this.state.sheet = "teeth";
+    }
+    hasTooth(tooth) {
+        return this.state.teeth.includes(tooth);
+    }
+    toggleTooth(tooth) {
+        const at = this.state.teeth.indexOf(tooth);
+        if (at >= 0) {
+            this.state.teeth.splice(at, 1);
+        } else {
+            this.state.teeth.push(tooth);
+        }
+    }
+    /** Every tooth of the set on - or, when they all are already, off. */
+    toggleSet(teeth) {
+        const allOn = teeth.every((t) => this.state.teeth.includes(t));
+        for (const tooth of teeth) {
+            const at = this.state.teeth.indexOf(tooth);
+            if (allOn && at >= 0) {
+                this.state.teeth.splice(at, 1);
+            } else if (!allOn && at < 0) {
+                this.state.teeth.push(tooth);
+            }
+        }
+    }
+    setOn(teeth) {
+        return teeth.length > 0 && teeth.every((t) => this.state.teeth.includes(t));
+    }
+    get teethSets() {
+        const of = (arch) => QUADRANTS.filter((q) => q.arch === arch && !q.primary).flatMap((q) => q.teeth);
+        return [
+            { key: "uf", name: _t("Upper front 13–23"), teeth: UPPER_FRONT, tone: "blue" },
+            { key: "lf", name: _t("Lower front 33–43"), teeth: LOWER_FRONT, tone: "teal" },
+            { key: "ua", name: _t("All upper"), teeth: of("upper"), tone: "blue" },
+            { key: "la", name: _t("All lower"), teeth: of("lower"), tone: "teal" },
+        ];
+    }
+    get teethText() {
+        return formatTeeth(this.state.teeth, this.state.extras);
+    }
+    /** The arch the chosen teeth are in: it is written on the item with them. */
+    get teethArch() {
+        const upper = this.state.teeth.some((t) => "1256".includes(t[0]));
+        const lower = this.state.teeth.some((t) => "3478".includes(t[0]));
+        return upper && lower ? "ul" : upper ? "upper" : lower ? "lower" : false;
+    }
+    clearTeeth() {
+        this.state.teeth = [];
+        this.state.extras = [];
+    }
+    saveTeeth() {
+        const line = this.teethLine;
+        if (line) {
+            const vals = { teeth: this.teethText || false };
+            if (this.teethArch) {
+                vals.ul = this.teethArch;
+            }
+            if (this.state.follow && this.state.teeth.length) {
+                vals.quantity = this.state.teeth.length;
+            }
+            line.record.update(vals);
+        }
+        this.closeSheet();
     }
 
     // ------------------------------------------------------------ the product picker
@@ -200,6 +308,7 @@ export class FwCaseItems extends Component {
     closeSheet() {
         this.state.sheet = null;
         this.state.shadeFor = null;
+        this.state.teethFor = null;
     }
 
     // ------------------------------------------------------------ the shade picker

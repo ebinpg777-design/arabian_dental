@@ -7,6 +7,7 @@
         <div class="o_fwci_sum" t-if="lines.length">
             <span class="o_fwci_pill o_fwci_p_items"><i class="fa fa-cubes me-1" title="Items"/><b t-esc="summary.items"/> item<t t-if="summary.items !== 1">s</t></span>
             <span class="o_fwci_pill o_fwci_p_units"><i class="fa fa-hashtag me-1" title="Units"/><b t-esc="qtyLabel(summary.units)"/> unit<t t-if="summary.units !== 1">s</t></span>
+            <span class="o_fwci_pill o_fwci_p_teeth" t-if="summary.teeth"><i class="fa fa-th me-1" title="Teeth"/><b t-esc="summary.teeth"/> <t t-if="summary.teeth === 1">tooth</t><t t-else="">teeth</t></span>
             <span class="o_fwci_pill o_fwci_p_urgent" t-if="summary.urgent"><i class="fa fa-bolt me-1" title="Urgent"/><b t-esc="summary.urgent"/> urgent</span>
         </div>
 
@@ -23,6 +24,8 @@
                     <div class="o_fwci_product" t-esc="l.product or 'Pick what is being made'"/>
                     <div class="o_fwci_meta">
                         <span class="o_fwci_tag o_fwci_tag_arch" t-esc="archLabel(l)"/>
+                        <span class="o_fwci_tag o_fwci_tag_teeth" t-if="l.teeth"><i class="fa fa-th me-1" title="Teeth"/><t t-esc="l.teeth"/></span>
+                        <span class="o_fwci_tag o_fwci_tag_cast" t-if="l.cast"><i class="fa fa-cube me-1" title="Cast"/>Cast <t t-esc="{upper: 'U', lower: 'L', ul: 'U+L'}[l.cast]"/></span>
                         <span class="o_fwci_tag o_fwci_tag_shade" t-if="l.shade"><i class="fa fa-tint me-1" title="Shade"/><t t-esc="l.shade"/></span>
                         <span class="o_fwci_tag o_fwci_tag_urgent" t-if="l.urgent"><i class="fa fa-bolt me-1" title="Urgent"/>Urgent</span>
                         <span class="o_fwci_tag o_fwci_tag_note" t-if="l.note and state.noteFor !== l.key"><i class="fa fa-comment-o me-1" title="Remark"/><t t-esc="l.note"/></span>
@@ -53,6 +56,26 @@
                     <button type="button" class="o_fwci_qbtn" aria-label="One less" t-att-disabled="l.qty &lt;= 1" t-on-click="() => this.step(l, -1)"><i class="fa fa-minus" title="One less"/></button>
                     <input type="text" inputmode="decimal" class="o_fwci_qin" t-att-value="qtyLabel(l.qty)" aria-label="Quantity" t-on-change="(ev) => this.onQty(l, ev)"/>
                     <button type="button" class="o_fwci_qbtn" aria-label="One more" t-on-click="() => this.step(l, 1)"><i class="fa fa-plus" title="One more"/></button>
+                </div>
+            </div>
+
+            <!-- the teeth, off a chart; and the cast that came with the case -->
+            <div class="o_fwci_mouth" t-if="!readonly">
+                <button type="button" t-att-class="'o_fwci_teethbtn' + (l.teeth ? ' on' : '')" t-on-click="() => this.openTeeth(l)">
+                    <i class="fa fa-th" title="Teeth"/>
+                    <span class="o_fwci_teethbtn_t">
+                        <b t-if="l.teeth" t-esc="l.teeth"/>
+                        <b t-else="">Which teeth?</b>
+                        <em t-if="l.teeth"><t t-esc="l.teethCount"/> <t t-if="l.teethCount === 1">tooth</t><t t-else="">teeth</t> · tap to change</em>
+                        <em t-else="">Tap to pick them off the chart</em>
+                    </span>
+                    <i class="fa fa-angle-right" title="Open"/>
+                </button>
+                <div class="o_fwci_cast" role="group" aria-label="Cast received">
+                    <span class="o_fwci_cast_l">Cast</span>
+                    <button type="button" t-att-class="'o_fwci_castbtn o_fwci_upper' + (l.cast === 'upper' ? ' on' : '')" t-on-click="() => this.setCast(l, 'upper')">U</button>
+                    <button type="button" t-att-class="'o_fwci_castbtn o_fwci_lower' + (l.cast === 'lower' ? ' on' : '')" t-on-click="() => this.setCast(l, 'lower')">L</button>
+                    <button type="button" t-att-class="'o_fwci_castbtn o_fwci_both' + (l.cast === 'ul' ? ' on' : '')" t-on-click="() => this.setCast(l, 'ul')">U+L</button>
                 </div>
             </div>
 
@@ -146,6 +169,58 @@
                     </button>
                 </div>
                 <div t-if="!state.shades.length" class="o_fwci_none">No shade with that name.</div>
+            </div>
+        </div>
+
+        <!-- ═════════ the teeth, off a chart ═════════ -->
+        <div class="o_fwci_sheet o_fwci_sheet_teeth" t-if="state.sheet === 'teeth'" role="dialog" aria-label="Pick the teeth">
+            <div class="o_fwci_sheet_h o_fwci_sh_indigo">
+                <button type="button" class="o_fwci_back" aria-label="Close" t-on-click="closeSheet"><i class="fa fa-arrow-left" title="Back"/></button>
+                <div class="o_fwci_sheet_t">
+                    <div>Which teeth</div>
+                    <small t-if="teethLine" t-esc="teethLine.product"/>
+                </div>
+                <button type="button" class="o_fwci_done" t-on-click="saveTeeth">Done<t t-if="state.teeth.length"> (<t t-esc="state.teeth.length"/>)</t></button>
+            </div>
+            <div class="o_fwci_teeth_now">
+                <t t-if="state.teeth.length">
+                    <b t-esc="teethText"/>
+                    <span><t t-esc="state.teeth.length"/> <t t-if="state.teeth.length === 1">tooth</t><t t-else="">teeth</t></span>
+                </t>
+                <span t-else="">Tap the teeth the work is for. The patient's right is on your left, as on a chart.</span>
+            </div>
+            <div class="o_fwci_sheet_b o_fwci_teeth_b">
+                <div class="o_fwci_sets">
+                    <button type="button" t-foreach="teethSets" t-as="set" t-key="set.key"
+                            t-att-class="'o_fwci_set o_fwci_set_' + set.tone + (setOn(set.teeth) ? ' on' : '')"
+                            t-on-click="() => this.toggleSet(set.teeth)" t-esc="set.name"/>
+                </div>
+                <div t-foreach="quadrants" t-as="q" t-key="q.key" t-att-class="'o_fwci_quad o_fwci_quad_' + q.arch + (q.primary ? ' o_fwci_quad_primary' : '')">
+                    <button type="button" t-att-class="'o_fwci_quad_n' + (setOn(q.teeth) ? ' on' : '')" t-on-click="() => this.toggleSet(q.teeth)">
+                        <t t-esc="q.name"/><em t-if="q.primary"> · baby teeth</em><small>all</small>
+                    </button>
+                    <div class="o_fwci_quad_t">
+                        <button type="button" t-foreach="q.teeth" t-as="tooth" t-key="tooth"
+                                t-att-class="'o_fwci_tooth' + (hasTooth(tooth) ? ' on' : '')"
+                                t-att-aria-pressed="hasTooth(tooth) ? 'true' : 'false'"
+                                t-on-click="() => this.toggleTooth(tooth)" t-esc="tooth"/>
+                    </div>
+                </div>
+                <div class="o_fwci_teeth_opts">
+                    <button type="button" t-att-class="'o_fwci_opt' + (state.primary ? ' on' : '')" t-on-click="() => state.primary = !state.primary">
+                        <i class="fa fa-child" title="Baby teeth"/> Baby teeth</button>
+                    <button type="button" t-att-class="'o_fwci_opt' + (state.follow ? ' on' : '')" t-on-click="() => state.follow = !state.follow"
+                            title="The quantity of the item is the number of teeth">
+                        <i class="fa fa-hashtag" title="Quantity"/> Quantity = teeth</button>
+                    <button type="button" class="o_fwci_opt o_fwci_opt_clear" t-att-disabled="!state.teeth.length" t-on-click="clearTeeth">
+                        <i class="fa fa-eraser" title="Clear"/> Clear</button>
+                </div>
+            </div>
+            <div class="o_fwci_teeth_f">
+                <button type="button" class="o_fwci_teeth_go" t-on-click="saveTeeth">
+                    <i class="fa fa-check me-1" title="Done"/>
+                    <t t-if="state.teeth.length">Put <t t-esc="state.teeth.length"/> on the case</t><t t-else="">Done</t>
+                </button>
             </div>
         </div>
     </div>

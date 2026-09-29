@@ -115,6 +115,28 @@ class LabCase(models.Model):
     is_wires = fields.Boolean('Wires')
     is_teeth = fields.Boolean('Teeth')
     is_facebow = fields.Boolean('Face Bow')
+    # The rest of what the lab's order form ticks. They were on the order and not on
+    # the slip, so the counter asked for them again by phone. (client, 2026-09-29)
+    is_dd_cheque = fields.Boolean('DD / Cheque')
+    is_others = fields.Boolean('Others')
+    is_3d_model_print = fields.Boolean(
+        '3D Model Print', help="This case is (or includes) a 3D-printed model.")
+
+    # What KIND of appliance, in the lab's own four words - the order cannot be
+    # registered without it, so a slip that does not carry it stops at the counter.
+    appliance_type = fields.Selection(
+        [('fixed', 'Fixed'), ('removable', 'Removable'),
+         ('clear_retainer', 'Clear Retainer'), ('other', 'Other')],
+        string='Appliance Type', tracking=True)
+
+    # Where the finished work goes. One answer out of three on the slip; the order
+    # keeps it as two switches and two addresses, and is written that way.
+    deliver_to = fields.Selection(
+        [('clinic', 'The clinic'), ('patient', 'The patient'), ('custom', 'Another address')],
+        string='Deliver to', default='clinic', required=True, tracking=True)
+    delivery_address = fields.Text(
+        'Delivery address',
+        help="House, street, town and PIN - and a phone number the courier can ring.")
 
     # A gate on production, not a note. The lab must not start cutting until somebody
     # has spoken to the doctor — usually because the prescription is ambiguous and
@@ -429,6 +451,11 @@ class LabCase(models.Model):
             missing = case.line_ids.filtered(lambda l: not l.product_id)
             if missing:
                 raise UserError(_("A line on %s has no product.", case.patient))
+            if case.deliver_to != 'clinic' and not (case.delivery_address or '').strip():
+                raise UserError(_(
+                    "%(patient)s is to be delivered to %(where)s: write the address, or the "
+                    "sticker has nowhere to go.", patient=case.patient,
+                    where=dict(case._fields['deliver_to'].selection)[case.deliver_to].lower()))
             orders, cases = case._find_duplicates()
             if (orders or cases) and not case.duplicate_ack:
                 # Same reasoning as the banner: name the EARLIER spelling, which is the
@@ -479,6 +506,13 @@ class LabCase(models.Model):
             # thing: two flags for one fact drift apart the first time somebody ticks
             # one of them.
             'is_pending_work': self.needs_doctor_call,
+            'appliance_type': self.appliance_type or False,
+            'is_3d_model_print': self.is_3d_model_print,
+            'is_dd_cheque': self.is_dd_cheque, 'is_others': self.is_others,
+            'deliver_to_patient': self.deliver_to == 'patient',
+            'patient_address': self.delivery_address if self.deliver_to == 'patient' else False,
+            'deliver_to_custom': self.deliver_to == 'custom',
+            'custom_address': self.delivery_address if self.deliver_to == 'custom' else False,
             'is_screw': self.is_screw, 'is_bite': self.is_bite,
             'is_bands': self.is_bands, 'is_wires': self.is_wires,
             'is_teeth': self.is_teeth, 'is_facebow': self.is_facebow,
@@ -614,6 +648,12 @@ class LabCaseLine(models.Model):
     quantity = fields.Float('Qty', default=1.0, required=True,
                             digits='Product Unit of Measure')
     colour_id = fields.Many2one('product.colour', string='Colour')
+    # Which teeth, the way the lab writes them (FDI: "14, 13, 46"), and which cast came
+    # with the case. The order line has both; the slip picked them off nothing.
+    teeth = fields.Char('Teeth (FDI)', size=64,
+                        help="Tooth numbers in FDI notation, e.g. 14, 13, 46, 47.")
+    cast = fields.Selection(UL, string='Cast',
+                            help="The cast received for this work: upper, lower, or both.")
     is_urgent = fields.Boolean('Urgent')
     note = fields.Char('Remark')
 
@@ -665,6 +705,8 @@ class LabCaseLine(models.Model):
             'product_uom_qty': self.quantity,
             'ul': self.ul,
             'color_scheme': self.colour_id.id or False,
+            'teeth': self.teeth or False,
+            'cast': self.cast or False,
             'is_urgent': self.is_urgent or self.case_id.priority == 'urgent',
         }
         # `name` is left out unless the executive wrote a remark, so Odoo computes the

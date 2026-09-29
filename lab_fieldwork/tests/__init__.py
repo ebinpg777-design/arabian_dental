@@ -12,3 +12,4 @@ from . import test_template_handlers
 from . import test_sibling_modules
 from . import test_phone_exceptions
 from . import test_case_picker
+from . import test_case_lab_fields
