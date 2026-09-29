@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_advanced.FinanceCockpit">
+        <div class="o_eaa o_action o_eaa_cockpit">
+            <div class="o_eaa_head">
+                <h2><i class="fa fa-tachometer me-2"/>Finance cockpit</h2>
+                <span class="o_eaa_sub" t-if="state.data"><t t-esc="state.data.label"/> · <t t-esc="state.data.from"/> → <t t-esc="state.data.to"/></span>
+                <div class="ms-auto d-flex gap-1 flex-wrap">
+                    <span t-foreach="[['month', 'This month'], ['last_month', 'Last month'], ['quarter', 'Quarter'], ['fy', 'Year to date'], ['last_fy', 'Last year']]" t-as="p" t-key="p[0]"
+                          t-att-class="'o_eaa_chip' + (state.period === p[0] ? ' on' : '')" t-on-click="() => this.setPeriod(p[0])" t-esc="p[1]"/>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i t-att-class="'fa fa-refresh' + (state.loading ? ' fa-spin' : '')"/></button>
+                </div>
+            </div>
+            <div t-if="!state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the books…</div>
+            <div t-else="" class="o_eaa_body">
+                <t t-set="d" t-value="state.data"/>
+                <div class="o_eaa_kpis">
+                    <div t-foreach="d.kpis" t-as="k" t-key="k.key" t-att-class="'o_eaa_kpi clickable ' + (k.tone || '')" t-on-click="() => this.openReport(k.report)">
+                        <div class="o_eaa_kl" t-esc="k.label"/>
+                        <div class="o_eaa_kv"><t t-if="k.unit"><t t-esc="k.value === null ? '–' : k.value"/> <small t-esc="k.unit"/></t><t t-else="" t-esc="money(k.value)"/></div>
+                        <div class="o_eaa_ks">
+                            <span t-if="k.growth !== undefined and k.growth !== null" t-att-class="growthClass(k)"><i t-att-class="'fa ' + (k.growth >= 0 ? 'fa-caret-up' : 'fa-caret-down')"/> <t t-esc="Math.abs(k.growth)"/>% </span>
+                            <t t-esc="k.sub || (k.growth !== undefined ? d.compare_label : '')"/>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="o_eaa_grid" style="grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr)">
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">Profit and loss <span class="text-muted">— from revenue to net profit, step by step</span>
+                            <a href="#" class="ms-auto small" t-on-click.prevent="() => this.openReport('profit_loss')">open the report</a></div>
+                        <t t-set="wf" t-value="waterfall"/>
+                        <svg t-att-viewBox="'0 0 ' + wf.W + ' ' + wf.H" class="o_eaa_wf">
+                            <line x1="0" t-att-y1="wf.zero" t-att-x2="wf.W" t-att-y2="wf.zero" class="o_eaa_wf_zero"/>
+                            <t t-foreach="wf.bars" t-as="b" t-key="b.key">
+                                <rect t-att-x="b.x" t-att-y="b.y" t-att-width="b.w" t-att-height="b.h" rx="3" t-att-class="'o_eaa_wf_bar ' + b.cls"
+                                      t-on-click="() => this.openReport('profit_loss')"><title t-esc="b.label + ': ' + money(b.value)"/></rect>
+                                <text t-att-x="b.lx" t-att-y="b.ly" text-anchor="middle" class="o_eaa_wf_v" t-esc="compact(b.value)"/>
+                                <text t-att-x="b.lx" t-att-y="wf.H - 22" text-anchor="middle" class="o_eaa_wf_l" t-esc="b.label.split(' ')[0]"/>
+                                <text t-att-x="b.lx" t-att-y="wf.H - 9" text-anchor="middle" class="o_eaa_wf_l" t-esc="b.label.split(' ').slice(1).join(' ')"/>
+                            </t>
+                        </svg>
+                    </div>
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">Balance sheet <span class="text-muted">— what you own against who has a claim on it, <t t-esc="d.to"/></span>
+                            <span t-att-class="'o_eaa_badge ms-auto ' + (d.balanced ? 'good' : 'bad')" t-esc="d.balanced ? 'balances' : 'does not balance'"/></div>
+                        <t t-set="st" t-value="stacks"/>
+                        <div class="o_eaa_stacks" t-on-click="() => this.openReport('balance_sheet')">
+                            <div class="o_eaa_stackcol">
+                                <div class="o_eaa_stacklbl">Assets <b t-esc="compact(st.ta)"/></div>
+                                <div class="o_eaa_stack v"><div t-foreach="st.assets" t-as="s" t-key="s.key" class="seg" t-attf-style="height: {{ s.pct }}%; background: {{ s.color }}" t-att-title="s.label + ': ' + money(s.value)"/></div>
+                            </div>
+                            <div class="o_eaa_stackcol">
+                                <div class="o_eaa_stacklbl">Liabilities + equity <b t-esc="compact(st.tc)"/></div>
+                                <div class="o_eaa_stack v"><div t-foreach="st.claims" t-as="s" t-key="s.key" class="seg" t-attf-style="height: {{ s.pct }}%; background: {{ s.color }}" t-att-title="s.label + ': ' + money(s.value)"/></div>
+                            </div>
+                            <div class="o_eaa_stacklegend">
+                                <div t-foreach="st.assets.concat(st.claims)" t-as="s" t-key="s.key"><span class="o_eaa_dot" t-attf-style="background: {{ s.color }}"/><t t-esc="s.label"/> <b t-esc="compact(s.value)"/></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="o_eaa_panel mt-2">
+                    <div class="o_eaa_ph">Twelve months <span class="text-muted">— revenue (blue) and costs (amber) as bars, profit and cash as lines; click a month for its profit and loss</span></div>
+                    <t t-set="tr" t-value="trend"/>
+                    <svg t-att-viewBox="'0 0 ' + tr.W + ' ' + tr.H" preserveAspectRatio="none" class="o_eaa_svg">
+                        <line x1="0" t-att-y1="tr.zero" t-att-x2="tr.W" t-att-y2="tr.zero" stroke="#cbd2dc"/>
+                        <t t-foreach="tr.bars" t-as="b" t-key="b.from">
+                            <rect t-att-x="b.x" t-att-y="b.yr" t-att-width="b.w" t-att-height="b.hr" fill="#3a6ea5" rx="2" t-on-click="() => this.openMonth(b)" style="cursor:pointer"><title t-esc="b.month + ' revenue ' + money(b.revenue)"/></rect>
+                            <rect t-att-x="b.x + b.w + 2" t-att-y="b.ye" t-att-width="b.w" t-att-height="b.he" fill="#f2a65a" rx="2" t-on-click="() => this.openMonth(b)" style="cursor:pointer"><title t-esc="b.month + ' costs ' + money(b.expenses)"/></rect>
+                            <text t-att-x="b.lx" t-att-y="tr.H - 6" text-anchor="middle" class="o_eaa_tick" t-esc="b.month"/>
+                        </t>
+                        <polyline t-att-points="tr.profit" fill="none" stroke="#067647" stroke-width="2.5"/>
+                        <polyline t-att-points="tr.cash" fill="none" stroke="#1f3a5f" stroke-width="1.5" stroke-dasharray="5 4"/>
+                    </svg>
+                    <div class="o_eaa_legendrow"><span><i style="background:#3a6ea5"/>revenue</span><span><i style="background:#f2a65a"/>costs</span><span><i style="background:#067647"/>profit</span><span><i style="background:#1f3a5f"/>cash (own scale)</span></div>
+                </div>
+
+                <div class="o_eaa_grid mt-2">
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">Ratios</div>
+                        <div class="o_eaa_ratios">
+                            <div t-foreach="d.ratios" t-as="r" t-key="r.key" t-att-class="'o_eaa_ratio ' + r.tone" t-att-title="r.hint">
+                                <div class="o_eaa_rv"><t t-esc="r.value === null ? '–' : r.value"/><small t-if="r.value !== null" t-esc="r.unit"/></div>
+                                <div class="o_eaa_rl" t-esc="r.label"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">Waiting on the team</div>
+                        <div t-if="!d.todo.length" class="o_eaa_empty"><i class="fa fa-check-circle text-success me-1"/>Nothing waiting.</div>
+                        <div t-foreach="d.todo" t-as="t" t-key="t.key" class="o_eaa_todo" t-on-click="() => this.openTodo(t)">
+                            <span t-att-class="'o_eaa_badge ' + t.tone" t-esc="t.count"/><span t-esc="t.label"/><i class="fa fa-angle-right ms-auto text-muted"/>
+                        </div>
+                        <div class="o_eaa_quick">
+                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_bank_rec')"><i class="fa fa-university me-1"/>Reconcile the bank</button>
+                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_entry_studio')"><i class="fa fa-pencil-square-o me-1"/>Write an entry</button>
+                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_close_cockpit')"><i class="fa fa-lock me-1"/>Close the month</button>
+                        </div>
+                    </div>
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">Where the money went</div>
+                        <div t-if="!d.top_expenses.length" class="o_eaa_empty">No costs in the period.</div>
+                        <div t-foreach="d.top_expenses" t-as="e" t-key="e.id" class="o_eaa_hbar" t-on-click="() => this.openAccount(e)">
+                            <div class="o_eaa_hbar_l" t-esc="e.name"/><div class="o_eaa_bar"><div class="fill warn" t-attf-style="width: {{ barWidth(e.value, d.top_expenses) }}%"/></div><div class="o_eaa_hbar_v" t-esc="compact(e.value)"/>
+                        </div>
+                        <div class="o_eaa_ph mt-2">Where it came from</div>
+                        <div t-foreach="d.top_income" t-as="e" t-key="e.id" class="o_eaa_hbar" t-on-click="() => this.openAccount(e)">
+                            <div class="o_eaa_hbar_l" t-esc="e.name"/><div class="o_eaa_bar"><div class="fill" t-attf-style="width: {{ barWidth(e.value, d.top_income) }}%"/></div><div class="o_eaa_hbar_v" t-esc="compact(e.value)"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

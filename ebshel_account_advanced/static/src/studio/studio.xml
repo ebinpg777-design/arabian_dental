@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_advanced.EntryStudio">
+        <div class="o_eaa o_action o_eaa_studio">
+            <div class="o_eaa_head">
+                <h2><i class="fa fa-pencil-square-o me-2"/>Entry studio</h2>
+                <span class="o_eaa_sub">a journal entry, typed like a sheet</span>
+                <div class="ms-auto d-flex gap-1" t-if="state.setup and state.saved">
+                    <span class="o_eaa_badge good">saved <a href="#" t-on-click.prevent="() => this.openMove(state.saved.id)" t-esc="state.saved.name"/></span>
+                </div>
+            </div>
+            <div t-if="!state.setup" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Loading…</div>
+            <div t-else="" class="o_eaa_body">
+                <t t-set="s" t-value="state.setup"/>
+                <div class="o_eaa_grid" style="grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr)">
+                    <div>
+                        <div class="o_eaa_panel mb-2">
+                            <div class="o_eaa_toolbar">
+                                <label class="small text-muted">Journal</label>
+                                <select class="form-select" t-model="state.journal_id"><option t-foreach="s.journals" t-as="j" t-key="j.id" t-att-value="j.id" t-esc="j.name"/></select>
+                                <label class="small text-muted">Date</label>
+                                <input type="date" class="form-control" t-model="state.date"/>
+                                <label class="small text-muted">Reference</label>
+                                <input class="form-control" style="min-width: 220px" placeholder="What this entry is" t-model="state.ref"/>
+                                <span t-if="s.lock_date" class="small text-muted ms-auto">books locked up to <b t-esc="s.lock_date"/></span>
+                            </div>
+                            <div class="o_eaa_toolbar" t-if="s.templates.length">
+                                <label class="small text-muted"><i class="fa fa-magic me-1"/>Template</label>
+                                <select class="form-select" t-model="state.template_id"><option value="">–</option><option t-foreach="s.templates" t-as="t" t-key="t.id" t-att-value="t.id" t-esc="t.name"/></select>
+                                <input type="number" step="0.01" class="form-control" style="width: 130px" placeholder="amount" t-model="state.template_amount"/>
+                                <button class="btn btn-sm btn-outline-primary" t-on-click="loadTemplate" t-att-disabled="!state.template_id">Fill from the template</button>
+                            </div>
+                        </div>
+                        <div class="o_eaa_panel">
+                            <table class="o_eaa_table o_eaa_gridtbl" t-on-paste="onPaste">
+                                <thead><tr><th style="width: 26%">Account</th><th style="width: 16%">Partner</th><th>Label</th><th style="width: 14%" t-if="s.analytic">Analytic</th><th class="num" style="width: 11%">Debit</th><th class="num" style="width: 11%">Credit</th><th style="width: 2rem"/></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="state.lines" t-as="l" t-key="l_index">
+                                        <td class="o_eaa_acwrap">
+                                            <input class="form-control form-control-sm" t-att-class="l.account and !l.account_id ? 'is-invalid' : ''" t-att-value="l.account" placeholder="code or name"
+                                                   t-on-input="(ev) => this.lookup('account.account', l, 'account', ev.target.value)" t-on-focus="(ev) => this.lookup('account.account', l, 'account', ev.target.value)" t-on-blur="closeAc" t-on-keydown="(ev) => this.onKey(ev, l_index)"/>
+                                            <div class="o_eaa_ac" t-if="state.ac and state.ac.line === l and state.ac.field === 'account'">
+                                                <div t-foreach="state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-esc="r.name"/>
+                                                <div t-if="!state.ac.results.length" class="o_eaa_acitem text-muted">no account</div>
+                                            </div>
+                                        </td>
+                                        <td class="o_eaa_acwrap">
+                                            <input class="form-control form-control-sm" t-att-value="l.partner" placeholder="–"
+                                                   t-on-input="(ev) => this.lookup('res.partner', l, 'partner', ev.target.value)" t-on-blur="closeAc" t-on-keydown="(ev) => this.onKey(ev, l_index)"/>
+                                            <div class="o_eaa_ac" t-if="state.ac and state.ac.line === l and state.ac.field === 'partner'">
+                                                <div t-foreach="state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-esc="r.name"/>
+                                            </div>
+                                        </td>
+                                        <td><input class="form-control form-control-sm" t-model="l.label" t-on-keydown="(ev) => this.onKey(ev, l_index)"/></td>
+                                        <td class="o_eaa_acwrap" t-if="s.analytic">
+                                            <input class="form-control form-control-sm" t-att-value="l.analytic" placeholder="–"
+                                                   t-on-input="(ev) => this.lookup('account.analytic.account', l, 'analytic', ev.target.value)" t-on-blur="closeAc" t-on-keydown="(ev) => this.onKey(ev, l_index)"/>
+                                            <div class="o_eaa_ac" t-if="state.ac and state.ac.line === l and state.ac.field === 'analytic'">
+                                                <div t-foreach="state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-esc="r.name"/>
+                                            </div>
+                                        </td>
+                                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm num" t-model="l.debit" t-on-change="() => this.sideEntered(l, 'debit')" t-on-keydown="(ev) => this.onKey(ev, l_index)"/></td>
+                                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm num" t-model="l.credit" t-on-change="() => this.sideEntered(l, 'credit')" t-on-keydown="(ev) => this.onKey(ev, l_index)"/></td>
+                                        <td><button class="btn btn-sm btn-link text-danger o_eaa_btn" t-on-click="() => this.removeLine(l_index)" tabindex="-1"><i class="fa fa-times"/></button></td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" t-att-colspan="s.analytic ? 4 : 3">
+                                            <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.addLine()"><i class="fa fa-plus me-1"/>Line</button>
+                                            <button class="btn btn-sm btn-outline-secondary ms-1" t-on-click="balance" t-att-disabled="Math.abs(totals.diff) &lt; 0.005"><i class="fa fa-balance-scale me-1"/>Balance</button>
+                                            <span class="small text-muted ms-2">Paste rows from Excel: account code, label, debit, credit.</span>
+                                        </td>
+                                        <td class="num"><b t-esc="money(totals.debit)"/></td>
+                                        <td class="num"><b t-esc="money(totals.credit)"/></td>
+                                        <td/>
+                                    </tr>
+                                    <tr t-if="Math.abs(totals.diff) &gt;= 0.005">
+                                        <td t-att-colspan="s.analytic ? 4 : 3" class="text-end text-danger small">out of balance by</td>
+                                        <td colspan="2" class="num text-danger"><b t-esc="money(totals.diff)"/></td><td/>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <div t-if="state.problems.length" class="alert alert-warning py-1 px-2 mt-2 small mb-1">
+                                <div t-foreach="state.problems" t-as="p" t-key="p_index"><i class="fa fa-exclamation-triangle me-1"/><t t-esc="p"/></div>
+                            </div>
+                            <div class="d-flex gap-2 align-items-center mt-2" t-if="s.can_write">
+                                <button class="btn btn-primary" t-on-click="() => this.save(true)" t-att-disabled="state.busy or !canPost"><i class="fa fa-check me-1"/>Post</button>
+                                <button class="btn btn-outline-primary" t-on-click="() => this.save(false)" t-att-disabled="state.busy">Save as draft</button>
+                                <button class="btn btn-link" t-on-click="reset">Clear</button>
+                                <div class="ms-auto d-flex gap-1">
+                                    <input class="form-control form-control-sm" style="width: 200px" placeholder="Save these lines as a template…" t-model="state.templateName"/>
+                                    <button class="btn btn-sm btn-outline-secondary" t-on-click="saveTemplate" t-att-disabled="!state.templateName">Save template</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="o_eaa_panel mb-2">
+                            <div class="o_eaa_ph">Your recent entries</div>
+                            <div t-if="!s.recent.length" class="o_eaa_empty">None yet.</div>
+                            <div t-foreach="s.recent" t-as="r" t-key="r.id" class="o_eaa_todo" t-on-click="() => this.openMove(r.id)">
+                                <span t-att-class="'o_eaa_badge ' + (r.state === 'posted' ? 'good' : 'muted')" t-esc="r.state"/>
+                                <div class="flex-grow-1" style="min-width:0"><b t-esc="r.name"/><div class="small text-muted o_eaa_trunc"><t t-esc="r.date"/> · <t t-esc="r.ref"/></div></div>
+                                <span class="num small" t-esc="money(r.amount)"/>
+                            </div>
+                        </div>
+                        <div class="o_eaa_panel">
+                            <div class="o_eaa_ph">Keys</div>
+                            <div class="small text-muted"><b>Tab</b> next cell · <b>Enter</b> new line · <b>Paste</b> rows from a sheet · <b>Balance</b> puts the difference on an empty line</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

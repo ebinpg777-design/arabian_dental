@@ -1,27 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Customers -->
-    <menuitem id="menu_followup_desk" name="Collections Desk" parent="account.menu_finance_receivables" action="action_followup_desk" sequence="35"
+    <record id="action_bank_statement_lines" model="ir.actions.act_window">
+        <field name="name">Bank Lines</field>
+        <field name="res_model">account.bank.statement.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_not_matched': 1}</field>
+    </record>
+
+    <!-- ============================================================ the app -->
+    <menuitem id="menu_app_root" name="Advanced Accounting" sequence="46" action="action_finance_cockpit"
+              web_icon="ebshel_account_advanced,static/description/icon.png"
               groups="account.group_account_readonly,account.group_account_invoice"/>
-    <!-- Accounting -->
-    <menuitem id="menu_advanced" name="Advanced" parent="account.menu_finance_entries" sequence="60" groups="account.group_account_readonly,account.group_account_invoice"/>
-    <menuitem id="menu_match_desk" name="Matching Desk" parent="menu_advanced" action="action_match_desk" sequence="10"/>
-    <menuitem id="menu_deferrals" name="Deferrals" parent="menu_advanced" action="action_deferrals" sequence="20"/>
-    <menuitem id="menu_budgets" name="Budgets" parent="menu_advanced" action="action_budgets" sequence="30"/>
-    <menuitem id="menu_budget_board" name="Budget Board" parent="menu_advanced" action="action_budget_board" sequence="31"/>
-    <menuitem id="menu_close_cockpit" name="Close Cockpit" parent="menu_advanced" action="action_close_cockpit" sequence="40"/>
-    <menuitem id="menu_close_periods" name="Close Periods" parent="menu_advanced" action="action_close_periods" sequence="41"/>
-    <menuitem id="menu_cash_forecast" name="Cash Forecast" parent="menu_advanced" action="action_cash_forecast" sequence="50"/>
-    <menuitem id="menu_ledger_health" name="Ledger Health" parent="menu_advanced" action="action_ledger_health" sequence="60"/>
-    <!-- Reporting → Management -->
-    <menuitem id="menu_report_budget" name="Budget vs Actual" parent="account.account_reports_management_menu" action="action_report_budget" sequence="30"/>
-    <menuitem id="menu_report_deferral" name="Deferral Schedule" parent="account.account_reports_management_menu" action="action_report_deferral" sequence="31"/>
-    <!-- Configuration -->
-    <menuitem id="menu_config_advanced" name="Advanced Accounting" parent="account.menu_finance_configuration" sequence="60" groups="account.group_account_manager"/>
+    <menuitem id="menu_app_cockpit" name="Dashboard" parent="menu_app_root" action="action_finance_cockpit" sequence="1"/>
+
+    <menuitem id="menu_app_bank" name="Bank" parent="menu_app_root" sequence="10"/>
+    <menuitem id="menu_app_bank_rec" name="Reconciliation" parent="menu_app_bank" action="action_bank_rec" sequence="1"/>
+    <menuitem id="menu_app_bank_lines" name="Bank Lines" parent="menu_app_bank" action="action_bank_statement_lines" sequence="10"/>
+    <menuitem id="menu_app_bank_balances" name="Statement Balances" parent="menu_app_bank" action="action_bank_checkpoints" sequence="20"/>
+    <menuitem id="menu_app_bank_rules" name="Bank Rules" parent="menu_app_bank" action="action_bank_rules" sequence="30"/>
+
+    <menuitem id="menu_app_entries" name="Entries" parent="menu_app_root" sequence="20"/>
+    <menuitem id="menu_app_journal_entries" name="Journal Entries" parent="menu_app_entries" action="account.action_move_journal_line" sequence="1"/>
+    <menuitem id="menu_app_journal_items" name="Journal Items" parent="menu_app_entries" action="account.action_account_moves_all" sequence="5"/>
+    <menuitem id="menu_app_analytic_items" name="Analytic Items" parent="menu_app_entries" action="action_analytic_items" sequence="10"/>
+    <menuitem id="menu_app_entry_studio" name="Entry Studio" parent="menu_app_entries" action="action_entry_studio" sequence="20"/>
+    <menuitem id="menu_app_entry_templates" name="Entry Templates" parent="menu_app_entries" action="action_entry_templates" sequence="25"/>
+
+    <menuitem id="menu_app_receivables" name="Receivables" parent="menu_app_root" sequence="30"/>
+    <menuitem id="menu_followup_desk" name="Collections Desk" parent="menu_app_receivables" action="action_followup_desk" sequence="1"/>
+    <menuitem id="menu_match_desk" name="Matching Desk" parent="menu_app_receivables" action="action_match_desk" sequence="10"/>
+    <menuitem id="menu_followup_log" name="Follow-up Log" parent="menu_app_receivables" action="action_followup_log" sequence="20"/>
+
+    <menuitem id="menu_app_planning" name="Planning" parent="menu_app_root" sequence="40"/>
+    <menuitem id="menu_budget_board" name="Budget Board" parent="menu_app_planning" action="action_budget_board" sequence="1"/>
+    <menuitem id="menu_budgets" name="Budgets" parent="menu_app_planning" action="action_budgets" sequence="5"/>
+    <menuitem id="menu_cash_forecast" name="Cash Forecast" parent="menu_app_planning" action="action_cash_forecast" sequence="10"/>
+    <menuitem id="menu_cash_items" name="Planned Cash Items" parent="menu_app_planning" action="action_cash_items" sequence="15"/>
+
+    <menuitem id="menu_app_assets" name="Assets" parent="menu_app_root" sequence="45"/>
+    <menuitem id="menu_app_asset_overview" name="Overview" parent="menu_app_assets" action="ebshel_account_assets.action_asset_dashboard" sequence="1"/>
+    <menuitem id="menu_app_asset_list" name="Assets" parent="menu_app_assets" action="ebshel_account_assets.action_assets" sequence="5"/>
+    <menuitem id="menu_app_asset_schedule" name="Depreciation Schedule" parent="menu_app_assets" action="ebshel_account_assets.action_asset_schedule" sequence="10"/>
+
+    <menuitem id="menu_app_closing" name="Closing" parent="menu_app_root" sequence="50"/>
+    <menuitem id="menu_close_cockpit" name="Close Cockpit" parent="menu_app_closing" action="action_close_cockpit" sequence="1"/>
+    <menuitem id="menu_close_periods" name="Close Periods" parent="menu_app_closing" action="action_close_periods" sequence="5"/>
+    <menuitem id="menu_deferrals" name="Deferrals" parent="menu_app_closing" action="action_deferrals" sequence="10"/>
+    <menuitem id="menu_ledger_health" name="Ledger Health" parent="menu_app_closing" action="action_ledger_health" sequence="20"/>
+
+    <menuitem id="menu_app_reports" name="Reports" parent="menu_app_root" sequence="60"/>
+    <menuitem id="menu_app_rep_pl" name="Profit and Loss" parent="menu_app_reports" action="ebshel_account_reports.action_profit_loss" sequence="1"/>
+    <menuitem id="menu_app_rep_bs" name="Balance Sheet" parent="menu_app_reports" action="ebshel_account_reports.action_balance_sheet" sequence="2"/>
+    <menuitem id="menu_app_rep_cf" name="Cash Flow" parent="menu_app_reports" action="ebshel_account_reports.action_cash_flow" sequence="3"/>
+    <menuitem id="menu_app_rep_es" name="Executive Summary" parent="menu_app_reports" action="ebshel_account_reports.action_executive_summary" sequence="4"/>
+    <menuitem id="menu_app_rep_tb" name="Trial Balance" parent="menu_app_reports" action="ebshel_account_reports.action_trial_balance" sequence="10"/>
+    <menuitem id="menu_app_rep_gl" name="General Ledger" parent="menu_app_reports" action="ebshel_account_reports.action_general_ledger" sequence="11"/>
+    <menuitem id="menu_app_rep_journal" name="Journal Report" parent="menu_app_reports" action="ebshel_account_reports.action_journal" sequence="12"/>
+    <menuitem id="menu_app_rep_day" name="Day Book" parent="menu_app_reports" action="ebshel_account_reports.action_day_book" sequence="13"/>
+    <menuitem id="menu_app_rep_cash" name="Cash Book" parent="menu_app_reports" action="ebshel_account_reports.action_cash_book" sequence="14"/>
+    <menuitem id="menu_app_rep_pl_ledger" name="Partner Ledger" parent="menu_app_reports" action="ebshel_account_reports.action_partner_ledger" sequence="20"/>
+    <menuitem id="menu_app_rep_ar" name="Aged Receivable" parent="menu_app_reports" action="ebshel_account_reports.action_aged_receivable" sequence="21"/>
+    <menuitem id="menu_app_rep_ap" name="Aged Payable" parent="menu_app_reports" action="ebshel_account_reports.action_aged_payable" sequence="22"/>
+    <menuitem id="menu_app_rep_soa" name="Customer Statements" parent="menu_app_reports" action="ebshel_account_reports.action_customer_statement" sequence="23"/>
+    <menuitem id="menu_app_rep_tax" name="Tax Report" parent="menu_app_reports" action="ebshel_account_reports.action_tax" sequence="30"/>
+    <menuitem id="menu_app_rep_analytic" name="Analytic Report" parent="menu_app_reports" action="ebshel_account_reports.action_analytic" sequence="31"/>
+    <menuitem id="menu_report_budget" name="Budget vs Actual" parent="menu_app_reports" action="action_report_budget" sequence="40"/>
+    <menuitem id="menu_report_deferral" name="Deferral Schedule" parent="menu_app_reports" action="action_report_deferral" sequence="41"/>
+    <menuitem id="menu_app_rep_dep" name="Depreciation Schedule" parent="menu_app_reports" action="ebshel_account_assets.action_asset_schedule" sequence="42"/>
+
+    <menuitem id="menu_config_advanced" name="Configuration" parent="menu_app_root" sequence="90" groups="account.group_account_manager"/>
+    <menuitem id="menu_app_settings" name="Settings" parent="menu_config_advanced" action="account.action_account_config" sequence="1"/>
     <menuitem id="menu_followup_levels" name="Follow-up Levels" parent="menu_config_advanced" action="action_followup_levels" sequence="10"/>
-    <menuitem id="menu_followup_log" name="Follow-up Log" parent="menu_config_advanced" action="action_followup_log" sequence="11"/>
+    <menuitem id="menu_app_rules" name="Bank Rules" parent="menu_config_advanced" action="action_bank_rules" sequence="15"/>
     <menuitem id="menu_close_task_templates" name="Close Checklist" parent="menu_config_advanced" action="action_close_task_templates" sequence="20"/>
-    <menuitem id="menu_cash_items" name="Planned Cash Items" parent="menu_config_advanced" action="action_cash_items" sequence="30"/>
     <menuitem id="menu_ledger_findings" name="Ledger Findings" parent="menu_config_advanced" action="action_ledger_findings" sequence="40"/>
     <menuitem id="menu_budget_lines" name="Budget Lines" parent="menu_config_advanced" action="action_budget_lines" sequence="50"/>
+    <menuitem id="menu_app_asset_categories" name="Asset Categories" parent="menu_config_advanced" action="ebshel_account_assets.action_asset_categories" sequence="60"/>
+    <menuitem id="menu_app_report_designer" name="Report Designer" parent="menu_config_advanced" action="ebshel_account_reports.action_fin_reports_config" sequence="70"/>
+
+    <!-- the everyday doors stay where people already look -->
+    <menuitem id="menu_followup_desk_core" name="Collections Desk" parent="account.menu_finance_receivables" action="action_followup_desk" sequence="35"
+              groups="account.group_account_readonly,account.group_account_invoice"/>
+    <menuitem id="menu_bank_rec_core" name="Bank Reconciliation (Advanced)" parent="account.menu_finance_entries" action="action_bank_rec" sequence="3"
+              groups="account.group_account_readonly"/>
+    <menuitem id="menu_report_budget_core" name="Budget vs Actual" parent="account.account_reports_management_menu" action="action_report_budget" sequence="30"/>
+    <menuitem id="menu_report_deferral_core" name="Deferral Schedule" parent="account.account_reports_management_menu" action="action_report_deferral" sequence="31"/>
 </odoo>

@@ -10,3 +10,6 @@ from . import close
 from . import cash_forecast
 from . import ledger_check
 from . import report_handlers
+from . import bank
+from . import cockpit
+from . import entry_studio

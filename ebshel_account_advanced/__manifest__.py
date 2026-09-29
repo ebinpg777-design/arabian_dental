@@ -18,8 +18,14 @@ Everything the accounting team does after the entries are booked, on one set of 
 * **Close cockpit** - a month-end checklist with live counts behind every task and the lock date set on close.
 * **Cash forecast** - thirteen weeks ahead from open items, planned items and history, with what-if sliders.
 * **Ledger health** - a scanner that finds duplicate bills, sequence gaps, unusual amounts, stale drafts and more.
+* **Finance cockpit** - the profit and loss as a waterfall, the balance sheet as two stacks, twelve months of trend,
+  banker's ratios and the work waiting on the team.
+* **Bank reconciliation** - paste the bank statement: rows the books already hold are ticked, the rest are matched
+  to invoices, written off, or taught to rules; a reconciliation statement at any date, in PDF.
+* **Entry studio** - journal entries typed like a spreadsheet, pasted from Excel, balanced in one key, from
+  templates that split an amount by percentage; bulk analytic redistribution of journal items.
 """,
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'category': 'Accounting/Accounting',
     'author': 'Ebshel Technologies',
     'website': 'https://ebshel.com',
@@ -27,7 +33,7 @@ Everything the accounting team does after the entries are booked, on one set of 
     'license': 'OPL-1',
     'price': 149.0,
     'currency': 'USD',
-    'depends': ['account', 'mail', 'ebshel_account_reports'],
+    'depends': ['account', 'mail', 'analytic', 'ebshel_account_reports', 'ebshel_account_assets'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
@@ -47,6 +53,8 @@ Everything the accounting team does after the entries are booked, on one set of 
         'views/cash_views.xml',
         'views/check_views.xml',
         'views/res_config_views.xml',
+        'views/bank_views.xml',
+        'views/entry_views.xml',
         'report/followup_letter.xml',
         'views/menus.xml',
     ],
@@ -61,8 +69,11 @@ Everything the accounting team does after the entries are booked, on one set of 
             'ebshel_account_advanced/static/src/close/*',
             'ebshel_account_advanced/static/src/cash/*',
             'ebshel_account_advanced/static/src/health/*',
+            'ebshel_account_advanced/static/src/cockpit/*',
+            'ebshel_account_advanced/static/src/bank/*',
+            'ebshel_account_advanced/static/src/studio/*',
         ],
     },
-    'application': False,
+    'application': True,
     'installable': True,
 }

@@ -38,3 +38,21 @@ access_ebshel_cash_item_billing_read,ebshel_cash_item billing read,model_ebshel_
 access_ebshel_cash_item_admin,ebshel_cash_item administrator,model_ebshel_cash_item,account.group_account_manager,1,1,1,1
 access_ebshel_ledger_finding_billing_read,ebshel_ledger_finding billing read,model_ebshel_ledger_finding,account.group_account_invoice,1,0,0,0
 access_ebshel_ledger_finding_admin,ebshel_ledger_finding administrator,model_ebshel_ledger_finding,account.group_account_manager,1,1,1,1
+access_bank_rule_read,bank rule read,model_ebshel_bank_rule,account.group_account_readonly,1,0,0,0
+access_bank_rule_billing_read,bank rule billing read,model_ebshel_bank_rule,account.group_account_invoice,1,0,0,0
+access_bank_rule_user,bank rule user,model_ebshel_bank_rule,account.group_account_user,1,1,1,1
+access_bank_rule_admin,bank rule administrator,model_ebshel_bank_rule,account.group_account_manager,1,1,1,1
+access_bank_checkpoint_read,bank checkpoint read,model_ebshel_bank_checkpoint,account.group_account_readonly,1,0,0,0
+access_bank_checkpoint_billing_read,bank checkpoint billing read,model_ebshel_bank_checkpoint,account.group_account_invoice,1,0,0,0
+access_bank_checkpoint_user,bank checkpoint user,model_ebshel_bank_checkpoint,account.group_account_user,1,1,1,1
+access_bank_checkpoint_admin,bank checkpoint administrator,model_ebshel_bank_checkpoint,account.group_account_manager,1,1,1,1
+access_entry_template_read,entry template read,model_ebshel_entry_template,account.group_account_readonly,1,0,0,0
+access_entry_template_billing_read,entry template billing read,model_ebshel_entry_template,account.group_account_invoice,1,0,0,0
+access_entry_template_user,entry template user,model_ebshel_entry_template,account.group_account_user,1,1,1,1
+access_entry_template_admin,entry template administrator,model_ebshel_entry_template,account.group_account_manager,1,1,1,1
+access_entry_template_line_read,entry template line read,model_ebshel_entry_template_line,account.group_account_readonly,1,0,0,0
+access_entry_template_line_billing_read,entry template line billing read,model_ebshel_entry_template_line,account.group_account_invoice,1,0,0,0
+access_entry_template_line_user,entry template line user,model_ebshel_entry_template_line,account.group_account_user,1,1,1,1
+access_entry_template_line_admin,entry template line administrator,model_ebshel_entry_template_line,account.group_account_manager,1,1,1,1
+access_analytic_redistribute_user,analytic redistribute user,model_ebshel_analytic_redistribute,account.group_account_user,1,1,1,1
+access_analytic_redistribute_admin,analytic redistribute administrator,model_ebshel_analytic_redistribute,account.group_account_manager,1,1,1,1

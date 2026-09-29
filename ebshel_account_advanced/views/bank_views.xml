@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_bank_rule_list" model="ir.ui.view">
+        <field name="name">ebshel.bank.rule.list</field>
+        <field name="model">ebshel.bank.rule</field>
+        <field name="arch" type="xml">
+            <list string="Bank rules">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="keywords"/>
+                <field name="direction"/>
+                <field name="action"/>
+                <field name="account_id"/>
+                <field name="partner_id" optional="show"/>
+                <field name="auto_apply" widget="boolean_toggle"/>
+                <field name="hits"/>
+                <field name="last_used" optional="show"/>
+                <field name="journal_ids" widget="many2many_tags" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_bank_rule_form" model="ir.ui.view">
+        <field name="name">ebshel.bank.rule.form</field>
+        <field name="model">ebshel.bank.rule</field>
+        <field name="arch" type="xml">
+            <form string="Bank rule">
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" placeholder="e.g. Bank charges"/></h1></div>
+                    <group>
+                        <group string="When the bank line">
+                            <field name="keywords" placeholder="charges, sms alert, gst on"/>
+                            <field name="keyword_mode"/>
+                            <field name="direction"/>
+                            <field name="amount_min"/>
+                            <field name="amount_max"/>
+                            <field name="journal_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Then">
+                            <field name="action"/>
+                            <field name="account_id" invisible="action != 'account'" required="action == 'account'"/>
+                            <field name="label" invisible="action != 'account'"/>
+                            <field name="partner_id" required="action == 'partner'"/>
+                            <field name="analytic_distribution" widget="analytic_distribution" invisible="action != 'account'" groups="analytic.group_analytic_accounting"/>
+                            <field name="auto_apply"/>
+                            <field name="hits" readonly="1"/>
+                            <field name="last_used" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_bank_rules" model="ir.actions.act_window">
+        <field name="name">Bank Rules</field>
+        <field name="res_model">ebshel.bank.rule</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Teach the bank reconciliation</p><p>"When the bank says CHARGES, post it to Bank Charges." Rules are also offered right after you reconcile a line by hand.</p></field>
+    </record>
+
+    <record id="view_bank_checkpoint_list" model="ir.ui.view">
+        <field name="name">ebshel.bank.checkpoint.list</field>
+        <field name="model">ebshel.bank.checkpoint</field>
+        <field name="arch" type="xml">
+            <list string="Bank statement balances" editable="bottom" decoration-danger="difference != 0">
+                <field name="journal_id" options="{'no_create': True}"/>
+                <field name="date"/>
+                <field name="balance"/>
+                <field name="difference"/>
+                <field name="note"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_bank_checkpoints" model="ir.actions.act_window">
+        <field name="name">Bank Statement Balances</field>
+        <field name="res_model">ebshel.bank.checkpoint</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- The items the bank has (or has not) seen, straight from the journal items -->
+    <record id="view_move_line_list_cleared" model="ir.ui.view">
+        <field name="name">account.move.line.list.cleared</field>
+        <field name="model">account.move.line</field>
+        <field name="inherit_id" ref="account.view_move_line_tree"/>
+        <field name="arch" type="xml">
+            <field name="balance" position="after">
+                <field name="ebshel_cleared_date" optional="hide"/>
+                <field name="ebshel_bank_ref" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="action_report_brs" model="ir.actions.report">
+        <field name="name">Bank Reconciliation Statement</field>
+        <field name="model">account.journal</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_account_advanced.report_brs</field>
+        <field name="report_file">ebshel_account_advanced.report_brs</field>
+        <field name="print_report_name">'Bank reconciliation - %s' % object.name</field>
+    </record>
+    <template id="report_brs">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-set="n" t-value="brs['numbers']"/>
+                <t t-set="cur" t-value="company.currency_id"/>
+                <div class="page" style="font-size:12px">
+                    <h4>Bank reconciliation statement</h4>
+                    <div class="mb-3"><b t-esc="brs['journal']['name']"/> · <t t-esc="brs['journal']['account']"/> · as at <b t-esc="brs['date']"/></div>
+                    <table class="table table-sm" style="max-width:520px">
+                        <tr><td>Balance per books</td><td class="text-end" t-esc="n['book']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr><td>Less: deposits not yet credited by the bank</td><td class="text-end" t-esc="-n['deposits']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr><td>Add: payments not yet presented</td><td class="text-end" t-esc="n['payments']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr><th>Balance the bank should show</th><th class="text-end" t-esc="n['bank_expected']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr t-if="brs['checkpoint'] and brs['checkpoint']['difference'] is not None"><td>Balance per bank statement</td><td class="text-end" t-esc="brs['checkpoint']['balance']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr t-if="brs['checkpoint'] and brs['checkpoint']['difference'] is not None"><th>Difference</th><th class="text-end" t-esc="brs['checkpoint']['difference']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                    </table>
+                    <t t-foreach="[('Deposits not yet credited', deposits), ('Payments not yet presented', payments)]" t-as="block">
+                        <h6 class="mt-4" t-esc="block[0]"/>
+                        <table class="table table-sm">
+                            <thead><tr><th>Date</th><th>Entry</th><th>Label</th><th>Partner</th><th class="text-end">Days</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="block[1]" t-as="i">
+                                    <td t-esc="i['date']"/><td t-esc="i['name']"/><td t-esc="i['label']"/><td t-esc="i['partner']"/>
+                                    <td class="text-end" t-esc="i['age']"/>
+                                    <td class="text-end" t-esc="abs(i['amount'])" t-options="{'widget': 'monetary', 'display_currency': cur}"/>
+                                </tr>
+                                <tr t-if="not block[1]"><td colspan="6" class="text-muted">None.</td></tr>
+                            </tbody>
+                        </table>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

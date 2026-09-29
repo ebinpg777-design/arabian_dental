@@ -24,4 +24,16 @@
         <field name="name">Ledger Health</field>
         <field name="tag">ebshel_ledger_health</field>
     </record>
+    <record id="action_finance_cockpit" model="ir.actions.client">
+        <field name="name">Finance Cockpit</field>
+        <field name="tag">ebshel_finance_cockpit</field>
+    </record>
+    <record id="action_bank_rec" model="ir.actions.client">
+        <field name="name">Bank Reconciliation</field>
+        <field name="tag">ebshel_bank_rec</field>
+    </record>
+    <record id="action_entry_studio" model="ir.actions.client">
+        <field name="name">Entry Studio</field>
+        <field name="tag">ebshel_entry_studio</field>
+    </record>
 </odoo>
