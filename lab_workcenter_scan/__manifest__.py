@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Work Centre Scanning',
-    'version': '19.0.3.14.2',
+    'version': '19.0.3.15.0',
     'summary': 'Move a work order to another work centre by scanning the station QR code',
     'description': """
 Work Centre Scanning
@@ -44,6 +44,7 @@ typing on a shared terminal.
         'views/flow_views.xml',
         'views/tracking_views.xml',
         'views/production_performance_views.xml',
+        'views/tech_day_views.xml',
         'views/mrp_redo_views.xml',
         'wizard/production_report_views.xml',
         'wizard/floor_print_views.xml',
@@ -67,6 +68,9 @@ typing on a shared terminal.
             'lab_workcenter_scan/static/src/js/mrp_report.js',
             'lab_workcenter_scan/static/src/xml/flow.xml',
             'lab_workcenter_scan/static/src/xml/mrp_report.xml',
+            'lab_workcenter_scan/static/src/scss/tech_day.scss',
+            'lab_workcenter_scan/static/src/js/tech_day.js',
+            'lab_workcenter_scan/static/src/xml/tech_day.xml',
             'lab_workcenter_scan/static/src/xml/station.xml',
             'lab_workcenter_scan/static/src/xml/doing_it_dialog.xml',
             'lab_workcenter_scan/static/src/xml/where_dialog.xml',

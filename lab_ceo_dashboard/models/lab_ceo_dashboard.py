@@ -4,6 +4,7 @@ from datetime import timedelta
 
 import logging
 
+from odoo.tools import SQL
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
@@ -149,6 +150,18 @@ class LabCeoDashboard(models.AbstractModel):
         return self.env['mrp.production'].search_count(Floor._live_domain())
 
     @api.model
+    def _techs_today(self):
+        """People who picked up or handed on a job today, in the lab's day."""
+        Station = self.env['lab.station']
+        start, end = Station._day_window(Station._lab_today())
+        self.env['mrp.workorder'].flush_model()
+        rows = self.env.execute_query(SQL(
+            """SELECT COUNT(DISTINCT COALESCE(accepted_by_id, bench_user_id)) FROM mrp_workorder
+                WHERE (accepted_at >= %s AND accepted_at < %s) OR (handed_over_at >= %s AND handed_over_at < %s)""",
+            start, end, start, end))
+        return rows[0][0] if rows else 0
+
+    @api.model
     def _week_operations(self):
         today = fields.Date.context_today(self)
         monday = today - timedelta(days=today.weekday())
@@ -171,7 +184,10 @@ class LabCeoDashboard(models.AbstractModel):
                      self._floor_jobs, _("jobs on the floor")),
                     ('reports', 'lab_mrp_report', _('Reports'), 'fa-users',
                      _('Who got through what, by week'),
-                     self._week_operations, _("operations this week"))):
+                     self._week_operations, _("operations this week")),
+                    ('day', 'lab_tech_day', _('Technician day'), 'fa-clock-o',
+                     _("Each technician's day, slot by slot"),
+                     self._techs_today, _("technicians on jobs today"))):
                 try:
                     badge = figure()
                 except Exception:                                  # noqa: BLE001

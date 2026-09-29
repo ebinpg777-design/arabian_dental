@@ -9,3 +9,4 @@ from . import test_browser_domains
 from . import test_arch_split
 from . import test_accepted_on_bench
 from . import test_over_time_drill
+from . import test_tech_day

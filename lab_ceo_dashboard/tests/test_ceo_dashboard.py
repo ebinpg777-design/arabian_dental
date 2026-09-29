@@ -105,7 +105,7 @@ class TestManagementDashboards(TransactionCase):
                          self.env.ref('lab_ceo_dashboard.action_production_command').id)
         screens = self.env['lab.ceo.dashboard'].with_user(
             self.env.ref('base.user_admin')).get_command('production')['screens']
-        self.assertEqual([s['tag'] for s in screens], ['lab_flow', 'lab_mrp_report'])
+        self.assertEqual([s['tag'] for s in screens], ['lab_flow', 'lab_mrp_report', 'lab_tech_day'])
         for screen in screens:
             self.assertIsInstance(screen['badge'], int)
             self.assertTrue(screen['label'] and screen['badge_title'])
