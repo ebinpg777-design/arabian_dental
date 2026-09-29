@@ -38,6 +38,11 @@
                                 <button t-foreach="state.choices.units || []" t-as="u" t-key="u[0]" t-att-class="'o_efr_seg' + (state.options.unit === u[0] ? ' on' : '')"
                                         t-on-click="() => this.setUnit(u[0])" t-esc="u[1]"/>
                             </div>
+                            <div class="o_efr_pop_title mt-2">Name column</div>
+                            <div class="o_efr_segs">
+                                <button class="o_efr_seg" t-on-click="() => { state.menu = null; this.fitNames(); }"><i class="fa fa-arrows-h me-1"/>Fit the longest name</button>
+                                <button class="o_efr_seg" t-att-disabled="!hasSplit" t-on-click="() => { state.menu = null; this.resetSplit(); }">Usual width</button>
+                            </div>
                             <div class="o_efr_pop_title mt-2">Rows</div>
                             <div class="o_efr_segs">
                                 <button t-att-class="'o_efr_seg' + (state.display.density === 'cozy' ? ' on' : '')" t-on-click="() => this.setDisplay('density', 'cozy')">Comfortable</button>
@@ -472,6 +477,8 @@
                                 <thead>
                                     <tr>
                                         <th class="o_efr_th_name"><span t-if="state.unitLabel" class="o_efr_unitnote">figures in <t t-esc="state.unitLabel"/></span>
+                                            <span class="o_efr_split" t-on-pointerdown="startSplit" t-on-dblclick="fitNames" t-on-click.stop=""
+                                                  title="Drag to widen or narrow the names · double-click to fit the longest"><i/></span>
                                             <span class="o_efr_took" t-if="state.took" t-att-title="'This reading took ' + state.took.toFixed(2) + ' seconds'">
                                                 <i class="fa fa-bolt"/> <t t-esc="state.took.toFixed(2)"/>s</span></th>
                                         <th t-if="state.options.trend" class="o_efr_th_trend">12 months</th>
@@ -499,18 +506,30 @@
                                                         <span class="o_efr_p_match" t-if="line.parts.matching" t-esc="line.parts.matching"/>
                                                     </span>
                                                 </t>
-                                                <span t-else="" class="o_efr_label" t-esc="line.name"/>
+                                                <!-- The name is ellipsised when the row also
+                                                     carries action buttons; the title lets a
+                                                     clipped one be read without widening the
+                                                     column for everybody. (client, 2026-09-29) -->
+                                                <span t-else="" class="o_efr_label"
+                                                      t-att-title="line.name" t-esc="line.name"/>
                                                 <span t-if="line.kind === 'more'" class="text-muted small ms-1"><i class="fa fa-angle-double-down"/></span>
-                                                <span class="o_efr_rowacts" t-if="line.kind !== 'more' and line.kind !== 'move_line' and line.kind !== 'open_item'">
-                                                    <i t-if="!line.parts and !line.total_of" t-att-class="'fa fa-thumb-tack o_efr_pinbtn' + (isPinned(line) ? ' on' : '')"
-                                                       t-att-title="isPinned(line) ? 'Unpin' : 'Keep this figure in sight'" t-on-click="(ev) => this.togglePin(line, ev)"/>
-                                                    <button t-if="canOpenItems(line)" t-att-class="'o_efr_ra o_efr_ra_items' + (state.items[line.id] ? ' on' : '')" title="Journal items of this line  (i)"
-                                                            t-on-click="(ev) => this.toggleItems(line, ev)"><i class="fa fa-list-ul"/><span>Items</span></button>
+                                                <!-- what is ON the line stays in sight; what can be DONE with it floats over
+                                                     the end of the name when the line is pointed at, so it takes none of the
+                                                     name's width -->
+                                                <span class="o_efr_marks" t-if="isPinned(line) or notesFor(line).length">
+                                                    <i t-if="isPinned(line)" class="fa fa-thumb-tack o_efr_pinmark" title="Kept in sight - click to unpin"
+                                                       t-on-click="(ev) => this.togglePin(line, ev)"/>
                                                     <span class="o_efr_notes" t-if="notesFor(line).length" t-att-title="notesFor(line).map(n => n.text).join('\n')"
                                                           t-on-click="(ev) => this.openNote(line, ev)">
                                                         <i class="fa fa-comment"/><t t-esc="notesFor(line).length"/>
                                                     </span>
-                                                    <i t-elif="state.canAnnotate" class="fa fa-comment-o o_efr_note_add" title="Add a note" t-on-click="(ev) => this.openNote(line, ev)"/>
+                                                </span>
+                                                <span class="o_efr_rowacts" t-if="line.kind !== 'more' and line.kind !== 'move_line' and line.kind !== 'open_item'">
+                                                    <i t-if="!line.parts and !line.total_of and !isPinned(line)" class="fa fa-thumb-tack o_efr_pinbtn"
+                                                       title="Keep this figure in sight" t-on-click="(ev) => this.togglePin(line, ev)"/>
+                                                    <button t-if="canOpenItems(line)" t-att-class="'o_efr_ra o_efr_ra_items' + (state.items[line.id] ? ' on' : '')" title="Journal items of this line  (i)"
+                                                            t-on-click="(ev) => this.toggleItems(line, ev)"><i class="fa fa-list-ul"/><span>Items</span></button>
+                                                    <i t-if="state.canAnnotate" class="fa fa-comment-o o_efr_note_add" title="Add a note" t-on-click="(ev) => this.openNote(line, ev)"/>
                                                 </span>
                                             </div></td>
                                             <td t-if="state.options.trend" class="o_efr_trend">

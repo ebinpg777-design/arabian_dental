@@ -106,8 +106,12 @@
         <field name="name">Aged Receivable</field>
         <field name="key">aged_receivable</field>
         <field name="kind">aged</field>
-        <!-- seven eighths of the usual: eight columns of figures need the room more than a name does -->
-        <field name="first_column">0.875</field>
+        <!-- The first column here is a PARTNER NAME, and it is the only thing on the row
+             a person reads by. It asked for seven eighths of the usual width on the
+             grounds that eight columns of figures needed the room more, which left
+             "2TH ...", "30 D...", "AAD..." down the whole page. Full share now.
+             (client, 2026-09-29) -->
+        <field name="first_column">1.0</field>
         <field name="sequence">110</field>
         <field name="custom" eval="False"/>
         <field name="date_mode">single</field>
@@ -120,8 +124,12 @@
         <field name="name">Aged Payable</field>
         <field name="key">aged_payable</field>
         <field name="kind">aged</field>
-        <!-- seven eighths of the usual: eight columns of figures need the room more than a name does -->
-        <field name="first_column">0.875</field>
+        <!-- The first column here is a PARTNER NAME, and it is the only thing on the row
+             a person reads by. It asked for seven eighths of the usual width on the
+             grounds that eight columns of figures needed the room more, which left
+             "2TH ...", "30 D...", "AAD..." down the whole page. Full share now.
+             (client, 2026-09-29) -->
+        <field name="first_column">1.0</field>
         <field name="sequence">120</field>
         <field name="custom" eval="False"/>
         <field name="date_mode">single</field>

@@ -228,19 +228,39 @@ $efr-tones: (
     .o_efr_table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .84rem; min-width: 640px;
         > thead > tr > th { position: sticky; top: 0; background: #fff; z-index: 2; text-align: right; padding: .5rem .6rem; font-size: .7rem;
              text-transform: uppercase; letter-spacing: .4px; color: var(--efr-navy); border-bottom: 2px solid var(--efr-navy); white-space: nowrap; }
-        > thead > tr > th.o_efr_th_name { text-align: left; left: 0; z-index: 3; width: var(--efr-name-w, auto); }
+        > thead > tr > th.o_efr_th_name { text-align: left; left: 0; z-index: 3; width: var(--efr-name-w, auto);
+            min-width: var(--efr-name-min, 28rem); }
+        // the splitter: the divider between the names and the figures, dragged sideways
+        .o_efr_split { position: absolute; top: 0; right: -6px; bottom: 0; width: 12px; cursor: col-resize; z-index: 4; touch-action: none;
+            display: flex; justify-content: center;
+            i { display: block; width: 3px; height: 100%; border-radius: 2px; background: transparent; transition: background .12s; }
+            &:hover i { background: #93b4ff; } }
+        &.o_efr_splitting { cursor: col-resize; user-select: none;
+            .o_efr_split i { background: #1d4ed8; }
+            td.o_efr_name { box-shadow: 3px 0 0 #1d4ed8; } }
         // a figure column is never narrower than a figure in the crores
         > thead > tr > th.o_efr_th_amount { min-width: 8rem; }
         > thead > tr > th.o_efr_th_growth { min-width: 5.5rem; }
         > thead > tr > th.o_efr_th_trend { text-align: center; }
         .o_efr_unitnote { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--efr-muted); font-style: italic; }
         > tbody > tr > td { padding: var(--efr-row) .6rem; border-bottom: 1px solid var(--efr-line); white-space: nowrap; vertical-align: middle; }
-        // the name takes what the figures leave and is cut with an ellipsis; the figures are never squeezed
-        // a report may ask for a share of the usual width (--efr-name-share): the floor follows it
+        // The name takes what the figures leave and is cut with an ellipsis; the figures are
+        // never squeezed. It has a FLOOR, and the floor no longer follows the report's own
+        // share: on Aged Receivable the eight buckets claim 8rem each, and what was left was
+        // then cut to seven eighths on top, so the page read "2TH ...", "30 D...", "AAD..."
+        // for every clinic on it. A first column nobody can read is not a first column.
+        //
+        // 28rem because that is what this ledger needs once the caret and the indent beside
+        // the name are paid for: over 300 rows the longest ("AZEEZIA COLLEGE OF DENTAL
+        // SCIENCE AND RESEARCH PRIME") needs 379px of label and the median only 111. Under
+        // the floor the table just scrolls sideways, which costs nothing here - the name
+        // cell is sticky, so it stays put while the buckets move. (client, 2026-09-29)
         td.o_efr_name { position: sticky; left: 0; background: #fff; z-index: 1; width: var(--efr-name-w, 99%);
-            min-width: calc(13rem * var(--efr-name-share, 1)); max-width: 0;
+            min-width: var(--efr-name-min, 28rem); max-width: 0;
             box-shadow: 1px 0 0 var(--efr-line); }
-        .o_efr_namebox { display: flex; align-items: center; min-width: 0; }
+        .o_efr_namebox { display: flex; align-items: center; min-width: 0; position: relative; }
+        .o_efr_marks { flex: 0 0 auto; display: inline-flex; align-items: center; gap: .3rem; margin-left: .45rem; }
+        .o_efr_pinmark { color: #f59e0b; cursor: pointer; font-size: .8rem; }
         .o_efr_namebox > .o_efr_label, .o_efr_namebox > .o_efr_parts { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .o_efr_namebox > .o_efr_indent, .o_efr_namebox > .o_efr_caret, .o_efr_namebox > .o_efr_rowacts { flex: 0 0 auto; }
         td.o_efr_zero > span:first-child { color: #b6bdc8; }
@@ -258,17 +278,19 @@ $efr-tones: (
         .o_efr_explain { opacity: 0; margin-left: .35rem; color: #7c3aed; font-size: .75rem; cursor: pointer; }
         td.o_efr_cell:hover .o_efr_explain { opacity: .85; }
 
-        // what can be done with a line: shown as the line is pointed at, always there on a touch screen
-        .o_efr_rowacts { display: inline-flex; align-items: center; gap: .3rem; margin-left: .5rem; vertical-align: middle; }
+        // what can be done with a line: it floats over the end of the name while the line is
+        // pointed at, so it takes none of the name's width (hidden, it still took ~12rem of it,
+        // which is what left "2TH ...", "30 D..." on a page of eight columns); always there on a phone
+        .o_efr_rowacts { position: absolute; right: -.3rem; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: .3rem;
+            padding: .1rem .3rem .1rem 1.6rem; background: linear-gradient(to right, rgba(245, 248, 255, 0), #f5f8ff 1.3rem);
+            opacity: 0; pointer-events: none; transition: opacity .1s; }
+        tr:hover .o_efr_rowacts, tr.o_efr_focus .o_efr_rowacts, tr.o_efr_has_items .o_efr_rowacts { opacity: 1; pointer-events: auto; }
         .o_efr_ra[disabled] { opacity: .5; pointer-events: none; }
         .o_efr_ra { display: inline-flex; align-items: center; gap: .25rem; border: 1px solid #bfd3ff; background: #eaf1ff; color: #1d4ed8; border-radius: 1rem;
             padding: .02rem .5rem; font-size: .7rem; font-weight: 600; line-height: 1.35;
             &:hover { background: #1d4ed8; color: #fff; }
             &.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; } }
-        .o_efr_ra_items { opacity: 0; }
-        tr:hover .o_efr_ra_items, tr.o_efr_focus .o_efr_ra_items, .o_efr_ra_items.on { opacity: 1; }
-        .o_efr_note_add { opacity: 0; color: var(--efr-muted); cursor: pointer; font-size: .78rem; }
-        tr:hover .o_efr_note_add { opacity: .7; }
+        .o_efr_note_add { color: var(--efr-muted); cursor: pointer; font-size: .78rem; &:hover { color: #b45309; } }
         .o_efr_notes { color: #b45309; background: #fff3dd; border-radius: 1rem; padding: 0 .4rem; font-size: .72rem; cursor: pointer; i { margin-right: .15rem; } }
 
         tr.o_efr_row { &:hover > td { background-color: #f5f8ff; } }
@@ -463,6 +485,10 @@ $efr-tones: (
         .o_efr_tool { min-height: 2.5rem; padding: .3rem .7rem; }
         .o_efr_actions .o_efr_search input { width: 9rem; min-height: 2.5rem; }
         .o_efr_bar { padding: .4rem .5rem; }
+        // A phone has no room for the desktop floor: there the name is as wide as the
+        // screen allows and the buckets scroll under it, as they did before.
+        .o_efr_table > thead > tr > th.o_efr_th_name,
+        .o_efr_table td.o_efr_name { min-width: 11rem; }
         .o_efr_filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: .15rem; padding-right: 1.6rem; }
         // the strip goes on past the edge: said by a fade laid OVER it. A mask on the strip
         // itself would trap every filter's panel inside it, fixed position or not.
@@ -511,7 +537,9 @@ $efr-tones: (
         .o_efr_pop_wide { padding-bottom: 0; }
         .o_efr_pop_foot { position: sticky; bottom: 0; background: #fff; padding: .6rem 0; border-top: 1px solid var(--efr-line);
             .btn { flex: 1 1 0; min-height: 2.6rem; } }
-        .o_efr_table .o_efr_ra_items { opacity: 1; span { display: none; } padding: .2rem .5rem; }
+        .o_efr_table .o_efr_ra_items { span { display: none; } padding: .2rem .5rem; }
+        .o_efr_table .o_efr_rowacts { position: static; transform: none; opacity: 1; pointer-events: auto; background: none; padding: 0; }
+        .o_efr_split { display: none; }
         .o_efr_table .o_efr_pinbtn { display: none; &.on { display: inline-block; } }
         .o_efr_pin { flex: 1 1 8rem; }
         // a note is written at a desk; on a phone only the notes that exist are shown

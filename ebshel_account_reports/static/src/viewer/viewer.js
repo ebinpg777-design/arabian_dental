@@ -322,6 +322,109 @@ export class FinReportViewer extends Component {
      * (the aged reports ask for seven eighths): the width it would have is measured, the
      * share is set, and what it gives up goes to the figures.
      */
+    // ------------------------------------------------------------------ the splitter
+    get splitKey() {
+        return `ebshel_fin_namew:${this.state.report ? this.state.report.key : ""}`;
+    }
+
+    savedSplit() {
+        try {
+            const w = parseInt(window.localStorage.getItem(this.splitKey) || "", 10);
+            return Number.isFinite(w) && w > 0 ? w : null;
+        } catch {
+            return null;
+        }
+    }
+
+    /** The name column at `width` px, and remembered for this report on this browser. */
+    applySplit(width, save) {
+        const table = this.tableRef.el;
+        if (!table) {
+            return;
+        }
+        const wrap = table.closest(".o_efr_table_wrap");
+        const most = Math.max(200, Math.round((wrap ? wrap.clientWidth : window.innerWidth) * 0.75));
+        const w = Math.round(Math.min(Math.max(width, 120), most));
+        table.style.setProperty("--efr-name-w", w + "px");
+        table.style.setProperty("--efr-name-min", w + "px");
+        if (save) {
+            try {
+                window.localStorage.setItem(this.splitKey, String(w));
+            } catch {
+                // the width lasts as long as the page
+            }
+        }
+        return w;
+    }
+
+    /** Drag the divider between the names and the figures. */
+    startSplit(ev) {
+        if (ev.button !== undefined && ev.button !== 0) {
+            return;
+        }
+        ev.preventDefault();
+        ev.stopPropagation();
+        const handle = ev.currentTarget;
+        const head = handle.closest("th");
+        const table = this.tableRef.el;
+        const startX = ev.clientX;
+        const startW = head.getBoundingClientRect().width;
+        let last = startW;
+        table.classList.add("o_efr_splitting");
+        handle.setPointerCapture && handle.setPointerCapture(ev.pointerId);
+        const move = (e) => {
+            last = this.applySplit(startW + (e.clientX - startX), false) || last;
+        };
+        const up = () => {
+            handle.removeEventListener("pointermove", move);
+            handle.removeEventListener("pointerup", up);
+            handle.removeEventListener("pointercancel", up);
+            table.classList.remove("o_efr_splitting");
+            this.applySplit(last, true);
+        };
+        handle.addEventListener("pointermove", move);
+        handle.addEventListener("pointerup", up);
+        handle.addEventListener("pointercancel", up);
+    }
+
+    /** As wide as the longest name on the screen needs - no wider. */
+    fitNames(ev) {
+        if (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+        }
+        const table = this.tableRef.el;
+        if (!table) {
+            return;
+        }
+        let need = 0;
+        for (const cell of table.querySelectorAll("tbody td.o_efr_name")) {
+            const label = cell.querySelector(".o_efr_label, .o_efr_parts");
+            if (!label) {
+                continue;
+            }
+            const left = label.getBoundingClientRect().left - cell.getBoundingClientRect().left;
+            const marks = cell.querySelector(".o_efr_marks");
+            need = Math.max(need, left + label.scrollWidth + (marks ? marks.getBoundingClientRect().width + 8 : 0) + 18);
+        }
+        if (need) {
+            this.applySplit(need, true);
+        }
+    }
+
+    resetSplit() {
+        try {
+            window.localStorage.removeItem(this.splitKey);
+        } catch {
+            // nothing was kept
+        }
+        this.fitFirstColumn();
+    }
+
+    get hasSplit() {
+        return this.savedSplit() !== null;
+    }
+
     fitFirstColumn() {
         const table = this.tableRef.el;
         if (!table) {
@@ -329,6 +432,12 @@ export class FinReportViewer extends Component {
         }
         table.style.removeProperty("--efr-name-w");
         table.style.removeProperty("--efr-name-share");
+        table.style.removeProperty("--efr-name-min");
+        const saved = window.innerWidth >= 768 ? this.savedSplit() : null;
+        if (saved) {
+            this.applySplit(saved, false);      // the reader's own width beats the report's
+            return;
+        }
         const share = (this.state.report && this.state.report.first_column) || 1;
         const head = table.querySelector("th.o_efr_th_name");
         if (share === 1 || !head || window.innerWidth < 768) {
