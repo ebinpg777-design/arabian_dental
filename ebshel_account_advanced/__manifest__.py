@@ -24,8 +24,11 @@ Everything the accounting team does after the entries are booked, on one set of 
   to invoices, written off, or taught to rules; a reconciliation statement at any date, in PDF.
 * **Entry studio** - journal entries typed like a spreadsheet, pasted from Excel, balanced in one key, from
   templates that split an amount by percentage; bulk analytic redistribution of journal items.
+
+Every screen sits inside the Accounting app's own menus (Customers, Accounting, Reporting,
+Configuration) - there is no separate top-level menu.
 """,
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'category': 'Accounting/Accounting',
     'author': 'Ebshel Technologies',
     'website': 'https://ebshel.com',
@@ -74,6 +77,6 @@ Everything the accounting team does after the entries are booked, on one set of 
             'ebshel_account_advanced/static/src/studio/*',
         ],
     },
-    'application': True,
+    'application': False,
     'installable': True,
 }
