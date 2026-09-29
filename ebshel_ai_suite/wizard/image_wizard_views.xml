@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_image_wizard_form" model="ir.ui.view">
+        <field name="name">community.ai.image.wizard.form</field>
+        <field name="model">community.ai.image.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate an Image">
+                <field name="prompt" placeholder="A minimalist illustration of a delivery van at sunrise..."/>
+                <group>
+                    <group>
+                        <field name="size"/>
+                        <field name="quality"/>
+                    </group>
+                    <group>
+                        <field name="image_format"/>
+                        <field name="connection_id" options="{'no_create': True}" groups="ebshel_ai_suite.group_cai_manager"/>
+                    </group>
+                </group>
+                <field name="image" widget="image" invisible="not image" readonly="1"/>
+                <group invisible="not attachment_id">
+                    <field name="attachment_id"/>
+                </group>
+                <footer>
+                    <button name="action_cai_generate" type="object" string="Generate" class="btn-primary"/>
+                    <button string="Close" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cai_image_wizard" model="ir.actions.act_window">
+        <field name="name">Generate Image</field>
+        <field name="res_model">community.ai.image.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

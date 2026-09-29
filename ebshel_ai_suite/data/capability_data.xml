@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="capability_search_contacts" model="community.ai.capability">
+            <field name="name">Search Contacts</field>
+            <field name="technical_identifier">search_contacts</field>
+            <field name="handler_key">search_records</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="description">Find contacts and companies (customers, vendors, people) by name and/or conditions on the allowed fields.</field>
+            <field name="field_ids" eval="[Command.set([ref('base.field_res_partner__email'), ref('base.field_res_partner__phone'),
+                ref('base.field_res_partner__city'), ref('base.field_res_partner__country_id'), ref('base.field_res_partner__is_company'),
+                ref('base.field_res_partner__function'), ref('base.field_res_partner__parent_id')])]"/>
+            <field name="result_limit">10</field>
+            <field name="requires_confirmation" eval="False"/>
+        </record>
+        <record id="capability_read_contact" model="community.ai.capability">
+            <field name="name">Read Contact</field>
+            <field name="technical_identifier">read_contact</field>
+            <field name="handler_key">read_record</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="description">Read the details of one contact, including its recent messages. Use the id returned by search_contacts.</field>
+            <field name="requires_confirmation" eval="False"/>
+        </record>
+        <record id="capability_count_contacts" model="community.ai.capability">
+            <field name="name">Count Contacts</field>
+            <field name="technical_identifier">count_contacts</field>
+            <field name="handler_key">count_records</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="description">Count contacts matching conditions, optionally grouped by country, city or company flag.</field>
+            <field name="field_ids" eval="[Command.set([ref('base.field_res_partner__city'), ref('base.field_res_partner__country_id'),
+                ref('base.field_res_partner__is_company')])]"/>
+            <field name="requires_confirmation" eval="False"/>
+        </record>
+        <record id="capability_open_contacts" model="community.ai.capability">
+            <field name="name">Open Contacts</field>
+            <field name="technical_identifier">open_contacts</field>
+            <field name="handler_key">open_view</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="description">Offer the user a button that opens a filtered list of contacts, or one contact in form view.</field>
+            <field name="field_ids" eval="[Command.set([ref('base.field_res_partner__city'), ref('base.field_res_partner__country_id'),
+                ref('base.field_res_partner__is_company'), ref('base.field_res_partner__email')])]"/>
+            <field name="requires_confirmation" eval="False"/>
+        </record>
+        <record id="capability_search_activities" model="community.ai.capability">
+            <field name="name">Search Activities</field>
+            <field name="technical_identifier">search_activities</field>
+            <field name="handler_key">search_records</field>
+            <field name="model_id" ref="mail.model_mail_activity"/>
+            <field name="description">Find scheduled activities (to-dos, calls, meetings). Filter on user_id and date_deadline to find e.g. the current user's overdue activities.</field>
+            <field name="field_ids" eval="[Command.set([ref('mail.field_mail_activity__summary'), ref('mail.field_mail_activity__date_deadline'),
+                ref('mail.field_mail_activity__res_name'), ref('mail.field_mail_activity__activity_type_id'), ref('mail.field_mail_activity__user_id'),
+                ref('mail.field_mail_activity__state')])]"/>
+            <field name="requires_confirmation" eval="False"/>
+        </record>
+        <record id="capability_create_contact" model="community.ai.capability">
+            <field name="name">Create Contact</field>
+            <field name="technical_identifier">create_contact</field>
+            <field name="handler_key">create_record</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="description">Create a new contact or company. Only set the allowed fields.</field>
+            <field name="field_ids" eval="[Command.set([ref('base.field_res_partner__name'), ref('base.field_res_partner__email'),
+                ref('base.field_res_partner__phone'), ref('base.field_res_partner__is_company'), ref('base.field_res_partner__city'),
+                ref('base.field_res_partner__function')])]"/>
+            <field name="requires_confirmation" eval="True"/>
+        </record>
+        <record id="capability_log_note" model="community.ai.capability">
+            <field name="name">Log Note on Contact</field>
+            <field name="technical_identifier">log_contact_note</field>
+            <field name="handler_key">post_note</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="description">Log an internal note in the chatter of a contact.</field>
+            <field name="requires_confirmation" eval="True"/>
+        </record>
+        <record id="capability_search_knowledge" model="community.ai.capability">
+            <field name="name">Search Knowledge</field>
+            <field name="technical_identifier">search_knowledge</field>
+            <field name="handler_key">search_knowledge</field>
+            <field name="description">Search the knowledge sources (policies, procedures, documentation) attached to this assistant.</field>
+            <field name="requires_confirmation" eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="rule_cai_session_own" model="ir.rule">
+            <field name="name">AI session: own records</field>
+            <field name="model_id" ref="model_community_ai_session"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_user'))]"/>
+        </record>
+        <record id="rule_cai_session_manager" model="ir.rule">
+            <field name="name">AI session: managers see all</field>
+            <field name="model_id" ref="model_community_ai_session"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_manager'))]"/>
+        </record>
+        <record id="rule_cai_exchange_own" model="ir.rule">
+            <field name="name">AI exchange: own records</field>
+            <field name="model_id" ref="model_community_ai_exchange"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_user'))]"/>
+        </record>
+        <record id="rule_cai_exchange_manager" model="ir.rule">
+            <field name="name">AI exchange: managers see all</field>
+            <field name="model_id" ref="model_community_ai_exchange"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_manager'))]"/>
+        </record>
+        <record id="rule_cai_operation_own" model="ir.rule">
+            <field name="name">AI operation: own records</field>
+            <field name="model_id" ref="model_community_ai_operation"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_user'))]"/>
+        </record>
+        <record id="rule_cai_operation_manager" model="ir.rule">
+            <field name="name">AI operation: managers see all</field>
+            <field name="model_id" ref="model_community_ai_operation"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_manager'))]"/>
+        </record>
+        <record id="rule_cai_job_own" model="ir.rule">
+            <field name="name">AI job: own records</field>
+            <field name="model_id" ref="model_community_ai_job"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_user'))]"/>
+        </record>
+        <record id="rule_cai_job_manager" model="ir.rule">
+            <field name="name">AI job: managers see all</field>
+            <field name="model_id" ref="model_community_ai_job"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_manager'))]"/>
+        </record>
+        <record id="rule_cai_usage_own" model="ir.rule">
+            <field name="name">AI usage: own records</field>
+            <field name="model_id" ref="model_community_ai_usage"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_user'))]"/>
+        </record>
+        <record id="rule_cai_usage_manager" model="ir.rule">
+            <field name="name">AI usage: managers see all</field>
+            <field name="model_id" ref="model_community_ai_usage"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_manager'))]"/>
+        </record>
+        <record id="rule_cai_audit_own" model="ir.rule">
+            <field name="name">AI audit: own records</field>
+            <field name="model_id" ref="model_community_ai_audit"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_user'))]"/>
+        </record>
+        <record id="rule_cai_audit_manager" model="ir.rule">
+            <field name="name">AI audit: managers see all</field>
+            <field name="model_id" ref="model_community_ai_audit"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_manager'))]"/>
+        </record>
+        <record id="rule_cai_connection_company" model="ir.rule">
+            <field name="name">AI connection: multi-company</field>
+            <field name="model_id" ref="model_community_ai_connection"/>
+            <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+        </record>
+        <record id="rule_cai_assistant_company" model="ir.rule">
+            <field name="name">AI assistant: multi-company</field>
+            <field name="model_id" ref="model_community_ai_assistant"/>
+            <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+        </record>
+        <record id="rule_cai_source_company" model="ir.rule">
+            <field name="name">AI source: multi-company</field>
+            <field name="model_id" ref="model_community_ai_source"/>
+            <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+        </record>
+        <record id="rule_cai_automation_company" model="ir.rule">
+            <field name="name">AI automation: multi-company</field>
+            <field name="model_id" ref="model_community_ai_automation"/>
+            <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+        </record>
+        <record id="rule_cai_field_rule_company" model="ir.rule">
+            <field name="name">AI field rule: multi-company</field>
+            <field name="model_id" ref="model_community_ai_field_rule"/>
+            <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+        </record>
+        <record id="rule_cai_session_company" model="ir.rule">
+            <field name="name">AI session: multi-company</field>
+            <field name="model_id" ref="model_community_ai_session"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cai_usage_company" model="ir.rule">
+            <field name="name">AI usage: multi-company</field>
+            <field name="model_id" ref="model_community_ai_usage"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cai_audit_company" model="ir.rule">
+            <field name="name">AI audit: multi-company</field>
+            <field name="model_id" ref="model_community_ai_audit"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cai_job_company" model="ir.rule">
+            <field name="name">AI job: multi-company</field>
+            <field name="model_id" ref="model_community_ai_job"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cai_operation_company" model="ir.rule">
+            <field name="name">AI operation: multi-company</field>
+            <field name="model_id" ref="model_community_ai_operation"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cai_exchange_company" model="ir.rule">
+            <field name="name">AI exchange: multi-company</field>
+            <field name="model_id" ref="model_community_ai_exchange"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cai_prompt_company" model="ir.rule">
+            <field name="name">AI prompt: multi-company</field>
+            <field name="model_id" ref="model_community_ai_prompt"/>
+            <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+        </record>
+        <record id="rule_cai_session_file_own" model="ir.rule">
+            <field name="name">AI conversation file: own records</field>
+            <field name="model_id" ref="model_community_ai_session_file"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_user'))]"/>
+        </record>
+        <record id="rule_cai_session_file_manager" model="ir.rule">
+            <field name="name">AI conversation file: managers see all</field>
+            <field name="model_id" ref="model_community_ai_session_file"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[Command.link(ref('group_cai_manager'))]"/>
+        </record>
+        <record id="rule_cai_session_file_company" model="ir.rule">
+            <field name="name">AI conversation file: multi-company</field>
+            <field name="model_id" ref="model_community_ai_session_file"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cai_context_preset_company" model="ir.rule">
+            <field name="name">AI context preset: multi-company</field>
+            <field name="model_id" ref="model_community_ai_context_preset"/>
+            <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+        </record>
+    </data>
+</odoo>

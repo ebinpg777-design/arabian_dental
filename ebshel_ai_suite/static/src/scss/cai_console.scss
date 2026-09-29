@@ -1,0 +1,215 @@
+// Ebshel AI Suite — console, launcher and widget styles.
+// All selectors are namespaced with .o_cai_ to avoid collisions.
+
+$o-cai-teal: #129f96;
+$o-cai-indigo: #2c46aa;
+$o-cai-amber: #f09628;
+
+// Brand mark: three connected nodes inside a rounded square (same motif as the app icon).
+.o_cai_mark {
+    display: inline-block;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 0.4rem;
+    background:
+        radial-gradient(circle at 30% 62%, $o-cai-teal 0 17%, transparent 18%),
+        radial-gradient(circle at 50% 30%, $o-cai-indigo 0 17%, transparent 18%),
+        radial-gradient(circle at 70% 62%, $o-cai-amber 0 17%, transparent 18%),
+        linear-gradient(160deg, rgba($o-cai-teal, 0.18), rgba($o-cai-indigo, 0.18));
+    vertical-align: middle;
+    &.o_cai_mark_sm {
+        width: 1rem;
+        height: 1rem;
+    }
+    &.o_cai_mark_lg {
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 0.8rem;
+    }
+}
+
+.o_cai_console_host {
+    position: fixed;
+    top: var(--o-navbar-height, 46px);
+    right: 0;
+    bottom: 0;
+    z-index: 1040;
+    width: 440px;
+    max-width: 100vw;
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.o_cai_console {
+    background-color: var(--o-view-background-color, $o-view-background-color);
+    height: 100%;
+    &.o_cai_console_page {
+        width: 100%;
+        max-width: 1100px;
+        border-left: 1px solid $border-color;
+        border-right: 1px solid $border-color;
+    }
+    .o_cai_history {
+        width: 230px;
+        flex: 0 0 230px;
+        .o_cai_history_item {
+            text-decoration: none;
+            border-radius: 0;
+            &:hover, &.active {
+                background-color: rgba($o-cai-teal, 0.08);
+            }
+        }
+    }
+    .o_cai_message {
+        max-width: 92%;
+        .o_cai_bubble {
+            padding: 0.55rem 0.8rem;
+            border-radius: 0.9rem;
+            overflow-wrap: anywhere;
+        }
+    }
+    .o_cai_message_user {
+        width: fit-content;
+        .o_cai_bubble {
+            background-color: rgba($o-cai-indigo, 0.1);
+            border-bottom-right-radius: 0.25rem;
+            white-space: pre-wrap;
+        }
+    }
+    .o_cai_message_assistant .o_cai_bubble {
+        background-color: rgba($o-cai-teal, 0.07);
+        border-bottom-left-radius: 0.25rem;
+    }
+    .o_cai_failed .o_cai_bubble {
+        background-color: rgba($danger, 0.07);
+    }
+    .o_cai_markdown {
+        p {
+            margin-bottom: 0.4rem;
+            &:last-child {
+                margin-bottom: 0;
+            }
+        }
+        ul, ol {
+            padding-left: 1.2rem;
+            margin-bottom: 0.4rem;
+        }
+        .o_cai_heading {
+            font-weight: bold;
+        }
+        .o_cai_code {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 0.5rem;
+            border-radius: 0.4rem;
+            font-size: 0.85em;
+        }
+    }
+    .o_cai_cite {
+        font-size: 0.75em;
+        padding: 0 0.3em;
+        border-radius: 0.3em;
+        background-color: rgba($o-cai-amber, 0.2);
+        vertical-align: super;
+    }
+    .o_cai_operation {
+        max-width: 100%;
+        border-left: 3px solid $o-cai-amber;
+        &.o_cai_operation_executed {
+            border-left-color: $success;
+        }
+        .o_cai_operation_preview {
+            white-space: pre-wrap;
+        }
+    }
+    .o_cai_input {
+        resize: none;
+        max-height: 180px;
+    }
+    .o_cai_typing span {
+        display: inline-block;
+        width: 0.4rem;
+        height: 0.4rem;
+        margin-right: 0.2rem;
+        border-radius: 50%;
+        background: $o-cai-teal;
+        animation: o_cai_blink 1.2s infinite ease-in-out;
+        &:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        &:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+    }
+}
+
+@keyframes o_cai_blink {
+    0%, 80%, 100% {
+        opacity: 0.25;
+    }
+    40% {
+        opacity: 1;
+    }
+}
+
+.o_cai_assist_field {
+    .o_cai_assist_menu {
+        position: absolute;
+        top: 0.1rem;
+        right: 0.1rem;
+        z-index: 2;
+        opacity: 0.55;
+        transition: opacity 0.15s;
+    }
+    &:hover .o_cai_assist_menu, .o_cai_assist_menu:focus-within {
+        opacity: 1;
+    }
+}
+
+.o_cai_assistant_kanban .o_cai_assistant_glyph {
+    color: $o-cai-teal;
+}
+
+.o_cai_console {
+    .o_cai_file_thumb {
+        max-width: 120px;
+        max-height: 90px;
+        object-fit: cover;
+    }
+    .o_cai_file_remove {
+        cursor: pointer;
+    }
+    .o_cai_answer_actions {
+        opacity: 0;
+        transition: opacity 0.15s;
+    }
+    .o_cai_message_assistant:hover .o_cai_answer_actions,
+    .o_cai_answer_actions:focus-within {
+        opacity: 1;
+    }
+}
+
+// AI prompt blocks in email templates (replaced by generated text when sending)
+.o_cai_prompt {
+    position: relative;
+    margin: 0.5rem 0;
+    padding: 1.4rem 0.75rem 0.5rem;
+    border: 1px dashed $o-cai-teal;
+    border-radius: 0.4rem;
+    background-color: rgba($o-cai-teal, 0.06);
+    font-style: italic;
+    &::before {
+        content: "AI prompt";
+        position: absolute;
+        top: 0.2rem;
+        left: 0.75rem;
+        font-size: 0.7rem;
+        font-style: normal;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: $o-cai-teal;
+    }
+}
+
+.o_cai_console .o_cai_generated_image {
+    max-width: 100%;
+    max-height: 320px;
+}

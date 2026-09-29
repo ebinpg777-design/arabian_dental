@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_privacy_rule_list" model="ir.ui.view">
+        <field name="name">community.ai.privacy.rule.list</field>
+        <field name="model">community.ai.privacy.rule</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="name"/>
+                <field name="model_id" placeholder="All models" options="{'no_create': True}"/>
+                <field name="field_pattern"/>
+                <field name="note" optional="show"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_cai_privacy_rule" model="ir.actions.act_window">
+        <field name="name">Privacy Rules</field>
+        <field name="res_model">community.ai.privacy.rule</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Keep sensitive fields away from AI engines</p>
+            <p>Passwords, tokens, API keys, bank and card numbers are always excluded. Add your own field names or patterns here.</p>
+        </field>
+    </record>
+
+    <record id="view_cai_search_target_list" model="ir.ui.view">
+        <field name="name">community.ai.search.target.list</field>
+        <field name="model">community.ai.search.target</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="model_id" options="{'no_create': True}"/>
+                <field name="keywords"/>
+                <field name="field_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_cai_search_target" model="ir.actions.act_window">
+        <field name="name">Search Targets</field>
+        <field name="res_model">community.ai.search.target</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Choose what natural-language search may query</p>
+            <p>Only these business objects (and only records the user can read) are proposed to the AI.</p>
+        </field>
+    </record>
+</odoo>

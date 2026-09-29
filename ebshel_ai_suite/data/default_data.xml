@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Privacy rules extending the built-in secret patterns -->
+        <record id="privacy_rule_bank_accounts" model="community.ai.privacy.rule">
+            <field name="name">Bank accounts</field>
+            <field name="field_pattern">bank_ids</field>
+        </record>
+        <record id="privacy_rule_signature" model="community.ai.privacy.rule">
+            <field name="name">Email signatures</field>
+            <field name="field_pattern">signature</field>
+        </record>
+        <record id="privacy_rule_passport" model="community.ai.privacy.rule">
+            <field name="name">Passport numbers</field>
+            <field name="field_pattern">*passport*</field>
+        </record>
+        <record id="privacy_rule_ssn" model="community.ai.privacy.rule">
+            <field name="name">Social security numbers</field>
+            <field name="field_pattern">*ssn*</field>
+        </record>
+        <record id="privacy_rule_identification" model="community.ai.privacy.rule">
+            <field name="name">Identification numbers</field>
+            <field name="field_pattern">identification_id</field>
+        </record>
+        <record id="privacy_rule_private" model="community.ai.privacy.rule">
+            <field name="name">Private (personal) address fields</field>
+            <field name="field_pattern">private_*</field>
+        </record>
+
+        <!-- Natural-language search targets -->
+        <record id="search_target_partner" model="community.ai.search.target">
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="sequence">10</field>
+            <field name="keywords">customer customers client clients contact contacts company companies vendor supplier person people partner</field>
+        </record>
+        <record id="search_target_activity" model="community.ai.search.target">
+            <field name="model_id" ref="mail.model_mail_activity"/>
+            <field name="sequence">20</field>
+            <field name="keywords">activity activities todo to-do task reminder call meeting deadline overdue follow-up</field>
+        </record>
+
+        <!-- Demonstration assistant: safe by default (confirmation for every change) -->
+        <record id="assistant_business" model="community.ai.assistant">
+            <field name="title">Business Assistant</field>
+            <field name="summary">Answers questions, finds contacts, summarizes records and drafts text.</field>
+            <field name="glyph">fa-briefcase</field>
+            <field name="sequence">1</field>
+            <field name="system_instruction">You help employees with their daily work in Odoo.
+- Answer general business questions clearly.
+- Use the search capabilities to find contacts or activities instead of guessing; mention record names.
+- When the user looks at a record, you can summarize it from the record data provided.
+- You can draft emails, notes and descriptions.
+- You may only create contacts or log notes, and only after the user confirms. You cannot delete anything.</field>
+            <field name="reply_style">balanced</field>
+            <field name="require_confirmation" eval="True"/>
+            <field name="capability_ids" eval="[Command.set([
+                ref('capability_search_contacts'), ref('capability_read_contact'), ref('capability_count_contacts'),
+                ref('capability_open_contacts'), ref('capability_search_activities'), ref('capability_create_contact'),
+                ref('capability_log_note'), ref('capability_search_knowledge')])]"/>
+        </record>
+        <function model="res.company" name="write">
+            <value model="res.company" search="[]"/>
+            <value eval="{'cai_assistant_id': ref('ebshel_ai_suite.assistant_business')}"/>
+        </function>
+    </data>
+</odoo>

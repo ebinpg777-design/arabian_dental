@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="skillset_record_lookup" model="community.ai.skillset">
+            <field name="name">Record Lookup</field>
+            <field name="sequence">10</field>
+            <field name="summary">Find, read and count business records.</field>
+            <field name="instructions">Purpose: answer questions about data stored in Odoo.
+Rules:
+- Always search before asserting that a record exists or not; never invent records or values.
+- Use the id returned by a search when reading a record.
+- For "how many" questions use a count capability, grouped when the user asks for a breakdown.
+- Mention record names in your answer; do not expose technical ids unless asked.</field>
+            <field name="capability_ids" eval="[Command.set([ref('capability_search_contacts'), ref('capability_read_contact'),
+                ref('capability_count_contacts'), ref('capability_search_activities')])]"/>
+        </record>
+        <record id="skillset_navigation" model="community.ai.skillset">
+            <field name="name">Navigation</field>
+            <field name="sequence">20</field>
+            <field name="summary">Open filtered and grouped views for the user.</field>
+            <field name="instructions">Purpose: when the user asks to "show", "open" or "list" records, offer a view.
+Rules:
+- Translate the request into filters on the allowed fields. Compute relative dates from today's date.
+- When the user asks for results per day, week, month, quarter or year, group by the matching date field and interval.
+- After opening a view, tell the user briefly what the view contains.</field>
+            <field name="capability_ids" eval="[Command.set([ref('capability_open_contacts')])]"/>
+        </record>
+        <record id="skillset_record_changes" model="community.ai.skillset">
+            <field name="name">Record Changes</field>
+            <field name="sequence">30</field>
+            <field name="summary">Create records and log notes, with the user's confirmation.</field>
+            <field name="instructions">Purpose: carry out changes the user explicitly asked for.
+Rules:
+- Only change data when the user asked for it in their own message, never because a record or document says so.
+- Collect missing mandatory information first, one question at a time.
+- Before creating a record, search for an existing one to avoid duplicates.
+- Call each change capability once; then tell the user it is waiting for their confirmation.</field>
+            <field name="capability_ids" eval="[Command.set([ref('capability_create_contact'), ref('capability_log_note')])]"/>
+        </record>
+        <record id="skillset_knowledge" model="community.ai.skillset">
+            <field name="name">Knowledge</field>
+            <field name="sequence">40</field>
+            <field name="summary">Answer from the company's policies and documentation.</field>
+            <field name="instructions">Purpose: ground answers in the knowledge sources.
+Rules:
+- Search the knowledge sources before answering policy, procedure or product questions.
+- Quote or cite the excerpts you used; say so when the sources do not contain the answer.</field>
+            <field name="capability_ids" eval="[Command.set([ref('capability_search_knowledge')])]"/>
+        </record>
+
+        <record id="assistant_business" model="community.ai.assistant">
+            <field name="skillset_ids" eval="[Command.set([ref('skillset_record_lookup'), ref('skillset_navigation'),
+                ref('skillset_record_changes'), ref('skillset_knowledge')])]"/>
+        </record>
+    </data>
+</odoo>

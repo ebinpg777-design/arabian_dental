@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="preset_record_help" model="community.ai.context.preset">
+            <field name="name">Help on any record</field>
+            <field name="sequence">90</field>
+            <field name="purpose">assist</field>
+            <field name="needs_record" eval="True"/>
+            <field name="instructions">The user opened you from the record shown in the reference material. Base your answers on that record and its recent messages first.</field>
+        </record>
+        <record id="quick_prompt_record_summary" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_record_help"/>
+            <field name="sequence">10</field>
+            <field name="title">Summarize this record</field>
+            <field name="prompt">Summarize this record and its recent conversation in a few bullet points.</field>
+        </record>
+        <record id="quick_prompt_record_next_steps" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_record_help"/>
+            <field name="sequence">20</field>
+            <field name="title">Suggest next steps</field>
+            <field name="prompt">Based on this record, suggest the next three concrete steps I should take.</field>
+        </record>
+        <record id="quick_prompt_record_follow_up" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_record_help"/>
+            <field name="sequence">30</field>
+            <field name="title">Draft a follow-up</field>
+            <field name="prompt">Draft a short, friendly follow-up message about this record.</field>
+        </record>
+        <record id="quick_prompt_record_translate" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_record_help"/>
+            <field name="sequence">40</field>
+            <field name="title">Translate the latest message</field>
+            <field name="prompt">Translate the most recent message of this record into my language.</field>
+        </record>
+
+        <record id="preset_contact" model="community.ai.context.preset">
+            <field name="name">Contacts</field>
+            <field name="sequence">10</field>
+            <field name="purpose">assist</field>
+            <field name="needs_record" eval="True"/>
+            <field name="model_ids" eval="[Command.set([ref('base.model_res_partner')])]"/>
+            <field name="instructions">You are looking at a contact (person or company). Help the user understand who this contact is, prepare outreach and keep the relationship moving.</field>
+        </record>
+        <record id="quick_prompt_contact_profile" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_contact"/>
+            <field name="sequence">10</field>
+            <field name="title">Profile this contact</field>
+            <field name="prompt">Write a short profile of this contact from the information available.</field>
+        </record>
+        <record id="quick_prompt_contact_intro" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_contact"/>
+            <field name="sequence">20</field>
+            <field name="title">Draft an introduction email</field>
+            <field name="prompt">Draft a warm introduction email to this contact.</field>
+        </record>
+
+        <record id="preset_general" model="community.ai.context.preset">
+            <field name="name">General help</field>
+            <field name="sequence">100</field>
+            <field name="purpose">assist</field>
+        </record>
+        <record id="quick_prompt_general_capabilities" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_general"/>
+            <field name="sequence">10</field>
+            <field name="title">What can you do?</field>
+            <field name="prompt">What can you help me with? List your main abilities briefly.</field>
+        </record>
+        <record id="quick_prompt_general_activities" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_general"/>
+            <field name="sequence">20</field>
+            <field name="title">My overdue activities</field>
+            <field name="prompt">Which of my activities are overdue?</field>
+        </record>
+        <record id="quick_prompt_general_contacts" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_general"/>
+            <field name="sequence">30</field>
+            <field name="title">Contacts by country</field>
+            <field name="prompt">Show my contacts grouped by country.</field>
+        </record>
+
+        <record id="preset_writing" model="community.ai.context.preset">
+            <field name="name">Writing shortcuts</field>
+            <field name="sequence">100</field>
+            <field name="purpose">write</field>
+        </record>
+        <record id="quick_prompt_writing_friendly" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_writing"/>
+            <field name="sequence">10</field>
+            <field name="title">Make it friendlier</field>
+            <field name="prompt">Rewrite the text in a warmer, friendlier tone without changing its meaning.</field>
+        </record>
+        <record id="quick_prompt_writing_grammar" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_writing"/>
+            <field name="sequence">20</field>
+            <field name="title">Fix grammar only</field>
+            <field name="prompt">Only correct spelling, grammar and punctuation. Do not change the wording otherwise.</field>
+        </record>
+        <record id="quick_prompt_writing_bullets" model="community.ai.quick.prompt">
+            <field name="preset_id" ref="preset_writing"/>
+            <field name="sequence">30</field>
+            <field name="title">Turn into bullet points</field>
+            <field name="prompt">Turn the text into a concise bullet-point list.</field>
+        </record>
+    </data>
+</odoo>

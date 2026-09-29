@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_cai_console_page" model="ir.actions.client">
+        <field name="name">AI Assistant</field>
+        <field name="tag">ebshel_ai_suite.console_page</field>
+    </record>
+
+    <menuitem id="menu_cai_root" name="Ebshel AI" sequence="95"
+              web_icon="ebshel_ai_suite,static/description/icon.png"
+              groups="ebshel_ai_suite.group_cai_user"/>
+
+    <menuitem id="menu_cai_console" name="Assistant" parent="menu_cai_root" sequence="1"
+              action="action_cai_console_page"/>
+    <menuitem id="menu_cai_sessions" name="Conversations" parent="menu_cai_root" sequence="10"
+              action="action_cai_session"/>
+
+    <menuitem id="menu_cai_approvals" name="Approvals" parent="menu_cai_root" sequence="20"/>
+    <menuitem id="menu_cai_operations" name="Pending Operations" parent="menu_cai_approvals" sequence="1"
+              action="action_cai_operation"/>
+    <menuitem id="menu_cai_job_approvals" name="Automation Proposals" parent="menu_cai_approvals" sequence="2"
+              action="action_cai_job_approval" groups="ebshel_ai_suite.group_cai_manager"/>
+
+    <menuitem id="menu_cai_tools" name="Tools" parent="menu_cai_root" sequence="30"/>
+    <menuitem id="menu_cai_writer" name="Writing Assistant" parent="menu_cai_tools" sequence="1"
+              action="action_cai_text_wizard"/>
+    <menuitem id="menu_cai_image" name="Generate Image" parent="menu_cai_tools" sequence="2"
+              action="action_cai_image_wizard"/>
+
+    <menuitem id="menu_cai_reporting" name="Reporting" parent="menu_cai_root" sequence="80"
+              groups="ebshel_ai_suite.group_cai_manager"/>
+    <menuitem id="menu_cai_usage" name="Usage" parent="menu_cai_reporting" sequence="1" action="action_cai_usage"/>
+    <menuitem id="menu_cai_audit" name="Audit Log" parent="menu_cai_reporting" sequence="2" action="action_cai_audit"/>
+    <menuitem id="menu_cai_jobs" name="Background Jobs" parent="menu_cai_reporting" sequence="3" action="action_cai_job"/>
+
+    <menuitem id="menu_cai_config" name="Configuration" parent="menu_cai_root" sequence="90"
+              groups="ebshel_ai_suite.group_cai_manager"/>
+    <menuitem id="menu_cai_settings" name="Settings" parent="menu_cai_config" sequence="1"
+              action="action_cai_settings" groups="ebshel_ai_suite.group_cai_admin"/>
+    <menuitem id="menu_cai_assistants" name="Assistants" parent="menu_cai_config" sequence="10" action="action_cai_assistant"/>
+    <menuitem id="menu_cai_skillsets" name="Skill Sets" parent="menu_cai_config" sequence="15" action="action_cai_skillset"/>
+    <menuitem id="menu_cai_presets" name="Context Presets" parent="menu_cai_config" sequence="17" action="action_cai_context_preset"/>
+    <menuitem id="menu_cai_capabilities" name="Capabilities" parent="menu_cai_config" sequence="20" action="action_cai_capability"/>
+    <menuitem id="menu_cai_prompts" name="Prompt Templates" parent="menu_cai_config" sequence="30" action="action_cai_prompt"/>
+    <menuitem id="menu_cai_sources" name="Knowledge Sources" parent="menu_cai_config" sequence="40" action="action_cai_source"/>
+    <menuitem id="menu_cai_field_rules" name="AI Fields" parent="menu_cai_config" sequence="50" action="action_cai_field_rule"/>
+    <menuitem id="menu_cai_automations" name="AI Automations" parent="menu_cai_config" sequence="60" action="action_cai_automation"/>
+    <menuitem id="menu_cai_search_targets" name="Search Targets" parent="menu_cai_config" sequence="70" action="action_cai_search_target"/>
+    <menuitem id="menu_cai_privacy" name="Privacy Rules" parent="menu_cai_config" sequence="80"
+              action="action_cai_privacy_rule" groups="ebshel_ai_suite.group_cai_admin"/>
+    <menuitem id="menu_cai_connections" name="Connections" parent="menu_cai_config" sequence="90"
+              action="action_cai_connection" groups="ebshel_ai_suite.group_cai_admin"/>
+</odoo>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_usage_list" model="ir.ui.view">
+        <field name="name">community.ai.usage.list</field>
+        <field name="model">community.ai.usage</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" decoration-danger="status == 'failed'">
+                <field name="requested_at"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="assistant_id" optional="show"/>
+                <field name="purpose"/>
+                <field name="connection_id" optional="show"/>
+                <field name="model_identifier" optional="show"/>
+                <field name="input_tokens" sum="Input"/>
+                <field name="output_tokens" sum="Output"/>
+                <field name="token_total" sum="Total"/>
+                <field name="duration_ms" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="estimated_cost" sum="Cost" optional="show"/>
+                <field name="status" widget="badge" decoration-success="status == 'success'" decoration-danger="status == 'failed'"/>
+                <field name="error_code" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cai_usage_pivot" model="ir.ui.view">
+        <field name="name">community.ai.usage.pivot</field>
+        <field name="model">community.ai.usage</field>
+        <field name="arch" type="xml">
+            <pivot string="AI Usage" sample="1">
+                <field name="requested_at" interval="month" type="row"/>
+                <field name="purpose" type="col"/>
+                <field name="token_total" type="measure"/>
+                <field name="estimated_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_cai_usage_graph" model="ir.ui.view">
+        <field name="name">community.ai.usage.graph</field>
+        <field name="model">community.ai.usage</field>
+        <field name="arch" type="xml">
+            <graph string="AI Usage" type="bar" stacked="1" sample="1">
+                <field name="requested_at" interval="day"/>
+                <field name="purpose"/>
+                <field name="token_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_cai_usage_search" model="ir.ui.view">
+        <field name="name">community.ai.usage.search</field>
+        <field name="model">community.ai.usage</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="assistant_id"/>
+                <field name="connection_id"/>
+                <field name="model_identifier"/>
+                <filter name="failed" string="Failed" domain="[('status', '=', 'failed')]"/>
+                <separator/>
+                <filter name="requested_at" string="Date" date="requested_at"/>
+                <separator/>
+                <filter name="group_user" string="User" context="{'group_by': 'user_id'}"/>
+                <filter name="group_assistant" string="Assistant" context="{'group_by': 'assistant_id'}"/>
+                <filter name="group_purpose" string="Purpose" context="{'group_by': 'purpose'}"/>
+                <filter name="group_model" string="Model" context="{'group_by': 'model_identifier'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cai_usage" model="ir.actions.act_window">
+        <field name="name">AI Usage</field>
+        <field name="res_model">community.ai.usage</field>
+        <field name="view_mode">graph,pivot,list</field>
+    </record>
+</odoo>

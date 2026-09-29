@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="ebshel_ai_suite.CommunityAIConsole">
+        <div t-attf-class="o_cai_console o_cai_console_{{ props.mode }} d-flex flex-column">
+            <div class="o_cai_console_header d-flex align-items-center gap-2 px-3 py-2 border-bottom">
+                <span class="o_cai_mark" aria-hidden="true"/>
+                <t t-if="state.assistants.length > 1">
+                    <select class="form-select form-select-sm o_cai_assistant_select w-auto flex-grow-1"
+                            t-on-change="onAssistantChange" aria-label="Assistant">
+                        <t t-foreach="state.assistants" t-as="assistant" t-key="assistant.id">
+                            <option t-att-value="assistant.id" t-att-selected="assistant.id === state.assistantId"
+                                    t-esc="assistant.title"/>
+                        </t>
+                    </select>
+                </t>
+                <span t-else="" class="fw-bold flex-grow-1 text-truncate" t-esc="currentAssistant?.title or 'AI'"/>
+                <button class="btn btn-sm btn-link text-reset o_cai_history_btn" t-on-click="toggleHistory"
+                        title="Conversation history" aria-label="Conversation history">
+                    <i class="fa fa-history"/>
+                </button>
+                <button class="btn btn-sm btn-link text-reset o_cai_new_btn" t-on-click="newConversation"
+                        title="New conversation" aria-label="New conversation">
+                    <i class="fa fa-plus"/>
+                </button>
+                <button t-if="props.mode === 'overlay'" class="btn btn-sm btn-link text-reset"
+                        t-on-click="openFullPage" title="Open full page" aria-label="Open full page">
+                    <i class="fa fa-expand"/>
+                </button>
+                <button t-if="props.mode === 'overlay'" class="btn btn-sm btn-link text-reset o_cai_close"
+                        t-on-click="close" title="Close" aria-label="Close">
+                    <i class="fa fa-times"/>
+                </button>
+            </div>
+
+            <t t-if="!state.ready">
+                <div class="p-4 text-center text-muted"><i class="fa fa-circle-o-notch fa-spin"/></div>
+            </t>
+            <t t-elif="!state.enabled">
+                <div class="p-4 text-muted">AI features are not enabled for your user. Please ask an administrator.</div>
+            </t>
+            <t t-elif="!state.assistants.length">
+                <div class="p-4 text-muted">No assistant is available yet.
+                    <t t-if="state.canConfigure">Create one in Ebshel AI › Configuration › Assistants.</t>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="o_cai_console_body d-flex flex-grow-1 overflow-hidden">
+                    <div t-if="state.showHistory" class="o_cai_history border-end overflow-auto">
+                        <div class="px-3 py-2 small text-muted text-uppercase">Recent</div>
+                        <t t-if="!state.recent.length">
+                            <div class="px-3 small text-muted">No conversation yet.</div>
+                        </t>
+                        <t t-foreach="state.recent" t-as="item" t-key="item.id">
+                            <button t-attf-class="o_cai_history_item btn btn-link text-start text-reset w-100 px-3 py-2 {{ state.session and state.session.id === item.id ? 'active' : '' }}"
+                                    t-on-click="() => this.openSession(item.id)">
+                                <div class="text-truncate" t-esc="item.subject"/>
+                                <div class="small text-muted text-truncate" t-esc="item.assistant.title"/>
+                            </button>
+                        </t>
+                    </div>
+                    <div class="d-flex flex-column flex-grow-1 overflow-hidden">
+                        <CaiContextBadge context="recordContext" enabled="state.useContext"
+                                         locked="!!state.session" onToggle.bind="toggleContext"
+                                         t-if="contextAvailable"/>
+                        <CaiMessageList exchanges="state.exchanges" busy="state.busy"
+                                        statusText="state.statusText"
+                                        onDecide.bind="decide" onRetry.bind="retry" onNavigate.bind="navigate"
+                                        onSuggestion.bind="send" suggestions="suggestions"
+                                        onPost.bind="postAnswer"/>
+                        <div t-if="state.error" class="alert alert-danger mx-3 my-2 py-2 small o_cai_error" role="alert">
+                            <t t-esc="state.error"/>
+                        </div>
+                        <CaiPromptInput busy="state.busy or state.uploading" onSubmit.bind="send" autofocus="true"
+                                     onAttach.bind="attachFiles" onRemoveFile.bind="removeFile"
+                                     stagedFiles="state.stagedFiles" uploading="state.uploading"
+                                     placeholder="currentAssistant ? 'Ask ' + currentAssistant.title + '…' : 'Ask…'"/>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+
+    <t t-name="ebshel_ai_suite.CaiMessageList">
+        <div class="o_cai_messages flex-grow-1 overflow-auto px-3 py-3" t-ref="scroll">
+            <t t-if="!props.exchanges.length">
+                <div class="o_cai_welcome text-center text-muted py-4">
+                    <span class="o_cai_mark o_cai_mark_lg d-inline-block mb-2" aria-hidden="true"/>
+                    <div class="mb-3">How can I help you today?</div>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <t t-foreach="props.suggestions or []" t-as="suggestion" t-key="suggestion_index">
+                            <button class="btn btn-sm btn-outline-secondary o_cai_suggestion"
+                                    t-att-title="suggestion.prompt"
+                                    t-on-click="() => props.onSuggestion(suggestion.prompt)" t-esc="suggestion.title"/>
+                        </t>
+                    </div>
+                </div>
+            </t>
+            <t t-foreach="visibleExchanges" t-as="ex" t-key="ex.id">
+                <div t-if="ex.speaker === 'user'" class="o_cai_message o_cai_message_user ms-auto mb-3">
+                    <div class="o_cai_bubble" t-esc="ex.body"/>
+                    <div t-if="ex.files and ex.files.length" class="o_cai_files d-flex flex-wrap justify-content-end gap-1 mt-1">
+                        <t t-foreach="ex.files" t-as="file" t-key="file.id">
+                            <img t-if="file.is_image and file.url" t-att-src="file.url" t-att-alt="file.name"
+                                 class="o_cai_file_thumb rounded border"/>
+                            <span t-else="" class="badge text-bg-light o_cai_file_chip">
+                                <i class="fa fa-file-text-o me-1"/><t t-esc="file.name"/>
+                            </span>
+                        </t>
+                    </div>
+                </div>
+                <div t-elif="ex.speaker === 'tool'" class="o_cai_tool_step small text-muted mb-2">
+                    <i t-attf-class="fa {{ toolIcon(ex) }} me-1"/>
+                    <span t-esc="ex.tool_label"/>
+                    <CaiActionDialogCard t-if="ex.operation" operation="ex.operation" busy="props.busy"
+                                         onDecide="props.onDecide"/>
+                </div>
+                <div t-else="" t-attf-class="o_cai_message o_cai_message_assistant mb-3 {{ ex.state === 'failed' ? 'o_cai_failed' : '' }}">
+                    <div class="o_cai_bubble">
+                        <t t-if="ex.state === 'failed'">
+                            <i class="fa fa-exclamation-triangle text-danger me-1"/>
+                            <span t-esc="ex.error"/>
+                            <div t-if="ex.id === lastFailedId" class="mt-2">
+                                <button class="btn btn-sm btn-secondary o_cai_retry" t-on-click="() => props.onRetry()"
+                                        t-att-disabled="props.busy">
+                                    <i class="fa fa-repeat me-1"/>Retry
+                                </button>
+                            </div>
+                        </t>
+                        <t t-elif="ex.state === 'running' and !ex.body">
+                            <span class="o_cai_typing"><span/><span/><span/></span>
+                            <span t-if="props.statusText" class="o_cai_status_text small text-muted ms-1"
+                                  t-esc="props.statusText"/>
+                        </t>
+                        <t t-else="">
+                            <div class="o_cai_markdown" t-out="render(ex.body)"/>
+                        </t>
+                        <div t-if="ex.media and ex.media.length" class="o_cai_media d-flex flex-wrap gap-2 mt-2">
+                            <t t-foreach="ex.media" t-as="item" t-key="item_index">
+                                <a t-if="item.type === 'image'" t-att-href="item.url" target="_blank">
+                                    <img t-att-src="item.url" t-att-alt="item.name" class="o_cai_generated_image rounded border"/>
+                                </a>
+                            </t>
+                        </div>
+                        <div t-if="ex.navigation" class="mt-2">
+                            <button class="btn btn-sm btn-primary o_cai_navigate" t-on-click="() => props.onNavigate(ex.navigation)">
+                                <i class="fa fa-external-link me-1"/><t t-esc="ex.navigation.name"/>
+                            </button>
+                        </div>
+                        <div t-if="ex.state === 'done' and ex.body" class="o_cai_answer_actions mt-1">
+                            <button class="btn btn-link btn-sm p-0 me-2 o_cai_copy" t-on-click="() => this.copy(ex)"
+                                    title="Copy" aria-label="Copy"><i class="fa fa-copy"/></button>
+                            <t t-if="ex.can_post and props.onPost">
+                                <button class="btn btn-link btn-sm p-0 me-2 o_cai_send_message"
+                                        t-on-click="() => props.onPost(ex, 'message')">
+                                    <i class="fa fa-envelope-o me-1"/>Send as message
+                                </button>
+                                <button class="btn btn-link btn-sm p-0 o_cai_log_note"
+                                        t-on-click="() => props.onPost(ex, 'note')">
+                                    <i class="fa fa-sticky-note-o me-1"/>Log as note
+                                </button>
+                            </t>
+                        </div>
+                        <div t-if="ex.citations and ex.citations.length" class="o_cai_sources mt-2 small">
+                            <span class="text-muted me-1">Sources:</span>
+                            <t t-foreach="ex.citations" t-as="cite" t-key="cite_index">
+                                <span class="badge text-bg-light me-1" t-att-title="cite.excerpt">
+                                    <t t-if="cite.ref"><t t-esc="cite.ref"/> · </t><t t-esc="cite.title"/>
+                                </span>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+        </div>
+    </t>
+
+    <t t-name="ebshel_ai_suite.CaiActionDialogCard">
+        <div t-attf-class="o_cai_operation card mt-2 text-body o_cai_operation_{{ props.operation.state }}">
+            <div class="card-body p-2">
+                <div class="fw-bold mb-1">
+                    <i class="fa fa-shield me-1"/><t t-esc="props.operation.title"/>
+                </div>
+                <div class="o_cai_operation_preview small mb-2" t-esc="props.operation.preview"/>
+                <div t-if="props.operation.forced" class="small text-muted mb-2">
+                    Confirmation required because this request used record data, documents or tool results.
+                </div>
+                <t t-if="props.operation.state === 'proposed'">
+                    <button class="btn btn-sm btn-primary me-2 o_cai_approve" t-att-disabled="state.sending or props.busy"
+                            t-on-click="() => this.decide(true)">
+                        <i class="fa fa-check me-1"/>Confirm
+                    </button>
+                    <button class="btn btn-sm btn-secondary o_cai_reject" t-att-disabled="state.sending or props.busy"
+                            t-on-click="() => this.decide(false)">Cancel</button>
+                </t>
+                <t t-else="">
+                    <span t-attf-class="badge {{ props.operation.state === 'executed' ? 'text-bg-success' : 'text-bg-secondary' }} o_cai_operation_state"
+                          t-esc="props.operation.state"/>
+                </t>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="ebshel_ai_suite.CaiPromptInput">
+        <div t-if="props.stagedFiles and props.stagedFiles.length" class="o_cai_staged border-top px-2 pt-2 d-flex flex-wrap gap-1">
+            <t t-foreach="props.stagedFiles" t-as="file" t-key="file.id">
+                <span class="badge text-bg-light o_cai_file_chip">
+                    <i t-attf-class="fa {{ file.is_image ? 'fa-picture-o' : 'fa-file-text-o' }} me-1"/>
+                    <t t-esc="file.name"/>
+                    <i class="fa fa-times ms-1 o_cai_file_remove" role="button" title="Remove"
+                       t-on-click="() => props.onRemoveFile(file)"/>
+                </span>
+            </t>
+        </div>
+        <div class="o_cai_prompt_input border-top p-2 d-flex align-items-end gap-2">
+            <t t-if="props.onAttach">
+                <input type="file" class="d-none o_cai_file_input" t-ref="file" multiple="multiple"
+                       accept=".pdf,.txt,.md,.csv,.json,.html,.htm,.xml,image/png,image/jpeg,image/webp,image/gif"
+                       t-on-change="onFilesPicked"/>
+                <button class="btn btn-light o_cai_attach" t-on-click="pickFiles" t-att-disabled="props.busy"
+                        title="Attach files" aria-label="Attach files">
+                    <i t-attf-class="fa {{ props.uploading ? 'fa-circle-o-notch fa-spin' : 'fa-paperclip' }}"/>
+                </button>
+            </t>
+            <button t-if="canRecord" t-attf-class="btn {{ state.recording ? 'btn-danger' : 'btn-light' }} o_cai_dictate"
+                    t-on-click="toggleDictation" t-att-disabled="props.busy or state.transcribing"
+                    t-att-title="state.recording ? 'Stop and transcribe' : 'Dictate'" aria-label="Dictate">
+                <i t-attf-class="fa {{ state.transcribing ? 'fa-circle-o-notch fa-spin' : (state.recording ? 'fa-stop' : 'fa-microphone') }}"/>
+            </button>
+            <textarea t-ref="input" class="form-control o_cai_input" rows="1" t-att-placeholder="props.placeholder"
+                      t-on-input="onInput" t-on-keydown="onKeydown" t-att-disabled="props.busy" aria-label="Message"/>
+            <button class="btn btn-primary o_cai_send" t-on-click="submit" t-att-disabled="props.busy or !state.text.trim()"
+                    title="Send" aria-label="Send">
+                <i t-attf-class="fa {{ props.busy ? 'fa-circle-o-notch fa-spin' : 'fa-paper-plane' }}"/>
+            </button>
+        </div>
+    </t>
+
+    <t t-name="ebshel_ai_suite.CaiContextBadge">
+        <div class="o_cai_context px-3 py-1 border-bottom small d-flex align-items-center gap-2">
+            <i class="fa fa-file-text-o text-muted"/>
+            <span t-attf-class="text-truncate {{ props.enabled ? '' : 'text-decoration-line-through text-muted' }}">
+                <t t-esc="props.context.label or props.context.model"/>
+            </span>
+            <button t-if="!props.locked" class="btn btn-link btn-sm p-0 ms-auto o_cai_context_toggle"
+                    t-on-click="props.onToggle">
+                <t t-if="props.enabled">Don't use</t><t t-else="">Use this record</t>
+            </button>
+            <span t-else="" class="ms-auto text-muted">
+                <t t-if="props.enabled">shared with the assistant</t>
+            </span>
+        </div>
+    </t>
+</templates>

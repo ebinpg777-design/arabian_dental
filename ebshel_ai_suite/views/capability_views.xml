@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_capability_list" model="ir.ui.view">
+        <field name="name">community.ai.capability.list</field>
+        <field name="model">community.ai.capability</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="technical_identifier"/>
+                <field name="handler_key"/>
+                <field name="model_id"/>
+                <field name="execution_type" widget="badge" decoration-warning="execution_type == 'write'"
+                       decoration-info="execution_type == 'read'"/>
+                <field name="requires_confirmation"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cai_capability_form" model="ir.ui.view">
+        <field name="name">community.ai.capability.form</field>
+        <field name="model">community.ai.capability</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Search Customers"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="technical_identifier" placeholder="search_customers"/>
+                            <field name="handler_key"/>
+                            <field name="model_id" options="{'no_create': True}"/>
+                            <field name="execution_type" widget="badge"/>
+                            <field name="read_only" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="requires_confirmation"/>
+                            <field name="server_action_id" invisible="handler_key != 'server_action'"
+                                   required="handler_key == 'server_action'" options="{'no_create': True}"/>
+                            <field name="declared_read_only" invisible="handler_key != 'server_action'"/>
+                            <field name="result_limit" invisible="handler_key == 'server_action'"/>
+                            <field name="group_ids" widget="many2many_tags"/>
+                            <field name="mcp_exposed"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-warning" role="alert" invisible="read_only">
+                        This capability modifies data. It always runs with the rights of the user who asked,
+                        and it is confirmed by the user whenever it is configured to be, or whenever the request
+                        involves record content, documents or tool results.
+                    </div>
+                    <notebook>
+                        <page string="Description for the AI" name="description">
+                            <field name="description" placeholder="When should the assistant use this capability?"/>
+                        </page>
+                        <page string="Allowed Fields" name="fields">
+                            <field name="field_ids" options="{'no_create': True}">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="field_description"/>
+                                    <field name="ttype"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Arguments" name="arguments">
+                            <field name="argument_schema_text" widget="code" options="{'mode': 'javascript'}"/>
+                            <div class="text-muted small">
+                                JSON object: {"name": {"type": "string|text|integer|number|boolean|date|datetime|record_id|array|object",
+                                "required": true, "description": "...", "enum": [...], "minimum": 0, "maximum": 10}}.
+                                Empty means the default arguments of the behaviour.
+                            </div>
+                        </page>
+                        <page string="Assistants" name="assistants">
+                            <field name="assistant_ids" widget="many2many_tags"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cai_capability_search" model="ir.ui.view">
+        <field name="name">community.ai.capability.search</field>
+        <field name="model">community.ai.capability</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="technical_identifier"/>
+                <field name="model_id"/>
+                <filter name="write" string="Modifies Data" domain="[('execution_type', '=', 'write')]"/>
+                <filter name="read" string="Read-only" domain="[('execution_type', '=', 'read')]"/>
+                <separator/>
+                <filter name="inactive" string="Disabled" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cai_capability" model="ir.actions.act_window">
+        <field name="name">Capabilities</field>
+        <field name="res_model">community.ai.capability</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

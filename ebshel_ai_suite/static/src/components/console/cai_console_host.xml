@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_ai_suite.CommunityAIConsoleHost">
+        <div t-if="state.open" class="o_cai_console_host">
+            <CommunityAIConsole mode="'overlay'"/>
+        </div>
+    </t>
+
+    <t t-name="ebshel_ai_suite.CommunityAIConsolePage">
+        <div class="o_action o_cai_console_page_host h-100 w-100 d-flex justify-content-center">
+            <CommunityAIConsole mode="'page'" initialAssistantId="props.action?.params?.assistant_id or false"/>
+        </div>
+    </t>
+</templates>

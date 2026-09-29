@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_field_rule_list" model="ir.ui.view">
+        <field name="name">community.ai.field.rule.list</field>
+        <field name="model">community.ai.field.rule</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="field_id"/>
+                <field name="trigger_mode"/>
+                <field name="overwrite_mode"/>
+                <field name="binding_action_id" string="In Action Menu" widget="boolean" optional="show"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cai_field_rule_form" model="ir.ui.view">
+        <field name="name">community.ai.field.rule.form</field>
+        <field name="model">community.ai.field.rule</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_cai_publish" type="object" string="Add to Action Menu" class="btn-primary"
+                            invisible="binding_action_id"/>
+                    <button name="action_cai_unpublish" type="object" string="Remove from Action Menu"
+                            invisible="not binding_action_id"/>
+                    <button name="action_cai_add_form_button" type="object" string="Add AI Button to Form"
+                            invisible="form_view_id"/>
+                    <button name="action_cai_remove_form_button" type="object" string="Remove AI Button"
+                            invisible="not form_view_id"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Product sales description"/></h1>
+                    </div>
+                    <group>
+                        <group string="Target">
+                            <field name="model_id" options="{'no_create': True}"/>
+                            <field name="field_id" options="{'no_create': True}"/>
+                            <field name="overwrite_mode"/>
+                            <field name="trigger_mode"/>
+                            <field name="fill_empty_daily"/>
+                            <field name="binding_action_id" readonly="1"/>
+                            <field name="form_view_id" readonly="1"/>
+                        </group>
+                        <group string="Engine">
+                            <field name="assistant_id"/>
+                            <field name="connection_id"/>
+                            <field name="response_language"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Instruction" name="instruction">
+                            <field name="prompt_id"/>
+                            <field name="instruction" invisible="prompt_id"
+                                   placeholder="Write a 50-word description of {{ record.name }} for our online catalog."/>
+                        </page>
+                        <page string="Input Fields" name="inputs">
+                            <field name="input_field_ids" options="{'no_create': True}">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="field_description"/>
+                                    <field name="ttype"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cai_field_rule" model="ir.actions.act_window">
+        <field name="name">AI Fields</field>
+        <field name="res_model">community.ai.field.rule</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Let AI fill or improve a field</p>
+            <p>Pick a model and a field, describe what to generate and add it to the Action menu of that model.</p>
+        </field>
+    </record>
+</odoo>

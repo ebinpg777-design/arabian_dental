@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="prompt_text_improve" model="community.ai.prompt">
+            <field name="name">Improve writing</field>
+            <field name="code">text.improve</field>
+            <field name="sequence">10</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Improve the clarity, grammar and flow of the text. Keep its meaning, its language and roughly its length.</field>
+        </record>
+        <record id="prompt_text_rewrite" model="community.ai.prompt">
+            <field name="name">Rewrite</field>
+            <field name="code">text.rewrite</field>
+            <field name="sequence">20</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Rewrite the text with different wording while keeping the same meaning.</field>
+        </record>
+        <record id="prompt_text_professional" model="community.ai.prompt">
+            <field name="name">Make professional</field>
+            <field name="code">text.professional</field>
+            <field name="sequence">30</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Rewrite the text in a clear, courteous and professional business style.</field>
+        </record>
+        <record id="prompt_text_summarize" model="community.ai.prompt">
+            <field name="name">Summarize</field>
+            <field name="code">text.summarize</field>
+            <field name="sequence">40</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Summarize the text in a few concise sentences or short bullet points.</field>
+        </record>
+        <record id="prompt_text_expand" model="community.ai.prompt">
+            <field name="name">Expand</field>
+            <field name="code">text.expand</field>
+            <field name="sequence">50</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Expand the text with relevant detail while keeping the same tone and language.</field>
+        </record>
+        <record id="prompt_text_shorten" model="community.ai.prompt">
+            <field name="name">Shorten</field>
+            <field name="code">text.shorten</field>
+            <field name="sequence">60</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Make the text noticeably shorter while keeping all key information.</field>
+        </record>
+        <record id="prompt_text_translate" model="community.ai.prompt">
+            <field name="name">Translate</field>
+            <field name="code">text.translate</field>
+            <field name="sequence">70</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Translate the text into {{ language }}. Keep formatting and names.</field>
+        </record>
+        <record id="prompt_text_tone" model="community.ai.prompt">
+            <field name="name">Change tone</field>
+            <field name="code">text.tone</field>
+            <field name="sequence">80</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Rewrite the text with a {{ tone }} tone. Keep its language and meaning.</field>
+        </record>
+        <record id="prompt_text_reply" model="community.ai.prompt">
+            <field name="name">Draft a reply</field>
+            <field name="code">text.reply</field>
+            <field name="sequence">90</field>
+            <field name="purpose">email</field>
+            <field name="body">Draft a helpful reply to the message.{% if context %} Use the conversation context provided.{% endif %}</field>
+        </record>
+        <record id="prompt_text_describe" model="community.ai.prompt">
+            <field name="name">Generate description</field>
+            <field name="code">text.describe</field>
+            <field name="sequence">100</field>
+            <field name="purpose">text_action</field>
+            <field name="body">Write a clear, attractive description based on the information.</field>
+        </record>
+        <record id="prompt_text_follow_up" model="community.ai.prompt">
+            <field name="name">Follow-up email</field>
+            <field name="code">text.follow_up</field>
+            <field name="sequence">110</field>
+            <field name="purpose">email</field>
+            <field name="body">Write a short, friendly follow-up email based on the information.</field>
+        </record>
+        <record id="prompt_product_description" model="community.ai.prompt">
+            <field name="name">Product sales description</field>
+            <field name="code">field.product_description</field>
+            <field name="purpose">field</field>
+            <field name="body">Write a persuasive sales description of about 60 words for "{{ record.display_name }}".
+{% if record.description %}Internal notes: {{ record.description | striphtml | truncate(600) }}{% endif %}
+Mention concrete benefits, avoid unverifiable claims.</field>
+        </record>
+        <record id="prompt_ticket_triage" model="community.ai.prompt">
+            <field name="name">Triage an incoming request</field>
+            <field name="code">automation.triage</field>
+            <field name="purpose">automation</field>
+            <field name="body">Read the request, classify it, estimate its urgency from the customer's wording and write a two-sentence summary for the team.</field>
+        </record>
+    </data>
+</odoo>

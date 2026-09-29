@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="capability_generate_image" model="community.ai.capability">
+            <field name="name">Generate Image</field>
+            <field name="technical_identifier">generate_image</field>
+            <field name="handler_key">generate_image</field>
+            <field name="description">Create an image from a detailed description and show it to the user.</field>
+            <field name="requires_confirmation" eval="False"/>
+        </record>
+        <record id="skillset_images" model="community.ai.skillset">
+            <field name="name">Image Creation</field>
+            <field name="sequence">50</field>
+            <field name="summary">Generate or rework images from a description.</field>
+            <field name="instructions">Purpose: produce images the user can use for products, websites, marketing or documents.
+Rules:
+- Turn the user's request into a detailed prompt: subject, environment, composition or perspective, lighting and visual style.
+- Do not put any visible text, labels, logos, signage or watermarks in the image unless the user explicitly asks for them; if they do, quote the exact text in the prompt.
+- When the user asks for a variation, keep the subject's identity and change how it is presented (setting, angle, style) so each variation is clearly different.
+- After generating, describe the image in one sentence and offer one refinement.</field>
+            <field name="capability_ids" eval="[Command.set([ref('capability_generate_image')])]"/>
+        </record>
+        <record id="assistant_image_designer" model="community.ai.assistant">
+            <field name="title">Image Designer</field>
+            <field name="summary">Creates images from your descriptions.</field>
+            <field name="glyph">fa-picture-o</field>
+            <field name="sequence">20</field>
+            <field name="system_instruction">You help employees create professional images. Ask at most one clarifying question when the request is vague; otherwise generate right away.</field>
+            <field name="allow_record_context" eval="False"/>
+            <field name="require_confirmation" eval="False"/>
+            <field name="skillset_ids" eval="[Command.set([ref('skillset_images')])]"/>
+        </record>
+    </data>
+</odoo>

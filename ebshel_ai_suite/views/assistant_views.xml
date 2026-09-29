@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_assistant_list" model="ir.ui.view">
+        <field name="name">community.ai.assistant.list</field>
+        <field name="model">community.ai.assistant</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="title"/>
+                <field name="summary"/>
+                <field name="connection_id"/>
+                <field name="model_identifier" optional="show"/>
+                <field name="capability_ids" widget="many2many_tags" optional="show"/>
+                <field name="knowledge_ids" widget="many2many_tags" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cai_assistant_kanban" model="ir.ui.view">
+        <field name="name">community.ai.assistant.kanban</field>
+        <field name="model">community.ai.assistant</field>
+        <field name="arch" type="xml">
+            <kanban class="o_cai_assistant_kanban">
+                <field name="glyph"/>
+                <templates>
+                    <t t-name="card" class="flex-row align-items-center gap-3">
+                        <span class="o_cai_assistant_glyph fa fa-2x" t-att-class="record.glyph.raw_value" title="Assistant"/>
+                        <div class="flex-grow-1">
+                            <field name="title" class="fw-bold fs-5"/>
+                            <field name="summary" class="text-muted d-block"/>
+                            <div class="mt-1">
+                                <field name="capability_ids" widget="many2many_tags"/>
+                            </div>
+                        </div>
+                        <field name="session_count" class="badge text-bg-light"/>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_cai_assistant_form" model="ir.ui.view">
+        <field name="name">community.ai.assistant.form</field>
+        <field name="model">community.ai.assistant</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_cai_test" type="object" string="Test" class="btn-primary" icon="fa-comments"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_cai_open_sessions" type="object" class="oe_stat_button" icon="fa-comments-o">
+                            <field name="session_count" widget="statinfo" string="Conversations"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="title"/>
+                        <h1><field name="title" placeholder="e.g. Sales Helper"/></h1>
+                        <field name="summary" placeholder="One line shown to users"/>
+                    </div>
+                    <group>
+                        <group string="Engine">
+                            <field name="connection_id" placeholder="Company default"/>
+                            <field name="model_identifier" placeholder="Connection default"/>
+                            <field name="creativity"/>
+                        </group>
+                        <group string="Answers">
+                            <field name="reply_style"/>
+                            <field name="response_language"/>
+                            <field name="fixed_lang" invisible="response_language != 'fixed'"
+                                   required="response_language == 'fixed'"/>
+                            <field name="glyph"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Instructions" name="instructions">
+                            <field name="system_instruction" nolabel="1"
+                                   placeholder="Describe the role, the tone and the business rules of this assistant..."/>
+                            <div class="text-muted small mt-2">
+                                Platform safety rules (untrusted data handling, confirmation of changes, secrecy of
+                                credentials) are always added before these instructions and cannot be overridden.
+                            </div>
+                        </page>
+                        <page string="Skill Sets" name="skillsets">
+                            <field name="skillset_ids" widget="many2many" invisible="not allow_tool_execution">
+                                <list>
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="summary"/>
+                                    <field name="capability_count" string="Capabilities"/>
+                                </list>
+                            </field>
+                            <div class="text-muted small" invisible="allow_tool_execution">
+                                Enable "Use Capabilities" on the Capabilities tab to assign skill sets. Without them the
+                                assistant can only provide information.
+                            </div>
+                        </page>
+                        <page string="Capabilities" name="capabilities">
+                            <group>
+                                <group>
+                                    <field name="allow_tool_execution"/>
+                                    <field name="require_confirmation" invisible="not allow_tool_execution"/>
+                                    <field name="max_tool_rounds" invisible="not allow_tool_execution"/>
+                                </group>
+                                <group>
+                                    <field name="allow_record_context"/>
+                                    <field name="context_message_count" invisible="not allow_record_context"/>
+                                </group>
+                            </group>
+                            <field name="capability_ids" invisible="not allow_tool_execution">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="technical_identifier"/>
+                                    <field name="model_id"/>
+                                    <field name="execution_type" widget="badge"
+                                           decoration-warning="execution_type == 'write'"/>
+                                    <field name="requires_confirmation"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Knowledge" name="knowledge">
+                            <group>
+                                <group>
+                                    <field name="answer_from_sources_only"/>
+                                    <field name="cite_sources"/>
+                                </group>
+                                <group>
+                                    <field name="retrieval_limit"/>
+                                </group>
+                            </group>
+                            <field name="knowledge_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="source_kind"/>
+                                    <field name="index_method"/>
+                                    <field name="state" widget="badge" decoration-success="state == 'ready'"
+                                           decoration-danger="state == 'error'" decoration-info="state == 'queued'"/>
+                                    <field name="active" widget="boolean_toggle"/>
+                                    <button name="action_cai_index" type="object" icon="fa-refresh" title="Reprocess"/>
+                                </list>
+                            </field>
+                            <button name="%(ebshel_ai_suite.action_cai_source_link_wizard)d" type="action"
+                                    string="Add Links" icon="fa-link" class="btn-link"
+                                    context="{'default_assistant_ids': [id]}"/>
+                        </page>
+                        <page string="Access &amp; Limits" name="access">
+                            <group>
+                                <field name="user_group_ids" widget="many2many_tags"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                                <field name="daily_request_limit"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cai_assistant_search" model="ir.ui.view">
+        <field name="name">community.ai.assistant.search</field>
+        <field name="model">community.ai.assistant</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="title"/>
+                <field name="capability_ids"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cai_assistant" model="ir.actions.act_window">
+        <field name="name">Assistants</field>
+        <field name="res_model">community.ai.assistant</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first AI assistant</p>
+            <p>Give it instructions, capabilities and knowledge sources.</p>
+        </field>
+    </record>
+</odoo>

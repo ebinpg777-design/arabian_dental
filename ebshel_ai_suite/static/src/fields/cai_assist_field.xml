@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_ai_suite.CommunityAIAssistField">
+        <div class="o_cai_assist_field position-relative">
+            <t t-component="innerComponent" t-props="innerProps"/>
+            <div t-if="state.enabled and !props.readonly" class="o_cai_assist_menu">
+                <Dropdown beforeOpen.bind="loadOptions" position="'bottom-end'">
+                    <button class="btn btn-sm btn-light o_cai_assist_toggle" t-att-disabled="state.busy"
+                            title="AI writing assistant" aria-label="AI writing assistant">
+                        <i t-if="state.busy" class="fa fa-circle-o-notch fa-spin"/>
+                        <span t-else="" class="o_cai_mark o_cai_mark_sm" aria-hidden="true"/>
+                    </button>
+                    <t t-set-slot="content">
+                        <t t-foreach="state.shortcuts" t-as="shortcut" t-key="shortcut.id">
+                            <DropdownItem onSelected="() => this.run('custom', { instruction: shortcut.prompt })">
+                                <i class="fa fa-bolt me-1 text-muted"/><t t-esc="shortcut.title"/>
+                            </DropdownItem>
+                        </t>
+                        <div t-if="state.shortcuts.length" class="dropdown-divider"/>
+                        <DropdownItem onSelected="() => this.openVoice()">
+                            <i class="fa fa-microphone me-1 text-muted"/>Voice transcript…
+                        </DropdownItem>
+                        <div class="dropdown-divider"/>
+                        <t t-foreach="state.operations" t-as="op" t-key="op.key">
+                            <DropdownItem onSelected="() => this.run(op.key)"><t t-esc="op.label"/></DropdownItem>
+                        </t>
+                        <div class="dropdown-divider"/>
+                        <t t-foreach="state.languages" t-as="lang" t-key="lang.key">
+                            <DropdownItem onSelected="() => this.run('translate', { language: lang.key })">
+                                Translate to <t t-esc="lang.label"/>
+                            </DropdownItem>
+                        </t>
+                        <t t-if="state.previous !== null">
+                            <div class="dropdown-divider"/>
+                            <DropdownItem onSelected="() => this.undo()"><i class="fa fa-undo me-1"/>Undo AI change</DropdownItem>
+                        </t>
+                    </t>
+                </Dropdown>
+            </div>
+        </div>
+    </t>
+</templates>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_automation_list" model="ir.ui.view">
+        <field name="name">community.ai.automation.list</field>
+        <field name="model">community.ai.automation</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="trigger_event"/>
+                <field name="execution_mode"/>
+                <field name="run_as_user_id" widget="many2one_avatar_user"/>
+                <field name="last_scan_at" optional="show"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cai_automation_form" model="ir.ui.view">
+        <field name="name">community.ai.automation.form</field>
+        <field name="model">community.ai.automation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_cai_publish" type="object" string="Add to Action Menu"
+                            invisible="binding_action_id"/>
+                    <button name="action_cai_unpublish" type="object" string="Remove from Action Menu"
+                            invisible="not binding_action_id"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_cai_open_jobs" type="object" class="oe_stat_button" icon="fa-tasks">
+                            <field name="job_count" widget="statinfo" string="Jobs"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Triage new contacts"/></h1>
+                    </div>
+                    <group>
+                        <group string="Trigger">
+                            <field name="model_id" options="{'no_create': True}"/>
+                            <field name="model_name" invisible="1"/>
+                            <field name="trigger_event"/>
+                            <field name="filter_domain" widget="domain" options="{'model': 'model_name'}"/>
+                        </group>
+                        <group string="Execution">
+                            <field name="execution_mode"/>
+                            <field name="run_as_user_id"/>
+                            <field name="assistant_id"/>
+                            <field name="post_summary"/>
+                            <field name="binding_action_id" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="AI Instruction" name="instruction">
+                            <field name="instruction" placeholder="Classify the request, estimate its priority and summarize it."/>
+                        </page>
+                        <page string="Output Fields" name="outputs">
+                            <field name="output_field_ids" options="{'no_create': True}">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="field_description"/>
+                                    <field name="ttype"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Capabilities" name="capabilities">
+                            <field name="capability_ids"/>
+                            <div class="text-muted small">Capabilities that modify data never run unattended: they
+                                create operations that a manager must approve.</div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cai_automation" model="ir.actions.act_window">
+        <field name="name">AI Automations</field>
+        <field name="res_model">community.ai.automation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

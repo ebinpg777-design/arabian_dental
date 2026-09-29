@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_ai_suite.CommunityAIVoiceDialog">
+        <Dialog title.translate="Voice Transcript" size="'lg'">
+            <div class="o_cai_voice">
+                <div t-if="state.error" class="alert alert-warning" role="alert" t-esc="state.error"/>
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <button t-if="state.phase === 'idle' or state.phase === 'done'" class="btn btn-danger o_cai_voice_start"
+                            t-on-click="start"><i class="fa fa-circle me-1"/>Start Recording</button>
+                    <button t-if="state.phase === 'recording'" class="btn btn-secondary o_cai_voice_stop"
+                            t-on-click="stop"><i class="fa fa-stop me-1"/>Stop Recording</button>
+                    <span t-if="state.phase === 'recording'" class="text-danger"><i class="fa fa-circle fa-fade me-1"/><t t-esc="elapsedLabel"/></span>
+                    <span t-if="state.phase === 'processing'" class="text-muted"><i class="fa fa-circle-o-notch fa-spin me-1"/>Transcribing and summarizing…</span>
+                </div>
+                <div class="small text-muted mb-2">The audio is only used to create the transcript and is not stored.</div>
+                <t t-if="state.phase === 'done'">
+                    <label class="fw-bold">Summary</label>
+                    <textarea class="form-control mb-3 o_cai_voice_summary" rows="7" t-model="state.summary"/>
+                    <label class="fw-bold">Transcript</label>
+                    <textarea class="form-control o_cai_voice_transcript" rows="6" t-model="state.transcript"/>
+                </t>
+            </div>
+            <t t-set-slot="footer">
+                <button t-if="props.onInsert" class="btn btn-primary" t-att-disabled="state.phase !== 'done'"
+                        t-on-click="insert">Insert</button>
+                <button class="btn btn-secondary" t-on-click="props.close">Close</button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

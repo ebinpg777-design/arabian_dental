@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Example integration: AI writing menu on the internal notes of contacts -->
+    <record id="view_partner_form_cai_assist" model="ir.ui.view">
+        <field name="name">res.partner.form.ebshel_ai_suite</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='internal_notes']//field[@name='comment']" position="attributes">
+                <attribute name="widget">cai_assist</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

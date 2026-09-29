@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_source_link_wizard_form" model="ir.ui.view">
+        <field name="name">community.ai.source.link.wizard.form</field>
+        <field name="model">community.ai.source.link.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add Links">
+                <field name="urls" placeholder="https://example.com/warranty&#10;https://example.com/faq"/>
+                <group>
+                    <field name="index_method"/>
+                    <field name="assistant_ids" widget="many2many_tags"/>
+                </group>
+                <div class="text-muted small">Pages are downloaded and indexed in the background. Only public addresses are allowed.</div>
+                <footer>
+                    <button name="action_cai_add" type="object" string="Add" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cai_source_link_wizard" model="ir.actions.act_window">
+        <field name="name">Add Links</field>
+        <field name="res_model">community.ai.source.link.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

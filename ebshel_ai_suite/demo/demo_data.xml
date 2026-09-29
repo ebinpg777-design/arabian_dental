@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- An offline engine so that demo databases work without any API key -->
+    <record id="demo_connection_mock" model="community.ai.connection">
+        <field name="name">Offline Demo Engine</field>
+        <field name="engine_type">mock</field>
+        <field name="endpoint_url">mock://ok</field>
+        <field name="default_model">mock-small</field>
+        <field name="embedding_model">mock-embed</field>
+        <field name="image_model">mock-image</field>
+    </record>
+    <function model="res.company" name="write">
+        <value model="res.company" search="[]"/>
+        <value eval="{'cai_connection_id': ref('ebshel_ai_suite.demo_connection_mock')}"/>
+    </function>
+
+    <record id="demo_source_warranty" model="community.ai.source">
+        <field name="name">Warranty Policy</field>
+        <field name="source_kind">text</field>
+        <field name="content_text">Warranty policy
+
+All products sold by our company carry a two-year limited warranty starting on the delivery date.
+
+The warranty covers manufacturing defects and hardware failures under normal use. It does not cover accidental damage, misuse, unauthorized repairs or normal wear of consumables such as batteries and filters.
+
+To file a warranty claim, customers contact support with their invoice number and a description of the problem. Approved claims are repaired or replaced within ten business days. Shipping costs for warranty repairs are paid by the company.
+
+An extended warranty of three additional years can be purchased within 30 days of delivery.</field>
+        <field name="assistant_ids" eval="[Command.link(ref('ebshel_ai_suite.assistant_business'))]"/>
+    </record>
+    <function model="community.ai.source" name="action_cai_index">
+        <value eval="[ref('ebshel_ai_suite.demo_source_warranty')]"/>
+    </function>
+
+    <record id="demo_assistant_policy" model="community.ai.assistant">
+        <field name="title">Policy Helper</field>
+        <field name="summary">Answers questions strictly from company policies.</field>
+        <field name="glyph">fa-book</field>
+        <field name="sequence">5</field>
+        <field name="system_instruction">You answer employees' questions about company policies. Be precise and quote the relevant policy.</field>
+        <field name="answer_from_sources_only" eval="True"/>
+        <field name="allow_tool_execution" eval="False"/>
+        <field name="allow_record_context" eval="False"/>
+        <field name="knowledge_ids" eval="[Command.link(ref('ebshel_ai_suite.demo_source_warranty'))]"/>
+    </record>
+
+    <record id="demo_privacy_rule_vat" model="community.ai.privacy.rule">
+        <field name="name">Example: hide tax IDs of contacts</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="field_pattern">company_registry</field>
+        <field name="active" eval="False"/>
+    </record>
+
+    <record id="demo_automation_partner" model="community.ai.automation">
+        <field name="name">Summarize new contacts</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="trigger_event">manual</field>
+        <field name="execution_mode">approval</field>
+        <field name="instruction">Write a one-sentence profile of this contact for the sales team and propose its job position if it can be inferred.</field>
+        <field name="output_field_ids" eval="[Command.set([ref('base.field_res_partner__function')])]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="base.user_demo" model="res.users">
+        <field name="group_ids" eval="[Command.link(ref('ebshel_ai_suite.group_cai_user'))]"/>
+    </record>
+</odoo>

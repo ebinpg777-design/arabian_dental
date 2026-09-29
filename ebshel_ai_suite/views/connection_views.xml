@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_connection_list" model="ir.ui.view">
+        <field name="name">community.ai.connection.list</field>
+        <field name="model">community.ai.connection</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="engine_type"/>
+                <field name="default_model"/>
+                <field name="secret_hint" string="Key"/>
+                <field name="last_check_state" widget="badge"
+                       decoration-success="last_check_state == 'ok'" decoration-danger="last_check_state == 'failed'"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cai_connection_form" model="ir.ui.view">
+        <field name="name">community.ai.connection.form</field>
+        <field name="model">community.ai.connection</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_cai_test_connection" type="object" string="Test Connection" class="btn-primary"
+                            groups="ebshel_ai_suite.group_cai_admin"/>
+                    <button name="action_cai_refresh_models" type="object" string="Fetch Models"
+                            groups="ebshel_ai_suite.group_cai_admin"/>
+                    <button name="action_cai_set_company_default" type="object" string="Use as Company Default"
+                            groups="ebshel_ai_suite.group_cai_admin"/>
+                    <field name="last_check_state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. OpenAI production"/></h1>
+                    </div>
+                    <group>
+                        <group string="Engine">
+                            <field name="engine_type"/>
+                            <field name="endpoint_url" placeholder="Leave empty for the vendor default"/>
+                            <field name="default_model"/>
+                            <field name="embedding_model"/>
+                            <field name="image_model" invisible="engine_type == 'gemini'"/>
+                            <field name="transcription_model"/>
+                            <field name="organization_reference" invisible="engine_type != 'openai_compatible'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="Credentials" groups="ebshel_ai_suite.group_cai_admin">
+                            <field name="secret_source"/>
+                            <field name="secret_hint" invisible="secret_source != 'stored' or not has_secret"/>
+                            <field name="secret_input" password="True" invisible="secret_source != 'stored'"
+                                   placeholder="Paste a new key to replace the stored one"/>
+                            <field name="secret_env_var" invisible="secret_source != 'environment'"
+                                   required="secret_source == 'environment'" placeholder="CAI_OPENAI_KEY"/>
+                            <field name="has_secret" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Tuning" name="tuning">
+                            <group>
+                                <group>
+                                    <field name="send_sampling"/>
+                                    <field name="temperature" invisible="not send_sampling"/>
+                                    <field name="maximum_tokens"/>
+                                    <field name="token_parameter" invisible="engine_type != 'openai_compatible'"/>
+                                </group>
+                                <group>
+                                    <field name="timeout_seconds"/>
+                                    <field name="retry_count"/>
+                                    <field name="json_mode"/>
+                                    <field name="stream_usage" invisible="engine_type != 'openai_compatible'"/>
+                                    <field name="supports_streaming"/>
+                                    <field name="supports_embeddings"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Costs" name="costs">
+                            <group>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="cost_input_per_million"/>
+                                <field name="cost_output_per_million"/>
+                            </group>
+                        </page>
+                        <page string="Diagnostics" name="diagnostics">
+                            <group>
+                                <field name="last_check_at"/>
+                                <field name="last_check_message"/>
+                                <field name="models_refreshed_at"/>
+                                <field name="available_models" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cai_connection" model="ir.actions.act_window">
+        <field name="name">AI Connections</field>
+        <field name="res_model">community.ai.connection</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'active_test': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Connect an AI engine</p>
+            <p>Add an OpenAI-compatible endpoint (OpenAI, Ollama, vLLM, LM Studio, ...), Google Gemini, or the offline mock engine for testing.</p>
+        </field>
+    </record>
+</odoo>

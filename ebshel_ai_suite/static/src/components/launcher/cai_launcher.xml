@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_ai_suite.CommunityAILauncher">
+        <div t-if="state.config and state.config.enabled" class="o_cai_launcher o-dropdown">
+            <button t-attf-class="o_nav_entry btn border-0 {{ state.open ? 'active' : '' }}" t-on-click="onClick"
+                    title="AI Assistant" aria-label="AI Assistant">
+                <span class="o_cai_mark" aria-hidden="true"/>
+            </button>
+        </div>
+    </t>
+</templates>

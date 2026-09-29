@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.ebshel_ai_suite</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="60"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="AI Configuration" string="AI Configuration" name="ebshel_ai_suite"
+                     groups="ebshel_ai_suite.group_cai_admin">
+                    <block title="Engines" name="cai_engines">
+                        <setting id="cai_default_connection" string="Default Connection"
+                                 help="Used by assistants and AI features that do not specify their own connection (per company).">
+                            <field name="cai_connection_id" options="{'no_create': True}"/>
+                            <div class="mt8">
+                                <button name="%(ebshel_ai_suite.action_cai_connection)d" icon="oi-arrow-right"
+                                        type="action" string="Manage Connections" class="btn-link"/>
+                            </div>
+                        </setting>
+                        <setting id="cai_default_assistant" string="Default Assistant"
+                                 help="Assistant preselected in the AI console (per company).">
+                            <field name="cai_assistant_id" options="{'no_create': True}"/>
+                        </setting>
+                        <setting id="cai_streaming" help="Display answers progressively while they are generated.">
+                            <field name="cai_streaming"/>
+                        </setting>
+                    </block>
+                    <block title="Security &amp; Privacy" name="cai_security">
+                        <setting id="cai_confirmation" string="Confirmation of Changes"
+                                 help="Changes are always confirmed when record content, documents or tool results are involved.">
+                            <field name="cai_confirmation_policy"/>
+                        </setting>
+                        <setting id="cai_context_size" string="Record Context Size"
+                                 help="Maximum characters of record data sent with a request.">
+                            <field name="cai_context_max_chars"/>
+                        </setting>
+                        <setting id="cai_privacy_rules" string="Privacy Rules"
+                                 help="Fields that are never sent to an AI engine, in addition to built-in secret patterns.">
+                            <button name="%(ebshel_ai_suite.action_cai_privacy_rule)d" icon="oi-arrow-right"
+                                    type="action" string="Privacy Rules" class="btn-link"/>
+                        </setting>
+                        <setting id="cai_private_urls" help="Allow knowledge sources to be imported from private network addresses (disabled to prevent SSRF).">
+                            <field name="cai_allow_private_urls"/>
+                        </setting>
+                    </block>
+                    <block title="Web Search" name="cai_web">
+                        <setting id="cai_web_backend" string="Web Search Backend"
+                                 help="Lets assistants with the Web Research skill set search the internet. Results are treated as untrusted data.">
+                            <field name="cai_web_backend"/>
+                            <div class="content-group mt8" invisible="cai_web_backend != 'brave'">
+                                <field name="cai_brave_api_key" password="True" placeholder="Brave Search subscription token"/>
+                            </div>
+                            <div class="content-group mt8" invisible="cai_web_backend != 'searxng'">
+                                <field name="cai_searxng_url" placeholder="https://search.example.com"/>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="MCP Server" name="cai_mcp">
+                        <setting id="cai_mcp_enabled" string="MCP Server"
+                                 help="Let external AI clients (Claude, Codex, Antigravity, ...) use this database through the Model Context Protocol, with the rights of the API key's user.">
+                            <field name="cai_mcp_enabled"/>
+                            <div class="content-group mt8" invisible="not cai_mcp_enabled">
+                                <div class="text-muted">Endpoint</div>
+                                <field name="cai_mcp_url" readonly="1" widget="CopyClipboardChar"/>
+                                <button name="action_cai_generate_mcp_key" type="object" string="Generate MCP Key"
+                                        icon="fa-key" class="btn-link"/>
+                            </div>
+                        </setting>
+                        <setting id="cai_mcp_write" string="Allow Changes Through MCP"
+                                 help="Offer tools that create and update records. MCP clients ask their user before calling tools not marked read-only; Odoo access rights always apply."
+                                 invisible="not cai_mcp_enabled">
+                            <field name="cai_mcp_allow_write"/>
+                        </setting>
+                    </block>
+                    <block title="Usage Limits" name="cai_limits">
+                        <setting id="cai_limits_user" string="Per User" help="0 means unlimited.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="cai_limit_user_daily_requests" class="col-lg-6 o_light_label"/>
+                                    <field name="cai_limit_user_daily_requests" class="col-lg-4"/>
+                                </div>
+                                <div class="row">
+                                    <label for="cai_limit_user_daily_tokens" class="col-lg-6 o_light_label"/>
+                                    <field name="cai_limit_user_daily_tokens" class="col-lg-4"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting id="cai_limits_global" string="Per Assistant / Company" help="0 means unlimited.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="cai_limit_assistant_daily_requests" class="col-lg-6 o_light_label"/>
+                                    <field name="cai_limit_assistant_daily_requests" class="col-lg-4"/>
+                                </div>
+                                <div class="row">
+                                    <label for="cai_limit_monthly_tokens" class="col-lg-6 o_light_label"/>
+                                    <field name="cai_limit_monthly_tokens" class="col-lg-4"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Logging" name="cai_logging">
+                        <setting id="cai_audit_reads" help="Also record read-only capability calls in the audit log.">
+                            <field name="cai_audit_read_operations"/>
+                        </setting>
+                        <setting id="cai_retention" string="Retention" help="Days before audit and usage entries are purged (0 keeps them forever).">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="cai_audit_retention_days" class="col-lg-6 o_light_label"/>
+                                    <field name="cai_audit_retention_days" class="col-lg-4"/>
+                                </div>
+                                <div class="row">
+                                    <label for="cai_usage_retention_days" class="col-lg-6 o_light_label"/>
+                                    <field name="cai_usage_retention_days" class="col-lg-4"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_cai_settings" model="ir.actions.act_window">
+        <field name="name">AI Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module': 'ebshel_ai_suite', 'bin_size': False}</field>
+    </record>
+</odoo>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mail_compose_message_form_cai" model="ir.ui.view">
+        <field name="name">mail.compose.message.form.ebshel_ai_suite</field>
+        <field name="model">mail.compose.message</field>
+        <field name="inherit_id" ref="mail.email_compose_message_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/footer" position="inside">
+                <button name="action_cai_writing_assistant" type="object" string="AI Assist" icon="fa-magic"
+                        class="btn-secondary o_cai_compose_button" groups="ebshel_ai_suite.group_cai_user"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

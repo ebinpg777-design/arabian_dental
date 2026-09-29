@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_server_action_form_cai" model="ir.ui.view">
+        <field name="name">ir.actions.server.form.ebshel_ai_suite</field>
+        <field name="model">ir.actions.server</field>
+        <field name="inherit_id" ref="base.view_server_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='create_action']" position="before">
+                <button name="action_cai_offer_as_tool" type="object" string="Offer to AI" icon="fa-magic"
+                        invisible="state not in ('code', 'object_write', 'object_create', 'multi')"
+                        groups="ebshel_ai_suite.group_cai_manager"
+                        help="Let AI assistants and AI decisions run this action as a tool."/>
+            </xpath>
+            <xpath expr="//notebook/page[@name='ir_actions_server_code_help']" position="before">
+                <page string="AI Decision" name="cai_decision" invisible="state != 'cai_decision'">
+                    <group>
+                        <field name="cai_instruction" required="state == 'cai_decision'"
+                               placeholder="Read the ticket. If it is about an invoice, assign the Billing tag; if it is a bug report, create a task..."/>
+                        <field name="cai_capability_ids" widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                        <field name="cai_assistant_id" options="{'no_create': True}"/>
+                        <field name="cai_auto_execute"/>
+                    </group>
+                    <div class="alert alert-info" role="status">
+                        The AI decides which tool to call and with which arguments; the tool does the work and must
+                        enforce the business rules. Every tool acts on the record that triggered the action.
+                        Offer your own <em>Execute Code</em> actions with the <strong>Offer to AI</strong> button:
+                        their code receives the declared arguments in <code>cai_args</code> and can return data in
+                        <code>cai_output</code>.
+                    </div>
+                </page>
+            </xpath>
+            <xpath expr="//page[@name='ir_actions_server_code_help']//ul" position="inside">
+                <li><code>cai_args</code>, <code>cai_output</code>: arguments chosen by the AI when this action runs as
+                    an AI tool, and a dictionary to return data to the AI (Ebshel AI)</li>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_ai_suite.CommunityAIFieldRefresh">
+        <div class="o_cai_ai_field d-flex align-items-start gap-1">
+            <div class="flex-grow-1 min-w-0">
+                <t t-component="innerComponent" t-props="innerProps"/>
+            </div>
+            <button t-if="state.enabled and !props.readonly" class="btn btn-link p-0 o_cai_ai_field_refresh"
+                    t-on-click="regenerate" t-att-disabled="state.busy"
+                    title="Generate with AI" aria-label="Generate with AI">
+                <i t-if="state.busy" class="fa fa-circle-o-notch fa-spin"/>
+                <span t-else="" class="o_cai_mark o_cai_mark_sm"/>
+            </button>
+        </div>
+    </t>
+</templates>

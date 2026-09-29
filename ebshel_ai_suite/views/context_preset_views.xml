@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_context_preset_list" model="ir.ui.view">
+        <field name="name">community.ai.context.preset.list</field>
+        <field name="model">community.ai.context.preset</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="purpose"/>
+                <field name="model_ids" widget="many2many_tags" placeholder="All models"/>
+                <field name="needs_record" optional="show"/>
+                <field name="assistant_id"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cai_context_preset_form" model="ir.ui.view">
+        <field name="name">community.ai.context.preset.form</field>
+        <field name="model">community.ai.context.preset</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Preset Name"/>
+                        <h1><field name="name" placeholder="e.g. Support ticket assistance"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="purpose"/>
+                            <field name="model_ids" widget="many2many_tags" options="{'no_create': True}"
+                                   placeholder="All models"/>
+                            <field name="needs_record"/>
+                        </group>
+                        <group>
+                            <field name="assistant_id" invisible="purpose != 'assist'" placeholder="Default assistant"/>
+                            <field name="group_ids" widget="many2many_tags"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Buttons" name="buttons">
+                            <field name="quick_prompt_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="title"/>
+                                    <field name="prompt"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Context Instructions" name="instructions" invisible="purpose != 'assist'">
+                            <field name="instructions"
+                                   placeholder="How the assistant should behave when opened from these records..."/>
+                            <div class="text-muted small">
+                                Combined as: assistant instructions → these context instructions → the clicked button
+                                (or the user's own request).
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cai_context_preset" model="ir.actions.act_window">
+        <field name="name">Context Presets</field>
+        <field name="res_model">community.ai.context.preset</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'active_test': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Adapt the AI to where it is opened</p>
+            <p>Choose the assistant, context instructions and one-click prompts per kind of record.</p>
+        </field>
+    </record>
+</odoo>

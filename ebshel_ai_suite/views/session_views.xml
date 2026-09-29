@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_session_list" model="ir.ui.view">
+        <field name="name">community.ai.session.list</field>
+        <field name="model">community.ai.session</field>
+        <field name="arch" type="xml">
+            <list create="false">
+                <field name="last_activity"/>
+                <field name="subject"/>
+                <field name="assistant_id"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="context_label" string="Record" optional="show"/>
+                <field name="exchange_count" string="Messages" optional="show"/>
+                <field name="status" widget="badge" decoration-info="status == 'open'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cai_session_form" model="ir.ui.view">
+        <field name="name">community.ai.session.form</field>
+        <field name="model">community.ai.session</field>
+        <field name="arch" type="xml">
+            <form create="false">
+                <header>
+                    <field name="status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="subject"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="assistant_id" readonly="1"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="started_at"/>
+                            <field name="last_activity"/>
+                            <field name="context_model"/>
+                            <field name="context_label"/>
+                            <field name="total_input_tokens"/>
+                            <field name="total_output_tokens"/>
+                        </group>
+                    </group>
+                    <field name="exchange_ids" readonly="1">
+                        <list decoration-muted="is_intermediate" decoration-danger="processing_state == 'failed'">
+                            <field name="posted_at"/>
+                            <field name="speaker_type"/>
+                            <field name="tool_label" string="Capability" optional="show"/>
+                            <field name="tool_status" optional="show"/>
+                            <field name="message_body" string="Message"/>
+                            <field name="processing_state" optional="hide"/>
+                            <field name="error_public" optional="show"/>
+                            <field name="input_tokens" optional="hide" sum="Input"/>
+                            <field name="output_tokens" optional="hide" sum="Output"/>
+                            <field name="is_intermediate" column_invisible="1"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cai_session_search" model="ir.ui.view">
+        <field name="name">community.ai.session.search</field>
+        <field name="model">community.ai.session</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="subject"/>
+                <field name="assistant_id"/>
+                <field name="user_id"/>
+                <filter name="mine" string="My Conversations" domain="[('user_id', '=', uid)]"/>
+                <filter name="open" string="Open" domain="[('status', '=', 'open')]"/>
+                <separator/>
+                <filter name="group_assistant" string="Assistant" context="{'group_by': 'assistant_id'}"/>
+                <filter name="group_user" string="User" context="{'group_by': 'user_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cai_session" model="ir.actions.act_window">
+        <field name="name">Conversations</field>
+        <field name="res_model">community.ai.session</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_mine': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No conversation yet</p>
+            <p>Open the AI console from the top bar to start one.</p>
+        </field>
+    </record>
+
+    <record id="view_cai_exchange_form" model="ir.ui.view">
+        <field name="name">community.ai.exchange.form</field>
+        <field name="model">community.ai.exchange</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="session_id"/>
+                            <field name="speaker_type"/>
+                            <field name="posted_at"/>
+                            <field name="processing_state"/>
+                        </group>
+                        <group>
+                            <field name="tool_label"/>
+                            <field name="tool_status"/>
+                            <field name="operation_id"/>
+                            <field name="input_tokens"/>
+                            <field name="output_tokens"/>
+                            <field name="execution_time"/>
+                        </group>
+                    </group>
+                    <field name="message_body"/>
+                    <group string="Error" invisible="not error_public">
+                        <field name="error_public"/>
+                        <field name="error_detail" groups="ebshel_ai_suite.group_cai_admin"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

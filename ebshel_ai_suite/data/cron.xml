@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="ir_cron_cai_run_jobs" model="ir.cron">
+            <field name="name">Ebshel AI: run background jobs</field>
+            <field name="model_id" ref="model_community_ai_job"/>
+            <field name="state">code</field>
+            <field name="code">model._cai_cron_run()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="priority">6</field>
+        </record>
+        <record id="ir_cron_cai_scan_automations" model="ir.cron">
+            <field name="name">Ebshel AI: detect automation triggers</field>
+            <field name="model_id" ref="model_community_ai_automation"/>
+            <field name="state">code</field>
+            <field name="code">model._cai_cron_scan()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+        </record>
+        <record id="ir_cron_cai_fill_ai_fields" model="ir.cron">
+            <field name="name">Ebshel AI: fill empty AI fields</field>
+            <field name="model_id" ref="model_community_ai_field_rule"/>
+            <field name="state">code</field>
+            <field name="code">model._cai_cron_fill_empty()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+        </record>
+        <record id="ir_cron_cai_expire_operations" model="ir.cron">
+            <field name="name">Ebshel AI: expire unconfirmed operations</field>
+            <field name="model_id" ref="model_community_ai_operation"/>
+            <field name="state">code</field>
+            <field name="code">model._cai_cron_expire()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+        </record>
+        <record id="ir_cron_cai_purge_audit" model="ir.cron">
+            <field name="name">Ebshel AI: apply audit retention</field>
+            <field name="model_id" ref="model_community_ai_audit"/>
+            <field name="state">code</field>
+            <field name="code">model._cai_cron_purge()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+        </record>
+        <record id="ir_cron_cai_purge_usage" model="ir.cron">
+            <field name="name">Ebshel AI: apply usage retention</field>
+            <field name="model_id" ref="model_community_ai_usage"/>
+            <field name="state">code</field>
+            <field name="code">model._cai_cron_purge()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+        </record>
+    </data>
+    <!-- default retention settings (kept on upgrade) -->
+    <data noupdate="1">
+        <record id="param_audit_retention" model="ir.config_parameter">
+            <field name="key">ebshel_ai_suite.audit_retention_days</field>
+            <field name="value">365</field>
+        </record>
+        <record id="param_usage_retention" model="ir.config_parameter">
+            <field name="key">ebshel_ai_suite.usage_retention_days</field>
+            <field name="value">730</field>
+        </record>
+        <record id="param_streaming" model="ir.config_parameter">
+            <field name="key">ebshel_ai_suite.streaming</field>
+            <field name="value">True</field>
+        </record>
+    </data>
+</odoo>

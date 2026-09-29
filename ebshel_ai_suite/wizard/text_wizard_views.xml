@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cai_text_wizard_form" model="ir.ui.view">
+        <field name="name">community.ai.text.wizard.form</field>
+        <field name="model">community.ai.text.wizard</field>
+        <field name="arch" type="xml">
+            <form string="AI Writing Assistant">
+                <group>
+                    <group>
+                        <field name="operation"/>
+                        <field name="language" invisible="operation != 'translate'" required="operation == 'translate'"/>
+                        <field name="tone" invisible="operation != 'tone'"/>
+                    </group>
+                    <group>
+                        <field name="instruction" placeholder="Optional: mention the price, keep it under 80 words..."/>
+                        <field name="assistant_id" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="use_record_context" invisible="operation not in ('reply', 'follow_up', 'describe')"/>
+                    </group>
+                </group>
+                <label for="source_text"/>
+                <field name="source_text" placeholder="Text to work on..."/>
+                <label for="result_text" invisible="not result_text"/>
+                <field name="result_text" invisible="not result_text"/>
+                <div class="text-muted small" invisible="not result_text">
+                    AI-generated text can be inaccurate. Review it before using it; nothing is sent automatically.
+                </div>
+                <footer>
+                    <button name="action_cai_generate" type="object" string="Generate" class="btn-primary"
+                            invisible="result_text" data-hotkey="q"/>
+                    <button name="action_cai_apply" type="object" string="Use This Text" class="btn-primary"
+                            invisible="not result_text" data-hotkey="q"/>
+                    <button name="action_cai_generate" type="object" string="Try Again" invisible="not result_text"/>
+                    <button name="action_cai_use_proposal" type="object" string="Refine Further" invisible="not result_text"/>
+                    <button string="Discard" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cai_text_wizard" model="ir.actions.act_window">
+        <field name="name">AI Writing Assistant</field>
+        <field name="res_model">community.ai.text.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
