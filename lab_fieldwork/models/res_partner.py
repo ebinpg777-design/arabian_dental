@@ -2,7 +2,7 @@
 import logging
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -261,6 +261,31 @@ class ResUsers(models.Model):
         string='Camera Access Exception',
         help="This person's phone cannot scan. On dispatched deliveries they "
              "type the invoice number instead of scanning it.")
+
+    def action_fw_set_exception(self):
+        """Switch one phone exception on or off, from the executive's profile.
+
+        A field-work administrator sets these, and does not hold Odoo's user-manager
+        right that editing a user record needs - the boxes on the form were shown to
+        them and could not be ticked. So the switch is a button, checked here and
+        written elevated, and the change is written on the person's record."""
+        which = self.env.context.get('fw_exception')
+        value = bool(self.env.context.get('fw_value'))
+        if which not in ('location', 'camera'):
+            raise UserError(_("That is not a phone exception."))
+        if not (self.env.su or self.env.user.has_group('lab_fieldwork.group_fieldwork_admin')
+                or self.env.user.has_group('base.group_system')):
+            raise AccessError(_("Only a Field Work administrator sets a phone exception."))
+        field = 'fw_%s_exception' % which
+        label = self._fields[field].string
+        for user in self.sudo():
+            if user[field] == value:
+                continue
+            user.write({field: value})
+            user.partner_id.message_post(body=_(
+                "%(label)s switched %(state)s by %(who)s.", label=label,
+                state=_("on") if value else _("off"), who=self.env.user.name))
+        return True
 
     def _fw_phone_exceptions(self):
         """{'location': bool, 'camera': bool} for one user, read elevated: a

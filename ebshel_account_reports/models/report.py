@@ -3,6 +3,7 @@
 (for statement reports) say what to sum, and the record carries every switch the
 screen offers. Users design their own the same way."""
 import ast
+from datetime import timedelta
 import json
 import operator
 import re
@@ -219,6 +220,7 @@ class FinReport(models.Model):
             'period_label': engine.period_label(fields.Date.to_date(options['date']['from']),
                                                 fields.Date.to_date(options['date']['to']), self.date_mode == 'single'),
             'reports': [{'key': r.key, 'name': r.name, 'kind': r.kind} for r in self.search([])],
+            'fiscal': self._fiscal_bounds(options, company),
             'options': options,
             'columns': columns,
             'lines': lines,
@@ -270,6 +272,74 @@ class FinReport(models.Model):
                       [1000000, _('Millions')], [10000000, _('Crores')]],
             'wide_loaded': False,
         }
+
+    def _fiscal_bounds(self, options, company):
+        """The fiscal years around the period, for the period panel's quarters and ends of
+        year: the one the period ends in, and the one before it."""
+        day = fields.Date.to_date(options['date']['to'])
+        now = company.compute_fiscalyear_dates(day)
+        before = company.compute_fiscalyear_dates(now['date_from'] - timedelta(days=1))
+        return {'start': fields.Date.to_string(now['date_from']), 'end': fields.Date.to_string(now['date_to']),
+                'prev_start': fields.Date.to_string(before['date_from']), 'prev_end': fields.Date.to_string(before['date_to'])}
+
+    SUGGESTION_TYPES = ('asset_receivable', 'liability_payable')
+
+    def get_partner_suggestions(self, options=None, query='', limit=30):
+        """The partners worth offering in the partner filter: those with the most entries
+        on receivable and payable accounts in the period, with what they owe or are owed -
+        so the panel opens full, not on an empty search box. A name typed narrows it; a
+        partner the period never saw is still found by name, below the others."""
+        self.ensure_one()
+        self.env.flush_all()
+        self._check_report_access()
+        engine = self.env['ebshel.fin.engine']
+        options = dict(engine.normalize(self, options), partners=[])
+        d_from = fields.Date.to_date(options['date']['from'])
+        d_to = fields.Date.to_date(options['date']['to'])
+        accounts = [a for a, m in engine.accounts(options).items() if m['type'] in self.SUGGESTION_TYPES]
+        limit = max(1, min(int(limit or 30), 100))
+        query = (query or '').strip()
+        extra = SQL("p.name ILIKE %s", '%%%s%%' % query) if query else None
+        rows = engine.sums_by(options, SQL("l.partner_id"), 'flow', d_from, d_to, account_ids=accounts,
+                              joins=SQL("JOIN res_partner p ON p.id = l.partner_id"), extra_where=extra,
+                              order=SQL("COUNT(*) DESC"), limit=limit) if accounts else []
+        currency = engine.currency(options)
+        seen, out = set(), []
+        names = {p.id: p.display_name for p in self.env['res.partner'].sudo().browse([r[0] for r in rows if r[0]]).exists()}
+        for pid, balance, _debit, _credit, count in rows:
+            if not pid or pid not in names:
+                continue
+            seen.add(pid)
+            out.append({'id': pid, 'name': names[pid], 'count': count, 'amount': float(balance or 0),
+                        'amount_text': engine.fmt(float(balance or 0), currency), 'active': True})
+        if query and len(out) < limit:
+            for pid, name in self.env['res.partner'].sudo().name_search(query, limit=limit - len(out) + len(seen)):
+                if pid not in seen:
+                    out.append({'id': pid, 'name': name, 'count': 0, 'amount': 0.0, 'amount_text': '', 'active': False})
+                    seen.add(pid)
+                if len(out) >= limit:
+                    break
+        return out
+
+    def get_account_suggestions(self, options=None, query='', limit=12):
+        """Accounts whose code starts with, or whose name contains, what is typed - those
+        that moved in the period first."""
+        self.ensure_one()
+        self._check_report_access()
+        engine = self.env['ebshel.fin.engine']
+        options = engine.normalize(self, options)
+        q = (query or '').strip().lower()
+        accounts = engine.accounts(options)
+        d_from = fields.Date.to_date(options['date']['from'])
+        d_to = fields.Date.to_date(options['date']['to'])
+        moved = engine.sums_by_account(options, 'flow', d_from, d_to)
+        types = dict(self.env['account.account']._fields['account_type']._description_selection(self.env))
+        found = [a for a in accounts.values()
+                 if not q or a['code'].lower().startswith(q) or q in a['name'].lower()]
+        found.sort(key=lambda a: (not a['code'].lower().startswith(q) if q else False,
+                                  -moved.get(a['id'], {}).get('count', 0), a['code']))
+        return [{'id': a['id'], 'code': a['code'], 'name': a['name'], 'type': types.get(a['type'], ''),
+                 'count': moved.get(a['id'], {}).get('count', 0)} for a in found[:max(1, min(int(limit or 12), 50))]]
 
     def get_wide_choices(self, options=None):
         """What the wider filters can be set to, asked for when their panel is opened."""

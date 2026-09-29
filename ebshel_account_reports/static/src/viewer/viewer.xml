@@ -81,7 +81,28 @@
 
             <!-- ═══════════════════════════ the filters ═══════════════════════════ -->
             <div class="o_efr_bar" t-if="state.report">
-                <div class="o_efr_filters">
+                <div class="o_efr_fwrap"><div class="o_efr_filters">
+                    <!-- every filter, on a phone -->
+                    <div class="o_efr_group o_efr_hubgroup">
+                        <button class="o_efr_f o_efr_f_hub o_efr_popbtn" t-on-click="() => this.openMenu('hub')" title="Every filter">
+                            <i class="fa fa-sliders"/>Filters<b t-if="hubCount" class="o_efr_count" t-esc="hubCount"/>
+                        </button>
+                        <div class="o_efr_pop o_efr_pnl o_efr_pnl_hub" t-if="state.menu === 'hub'">
+                            <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-sliders"/></span>
+                                <div class="o_efr_pnl_t"><b>Filters</b><span>What shapes this report</span></div></div>
+                            <div class="o_efr_pnl_b">
+                                <button t-foreach="hubRows" t-as="row" t-key="row.key" t-att-class="'o_efr_hubrow o_efr_ht_' + row.tone" t-on-click="() => this.openFromHub(row.key)">
+                                    <span class="o_efr_hubrow_i"><i t-att-class="'fa ' + row.icon"/></span>
+                                    <span class="o_efr_hubrow_t"><b t-esc="row.name"/><em t-if="row.value" t-esc="row.value"/><em t-elif="row.count"><t t-esc="row.count"/> chosen</em></span>
+                                    <b t-if="row.count" class="o_efr_hubrow_n" t-esc="row.count"/>
+                                    <i class="fa fa-angle-right"/>
+                                </button>
+                            </div>
+                            <div class="o_efr_pnl_f" t-if="activeChips.length">
+                                <button class="o_efr_pnl_clear" t-on-click="clearAll"><i class="fa fa-eraser me-1"/>Clear every filter</button>
+                            </div>
+                        </div>
+                    </div>
                     <!-- period -->
                     <div class="o_efr_group">
                         <button class="o_efr_f o_efr_f_period o_efr_popbtn" t-on-click="() => this.openMenu('period')" title="Period">
@@ -89,27 +110,52 @@
                         </button>
                         <button class="o_efr_f o_efr_f_step" t-on-click="() => this.shift(-1)" title="Previous period"><i class="fa fa-chevron-left"/></button>
                         <button class="o_efr_f o_efr_f_step" t-on-click="() => this.shift(1)" title="Next period"><i class="fa fa-chevron-right"/></button>
-                        <div class="o_efr_pop" t-if="state.menu === 'period'">
-                            <div class="o_efr_pop_title">Period</div>
-                            <div class="o_efr_presets">
-                                <button t-foreach="state.choices.presets" t-as="p" t-key="p[0]" class="o_efr_seg"
-                                        t-att-class="state.options.date.preset === p[0] ? 'on' : ''"
-                                        t-on-click="() => this.setPreset(p[0])" t-esc="p[1]"/>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
-                                <t t-if="!isSingle">
-                                    <span class="text-muted small">From</span>
-                                    <DateTimeInput type="'date'" format="dateFormat" value="dateValue('from')" onChange="(v) => this.onDate('from', v)"/>
+                        <div class="o_efr_pop o_efr_pnl o_efr_pnl_period" t-if="state.menu === 'period'">
+                            <t t-set="sc" t-value="periodShortcuts"/>
+                            <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-calendar"/></span>
+                                <div class="o_efr_pnl_t"><b><t t-if="isSingle">As of</t><t t-else="">Period</t></b>
+                                    <span><t t-esc="periodLabel"/><t t-if="!isSingle"> · <t t-esc="periodDays"/> day<t t-if="periodDays !== 1">s</t></t></span></div></div>
+                            <div class="o_efr_pnl_b">
+                                <t t-if="isSingle">
+                                    <div class="o_efr_pnl_sec">The balance at</div>
+                                    <div class="o_efr_tiles">
+                                        <button t-foreach="sc.ends" t-as="e" t-key="e.key" t-att-class="'o_efr_tile' + (isAsOf(e.to) ? ' on' : '')"
+                                                t-on-click="() => this.setRange(e.to, e.to)"><b t-esc="e.label"/><span t-esc="e.sub || e.to"/></button>
+                                    </div>
                                 </t>
-                                <span class="text-muted small"><t t-if="isSingle">As of</t><t t-else="">to</t></span>
-                                <DateTimeInput type="'date'" format="dateFormat" value="dateValue('to')" onChange="(v) => this.onDate('to', v)"/>
-                            </div>
-                            <t t-if="state.report.allow_comparison and !isSingle">
-                                <div class="o_efr_pop_title mt-2">Month by month</div>
-                                <div class="o_efr_segs">
-                                    <button t-foreach="[3, 6, 12]" t-as="n" t-key="n" class="o_efr_seg" t-on-click="() => this.byMonth(n)"><t t-esc="n"/> months side by side</button>
+                                <t t-else="">
+                                    <div class="o_efr_pnl_sec">Months</div>
+                                    <div class="o_efr_months">
+                                        <button t-foreach="sc.months" t-as="m" t-key="m.key" t-att-class="'o_efr_month' + (isRange(m.from, m.to) ? ' on' : '')"
+                                                t-on-click="() => this.setRange(m.from, m.to)"><b t-esc="m.label"/><span t-esc="m.year"/></button>
+                                    </div>
+                                    <t t-if="sc.quarters.length">
+                                        <div class="o_efr_pnl_sec">Quarters of the year</div>
+                                        <div class="o_efr_quarters">
+                                            <button t-foreach="sc.quarters" t-as="q" t-key="q.key" t-att-class="'o_efr_tile' + (isRange(q.from, q.to) ? ' on' : '') + (q.later ? ' later' : '')"
+                                                    t-on-click="() => this.setRange(q.from, q.to)"><b t-esc="q.label"/><span t-esc="q.sub"/></button>
+                                        </div>
+                                        <div class="o_efr_pnl_sec">Years</div>
+                                        <div class="o_efr_quarters o_efr_years">
+                                            <button t-foreach="sc.years" t-as="y" t-key="y.key" t-att-class="'o_efr_tile' + (isRange(y.from, y.to) ? ' on' : '')"
+                                                    t-on-click="() => this.setRange(y.from, y.to)"><b t-esc="y.label"/><span t-esc="y.sub"/></button>
+                                        </div>
+                                    </t>
+                                </t>
+                                <div class="o_efr_pnl_sec">Exact dates</div>
+                                <div class="o_efr_dates">
+                                    <label t-if="!isSingle"><span>From</span>
+                                        <DateTimeInput type="'date'" format="dateFormat" value="dateValue('from')" onChange="(v) => this.onDate('from', v)"/></label>
+                                    <label><span><t t-if="isSingle">As of</t><t t-else="">To</t></span>
+                                        <DateTimeInput type="'date'" format="dateFormat" value="dateValue('to')" onChange="(v) => this.onDate('to', v)"/></label>
                                 </div>
-                            </t>
+                                <t t-if="state.report.allow_comparison and !isSingle">
+                                    <div class="o_efr_pnl_sec">Month by month, side by side</div>
+                                    <div class="o_efr_segs">
+                                        <button t-foreach="[3, 6, 12]" t-as="n" t-key="n" class="o_efr_seg" t-on-click="() => this.byMonth(n)"><t t-esc="n"/> months</button>
+                                    </div>
+                                </t>
+                            </div>
                         </div>
                     </div>
                     <!-- comparison -->
@@ -143,52 +189,106 @@
                     <!-- journals -->
                     <div class="o_efr_group" t-if="state.report.allow_journals">
                         <button class="o_efr_f o_efr_f_journals o_efr_popbtn" t-att-class="state.options.journals.length ? 'on' : ''"
-                                t-on-click="() => this.openMenu('journals')">
+                                t-on-click="() => this.openPick('journals')">
                             <i class="fa fa-book"/>Journals<b t-if="state.options.journals.length" class="o_efr_count" t-esc="state.options.journals.length"/>
                         </button>
-                        <div class="o_efr_pop o_efr_pop_list" t-if="state.menu === 'journals'">
-                            <div class="o_efr_pop_title d-flex justify-content-between">Journals
-                                <a href="#" class="small" t-on-click.prevent="() => this.clearKey('journals')">all</a></div>
-                            <label t-foreach="state.choices.journals" t-as="j" t-key="j.id" class="o_efr_check">
-                                <input type="checkbox" t-att-checked="state.options.journals.includes(j.id)" t-on-change="() => this.toggleIn('journals', j.id)"/>
-                                <span class="o_efr_code" t-esc="j.code"/> <t t-esc="j.name"/>
-                            </label>
-                            <button class="btn btn-sm btn-primary w-100 mt-2" t-on-click="() => this.applyMenu()">Apply</button>
+                        <div class="o_efr_pop o_efr_pnl o_efr_pnl_journals" t-if="state.menu === 'journals' and state.pick">
+                            <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-book"/></span>
+                                <div class="o_efr_pnl_t"><b>Journals</b>
+                                    <span><t t-if="state.pick.ids.length"><t t-esc="state.pick.ids.length"/> chosen</t><t t-else="">Every journal</t></span></div>
+                                <button t-if="state.pick.ids.length" class="o_efr_pnl_clear" t-on-click="pickClear">Clear</button></div>
+                            <div class="o_efr_pnl_s"><i class="fa fa-search"/>
+                                <input type="text" t-att-value="state.pick.query" t-on-input="onPickQuery" placeholder="Code or name"/></div>
+                            <div class="o_efr_pnl_b">
+                                <div t-foreach="journalGroups" t-as="g" t-key="g.key" class="o_efr_pgroup">
+                                    <button t-att-class="'o_efr_pgroup_h ' + g.state" t-on-click="() => this.pickGroup(g.items)">
+                                        <span class="o_efr_box"><i t-if="g.state === 'all'" class="fa fa-check"/><i t-elif="g.state === 'some'" class="fa fa-minus"/></span>
+                                        <b t-esc="g.label"/><em><t t-esc="g.items.length"/></em>
+                                    </button>
+                                    <button t-foreach="g.items" t-as="it" t-key="it.id" t-att-class="'o_efr_prow' + (pickHas(it.id) ? ' on' : '')" t-on-click="() => this.pickToggle(it.id)">
+                                        <span class="o_efr_box"><i t-if="pickHas(it.id)" class="fa fa-check"/></span>
+                                        <span class="o_efr_code" t-esc="it.code"/><span class="o_efr_prow_n" t-esc="it.name"/>
+                                    </button>
+                                </div>
+                                <div t-if="!journalGroups.length" class="o_efr_pnl_none">Nothing matches "<t t-esc="state.pick.query"/>".</div>
+                            </div>
+                            <div class="o_efr_pnl_f">
+                                <button class="btn btn-light" t-on-click="cancelPick">Cancel</button>
+                                <button class="o_efr_pnl_go" t-on-click="applyPick" t-att-disabled="!pickChanges">
+                                    <i class="fa fa-check me-1"/><t t-if="!pickChanges">No change</t><t t-elif="state.pick.ids.length">Show <t t-esc="state.pick.ids.length"/> journals</t><t t-else="">Show all journals</t></button>
+                            </div>
                         </div>
                     </div>
                     <!-- analytic -->
                     <div class="o_efr_group" t-if="state.report.allow_analytic and state.choices.analytic.length">
                         <button class="o_efr_f o_efr_f_analytic o_efr_popbtn" t-att-class="state.options.analytic.length ? 'on' : ''"
-                                t-on-click="() => this.openMenu('analytic')">
+                                t-on-click="() => this.openPick('analytic')">
                             <i class="fa fa-sitemap"/>Analytic<b t-if="state.options.analytic.length" class="o_efr_count" t-esc="state.options.analytic.length"/>
                         </button>
-                        <div class="o_efr_pop o_efr_pop_list" t-if="state.menu === 'analytic'">
-                            <div class="o_efr_pop_title d-flex justify-content-between">Analytic accounts
-                                <a href="#" class="small" t-on-click.prevent="() => this.clearKey('analytic')">all</a></div>
-                            <label t-foreach="state.choices.analytic" t-as="a" t-key="a.id" class="o_efr_check">
-                                <input type="checkbox" t-att-checked="state.options.analytic.includes(a.id)" t-on-change="() => this.toggleIn('analytic', a.id)"/>
-                                <t t-esc="a.name"/> <span class="text-muted small" t-esc="a.plan"/>
-                            </label>
-                            <div class="small text-muted mt-1">Amounts are weighted by each entry's analytic share.</div>
-                            <button class="btn btn-sm btn-primary w-100 mt-2" t-on-click="() => this.applyMenu()">Apply</button>
+                        <div class="o_efr_pop o_efr_pnl o_efr_pnl_analytic" t-if="state.menu === 'analytic' and state.pick">
+                            <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-sitemap"/></span>
+                                <div class="o_efr_pnl_t"><b>Analytic</b>
+                                    <span><t t-if="state.pick.ids.length"><t t-esc="state.pick.ids.length"/> chosen</t><t t-else="">No analytic filter</t></span></div>
+                                <button t-if="state.pick.ids.length" class="o_efr_pnl_clear" t-on-click="pickClear">Clear</button></div>
+                            <div class="o_efr_pnl_s"><i class="fa fa-search"/>
+                                <input type="text" t-att-value="state.pick.query" t-on-input="onPickQuery" placeholder="Account or plan"/></div>
+                            <div class="o_efr_pnl_b">
+                                <div t-foreach="analyticGroups" t-as="g" t-key="g.key" class="o_efr_pgroup">
+                                    <button t-att-class="'o_efr_pgroup_h ' + g.state" t-on-click="() => this.pickGroup(g.items)">
+                                        <span class="o_efr_box"><i t-if="g.state === 'all'" class="fa fa-check"/><i t-elif="g.state === 'some'" class="fa fa-minus"/></span>
+                                        <b t-esc="g.label"/><em><t t-esc="g.items.length"/></em>
+                                    </button>
+                                    <button t-foreach="g.items" t-as="it" t-key="it.id" t-att-class="'o_efr_prow' + (pickHas(it.id) ? ' on' : '')" t-on-click="() => this.pickToggle(it.id)">
+                                        <span class="o_efr_box"><i t-if="pickHas(it.id)" class="fa fa-check"/></span>
+                                        <span class="o_efr_prow_n" t-esc="it.name"/>
+                                    </button>
+                                </div>
+                                <div t-if="!analyticGroups.length" class="o_efr_pnl_none">Nothing matches "<t t-esc="state.pick.query"/>".</div>
+                            </div>
+                            <div class="o_efr_pnl_note"><i class="fa fa-info-circle me-1"/>Amounts are weighted by each entry's share in the chosen accounts.</div>
+                            <div class="o_efr_pnl_f">
+                                <button class="btn btn-light" t-on-click="cancelPick">Cancel</button>
+                                <button class="o_efr_pnl_go" t-on-click="applyPick" t-att-disabled="!pickChanges">
+                                    <i class="fa fa-check me-1"/><t t-if="!pickChanges">No change</t><t t-elif="state.pick.ids.length">Show <t t-esc="state.pick.ids.length"/> analytic accounts</t><t t-else="">Show all analytic accounts</t></button>
+                            </div>
                         </div>
                     </div>
                     <!-- partners -->
                     <div class="o_efr_group" t-if="state.report.allow_partners">
                         <button class="o_efr_f o_efr_f_partners o_efr_popbtn" t-att-class="state.options.partners.length ? 'on' : ''"
-                                t-on-click="() => this.openMenu('partners')">
+                                t-on-click="() => this.openPick('partners')">
                             <i class="fa fa-user"/>Partners<b t-if="state.options.partners.length" class="o_efr_count" t-esc="state.options.partners.length"/>
                         </button>
-                        <div class="o_efr_pop" t-if="state.menu === 'partners'">
-                            <div class="o_efr_pop_title">Partners</div>
-                            <input type="text" class="form-control form-control-sm" placeholder="Type a name…" t-att-value="state.partnerQuery" t-on-input="searchPartners"/>
-                            <div class="o_efr_hits" t-if="state.partnerHits.length">
-                                <a href="#" t-foreach="state.partnerHits" t-as="h" t-key="h.id" class="d-block" t-on-click.prevent="() => this.addPartner(h)" t-esc="h.name"/>
+                        <div class="o_efr_pop o_efr_pnl o_efr_pnl_partners" t-if="state.menu === 'partners' and state.pick">
+                            <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-user"/></span>
+                                <div class="o_efr_pnl_t"><b>Partners</b>
+                                    <span><t t-if="state.pick.ids.length"><t t-esc="state.pick.ids.length"/> chosen</t><t t-else="">Every partner</t></span></div>
+                                <button t-if="state.pick.ids.length" class="o_efr_pnl_clear" t-on-click="pickClear">Clear</button></div>
+                            <div class="o_efr_pnl_s"><i class="fa fa-search"/>
+                                <input type="text" t-att-value="state.pick.query" t-on-input="onPickQuery" placeholder="Type a name"/></div>
+                            <div class="o_efr_pnl_b">
+                                <t t-set="pr" t-value="partnerRows"/>
+                                <div t-if="pr.chosen.length" class="o_efr_pnl_sec">Chosen</div>
+                                <button t-foreach="pr.chosen" t-as="it" t-key="'c' + it.id" class="o_efr_prow on" t-on-click="() => this.pickToggle(it.id)">
+                                    <span class="o_efr_box"><i class="fa fa-check"/></span>
+                                    <span class="o_efr_prow_n" t-esc="it.name"/><span class="o_efr_prow_a" t-esc="it.amount_text"/>
+                                </button>
+                                <div class="o_efr_pnl_sec">
+                                    <t t-if="state.pick.query">Found</t><t t-else="">Most active in this period</t>
+                                    <i t-if="state.pick.loading" class="fa fa-circle-o-notch fa-spin ms-1"/>
+                                </div>
+                                <button t-foreach="pr.others" t-as="it" t-key="'o' + it.id" class="o_efr_prow" t-on-click="() => this.pickToggle(it.id)">
+                                    <span class="o_efr_box"/>
+                                    <span class="o_efr_prow_n"><t t-esc="it.name"/><em t-if="it.count"><t t-esc="it.count"/> entries</em><em t-elif="!it.active">nothing in this period</em></span>
+                                    <span class="o_efr_prow_a" t-esc="it.amount_text"/>
+                                </button>
+                                <div t-if="state.pick.hits and !pr.others.length and !state.pick.loading" class="o_efr_pnl_none">
+                                    <t t-if="state.pick.query">Nobody by that name.</t><t t-else="">Nobody has entries in this period.</t></div>
                             </div>
-                            <div class="o_efr_chips mt-2">
-                                <span t-foreach="state.options.partners" t-as="pid" t-key="pid" class="o_efr_chip">
-                                    <t t-esc="partnerName(pid)"/> <i class="fa fa-times ms-1" t-on-click="() => this.removePartner(pid)"/>
-                                </span>
+                            <div class="o_efr_pnl_f">
+                                <button class="btn btn-light" t-on-click="cancelPick">Cancel</button>
+                                <button class="o_efr_pnl_go" t-on-click="applyPick" t-att-disabled="!pickChanges">
+                                    <i class="fa fa-check me-1"/><t t-if="!pickChanges">No change</t><t t-elif="state.pick.ids.length">Show <t t-esc="state.pick.ids.length"/> partners</t><t t-else="">Show all partners</t></button>
                             </div>
                         </div>
                     </div>
@@ -225,7 +325,9 @@
                                     <t t-if="(state.choices.salespeople || []).length">
                                         <div class="o_efr_pop_title">Salesperson</div>
                                         <div class="o_efr_picklist">
-                                            <label t-foreach="state.choices.salespeople" t-as="u" t-key="u.id" class="o_efr_check">
+                                            <div class="o_efr_mini_s"><i class="fa fa-search"/><input type="text" t-att-value="state.wideQ.salespeople || ''" placeholder="Find…"
+                                                   t-on-input="(ev) => state.wideQ.salespeople = ev.target.value"/></div>
+                                            <label t-foreach="wideList('salespeople')" t-as="u" t-key="u.id" t-att-class="'o_efr_check' + (state.draft.salespeople.includes(u.id) ? ' on' : '')">
                                                 <input type="checkbox" t-att-checked="state.draft.salespeople.includes(u.id)" t-on-change="() => this.draftToggle('salespeople', u.id)"/> <t t-esc="u.name"/>
                                             </label>
                                         </div>
@@ -233,7 +335,9 @@
                                     <t t-if="(state.choices.teams || []).length">
                                         <div class="o_efr_pop_title mt-2">Sales team</div>
                                         <div class="o_efr_picklist">
-                                            <label t-foreach="state.choices.teams" t-as="u" t-key="u.id" class="o_efr_check">
+                                            <div class="o_efr_mini_s"><i class="fa fa-search"/><input type="text" t-att-value="state.wideQ.teams || ''" placeholder="Find…"
+                                                   t-on-input="(ev) => state.wideQ.teams = ev.target.value"/></div>
+                                            <label t-foreach="wideList('teams')" t-as="u" t-key="u.id" t-att-class="'o_efr_check' + (state.draft.teams.includes(u.id) ? ' on' : '')">
                                                 <input type="checkbox" t-att-checked="state.draft.teams.includes(u.id)" t-on-change="() => this.draftToggle('teams', u.id)"/> <t t-esc="u.name"/>
                                             </label>
                                         </div>
@@ -243,16 +347,20 @@
                                     <t t-if="(state.choices.partner_categories || []).length">
                                         <div class="o_efr_pop_title">Partner tag</div>
                                         <div class="o_efr_picklist">
-                                            <label t-foreach="state.choices.partner_categories" t-as="u" t-key="u.id" class="o_efr_check">
+                                            <div class="o_efr_mini_s"><i class="fa fa-search"/><input type="text" t-att-value="state.wideQ.partner_categories || ''" placeholder="Find…"
+                                                   t-on-input="(ev) => state.wideQ.partner_categories = ev.target.value"/></div>
+                                            <label t-foreach="wideList('partner_categories')" t-as="u" t-key="u.id" t-att-class="'o_efr_check' + (state.draft.partner_categories.includes(u.id) ? ' on' : '')">
                                                 <input type="checkbox" t-att-checked="state.draft.partner_categories.includes(u.id)" t-on-change="() => this.draftToggle('partner_categories', u.id)"/> <t t-esc="u.name"/>
                                             </label>
                                         </div>
                                     </t>
                                     <div class="o_efr_pop_title" t-att-class="(state.choices.partner_categories || []).length ? 'mt-2' : ''">Product category</div>
                                     <div class="o_efr_picklist">
-                                        <label t-foreach="state.choices.product_categories || []" t-as="u" t-key="u.id" class="o_efr_check">
-                                            <input type="checkbox" t-att-checked="state.draft.product_categories.includes(u.id)" t-on-change="() => this.draftToggle('product_categories', u.id)"/> <t t-esc="u.name"/>
-                                        </label>
+                                        <div class="o_efr_mini_s"><i class="fa fa-search"/><input type="text" t-att-value="state.wideQ.product_categories || ''" placeholder="Find…"
+                                                   t-on-input="(ev) => state.wideQ.product_categories = ev.target.value"/></div>
+                                            <label t-foreach="wideList('product_categories')" t-as="u" t-key="u.id" t-att-class="'o_efr_check' + (state.draft.product_categories.includes(u.id) ? ' on' : '')">
+                                                <input type="checkbox" t-att-checked="state.draft.product_categories.includes(u.id)" t-on-change="() => this.draftToggle('product_categories', u.id)"/> <t t-esc="u.name"/>
+                                            </label>
                                     </div>
                                 </div>
                             </div>
@@ -273,17 +381,39 @@
                                 </div>
                             </t>
                             <div class="o_efr_pop_foot">
+                                <button class="o_efr_pnl_clear me-auto" t-on-click="resetDraft"><i class="fa fa-eraser me-1"/>Reset all</button>
                                 <button class="btn btn-sm btn-light" t-on-click="() => state.menu = null">Close</button>
-                                <button class="btn btn-sm btn-primary" t-on-click="applyMore"><i class="fa fa-check me-1"/>Apply</button>
+                                <button class="o_efr_pnl_go" t-on-click="applyMore" t-att-disabled="!draftChanges">
+                                    <i class="fa fa-check me-1"/><t t-if="draftChanges">Apply <t t-esc="draftChanges"/> change<t t-if="draftChanges !== 1">s</t></t><t t-else="">No change</t></button>
                             </div>
                         </div>
                     </div>
-                    <!-- accounts query -->
+                    <!-- accounts -->
                     <div class="o_efr_group" t-if="state.report.allow_accounts">
-                        <input type="text" class="form-control form-control-sm o_efr_acc" placeholder="Account code or name ⏎"
-                               t-att-value="state.options.accounts_query" t-on-keydown="onAccountsQuery"/>
+                        <button class="o_efr_f o_efr_f_accounts o_efr_popbtn" t-att-class="state.options.accounts_query ? 'on' : ''" t-on-click="openAccounts">
+                            <i class="fa fa-list-ol"/><t t-if="state.options.accounts_query">Accounts: <t t-esc="state.options.accounts_query"/></t><t t-else="">Accounts</t>
+                        </button>
+                        <div class="o_efr_pop o_efr_pnl o_efr_pnl_accounts" t-if="state.menu === 'accounts' and state.acct">
+                            <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-list-ol"/></span>
+                                <div class="o_efr_pnl_t"><b>Accounts</b><span>A code, the start of one, or part of a name</span></div>
+                                <button t-if="state.options.accounts_query" class="o_efr_pnl_clear" t-on-click="() => { state.acct = null; this.reload({accounts_query: ''}); }">Clear</button></div>
+                            <div class="o_efr_pnl_s"><i class="fa fa-search"/>
+                                <input type="text" t-att-value="state.acct.query" t-on-input="onAcctQuery" t-on-keydown="onAcctQuery" placeholder="e.g. 4000, 1002, bank"/></div>
+                            <div class="o_efr_pnl_b">
+                                <button t-if="state.acct.query" class="o_efr_prow o_efr_prow_use" t-on-click="useAccountQuery">
+                                    <span class="o_efr_box"><i class="fa fa-filter"/></span>
+                                    <span class="o_efr_prow_n">Every account matching "<b t-esc="state.acct.query"/>"<em>codes that start with it, names that contain it</em></span>
+                                </button>
+                                <div class="o_efr_pnl_sec"><t t-if="state.acct.query">Accounts</t><t t-else="">Busiest in this period</t></div>
+                                <button t-foreach="state.acct.hits || []" t-as="acc" t-key="acc.id" class="o_efr_prow" t-on-click="() => this.chooseAccount(acc)">
+                                    <span class="o_efr_code" t-esc="acc.code"/>
+                                    <span class="o_efr_prow_n"><t t-esc="acc.name"/><em><t t-esc="acc.type"/><t t-if="acc.count"> · <t t-esc="acc.count"/> entries</t></em></span>
+                                </button>
+                                <div t-if="state.acct.hits and !state.acct.hits.length" class="o_efr_pnl_none">No account matches.</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </div></div>
                 <!-- what is narrowing the report, each taken off with one click -->
                 <div class="o_efr_active" t-if="activeChips.length">
                     <span t-foreach="activeChips" t-as="chip" t-key="chip.key" t-att-class="'o_efr_achip o_efr_ac_' + chip.tone">

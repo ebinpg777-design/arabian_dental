@@ -3,6 +3,7 @@
 import { Component, onWillStart, onMounted, onWillUnmount, useEffect, useState, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { useDebounced } from "@web/core/utils/timing";
 import { _t } from "@web/core/l10n/translation";
 import { DateTimeInput } from "@web/core/datetime/datetime_input";
 import { deserializeDate, serializeDate } from "@web/core/l10n/dates";
@@ -67,6 +68,10 @@ export class FinReportViewer extends Component {
             display: this.loadDisplay(),
             draft: {},                  // the More filters panel, before Apply
             since: null,                // {at, changes: {line id: delta}}: what moved since the reader last looked
+            pick: null,                 // a list filter being chosen: {key, ids, query, hits, loading}
+            acct: null,                 // the account filter being chosen: {query, hits}
+            wideQ: {},                  // what is typed in each list of the wider filters
+            fiscal: null,               // the fiscal years around the period, for its shortcuts
             pins: [],                   // line ids kept in sight above the table
             took: 0,                    // seconds the last reading took, as the reader felt it
             exporter: null,             // the export panel: {format, scope, orientation, filters, notes, preview}
@@ -78,9 +83,13 @@ export class FinReportViewer extends Component {
         this.onDocClick = (ev) => {
             if (this.state.menu && !ev.target.closest(".o_efr_pop, .o_efr_popbtn")) {
                 this.state.menu = null;
+                this.state.pick = null;
+                this.state.acct = null;
             }
         };
         this.onKey = (ev) => this.keyboard(ev);
+        this.partnerSearch = useDebounced(() => this.loadPartnerHits(), 250);
+        this.accountSearch = useDebounced(() => this.loadAccountHits(), 200);
         // the first column at the width the report asks for, whenever the table is drawn anew
         this.onResize = () => this.fitFirstColumn();
         useEffect(() => {
@@ -145,6 +154,7 @@ export class FinReportViewer extends Component {
             this.state.explain = null;
             this.state.unitLabel = data.unit_label || "";
             this.state.periodText = data.period_label || "";
+            this.state.fiscal = data.fiscal || this.state.fiscal;
             if (data.reports) {
                 this.state.reports = data.reports;
             }
@@ -1199,6 +1209,334 @@ export class FinReportViewer extends Component {
         });
     }
 
+    // ------------------------------------------------------------------ a list filter, chosen before it is applied
+    /**
+     * Journals, analytic accounts and partners are chosen in their panel and applied
+     * together: ticking one does not reload the report, and closing the panel without
+     * applying leaves the report as it was.
+     */
+    openPick(key) {
+        if (this.state.menu === key) {
+            this.state.menu = null;
+            return;
+        }
+        this.state.pick = { key, ids: [...(this.state.options[key] || [])], query: "", hits: null, loading: false };
+        this.openMenu(key);
+        if (key === "partners") {
+            this.loadPartnerHits();
+        }
+    }
+
+    pickHas(id) {
+        return !!this.state.pick && this.state.pick.ids.includes(id);
+    }
+
+    pickToggle(id) {
+        const ids = this.state.pick.ids;
+        const at = ids.indexOf(id);
+        if (at >= 0) {
+            ids.splice(at, 1);
+        } else {
+            ids.push(id);
+        }
+    }
+
+    /** All of a group on - or, when they all are already, off. */
+    pickGroup(items) {
+        const ids = items.map((i) => i.id);
+        const allOn = ids.every((id) => this.pickHas(id));
+        const kept = this.state.pick.ids.filter((id) => !ids.includes(id));
+        this.state.pick.ids = allOn ? kept : [...kept, ...ids];
+    }
+
+    groupState(items) {
+        const on = items.filter((i) => this.pickHas(i.id)).length;
+        return on === 0 ? "none" : on === items.length ? "all" : "some";
+    }
+
+    pickClear() {
+        this.state.pick.ids = [];
+    }
+
+    get pickChanges() {
+        const p = this.state.pick;
+        if (!p) {
+            return 0;
+        }
+        const before = new Set(this.state.options[p.key] || []);
+        const after = new Set(p.ids);
+        let n = 0;
+        for (const id of after) if (!before.has(id)) n++;
+        for (const id of before) if (!after.has(id)) n++;
+        return n;
+    }
+
+    applyPick() {
+        const p = this.state.pick;
+        if (p.key === "partners") {
+            const known = new Map((this.state.choices.partners || []).map((x) => [x.id, x]));
+            for (const hit of p.hits || []) {
+                if (p.ids.includes(hit.id)) {
+                    known.set(hit.id, { id: hit.id, name: hit.name });
+                }
+            }
+            this.state.choices.partners = [...known.values()];
+        }
+        this.state.pick = null;
+        this.reload({ [p.key]: [...p.ids] });
+    }
+
+    cancelPick() {
+        this.state.pick = null;
+        this.state.menu = null;
+    }
+
+    onPickQuery(ev) {
+        this.state.pick.query = ev.target.value;
+        if (this.state.pick.key === "partners") {
+            this.partnerSearch();
+        }
+    }
+
+    matches(q, ...texts) {
+        q = (q || "").trim().toLowerCase();
+        return !q || texts.some((t) => (t || "").toLowerCase().includes(q));
+    }
+
+    /** Journals by type, in the order the types are offered; the chosen ones first. */
+    get journalGroups() {
+        const p = this.state.pick;
+        const labels = new Map((this.state.choices.journal_types || []).map(([k, v]) => [k, v]));
+        const order = [...labels.keys()];
+        const groups = new Map();
+        for (const j of this.state.choices.journals || []) {
+            if (!this.matches(p && p.query, j.code, j.name)) continue;
+            if (!groups.has(j.type)) groups.set(j.type, []);
+            groups.get(j.type).push(j);
+        }
+        return [...groups.entries()]
+            .sort((a, b) => (order.indexOf(a[0]) + 99 * (order.indexOf(a[0]) < 0)) - (order.indexOf(b[0]) + 99 * (order.indexOf(b[0]) < 0)))
+            .map(([type, items]) => ({ key: type, label: labels.get(type) || type, items, state: this.groupState(items) }));
+    }
+
+    get analyticGroups() {
+        const p = this.state.pick;
+        const groups = new Map();
+        for (const a of this.state.choices.analytic || []) {
+            if (!this.matches(p && p.query, a.name, a.plan)) continue;
+            const plan = a.plan || _t("No plan");
+            if (!groups.has(plan)) groups.set(plan, []);
+            groups.get(plan).push(a);
+        }
+        return [...groups.entries()].map(([plan, items]) => ({ key: plan, label: plan, items, state: this.groupState(items) }));
+    }
+
+    async loadPartnerHits() {
+        const p = this.state.pick;
+        if (!p || p.key !== "partners") {
+            return;
+        }
+        p.loading = true;
+        try {
+            const hits = await this.orm.call("ebshel.fin.report", "get_partner_suggestions", [this.rid],
+                                             { options: this.state.options, query: p.query });
+            if (this.state.pick === p) {
+                p.hits = hits;
+            }
+        } finally {
+            p.loading = false;
+        }
+    }
+
+    /** The partners chosen, then what the ledger suggests. */
+    get partnerRows() {
+        const p = this.state.pick;
+        const hits = (p && p.hits) || [];
+        const byId = new Map(hits.map((h) => [h.id, h]));
+        const chosen = p.ids.map((id) => byId.get(id) || { id, name: this.partnerName(id), amount_text: "", count: 0, active: true });
+        return { chosen, others: hits.filter((h) => !p.ids.includes(h.id)) };
+    }
+
+    // ------------------------------------------------------------------ accounts
+    openAccounts() {
+        if (this.state.menu === "accounts") {
+            this.state.menu = null;
+            return;
+        }
+        this.state.acct = { query: this.state.options.accounts_query || "", hits: null };
+        this.openMenu("accounts");
+        this.loadAccountHits();
+    }
+
+    onAcctQuery(ev) {
+        if (ev.key === "Enter") {
+            this.useAccountQuery();
+            return;
+        }
+        this.state.acct.query = ev.target.value;
+        this.accountSearch();
+    }
+
+    async loadAccountHits() {
+        const a = this.state.acct;
+        if (!a) {
+            return;
+        }
+        const hits = await this.orm.call("ebshel.fin.report", "get_account_suggestions", [this.rid],
+                                         { options: this.state.options, query: a.query });
+        if (this.state.acct === a) {
+            a.hits = hits;
+        }
+    }
+
+    chooseAccount(account) {
+        this.state.acct = null;
+        this.reload({ accounts_query: account.code });
+    }
+
+    useAccountQuery() {
+        const q = (this.state.acct.query || "").trim();
+        this.state.acct = null;
+        this.reload({ accounts_query: q });
+    }
+
+    // ------------------------------------------------------------------ the period, in a tap
+    iso(d) {
+        return serializeDate(d);
+    }
+
+    get periodShortcuts() {
+        const today = luxon.DateTime.now().startOf("day");
+        const f = this.state.fiscal;
+        const out = { months: [], quarters: [], years: [], ends: [] };
+        for (let i = 11; i >= 0; i--) {
+            const m = today.minus({ months: i }).startOf("month");
+            out.months.push({ key: m.toFormat("yyyy-MM"), label: m.toFormat("LLL"), year: m.month === 1 || i === 11 ? m.toFormat("yyyy") : "",
+                              from: this.iso(m), to: this.iso(m.endOf("month")) });
+        }
+        if (f) {
+            const start = deserializeDate(f.start);
+            for (let q = 0; q < 4; q++) {
+                const a = start.plus({ months: 3 * q });
+                const b = a.plus({ months: 3 }).minus({ days: 1 });
+                out.quarters.push({ key: "q" + q, label: "Q" + (q + 1), sub: a.toFormat("LLL") + "–" + b.toFormat("LLL"),
+                                    from: this.iso(a), to: this.iso(b), later: a > today });
+            }
+            const fy = (a, b) => (a.year === b.year ? String(a.year) : a.toFormat("yyyy") + "–" + b.toFormat("yy"));
+            const s = deserializeDate(f.start), e = deserializeDate(f.end);
+            const ps = deserializeDate(f.prev_start), pe = deserializeDate(f.prev_end);
+            out.years.push({ key: "ytd", label: _t("Year to date"), sub: fy(s, e), from: f.start, to: this.iso(today < e ? today : e) });
+            out.years.push({ key: "fy", label: _t("Whole year"), sub: fy(s, e), from: f.start, to: f.end });
+            out.years.push({ key: "pfy", label: _t("Last year"), sub: fy(ps, pe), from: f.prev_start, to: f.prev_end });
+            out.ends = [
+                { key: "today", label: _t("Today"), to: this.iso(today) },
+                { key: "lm", label: _t("End of last month"), to: this.iso(today.startOf("month").minus({ days: 1 })) },
+                { key: "lq", label: _t("End of last quarter"), to: this.iso(today.startOf("quarter").minus({ days: 1 })) },
+                { key: "lfy", label: _t("End of last year"), sub: fy(ps, pe), to: f.prev_end },
+                { key: "pfy", label: _t("The year before"), to: this.iso(ps.minus({ days: 1 })) },
+            ];
+        }
+        return out;
+    }
+
+    isRange(from, to) {
+        const d = this.state.options.date || {};
+        return d.from === from && d.to === to;
+    }
+
+    isAsOf(to) {
+        return (this.state.options.date || {}).to === to;
+    }
+
+    setRange(from, to) {
+        this.reload({ date: { preset: "custom", from, to } });
+    }
+
+    get periodDays() {
+        const d = this.state.options.date;
+        if (!d || !d.from || !d.to) {
+            return 0;
+        }
+        return Math.round(deserializeDate(d.to).diff(deserializeDate(d.from), "days").days) + 1;
+    }
+
+    // ------------------------------------------------------------------ the wider filters
+    /** One list of the wider filters, narrowed by what is typed over it, the chosen ones first. */
+    wideList(key) {
+        const q = this.state.wideQ[key] || "";
+        const chosen = new Set(this.state.draft[key] || []);
+        const items = (this.state.choices[key] || []).filter((i) => chosen.has(i.id) || this.matches(q, i.name));
+        return items.sort((a, b) => Number(chosen.has(b.id)) - Number(chosen.has(a.id)));
+    }
+
+    get draftChanges() {
+        const o = this.state.options, d = this.state.draft;
+        if (!d || !d.journal_types) {
+            return 0;
+        }
+        let n = 0;
+        for (const key of ["journal_types", "partner_categories", "salespeople", "teams", "product_categories"]) {
+            const a = new Set(o[key] || []), b = new Set(d[key] || []);
+            for (const x of b) if (!a.has(x)) n++;
+            for (const x of a) if (!b.has(x)) n++;
+        }
+        n += (o.label || "") !== (d.label || "") ? 1 : 0;
+        n += String(o.amount_min ?? "") !== String(d.amount_min ?? "") ? 1 : 0;
+        n += String(o.amount_max ?? "") !== String(d.amount_max ?? "") ? 1 : 0;
+        n += !!o.unreconciled !== !!d.unreconciled ? 1 : 0;
+        return n;
+    }
+
+    resetDraft() {
+        Object.assign(this.state.draft, { journal_types: [], partner_categories: [], salespeople: [], teams: [],
+                                          product_categories: [], label: "", amount_min: "", amount_max: "", unreconciled: false });
+        this.state.wideQ = {};
+    }
+
+    // ------------------------------------------------------------------ every filter, on a phone
+    get hubRows() {
+        const o = this.state.options, r = this.state.report, rows = [];
+        rows.push({ key: "period", icon: "fa-calendar", tone: "period", name: _t("Period"), value: this.periodLabel });
+        if (r.allow_comparison) {
+            rows.push({ key: "compare", icon: "fa-columns", tone: "compare", name: _t("Compare"), value: this.comparisonLabel() });
+        }
+        if (r.allow_journals) {
+            rows.push({ key: "journals", icon: "fa-book", tone: "journals", name: _t("Journals"), count: (o.journals || []).length, value: (o.journals || []).length ? "" : _t("All") });
+        }
+        if (r.allow_analytic && (this.state.choices.analytic || []).length) {
+            rows.push({ key: "analytic", icon: "fa-sitemap", tone: "analytic", name: _t("Analytic"), count: (o.analytic || []).length, value: (o.analytic || []).length ? "" : _t("All") });
+        }
+        if (r.allow_partners) {
+            rows.push({ key: "partners", icon: "fa-user", tone: "partners", name: _t("Partners"), count: (o.partners || []).length, value: (o.partners || []).length ? "" : _t("All") });
+        }
+        if (r.allow_accounts) {
+            rows.push({ key: "accounts", icon: "fa-list-ol", tone: "accounts", name: _t("Accounts"), value: o.accounts_query || _t("All") });
+        }
+        if (r.wide_filters) {
+            rows.push({ key: "filters", icon: "fa-filter", tone: "more", name: _t("More filters"), count: this.moreCount, value: this.moreCount ? "" : _t("None") });
+        }
+        return rows;
+    }
+
+    get hubCount() {
+        const o = this.state.options;
+        return (o.journals || []).length + (o.analytic || []).length + (o.partners || []).length
+            + (o.accounts_query ? 1 : 0) + this.moreCount + (o.comparison && o.comparison.mode !== "none" ? 1 : 0);
+    }
+
+    openFromHub(key) {
+        this.state.menu = null;
+        if (["journals", "analytic", "partners"].includes(key)) {
+            this.openPick(key);
+        } else if (key === "accounts") {
+            this.openAccounts();
+        } else if (key === "filters") {
+            this.openMore();
+        } else {
+            this.openMenu(key);
+        }
+    }
+
     // ------------------------------------------------------------------ the wider filters
     async openMore() {
         if (this.state.menu !== "filters" && !this.state.choices.wide_loaded) {
@@ -1214,6 +1552,7 @@ export class FinReportViewer extends Component {
             amount_max: o.amount_max === null || o.amount_max === undefined ? "" : o.amount_max,
             unreconciled: !!o.unreconciled,
         };
+        this.state.wideQ = {};
         this.openMenu("filters");
     }
 
@@ -1461,6 +1800,8 @@ export class FinReportViewer extends Component {
         if (ev.key === "Escape") {
             this.closeExport();
             this.state.menu = null;
+            this.state.pick = null;
+            this.state.acct = null;
             this.state.help = false;
             this.state.explain = null;
             this.state.movers = null;

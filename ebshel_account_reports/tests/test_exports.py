@@ -42,6 +42,8 @@ class TestFinReportExports(TransactionCase):
                                          'account_id': cls.income.id, 'tax_ids': [(5, 0, 0)]})]})
         cls.invoice.action_post()
         cls.own = dict(cls.year, partner_categories=[cls.tag.id])
+        # what these tests count is the report as laid out by default
+        cls.env.company.write({'ebshel_fin_totals_last': False, 'ebshel_fin_negative': 'minus'})
 
     # ------------------------------------------------------------ helpers
     def _sheet(self, file, index=0):

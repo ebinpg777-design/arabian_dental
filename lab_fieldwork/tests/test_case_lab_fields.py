@@ -121,3 +121,38 @@ class TestCaseLabFields(TransactionCase):
         toggles = arch.xpath("//widget[@name='fw_toggles']/@fields")[0].split(',')
         self.assertTrue({'is_3d_model_print', 'is_dd_cheque', 'is_others'} <= set(toggles))
         self.assertEqual(len(toggles), len(arch.xpath("//widget[@name='fw_toggles']/@colors")[0].split(',')))
+
+    def test_the_executive_profile_shows_the_phone_exceptions(self):
+        """Field Roles opens the simplified user form; the boxes must be on it."""
+        admin = self.env['res.users'].create({
+            'name': 'Field Admin', 'login': 'slip_field_admin',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id, self.env.ref('lab_fieldwork.group_fieldwork_admin').id])]})
+        action = self.env.ref('lab_fieldwork.action_fieldwork_users')
+        form = etree.fromstring(self.env['res.users'].with_user(admin).get_view(view_type='form')['arch'])
+        self.assertEqual({f.get('name') for f in form.xpath("//field[@name='fw_location_exception' or @name='fw_camera_exception']")},
+                         {'fw_location_exception', 'fw_camera_exception'})
+        listed = action.view_ids.filtered(lambda v: v.view_mode == 'list').view_id
+        arch = etree.fromstring(self.env['res.users'].with_user(admin).get_view(listed.id, view_type='list')['arch'])
+        self.assertTrue(arch.xpath("//field[@name='fw_location_exception']") and arch.xpath("//field[@name='fw_camera_exception']"))
+        # an executive sees neither: the exception is set for them, not by them
+        mine = etree.fromstring(self.env['res.users'].with_user(self.exec_user).get_view(view_type='form')['arch'])
+        self.assertFalse(mine.xpath("//field[@name='fw_location_exception']"))
+
+    def test_a_field_admin_switches_an_exception_without_the_user_manager_right(self):
+        from odoo.exceptions import AccessError
+        admin = self.env['res.users'].create({
+            'name': 'Field Admin Two', 'login': 'slip_field_admin2',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id, self.env.ref('lab_fieldwork.group_fieldwork_admin').id])]})
+        self.assertFalse(admin.has_group('base.group_erp_manager'), "the point: this person cannot edit users")
+        target = self.exec_user.with_user(admin)
+        target.with_context(fw_exception='location', fw_value=True).action_fw_set_exception()
+        target.with_context(fw_exception='camera', fw_value=True).action_fw_set_exception()
+        self.assertEqual(self.exec_user._fw_phone_exceptions(), {'location': True, 'camera': True})
+        self.assertIn('switched on by Field Admin Two', ' '.join(self.exec_user.partner_id.message_ids.mapped('body')))
+        target.with_context(fw_exception='camera', fw_value=False).action_fw_set_exception()
+        self.assertEqual(self.exec_user._fw_phone_exceptions(), {'location': True, 'camera': False})
+        with self.assertRaises(AccessError):
+            self.exec_user.with_user(self.exec_user).with_context(fw_exception='location', fw_value=False).action_fw_set_exception()
+        with self.assertRaises(UserError):
+            target.with_context(fw_exception='microphone', fw_value=True).action_fw_set_exception()
+        self.assertTrue(self.exec_user.fw_location_exception, "an executive cannot switch their own exception off")

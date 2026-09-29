@@ -27,4 +27,71 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Field Roles opens the SIMPLIFIED user form: `base.view_users_simple_form`,
+         priority 1, is what res.users resolves to when an action names no view. It
+         has no tabs, so the page above never appeared on the executive's profile -
+         the two boxes have to be on this form too. (client, 2026-09-29) -->
+    <record id="view_users_simple_form_fieldwork" model="ir.ui.view">
+        <field name="name">res.users.simplified.form.fieldwork</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_simple_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Field Work — Phone exceptions" name="fw_phone_exceptions"
+                       groups="lab_fieldwork.group_fieldwork_admin,base.group_system">
+                    <!-- switched by button: a field-work administrator cannot edit a user
+                         record, and a box they cannot tick is worse than none -->
+                    <label for="fw_location_exception"/>
+                    <div class="d-flex align-items-center gap-2" name="fw_location_switch">
+                        <field name="fw_location_exception" readonly="1" nolabel="1" widget="boolean"/>
+                        <span invisible="not fw_location_exception" class="badge text-bg-warning">On: time only, no location</span>
+                        <button name="action_fw_set_exception" type="object" string="Switch on" class="btn btn-sm btn-warning"
+                                context="{'fw_exception': 'location', 'fw_value': True}" invisible="fw_location_exception"/>
+                        <button name="action_fw_set_exception" type="object" string="Switch off" class="btn btn-sm btn-secondary"
+                                context="{'fw_exception': 'location', 'fw_value': False}" invisible="not fw_location_exception"/>
+                    </div>
+                    <label for="fw_camera_exception"/>
+                    <div class="d-flex align-items-center gap-2" name="fw_camera_switch">
+                        <field name="fw_camera_exception" readonly="1" nolabel="1" widget="boolean"/>
+                        <span invisible="not fw_camera_exception" class="badge text-bg-warning">On: invoice number typed, not scanned</span>
+                        <button name="action_fw_set_exception" type="object" string="Switch on" class="btn btn-sm btn-warning"
+                                context="{'fw_exception': 'camera', 'fw_value': True}" invisible="fw_camera_exception"/>
+                        <button name="action_fw_set_exception" type="object" string="Switch off" class="btn btn-sm btn-secondary"
+                                context="{'fw_exception': 'camera', 'fw_value': False}" invisible="not fw_camera_exception"/>
+                    </div>
+                    <div colspan="2" class="text-muted small">
+                        <p class="mb-1"><b>Location:</b> field work records the time only for this
+                        person - no position is asked for on visits, deliveries or the day trail,
+                        and no location warning is shown to them or raised on their day sheet.</p>
+                        <p class="mb-0"><b>Camera:</b> on dispatched deliveries they type the
+                        invoice number instead of scanning it.</p>
+                    </div>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Field Roles as a list: who is on an exception, seen without opening anyone. -->
+    <record id="view_users_list_fieldwork" model="ir.ui.view">
+        <field name="name">res.users.list.fieldwork</field>
+        <field name="model">res.users</field>
+        <field name="priority">90</field>
+        <field name="arch" type="xml">
+            <list string="Field Roles">
+                <field name="name"/>
+                <field name="login"/>
+                <field name="fw_location_exception" string="No location" widget="boolean"
+                       groups="lab_fieldwork.group_fieldwork_admin,base.group_system"/>
+                <field name="fw_camera_exception" string="No camera" widget="boolean"
+                       groups="lab_fieldwork.group_fieldwork_admin,base.group_system"/>
+                <field name="login_date" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ...and Field Roles opens on it (the action is defined before this file loads) -->
+    <record id="action_fieldwork_users" model="ir.actions.act_window">
+        <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_users_list_fieldwork')})]"/>
+    </record>
 </odoo>

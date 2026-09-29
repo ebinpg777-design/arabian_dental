@@ -17,6 +17,7 @@ class TestFinReports(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.env.company.write({'ebshel_fin_totals_last': False, 'ebshel_fin_negative': 'minus'})
         cls.Report = cls.env['ebshel.fin.report']
         cls.engine = cls.env['ebshel.fin.engine']
         cls.company = cls.env.company

@@ -20,6 +20,7 @@ class TestFinReportFilters(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.env.company.write({'ebshel_fin_totals_last': False, 'ebshel_fin_negative': 'minus'})
         cls.Report = cls.env['ebshel.fin.report']
         cls.engine = cls.env['ebshel.fin.engine']
         cls.pl = cls.Report.by_key('profit_loss')
@@ -116,6 +117,47 @@ class TestFinReportFilters(TransactionCase):
         self.assertEqual([u[0] for u in choices['units']], [1, 1000, 100000, 1000000, 10000000])
         self.assertIn('profit_loss', [r['key'] for r in data['reports']])
         self.assertTrue(data['report']['wide_filters'])
+
+    # ------------------------------------------------------------ what the filter panels offer
+    def test_the_partner_panel_opens_on_the_partners_that_moved(self):
+        quiet = self.env['res.partner'].create({'name': 'EFR Probe Quiet Clinic'})
+        hits = self.pl.get_partner_suggestions(self.year)
+        self.assertTrue(hits and all(h['active'] and h['count'] for h in hits), "it opens on partners that moved, never empty")
+        counts = [h['count'] for h in hits]
+        self.assertEqual(counts, sorted(counts, reverse=True), "the most active first")
+        self.assertNotIn(quiet.id, [h['id'] for h in hits], "a partner with nothing in the period is not suggested")
+        found = self.pl.get_partner_suggestions(self.year, query='EFR Probe')
+        ours = found[0]
+        self.assertTrue(ours['active'])
+        self.assertEqual(ours['count'], 1)
+        self.assertAlmostEqual(ours['amount'], AMOUNT, 2, "what is owed on the receivable")
+        self.assertEqual(found[0]['id'], self.partner.id, "those that moved come before those found by name")
+        quiet_hit = next(h for h in found if h['id'] == quiet.id)
+        self.assertFalse(quiet_hit['active'], "but a name typed still finds a partner the period never saw")
+        narrowed = self.pl.get_partner_suggestions(dict(self.year, partners=[quiet.id]), query='EFR Probe')
+        self.assertEqual(narrowed[0]['id'], self.partner.id, "the panel is not narrowed by its own filter")
+
+    def test_the_account_panel_puts_a_code_before_a_name(self):
+        hits = self.pl.get_account_suggestions(self.year, query=self.income.code)
+        self.assertEqual(hits[0]['id'], self.income.id)
+        self.assertEqual(hits[0]['count'], 1)
+        by_name = self.pl.get_account_suggestions(self.year, query='probe income')
+        self.assertIn(self.income.id, [h['id'] for h in by_name])
+        self.assertLessEqual(len(self.pl.get_account_suggestions(self.year, limit=5)), 5)
+
+    def test_the_period_panel_knows_the_fiscal_years_around_it(self):
+        fiscal = self.pl.get_report_data(self.year)['fiscal']
+        fy = self.env.company.compute_fiscalyear_dates(self.today)
+        self.assertEqual((fiscal['start'], fiscal['end']), (fields.Date.to_string(fy['date_from']), fields.Date.to_string(fy['date_to'])))
+        self.assertLess(fiscal['prev_end'], fiscal['start'])
+
+    def test_the_panels_need_the_reader_role(self):
+        nobody = self.env['res.users'].create({'name': 'Nobody', 'login': 'efr_panel_nobody',
+                                               'group_ids': [(6, 0, [self.env.ref('base.group_user').id])]})
+        for call in (lambda: self.pl.with_user(nobody).get_partner_suggestions(self.year),
+                     lambda: self.pl.with_user(nobody).get_account_suggestions(self.year)):
+            with self.assertRaises(Exception):
+                call()
 
     # ------------------------------------------------------------ the journal items of a line
     def test_the_items_of_a_line_come_a_page_at_a_time_and_add_up(self):
