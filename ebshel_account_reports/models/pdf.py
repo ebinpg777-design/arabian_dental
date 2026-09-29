@@ -9,7 +9,7 @@ class FinReportPdf(models.AbstractModel):
     _description = 'Financial report, on paper'
 
     @api.model
-    def _column_plan(self, count, landscape, detailed):
+    def _column_plan(self, count, landscape, detailed, first_column=1.0):
         """(width of the name column, width of each figure, font size) in percent and pixels:
         the columns are fixed so that every slice of a long table lines up with the last."""
         count = max(count, 1)
@@ -19,6 +19,7 @@ class FinReportPdf(models.AbstractModel):
             name = 50 if count <= 2 else 40 if count == 3 else 30
         if detailed:
             name = max(name, 100 - count * (11 if landscape else 15))
+        name = round(min(name * first_column, 80.0), 2)
         each = (100.0 - name) / count
         font = 11 if each >= 9.5 else 9.5 if each >= 7 else 8
         return name, round(each, 2), font
@@ -39,8 +40,9 @@ class FinReportPdf(models.AbstractModel):
         total = len(lines)
         lines = lines[:cap]
         landscape = report._wants_landscape(layout, columns, lines)
-        name_w, col_w, font = self._column_plan(len(columns), landscape, any(l.get('parts') for l in lines))
-        company = self.env['res.company'].browse(options['companies'][0])
+        name_w, col_w, font = self._column_plan(len(columns), landscape, any(l.get('parts') for l in lines),
+                                                report._first_column())
+        company = self.env['ebshel.fin.engine'].lead_company(options)
         notes = self.env['ebshel.fin.report.annotation'].for_report(report) if layout['notes'] else {}
         flat_notes = [dict(n, line_key=key) for key, items in notes.items() for n in items]
         facts = report._filters_in_words(options)

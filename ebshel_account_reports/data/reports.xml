@@ -106,6 +106,8 @@
         <field name="name">Aged Receivable</field>
         <field name="key">aged_receivable</field>
         <field name="kind">aged</field>
+        <!-- seven eighths of the usual: eight columns of figures need the room more than a name does -->
+        <field name="first_column">0.875</field>
         <field name="sequence">110</field>
         <field name="custom" eval="False"/>
         <field name="date_mode">single</field>
@@ -118,6 +120,8 @@
         <field name="name">Aged Payable</field>
         <field name="key">aged_payable</field>
         <field name="kind">aged</field>
+        <!-- seven eighths of the usual: eight columns of figures need the room more than a name does -->
+        <field name="first_column">0.875</field>
         <field name="sequence">120</field>
         <field name="custom" eval="False"/>
         <field name="date_mode">single</field>
@@ -135,7 +139,7 @@
         <field name="allow_comparison" eval="False"/>
         <field name="allow_partners" eval="True"/>
         <field name="allow_analytic" eval="False"/>
-        <field name="unfold_all_default" eval="True"/>
+        <field name="unfold_all_default" eval="False"/>
         <field name="default_preset">this_month</field>
     </record>
     <record id="report_vendor_statement" model="ebshel.fin.report">
@@ -147,7 +151,7 @@
         <field name="allow_comparison" eval="False"/>
         <field name="allow_partners" eval="True"/>
         <field name="allow_analytic" eval="False"/>
-        <field name="unfold_all_default" eval="True"/>
+        <field name="unfold_all_default" eval="False"/>
         <field name="default_preset">this_month</field>
     </record>
     <record id="report_tax" model="ebshel.fin.report">

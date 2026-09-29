@@ -66,6 +66,9 @@ export class FinReportViewer extends Component {
             full: false,
             display: this.loadDisplay(),
             draft: {},                  // the More filters panel, before Apply
+            since: null,                // {at, changes: {line id: delta}}: what moved since the reader last looked
+            pins: [],                   // line ids kept in sight above the table
+            took: 0,                    // seconds the last reading took, as the reader felt it
             exporter: null,             // the export panel: {format, scope, orientation, filters, notes, preview}
             refreshing: false,          // a reload under a report already on the screen
             limit: PAGE_OF_LINES,       // how many lines are drawn; the rest come as the reader scrolls
@@ -78,6 +81,13 @@ export class FinReportViewer extends Component {
             }
         };
         this.onKey = (ev) => this.keyboard(ev);
+        // the first column at the width the report asks for, whenever the table is drawn anew
+        this.onResize = () => this.fitFirstColumn();
+        useEffect(() => {
+            this.fitFirstColumn();
+        }, () => [this.state.report && this.state.report.key, this.state.columns.length, this.state.lines.length,
+                  this.state.limit, this.state.display.density, !!this.state.movers, !!this.state.explain,
+                  this.state.options.trend, this.state.options.share, this.state.loading]);
         // once a popover is drawn, it is pulled back inside the window
         useEffect((menu) => {
             if (menu) {
@@ -88,8 +98,10 @@ export class FinReportViewer extends Component {
         onMounted(() => {
             document.addEventListener("click", this.onDocClick);
             document.addEventListener("keydown", this.onKey);
+            window.addEventListener("resize", this.onResize);
         });
         onWillUnmount(() => {
+            window.removeEventListener("resize", this.onResize);
             document.removeEventListener("click", this.onDocClick);
             document.removeEventListener("keydown", this.onKey);
         });
@@ -98,6 +110,7 @@ export class FinReportViewer extends Component {
     // ------------------------------------------------------------------ loading
     async load() {
         const token = ++this.loadToken;
+        const started = performance.now();
         if (this.state.report && this.state.lines.length) {
             this.state.refreshing = true;
         } else {
@@ -105,8 +118,11 @@ export class FinReportViewer extends Component {
         }
         this.state.error = null;
         try {
-            const data = this.state.report
-                ? await this.orm.call("ebshel.fin.report", "get_report_data", [[this.state.report.id]], { options: this.state.options })
+            // under a report already on the screen, what the filters can be set to, the list of
+            // reports and the saved views are already here: only the figures are asked for
+            const lean = !!this.state.report;
+            const data = lean
+                ? await this.orm.call("ebshel.fin.report", "get_report_data", [[this.state.report.id]], { options: this.state.options, lean: true })
                 : await this.orm.call("ebshel.fin.report", "open_by_key", [this.reportKey], { options: this.state.options });
             if (token !== this.loadToken) {
                 return;
@@ -115,9 +131,13 @@ export class FinReportViewer extends Component {
             this.state.options = data.options;
             this.state.columns = data.columns;
             this.state.lines = data.lines;
-            this.state.choices = data.choices;
+            if (data.choices) {
+                this.state.choices = data.choices;
+            }
             this.state.annotations = data.annotations || {};
-            this.state.savedViews = data.saved_views || [];
+            if (data.saved_views) {
+                this.state.savedViews = data.saved_views;
+            }
             this.state.currency = data.currency;
             this.state.canDesign = data.can_design;
             this.state.canAnnotate = data.can_annotate;
@@ -125,10 +145,15 @@ export class FinReportViewer extends Component {
             this.state.explain = null;
             this.state.unitLabel = data.unit_label || "";
             this.state.periodText = data.period_label || "";
-            this.state.reports = data.reports || [];
+            if (data.reports) {
+                this.state.reports = data.reports;
+            }
             this.state.items = {};
             this.state.selected = {};
             this.state.limit = PAGE_OF_LINES;
+            this.state.took = (performance.now() - started) / 1000;
+            this.state.pins = this.readPins();
+            this.compareWithLastLook();
             if (this.state.movers) {
                 this.loadMovers();
             }
@@ -282,6 +307,28 @@ export class FinReportViewer extends Component {
         this.state.menu = this.state.menu === name ? null : name;
     }
 
+    /**
+     * The first column takes what the figures leave. A report may ask for a share of that
+     * (the aged reports ask for seven eighths): the width it would have is measured, the
+     * share is set, and what it gives up goes to the figures.
+     */
+    fitFirstColumn() {
+        const table = this.tableRef.el;
+        if (!table) {
+            return;
+        }
+        table.style.removeProperty("--efr-name-w");
+        table.style.removeProperty("--efr-name-share");
+        const share = (this.state.report && this.state.report.first_column) || 1;
+        const head = table.querySelector("th.o_efr_th_name");
+        if (share === 1 || !head || window.innerWidth < 768) {
+            return;                     // on a phone the column is already as narrow as a name allows
+        }
+        const usual = head.getBoundingClientRect().width;
+        table.style.setProperty("--efr-name-share", String(share));
+        table.style.setProperty("--efr-name-w", Math.round(usual * share) + "px");
+    }
+
     /** A popover hangs from its button; near the right edge it is pulled back into the window. */
     fitPopover() {
         const el = document.querySelector(".o_efr .o_efr_pop");
@@ -390,6 +437,12 @@ export class FinReportViewer extends Component {
             }
             this.state.lines = rest;
             line.unfolded = false;
+            if (line.held) {
+                // folded again, a section carries its own total
+                line.columns = line.held;
+                line.held = null;
+                line.total_last = false;
+            }
             this.state.options.expanded = (this.state.options.expanded || []).filter((i) => i !== line.id);
             return;
         }
@@ -401,6 +454,14 @@ export class FinReportViewer extends Component {
             ? [...res.lines, { id: line.id + ":more", parent_id: line.id, name: _t("Load more…"), level: line.level + 1,
                               kind: "more", columns: [], unfoldable: false, offset: res.lines.length - 1 }]
             : res.lines;
+        if (res.totals_last) {
+            extra.push({ ...line, id: line.id + ":total", total_of: line.id, parent_id: line.id, name: _t("Total %s", line.name),
+                         bold: true, kind: "total", unfoldable: false, unfolded: false,
+                         columns: line.columns.map((c) => ({ ...c })) });
+            line.held = line.columns;
+            line.columns = line.columns.map(() => ({ value: null, text: "", display: "text" }));
+            line.total_last = true;
+        }
         this.state.lines.splice(at + 1, 0, ...extra);
         line.unfolded = true;
         this.state.options.expanded = [...(this.state.options.expanded || []), line.id];
@@ -452,7 +513,7 @@ export class FinReportViewer extends Component {
 
     async openList(line, colKey) {
         const action = await this.orm.call("ebshel.fin.report", "get_drill_action", [this.rid], {
-            options: this.state.options, line_id: line.id, column_key: colKey,
+            options: this.state.options, line_id: this.sourceId(line), column_key: colKey,
         });
         if (action) {
             this.action.doAction(action);
@@ -460,6 +521,11 @@ export class FinReportViewer extends Component {
     }
 
     // ------------------------------------------------------------------ journal items, in place
+    /** The id the server knows a line by: a total stands for the section it closes. */
+    sourceId(line) {
+        return line.total_of || line.id;
+    }
+
     canOpenItems(line) {
         return !["more", "move_line", "open_item", "initial", "header"].includes(line.kind)
             && (line.columns || []).some((c) => c.drill);
@@ -508,7 +574,7 @@ export class FinReportViewer extends Component {
         it.loading = true;
         try {
             const res = await this.orm.call("ebshel.fin.report", "get_items", [this.rid], {
-                options: this.state.options, line_id: line.id, column_key: it.colKey,
+                options: this.state.options, line_id: this.sourceId(line), column_key: it.colKey,
                 offset: more ? it.rows.length : 0, limit: 40, search: it.search, order: it.order,
             });
             const live = this.state.items[line.id];
@@ -578,7 +644,7 @@ export class FinReportViewer extends Component {
         this.state.movers = null;
         this.state.explain = { loading: true, title: line.name };
         const data = await this.orm.call("ebshel.fin.report", "explain_cell", [this.rid], {
-            options: this.state.options, line_id: line.id, column_key: colKey,
+            options: this.state.options, line_id: this.sourceId(line), column_key: colKey,
         });
         if (!data || !Object.keys(data).length) {
             this.state.explain = null;
@@ -680,6 +746,158 @@ export class FinReportViewer extends Component {
         ev.stopPropagation();
         await this.orm.unlink("ebshel.fin.report.view", [view.id]);
         this.state.savedViews = this.state.savedViews.filter((v) => v.id !== view.id);
+    }
+
+    // ------------------------------------------------------------------ since the last look
+    /** What a reading is known by: the report, its period and everything that narrows it. */
+    get lookKey() {
+        const o = this.state.options;
+        const narrow = ["journals", "journal_types", "partners", "partner_categories", "salespeople", "teams", "product_categories",
+                        "analytic", "accounts_query", "label", "amount_min", "amount_max", "unreconciled", "posted_only"]
+            .map((k) => JSON.stringify(o[k] ?? null)).join("|");
+        return `ebshel_fin_look:${this.state.report.key}:${o.date.from}:${o.date.to}:${(o.companies || []).join(",")}:${narrow}`;
+    }
+
+    figureOf(line) {
+        const cell = (line.columns || []).find((c) => c.display === "amount" && c.value !== null && c.value !== undefined);
+        return cell ? cell.value : null;
+    }
+
+    snapshot() {
+        const values = {};
+        for (const line of this.state.lines) {
+            const v = this.figureOf(line);
+            if (v !== null && !line.parts && line.kind !== "more") {
+                values[line.id] = v;
+            }
+        }
+        return { at: new Date().toISOString(), values };
+    }
+
+    /**
+     * The figures as the reader last saw them are kept in the browser; what differs now
+     * is marked. The first look at a period has nothing to compare with and is only
+     * remembered. "Seen" makes the present the new last look.
+     */
+    compareWithLastLook() {
+        this.state.since = null;
+        if (!this.state.report) {
+            return;
+        }
+        let last = null;
+        try {
+            last = JSON.parse(window.localStorage.getItem(this.lookKey) || "null");
+        } catch {
+            last = null;
+        }
+        if (!last || !last.values) {
+            this.markSeen();
+            return;
+        }
+        const changes = {};
+        for (const line of this.state.lines) {
+            const now = this.figureOf(line);
+            const was = last.values[line.id];
+            if (now !== null && was !== undefined && Math.abs(now - was) >= 0.005) {
+                changes[line.id] = now - was;
+            }
+        }
+        if (Object.keys(changes).length) {
+            this.state.since = { at: last.at, changes, count: Object.keys(changes).length };
+        } else {
+            this.markSeen();
+        }
+    }
+
+    markSeen() {
+        this.state.since = null;
+        try {
+            window.localStorage.setItem(this.lookKey, JSON.stringify(this.snapshot()));
+        } catch {
+            // private mode or a full store: the next look simply has nothing to compare with
+        }
+    }
+
+    get sinceWhen() {
+        if (!this.state.since) {
+            return "";
+        }
+        const at = new Date(this.state.since.at);
+        return at.toLocaleString(undefined, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    }
+
+    changeOf(line, index) {
+        if (!this.state.since) {
+            return null;
+        }
+        const first = (line.columns || []).findIndex((c) => c.display === "amount" && c.value !== null && c.value !== undefined);
+        const delta = this.state.since.changes[line.id];
+        if (delta === undefined || index !== first) {
+            return null;
+        }
+        return { up: delta > 0, text: (delta > 0 ? "+" : "−") + this.number(Math.abs(delta)) };
+    }
+
+    // ------------------------------------------------------------------ figures kept in sight
+    get pinKey() {
+        return `ebshel_fin_pins:${this.state.report ? this.state.report.key : ""}`;
+    }
+
+    readPins() {
+        try {
+            const pins = JSON.parse(window.localStorage.getItem(this.pinKey) || "[]");
+            return Array.isArray(pins) ? pins : [];
+        } catch {
+            return [];
+        }
+    }
+
+    isPinned(line) {
+        return this.state.pins.includes(line.id);
+    }
+
+    togglePin(line, ev) {
+        if (ev) {
+            ev.stopPropagation();
+        }
+        this.state.pins = this.isPinned(line) ? this.state.pins.filter((id) => id !== line.id) : [...this.state.pins, line.id].slice(-6);
+        try {
+            window.localStorage.setItem(this.pinKey, JSON.stringify(this.state.pins));
+        } catch {
+            // the pins last as long as the page
+        }
+    }
+
+    /** The pinned lines that this reading holds, with the figure of each column that has one. */
+    get pinned() {
+        const out = [];
+        for (const id of this.state.pins) {
+            const line = this.state.lines.find((l) => l.id === id);
+            if (!line) {
+                continue;
+            }
+            const source = line.total_last ? this.state.lines.find((l) => l.total_of === id) || line : line;
+            const cells = (source.columns || []).map((c, i) => ({ ...c, label: (this.state.columns[i] || {}).label, index: i }))
+                .filter((c) => c.text);
+            if (cells.length) {
+                out.push({ id, line, name: line.name, main: cells[0], rest: cells.slice(1, 3), change: this.changeOf(source, cells[0].index) });
+            }
+        }
+        return out;
+    }
+
+    goToLine(id) {
+        const at = this.visibleLines.findIndex((l) => l.id === id);
+        if (at >= this.state.limit) {
+            this.state.limit = at + PAGE_OF_LINES;
+        }
+        this.state.focus = id;
+        requestAnimationFrame(() => {
+            const row = this.tableRef.el && this.tableRef.el.querySelector(`[data-line="${CSS.escape(id)}"]`);
+            if (row) {
+                row.scrollIntoView({ block: "center" });
+            }
+        });
     }
 
     // ------------------------------------------------------------------ out of the screen
@@ -849,7 +1067,7 @@ export class FinReportViewer extends Component {
         it.saving = true;
         try {
             const file = await this.orm.call("ebshel.fin.report", "export_items_xlsx", [this.rid], {
-                options: this.state.options, line_id: line.id, column_key: it.colKey, search: it.search, order: it.order,
+                options: this.state.options, line_id: this.sourceId(line), column_key: it.colKey, search: it.search, order: it.order,
             });
             this.saveBase64(file);
             if (file.total > file.items) {
@@ -946,7 +1164,7 @@ export class FinReportViewer extends Component {
 
     get shareBase() {
         const code = this.state.report && this.state.report.share_code;
-        return code ? this.state.lines.find((l) => l.code === code) : null;
+        return code ? this.state.lines.find((l) => l.code === code && (l.columns || []).some((c) => c.value !== null && c.value !== undefined)) : null;
     }
 
     shareText(line, cell, index) {
@@ -982,7 +1200,11 @@ export class FinReportViewer extends Component {
     }
 
     // ------------------------------------------------------------------ the wider filters
-    openMore() {
+    async openMore() {
+        if (this.state.menu !== "filters" && !this.state.choices.wide_loaded) {
+            const wide = await this.orm.call("ebshel.fin.report", "get_wide_choices", [this.rid], { options: this.state.options });
+            this.state.choices = { ...this.state.choices, ...wide };
+        }
         const o = this.state.options;
         this.state.draft = {
             journal_types: [...(o.journal_types || [])], partner_categories: [...(o.partner_categories || [])],
@@ -1217,11 +1439,14 @@ export class FinReportViewer extends Component {
         const c = this.state.currency || {};
         const unit = this.state.options.unit || 1;
         const scaled = Math.abs(v / unit) < 0.005 ? 0 : v / unit;
-        const text = scaled.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        if (unit !== 1) {
+        const style = (this.state.report && this.state.report.negative) || "minus";
+        const below = scaled < 0 && style !== "minus";
+        const figure = (below ? -scaled : scaled).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const text = unit !== 1 ? figure : c.position === "before" ? `${c.symbol || ""} ${figure}` : `${figure} ${c.symbol || ""}`;
+        if (!below) {
             return text;
         }
-        return c.position === "before" ? `${c.symbol || ""} ${text}` : `${text} ${c.symbol || ""}`;
+        return style === "brackets" ? `(${text})` : `${text}-`;
     }
 
     clearSelection() {

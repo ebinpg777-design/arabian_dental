@@ -28,7 +28,9 @@ DETAILS = (('date', 'Date'), ('move', 'Entry'), ('journal', 'Journal'), ('partne
            ('label', 'Label'), ('account', 'Account'), ('due', 'Due'), ('matching', 'Match'))
 NAVY, INK, MUTED, RULE = '#1F3A5F', '#1F2937', '#6B7280', '#E6EAF0'
 GOOD, BAD = '#067647', '#B42318'
-MONEY = '#,##0.00;[Red]-#,##0.00;"-"'     # nothing is a dash, the way a ledger is ruled
+# nothing is a dash, the way a ledger is ruled; below nothing, the way the company writes it
+MONEY = {'minus': '#,##0.00;[Red]-#,##0.00;"-"', 'brackets': '#,##0.00;[Red](#,##0.00);"-"',
+         'trailing': '#,##0.00;[Red]#,##0.00-;"-"'}
 
 
 class FinReportExport(models.Model):
@@ -56,7 +58,10 @@ class FinReportExport(models.Model):
             given['unfold_all'] = True
         engine, handler, options, columns = self._prepare(given)
         lines = [l for l in handler.lines(self, options, columns, for_export=True) if l.get('kind') != 'more']
-        return engine, options, columns, self._polish(lines), layout
+        lines = self._polish(lines)
+        if self.env['ebshel.fin.engine'].lead_company(options).sudo().ebshel_fin_totals_last:
+            lines = self._totals_last(lines)
+        return engine, options, columns, lines, layout
 
     @api.model
     def _is_empty(self, lines):
@@ -245,7 +250,7 @@ class FinReportExport(models.Model):
         output, book, fmt = self._workbook()
         engine, options, columns, lines, layout = self._export_lines(options, layout)
         unit = options.get('unit') or 1
-        company = self.env['res.company'].browse(options['companies'][0])
+        company = self.env['ebshel.fin.engine'].lead_company(options)
         notes = self.env['ebshel.fin.report.annotation'].for_report(self) if layout['notes'] else {}
         keys = self._detail_keys(lines)
         labels = dict(DETAILS)
@@ -253,6 +258,7 @@ class FinReportExport(models.Model):
         last_col = first_value + len(columns) - 1
         names = {l['id']: l['name'] for l in lines}
         day_format = self._excel_date_format()
+        money = MONEY.get(company.sudo().ebshel_fin_negative) or MONEY['minus']
         book.set_properties({'title': self.name, 'author': self.env.user.name, 'company': company.name or '',
                              'comments': self._options_summary(options)})
         sheet = book.add_worksheet(self.name[:31])
@@ -324,7 +330,7 @@ class FinReportExport(models.Model):
                 if value is None or kind in ('check', 'text'):
                     sheet.write(row, i, text, fmt(align='right', **spec))
                 elif kind == 'amount':
-                    sheet.write_number(row, i, value / unit, fmt(num_format=MONEY, align='right', **spec))
+                    sheet.write_number(row, i, value / unit, fmt(num_format=money, align='right', **spec))
                 elif kind == 'growth':
                     colour = GOOD if cell.get('class') == 'up' else BAD if cell.get('class') == 'down' else INK
                     if abs(value) > 999.9:
@@ -347,7 +353,7 @@ class FinReportExport(models.Model):
             sheet.write(row, 0, _('Nothing in this period with these filters.'), fmt(italic=True, font_color=MUTED))
 
         # the sheet, ready to be read and to be printed
-        sheet.set_column(0, 0, max(30, min(widths.get(0, 30) + 2, 62)))
+        sheet.set_column(0, 0, round(max(30, min(widths.get(0, 30) + 2, 62)) * self._first_column(), 1))
         for i, key in enumerate(keys, start=1):
             sheet.set_column(i, i, max(9, min(widths.get(i, 10) + 2, 46 if key == 'label' else 34)))
         for i in range(first_value, last_col + 1):
@@ -398,7 +404,7 @@ class FinReportExport(models.Model):
         AML = self.env['account.move.line']
         total = AML.search_count(domain)
         ids = AML.search(domain, order=self.ITEM_ORDERS.get(order, self.ITEM_ORDERS['date desc']), limit=ITEMS_CAP).ids
-        company = self.env['res.company'].browse(options['companies'][0])
+        company = self.env['ebshel.fin.engine'].lead_company(options)
         output, book, fmt = self._workbook()
         book.set_properties({'title': title or self.name, 'author': self.env.user.name, 'company': company.name or ''})
         sheet = book.add_worksheet(_('Journal items')[:31])
@@ -419,7 +425,8 @@ class FinReportExport(models.Model):
             sheet.write(head_row, i, label, fmt(align=align, **head))
             sheet.set_column(i, i, width)
         cell = {'bottom': 1, 'bottom_color': RULE, 'font_color': INK, 'font_size': 9}
-        text, money = fmt(align='left', **cell), fmt(align='right', num_format=MONEY, **cell)
+        figures = MONEY.get(company.sudo().ebshel_fin_negative) or MONEY['minus']
+        text, money = fmt(align='left', **cell), fmt(align='right', num_format=figures, **cell)
         day = fmt(align='left', num_format=self._excel_date_format(), **cell)
         draft = fmt(align='left', italic=True, **dict(cell, font_color='#9A3412'))
         names = {}
@@ -462,7 +469,7 @@ class FinReportExport(models.Model):
         for i, amount in zip((7, 8, 9), sums):
             letter = chr(ord('A') + i)
             sheet.write_formula(total_row, i, '=SUBTOTAL(109,%s%d:%s%d)' % (letter, first + 1, letter, last + 1),
-                                fmt(align='right', num_format=MONEY, **strong), round(amount, 2))
+                                fmt(align='right', num_format=figures, **strong), round(amount, 2))
         for i in range(10, len(heads)):
             sheet.write(total_row, i, '', fmt(**strong))
         if total > len(ids):

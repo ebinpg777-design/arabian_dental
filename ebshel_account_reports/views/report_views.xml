@@ -47,6 +47,7 @@
                             <field name="default_comparison" invisible="not allow_comparison"/>
                             <field name="show_growth" invisible="not allow_comparison"/>
                                 <field name="share_code" invisible="kind != 'statement'"/>
+                            <field name="first_column"/>
                             <field name="allow_journals"/>
                             <field name="allow_partners"/>
                             <field name="allow_analytic"/>

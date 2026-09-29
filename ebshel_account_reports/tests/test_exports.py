@@ -337,6 +337,34 @@ class TestFinReportExports(TransactionCase):
         entry = next(r for r in sheet.iter_rows(min_row=at + 1) if r[head.index('Entry')].value == self.invoice.name)
         self.assertEqual(entry[head.index('Date')].number_format, 'dd mmm yyyy')
 
+    def test_the_aged_reports_give_an_eighth_of_the_first_column_to_the_figures(self):
+        Pdf = self.env['report.ebshel_account_reports.fin_report_pdf']
+        usual = Pdf._column_plan(8, True, False)
+        for key in ('aged_receivable', 'aged_payable'):
+            with self.subTest(report=key):
+                report = self.Report.by_key(key)
+                self.assertAlmostEqual(report.first_column, 0.875, 3)
+                self.assertAlmostEqual(report.get_report_data(self.year)['report']['first_column'], 0.875, 3)
+                values = Pdf._get_report_values([report.id], {'options': self.year, 'report_id': report.id, 'layout': {'scope': 'summary'}})
+                count = len(values['columns'])
+                plain = Pdf._column_plan(count, values['landscape'], False)
+                self.assertAlmostEqual(values['name_w'], plain[0] * 0.875, 1)
+                self.assertGreater(values['col_w'], plain[1], "what the names give up goes to the figures")
+                self.assertAlmostEqual(values['name_w'] + values['col_w'] * count, 100.0, 0)
+        self.assertEqual(self.pl.first_column, 1.0, "every other report keeps its usual width")
+        self.assertEqual(usual, Pdf._column_plan(8, True, False, 1.0))
+
+    def test_the_first_column_of_the_workbook_follows(self):
+        report = self.Report.by_key('aged_receivable')
+        narrow = self._sheet(report.export_xlsx(self.year, {'scope': 'summary'}))[1].column_dimensions['A'].width
+        report.first_column = 1.0
+        usual = self._sheet(report.export_xlsx(self.year, {'scope': 'summary'}))[1].column_dimensions['A'].width
+        self.assertAlmostEqual(narrow / usual, 0.875, 1)
+        report.first_column = 25          # nonsense is kept inside what a table can take
+        self.assertEqual(report._first_column(), 1.6)
+        report.first_column = 0
+        self.assertEqual(report._first_column(), 1.0)
+
     def test_the_period_is_written_the_readers_way(self):
         label = self.engine.period_label(date(2026, 4, 3), date(2026, 9, 29))
         self.assertEqual(label, '%s – %s' % (format_date(self.env, date(2026, 4, 3)), format_date(self.env, date(2026, 9, 29))))

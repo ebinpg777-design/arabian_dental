@@ -321,11 +321,29 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="o_efr_pins" t-if="pinned.length">
+                            <div t-foreach="pinned" t-as="pin" t-key="pin.id" class="o_efr_pin" t-on-click="() => this.goToLine(pin.id)" title="Go to the line">
+                                <div class="o_efr_pin_n"><i class="fa fa-thumb-tack"/><span t-esc="pin.name"/>
+                                    <i class="fa fa-times o_efr_pin_x" title="Unpin" t-on-click="(ev) => this.togglePin(pin.line, ev)"/></div>
+                                <div class="o_efr_pin_v"><t t-esc="pin.main.text"/>
+                                    <span t-if="pin.change" t-att-class="'o_efr_delta ' + (pin.change.up ? 'up' : 'down')" t-esc="pin.change.text"/></div>
+                                <div class="o_efr_pin_r" t-if="pin.rest.length">
+                                    <span t-foreach="pin.rest" t-as="c" t-key="c.index"><em t-esc="c.label"/> <t t-esc="c.text"/></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="o_efr_since" t-if="state.since">
+                            <i class="fa fa-history"/>
+                            <span><b t-esc="state.since.count"/> figure<t t-if="state.since.count !== 1">s</t> changed since you last looked, <t t-esc="sinceWhen"/>.</span>
+                            <button class="o_efr_seg" t-on-click="markSeen" title="Make the figures of now the ones to compare with"><i class="fa fa-check me-1"/>Seen</button>
+                        </div>
                         <div class="o_efr_table_wrap" t-on-scroll="onTableScroll">
                             <table class="o_efr_table" t-ref="table">
                                 <thead>
                                     <tr>
-                                        <th class="o_efr_th_name"><span t-if="state.unitLabel" class="o_efr_unitnote">figures in <t t-esc="state.unitLabel"/></span></th>
+                                        <th class="o_efr_th_name"><span t-if="state.unitLabel" class="o_efr_unitnote">figures in <t t-esc="state.unitLabel"/></span>
+                                            <span class="o_efr_took" t-if="state.took" t-att-title="'This reading took ' + state.took.toFixed(2) + ' seconds'">
+                                                <i class="fa fa-bolt"/> <t t-esc="state.took.toFixed(2)"/>s</span></th>
                                         <th t-if="state.options.trend" class="o_efr_th_trend">12 months</th>
                                         <th t-foreach="state.columns" t-as="col" t-key="col.key" t-att-class="'o_efr_th_' + col.type" t-esc="col.label"/>
                                     </tr>
@@ -354,6 +372,8 @@
                                                 <span t-else="" class="o_efr_label" t-esc="line.name"/>
                                                 <span t-if="line.kind === 'more'" class="text-muted small ms-1"><i class="fa fa-angle-double-down"/></span>
                                                 <span class="o_efr_rowacts" t-if="line.kind !== 'more' and line.kind !== 'move_line' and line.kind !== 'open_item'">
+                                                    <i t-if="!line.parts and !line.total_of" t-att-class="'fa fa-thumb-tack o_efr_pinbtn' + (isPinned(line) ? ' on' : '')"
+                                                       t-att-title="isPinned(line) ? 'Unpin' : 'Keep this figure in sight'" t-on-click="(ev) => this.togglePin(line, ev)"/>
                                                     <button t-if="canOpenItems(line)" t-att-class="'o_efr_ra o_efr_ra_items' + (state.items[line.id] ? ' on' : '')" title="Journal items of this line  (i)"
                                                             t-on-click="(ev) => this.toggleItems(line, ev)"><i class="fa fa-list-ul"/><span>Items</span></button>
                                                     <span class="o_efr_notes" t-if="notesFor(line).length" t-att-title="notesFor(line).map(n => n.text).join('\n')"
@@ -377,6 +397,8 @@
                                                     t-on-mousedown="(ev) => this.keepText(ev)"
                                                     t-att-title="cell.drill ? 'Click: the journal items · Shift+click: add up · Ctrl+click: open as a list' : ''">
                                                     <span t-esc="cell.text"/>
+                                                    <t t-set="moved" t-value="changeOf(line, cell_index)"/>
+                                                    <span t-if="moved" t-att-class="'o_efr_delta ' + (moved.up ? 'up' : 'down')" t-att-title="'Since you last looked, ' + sinceWhen" t-esc="moved.text"/>
                                                     <span class="o_efr_share" t-if="shareText(line, cell, cell_index)" t-esc="shareText(line, cell, cell_index)"/>
                                                     <i t-if="cell.drill and cell.display === 'amount'" class="fa fa-search-plus o_efr_explain" title="Explain this figure  (e)"
                                                        t-on-click="(ev) => this.explain(line, cell, ev)"/>

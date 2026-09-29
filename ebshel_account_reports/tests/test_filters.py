@@ -107,7 +107,8 @@ class TestFinReportFilters(TransactionCase):
 
     def test_the_wider_choices_are_offered(self):
         data = self.pl.get_report_data(self.year)
-        choices = data['choices']
+        # what the wider filters can be set to is asked for when their panel is opened
+        choices = dict(data['choices'], **self.pl.get_wide_choices(self.year))
         self.assertIn('sale', [t[0] for t in choices['journal_types']])
         self.assertIn(self.tag.id, [c['id'] for c in choices['partner_categories']])
         self.assertIn(self.categ.id, [c['id'] for c in choices['product_categories']])

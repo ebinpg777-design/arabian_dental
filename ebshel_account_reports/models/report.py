@@ -11,7 +11,7 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import SQL
 
-from .engine import BALANCE_MODES, COMPARISON_MODES, PRESETS
+from .engine import BALANCE_MODES, COMPARISON_MODES, PRESETS, Memo
 
 DISPLAYS = [('amount', 'Amount'), ('percent', 'Percentage'), ('ratio', 'Ratio'),
             ('days', 'Days'), ('count', 'Count'), ('check', 'Balance check')]
@@ -91,6 +91,11 @@ class FinReport(models.Model):
     allow_comparison = fields.Boolean(default=True)
     default_comparison = fields.Selection(COMPARISON_MODES, default='none')
     show_growth = fields.Boolean(string='Growth column', default=True)
+    first_column = fields.Float(
+        string='First column width', default=1.0,
+        help="How wide the first column (the names) is, against its usual width: 1 is the "
+             "usual width, 0.875 is seven eighths of it. What it gives up goes to the "
+             "figures - on the screen, in the PDF and in the workbook alike.")
     share_code = fields.Char(string='Share of (line code)',
                              help="Common-size analysis: every amount can also be shown as a percentage of this line, "
                                   "e.g. REV on a profit and loss or ASSETS on a balance sheet.")
@@ -138,9 +143,13 @@ class FinReport(models.Model):
         self.ensure_one()
         engine = self.env['ebshel.fin.engine']
         options = engine.normalize(self, options)
-        handler = self._handler().with_context(fin_unit=options['unit'])
+        company = self.env['ebshel.fin.engine'].lead_company(options).sudo()
+        # one memo for this reading: the accounts, the sums and the writer of numbers are
+        # worked out once and shared by everything the reading asks for
+        carried = dict(fin_unit=options['unit'], fin_negative=company.ebshel_fin_negative or 'minus', fin_memo=Memo())
+        handler = self._handler().with_context(**carried)
         options = handler.adjust_options(self, options)
-        return engine.with_context(fin_unit=options['unit']), handler, options, handler.columns(self, options)
+        return engine.with_context(**carried), handler, options, handler.columns(self, options)
 
     @api.model
     def by_key(self, key):
@@ -170,14 +179,27 @@ class FinReport(models.Model):
         if not self.env.su and not self.env.user.has_groups('account.group_account_readonly,account.group_account_invoice'):
             raise UserError(_("Financial reports are for the accounting team."))
 
-    def get_report_data(self, options=None):
-        """Everything the viewer needs for one look at the report."""
+    def get_report_data(self, options=None, lean=False):
+        """Everything the viewer needs for one look at the report. `lean` is a reload
+        under a report already on the screen: what the filters can be set to, the list
+        of reports and the saved views are already there and are not sent again."""
         self.ensure_one()
         self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
         self._check_report_access()
         engine, handler, options, columns = self._prepare(options)
         lines = self._polish(handler.lines(self, options, columns))
+        company = self.env['ebshel.fin.engine'].lead_company(options).sudo()
+        if company.ebshel_fin_totals_last:
+            lines = self._totals_last(lines)
+        lines = self._slim(lines)
         currency = engine.currency(options)
+        data = self._report_payload(engine, handler, options, columns, lines, currency, company)
+        if lean:
+            for key in ('choices', 'reports', 'saved_views'):
+                data.pop(key, None)
+        return data
+
+    def _report_payload(self, engine, handler, options, columns, lines, currency, company):
         return {
             'report': {
                 'id': self.id, 'name': self.name, 'kind': self.kind, 'key': self.key,
@@ -188,6 +210,9 @@ class FinReport(models.Model):
                 'custom': self.custom, 'description': self.description or '',
                 'extra_filters': handler.extra_filters(self, options),
                 'share_code': self.share_code or '', 'wide_filters': self.kind != 'analytic',
+                'first_column': self._first_column(),
+                'totals_last': bool(company.ebshel_fin_totals_last),
+                'negative': company.ebshel_fin_negative or 'minus',
             },
             'unit_label': engine.unit_label(options),
             # the period the reader chose, in words - a ledger's first column is "Debit", not a period
@@ -220,8 +245,38 @@ class FinReport(models.Model):
             'presets': PRESETS,
             'comparison_modes': COMPARISON_MODES,
             'account_types': ACCOUNT_TYPES,
-            **self._wide_choices(options),
+            **self._chosen_wide(options),
         }
+
+    def _chosen_wide(self, options):
+        """The wider filters as far as a report needs them to be drawn: the names of what
+        is chosen (for the chips), the journal types and the units. What they COULD be
+        set to is asked for when the panel is opened - finding the salespeople of every
+        invoice cost 50 ms on each load of each report, for a panel few readings open."""
+        def named(model, key):
+            ids = options.get(key) or []
+            if not ids or model not in self.env:
+                return []
+            records = self.env[model].sudo().with_context(active_test=False).browse(ids).exists()
+            return [{'id': r.id, 'name': r.display_name} for r in records]
+        return {
+            'journal_types': [[k, v] for k, v in self.env['account.journal']._fields['type']._description_selection(self.env)
+                              if k in ('sale', 'purchase', 'bank', 'cash', 'credit', 'general')],
+            'partner_categories': named('res.partner.category', 'partner_categories'),
+            'salespeople': named('res.users', 'salespeople'),
+            'product_categories': named('product.category', 'product_categories'),
+            'teams': named('crm.team', 'teams'),
+            'units': [[1, _('Exact')], [1000, _('Thousands')], [100000, _('Lakhs')],
+                      [1000000, _('Millions')], [10000000, _('Crores')]],
+            'wide_loaded': False,
+        }
+
+    def get_wide_choices(self, options=None):
+        """What the wider filters can be set to, asked for when their panel is opened."""
+        self.ensure_one()
+        self._check_report_access()
+        options = self.env['ebshel.fin.engine'].normalize(self, options)
+        return dict(self._wide_choices(options), wide_loaded=True)
 
     def _wide_choices(self, options):
         """What the wider filters can be set to: only values the ledger really uses."""
@@ -325,13 +380,14 @@ class FinReport(models.Model):
         self.env.flush_all()
         self._check_report_access()
         engine, handler, options, columns = self._prepare(options)
-        amount_cols = [c for c in columns if c['type'] == 'amount']
-        if not amount_cols:
-            return {'rows': [], 'now': '', 'before': ''}
-        d_from, d_to = fields.Date.to_date(amount_cols[0]['from']), fields.Date.to_date(amount_cols[0]['to'])
+        # the columns of a statement are periods; those of a ledger are Debit, Credit and
+        # Balance and carry no dates - asking one what changed raised a KeyError
+        periods = [c for c in columns if c['type'] == 'amount' and c.get('from') and c.get('to')]
+        d_from = fields.Date.to_date((periods[0] if periods else options['date'])['from'])
+        d_to = fields.Date.to_date((periods[0] if periods else options['date'])['to'])
         single = self.date_mode == 'single'
-        if len(amount_cols) > 1:
-            p_from, p_to = fields.Date.to_date(amount_cols[1]['from']), fields.Date.to_date(amount_cols[1]['to'])
+        if len(periods) > 1:
+            p_from, p_to = fields.Date.to_date(periods[1]['from']), fields.Date.to_date(periods[1]['to'])
         else:
             p_from, p_to = engine.shift_period(d_from, d_to, 'previous', 1)
         mode = 'cumulative' if single else 'flow'
@@ -373,6 +429,14 @@ class FinReport(models.Model):
         engine, handler, options, columns = self._prepare(options)
         res = handler.expand(self, options, columns, str(line_id), int(offset or 0))
         self._polish(res.get('lines') or [])
+        res['lines'] = self._slim(res.get('lines') or [])
+        # the heading's figures move under its rows; the screen builds that total from
+        # the heading it already has - it only needs to be told to
+        company = self.env['ebshel.fin.engine'].lead_company(options).sudo()
+        kids = res['lines']
+        res['totals_last'] = bool(
+            company.ebshel_fin_totals_last and not int(offset or 0) and kids
+            and not any(l.get('kind') == 'total' and l.get('parent_id') == str(line_id) for l in kids))
         return res
 
     def get_drill_action(self, options, line_id, column_key='p0'):
@@ -413,6 +477,58 @@ class FinReport(models.Model):
         self._check_report_access()
         engine, handler, options, columns = self._prepare(options)
         return handler.trends(self, options, [str(i) for i in line_ids][:200])
+
+    @api.model
+    def _slim(self, lines):
+        """Out of every cell, what says nothing: an empty class, a figure that opens
+        nothing. A third of what an aged report of 800 partners sent to the screen."""
+        for line in lines:
+            for cell in line.get('columns') or ():
+                if not cell.get('class'):
+                    cell.pop('class', None)
+                if not cell.get('drill'):
+                    cell.pop('drill', None)
+            if not line.get('class'):
+                line.pop('class', None)
+            if line.get('parent_id') is None:
+                line.pop('parent_id', None)
+        return lines
+
+    @api.model
+    def _totals_last(self, lines):
+        """Close every section by its total: the heading stands alone, its lines follow,
+        and 'Total ...' comes after the last of them. A section is a line followed by
+        deeper ones; one that already ends in a total of its own is left as it is."""
+        closed = {l.get('parent_id') for l in lines if l.get('kind') == 'total' and l.get('parent_id')}
+        out, waiting = [], []                       # waiting: (level, the total to come)
+
+        def close(level):
+            while waiting and waiting[-1][0] >= level:
+                out.append(waiting.pop()[1])
+
+        for at, line in enumerate(lines):
+            level = line.get('level') or 0
+            close(level)
+            out.append(line)
+            after = lines[at + 1] if at + 1 < len(lines) else None
+            if (after is None or (after.get('level') or 0) <= level or line['id'] in closed
+                    or line.get('kind') in ('total', 'initial', 'more', 'move_line', 'open_item')
+                    or not any(c.get('value') is not None for c in line.get('columns') or ())):
+                continue
+            total = dict(line, id='%s:total' % line['id'], name=_('Total %s', line['name']), total_of=line['id'],
+                         parent_id=line['id'], bold=True, kind='total', unfoldable=False, unfolded=False,
+                         columns=[dict(c) for c in line['columns']])
+            total.pop('page_break', None)
+            line['columns'] = [{'value': None, 'text': '', 'display': 'text'} for _c in line['columns']]
+            line['total_last'] = True
+            waiting.append((level, total))
+        close(0)
+        return out
+
+    def _first_column(self):
+        """The width asked for the first column, kept inside what a table can take."""
+        self.ensure_one()
+        return min(max(self.first_column or 1.0, 0.4), 1.6)
 
     def _polish(self, lines):
         """The last pass over detail rows, shared by the screen and every export: dates the

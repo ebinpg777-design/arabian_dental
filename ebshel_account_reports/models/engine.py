@@ -17,13 +17,14 @@ Odoo 19 traps this engine lives with:
   line.
 """
 import calendar
+from ast import literal_eval
 from datetime import date, timedelta
 
 from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models, _
 from odoo.tools import SQL, date_utils
-from odoo.tools.misc import format_date, formatLang
+from odoo.tools.misc import format_date, formatLang, get_lang
 
 PRESETS = [
     ('this_month', 'This month'),
@@ -48,6 +49,54 @@ COMPARISON_MODES = [
 JOURNAL_TYPES = ('sale', 'purchase', 'bank', 'cash', 'credit', 'general')
 # the unit the figures are shown in; the ledger itself is never rounded
 UNITS = {1: '', 1000: 'thousands', 100000: 'lakhs', 1000000: 'millions', 10000000: 'crores'}
+
+# what decides which journal items a figure reads: two readings with the same values
+# here read the same items
+FILTER_KEYS = ('companies', 'posted_only', 'journals', 'partners', 'analytic', 'journal_types',
+               'partner_categories', 'salespeople', 'teams', 'product_categories', 'unreconciled',
+               'label', 'amount_min', 'amount_max')
+NEGATIVE_STYLES = [('minus', '-100'), ('brackets', '(100)'), ('trailing', '100-')]
+
+
+class Memo(dict):
+    """What one reading of a report has already worked out: the accounts, the sums of
+    each window, the writer of numbers. It lives exactly as long as that reading (it is
+    made in `_prepare` and travels in the context), so nothing in it can be stale.
+
+    Compared by identity: a context holding an equal-looking memo is not the same
+    context, and two readings must never share one."""
+    __slots__ = ()
+    __hash__ = object.__hash__
+
+    def __eq__(self, other):
+        return self is other
+
+    def __ne__(self, other):
+        return self is not other
+
+
+def group_digits(digits, grouping, separator):
+    """'1234567' -> '1,234,567' the way a language groups: [3, 0] repeats threes,
+    [3, 2, 0] is the Indian lakh and crore, -1 stops grouping."""
+    if not separator or not grouping:
+        return digits
+    out, rest, last = [], digits, 0
+    for size in grouping:
+        if size == -1:
+            break
+        if size == 0:
+            while last and len(rest) > last:
+                out.append(rest[-last:])
+                rest = rest[:-last]
+            break
+        if len(rest) <= size:
+            break
+        out.append(rest[-size:])
+        rest = rest[:-size]
+        last = size
+    out.append(rest)
+    return separator.join(reversed(out))
+
 
 # account types whose balance starts again every fiscal year (no opening balance)
 PL_ONLY_TYPES = ('income', 'income_other', 'expense', 'expense_other', 'expense_depreciation', 'expense_direct_cost', 'equity_unaffected')
@@ -358,7 +407,7 @@ class FinEngine(models.AbstractModel):
     def date_where(self, mode, date_from, date_to, options, alias='l', account_alias='a'):
         """The window a balance mode reads."""
         d = SQL.identifier(alias, 'date')
-        company = self.env['res.company'].browse(options['companies'][0])
+        company = self.env['ebshel.fin.engine'].lead_company(options)
         if mode == 'flow':
             return SQL("%s >= %s AND %s <= %s", d, date_from, d, date_to)
         if mode == 'cumulative':
@@ -378,11 +427,81 @@ class FinEngine(models.AbstractModel):
                        self.carries_opening_sql(account_alias), d, fy_from)
         raise ValueError(mode)
 
+    # ------------------------------------------------------------------ one reading, one memo
+    @api.model
+    def lead_company(self, options):
+        """The company a reading is made FOR: the one the reader is in, when it is among
+        those being read; the first of them otherwise. Its currency, and the way it
+        wants its reports written, are the reading's. (The first of the list was taken
+        before - with two companies open that is not always the reader's own.)"""
+        ids = options.get('companies') or []
+        if self.env.company.id in ids or not ids:
+            return self.env.company
+        return self.env['res.company'].browse(ids[0])
+
+    @api.model
+    def _memo(self):
+        memo = self.env.context.get('fin_memo')
+        return memo if isinstance(memo, Memo) else None
+
+    @api.model
+    def _filters_key(self, options):
+        return tuple(tuple(v) if isinstance(v, (list, tuple)) else v
+                     for v in (options.get(k) for k in FILTER_KEYS))
+
+    @api.model
+    def preload_sums(self, options, windows):
+        """Every window a report is about to ask for, read in ONE pass over the ledger.
+
+        A balance sheet asked for three windows and a ledger for two, each a scan of
+        every journal item: the scan is what costs, not the sum, so the windows are
+        summed side by side with FILTER and the pass is made once. Without a memo
+        (a caller outside a prepared reading) nothing is kept and nothing is read."""
+        memo = self._memo()
+        if memo is None:
+            return
+        fkey = self._filters_key(options)
+        todo = []
+        for mode, date_from, date_to in windows:
+            key = ('sums', fkey, mode, date_from, date_to)
+            if key not in memo and key not in (t[0] for t in todo):
+                todo.append((key, self.date_where(mode, date_from, date_to, options)))
+        if not todo:
+            return
+        w = self.weight_sql(options)
+        picks = SQL(", ").join(
+            SQL("SUM(l.balance * %s) FILTER (WHERE %s), SUM(l.debit * %s) FILTER (WHERE %s), "
+                "SUM(l.credit * %s) FILTER (WHERE %s), COUNT(*) FILTER (WHERE %s)",
+                w, cond, w, cond, w, cond, cond) for _key, cond in todo)
+        rows = self.env.execute_query(SQL("""
+            SELECT l.account_id, %s
+              FROM account_move_line l
+              JOIN account_account a ON a.id = l.account_id
+             WHERE %s AND (%s)
+             GROUP BY l.account_id
+        """, picks, self.base_where(options), SQL(" OR ").join(SQL("(%s)", cond) for _key, cond in todo)))
+        for i, (key, _cond) in enumerate(todo):
+            table = {}
+            for row in rows:
+                balance, debit, credit, count = row[1 + 4 * i:5 + 4 * i]
+                if count:
+                    table[row[0]] = {'balance': float(balance or 0), 'debit': float(debit or 0),
+                                     'credit': float(credit or 0), 'count': count}
+            memo[key] = table
+
     # ------------------------------------------------------------------ sums
     @api.model
     def sums_by_account(self, options, mode, date_from, date_to, account_ids=None,
                         extra_where=None):
         """{account_id: {'balance', 'debit', 'credit', 'count'}} for one window."""
+        memo = self._memo()
+        if memo is not None and extra_where is None:
+            table = memo.get(('sums', self._filters_key(options), mode, date_from, date_to))
+            if table is not None:
+                if account_ids is None:
+                    return dict(table)
+                wanted = set(account_ids)
+                return {a: v for a, v in table.items() if a in wanted}
         where = [self.base_where(options), self.date_where(mode, date_from, date_to, options)]
         if account_ids is not None:
             if not account_ids:
@@ -451,6 +570,46 @@ class FinEngine(models.AbstractModel):
                 out.append((month, value))
         return out
 
+    @api.model
+    def monthly_table(self, options, account_ids, months=12, date_to=None):
+        """(months, {account: {month: movement}}, {account: balance before the first month})
+        for many accounts at once. A trend per line used to be a query per line - 142 of
+        them to open the general ledger with its trends on; this is two."""
+        d_to = date_to or fields.Date.to_date(options['date']['to'])
+        end = date_utils.end_of(d_to, 'month')
+        start = date_utils.start_of(end - relativedelta(months=months - 1), 'month')
+        span = [date_utils.start_of(start + relativedelta(months=i), 'month') for i in range(months)]
+        moves, before = {}, {}
+        if account_ids:
+            rows = self.env.execute_query(SQL("""
+                SELECT l.account_id, date_trunc('month', l.date)::date, SUM(l.balance * %s)
+                  FROM account_move_line l
+                  JOIN account_account a ON a.id = l.account_id
+                 WHERE %s AND %s AND l.account_id IN %s
+                 GROUP BY 1, 2
+            """, self.weight_sql(options), self.base_where(options),
+                self.date_where('flow', start, end, options), tuple(account_ids)))
+            for account, month, value in rows:
+                moves.setdefault(account, {})[month] = float(value or 0)
+            before = {a: v['balance'] for a, v in self.sums_by_account(
+                options, 'opening', start, start, account_ids=account_ids).items()}
+        return span, moves, before
+
+    @api.model
+    def monthly_of(self, table, mode, account_ids):
+        """One line's twelve months out of `monthly_table`: what moved each month for a
+        flow, where the balance stood at each month's end for a stock."""
+        span, moves, before = table
+        stock = mode in ('cumulative', 'opening')
+        running = sum(before.get(a, 0.0) for a in account_ids) if stock else 0.0
+        out = []
+        for month in span:
+            value = sum(moves.get(a, {}).get(month, 0.0) for a in account_ids)
+            if stock:
+                running += value
+            out.append((month, running if stock else value))
+        return out
+
     # ------------------------------------------------------------------ accounts
     @api.model
     def carries_opening_sql(self, alias):
@@ -461,6 +620,10 @@ class FinEngine(models.AbstractModel):
     @api.model
     def accounts(self, options):
         """Every account of the companies: {id: {code, name, type, initial, group}}."""
+        memo = self._memo()
+        key = ('accounts', tuple(options['companies']), self.env.lang)
+        if memo is not None and key in memo:
+            return memo[key]
         rows = self.env.execute_query(SQL("""
             SELECT a.id, %s, %s, a.account_type, %s, a.active
               FROM account_account a
@@ -472,6 +635,8 @@ class FinEngine(models.AbstractModel):
         for aid, code, name, atype, initial, active in rows:
             out[aid] = {'id': aid, 'code': code or '', 'name': name or '', 'type': atype,
                         'initial': bool(initial), 'active': bool(active)}
+        if memo is not None:
+            memo[key] = out
         return out
 
     @api.model
@@ -517,7 +682,7 @@ class FinEngine(models.AbstractModel):
     @api.model
     def domain(self, options, mode, date_from, date_to, account_ids=None):
         """The ORM domain that opens the same journal items the SQL summed."""
-        company = self.env['res.company'].browse(options['companies'][0])
+        company = self.env['ebshel.fin.engine'].lead_company(options)
         dom = [('company_id', 'in', options['companies'])]
         dom.append(('parent_state', '=', 'posted') if options['posted_only']
                    else ('parent_state', 'in', ('posted', 'draft')))
@@ -549,7 +714,61 @@ class FinEngine(models.AbstractModel):
     # ------------------------------------------------------------------ formatting
     @api.model
     def currency(self, options):
-        return self.env['res.company'].browse(options['companies'][0]).currency_id
+        return self.env['ebshel.fin.engine'].lead_company(options).currency_id
+
+    @api.model
+    def _writer(self, digits, currency=None):
+        """A function that writes a number the way `formatLang` does, without asking the
+        language and the currency again for every figure. `formatLang` cost 85 microseconds
+        a cell - more than half the time of an aged report of 800 partners, which is 6,000
+        cells. What it would have written is checked once, when the writer is made; a
+        language it cannot follow is handed back to `formatLang`."""
+        memo = self._memo()
+        style = self.env.context.get('fin_negative') or 'minus'
+        key = ('writer', self.env.lang, digits, currency.id if currency else 0, style)
+        if memo is not None and key in memo:
+            return memo[key]
+        lang = get_lang(self.env)
+        try:
+            grouping = [int(g) for g in literal_eval(lang.grouping or '[]')]
+        except (ValueError, SyntaxError, TypeError):
+            grouping = []
+        point, comma = lang.decimal_point or '.', lang.thousands_sep or ''
+        symbol = currency.symbol if currency else ''
+        before = bool(currency) and currency.position == 'before'
+
+        def plain(value):
+            text = '%.*f' % (digits, abs(value))
+            whole, _dot, part = text.partition('.')
+            body = group_digits(whole, grouping, comma) + (point + part if part else '')
+            return ('-' + body) if value < 0 and body.strip('0' + point + comma) else body
+
+        def dressed(text):
+            if not currency:
+                return text
+            return '%s\N{NO-BREAK SPACE}%s' % ((symbol, text) if before else (text, symbol))
+
+        def slow(value):
+            return formatLang(self.env, value, currency_obj=currency) if currency \
+                else formatLang(self.env, value, digits=digits)
+
+        def write(value):
+            if value < 0 and style != 'minus':
+                text = dressed(plain(-value))
+                # a figure that rounds to nothing is nothing, in any style
+                if not text.strip('0' + point + comma + symbol + '\N{NO-BREAK SPACE}'):
+                    return text
+                return '(%s)' % text if style == 'brackets' else text + '-'
+            return dressed(plain(value))
+
+        try:
+            same = all(dressed(plain(v)) == slow(v) for v in (1234567.891, -9876.5, 0.0, 12.0, 100000.0))
+        except Exception:
+            same = False
+        writer = write if same else slow
+        if memo is not None:
+            memo[key] = writer
+        return writer
 
     @api.model
     def fmt(self, value, currency, display='amount'):
@@ -560,18 +779,17 @@ class FinEngine(models.AbstractModel):
             value = value / unit
             if abs(value) < 0.005:
                 value = 0.0          # never "-0.00": three rupees in thousands is nothing, not minus nothing
-        if display == 'amount' and unit != 1:
             # shown in thousands, lakhs, millions or crores: no symbol, the heading says which
-            return formatLang(self.env, value, digits=2)
+            return self._writer(2)(value) if unit != 1 else self._writer(currency.decimal_places, currency)(value)
         if display == 'percent':
-            return '%s%%' % formatLang(self.env, value, digits=1)
+            return '%s%%' % self._writer(1)(value)
         if display == 'ratio':
-            return formatLang(self.env, value, digits=2)
+            return self._writer(2)(value)
         if display == 'days':
-            return _('%s days', formatLang(self.env, value, digits=0))
+            return _('%s days', self._writer(0)(value))
         if display == 'count':
-            return formatLang(self.env, value, digits=0)
-        return formatLang(self.env, value, currency_obj=currency)
+            return self._writer(0)(value)
+        return self._writer(currency.decimal_places, currency)(value)
 
     @api.model
     def growth(self, current, previous):

@@ -146,15 +146,17 @@ $efr-tones: (
     .o_efr_table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .84rem; min-width: 640px;
         > thead > tr > th { position: sticky; top: 0; background: #fff; z-index: 2; text-align: right; padding: .5rem .6rem; font-size: .7rem;
              text-transform: uppercase; letter-spacing: .4px; color: var(--efr-navy); border-bottom: 2px solid var(--efr-navy); white-space: nowrap; }
-        > thead > tr > th.o_efr_th_name { text-align: left; left: 0; z-index: 3; }
+        > thead > tr > th.o_efr_th_name { text-align: left; left: 0; z-index: 3; width: var(--efr-name-w, auto); }
         // a figure column is never narrower than a figure in the crores
-        > thead > tr > th.o_efr_th_amount { min-width: 9.5rem; }
+        > thead > tr > th.o_efr_th_amount { min-width: 8rem; }
         > thead > tr > th.o_efr_th_growth { min-width: 5.5rem; }
         > thead > tr > th.o_efr_th_trend { text-align: center; }
         .o_efr_unitnote { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--efr-muted); font-style: italic; }
         > tbody > tr > td { padding: var(--efr-row) .6rem; border-bottom: 1px solid var(--efr-line); white-space: nowrap; vertical-align: middle; }
         // the name takes what the figures leave and is cut with an ellipsis; the figures are never squeezed
-        td.o_efr_name { position: sticky; left: 0; background: #fff; z-index: 1; width: 99%; min-width: 15rem; max-width: 0;
+        // a report may ask for a share of the usual width (--efr-name-share): the floor follows it
+        td.o_efr_name { position: sticky; left: 0; background: #fff; z-index: 1; width: var(--efr-name-w, 99%);
+            min-width: calc(13rem * var(--efr-name-share, 1)); max-width: 0;
             box-shadow: 1px 0 0 var(--efr-line); }
         .o_efr_namebox { display: flex; align-items: center; min-width: 0; }
         .o_efr_namebox > .o_efr_label, .o_efr_namebox > .o_efr_parts { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -257,6 +259,28 @@ $efr-tones: (
     .o_efr_chart_bar { display: flex; align-items: center; gap: .4rem; min-width: 0;
         span { display: block; height: .62rem; border-radius: 0 .3rem .3rem 0; flex: 0 0 auto; max-width: 78%; }
         em { font-style: normal; font-size: .7rem; color: var(--efr-muted); font-variant-numeric: tabular-nums; white-space: nowrap; } }
+
+    // ── figures kept in sight, and what moved since the last look ───
+    .o_efr_pins { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: .5rem; }
+    .o_efr_pin { flex: 1 1 11rem; max-width: 18rem; min-width: 0; background: #fff; border: 1px solid var(--efr-line); border-left: 4px solid #f59e0b; border-radius: .55rem;
+        padding: .4rem .6rem; cursor: pointer; &:hover { border-color: #f59e0b; } }
+    .o_efr_pin_n { display: flex; align-items: center; gap: .35rem; font-size: .72rem; color: var(--efr-muted); min-width: 0;
+        > i:first-child { color: #f59e0b; }
+        span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+    .o_efr_pin_x { opacity: 0; padding: .1rem .2rem; &:hover { color: var(--efr-bad); } }
+    .o_efr_pin:hover .o_efr_pin_x { opacity: .7; }
+    .o_efr_pin_v { font-size: 1.02rem; font-weight: 700; color: var(--efr-navy); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o_efr_pin_r { display: flex; flex-wrap: wrap; gap: 0 .7rem; font-size: .7rem; color: var(--efr-muted); font-variant-numeric: tabular-nums;
+        em { font-style: normal; opacity: .75; } }
+    .o_efr_since { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; background: #fff7e6; border: 1px solid #fde3a7; color: #92400e;
+        border-radius: .55rem; padding: .35rem .7rem; font-size: .8rem;
+        > span { flex: 1 1 auto; } }
+    .o_efr_delta { display: inline-block; margin-left: .4rem; padding: 0 .35rem; border-radius: .3rem; font-size: .68rem; font-weight: 600; font-variant-numeric: tabular-nums;
+        &.up { background: #e7f6ee; color: var(--efr-good); } &.down { background: #fdeceb; color: var(--efr-bad); } }
+    .o_efr_table .o_efr_pinbtn { opacity: 0; color: var(--efr-muted); cursor: pointer; font-size: .8rem; padding: .1rem .15rem;
+        &.on { opacity: 1; color: #f59e0b; } }
+    .o_efr_table tr:hover .o_efr_pinbtn { opacity: .75; }
+    .o_efr_table .o_efr_took { float: right; font-weight: 400; text-transform: none; letter-spacing: 0; color: #b6bdc8; font-size: .68rem; }
 
     // ── nothing to show ──────────────────────────────────────────────
     .o_efr_empty { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: 2.2rem 1rem; color: var(--efr-muted); text-align: center;
@@ -390,6 +414,8 @@ $efr-tones: (
         .o_efr_pop_foot { position: sticky; bottom: 0; background: #fff; padding: .6rem 0; border-top: 1px solid var(--efr-line);
             .btn { flex: 1 1 0; min-height: 2.6rem; } }
         .o_efr_table .o_efr_ra_items { opacity: 1; span { display: none; } padding: .2rem .5rem; }
+        .o_efr_table .o_efr_pinbtn { display: none; &.on { display: inline-block; } }
+        .o_efr_pin { flex: 1 1 8rem; }
         // a note is written at a desk; on a phone only the notes that exist are shown
         .o_efr_table .o_efr_note_add { display: none; }
         .o_efr_items { padding: .5rem; width: calc(100vw - 1.1rem); }
