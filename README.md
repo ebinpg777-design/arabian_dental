@@ -16,7 +16,7 @@ they are separate codebases from here on.
 | Sales & orders | `sale_custom`, `lab_order_control`, `lab_rework`, `lab_portal`, `lab_track` |
 | Field work | `lab_fieldwork`, `lab_collections`, `lab_delivery`, `lab_incentive`, `lab_ceo_dashboard`, `lab_dashboards`* |
 | Production | `lab_workcenter_scan`, `lab_reports`, `epg_sticker_print`, `epg_product_label`, `epg_barcode_fallback` |
-| Finance | `lab_finance_ops`, `lab_bank_reconciliation`, `petty_cash`, `epg_direct_payment`, `epg_outstanding_discount`, `epg_partner_statement`, `eh_account_*`, `excel_report_builder`, `stock_xls_report` |
+| Finance | `lab_finance_ops`, `petty_cash`, `epg_direct_payment`, `epg_outstanding_discount`, `epg_partner_statement`, `eh_account_*`, `excel_report_builder`, `stock_xls_report` |
 | Messaging | `epg_whatsapp`, `lab_whatsapp` |
 | Web | `lab_website`, `lab_pwa`, `lab_home`, `web_responsive`, `zxs_entp_theme`, `widget_preview_image`, `ebshel_dynamic_filter` |
 | Ops | `lab_access_control`, `lab_migration`, `auto_odoo_db_and_file_backup`** |
