@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_assets.Dashboard">
+        <div class="o_ead o_action">
+            <div class="o_ead_head">
+                <h2>Assets</h2>
+                <span class="text-muted" t-if="state.data">fiscal year <t t-esc="state.data.fy_label"/></span>
+                <button class="btn btn-sm btn-outline-secondary ms-auto" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+            </div>
+            <div t-if="state.loading" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Adding up…</div>
+            <div t-elif="state.data.error" class="alert alert-warning m-3" t-esc="state.data.error"/>
+            <div t-else="" class="o_ead_body">
+                <div class="o_ead_kpis">
+                    <div t-foreach="state.data.kpis" t-as="k" t-key="k.key" t-att-class="'o_ead_kpi o_ead_k_' + k.key + (k.warn ? ' o_ead_warn' : '')" t-on-click="() => this.kpiOpen(k)">
+                        <div class="o_ead_kl" t-esc="k.label"/>
+                        <div class="o_ead_kv" t-esc="k.text"/>
+                        <div class="o_ead_ks" t-esc="k.sub"/>
+                    </div>
+                </div>
+                <div class="o_ead_grid">
+                    <div class="o_ead_panel">
+                        <div class="o_ead_ph">Book value by category <span class="text-muted">— bar is book value, ghost is gross</span></div>
+                        <div t-if="!state.data.categories.length" class="text-muted small">No running assets.</div>
+                        <div t-foreach="state.data.categories" t-as="c" t-key="c.name" class="o_ead_row" t-on-click="() => this.open([['category_id.name', '=', c.name], ['state', 'in', ['running', 'paused', 'closed']]], c.name)">
+                            <div class="o_ead_rn"><t t-esc="c.name"/> <span class="text-muted small">· <t t-esc="c.count"/></span></div>
+                            <div class="o_ead_bar">
+                                <div class="o_ead_ghost" t-attf-style="width: {{ barPct(c.gross, state.data.categories, 'gross') }}%"/>
+                                <div class="o_ead_fill" t-attf-style="width: {{ barPct(c.book, state.data.categories, 'gross') }}%"/>
+                            </div>
+                            <div class="o_ead_rv"><b t-esc="c.book_text"/> <span class="text-muted small">/ <t t-esc="c.gross_text"/></span></div>
+                        </div>
+                    </div>
+                    <div class="o_ead_panel">
+                        <div class="o_ead_ph">Depreciation ahead <span class="text-muted">— still to post, by fiscal year</span></div>
+                        <div t-if="!state.data.forecast.length" class="text-muted small">Nothing scheduled.</div>
+                        <div class="o_ead_cols" t-if="state.data.forecast.length">
+                            <div t-foreach="state.data.forecast" t-as="f" t-key="f.year" class="o_ead_col" t-att-title="f.text">
+                                <div class="o_ead_colv" t-esc="f.text"/>
+                                <div class="o_ead_colbar"><div class="o_ead_colfill" t-attf-style="height: {{ barPct(f.value, state.data.forecast, 'value') }}%"/></div>
+                                <div class="o_ead_coll" t-esc="f.year"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_ead_panel">
+                        <div class="o_ead_ph d-flex justify-content-between">To confirm
+                            <a href="#" class="small" t-on-click.prevent="() => this.open([['state', '=', 'draft']], 'Draft assets')">all</a></div>
+                        <div t-if="!state.data.drafts.length" class="text-muted small">Nothing waiting.</div>
+                        <div t-foreach="state.data.drafts" t-as="d" t-key="d.id" class="o_ead_item" t-on-click="() => this.openOne(d.id)">
+                            <div class="o_ead_in"><t t-esc="d.name"/><span class="text-muted small" t-if="d.bill"> · <t t-esc="d.bill"/></span></div>
+                            <div class="o_ead_iv"><t t-esc="d.value"/> <span class="text-muted small" t-esc="d.date"/></div>
+                        </div>
+                    </div>
+                    <div class="o_ead_panel">
+                        <div class="o_ead_ph">Cover running out <span class="text-muted">— within 60 days</span></div>
+                        <div t-if="!state.data.cover.length" class="text-muted small">All covered.</div>
+                        <div t-foreach="state.data.cover" t-as="c" t-key="c.id" class="o_ead_item" t-on-click="() => this.openOne(c.id)">
+                            <div class="o_ead_in" t-esc="c.name"/>
+                            <div class="o_ead_iv small">
+                                <span t-if="c.warranty" t-att-class="c.state === 'expired' ? 'text-danger' : 'text-warning'">warranty <t t-esc="c.warranty"/></span>
+                                <span t-if="c.insurance" class="ms-2" t-att-class="c.state === 'expired' ? 'text-danger' : 'text-warning'">insurance <t t-esc="c.insurance"/></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_ead_panel" t-if="state.data.paused.length">
+                        <div class="o_ead_ph">Paused</div>
+                        <div t-foreach="state.data.paused" t-as="p" t-key="p.id" class="o_ead_item" t-on-click="() => this.openOne(p.id)">
+                            <div class="o_ead_in" t-esc="p.name"/><div class="o_ead_iv small text-muted">since <t t-esc="p.since"/></div>
+                        </div>
+                    </div>
+                    <div class="o_ead_panel" t-if="state.data.overdue_ids.length">
+                        <div class="o_ead_ph">Depreciation overdue</div>
+                        <div class="small text-muted mb-2"><t t-esc="state.data.overdue_ids.length"/> asset(s) have entries dated in the past still to post.</div>
+                        <button class="btn btn-sm btn-primary" t-on-click="() => this.postOverdue()" t-att-disabled="state.busy"><i class="fa fa-check me-1"/>Post them now</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_letter" model="report.paperformat">
+        <field name="name">Reminder letter</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">28</field>
+        <field name="margin_left">15</field>
+        <field name="margin_right">15</field>
+        <field name="header_spacing">35</field>
+        <field name="dpi">90</field>
+    </record>
+    <record id="action_report_followup_letter" model="ir.actions.report">
+        <field name="name">Reminder letter</field>
+        <field name="model">res.partner</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_account_advanced.report_followup_letter</field>
+        <field name="report_file">ebshel_account_advanced.report_followup_letter</field>
+        <field name="print_report_name">'Reminder - %s' % object.display_name</field>
+        <field name="paperformat_id" ref="paperformat_letter"/>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_type">report</field>
+    </record>
+    <template id="report_followup_letter">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="partner">
+                <t t-call="web.external_layout">
+                    <t t-set="pack" t-value="partner._ebshel_letter_items()"/>
+                    <t t-set="items" t-value="pack[0]"/>
+                    <t t-set="today" t-value="pack[1]"/>
+                    <t t-set="level" t-value="partner._ebshel_letter_level()"/>
+                    <div class="page" style="font-size:13px">
+                        <div class="row mb-4">
+                            <div class="col-7">
+                                <div t-field="partner.commercial_partner_id" t-options='{"widget": "contact", "fields": ["address", "name"], "no_marker": True}'/>
+                            </div>
+                            <div class="col-5 text-end">
+                                <div><span t-esc="today" t-options='{"widget": "date"}'/></div>
+                                <div class="text-muted" t-if="level"><t t-esc="level.name"/></div>
+                            </div>
+                        </div>
+                        <h4 class="mb-3"><t t-esc="level.name if level else 'Payment reminder'"/></h4>
+                        <p>Dear <t t-esc="partner.name"/>,</p>
+                        <div t-if="level and level.text" t-out="level.text"/>
+                        <p t-else="">Our records show the invoices below are past their due date. Please arrange payment or let us know if something is wrong.</p>
+                        <table class="table table-sm mt-3" style="font-size:12px">
+                            <thead><tr><th>Invoice</th><th>Reference</th><th>Date</th><th>Due</th><th class="text-end">Days late</th><th class="text-end">Amount due</th></tr></thead>
+                            <tbody>
+                                <t t-foreach="items" t-as="line">
+                                    <tr>
+                                        <td t-esc="line.move_id.name"/>
+                                        <td t-esc="line.move_id.ref or ''"/>
+                                        <td t-esc="line.date" t-options='{"widget": "date"}'/>
+                                        <td t-esc="line.date_maturity or line.date" t-options='{"widget": "date"}'/>
+                                        <td class="text-end" t-esc="max((today - (line.date_maturity or line.date)).days, 0)"/>
+                                        <td class="text-end" t-esc="line.amount_residual" t-options='{"widget": "monetary", "display_currency": line.company_currency_id}'/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot><tr><th colspan="5" class="text-end">Total due</th>
+                                <th class="text-end" t-esc="sum(items.mapped('amount_residual'))" t-options='{"widget": "monetary", "display_currency": partner.company_id.currency_id or user.company_id.currency_id}'/></tr></tfoot>
+                        </table>
+                        <p class="mt-4">Kind regards,<br/><t t-esc="user.company_id.name"/></p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

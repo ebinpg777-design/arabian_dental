@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="rule_followup_level_company" model="ir.rule">
+            <field name="name">Follow-up levels: own companies</field>
+            <field name="model_id" ref="model_ebshel_followup_level"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_budget_company" model="ir.rule">
+            <field name="name">Budgets: own companies</field>
+            <field name="model_id" ref="model_ebshel_budget"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_deferral_company" model="ir.rule">
+            <field name="name">Deferrals: own companies</field>
+            <field name="model_id" ref="model_ebshel_deferral"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_close_period_company" model="ir.rule">
+            <field name="name">Close periods: own companies</field>
+            <field name="model_id" ref="model_ebshel_close_period"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_cash_item_company" model="ir.rule">
+            <field name="name">Cash forecast items: own companies</field>
+            <field name="model_id" ref="model_ebshel_cash_item"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record id="rule_finding_company" model="ir.rule">
+            <field name="name">Ledger findings: own companies</field>
+            <field name="model_id" ref="model_ebshel_ledger_finding"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+    </data>
+</odoo>

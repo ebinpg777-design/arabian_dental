@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_collections" model="ir.ui.view">
+        <field name="name">res.partner.form.collections</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_ebshel_open_items" type="object" class="oe_stat_button" icon="fa-money"
+                        invisible="not ebshel_due_total" groups="account.group_account_readonly,account.group_account_invoice">
+                    <div class="o_stat_info">
+                        <field name="ebshel_overdue_total" widget="monetary" class="o_stat_value"/>
+                        <span class="o_stat_text">Overdue</span>
+                    </div>
+                </button>
+                <button name="action_ebshel_open_desk" type="object" class="oe_stat_button" icon="fa-bell"
+                        invisible="ebshel_followup_state in ('none', 'excluded')" groups="account.group_account_readonly,account.group_account_invoice">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value"><field name="ebshel_followup_state"/></span>
+                        <span class="o_stat_text">Collections</span>
+                    </div>
+                </button>
+            </div>
+            <xpath expr="//notebook" position="inside">
+                <page string="Collections" name="ebshel_collections" invisible="not is_company and parent_id" groups="account.group_account_readonly,account.group_account_invoice">
+                    <div class="alert alert-warning" role="alert" invisible="not ebshel_on_hold">
+                        <b>On hold.</b> Orders for this customer should wait until the overdue invoices are settled.
+                    </div>
+                    <group>
+                        <group string="Status">
+                            <field name="ebshel_due_total"/>
+                            <field name="ebshel_overdue_total"/>
+                            <field name="ebshel_overdue_days"/>
+                            <field name="ebshel_followup_state"/>
+                            <field name="ebshel_suggested_level_id"/>
+                            <field name="ebshel_avg_days_to_pay"/>
+                            <field name="ebshel_avg_days_late"/>
+                        </group>
+                        <group string="Follow-up">
+                            <field name="ebshel_followup_level_id"/>
+                            <field name="ebshel_followup_next_date"/>
+                            <field name="ebshel_followup_responsible_id"/>
+                            <field name="ebshel_promise_date"/>
+                            <field name="ebshel_promise_amount"/>
+                            <field name="ebshel_followup_excluded"/>
+                            <field name="ebshel_on_hold"/>
+                        </group>
+                    </group>
+                    <field name="ebshel_followup_note" placeholder="Notes for whoever calls next…"/>
+                    <button name="action_ebshel_open_log" type="object" string="Follow-up log" class="btn btn-link" icon="fa-history"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_partner_search_collections" model="ir.ui.view">
+        <field name="name">res.partner.search.collections</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <filter name="inactive" position="before">
+                <separator/>
+                <filter string="Reminder due" name="ebshel_action" domain="[('ebshel_followup_state', '=', 'action')]"/>
+                <filter string="Overdue" name="ebshel_overdue" domain="[('ebshel_followup_state', 'in', ('action', 'overdue', 'reminded', 'promised'))]"/>
+                <filter string="Payment promised" name="ebshel_promised" domain="[('ebshel_followup_state', '=', 'promised')]"/>
+                <filter string="On hold" name="ebshel_on_hold" domain="[('ebshel_on_hold', '=', True)]"/>
+                <separator/>
+            </filter>
+        </field>
+    </record>
+</odoo>

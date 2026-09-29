@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.form.ebshel.account.advanced</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <block id="accounting_reports" position="after">
+                <block title="Advanced Accounting" id="ebshel_account_advanced">
+                    <setting id="ebshel_deferral_setting" string="Deferrals" help="Revenue and expenses recognised over the period an invoice line covers.">
+                        <div class="content-group">
+                            <div class="row mt16">
+                                <label for="ebshel_deferred_revenue_account_id" class="col-lg-5 o_light_label"/>
+                                <field name="ebshel_deferred_revenue_account_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="ebshel_deferred_expense_account_id" class="col-lg-5 o_light_label"/>
+                                <field name="ebshel_deferred_expense_account_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="ebshel_deferral_journal_id" class="col-lg-5 o_light_label"/>
+                                <field name="ebshel_deferral_journal_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="ebshel_deferral_method" class="col-lg-5 o_light_label"/>
+                                <field name="ebshel_deferral_method"/>
+                            </div>
+                            <div class="mt8"><field name="ebshel_deferral_auto"/><label for="ebshel_deferral_auto" class="o_light_label ms-2"/></div>
+                        </div>
+                    </setting>
+                    <setting id="ebshel_followup_setting" string="Collections" help="Automatic reminders and the amount below which nobody is reminded.">
+                        <div class="content-group">
+                            <div class="mt8"><field name="ebshel_followup_auto"/><label for="ebshel_followup_auto" class="o_light_label ms-2"/></div>
+                            <div class="row mt8">
+                                <label for="ebshel_followup_min_amount" class="col-lg-5 o_light_label"/>
+                                <field name="ebshel_followup_min_amount"/>
+                            </div>
+                        </div>
+                    </setting>
+                    <setting id="ebshel_close_setting" string="Month-end close" help="Whether closing a period from the cockpit moves the lock date.">
+                        <div class="content-group">
+                            <div class="mt8"><field name="ebshel_close_lock"/><label for="ebshel_close_lock" class="o_light_label ms-2"/></div>
+                        </div>
+                    </setting>
+                    <setting id="ebshel_cash_setting" string="Cash forecast" help="The default horizon and the share of receivables you expect to collect on time.">
+                        <div class="content-group">
+                            <div class="row mt16">
+                                <label for="ebshel_cash_weeks" class="col-lg-5 o_light_label"/>
+                                <field name="ebshel_cash_weeks"/>
+                            </div>
+                            <div class="row">
+                                <label for="ebshel_cash_collection_rate" class="col-lg-5 o_light_label"/>
+                                <field name="ebshel_cash_collection_rate"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </block>
+        </field>
+    </record>
+</odoo>

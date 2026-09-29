@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The community 'Reporting' menu carries empty sections meant for these reports. -->
+    <menuitem id="menu_balance_sheet" name="Balance Sheet" parent="account.account_reports_legal_statements_menu"
+              action="action_balance_sheet" sequence="10"/>
+    <menuitem id="menu_profit_loss" name="Profit and Loss" parent="account.account_reports_legal_statements_menu"
+              action="action_profit_loss" sequence="20"/>
+    <menuitem id="menu_cash_flow" name="Cash Flow Statement" parent="account.account_reports_legal_statements_menu"
+              action="action_cash_flow" sequence="30"/>
+    <menuitem id="menu_executive_summary" name="Executive Summary" parent="account.account_reports_legal_statements_menu"
+              action="action_executive_summary" sequence="40"/>
+
+    <menuitem id="menu_audit_reports" name="Audit Reports" parent="account.menu_finance_reports" sequence="15"
+              groups="account.group_account_readonly,account.group_account_invoice"/>
+    <menuitem id="menu_general_ledger" name="General Ledger" parent="menu_audit_reports" action="action_general_ledger" sequence="10"/>
+    <menuitem id="menu_trial_balance" name="Trial Balance" parent="menu_audit_reports" action="action_trial_balance" sequence="20"/>
+    <menuitem id="menu_journal" name="Journal Audit" parent="menu_audit_reports" action="action_journal" sequence="30"/>
+    <menuitem id="menu_day_book" name="Day Book" parent="menu_audit_reports" action="action_day_book" sequence="40"/>
+    <menuitem id="menu_cash_book" name="Cash and Bank Book" parent="menu_audit_reports" action="action_cash_book" sequence="50"/>
+
+    <menuitem id="menu_partner_ledger" name="Partner Ledger" parent="account.account_reports_partners_reports_menu"
+              action="action_partner_ledger" sequence="10"/>
+    <menuitem id="menu_aged_receivable" name="Aged Receivable" parent="account.account_reports_partners_reports_menu"
+              action="action_aged_receivable" sequence="20"/>
+    <menuitem id="menu_aged_payable" name="Aged Payable" parent="account.account_reports_partners_reports_menu"
+              action="action_aged_payable" sequence="30"/>
+    <menuitem id="menu_customer_statement" name="Customer Statements" parent="account.account_reports_partners_reports_menu"
+              action="action_customer_statement" sequence="40"/>
+    <menuitem id="menu_vendor_statement" name="Vendor Statements" parent="account.account_reports_partners_reports_menu"
+              action="action_vendor_statement" sequence="50"/>
+
+    <menuitem id="menu_tax_report" name="Tax Report" parent="account.account_reports_taxes_and_fiscal_menu"
+              action="action_tax" sequence="10"/>
+    <menuitem id="menu_analytic_report" name="Analytic Report" parent="account.account_reports_management_menu"
+              action="action_analytic" sequence="5"/>
+
+    <menuitem id="menu_custom_reports" name="Custom Reports" parent="account.menu_finance_reports" sequence="90"
+              groups="account.group_account_readonly,account.group_account_invoice"/>
+
+    <menuitem id="menu_dynamic_reports_config" name="Dynamic Reports" parent="account.menu_finance_configuration"
+              sequence="60" groups="account.group_account_manager"/>
+    <menuitem id="menu_report_designer" name="Report Designer" parent="menu_dynamic_reports_config"
+              action="action_fin_reports_config" sequence="10"/>
+    <menuitem id="menu_saved_views" name="Saved Views" parent="menu_dynamic_reports_config"
+              action="action_fin_saved_views" sequence="20"/>
+    <menuitem id="menu_schedules" name="Scheduled Reports" parent="menu_dynamic_reports_config"
+              action="action_fin_schedules" sequence="30"/>
+    <menuitem id="menu_annotations" name="Report Notes" parent="menu_dynamic_reports_config"
+              action="action_fin_annotations" sequence="40"/>
+</odoo>

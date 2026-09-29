@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_advanced.MatchDesk">
+        <div class="o_eaa o_action o_eaa_match">
+            <div class="o_eaa_head">
+                <h2><i class="fa fa-link me-2"/>Matching desk</h2>
+                <div class="btn-group btn-group-sm">
+                    <button t-att-class="'btn ' + (state.kind === 'receivable' ? 'btn-primary' : 'btn-outline-primary')" t-on-click="() => this.setKind('receivable')">Customers</button>
+                    <button t-att-class="'btn ' + (state.kind === 'payable' ? 'btn-primary' : 'btn-outline-primary')" t-on-click="() => this.setKind('payable')">Vendors</button>
+                    <button t-att-class="'btn ' + (state.kind === 'bank' ? 'btn-primary' : 'btn-outline-primary')" t-on-click="() => this.setKind('bank')">Bank lines</button>
+                </div>
+                <input class="form-control form-control-sm" style="width:200px" placeholder="Search…" t-att-value="state.search" t-on-change="(ev) => { state.search = ev.target.value; this.load(); }"/>
+                <t t-if="state.kind !== 'bank'">
+                    <label class="small text-muted ms-2">min. confidence <b t-esc="state.minConf"/></label>
+                    <input type="range" min="0" max="100" step="5" t-att-value="state.minConf" t-on-change="(ev) => { state.minConf = Number(ev.target.value); this.load(); }"/>
+                </t>
+                <select t-else="" class="form-select form-select-sm" style="width:auto" t-on-change="(ev) => { state.journalId = Number(ev.target.value) || null; this.load(); }">
+                    <option value="">All bank journals</option>
+                    <option t-foreach="(state.data and state.data.bank_journals) || []" t-as="j" t-key="j.id" t-att-value="j.id" t-esc="j.name"/>
+                </select>
+                <div class="ms-auto d-flex gap-1" t-if="state.data and state.data.can_write and state.kind !== 'bank'">
+                    <button class="btn btn-sm btn-primary" t-on-click="applySure" t-att-disabled="state.busy"><i class="fa fa-magic me-1"/>Match every sure pair (≥ 90)</button>
+                    <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.apply(selectedPairs)" t-att-disabled="state.busy">Match selected (<t t-esc="selectedPairs.length"/>)</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                </div>
+            </div>
+            <div t-if="state.loading and !state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Pairing…</div>
+            <div t-elif="state.data and state.kind !== 'bank'" class="o_eaa_body">
+                <div class="o_eaa_kpis">
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl">Open items</div><div class="o_eaa_kv" t-esc="state.data.kpis.items"/><div class="o_eaa_ks"><t t-esc="state.data.kpis.partners"/> partners</div></div>
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl"><t t-esc="state.kind === 'receivable' ? 'Invoices open' : 'Bills open'"/></div><div class="o_eaa_kv" t-esc="money(state.kind === 'receivable' ? state.data.kpis.debit : state.data.kpis.credit)"/></div>
+                    <div class="o_eaa_kpi info"><div class="o_eaa_kl"><t t-esc="state.kind === 'receivable' ? 'Payments and credits' : 'Payments and refunds'"/></div><div class="o_eaa_kv" t-esc="money(state.kind === 'receivable' ? state.data.kpis.credit : state.data.kpis.debit)"/></div>
+                    <div class="o_eaa_kpi good"><div class="o_eaa_kl">Can be cleared</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.offsettable)"/><div class="o_eaa_ks">both sides open on the same partner</div></div>
+                    <div class="o_eaa_kpi warn"><div class="o_eaa_kl">Suggestions</div><div class="o_eaa_kv" t-esc="state.data.kpis.pairs"/><div class="o_eaa_ks"><t t-esc="state.data.kpis.sure"/> sure · <t t-esc="money(state.data.kpis.amount)"/></div></div>
+                </div>
+                <div class="o_eaa_grid" style="grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr)">
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">Partners with both sides open<span class="ms-auto" t-if="state.partnerId"><a href="#" t-on-click.prevent="() => this.pickPartner(state.partnerId)">show all</a></span></div>
+                        <table class="o_eaa_table">
+                            <thead><tr><th>Partner</th><th class="num">Items</th><th class="num">Clearable</th><th class="num">Pairs</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="state.data.partners" t-as="p" t-key="p.id" t-att-class="'clickable' + (state.partnerId === p.id ? ' sel' : '')" t-on-click="() => this.pickPartner(p.id)">
+                                    <td t-esc="p.name"/><td class="num" t-esc="p.items"/><td class="num" t-esc="money(p.offsettable)"/><td class="num" t-esc="p.pairs"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">Suggested pairs</div>
+                        <div t-if="!pairs.length" class="o_eaa_empty">Nothing to pair: no partner has both an open document and an open payment.</div>
+                        <div t-foreach="pairs" t-as="p" t-key="p.key" class="border rounded p-2 mb-2" t-att-style="state.selected[p.key] ? 'background:#eef2ff' : ''">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <input type="checkbox" t-att-checked="state.selected[p.key]" t-on-change="(ev) => state.selected[p.key] = ev.target.checked" t-if="state.data.can_write"/>
+                                <b t-esc="p.partner"/>
+                                <span t-att-class="'o_eaa_badge ' + confClass(p.confidence)"><t t-esc="p.confidence"/>%</span>
+                                <span class="small text-muted" t-esc="p.reason"/>
+                                <span class="ms-auto small"><b t-esc="money(p.amount)"/></span>
+                                <button class="btn btn-sm btn-outline-primary o_eaa_btn" t-on-click="() => this.apply([p])" t-if="state.data.can_write" t-att-disabled="state.busy">Match</button>
+                            </div>
+                            <table class="o_eaa_table">
+                                <tbody>
+                                    <tr class="clickable" t-on-click="() => this.openMove(p.credit.move_id)">
+                                        <td><span class="o_eaa_badge info">payment</span></td><td t-esc="p.credit.name"/><td class="small text-muted" t-esc="p.credit.ref"/><td t-esc="p.credit.date"/><td class="num" t-esc="money(-p.credit.residual)"/>
+                                    </tr>
+                                    <tr t-foreach="p.debits" t-as="d" t-key="d.id" class="clickable" t-on-click="() => this.openMove(d.move_id)">
+                                        <td><span class="o_eaa_badge muted"><t t-esc="state.kind === 'receivable' ? 'invoice' : 'bill'"/></span></td><td t-esc="d.name"/><td class="small text-muted" t-esc="d.ref"/><td t-esc="d.due"/><td class="num" t-esc="money(d.residual)"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div t-elif="state.data" class="o_eaa_body">
+                <div class="o_eaa_kpis">
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl">Unmatched bank lines</div><div class="o_eaa_kv" t-esc="state.data.kpis.lines"/></div>
+                    <div class="o_eaa_kpi good"><div class="o_eaa_kl">Money in</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.inflow)"/></div>
+                    <div class="o_eaa_kpi bad"><div class="o_eaa_kl">Money out</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.outflow)"/></div>
+                    <div class="o_eaa_kpi info"><div class="o_eaa_kl">Sure matches</div><div class="o_eaa_kv" t-esc="state.data.kpis.sure"/><div class="o_eaa_ks"><t t-esc="state.data.kpis.none"/> with no candidate</div></div>
+                </div>
+                <div class="o_eaa_panel">
+                    <div t-if="!state.data.rows.length" class="o_eaa_empty">Every bank line is matched.</div>
+                    <div t-foreach="state.data.rows" t-as="r" t-key="r.id" class="border rounded p-2 mb-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span t-att-class="'o_eaa_badge ' + (r.amount > 0 ? 'good' : 'bad')" t-esc="money(r.amount)"/>
+                            <b t-esc="r.date"/> <span t-esc="r.ref"/> <span class="text-muted small" t-esc="r.partner"/> <span class="text-muted small">· <t t-esc="r.journal"/></span>
+                            <span class="ms-auto"/>
+                            <t t-if="r.best"><span t-att-class="'o_eaa_badge ' + confClass(r.best.confidence)"><t t-esc="r.best.confidence"/>%</span><span class="small text-muted" t-esc="r.best.reason"/></t>
+                            <span t-else="" class="o_eaa_badge muted">no candidate</span>
+                            <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => state.open[r.id] = !state.open[r.id]" t-if="r.candidates.length"><i t-att-class="'fa ' + (state.open[r.id] ? 'fa-chevron-up' : 'fa-chevron-down')"/> <t t-esc="r.candidates.length"/> candidate(s)</button>
+                            <button class="btn btn-sm btn-primary o_eaa_btn" t-on-click="() => this.matchBank(r)" t-if="state.data.can_write and r.candidates.length" t-att-disabled="state.busy">Match</button>
+                        </div>
+                        <table class="o_eaa_table mt-1" t-if="state.open[r.id]">
+                            <thead><tr><th/><th>Document</th><th>Partner</th><th>Due</th><th class="num">Open</th><th>Why</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="r.candidates" t-as="c" t-key="c.id">
+                                    <td><input type="checkbox" t-att-checked="(state.picks[r.id] || {})[c.id] || (!state.picks[r.id] and r.best and c.id === r.best.id)" t-on-change="(ev) => this.togglePick(r.id, c.id, ev)"/></td>
+                                    <td><a href="#" t-on-click.prevent="() => this.openMove(c.move_id)" t-esc="c.name"/></td><td t-esc="c.partner"/><td t-esc="c.due"/><td class="num" t-esc="money(c.residual)"/>
+                                    <td><span t-att-class="'o_eaa_badge ' + confClass(c.confidence)"><t t-esc="c.confidence"/>%</span> <span class="small text-muted" t-esc="c.reason"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

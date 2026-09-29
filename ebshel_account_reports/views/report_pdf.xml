@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="fin_report_pdf">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page ebshel-fin-pdf" style="font-size:11px;">
+                        <style>
+                            .ebshel-fin-pdf table.fin { width:100%; border-collapse:collapse; }
+                            .ebshel-fin-pdf table.fin th { text-align:right; border-bottom:2px solid #1f3a5f; padding:4px 6px; color:#1f3a5f; font-size:10px; text-transform:uppercase; letter-spacing:.3px; }
+                            .ebshel-fin-pdf table.fin th:first-child { text-align:left; }
+                            .ebshel-fin-pdf table.fin td { padding:3px 6px; border-bottom:1px solid #e6eaf0; white-space:nowrap; }
+                            .ebshel-fin-pdf table.fin td.num { text-align:right; font-variant-numeric:tabular-nums; }
+                            .ebshel-fin-pdf table.fin tr.bold td { font-weight:700; }
+                            .ebshel-fin-pdf table.fin tr.total td { border-top:2px solid #1f3a5f; font-weight:700; }
+                            .ebshel-fin-pdf table.fin tr.header td { background:#f3f5f8; font-weight:700; }
+                            .ebshel-fin-pdf table.fin tr.move_line td { color:#444; font-size:10px; }
+                            .ebshel-fin-pdf .lvl1 { padding-left:14px !important; } .ebshel-fin-pdf .lvl2 { padding-left:28px !important; }
+                            .ebshel-fin-pdf .lvl3 { padding-left:42px !important; } .ebshel-fin-pdf .lvl4 { padding-left:56px !important; }
+                            .ebshel-fin-pdf .up { color:#067647; } .ebshel-fin-pdf .down { color:#b42318; } .ebshel-fin-pdf .danger { color:#b42318; font-weight:700; }
+                            .ebshel-fin-pdf .ok { color:#067647; }
+                            .ebshel-fin-pdf .note { font-size:10px; color:#444; }
+                            .ebshel-fin-pdf .mark { color:#3730a3; font-size:9px; vertical-align:super; }
+                        </style>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8px;">
+                            <div>
+                                <div style="font-size:18px; font-weight:700; color:#1f3a5f;"><t t-out="report.name"/></div>
+                                <div style="color:#666;"><t t-out="company.name"/></div>
+                            </div>
+                            <div style="text-align:right; color:#666;"><t t-out="summary"/></div>
+                        </div>
+                        <table class="fin">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <t t-foreach="columns" t-as="col"><th><t t-out="col['label']"/></th></t>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="lines" t-as="line">
+                                    <tr t-att-class="(line.get('kind') or '') + (' bold' if line.get('bold') else '')"
+                                        t-att-style="'page-break-before:always;' if line.get('page_break') and not line_first else ''">
+                                        <td t-att-class="'lvl%d' % min(line.get('level', 0), 4)">
+                                            <t t-if="line.get('parts')">
+                                                <t t-out="line['parts'].get('date')"/> ·
+                                                <b t-out="line['parts'].get('move')"/>
+                                                <t t-if="line['parts'].get('partner')"> · <t t-out="line['parts']['partner']"/></t>
+                                                <t t-if="line['parts'].get('label')"> · <span class="text-muted" t-out="line['parts']['label']"/></t>
+                                                <t t-if="line['parts'].get('account')"> · <span class="text-muted" t-out="line['parts']['account']"/></t>
+                                            </t>
+                                            <t t-else=""><t t-out="line['name']"/></t>
+                                            <span t-if="note_marks.get(line['id'])" class="mark">[<t t-out="note_marks[line['id']]"/>]</span>
+                                        </td>
+                                        <t t-foreach="line['columns']" t-as="cell">
+                                            <td t-att-class="'num ' + (cell.get('class') or '')"><t t-out="cell.get('text') or ''"/></td>
+                                        </t>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                        <div t-if="notes" style="margin-top:14px;">
+                            <div style="font-weight:700; color:#1f3a5f;">Notes</div>
+                            <t t-foreach="notes" t-as="note">
+                                <div class="note">[<t t-out="note_index + 1"/>] <b t-out="note.get('line_name') or note['line_key']"/>: <t t-out="note['text']"/> — <i t-out="note['user']"/>, <t t-out="note['date']"/></div>
+                            </t>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

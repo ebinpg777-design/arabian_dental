@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ledger_finding_list" model="ir.ui.view">
+        <field name="name">ebshel.ledger.finding.list</field>
+        <field name="model">ebshel.ledger.finding</field>
+        <field name="arch" type="xml">
+            <list string="Ledger findings" create="false" decoration-danger="severity == 'error' and state == 'open'" decoration-warning="severity == 'warn' and state == 'open'" decoration-muted="state != 'open'">
+                <field name="found_on"/>
+                <field name="severity" widget="badge"/>
+                <field name="key"/>
+                <field name="name"/>
+                <field name="count"/>
+                <field name="amount" sum="Amount"/>
+                <field name="state" widget="badge"/>
+                <field name="user_id" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+                <button name="action_open_records" type="object" icon="fa-search" title="Open the records"/>
+                <button name="action_resolve" type="object" icon="fa-check" title="Resolved" invisible="state != 'open'"/>
+                <button name="action_ignore" type="object" icon="fa-eye-slash" title="Ignore" invisible="state != 'open'"/>
+                <button name="action_reopen" type="object" icon="fa-undo" title="Reopen" invisible="state == 'open'"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_ledger_finding_form" model="ir.ui.view">
+        <field name="name">ebshel.ledger.finding.form</field>
+        <field name="model">ebshel.ledger.finding</field>
+        <field name="arch" type="xml">
+            <form string="Finding">
+                <header>
+                    <button name="action_open_records" type="object" string="Open the records" class="btn-primary"/>
+                    <button name="action_resolve" type="object" string="Resolved" invisible="state != 'open'"/>
+                    <button name="action_ignore" type="object" string="Ignore" invisible="state != 'open'"/>
+                    <button name="action_reopen" type="object" string="Reopen" invisible="state == 'open'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group><field name="key"/><field name="severity"/><field name="count"/><field name="amount"/><field name="currency_id" invisible="1"/></group>
+                        <group><field name="found_on"/><field name="resolved_on"/><field name="user_id"/><field name="company_id" groups="base.group_multi_company"/></group>
+                    </group>
+                    <field name="detail"/>
+                    <field name="note" placeholder="Why it was resolved or ignored…"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_ledger_finding_search" model="ir.ui.view">
+        <field name="name">ebshel.ledger.finding.search</field>
+        <field name="model">ebshel.ledger.finding</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter string="Open" name="open" domain="[('state', '=', 'open')]"/>
+                <filter string="Errors" name="error" domain="[('severity', '=', 'error')]"/>
+                <filter string="Warnings" name="warn" domain="[('severity', '=', 'warn')]"/>
+                <group>
+                    <filter string="Check" name="by_key" context="{'group_by': 'key'}"/>
+                    <filter string="Status" name="by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_ledger_findings" model="ir.actions.act_window">
+        <field name="name">Ledger Findings</field>
+        <field name="res_model">ebshel.ledger.finding</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_open': 1}</field>
+    </record>
+</odoo>

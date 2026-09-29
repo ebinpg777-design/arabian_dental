@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_advanced.BudgetBoard">
+        <div class="o_eaa o_action o_eaa_budget">
+            <div class="o_eaa_head">
+                <h2><i class="fa fa-bar-chart me-2"/>Budget board</h2>
+                <select class="form-select form-select-sm" style="width:auto" t-if="state.data and state.data.budgets.length" t-on-change="pick">
+                    <option t-foreach="state.data.budgets" t-as="b" t-key="b.id" t-att-value="b.id" t-att-selected="state.data.budget and b.id === state.data.budget.id"><t t-esc="b.name"/> (<t t-esc="b.from"/> → <t t-esc="b.to"/>, <t t-esc="b.state"/>)</option>
+                </select>
+                <span class="o_eaa_sub" t-if="state.data and state.data.budget"><t t-esc="state.data.budget.elapsed_pct"/>% of the period elapsed · <t t-esc="state.data.budget.responsible"/></span>
+                <div class="ms-auto d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-secondary" t-if="state.data and state.data.budget" t-on-click="openBudget"><i class="fa fa-pencil me-1"/>Edit</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-if="state.data and state.data.budget" t-on-click="openReport"><i class="fa fa-table me-1"/>Report</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="newBudget"><i class="fa fa-plus me-1"/>New</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                </div>
+            </div>
+            <div t-if="state.loading and !state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Adding up…</div>
+            <div t-elif="state.data and !state.data.budget" class="p-4 text-muted">No budget yet. Create one from the New button: lines are sets of accounts with a planned amount, split by month.</div>
+            <div t-elif="state.data" class="o_eaa_body">
+                <div class="o_eaa_kpis">
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl">Planned</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.planned)"/><div class="o_eaa_ks"><t t-esc="state.data.lines.length"/> lines</div></div>
+                    <div t-att-class="'o_eaa_kpi ' + (state.data.kpis.consumed_pct > 100 ? 'bad' : state.data.kpis.consumed_pct > state.data.budget.elapsed_pct + 10 ? 'warn' : 'good')"><div class="o_eaa_kl">Actual</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.actual)"/><div class="o_eaa_ks"><t t-esc="state.data.kpis.consumed_pct"/>% consumed</div></div>
+                    <div class="o_eaa_kpi info"><div class="o_eaa_kl">Committed</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.committed)"/><div class="o_eaa_ks">draft bills and invoices</div></div>
+                    <div t-att-class="'o_eaa_kpi ' + (state.data.kpis.available &lt; 0 ? 'bad' : '')"><div class="o_eaa_kl">Available</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.available)"/><div class="o_eaa_ks">planned − actual − committed</div></div>
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl">Theoretical to date</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.theoretical)"/><div class="o_eaa_ks">by the phasing</div></div>
+                    <div t-att-class="'o_eaa_kpi ' + (state.data.kpis.projected_gap &lt; 0 ? 'bad' : 'good')"><div class="o_eaa_kl">Projected year end</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.projected)"/><div class="o_eaa_ks">at the current run rate, <t t-esc="money(state.data.kpis.projected_gap)"/> <t t-esc="state.data.kpis.projected_gap &lt; 0 ? 'over' : 'under'"/></div></div>
+                </div>
+                <div class="o_eaa_grid" style="grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr)">
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">By month <span class="text-muted">— bars are planned (light) and actual (dark); lines cumulative</span></div>
+                        <div t-if="!chart" class="o_eaa_empty">Split the lines by month to see the phasing.</div>
+                        <svg t-if="chart" t-att-viewBox="'0 0 ' + chart.W + ' ' + chart.H" preserveAspectRatio="none" class="o_eaa_svg">
+                            <t t-foreach="chart.bars" t-as="b" t-key="b_index">
+                                <rect t-att-x="b.x" t-att-y="b.yp" t-att-width="b.w" t-att-height="b.hp" fill="#c9d6e6"/>
+                                <rect t-att-x="b.x + b.w + 2" t-att-y="b.ya" t-att-width="b.w" t-att-height="b.ha" t-att-fill="b.past ? '#1f3a5f' : '#9aa9bd'"/>
+                                <text t-att-x="b.x + b.w" t-att-y="chart.H - 8" class="o_eaa_tick" text-anchor="middle" t-esc="b.label"/>
+                            </t>
+                            <polyline t-att-points="chart.cp" fill="none" stroke="#b45309" stroke-width="2" stroke-dasharray="4 3"/>
+                            <polyline t-att-points="chart.ca" fill="none" stroke="#067647" stroke-width="2"/>
+                            <text x="10" y="11" class="o_eaa_tick" t-esc="chart.topLabel"/>
+                        </svg>
+                    </div>
+                    <div class="o_eaa_panel">
+                        <div class="o_eaa_ph">Attention</div>
+                        <div t-if="!state.data.alerts.length" class="o_eaa_empty">Every line is on track.</div>
+                        <div t-foreach="state.data.alerts" t-as="a" t-key="a_index" class="small mb-1"><i class="fa fa-exclamation-triangle text-warning me-1"/><t t-esc="a"/></div>
+                    </div>
+                </div>
+                <div class="o_eaa_panel mt-2" style="overflow-x:auto">
+                    <div class="o_eaa_ph">Lines <span class="text-muted">— bar is actual over planned, the mark is where the phasing says you should be</span></div>
+                    <table class="o_eaa_table">
+                        <thead><tr><th>Line</th><th>Kind</th><th class="num">Planned</th><th class="num">Actual</th><th style="min-width:140px"/><th class="num">%</th><th class="num">Committed</th><th class="num">Available</th><th class="num">Projected</th><th/></tr></thead>
+                        <tbody>
+                            <tr t-foreach="state.data.lines" t-as="l" t-key="l.id" class="clickable" t-on-click="() => this.openLine(l)">
+                                <td><b t-esc="l.name"/><span t-if="l.analytic" class="text-muted small"> · <t t-esc="l.analytic"/></span></td>
+                                <td><span t-att-class="'o_eaa_badge ' + (l.kind === 'revenue' ? 'good' : 'muted')" t-esc="l.kind"/></td>
+                                <td class="num" t-esc="money(l.planned)"/>
+                                <td class="num" t-esc="money(l.actual)"/>
+                                <td><div class="o_eaa_bar"><div t-att-class="'fill ' + (l.alert === 'over' ? 'bad' : l.alert === 'watch' ? 'warn' : '')" t-attf-style="width: {{ width(l.actual, l.planned) }}%"/><div class="mark" t-attf-style="left: {{ width(l.theoretical, l.planned) }}%"/></div></td>
+                                <td class="num" t-esc="pct(l.pct)"/>
+                                <td class="num" t-esc="money(l.committed)"/>
+                                <td t-att-class="'num ' + (l.available &lt; 0 ? 'text-danger' : '')" t-esc="money(l.available)"/>
+                                <td class="num text-muted" t-esc="money(l.projected)"/>
+                                <td><span t-att-class="'o_eaa_badge ' + (l.alert === 'over' ? 'bad' : l.alert === 'watch' ? 'warn' : 'good')" t-esc="l.alert === 'over' ? 'over' : l.alert === 'watch' ? 'watch' : 'ok'"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

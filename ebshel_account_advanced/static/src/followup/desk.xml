@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_advanced.FollowupDesk">
+        <div class="o_eaa o_action o_eaa_followup">
+            <div class="o_eaa_head">
+                <h2><i class="fa fa-bell me-2"/>Collections desk</h2>
+                <span class="o_eaa_sub" t-if="state.data">as of <t t-esc="state.data.today"/><t t-if="!state.data.auto"> · automatic reminders are off in the settings</t></span>
+                <div class="ms-auto d-flex gap-1">
+                    <button class="btn btn-sm btn-primary" t-if="state.data and state.data.can_write" t-on-click="sendAllDue"><i class="fa fa-paper-plane me-1"/>Send every reminder due</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.open('send')" t-if="state.data and state.data.can_write" title="Send the selected customers a reminder"><i class="fa fa-envelope"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.printLetters()" t-if="state.data and state.data.can_write" title="Print letters for the selected customers"><i class="fa fa-print"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                </div>
+            </div>
+            <div t-if="state.loading and !state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the ledger…</div>
+            <div t-elif="state.data" class="o_eaa_body">
+                <div class="o_eaa_kpis">
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl">Receivable</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.receivable)"/><div class="o_eaa_ks"><t t-esc="state.data.total_rows"/> customers</div></div>
+                    <div class="o_eaa_kpi bad"><div class="o_eaa_kl">Overdue</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.overdue)"/><div class="o_eaa_ks"><t t-esc="state.data.kpis.receivable ? Math.round(state.data.kpis.overdue / state.data.kpis.receivable * 100) : 0"/>% of receivable</div></div>
+                    <div class="o_eaa_kpi warn clickable" t-on-click="() => this.setFilter('state', ['action'])"><div class="o_eaa_kl">Reminders due</div><div class="o_eaa_kv" t-esc="state.data.kpis.action"/><div class="o_eaa_ks">customers to remind</div></div>
+                    <div class="o_eaa_kpi info clickable" t-on-click="() => this.setFilter('state', ['promised'])"><div class="o_eaa_kl">Promised</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.promised)"/><div class="o_eaa_ks">payment promised</div></div>
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl">DSO</div><div class="o_eaa_kv"><t t-esc="state.data.kpis.dso !== null ? state.data.kpis.dso : '–'"/></div><div class="o_eaa_ks">days sales outstanding</div></div>
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl">Unallocated</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.unallocated)"/><div class="o_eaa_ks">credits not applied</div></div>
+                    <div class="o_eaa_kpi muted"><div class="o_eaa_kl">On hold</div><div class="o_eaa_kv" t-esc="state.data.kpis.on_hold"/><div class="o_eaa_ks">customers</div></div>
+                </div>
+                <div class="o_eaa_panel mb-2">
+                    <div class="o_eaa_ph">Overdue by age</div>
+                    <div class="o_eaa_stack">
+                        <t t-foreach="state.data.buckets" t-as="b" t-key="b.label">
+                            <div class="seg" t-attf-style="width: {{ b.value / bucketTotal * 100 }}%; background: {{ ['#8fb3d9', '#5f8fc4', '#b45309', '#b42318', '#7a1a12'][b_index] }}" t-att-title="b.label + ': ' + money(b.value)"/>
+                        </t>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 mt-1 small text-muted">
+                        <span t-foreach="state.data.buckets" t-as="b" t-key="b.label"><b t-esc="b.label"/> days: <t t-esc="compact(b.value)"/></span>
+                    </div>
+                </div>
+                <div class="o_eaa_toolbar">
+                    <span t-foreach="state.data.states" t-as="s" t-key="s.key" t-att-class="'o_eaa_chip' + (state.filters.state.includes(s.key) ? ' on' : '')" t-on-click="() => this.toggleState(s.key)" t-esc="s.label"/>
+                    <select class="form-select" t-on-change="(ev) => this.setFilter('responsible_id', Number(ev.target.value) || false)">
+                        <option value="">Any responsible</option>
+                        <option t-foreach="state.data.users" t-as="u" t-key="u.id" t-att-value="u.id" t-att-selected="state.filters.responsible_id === u.id" t-esc="u.name"/>
+                    </select>
+                    <select class="form-select" t-on-change="(ev) => this.setFilter('sort', ev.target.value)">
+                        <option value="overdue">Most overdue first</option><option value="days">Oldest first</option><option value="due">Largest balance</option><option value="name">By name</option>
+                    </select>
+                    <input class="form-control" placeholder="Search customers…" t-att-value="state.filters.search" t-on-change="(ev) => this.setFilter('search', ev.target.value)"/>
+                    <span class="small text-muted ms-auto"><t t-esc="rows.length"/> of <t t-esc="state.data.total_rows"/></span>
+                </div>
+                <div class="o_eaa_panel" style="overflow-x:auto">
+                    <table class="o_eaa_table">
+                        <thead><tr>
+                            <th><input type="checkbox" t-on-change="toggleAll"/></th><th>Customer</th><th class="num">Overdue</th><th style="min-width:90px"/><th class="num">Balance</th><th class="num">Days</th>
+                            <th>Status</th><th>Level</th><th>Next</th><th>Responsible</th><th>Last action</th><th/>
+                        </tr></thead>
+                        <tbody>
+                            <tr t-if="!rows.length"><td colspan="12" class="o_eaa_empty">Nobody matches these filters.</td></tr>
+                            <tr t-foreach="rows" t-as="r" t-key="r.id" t-att-class="state.selected[r.id] ? 'sel' : ''">
+                                <td><input type="checkbox" t-att-checked="state.selected[r.id]" t-on-change="(ev) => state.selected[r.id] = ev.target.checked"/></td>
+                                <td><a href="#" t-on-click.prevent="() => this.openDetail(r.id)"><b t-esc="r.name"/></a>
+                                    <span t-if="r.on_hold" class="o_eaa_badge bad ms-1">on hold</span>
+                                    <span t-if="!r.email" class="o_eaa_badge warn ms-1" title="No email address">no email</span></td>
+                                <td class="num"><b t-esc="money(r.overdue)"/></td>
+                                <td><div class="o_eaa_bar"><div t-att-class="'fill ' + (r.days > 60 ? 'bad' : r.days > 30 ? 'warn' : '')" t-attf-style="width: {{ r.overdue / maxOverdue * 100 }}%"/></div></td>
+                                <td class="num" t-esc="money(r.due)"/>
+                                <td class="num" t-esc="r.days || ''"/>
+                                <td><span t-att-class="'o_eaa_badge ' + stateClass(r.state)" t-esc="r.state_label"/></td>
+                                <td class="small"><t t-esc="r.level || '–'"/><t t-if="r.suggested and r.suggested.name !== r.level"> → <b t-esc="r.suggested.name"/></t></td>
+                                <td class="small"><t t-if="r.promise_date"><i class="fa fa-handshake-o text-info"/> <t t-esc="r.promise_date"/></t><t t-elif="r.next_date" t-esc="r.next_date"/></td>
+                                <td><select class="form-select form-select-sm" style="font-size:.72rem;padding:.05rem 1.2rem .05rem .3rem" t-on-change="(ev) => this.setResponsible(r, ev)" t-att-disabled="!state.data.can_write">
+                                    <option value="">–</option>
+                                    <option t-foreach="state.data.users" t-as="u" t-key="u.id" t-att-value="u.id" t-att-selected="r.responsible_id === u.id" t-esc="u.name"/>
+                                </select></td>
+                                <td class="small text-muted"><t t-if="r.last_action"><t t-esc="r.last_action.label"/> · <t t-esc="r.last_action.date"/></t></td>
+                                <td class="text-nowrap" t-if="state.data.can_write">
+                                    <button class="btn btn-sm btn-outline-primary o_eaa_btn" t-on-click="() => this.open('send', r)" title="Send the reminder"><i class="fa fa-envelope"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('call', r)" title="Log a call"><i class="fa fa-phone"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('promise', r)" title="Promise to pay"><i class="fa fa-handshake-o"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('snooze', r)" title="Snooze"><i class="fa fa-clock-o"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.flag(r, 'on_hold', !r.on_hold)" t-att-title="r.on_hold ? 'Release' : 'Put on hold'"><i t-att-class="'fa ' + (r.on_hold ? 'fa-unlock' : 'fa-lock')"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.flag(r, 'excluded', !r.excluded)" t-att-title="r.excluded ? 'Remind again' : 'Never remind'"><i t-att-class="'fa ' + (r.excluded ? 'fa-bell' : 'fa-bell-slash')"/></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="o_eaa_side" t-if="state.detail">
+                <div class="o_eaa_side_h">
+                    <h4 t-esc="state.detail.name"/>
+                    <button class="btn btn-sm btn-link" t-on-click="() => this.openPartner(state.detail.id)" title="Open the customer"><i class="fa fa-external-link"/></button>
+                    <button class="btn btn-sm btn-link" t-on-click="() => this.openStatement(state.detail.id)" title="Statement of account"><i class="fa fa-file-text-o"/></button>
+                    <button class="btn btn-sm btn-link ms-auto" t-on-click="closeDetail"><i class="fa fa-times"/></button>
+                </div>
+                <div class="o_eaa_side_b">
+                    <div class="small text-muted mb-2">
+                        <span t-if="state.detail.emails.length"><i class="fa fa-envelope-o"/> <t t-esc="state.detail.emails.join(', ')"/></span>
+                        <span t-if="state.detail.phone" class="ms-2"><i class="fa fa-phone"/> <t t-esc="state.detail.phone"/></span>
+                        <span t-if="state.detail.habit.to_pay !== null and state.detail.habit.to_pay !== undefined" class="ms-2">pays in <b t-esc="state.detail.habit.to_pay"/> days (<t t-esc="state.detail.habit.late"/> late)</span>
+                    </div>
+                    <div class="o_eaa_ph">Open items</div>
+                    <table class="o_eaa_table mb-3">
+                        <thead><tr><th>Document</th><th>Due</th><th class="num">Days</th><th class="num">Open</th></tr></thead>
+                        <tbody>
+                            <tr t-foreach="state.detail.items" t-as="it" t-key="it.id" class="clickable" t-on-click="() => this.openMove(it.move_id)">
+                                <td><t t-esc="it.name"/><span t-if="it.kind === 'credit'" class="o_eaa_badge info ms-1">credit</span></td>
+                                <td t-esc="it.due"/>
+                                <td t-att-class="'num ' + (it.days > 0 and it.kind === 'invoice' ? 'text-danger' : '')" t-esc="it.kind === 'invoice' ? it.days : ''"/>
+                                <td class="num" t-esc="money(it.residual)"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="o_eaa_ph">Notes for the next call</div>
+                    <textarea class="form-control form-control-sm mb-1" rows="3" t-model="state.detail.note"/>
+                    <button class="btn btn-sm btn-outline-secondary mb-3" t-on-click="saveNote" t-if="state.data.can_write">Save note</button>
+                    <div class="o_eaa_ph">History</div>
+                    <div class="o_eaa_timeline">
+                        <div t-if="!state.detail.actions.length" class="o_eaa_empty">Nothing yet.</div>
+                        <div t-foreach="state.detail.actions" t-as="a" t-key="a.id" class="ev">
+                            <b t-esc="a.label"/><t t-if="a.level"> · <t t-esc="a.level"/></t> <span class="text-muted" t-esc="a.date"/><span class="text-muted" t-if="a.user"> · <t t-esc="a.user"/></span>
+                            <div t-if="a.note" class="text-muted" t-esc="a.note"/>
+                            <div t-if="a.promise_date" class="text-info">for <t t-esc="a.promise_date"/>, <t t-esc="money(a.amount)"/></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_eaa_modal" t-if="state.modal" t-on-click.self="close">
+                <div class="o_eaa_modal_c">
+                    <t t-if="state.modal.kind === 'send'">
+                        <h5>Send a reminder to <t t-esc="state.modal.ids.length"/> customer(s)</h5>
+                        <label>Level</label>
+                        <select class="form-select form-select-sm" t-model="state.form.level_id">
+                            <option value="">the level each customer has reached</option>
+                            <option t-foreach="state.data.levels" t-as="l" t-key="l.id" t-att-value="l.id"><t t-esc="l.name"/> (<t t-esc="l.days"/> days, <t t-esc="l.action"/>)</option>
+                        </select>
+                        <label>Add a line</label>
+                        <textarea class="form-control form-control-sm" rows="2" t-model="state.form.note"/>
+                    </t>
+                    <t t-if="state.modal.kind === 'call'">
+                        <h5>Log a call with <t t-esc="state.modal.row.name"/></h5>
+                        <label>What was said</label>
+                        <textarea class="form-control form-control-sm" rows="3" t-model="state.form.note"/>
+                        <label>Follow up again on</label>
+                        <input type="date" class="form-control form-control-sm" t-model="state.form.next_date"/>
+                    </t>
+                    <t t-if="state.modal.kind === 'promise'">
+                        <h5><t t-esc="state.modal.row.name"/> promises to pay</h5>
+                        <label>On</label><input type="date" class="form-control form-control-sm" t-model="state.form.date"/>
+                        <label>Amount</label><input type="number" step="0.01" class="form-control form-control-sm" t-model="state.form.amount"/>
+                        <label>Note</label><input class="form-control form-control-sm" t-model="state.form.note"/>
+                    </t>
+                    <t t-if="state.modal.kind === 'snooze'">
+                        <h5>Snooze <t t-esc="state.modal.row.name"/></h5>
+                        <label>Days</label><input type="number" class="form-control form-control-sm" t-model="state.form.days"/>
+                        <label>Why</label><input class="form-control form-control-sm" t-model="state.form.note"/>
+                    </t>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button class="btn btn-sm btn-secondary" t-on-click="close">Cancel</button>
+                        <button class="btn btn-sm btn-primary" t-on-click="submit" t-att-disabled="state.busy"><i t-if="state.busy" class="fa fa-circle-o-notch fa-spin me-1"/>Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

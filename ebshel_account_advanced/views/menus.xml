@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Customers -->
+    <menuitem id="menu_followup_desk" name="Collections Desk" parent="account.menu_finance_receivables" action="action_followup_desk" sequence="35"
+              groups="account.group_account_readonly,account.group_account_invoice"/>
+    <!-- Accounting -->
+    <menuitem id="menu_advanced" name="Advanced" parent="account.menu_finance_entries" sequence="60" groups="account.group_account_readonly,account.group_account_invoice"/>
+    <menuitem id="menu_match_desk" name="Matching Desk" parent="menu_advanced" action="action_match_desk" sequence="10"/>
+    <menuitem id="menu_deferrals" name="Deferrals" parent="menu_advanced" action="action_deferrals" sequence="20"/>
+    <menuitem id="menu_budgets" name="Budgets" parent="menu_advanced" action="action_budgets" sequence="30"/>
+    <menuitem id="menu_budget_board" name="Budget Board" parent="menu_advanced" action="action_budget_board" sequence="31"/>
+    <menuitem id="menu_close_cockpit" name="Close Cockpit" parent="menu_advanced" action="action_close_cockpit" sequence="40"/>
+    <menuitem id="menu_close_periods" name="Close Periods" parent="menu_advanced" action="action_close_periods" sequence="41"/>
+    <menuitem id="menu_cash_forecast" name="Cash Forecast" parent="menu_advanced" action="action_cash_forecast" sequence="50"/>
+    <menuitem id="menu_ledger_health" name="Ledger Health" parent="menu_advanced" action="action_ledger_health" sequence="60"/>
+    <!-- Reporting → Management -->
+    <menuitem id="menu_report_budget" name="Budget vs Actual" parent="account.account_reports_management_menu" action="action_report_budget" sequence="30"/>
+    <menuitem id="menu_report_deferral" name="Deferral Schedule" parent="account.account_reports_management_menu" action="action_report_deferral" sequence="31"/>
+    <!-- Configuration -->
+    <menuitem id="menu_config_advanced" name="Advanced Accounting" parent="account.menu_finance_configuration" sequence="60" groups="account.group_account_manager"/>
+    <menuitem id="menu_followup_levels" name="Follow-up Levels" parent="menu_config_advanced" action="action_followup_levels" sequence="10"/>
+    <menuitem id="menu_followup_log" name="Follow-up Log" parent="menu_config_advanced" action="action_followup_log" sequence="11"/>
+    <menuitem id="menu_close_task_templates" name="Close Checklist" parent="menu_config_advanced" action="action_close_task_templates" sequence="20"/>
+    <menuitem id="menu_cash_items" name="Planned Cash Items" parent="menu_config_advanced" action="action_cash_items" sequence="30"/>
+    <menuitem id="menu_ledger_findings" name="Ledger Findings" parent="menu_config_advanced" action="action_ledger_findings" sequence="40"/>
+    <menuitem id="menu_budget_lines" name="Budget Lines" parent="menu_config_advanced" action="action_budget_lines" sequence="50"/>
+</odoo>

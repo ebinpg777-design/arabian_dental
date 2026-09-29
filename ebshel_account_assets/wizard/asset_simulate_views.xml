@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_asset_simulate_form" model="ir.ui.view">
+        <field name="name">ebshel.asset.simulate.form</field>
+        <field name="model">ebshel.asset.simulate</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="company_id" invisible="1"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="purchase_value"/>
+                        <field name="salvage_value"/>
+                        <field name="start_date"/>
+                    </group>
+                    <group>
+                        <field name="period"/>
+                        <field name="duration"/>
+                        <field name="declining_rate"/>
+                        <field name="prorata"/>
+                    </group>
+                </group>
+                <button name="action_run" type="object" string="Compare the methods" class="btn-primary"/>
+                <field name="result_html" nolabel="1"/>
+                <footer>
+                    <button string="Close" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_asset_simulate" model="ir.actions.act_window">
+        <field name="name">Depreciation Simulator</field>
+        <field name="res_model">ebshel.asset.simulate</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

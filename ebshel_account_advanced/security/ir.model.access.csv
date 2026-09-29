@@ -1,0 +1,40 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_followup_level_read,followup level read,model_ebshel_followup_level,account.group_account_readonly,1,0,0,0
+access_followup_level_manager,followup level manager,model_ebshel_followup_level,account.group_account_manager,1,1,1,1
+access_followup_action_read,followup action read,model_ebshel_followup_action,account.group_account_readonly,1,0,0,0
+access_followup_action_user,followup action user,model_ebshel_followup_action,account.group_account_invoice,1,1,1,1
+access_followup_remind_user,followup remind wizard,model_ebshel_followup_remind,account.group_account_invoice,1,1,1,1
+access_budget_read,budget read,model_ebshel_budget,account.group_account_readonly,1,0,0,0
+access_budget_user,budget user,model_ebshel_budget,account.group_account_user,1,1,1,1
+access_budget_line_read,budget line read,model_ebshel_budget_line,account.group_account_readonly,1,0,0,0
+access_budget_line_user,budget line user,model_ebshel_budget_line,account.group_account_user,1,1,1,1
+access_budget_phase_read,budget phase read,model_ebshel_budget_phase,account.group_account_readonly,1,0,0,0
+access_budget_phase_user,budget phase user,model_ebshel_budget_phase,account.group_account_user,1,1,1,1
+access_deferral_read,deferral read,model_ebshel_deferral,account.group_account_readonly,1,0,0,0
+access_deferral_user,deferral user,model_ebshel_deferral,account.group_account_invoice,1,1,1,1
+access_deferral_line_read,deferral line read,model_ebshel_deferral_line,account.group_account_readonly,1,0,0,0
+access_deferral_line_user,deferral line user,model_ebshel_deferral_line,account.group_account_invoice,1,1,1,1
+access_close_period_read,close period read,model_ebshel_close_period,account.group_account_readonly,1,0,0,0
+access_close_period_user,close period user,model_ebshel_close_period,account.group_account_user,1,1,1,1
+access_close_task_read,close task read,model_ebshel_close_task,account.group_account_readonly,1,0,0,0
+access_close_task_user,close task user,model_ebshel_close_task,account.group_account_user,1,1,1,1
+access_close_task_template_read,close task template read,model_ebshel_close_task_template,account.group_account_readonly,1,0,0,0
+access_close_task_template_manager,close task template manager,model_ebshel_close_task_template,account.group_account_manager,1,1,1,1
+access_cash_item_read,cash item read,model_ebshel_cash_item,account.group_account_readonly,1,0,0,0
+access_cash_item_user,cash item user,model_ebshel_cash_item,account.group_account_user,1,1,1,1
+access_ledger_finding_read,ledger finding read,model_ebshel_ledger_finding,account.group_account_readonly,1,0,0,0
+access_ledger_finding_user,ledger finding user,model_ebshel_ledger_finding,account.group_account_user,1,1,1,1
+access_ebshel_budget_billing_read,ebshel_budget billing read,model_ebshel_budget,account.group_account_invoice,1,0,0,0
+access_ebshel_budget_admin,ebshel_budget administrator,model_ebshel_budget,account.group_account_manager,1,1,1,1
+access_ebshel_budget_line_billing_read,ebshel_budget_line billing read,model_ebshel_budget_line,account.group_account_invoice,1,0,0,0
+access_ebshel_budget_line_admin,ebshel_budget_line administrator,model_ebshel_budget_line,account.group_account_manager,1,1,1,1
+access_ebshel_budget_phase_billing_read,ebshel_budget_phase billing read,model_ebshel_budget_phase,account.group_account_invoice,1,0,0,0
+access_ebshel_budget_phase_admin,ebshel_budget_phase administrator,model_ebshel_budget_phase,account.group_account_manager,1,1,1,1
+access_ebshel_close_period_billing_read,ebshel_close_period billing read,model_ebshel_close_period,account.group_account_invoice,1,0,0,0
+access_ebshel_close_period_admin,ebshel_close_period administrator,model_ebshel_close_period,account.group_account_manager,1,1,1,1
+access_ebshel_close_task_billing_read,ebshel_close_task billing read,model_ebshel_close_task,account.group_account_invoice,1,0,0,0
+access_ebshel_close_task_admin,ebshel_close_task administrator,model_ebshel_close_task,account.group_account_manager,1,1,1,1
+access_ebshel_cash_item_billing_read,ebshel_cash_item billing read,model_ebshel_cash_item,account.group_account_invoice,1,0,0,0
+access_ebshel_cash_item_admin,ebshel_cash_item administrator,model_ebshel_cash_item,account.group_account_manager,1,1,1,1
+access_ebshel_ledger_finding_billing_read,ebshel_ledger_finding billing read,model_ebshel_ledger_finding,account.group_account_invoice,1,0,0,0
+access_ebshel_ledger_finding_admin,ebshel_ledger_finding administrator,model_ebshel_ledger_finding,account.group_account_manager,1,1,1,1

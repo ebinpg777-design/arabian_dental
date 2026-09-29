@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_budget_list" model="ir.ui.view">
+        <field name="name">ebshel.budget.list</field>
+        <field name="model">ebshel.budget</field>
+        <field name="arch" type="xml">
+            <list string="Budgets" decoration-danger="alert == 'over'" decoration-warning="alert == 'watch'">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="planned_total" sum="Planned"/>
+                <field name="actual_total" sum="Actual"/>
+                <field name="committed_total" optional="show"/>
+                <field name="available_total" sum="Available"/>
+                <field name="consumed_pct" widget="progressbar"/>
+                <field name="state" widget="badge" decoration-success="state == 'confirmed'" decoration-info="state == 'draft'"/>
+                <field name="alert" column_invisible="1"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_budget_form" model="ir.ui.view">
+        <field name="name">ebshel.budget.form</field>
+        <field name="model">ebshel.budget</field>
+        <field name="arch" type="xml">
+            <form string="Budget">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirm" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_generate_phases" type="object" string="Split by month" invisible="state == 'cancelled'"/>
+                    <button name="action_board" type="object" string="Board" class="btn-secondary" icon="fa-bar-chart"/>
+                    <button name="action_report" type="object" string="Budget vs Actual" class="btn-secondary" icon="fa-table"/>
+                    <button name="action_done" type="object" string="Mark done" invisible="state != 'confirmed'"/>
+                    <button name="action_draft" type="object" string="Back to draft" invisible="state not in ('confirmed', 'cancelled')"/>
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state in ('cancelled', 'done')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Operating budget FY 2026"/></h1>
+                        <div class="text-muted"><field name="code" readonly="1"/></div>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="kind"/>
+                        </group>
+                        <group>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="elapsed_pct" widget="progressbar"/>
+                            <field name="consumed_pct" widget="progressbar"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Lines" name="lines">
+                            <field name="line_ids">
+                                <list editable="bottom" decoration-danger="alert == 'over'" decoration-warning="alert == 'watch'">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="kind"/>
+                                    <field name="account_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                                    <field name="account_prefix" optional="show"/>
+                                    <field name="analytic_account_id" optional="show"/>
+                                    <field name="phasing" optional="hide"/>
+                                    <field name="planned" sum="Planned"/>
+                                    <field name="actual" sum="Actual"/>
+                                    <field name="committed" sum="Committed" optional="show"/>
+                                    <field name="theoretical" optional="show"/>
+                                    <field name="available" sum="Available"/>
+                                    <field name="achieved_pct" widget="progressbar"/>
+                                    <field name="phase_gap" optional="hide"/>
+                                    <field name="alert" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="company_id" column_invisible="1"/>
+                                    <button name="action_view_actuals" type="object" icon="fa-search" title="Entries behind the actual"/>
+                                </list>
+                                <form>
+                                    <group>
+                                        <group>
+                                            <field name="name"/>
+                                            <field name="kind"/>
+                                            <field name="account_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                                            <field name="account_prefix"/>
+                                            <field name="analytic_account_id"/>
+                                        </group>
+                                        <group>
+                                            <field name="planned"/>
+                                            <field name="phasing"/>
+                                            <field name="actual"/>
+                                            <field name="committed"/>
+                                            <field name="theoretical"/>
+                                            <field name="available"/>
+                                            <field name="phase_total"/>
+                                            <field name="phase_gap"/>
+                                            <field name="currency_id" invisible="1"/>
+                                            <field name="company_id" invisible="1"/>
+                                        </group>
+                                    </group>
+                                    <button name="action_generate_phases" type="object" string="Split by month" class="btn btn-secondary mb-2"/>
+                                    <field name="phase_ids">
+                                        <list editable="bottom">
+                                            <field name="name"/>
+                                            <field name="date_from"/>
+                                            <field name="date_to"/>
+                                            <field name="planned" sum="Planned"/>
+                                            <field name="actual" sum="Actual"/>
+                                            <field name="currency_id" column_invisible="1"/>
+                                        </list>
+                                    </field>
+                                </form>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="planned_total"/>
+                                <field name="actual_total"/>
+                                <field name="committed_total"/>
+                                <field name="theoretical_total"/>
+                                <field name="available_total" class="oe_subtotal_footer_separator"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes"><field name="note"/></page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_budget_search" model="ir.ui.view">
+        <field name="name">ebshel.budget.search</field>
+        <field name="model">ebshel.budget</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="user_id"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Confirmed" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <group>
+                    <filter string="Responsible" name="by_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Status" name="by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_budgets" model="ir.actions.act_window">
+        <field name="name">Budgets</field>
+        <field name="res_model">ebshel.budget</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_confirmed': 1}</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Plan the year</p><p>A budget line is a set of accounts (or an account prefix), optionally one analytic account, a planned amount, and its split by month. The actual comes straight from the ledger.</p></field>
+    </record>
+    <record id="view_budget_line_list" model="ir.ui.view">
+        <field name="name">ebshel.budget.line.list</field>
+        <field name="model">ebshel.budget.line</field>
+        <field name="arch" type="xml">
+            <list string="Budget lines" create="false" decoration-danger="alert == 'over'" decoration-warning="alert == 'watch'">
+                <field name="budget_id"/>
+                <field name="name"/>
+                <field name="kind"/>
+                <field name="analytic_account_id" optional="show"/>
+                <field name="planned" sum="Planned"/>
+                <field name="actual" sum="Actual"/>
+                <field name="committed" sum="Committed"/>
+                <field name="available" sum="Available"/>
+                <field name="achieved_pct" widget="progressbar"/>
+                <field name="state" optional="hide"/>
+                <field name="alert" column_invisible="1"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_budget_lines" model="ir.actions.act_window">
+        <field name="name">Budget Lines</field>
+        <field name="res_model">ebshel.budget.line</field>
+        <field name="view_mode">list</field>
+        <field name="domain">[('state', 'in', ('confirmed', 'done'))]</field>
+    </record>
+</odoo>

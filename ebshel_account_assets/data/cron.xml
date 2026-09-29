@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="cron_post_depreciation" model="ir.cron">
+        <field name="name">Assets: post due depreciation</field>
+        <field name="model_id" ref="model_ebshel_asset"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_post_due()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+    <record id="cron_cover_reminders" model="ir.cron">
+        <field name="name">Assets: warranty and insurance reminders</field>
+        <field name="model_id" ref="model_ebshel_asset"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_cover_reminders()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>

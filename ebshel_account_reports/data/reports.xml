@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <record id="report_balance_sheet" model="ebshel.fin.report">
+        <field name="name">Balance Sheet</field>
+        <field name="key">balance_sheet</field>
+        <field name="kind">statement</field>
+        <field name="sequence">10</field>
+        <field name="custom" eval="False"/>
+        <field name="date_mode">single</field>
+        <field name="default_preset">today</field>
+        <field name="default_comparison">none</field>
+        <field name="allow_analytic" eval="True"/>
+        <field name="description">Assets, liabilities and equity as they stood on the date. Current and previous years' earnings are read straight from the profit and loss accounts, the way Odoo keeps them.</field>
+    </record>
+    <record id="report_profit_loss" model="ebshel.fin.report">
+        <field name="name">Profit and Loss</field>
+        <field name="key">profit_loss</field>
+        <field name="kind">statement</field>
+        <field name="sequence">20</field>
+        <field name="custom" eval="False"/>
+        <field name="default_preset">this_month</field>
+        <field name="default_comparison">previous</field>
+        <field name="description">Revenue, cost of revenue, expenses and the profit between them, with margins.</field>
+    </record>
+    <record id="report_cash_flow" model="ebshel.fin.report">
+        <field name="name">Cash Flow Statement</field>
+        <field name="key">cash_flow</field>
+        <field name="kind">statement</field>
+        <field name="sequence">30</field>
+        <field name="custom" eval="False"/>
+        <field name="default_preset">this_month</field>
+        <field name="description">Indirect method: profit, adjusted for depreciation and the movement of every balance sheet account, reconciled to the movement of cash.</field>
+    </record>
+    <record id="report_executive_summary" model="ebshel.fin.report">
+        <field name="name">Executive Summary</field>
+        <field name="key">executive_summary</field>
+        <field name="kind">statement</field>
+        <field name="sequence">40</field>
+        <field name="custom" eval="False"/>
+        <field name="default_preset">this_month</field>
+        <field name="default_comparison">previous</field>
+        <field name="description">The dozen figures a manager asks for: cash, what is owed, revenue, profit, margins, working capital and how many days customers and suppliers take.</field>
+    </record>
+    <record id="report_general_ledger" model="ebshel.fin.report">
+        <field name="name">General Ledger</field>
+        <field name="key">general_ledger</field>
+        <field name="kind">general_ledger</field>
+        <field name="sequence">50</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_partners" eval="True"/>
+        <field name="allow_accounts" eval="True"/>
+        <field name="allow_hierarchy" eval="True"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_trial_balance" model="ebshel.fin.report">
+        <field name="name">Trial Balance</field>
+        <field name="key">trial_balance</field>
+        <field name="kind">trial_balance</field>
+        <field name="sequence">60</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_accounts" eval="True"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_journal" model="ebshel.fin.report">
+        <field name="name">Journal Audit</field>
+        <field name="key">journal</field>
+        <field name="kind">journal</field>
+        <field name="sequence">70</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_day_book" model="ebshel.fin.report">
+        <field name="name">Day Book</field>
+        <field name="key">day_book</field>
+        <field name="kind">day_book</field>
+        <field name="sequence">80</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_cash_book" model="ebshel.fin.report">
+        <field name="name">Cash and Bank Book</field>
+        <field name="key">cash_book</field>
+        <field name="kind">cash_book</field>
+        <field name="sequence">90</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_partner_ledger" model="ebshel.fin.report">
+        <field name="name">Partner Ledger</field>
+        <field name="key">partner_ledger</field>
+        <field name="kind">partner_ledger</field>
+        <field name="sequence">100</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_partners" eval="True"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_aged_receivable" model="ebshel.fin.report">
+        <field name="name">Aged Receivable</field>
+        <field name="key">aged_receivable</field>
+        <field name="kind">aged</field>
+        <field name="sequence">110</field>
+        <field name="custom" eval="False"/>
+        <field name="date_mode">single</field>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_partners" eval="True"/>
+        <field name="allow_analytic" eval="False"/>
+        <field name="default_preset">today</field>
+    </record>
+    <record id="report_aged_payable" model="ebshel.fin.report">
+        <field name="name">Aged Payable</field>
+        <field name="key">aged_payable</field>
+        <field name="kind">aged</field>
+        <field name="sequence">120</field>
+        <field name="custom" eval="False"/>
+        <field name="date_mode">single</field>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_partners" eval="True"/>
+        <field name="allow_analytic" eval="False"/>
+        <field name="default_preset">today</field>
+    </record>
+    <record id="report_customer_statement" model="ebshel.fin.report">
+        <field name="name">Customer Statements</field>
+        <field name="key">customer_statement</field>
+        <field name="kind">statement_of_account</field>
+        <field name="sequence">130</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_partners" eval="True"/>
+        <field name="allow_analytic" eval="False"/>
+        <field name="unfold_all_default" eval="True"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_vendor_statement" model="ebshel.fin.report">
+        <field name="name">Vendor Statements</field>
+        <field name="key">vendor_statement</field>
+        <field name="kind">statement_of_account</field>
+        <field name="sequence">140</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_partners" eval="True"/>
+        <field name="allow_analytic" eval="False"/>
+        <field name="unfold_all_default" eval="True"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_tax" model="ebshel.fin.report">
+        <field name="name">Tax Report</field>
+        <field name="key">tax</field>
+        <field name="kind">tax</field>
+        <field name="sequence">150</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_analytic" eval="False"/>
+        <field name="show_growth" eval="False"/>
+        <field name="default_preset">this_month</field>
+    </record>
+    <record id="report_analytic" model="ebshel.fin.report">
+        <field name="name">Analytic Report</field>
+        <field name="key">analytic</field>
+        <field name="kind">analytic</field>
+        <field name="sequence">160</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_journals" eval="False"/>
+        <field name="allow_partners" eval="True"/>
+        <field name="allow_posted_toggle" eval="False"/>
+        <field name="default_preset">this_month</field>
+        <field name="default_comparison">previous</field>
+    </record>
+</odoo>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_advanced.CashForecast">
+        <div class="o_eaa o_action o_eaa_cash">
+            <div class="o_eaa_head">
+                <h2><i class="fa fa-line-chart me-2"/>Cash forecast</h2>
+                <span class="o_eaa_sub" t-if="state.data">from <t t-esc="state.data.today"/></span>
+                <div class="ms-auto d-flex gap-2 align-items-center flex-wrap" t-if="state.data">
+                    <select class="form-select form-select-sm" style="width:auto" t-on-change="(ev) => this.set('weeks', Number(ev.target.value))">
+                        <option t-foreach="[8, 13, 26]" t-as="w" t-key="w" t-att-value="w" t-att-selected="state.params.weeks === w"><t t-esc="w"/> weeks</option>
+                    </select>
+                    <label class="small text-muted">collect <b t-esc="state.params.collection_rate"/>%</label>
+                    <input type="range" min="40" max="100" step="5" t-att-value="state.params.collection_rate" t-on-change="(ev) => this.set('collection_rate', Number(ev.target.value))"/>
+                    <label class="small text-muted" title="Blank: each customer's own habit">late by</label>
+                    <input type="number" class="form-control form-control-sm" style="width:70px" placeholder="habit" t-att-value="state.params.delay_days" t-on-change="(ev) => this.set('delay_days', ev.target.value === '' ? null : Number(ev.target.value))"/>
+                    <label class="small text-muted"><input type="checkbox" t-att-checked="state.params.include_draft" t-on-change="(ev) => this.set('include_draft', ev.target.checked)"/> drafts</label>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                </div>
+            </div>
+            <div t-if="state.loading and !state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Looking ahead…</div>
+            <div t-elif="state.data" class="o_eaa_body">
+                <div class="o_eaa_kpis">
+                    <div class="o_eaa_kpi"><div class="o_eaa_kl">Cash today</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.opening)"/><div class="o_eaa_ks"><t t-esc="state.data.cash_accounts.length"/> bank and cash accounts</div></div>
+                    <div t-att-class="'o_eaa_kpi ' + (state.data.kpis.lowest and state.data.kpis.lowest.value &lt; 0 ? 'bad' : 'good')"><div class="o_eaa_kl">Lowest point</div><div class="o_eaa_kv" t-esc="state.data.kpis.lowest ? money(state.data.kpis.lowest.value) : '–'"/><div class="o_eaa_ks" t-if="state.data.kpis.lowest">week of <t t-esc="state.data.kpis.lowest.label"/></div></div>
+                    <div t-att-class="'o_eaa_kpi ' + (state.data.kpis.closing &lt; 0 ? 'bad' : '')"><div class="o_eaa_kl">At the horizon</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.closing)"/><div class="o_eaa_ks"><t t-esc="state.data.kpis.negative_weeks"/> week(s) below zero</div></div>
+                    <div class="o_eaa_kpi good"><div class="o_eaa_kl">Coming in</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.total_in)"/><div class="o_eaa_ks">of <t t-esc="money(state.data.kpis.receivable)"/> receivable</div></div>
+                    <div class="o_eaa_kpi bad"><div class="o_eaa_kl">Going out</div><div class="o_eaa_kv" t-esc="money(state.data.kpis.total_out)"/><div class="o_eaa_ks">of <t t-esc="money(state.data.kpis.payable)"/> payable</div></div>
+                </div>
+                <div class="o_eaa_panel mb-2">
+                    <div class="o_eaa_ph">Closing cash by week <span class="text-muted">— dotted: the last weeks as they happened; bars: money in (green) and out (red)</span></div>
+                    <svg t-if="chart" t-att-viewBox="'0 0 ' + chart.W + ' ' + chart.H" preserveAspectRatio="none" class="o_eaa_svg">
+                        <line x1="0" t-att-y1="chart.zero" t-att-x2="chart.W" t-att-y2="chart.zero" stroke="#b42318" stroke-dasharray="3 4"/>
+                        <line t-att-x1="chart.split" y1="0" t-att-x2="chart.split" t-att-y2="chart.H" stroke="#e6eaf0"/>
+                        <t t-foreach="chart.bars" t-as="b" t-key="b_index">
+                            <rect t-att-x="b.x - chart.step * 0.3" t-att-y="b.yIn" t-att-width="chart.step * 0.28" t-att-height="b.hIn" fill="#9ed3b5" t-on-click="() => state.week = b.index" style="cursor:pointer"/>
+                            <rect t-att-x="b.x + chart.step * 0.02" t-att-y="b.yOut" t-att-width="chart.step * 0.28" t-att-height="b.hOut" fill="#f2b3ad" t-on-click="() => state.week = b.index" style="cursor:pointer"/>
+                            <text t-att-x="b.x" t-att-y="chart.H - 8" class="o_eaa_tick" text-anchor="middle" t-esc="b.label" t-if="chart.bars.length &lt;= 8 or b_index % Math.ceil(chart.bars.length / 7) === 0"/>
+                        </t>
+                        <polyline t-att-points="chart.hp" fill="none" stroke="#6b7280" stroke-width="2" stroke-dasharray="4 4"/>
+                        <polyline t-att-points="chart.fp" fill="none" stroke="#1f3a5f" stroke-width="2.5"/>
+                        <text x="10" y="11" class="o_eaa_tick" t-esc="chart.topLabel"/>
+                        <text x="10" t-att-y="chart.H - 28" class="o_eaa_tick" t-esc="chart.bottomLabel"/>
+                    </svg>
+                </div>
+                <div class="o_eaa_grid" style="grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr)">
+                    <div class="o_eaa_panel" style="overflow-x:auto">
+                        <div class="o_eaa_ph">Week by week <span class="text-muted">— click a week for what is behind it</span></div>
+                        <table class="o_eaa_table">
+                            <thead><tr><th>Week</th><th class="num">Invoices</th><th class="num">Planned in</th><th class="num">Bills</th><th class="num">Planned out</th><th class="num">Drafts</th><th class="num">Net</th><th class="num">Closing</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="state.data.weeks" t-as="w" t-key="w.index" t-att-class="'clickable' + (state.week === w.index ? ' sel' : '')" t-on-click="() => state.week = state.week === w.index ? null : w.index">
+                                    <td><b t-esc="w.label"/></td>
+                                    <td class="num text-success" t-esc="w.in_ar ? money(w.in_ar) : ''"/>
+                                    <td class="num text-success" t-esc="w.in_items ? money(w.in_items) : ''"/>
+                                    <td class="num text-danger" t-esc="w.out_ap ? money(w.out_ap) : ''"/>
+                                    <td class="num text-danger" t-esc="w.out_items ? money(w.out_items) : ''"/>
+                                    <td class="num text-muted" t-esc="(w.in_draft or w.out_draft) ? money(w.in_draft - w.out_draft) : ''"/>
+                                    <td t-att-class="'num ' + (w.net &lt; 0 ? 'text-danger' : 'text-success')" t-esc="money(w.net)"/>
+                                    <td t-att-class="'num fw-bold ' + (w.closing &lt; 0 ? 'text-danger' : '')" t-esc="money(w.closing)"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div t-if="state.week !== null" class="mt-2">
+                            <div class="o_eaa_ph">Behind the week of <t t-esc="state.data.weeks[state.week].label"/></div>
+                            <div t-if="!weekDetail.length" class="o_eaa_empty">Nothing lands in this week.</div>
+                            <table class="o_eaa_table" t-else="">
+                                <tbody>
+                                    <tr t-foreach="weekDetail" t-as="d" t-key="d_index" class="clickable" t-on-click="() => this.openDetail(d)">
+                                        <td><span t-att-class="'o_eaa_badge ' + (d.key.startsWith('in') ? 'good' : 'bad')" t-esc="keyLabel(d.key)"/></td>
+                                        <td t-esc="d.name"/><td class="text-muted" t-esc="d.partner"/><td t-esc="d.date"/><td class="num" t-esc="money(d.amount)"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="o_eaa_panel mb-2">
+                            <div class="o_eaa_ph">Planned items <span class="text-muted">— not in the ledger yet</span>
+                                <button class="btn btn-sm btn-outline-secondary o_eaa_btn ms-auto" t-if="state.data.can_write and !state.adding" t-on-click="startAdd"><i class="fa fa-plus"/></button></div>
+                            <div t-if="state.adding" class="mb-2 d-flex flex-column gap-1">
+                                <input class="form-control form-control-sm" placeholder="Name (e.g. payroll)" t-model="state.item.name"/>
+                                <div class="d-flex gap-1">
+                                    <select class="form-select form-select-sm" t-model="state.item.kind"><option value="out">out</option><option value="in">in</option></select>
+                                    <input type="number" class="form-control form-control-sm" placeholder="amount" t-model="state.item.amount"/>
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <input type="date" class="form-control form-control-sm" t-model="state.item.date"/>
+                                    <select class="form-select form-select-sm" t-model="state.item.frequency"><option value="once">once</option><option value="weekly">weekly</option><option value="monthly">monthly</option><option value="quarterly">quarterly</option></select>
+                                </div>
+                                <div class="d-flex gap-1"><button class="btn btn-sm btn-primary" t-on-click="saveItem">Save</button><button class="btn btn-sm btn-secondary" t-on-click="() => state.adding = false">Cancel</button></div>
+                            </div>
+                            <div t-if="!state.data.items.length" class="o_eaa_empty">Add payroll, rent, loan instalments, tax…</div>
+                            <table class="o_eaa_table" t-else="">
+                                <tbody>
+                                    <tr t-foreach="state.data.items" t-as="it" t-key="it.id">
+                                        <td><span t-att-class="'o_eaa_badge ' + (it.kind === 'in' ? 'good' : 'bad')" t-esc="it.kind"/></td>
+                                        <td><t t-esc="it.name"/><div class="small text-muted"><t t-esc="it.frequency"/> from <t t-esc="it.date"/></div></td>
+                                        <td class="num" t-esc="money(it.amount)"/>
+                                        <td><button class="btn btn-sm btn-link text-danger o_eaa_btn" t-if="state.data.can_write" t-on-click="() => this.deleteItem(it)"><i class="fa fa-trash-o"/></button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="o_eaa_panel">
+                            <div class="o_eaa_ph">Bank and cash today</div>
+                            <table class="o_eaa_table"><tbody>
+                                <tr t-foreach="state.data.cash_accounts" t-as="a" t-key="a.id"><td t-esc="a.name"/><td t-att-class="'num ' + (a.balance &lt; 0 ? 'text-danger' : '')" t-esc="money(a.balance)"/></tr>
+                            </tbody></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

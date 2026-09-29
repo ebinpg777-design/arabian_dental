@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="ct_draft_entries" model="ebshel.close.task.template"><field name="name">No draft journal entries left in the period</field><field name="sequence">10</field><field name="kind">check</field><field name="check_key">draft_entries</field></record>
+        <record id="ct_draft_invoices" model="ebshel.close.task.template"><field name="name">Every invoice and bill of the period is posted</field><field name="sequence">20</field><field name="kind">check</field><field name="check_key">draft_invoices</field></record>
+        <record id="ct_bank" model="ebshel.close.task.template"><field name="name">Bank lines are all matched</field><field name="sequence">30</field><field name="kind">check</field><field name="check_key">bank_unmatched</field></record>
+        <record id="ct_suspense" model="ebshel.close.task.template"><field name="name">Suspense accounts are empty</field><field name="sequence">40</field><field name="kind">check</field><field name="check_key">suspense</field></record>
+        <record id="ct_payments" model="ebshel.close.task.template"><field name="name">Payments are reconciled with their invoices</field><field name="sequence">50</field><field name="kind">check</field><field name="check_key">payments_unmatched</field></record>
+        <record id="ct_no_partner" model="ebshel.close.task.template"><field name="name">Every receivable and payable item has a partner</field><field name="sequence">60</field><field name="kind">check</field><field name="check_key">no_partner</field></record>
+        <record id="ct_assets" model="ebshel.close.task.template"><field name="name">Depreciation is posted</field><field name="sequence">70</field><field name="kind">check</field><field name="check_key">assets_due</field></record>
+        <record id="ct_deferrals" model="ebshel.close.task.template"><field name="name">Deferrals are recognised up to the period end</field><field name="sequence">80</field><field name="kind">check</field><field name="check_key">deferrals_due</field></record>
+        <record id="ct_findings" model="ebshel.close.task.template"><field name="name">No open ledger findings</field><field name="sequence">90</field><field name="kind">check</field><field name="check_key">findings_open</field></record>
+        <record id="ct_future" model="ebshel.close.task.template"><field name="name">Nothing was posted after the period end by mistake</field><field name="sequence">100</field><field name="kind">check</field><field name="check_key">future_dated</field></record>
+        <record id="ct_followups" model="ebshel.close.task.template"><field name="name">Overdue customers have been reminded</field><field name="sequence">110</field><field name="kind">check</field><field name="check_key">followups_due</field></record>
+        <record id="ct_bank_balance" model="ebshel.close.task.template"><field name="name">Bank balances agree with the statements</field><field name="sequence">200</field><field name="kind">manual</field><field name="note">Compare each bank account's closing balance with the statement of the period end.</field></record>
+        <record id="ct_accruals" model="ebshel.close.task.template"><field name="name">Accruals and provisions are posted</field><field name="sequence">210</field><field name="kind">manual</field><field name="note">Unbilled costs, unearned revenue, bonuses, warranties.</field></record>
+        <record id="ct_pl_review" model="ebshel.close.task.template"><field name="name">Profit and loss reviewed against the budget</field><field name="sequence">220</field><field name="kind">manual</field><field name="note">Open the Budget board and explain every line over budget.</field></record>
+        <record id="ct_aged" model="ebshel.close.task.template"><field name="name">Aged receivable and payable reviewed</field><field name="sequence">230</field><field name="kind">manual</field></record>
+        <record id="ct_tax" model="ebshel.close.task.template"><field name="name">Tax report checked</field><field name="sequence">240</field><field name="kind">manual</field></record>
+        <record id="ct_backup" model="ebshel.close.task.template"><field name="name">Backup taken</field><field name="sequence">250</field><field name="kind">manual</field></record>
+    </data>
+</odoo>

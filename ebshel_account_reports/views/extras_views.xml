@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fin_annotation_list" model="ir.ui.view">
+        <field name="name">ebshel.fin.report.annotation.list</field>
+        <field name="model">ebshel.fin.report.annotation</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="date"/>
+                <field name="report_id"/>
+                <field name="line_name"/>
+                <field name="column_key" optional="hide"/>
+                <field name="text"/>
+                <field name="user_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_fin_annotations" model="ir.actions.act_window">
+        <field name="name">Report Notes</field>
+        <field name="res_model">ebshel.fin.report.annotation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_fin_saved_view_list" model="ir.ui.view">
+        <field name="name">ebshel.fin.report.view.list</field>
+        <field name="model">ebshel.fin.report.view</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="report_id"/>
+                <field name="user_id"/>
+                <field name="shared"/>
+                <field name="is_default"/>
+                <button name="action_open" type="object" string="Open" icon="fa-external-link" class="btn-link"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_fin_saved_view_form" model="ir.ui.view">
+        <field name="name">ebshel.fin.report.view.form</field>
+        <field name="model">ebshel.fin.report.view</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_open" type="object" string="Open" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="report_id"/>
+                        <field name="user_id"/>
+                        <field name="shared"/>
+                        <field name="is_default"/>
+                        <field name="options" widget="json" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_fin_saved_views" model="ir.actions.act_window">
+        <field name="name">Saved Views</field>
+        <field name="res_model">ebshel.fin.report.view</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_fin_schedule_list" model="ir.ui.view">
+        <field name="name">ebshel.fin.report.schedule.list</field>
+        <field name="model">ebshel.fin.report.schedule</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="report_id"/>
+                <field name="interval"/>
+                <field name="format"/>
+                <field name="next_run"/>
+                <field name="last_run"/>
+                <field name="run_count"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_fin_schedule_form" model="ir.ui.view">
+        <field name="name">ebshel.fin.report.schedule.form</field>
+        <field name="model">ebshel.fin.report.schedule</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_send_now" type="object" string="Send now" class="btn-primary" icon="fa-paper-plane"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title"><h1><field name="name" placeholder="e.g. Monthly P&amp;L to the partners"/></h1></div>
+                    <group>
+                        <group string="What">
+                            <field name="report_id"/>
+                            <field name="view_id"/>
+                            <field name="format"/>
+                            <field name="user_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="When">
+                            <field name="interval"/>
+                            <field name="run_day"/>
+                            <field name="next_run"/>
+                            <field name="last_run"/>
+                            <field name="run_count"/>
+                        </group>
+                    </group>
+                    <group string="To whom">
+                        <field name="partner_ids" widget="many2many_tags"/>
+                        <field name="emails" placeholder="anna@example.com, ravi@example.com"/>
+                    </group>
+                    <group string="The mail">
+                        <field name="subject"/>
+                        <field name="body"/>
+                    </group>
+                    <div class="text-muted">
+                        <code>{report}</code> and <code>{period}</code> in the subject or the body are
+                        replaced when the mail is sent.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_fin_schedules" model="ir.actions.act_window">
+        <field name="name">Scheduled Reports</field>
+        <field name="res_model">ebshel.fin.report.schedule</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Put a report in somebody's inbox</p>
+            <p>Pick the report and a saved view, say how often, and the workbook and the PDF
+               go out by themselves.</p>
+        </field>
+    </record>
+</odoo>

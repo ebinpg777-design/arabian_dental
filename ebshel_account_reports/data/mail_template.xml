@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Schedules compose their own mail from subject and body fields; nothing here yet
+         beyond a placeholder so the data list stays stable across versions. -->
+    <record id="ir_config_reports_ready" model="ir.config_parameter">
+        <field name="key">ebshel_account_reports.installed_version</field>
+        <field name="value">19.0.1.0.0</field>
+    </record>
+</odoo>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_form_assets" model="ir.ui.view">
+        <field name="name">account.move.form.assets</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_ebshel_open_assets" type="object" class="oe_stat_button" icon="fa-cubes"
+                        invisible="not ebshel_asset_count">
+                    <field name="ebshel_asset_count" widget="statinfo" string="Assets"/>
+                </button>
+            </xpath>
+            <xpath expr="//header" position="inside">
+                <button name="action_ebshel_create_assets" type="object" string="Create assets"
+                        invisible="move_type != 'in_invoice' or state != 'posted'" groups="account.group_account_invoice"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']//field[@name='name']" position="after">
+                <field name="ebshel_asset_ids" column_invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

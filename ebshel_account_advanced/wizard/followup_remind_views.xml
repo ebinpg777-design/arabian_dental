@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_followup_remind_form" model="ir.ui.view">
+        <field name="name">ebshel.followup.remind.form</field>
+        <field name="model">ebshel.followup.remind</field>
+        <field name="arch" type="xml">
+            <form string="Send payment reminders">
+                <group>
+                    <field name="partner_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    <field name="level_id" options="{'no_create': True}" placeholder="the level each customer has reached"/>
+                    <field name="note" placeholder="An extra line for this batch (optional)"/>
+                    <field name="print_letter"/>
+                </group>
+                <footer>
+                    <button string="Send" name="action_send" type="object" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_followup_remind" model="ir.actions.act_window">
+        <field name="name">Send payment reminder</field>
+        <field name="res_model">ebshel.followup.remind</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">list,form</field>
+    </record>
+</odoo>

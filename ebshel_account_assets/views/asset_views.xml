@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_asset_list" model="ir.ui.view">
+        <field name="name">ebshel.asset.list</field>
+        <field name="model">ebshel.asset</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state in ('disposed', 'cancelled')" decoration-info="state == 'draft'" decoration-warning="state == 'paused'">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="purchase_date"/>
+                <field name="purchase_value" sum="Gross"/>
+                <field name="depreciated_value" sum="Depreciated"/>
+                <field name="book_value" sum="Book value"/>
+                <field name="next_line_date" optional="show"/>
+                <field name="custodian_id" optional="hide"/>
+                <field name="location" optional="hide"/>
+                <field name="cover_state" optional="hide" widget="badge" decoration-danger="cover_state == 'expired'" decoration-warning="cover_state == 'soon'" decoration-success="cover_state == 'ok'"/>
+                <field name="state" widget="badge" decoration-success="state == 'running'" decoration-warning="state == 'paused'" decoration-info="state == 'draft'" decoration-muted="state in ('closed', 'disposed', 'cancelled')"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_asset_kanban" model="ir.ui.view">
+        <field name="name">ebshel.asset.kanban</field>
+        <field name="model">ebshel.asset</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="image_128"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex gap-2">
+                            <field name="image_128" widget="image" options="{'size': [48, 48]}" class="o_kanban_image_fill"/>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold text-truncate"><field name="name"/></div>
+                                <div class="text-muted small"><field name="code"/> · <field name="category_id"/></div>
+                                <div class="small">Book value <b><field name="book_value" widget="monetary"/></b> of <field name="purchase_value" widget="monetary"/></div>
+                                <div class="small text-muted" invisible="not custodian_id"><i class="fa fa-user me-1"/><field name="custodian_id"/> <span invisible="not location">· <field name="location"/></span></div>
+                                <div class="small" invisible="not next_line_date">Next <field name="next_line_date"/></div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_asset_form" model="ir.ui.view">
+        <field name="name">ebshel.asset.form</field>
+        <field name="model">ebshel.asset</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" type="object" string="Confirm" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_post_due" type="object" string="Post due depreciation" invisible="state != 'running'"/>
+                    <button name="action_open_change" type="object" string="Modify" invisible="state not in ('running', 'paused')"/>
+                    <button name="action_pause" type="object" string="Pause" invisible="state != 'running'"/>
+                    <button name="action_resume" type="object" string="Resume" class="btn-primary" invisible="state != 'paused'"/>
+                    <button name="action_open_dispose" type="object" string="Dispose" invisible="state not in ('running', 'paused', 'closed')"/>
+                    <button name="action_reset_draft" type="object" string="Reset to draft" invisible="state not in ('running', 'cancelled')"/>
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state != 'draft'"/>
+                    <button name="action_print_label" type="object" string="QR label" icon="fa-qrcode"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,running,closed,disposed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_entries" type="object" class="oe_stat_button" icon="fa-book" invisible="not entry_count">
+                            <field name="entry_count" widget="statinfo" string="Entries"/>
+                        </button>
+                        <button name="action_open_children" type="object" class="oe_stat_button" icon="fa-level-up" invisible="not child_count">
+                            <field name="child_count" widget="statinfo" string="Increases"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Disposed" bg_color="text-bg-danger" invisible="state != 'disposed'"/>
+                    <widget name="web_ribbon" title="Paused" bg_color="text-bg-warning" invisible="state != 'paused'"/>
+                    <widget name="web_ribbon" title="Fully depreciated" invisible="state != 'closed'"/>
+                    <field name="image_1920" widget="image" class="oe_avatar" options="{'preview_image': 'image_128'}"/>
+                    <div class="oe_title">
+                        <div class="text-muted"><field name="code" readonly="1"/></div>
+                        <h1><field name="name" placeholder="e.g. Dental chair, surgery 2"/></h1>
+                    </div>
+                    <group>
+                        <group string="What it is">
+                            <field name="category_id" readonly="state != 'draft'"/>
+                            <field name="partner_id"/>
+                            <field name="bill_id" invisible="not bill_id"/>
+                            <field name="parent_id" invisible="not parent_id"/>
+                            <field name="user_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="What it is worth">
+                            <field name="purchase_date" readonly="state != 'draft'"/>
+                            <field name="purchase_value" readonly="state != 'draft'"/>
+                            <field name="salvage_value" readonly="state != 'draft'"/>
+                            <field name="already_depreciated" readonly="state != 'draft'"/>
+                            <field name="depreciated_value"/>
+                            <field name="book_value" class="fw-bold"/>
+                            <field name="remaining_value"/>
+                            <field name="gain_loss" invisible="state != 'disposed'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Depreciation" name="depreciation">
+                            <group>
+                                <group>
+                                    <field name="method" readonly="state != 'draft'"/>
+                                    <field name="declining_rate" invisible="method == 'linear'" readonly="state != 'draft'"/>
+                                    <field name="period" readonly="state != 'draft'"/>
+                                    <field name="duration" readonly="state != 'draft'"/>
+                                    <field name="prorata" readonly="state != 'draft'"/>
+                                    <field name="start_date" readonly="state != 'draft'"/>
+                                    <field name="next_line_date"/>
+                                </group>
+                                <group>
+                                    <field name="asset_account_id" readonly="state != 'draft'"/>
+                                    <field name="depreciation_account_id" readonly="state != 'draft'"/>
+                                    <field name="expense_account_id" readonly="state != 'draft'"/>
+                                    <field name="journal_id" readonly="state != 'draft'"/>
+                                    <field name="analytic_distribution" widget="analytic_distribution" groups="analytic.group_analytic_accounting"/>
+                                </group>
+                            </group>
+                            <field name="line_ids" readonly="1">
+                                <list decoration-muted="state == 'skipped'" decoration-success="state == 'posted'">
+                                    <field name="sequence" column_invisible="1"/>
+                                    <field name="date"/>
+                                    <field name="name"/>
+                                    <field name="kind"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="cumulative"/>
+                                    <field name="remaining"/>
+                                    <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state == 'draft'"/>
+                                    <field name="move_id" optional="hide"/>
+                                    <button name="action_post" type="object" string="Post" icon="fa-check" invisible="state != 'draft'"/>
+                                    <button name="action_open_move" type="object" string="Entry" icon="fa-external-link" invisible="not move_id"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Lifecycle" name="lifecycle">
+                            <field name="lifecycle_json" widget="ebshel_asset_lifecycle" nolabel="1"/>
+                        </page>
+                        <page string="Custody and cover" name="custody">
+                            <group>
+                                <group string="Where it is">
+                                    <field name="custodian_id"/>
+                                    <field name="location"/>
+                                    <field name="serial"/>
+                                </group>
+                                <group string="Cover">
+                                    <field name="warranty_end"/>
+                                    <field name="insurance_end"/>
+                                    <field name="cover_state" widget="badge" decoration-danger="cover_state == 'expired'" decoration-warning="cover_state == 'soon'" decoration-success="cover_state == 'ok'"/>
+                                </group>
+                            </group>
+                            <group string="Disposal" invisible="state != 'disposed'">
+                                <group>
+                                    <field name="disposal_date"/>
+                                    <field name="disposal_kind"/>
+                                    <field name="disposal_value"/>
+                                </group>
+                                <group>
+                                    <field name="disposal_move_id"/>
+                                    <field name="disposal_invoice_id"/>
+                                </group>
+                            </group>
+                            <field name="notes" placeholder="Anything the next person should know about this asset…"/>
+                        </page>
+                        <page string="Events" name="events">
+                            <field name="event_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="kind"/>
+                                    <field name="note"/>
+                                    <field name="amount"/>
+                                    <field name="user_id"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_asset_search" model="ir.ui.view">
+        <field name="name">ebshel.asset.search</field>
+        <field name="model">ebshel.asset</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" filter_domain="['|', '|', ('name', 'ilike', self), ('code', 'ilike', self), ('serial', 'ilike', self)]"/>
+                <field name="category_id"/>
+                <field name="custodian_id"/>
+                <field name="location"/>
+                <filter name="draft" string="To confirm" domain="[('state', '=', 'draft')]"/>
+                <filter name="running" string="Running" domain="[('state', '=', 'running')]"/>
+                <filter name="paused" string="Paused" domain="[('state', '=', 'paused')]"/>
+                <filter name="closed" string="Fully depreciated" domain="[('state', '=', 'closed')]"/>
+                <filter name="disposed" string="Disposed" domain="[('state', '=', 'disposed')]"/>
+                <separator/>
+                <filter name="cover_soon" string="Cover expiring" domain="[('cover_state', 'in', ('soon', 'expired'))]"/>
+                <filter name="from_bills" string="From vendor bills" domain="[('bill_id', '!=', False)]"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_category" string="Category" context="{'group_by': 'category_id'}"/>
+                    <filter name="group_group" string="Group" context="{'group_by': 'group_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_custodian" string="Held by" context="{'group_by': 'custodian_id'}"/>
+                    <filter name="group_year" string="Purchase year" context="{'group_by': 'purchase_date:year'}"/>
+                </group>
+                <searchpanel>
+                    <field name="category_id" string="Category" icon="fa-cubes" enable_counters="1"/>
+                    <field name="state" string="Status" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_asset_pivot" model="ir.ui.view">
+        <field name="name">ebshel.asset.pivot</field>
+        <field name="model">ebshel.asset</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="category_id" type="row"/>
+                <field name="purchase_value" type="measure"/>
+                <field name="depreciated_value" type="measure"/>
+                <field name="book_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="view_asset_graph" model="ir.ui.view">
+        <field name="name">ebshel.asset.graph</field>
+        <field name="model">ebshel.asset</field>
+        <field name="arch" type="xml">
+            <graph type="bar" stacked="0">
+                <field name="category_id"/>
+                <field name="book_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_assets" model="ir.actions.act_window">
+        <field name="name">Assets</field>
+        <field name="res_model">ebshel.asset</field>
+        <field name="view_mode">list,kanban,form,pivot,graph</field>
+        <field name="search_view_id" ref="view_asset_search"/>
+        <field name="context">{'search_default_running': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No assets yet</p>
+            <p>Create one here, or post a vendor bill on an asset account and it will appear by itself.</p>
+        </field>
+    </record>
+    <record id="action_asset_dashboard" model="ir.actions.client">
+        <field name="name">Assets Overview</field>
+        <field name="tag">ebshel_asset_dashboard</field>
+    </record>
+</odoo>

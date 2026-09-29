@@ -1,0 +1,17 @@
+.o_eal {
+    .o_eal_h { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; color: #6b7280; margin-bottom: .3rem; }
+    .o_eal_svg { width: 100%; height: 160px; background: #fff; border: 1px solid #e6eaf0; border-radius: .4rem; }
+    .o_eal_solid { fill: none; stroke: #1f3a5f; stroke-width: 2; }
+    .o_eal_dotted { fill: none; stroke: #1f3a5f; stroke-width: 2; stroke-dasharray: 4 4; opacity: .55; }
+    .o_eal_salvage { stroke: #b45309; stroke-dasharray: 2 4; }
+    .o_eal_dot { fill: #1f3a5f; } .o_eal_dot_future { fill: #fff; stroke: #1f3a5f; }
+    .o_eal_tick { font-size: 10px; fill: #6b7280; }
+    .o_eal_timeline { border-left: 2px solid #e6eaf0; margin-left: .7rem; padding-left: 1rem; }
+    .o_eal_event { position: relative; padding: .25rem 0 .5rem; display: flex; gap: .6rem; align-items: flex-start;
+        .o_eal_dotcol { position: absolute; left: -1.75rem; top: .3rem; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #fff;
+            border: 2px solid #1f3a5f; display: flex; align-items: center; justify-content: center; font-size: .6rem; color: #1f3a5f; }
+        &.o_eal_e_posted .o_eal_dotcol { border-color: #067647; color: #067647; }
+        &.o_eal_e_paused .o_eal_dotcol, &.o_eal_e_impaired .o_eal_dotcol { border-color: #b45309; color: #b45309; }
+        &.o_eal_e_disposed .o_eal_dotcol, &.o_eal_e_cancelled .o_eal_dotcol { border-color: #b42318; color: #b42318; }
+        .o_eal_body { font-size: .84rem; } }
+}

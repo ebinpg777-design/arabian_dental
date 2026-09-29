@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_asset_dispose_form" model="ir.ui.view">
+        <field name="name">ebshel.asset.dispose.form</field>
+        <field name="model">ebshel.asset.dispose</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="asset_id" readonly="1"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="kind" widget="radio"/>
+                        <field name="date"/>
+                    </group>
+                    <group>
+                        <field name="book_value"/>
+                        <field name="invoice_id" invisible="kind != 'sale'"/>
+                        <field name="proceeds" invisible="kind != 'sale'"/>
+                    </group>
+                </group>
+                <group>
+                    <field name="note" placeholder="Why - it goes on the timeline"/>
+                </group>
+                <div class="text-muted small">
+                    Depreciation is posted up to the date, the gross value and its accumulated depreciation
+                    leave the books, and the book value goes to the loss (or gain) account. A sale's
+                    proceeds come through the customer invoice.
+                </div>
+                <footer>
+                    <button name="action_apply" type="object" string="Dispose" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

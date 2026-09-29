@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_close_period_list" model="ir.ui.view">
+        <field name="name">ebshel.close.period.list</field>
+        <field name="model">ebshel.close.period</field>
+        <field name="arch" type="xml">
+            <list string="Close periods">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="progress_pct" widget="progressbar"/>
+                <field name="blocking_count"/>
+                <field name="state" widget="badge" decoration-success="state == 'closed'" decoration-warning="state == 'review'"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_close_period_form" model="ir.ui.view">
+        <field name="name">ebshel.close.period.form</field>
+        <field name="model">ebshel.close.period</field>
+        <field name="arch" type="xml">
+            <form string="Close period">
+                <header>
+                    <button name="action_cockpit" type="object" string="Open the cockpit" class="btn-primary" icon="fa-tachometer"/>
+                    <button name="action_refresh" type="object" string="Run the checks" invisible="state == 'closed'"/>
+                    <button name="action_review" type="object" string="Send to review" invisible="state != 'open'"/>
+                    <button name="action_close" type="object" string="Close the period" invisible="state == 'closed'" confirm="Every task must be done. The books will be locked up to the period end if the option is ticked. Continue?"/>
+                    <button name="action_reopen" type="object" string="Reopen" invisible="state != 'closed'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="open,review,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. September 2026"/></h1>
+                        <div class="text-muted"><field name="code" readonly="1"/></div>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="lock_books"/>
+                        </group>
+                        <group>
+                            <field name="progress_pct" widget="progressbar"/>
+                            <field name="blocking_count"/>
+                            <field name="closed_on" invisible="not closed_on"/>
+                            <field name="closed_by_id" invisible="not closed_by_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Checklist" name="tasks">
+                            <button name="action_generate_tasks" type="object" string="Add the template tasks" class="btn btn-link" icon="fa-plus"/>
+                            <field name="task_ids">
+                                <list editable="bottom" decoration-success="state == 'done'" decoration-muted="state == 'skipped'" decoration-danger="kind == 'check' and state == 'todo' and count">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="kind"/>
+                                    <field name="check_key" invisible="kind != 'check'"/>
+                                    <field name="count"/>
+                                    <field name="amount"/>
+                                    <field name="user_id" widget="many2one_avatar_user"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="note" optional="show"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <button name="action_open" type="object" icon="fa-search" title="Open the records" invisible="not count"/>
+                                    <button name="action_done" type="object" icon="fa-check" title="Done" invisible="state != 'todo'"/>
+                                    <button name="action_skip" type="object" icon="fa-forward" title="Skip" invisible="state != 'todo'"/>
+                                    <button name="action_reset" type="object" icon="fa-undo" title="Back to do" invisible="state == 'todo'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes"><field name="note"/></page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="action_close_periods" model="ir.actions.act_window">
+        <field name="name">Close Periods</field>
+        <field name="res_model">ebshel.close.period</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Close a month with a checklist</p><p>Every automatic check counts what is still wrong; manual tasks are ticked off by their owner. Closing sets the lock date.</p></field>
+    </record>
+    <record id="view_close_task_template_list" model="ir.ui.view">
+        <field name="name">ebshel.close.task.template.list</field>
+        <field name="model">ebshel.close.task.template</field>
+        <field name="arch" type="xml">
+            <list string="Close task templates" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="kind"/>
+                <field name="check_key" invisible="kind != 'check'"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="note" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_close_task_templates" model="ir.actions.act_window">
+        <field name="name">Close Checklist Templates</field>
+        <field name="res_model">ebshel.close.task.template</field>
+        <field name="view_mode">list</field>
+    </record>
+</odoo>

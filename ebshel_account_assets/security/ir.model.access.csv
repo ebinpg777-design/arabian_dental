@@ -1,0 +1,16 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_asset_group_read,asset group read,model_ebshel_asset_group,account.group_account_readonly,1,0,0,0
+access_asset_group_manager,asset group manager,model_ebshel_asset_group,account.group_account_manager,1,1,1,1
+access_asset_category_read,asset category read,model_ebshel_asset_category,account.group_account_readonly,1,0,0,0
+access_asset_category_manager,asset category manager,model_ebshel_asset_category,account.group_account_manager,1,1,1,1
+access_asset_read,asset read,model_ebshel_asset,account.group_account_readonly,1,0,0,0
+access_asset_user,asset user,model_ebshel_asset,account.group_account_invoice,1,1,1,0
+access_asset_manager,asset manager,model_ebshel_asset,account.group_account_manager,1,1,1,1
+access_asset_line_read,asset line read,model_ebshel_asset_line,account.group_account_readonly,1,0,0,0
+access_asset_line_user,asset line user,model_ebshel_asset_line,account.group_account_invoice,1,1,1,1
+access_asset_event_read,asset event read,model_ebshel_asset_event,account.group_account_readonly,1,0,0,0
+access_asset_event_user,asset event user,model_ebshel_asset_event,account.group_account_invoice,1,1,1,0
+access_asset_change_user,asset change wizard,model_ebshel_asset_change,account.group_account_invoice,1,1,1,1
+access_asset_dispose_user,asset dispose wizard,model_ebshel_asset_dispose,account.group_account_invoice,1,1,1,1
+access_asset_simulate_user,asset simulate wizard,model_ebshel_asset_simulate,account.group_account_readonly,1,1,1,1
+access_ebshel_asset_simulate_billing_read,ebshel_asset_simulate billing read,model_ebshel_asset_simulate,account.group_account_invoice,1,0,0,0

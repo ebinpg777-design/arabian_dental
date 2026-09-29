@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_advanced.LedgerHealth">
+        <div class="o_eaa o_action o_eaa_health">
+            <div class="o_eaa_head">
+                <h2><i class="fa fa-heartbeat me-2"/>Ledger health</h2>
+                <span class="o_eaa_sub" t-if="state.data and state.data.last_scan">last scan <t t-esc="state.data.last_scan"/></span>
+                <div class="ms-auto d-flex gap-1">
+                    <button class="btn btn-sm btn-primary" t-if="state.data and state.data.can_write" t-on-click="scan" t-att-disabled="state.busy"><i t-att-class="'fa me-1 ' + (state.busy ? 'fa-circle-o-notch fa-spin' : 'fa-search')"/>Scan now</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                </div>
+            </div>
+            <div t-if="state.loading and !state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Reading…</div>
+            <div t-elif="state.data" class="o_eaa_body">
+                <div class="o_eaa_grid" style="grid-template-columns: 280px minmax(0, 1fr)">
+                    <div class="o_eaa_panel text-center">
+                        <svg viewBox="0 0 120 70" style="width:200px;height:120px">
+                            <path d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="#e6eaf0" stroke-width="12" stroke-linecap="round"/>
+                            <path d="M10,60 A50,50 0 0 1 110,60" fill="none" t-att-stroke="gauge.color" stroke-width="12" stroke-linecap="round" t-att-stroke-dasharray="gauge.c" t-att-stroke-dashoffset="gauge.off"/>
+                            <text x="60" y="58" text-anchor="middle" font-size="24" font-weight="700" t-att-fill="gauge.color" t-esc="gauge.s"/>
+                        </svg>
+                        <div class="small text-muted">out of 100 · errors cost 8, warnings 3, notes 1</div>
+                        <div class="d-flex justify-content-center gap-2 mt-2">
+                            <span t-att-class="'o_eaa_chip' + (state.filter === 'all' ? ' on' : '')" t-on-click="() => state.filter = 'all'">all</span>
+                            <span t-att-class="'o_eaa_chip' + (state.filter === 'error' ? ' on' : '')" t-on-click="() => state.filter = 'error'"><t t-esc="state.data.counts.error"/> errors</span>
+                            <span t-att-class="'o_eaa_chip' + (state.filter === 'warn' ? ' on' : '')" t-on-click="() => state.filter = 'warn'"><t t-esc="state.data.counts.warn"/> warnings</span>
+                            <span t-att-class="'o_eaa_chip' + (state.filter === 'info' ? ' on' : '')" t-on-click="() => state.filter = 'info'"><t t-esc="state.data.counts.info"/> notes</span>
+                        </div>
+                        <div class="text-start mt-3 small">
+                            <div class="o_eaa_ph">What is checked</div>
+                            <div t-foreach="state.data.checks" t-as="c" t-key="c.key" class="text-muted">· <t t-esc="c.label"/></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="o_eaa_panel mb-2">
+                            <div class="o_eaa_ph">Open findings</div>
+                            <div t-if="!findings.length" class="o_eaa_empty"><t t-if="!state.data.last_scan">No scan yet: press Scan now.</t><t t-else="">Nothing open. The books look clean.</t></div>
+                            <div t-foreach="findings" t-as="f" t-key="f.id" class="d-flex align-items-start gap-2 py-2 border-bottom">
+                                <span t-att-class="'o_eaa_badge ' + sevClass(f.severity)" t-esc="f.severity"/>
+                                <div class="flex-grow-1" style="min-width:0">
+                                    <div><b t-esc="f.name"/> <span class="small text-muted">· <t t-esc="f.label"/> · found <t t-esc="f.found_on"/></span></div>
+                                    <div t-if="f.detail" class="small text-muted" style="white-space:pre-line" t-esc="f.detail"/>
+                                    <div class="small" t-if="f.amount"><t t-esc="money(f.amount)"/></div>
+                                </div>
+                                <div class="d-flex gap-1 flex-shrink-0">
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open(f)" t-if="f.model"><i class="fa fa-search"/> <t t-esc="f.count"/></button>
+                                    <t t-if="state.data.can_write">
+                                        <button class="btn btn-sm btn-outline-success o_eaa_btn" t-on-click="() => this.set(f, 'resolved')" title="Resolved"><i class="fa fa-check"/></button>
+                                        <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.set(f, 'ignored')" title="Ignore"><i class="fa fa-eye-slash"/></button>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="o_eaa_panel" t-if="state.data.recent.length">
+                            <div class="o_eaa_ph">Recently closed</div>
+                            <div t-foreach="state.data.recent" t-as="r" t-key="r.id" class="small d-flex gap-2 py-1 border-bottom">
+                                <span t-att-class="'o_eaa_badge ' + (r.state === 'resolved' ? 'good' : 'muted')" t-esc="r.state"/>
+                                <span t-esc="r.name"/><span class="text-muted ms-auto"><t t-esc="r.user"/> <t t-esc="r.on"/></span>
+                                <button class="btn btn-sm btn-link o_eaa_btn" t-on-click="() => this.set(r, 'open')" t-if="state.data.can_write">reopen</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

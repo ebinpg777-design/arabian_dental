@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_deferral_list" model="ir.ui.view">
+        <field name="name">ebshel.deferral.list</field>
+        <field name="model">ebshel.deferral</field>
+        <field name="arch" type="xml">
+            <list string="Deferrals" decoration-muted="state in ('done', 'cancelled')">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="kind"/>
+                <field name="partner_id" optional="show"/>
+                <field name="move_id" optional="show"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="total" sum="Total"/>
+                <field name="recognised" sum="Recognised"/>
+                <field name="remaining" sum="Remaining"/>
+                <field name="progress_pct" widget="progressbar"/>
+                <field name="next_date" optional="show"/>
+                <field name="state" widget="badge" decoration-success="state == 'running'" decoration-info="state == 'draft'"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_deferral_form" model="ir.ui.view">
+        <field name="name">ebshel.deferral.form</field>
+        <field name="model">ebshel.deferral</field>
+        <field name="arch" type="xml">
+            <form string="Deferral">
+                <header>
+                    <button name="action_run" type="object" string="Start" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="build_schedule" type="object" string="Rebuild months" invisible="state != 'draft'"/>
+                    <button name="action_post_due" type="object" string="Recognise what is due" invisible="state != 'running'"/>
+                    <button name="action_cancel" type="object" string="Cancel and reverse" invisible="state in ('cancelled',)" confirm="Every posted entry of this deferral will be reversed. Continue?"/>
+                    <button name="action_draft" type="object" string="Back to draft" invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,running,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_entries" type="object" class="oe_stat_button" icon="fa-book" invisible="not move_count">
+                            <field name="move_count" widget="statinfo" string="Entries"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Annual maintenance contract"/></h1>
+                        <div class="text-muted"><field name="code" readonly="1"/></div>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="kind"/>
+                            <field name="partner_id"/>
+                            <field name="move_id" readonly="1"/>
+                            <field name="move_line_id" readonly="1" invisible="not move_line_id"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="total"/>
+                            <field name="method"/>
+                        </group>
+                        <group>
+                            <field name="pl_account_id"/>
+                            <field name="deferral_account_id" placeholder="from the settings"/>
+                            <field name="journal_id" placeholder="from the settings"/>
+                            <field name="analytic_distribution" widget="analytic_distribution" groups="analytic.group_analytic_accounting"/>
+                            <field name="reclass_move_id" readonly="1" invisible="not reclass_move_id"/>
+                            <field name="recognised"/>
+                            <field name="remaining"/>
+                            <field name="progress_pct" widget="progressbar"/>
+                            <field name="next_date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Months" name="lines">
+                            <field name="line_ids">
+                                <list decoration-success="state == 'posted'" decoration-muted="state == 'skipped'" create="false">
+                                    <field name="sequence" column_invisible="1"/>
+                                    <field name="date"/>
+                                    <field name="name"/>
+                                    <field name="date_from" optional="hide"/>
+                                    <field name="date_to" optional="hide"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="move_id" optional="show"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <button name="action_post" type="object" string="Recognise" icon="fa-check" invisible="state != 'draft'"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_deferral_search" model="ir.ui.view">
+        <field name="name">ebshel.deferral.search</field>
+        <field name="model">ebshel.deferral</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="partner_id"/>
+                <field name="move_id"/>
+                <filter string="Revenue" name="revenue" domain="[('kind', '=', 'revenue')]"/>
+                <filter string="Expenses" name="expense" domain="[('kind', '=', 'expense')]"/>
+                <separator/>
+                <filter string="Running" name="running" domain="[('state', '=', 'running')]"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <group>
+                    <filter string="Kind" name="by_kind" context="{'group_by': 'kind'}"/>
+                    <filter string="Partner" name="by_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Status" name="by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_deferrals" model="ir.actions.act_window">
+        <field name="name">Deferrals</field>
+        <field name="res_model">ebshel.deferral</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_running': 1, 'search_default_draft': 1}</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Recognise revenue and expenses over time</p><p>Put a start and end date on an invoice line and the amount is moved to the balance sheet, then recognised month by month. You can also create one by hand.</p></field>
+    </record>
+</odoo>

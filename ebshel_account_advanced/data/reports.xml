@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="report_budget" model="ebshel.fin.report">
+        <field name="name">Budget vs Actual</field>
+        <field name="key">budget_vs_actual</field>
+        <field name="kind">budget</field>
+        <field name="sequence">180</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_journals" eval="False"/>
+        <field name="allow_analytic" eval="False"/>
+        <field name="allow_partners" eval="False"/>
+        <field name="default_preset">fiscal_year</field>
+        <field name="description">Every confirmed budget overlapping the period: planned, actual, committed (draft bills), available, achieved and the theoretical amount to date. Unfold a budget for its lines; click an actual to see the entries behind it.</field>
+    </record>
+    <record id="action_report_budget" model="ir.actions.client">
+        <field name="name">Budget vs Actual</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'budget_vs_actual'}"/>
+    </record>
+    <record id="report_deferral" model="ebshel.fin.report">
+        <field name="name">Deferral Schedule</field>
+        <field name="key">deferral_schedule</field>
+        <field name="kind">deferral</field>
+        <field name="sequence">185</field>
+        <field name="custom" eval="False"/>
+        <field name="allow_comparison" eval="False"/>
+        <field name="allow_journals" eval="False"/>
+        <field name="allow_analytic" eval="False"/>
+        <field name="allow_partners" eval="False"/>
+        <field name="default_preset">fiscal_year</field>
+        <field name="description">Deferred revenue and prepaid expenses: the total, what was recognised before the period, in it, what is still to come, and the balance sheet amount at the period end. Untick "posted only" to include the months not yet recognised.</field>
+    </record>
+    <record id="action_report_deferral" model="ir.actions.client">
+        <field name="name">Deferral Schedule</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'deferral_schedule'}"/>
+    </record>
+</odoo>

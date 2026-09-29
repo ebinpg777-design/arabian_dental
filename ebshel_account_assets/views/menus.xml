@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_assets_root" name="Assets" parent="account.menu_finance_entries" sequence="60"
+              groups="account.group_account_readonly,account.group_account_invoice"/>
+    <menuitem id="menu_asset_dashboard" name="Overview" parent="menu_assets_root" action="action_asset_dashboard" sequence="5"/>
+    <menuitem id="menu_assets" name="Assets" parent="menu_assets_root" action="action_assets" sequence="10"/>
+    <menuitem id="menu_asset_schedule" name="Depreciation Schedule" parent="menu_assets_root" action="action_asset_schedule" sequence="20"/>
+    <menuitem id="menu_asset_simulate" name="Simulator" parent="menu_assets_root" action="action_asset_simulate" sequence="30"/>
+    <menuitem id="menu_asset_config" name="Assets" parent="account.menu_finance_configuration" sequence="65"
+              groups="account.group_account_manager"/>
+    <menuitem id="menu_asset_categories" name="Asset Categories" parent="menu_asset_config" action="action_asset_categories" sequence="10"/>
+    <menuitem id="menu_asset_groups" name="Asset Groups" parent="menu_asset_config" action="action_asset_groups" sequence="20"/>
+    <menuitem id="menu_asset_schedule_report" name="Depreciation Schedule" parent="account.account_reports_management_menu"
+              action="action_asset_schedule" sequence="30"/>
+</odoo>

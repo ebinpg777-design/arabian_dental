@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_reports.Viewer">
+        <div class="o_efr o_action d-flex flex-column">
+            <!-- ─────────────────────────────────── toolbar ─────────────────────────────────── -->
+            <div class="o_efr_bar">
+                <div class="o_efr_title">
+                    <h2 t-esc="state.report ? state.report.name : ''"/>
+                    <small class="text-muted d-none d-lg-inline" t-if="state.report and state.report.description" t-esc="state.report.description"/>
+                </div>
+                <div class="o_efr_filters" t-if="state.report">
+                    <!-- period -->
+                    <div class="o_efr_group">
+                        <button class="btn btn-sm btn-outline-secondary o_efr_popbtn" t-on-click="() => this.openMenu('period')" title="Period">
+                            <i class="fa fa-calendar me-1"/><t t-esc="periodLabel"/>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.shift(-1)" title="Previous period"><i class="fa fa-chevron-left"/></button>
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.shift(1)" title="Next period"><i class="fa fa-chevron-right"/></button>
+                        <div class="o_efr_pop" t-if="state.menu === 'period'">
+                            <div class="o_efr_pop_title">Period</div>
+                            <div class="o_efr_presets">
+                                <button t-foreach="state.choices.presets" t-as="p" t-key="p[0]" class="btn btn-sm"
+                                        t-att-class="state.options.date.preset === p[0] ? 'btn-primary' : 'btn-light'"
+                                        t-on-click="() => this.setPreset(p[0])" t-esc="p[1]"/>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                                <t t-if="!isSingle">
+                                    <span class="text-muted small">From</span>
+                                    <DateTimeInput type="'date'" format="dateFormat" value="dateValue('from')" onChange="(v) => this.onDate('from', v)"/>
+                                </t>
+                                <span class="text-muted small"><t t-if="isSingle">As of</t><t t-else="">to</t></span>
+                                <DateTimeInput type="'date'" format="dateFormat" value="dateValue('to')" onChange="(v) => this.onDate('to', v)"/>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- comparison -->
+                    <div class="o_efr_group" t-if="state.report.allow_comparison">
+                        <button class="btn btn-sm o_efr_popbtn" t-att-class="state.options.comparison.mode !== 'none' ? 'btn-primary' : 'btn-outline-secondary'"
+                                t-on-click="() => this.openMenu('compare')">
+                            <i class="fa fa-columns me-1"/><t t-esc="comparisonLabel()"/>
+                        </button>
+                        <div class="o_efr_pop" t-if="state.menu === 'compare'">
+                            <div class="o_efr_pop_title">Compare with</div>
+                            <button t-foreach="state.choices.comparison_modes" t-as="m" t-key="m[0]" class="btn btn-sm d-block w-100 text-start"
+                                    t-att-class="state.options.comparison.mode === m[0] ? 'btn-primary' : 'btn-light'"
+                                    t-on-click="() => this.setComparison(m[0])" t-esc="m[1]"/>
+                            <div class="mt-2 d-flex align-items-center gap-2" t-if="state.options.comparison.mode === 'previous' or state.options.comparison.mode === 'last_year'">
+                                <span class="small text-muted">Periods</span>
+                                <input type="number" min="1" max="12" class="form-control form-control-sm o_efr_num"
+                                       t-att-value="state.options.comparison.periods" t-on-change="(ev) => this.setPeriods(ev.target.value)"/>
+                            </div>
+                            <div class="mt-2 d-flex align-items-center gap-2 flex-wrap" t-if="state.options.comparison.mode === 'custom'">
+                                <DateTimeInput type="'date'" format="dateFormat" value="state.options.comparison.from ? deserialize(state.options.comparison.from) : false"
+                                               onChange="(v) => this.reload({comparison: {...state.options.comparison, from: v.toISODate()}})"/>
+                                <span class="small text-muted">to</span>
+                                <DateTimeInput type="'date'" format="dateFormat" value="state.options.comparison.to ? deserialize(state.options.comparison.to) : false"
+                                               onChange="(v) => this.reload({comparison: {...state.options.comparison, to: v.toISODate()}})"/>
+                            </div>
+                            <label class="d-flex align-items-center gap-2 mt-2 small" t-if="state.options.comparison.mode !== 'none'">
+                                <input type="checkbox" t-att-checked="state.options.growth" t-on-change="() => this.toggleFlag('growth')"/> Growth column
+                            </label>
+                        </div>
+                    </div>
+                    <!-- journals -->
+                    <div class="o_efr_group" t-if="state.report.allow_journals">
+                        <button class="btn btn-sm o_efr_popbtn" t-att-class="state.options.journals.length ? 'btn-primary' : 'btn-outline-secondary'"
+                                t-on-click="() => this.openMenu('journals')">
+                            <i class="fa fa-book me-1"/>Journals<span t-if="state.options.journals.length" class="badge text-bg-light ms-1" t-esc="state.options.journals.length"/>
+                        </button>
+                        <div class="o_efr_pop o_efr_pop_list" t-if="state.menu === 'journals'">
+                            <div class="o_efr_pop_title d-flex justify-content-between">Journals
+                                <a href="#" class="small" t-on-click.prevent="() => this.clearKey('journals')">all</a></div>
+                            <label t-foreach="state.choices.journals" t-as="j" t-key="j.id" class="o_efr_check">
+                                <input type="checkbox" t-att-checked="state.options.journals.includes(j.id)" t-on-change="() => this.toggleIn('journals', j.id)"/>
+                                <span class="o_efr_code" t-esc="j.code"/> <t t-esc="j.name"/>
+                            </label>
+                            <button class="btn btn-sm btn-primary w-100 mt-2" t-on-click="() => this.applyMenu()">Apply</button>
+                        </div>
+                    </div>
+                    <!-- analytic -->
+                    <div class="o_efr_group" t-if="state.report.allow_analytic and state.choices.analytic.length">
+                        <button class="btn btn-sm o_efr_popbtn" t-att-class="state.options.analytic.length ? 'btn-primary' : 'btn-outline-secondary'"
+                                t-on-click="() => this.openMenu('analytic')">
+                            <i class="fa fa-sitemap me-1"/>Analytic<span t-if="state.options.analytic.length" class="badge text-bg-light ms-1" t-esc="state.options.analytic.length"/>
+                        </button>
+                        <div class="o_efr_pop o_efr_pop_list" t-if="state.menu === 'analytic'">
+                            <div class="o_efr_pop_title d-flex justify-content-between">Analytic accounts
+                                <a href="#" class="small" t-on-click.prevent="() => this.clearKey('analytic')">all</a></div>
+                            <label t-foreach="state.choices.analytic" t-as="a" t-key="a.id" class="o_efr_check">
+                                <input type="checkbox" t-att-checked="state.options.analytic.includes(a.id)" t-on-change="() => this.toggleIn('analytic', a.id)"/>
+                                <t t-esc="a.name"/> <span class="text-muted small" t-esc="a.plan"/>
+                            </label>
+                            <div class="small text-muted mt-1">Amounts are weighted by each entry's analytic share.</div>
+                            <button class="btn btn-sm btn-primary w-100 mt-2" t-on-click="() => this.applyMenu()">Apply</button>
+                        </div>
+                    </div>
+                    <!-- partners -->
+                    <div class="o_efr_group" t-if="state.report.allow_partners">
+                        <button class="btn btn-sm o_efr_popbtn" t-att-class="state.options.partners.length ? 'btn-primary' : 'btn-outline-secondary'"
+                                t-on-click="() => this.openMenu('partners')">
+                            <i class="fa fa-user me-1"/>Partners<span t-if="state.options.partners.length" class="badge text-bg-light ms-1" t-esc="state.options.partners.length"/>
+                        </button>
+                        <div class="o_efr_pop" t-if="state.menu === 'partners'">
+                            <div class="o_efr_pop_title">Partners</div>
+                            <input type="text" class="form-control form-control-sm" placeholder="Type a name…" t-att-value="state.partnerQuery" t-on-input="searchPartners"/>
+                            <div class="o_efr_hits" t-if="state.partnerHits.length">
+                                <a href="#" t-foreach="state.partnerHits" t-as="h" t-key="h.id" class="d-block" t-on-click.prevent="() => this.addPartner(h)" t-esc="h.name"/>
+                            </div>
+                            <div class="o_efr_chips mt-2">
+                                <span t-foreach="state.options.partners" t-as="pid" t-key="pid" class="o_efr_chip">
+                                    <t t-esc="partnerName(pid)"/> <i class="fa fa-times ms-1" t-on-click="() => this.removePartner(pid)"/>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- accounts query -->
+                    <div class="o_efr_group" t-if="state.report.allow_accounts">
+                        <input type="text" class="form-control form-control-sm o_efr_acc" placeholder="Account code or name ⏎"
+                               t-att-value="state.options.accounts_query" t-on-keydown="onAccountsQuery"/>
+                    </div>
+                    <!-- extra + toggles -->
+                    <div class="o_efr_group">
+                        <button class="btn btn-sm btn-outline-secondary o_efr_popbtn" t-on-click="() => this.openMenu('more')" title="Options"><i class="fa fa-sliders"/></button>
+                        <div class="o_efr_pop" t-if="state.menu === 'more'">
+                            <div class="o_efr_pop_title">Options</div>
+                            <label class="o_efr_check" t-if="state.report.allow_posted_toggle">
+                                <input type="checkbox" t-att-checked="!state.options.posted_only" t-on-change="() => this.toggleFlag('posted_only')"/> Include draft entries
+                            </label>
+                            <label class="o_efr_check" t-if="state.report.allow_hierarchy">
+                                <input type="checkbox" t-att-checked="state.options.hierarchy" t-on-change="() => this.toggleFlag('hierarchy')"/> Group by account groups
+                            </label>
+                            <label class="o_efr_check">
+                                <input type="checkbox" t-att-checked="state.options.unfold_all" t-on-change="() => this.unfoldAll()"/> Unfold everything
+                            </label>
+                            <label class="o_efr_check">
+                                <input type="checkbox" t-att-checked="state.options.trend" t-on-change="() => this.toggleFlag('trend')"/> Twelve-month trend on each line
+                            </label>
+                            <t t-foreach="state.report.extra_filters" t-as="f" t-key="f.key">
+                                <label class="o_efr_check" t-if="f.type === 'toggle'">
+                                    <input type="checkbox" t-att-checked="state.options[f.key]" t-on-change="() => this.toggleFlag(f.key)"/> <t t-esc="f.label"/>
+                                </label>
+                                <div class="d-flex align-items-center gap-2 my-1" t-if="f.type === 'int'">
+                                    <span class="small" t-esc="f.label"/>
+                                    <input type="number" class="form-control form-control-sm o_efr_num" t-att-value="state.options[f.key]"
+                                           t-on-change="(ev) => this.setExtra(f.key, parseInt(ev.target.value))"/>
+                                </div>
+                                <div t-if="f.type === 'multi'" class="my-1">
+                                    <div class="small text-muted" t-esc="f.label"/>
+                                    <label t-foreach="f.choices" t-as="c" t-key="c[0]" class="o_efr_check">
+                                        <input type="checkbox" t-att-checked="(state.options[f.key] || []).includes(c[0])" t-on-change="() => this.toggleExtraMulti(f.key, c[0])"/> <t t-esc="c[1]"/>
+                                    </label>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+                <div class="o_efr_actions" t-if="state.report">
+                    <div class="o_efr_search"><i class="fa fa-search"/><input type="text" placeholder="Find a line…" t-model="state.search"/></div>
+                    <div class="o_efr_group">
+                        <button class="btn btn-sm btn-outline-secondary o_efr_popbtn" t-on-click="() => this.openMenu('views')" title="Saved views">
+                            <i class="fa fa-bookmark"/><span class="d-none d-xl-inline ms-1">Views</span>
+                        </button>
+                        <div class="o_efr_pop o_efr_pop_right" t-if="state.menu === 'views'">
+                            <div class="o_efr_pop_title">Saved views</div>
+                            <div t-if="!state.savedViews.length" class="small text-muted">None yet.</div>
+                            <div t-foreach="state.savedViews" t-as="v" t-key="v.id" class="o_efr_view">
+                                <a href="#" t-on-click.prevent="() => this.applyView(v)"><i class="fa fa-star me-1" t-if="v.is_default"/><t t-esc="v.name"/></a>
+                                <span class="text-muted small" t-if="v.shared">shared</span>
+                                <i class="fa fa-trash text-muted ms-2" t-if="v.mine" t-on-click="(ev) => this.deleteView(v, ev)"/>
+                            </div>
+                            <button class="btn btn-sm btn-light w-100 mt-2" t-on-click="() => this.openSave()"><i class="fa fa-plus me-1"/>Save this view</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.exportXlsx()" t-att-disabled="state.busy" title="Excel"><i class="fa fa-file-excel-o"/><span class="d-none d-xl-inline ms-1">Excel</span></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.exportPdf()" title="PDF"><i class="fa fa-file-pdf-o"/><span class="d-none d-xl-inline ms-1">PDF</span></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.schedule()" title="Email on a schedule"><i class="fa fa-clock-o"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-if="state.report.kind === 'statement_of_account'" t-on-click="() => this.sendStatements()" t-att-disabled="state.busy" title="Email each partner their statement"><i class="fa fa-paper-plane"/><span class="d-none d-xl-inline ms-1">Send</span></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-if="state.canDesign and state.report.kind === 'statement'" t-on-click="() => this.design()" title="Designer"><i class="fa fa-pencil"/></button>
+                </div>
+            </div>
+
+            <!-- ─────────────────────────────────── body ─────────────────────────────────── -->
+            <div class="o_content o_efr_body">
+                <div t-if="state.error" class="alert alert-danger m-3" t-esc="state.error"/>
+                <div t-if="state.loading" class="o_efr_loading"><i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the ledger…</div>
+                <div class="o_efr_stage" t-if="!state.loading and state.report">
+                    <div class="o_efr_table_wrap">
+                        <table class="o_efr_table" t-ref="table">
+                            <thead>
+                                <tr>
+                                    <th class="o_efr_th_name"></th>
+                                    <th t-if="state.options.trend" class="o_efr_th_trend">12 months</th>
+                                    <th t-foreach="state.columns" t-as="col" t-key="col.key" t-att-class="'o_efr_th_' + col.type" t-esc="col.label"/>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="visibleLines" t-as="line" t-key="line.id">
+                                    <tr t-att-class="rowClass(line)" t-att-data-line="line.id" t-on-click="() => line.kind === 'more' ? this.loadMore(line) : this.toggle(line)">
+                                        <td class="o_efr_name">
+                                            <span class="o_efr_indent" t-attf-style="width: {{ (line.level || 0) * 1.1 }}rem"/>
+                                            <i t-if="line.unfoldable" t-att-class="'fa fa-fw ' + (line.unfolded ? 'fa-caret-down' : 'fa-caret-right') + ' o_efr_caret'"/>
+                                            <span t-else="" class="o_efr_caret o_efr_caret_none"/>
+                                            <t t-if="line.parts">
+                                                <span class="o_efr_parts">
+                                                    <span class="o_efr_p_date" t-esc="line.parts.date"/>
+                                                    <a href="#" class="o_efr_p_move" t-on-click.prevent="(ev) => this.openRecord(line, ev)" t-esc="line.parts.move"/>
+                                                    <span class="o_efr_p_partner" t-if="line.parts.partner" t-esc="line.parts.partner"/>
+                                                    <span class="o_efr_p_label" t-if="line.parts.label" t-esc="line.parts.label"/>
+                                                    <span class="o_efr_p_acc" t-if="line.parts.account" t-esc="line.parts.account"/>
+                                                    <span class="o_efr_p_due" t-if="line.parts.days !== undefined" t-att-class="line.parts.days > 0 ? 'text-danger' : ''">
+                                                        <t t-if="line.parts.days > 0"><t t-esc="line.parts.days"/> days late</t>
+                                                        <t t-else="">due <t t-esc="line.parts.due"/></t>
+                                                    </span>
+                                                    <span class="o_efr_p_match" t-if="line.parts.matching" t-esc="line.parts.matching"/>
+                                                </span>
+                                            </t>
+                                            <span t-else="" class="o_efr_label" t-esc="line.name"/>
+                                            <span t-if="line.kind === 'more'" class="text-muted small ms-1"><i class="fa fa-angle-double-down"/></span>
+                                            <t t-if="line.kind !== 'more' and line.kind !== 'move_line' and line.kind !== 'open_item'">
+                                                <span class="o_efr_notes" t-if="notesFor(line).length" t-att-title="notesFor(line).map(n => n.text).join('\n')"
+                                                      t-on-click="(ev) => this.openNote(line, ev)">
+                                                    <i class="fa fa-comment"/><t t-esc="notesFor(line).length"/>
+                                                </span>
+                                                <i t-elif="state.canAnnotate" class="fa fa-comment-o o_efr_note_add" title="Add a note" t-on-click="(ev) => this.openNote(line, ev)"/>
+                                            </t>
+                                        </td>
+                                        <td t-if="state.options.trend" class="o_efr_trend">
+                                            <svg t-if="state.trends[line.id]" width="72" height="18" class="o_efr_spark">
+                                                <t t-foreach="spark(state.trends[line.id])" t-as="b" t-key="b_index">
+                                                    <rect t-att-x="b.x" t-att-y="b.y" t-att-width="b.w" t-att-height="b.h" t-att-class="b.neg ? 'neg' : 'pos'"><title t-esc="b.title"/></rect>
+                                                </t>
+                                            </svg>
+                                        </td>
+                                        <t t-foreach="line.columns" t-as="cell" t-key="cell_index">
+                                            <td t-att-class="'o_efr_cell o_efr_c_' + cell.display + (cell.class ? ' o_efr_' + cell.class : '') + (cell.drill ? ' o_efr_drill' : '')"
+                                                t-on-click="(ev) => this.drill(line, cell, ev)"
+                                                t-att-title="cell.drill ? 'Open the journal items' : ''">
+                                                <span t-esc="cell.text"/>
+                                                <i t-if="cell.drill and cell.display === 'amount'" class="fa fa-search-plus o_efr_explain" title="Explain this figure"
+                                                   t-on-click="(ev) => this.explain(line, cell, ev)"/>
+                                            </td>
+                                        </t>
+                                    </tr>
+                                </t>
+                                <tr t-if="!visibleLines.length"><td t-att-colspan="state.columns.length + 1" class="text-muted p-4 text-center">Nothing in this period.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- explain panel -->
+                    <div class="o_efr_explain_panel" t-if="state.explain">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="o_efr_ex_title"><i class="fa fa-search-plus me-1"/><t t-esc="state.explain.title"/></div>
+                            <i class="fa fa-times o_efr_ex_close" t-on-click="() => state.explain = null"/>
+                        </div>
+                        <div t-if="state.explain.loading" class="text-muted small mt-2"><i class="fa fa-circle-o-notch fa-spin me-1"/>Breaking it down…</div>
+                        <t t-else="">
+                            <t t-foreach="[['accounts', 'By account'], ['partners', 'By partner'], ['months', 'By month']]" t-as="sec" t-key="sec[0]">
+                                <div class="o_efr_ex_sec" t-if="(state.explain[sec[0]] || []).length">
+                                    <div class="o_efr_ex_h" t-esc="sec[1]"/>
+                                    <div t-foreach="state.explain[sec[0]]" t-as="it" t-key="it_index" class="o_efr_ex_row">
+                                        <div class="o_efr_ex_name" t-esc="it.name"/>
+                                        <div class="o_efr_ex_bar"><div t-att-class="'o_efr_ex_fill ' + (it.value &lt; 0 ? 'neg' : '')" t-attf-style="width: {{ barWidth(it, state.explain[sec[0]]) }}%"/></div>
+                                        <div class="o_efr_ex_val" t-esc="it.text"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </t>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─────────────────────────────────── modals ─────────────────────────────────── -->
+            <div t-if="state.modal" class="o_efr_modal_backdrop" t-on-click="() => state.modal = null"/>
+            <div t-if="state.modal and state.modal.kind === 'note'" class="o_efr_modal">
+                <div class="o_efr_modal_title">Note on <b t-esc="state.modal.line.name"/></div>
+                <div t-if="notesFor(state.modal.line).length" class="o_efr_modal_notes">
+                    <div t-foreach="notesFor(state.modal.line)" t-as="n" t-key="n.id" class="o_efr_modal_note">
+                        <div><t t-esc="n.text"/></div>
+                        <div class="small text-muted"><t t-esc="n.user"/> · <t t-esc="n.date"/>
+                            <a href="#" t-if="n.mine" class="ms-2" t-on-click.prevent="(ev) => this.deleteNote(n, ev)">remove</a></div>
+                    </div>
+                </div>
+                <textarea class="form-control" rows="3" placeholder="What the reader should know about this figure" t-model="state.modal.text"/>
+                <div class="d-flex justify-content-end gap-2 mt-2">
+                    <button class="btn btn-secondary btn-sm" t-on-click="() => state.modal = null">Close</button>
+                    <button class="btn btn-primary btn-sm" t-on-click="() => this.saveNote()">Add note</button>
+                </div>
+            </div>
+            <div t-if="state.modal and state.modal.kind === 'save'" class="o_efr_modal">
+                <div class="o_efr_modal_title">Save this view</div>
+                <input type="text" class="form-control" placeholder="e.g. Quarter vs last year, posted only" t-model="state.modal.name"/>
+                <label class="o_efr_check mt-2"><input type="checkbox" t-model="state.modal.shared"/> Share with the accounting team</label>
+                <label class="o_efr_check"><input type="checkbox" t-model="state.modal.is_default"/> Open this report with it by default</label>
+                <div class="d-flex justify-content-end gap-2 mt-2">
+                    <button class="btn btn-secondary btn-sm" t-on-click="() => state.modal = null">Cancel</button>
+                    <button class="btn btn-primary btn-sm" t-on-click="() => this.saveView()">Save</button>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

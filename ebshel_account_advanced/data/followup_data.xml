@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="mail_template_reminder" model="mail.template">
+            <field name="name">Payment reminder</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="subject">{{ object.company_id.name or user.company_id.name }}: payment reminder</field>
+            <field name="email_from">{{ (user.email_formatted or user.company_id.email or '') }}</field>
+            <field name="body_html" type="html">
+<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111">
+    <p>Dear <t t-out="object.name or ''"/>,</p>
+    <p>Our records show the following invoices are past their due date.</p>
+    <t t-set="pack" t-value="object._ebshel_letter_items()"/>
+    <table cellpadding="4" border="1" style="border-collapse:collapse;width:100%;font-size:13px">
+        <tr style="background:#f3f4f6"><th>Invoice</th><th>Date</th><th>Due</th><th style="text-align:right">Amount due</th></tr>
+        <t t-foreach="pack[0]" t-as="line">
+            <tr>
+                <td t-out="line.move_id.name"/>
+                <td t-out="line.date"/>
+                <td t-out="line.date_maturity or line.date"/>
+                <td style="text-align:right" t-out="line.amount_residual" t-options="{'widget': 'monetary', 'display_currency': line.company_currency_id}"/>
+            </tr>
+        </t>
+        <tr><th colspan="3" style="text-align:right">Total</th>
+            <th style="text-align:right" t-out="sum(pack[0].mapped('amount_residual'))" t-options="{'widget': 'monetary', 'display_currency': object.company_id.currency_id or user.company_id.currency_id}"/></tr>
+    </table>
+    <t t-if="ctx.get('ebshel_note')"><p t-out="ctx.get('ebshel_note')"/></t>
+    <p>Please arrange payment, or let us know if something is wrong with an invoice.</p>
+    <p>Kind regards,<br/><t t-out="user.company_id.name"/></p>
+</div>
+            </field>
+            <field name="auto_delete" eval="False"/>
+        </record>
+
+        <record id="level_first" model="ebshel.followup.level">
+            <field name="name">Friendly reminder</field>
+            <field name="days">7</field>
+            <field name="action">email</field>
+            <field name="template_id" ref="mail_template_reminder"/>
+            <field name="attach_statement" eval="True"/>
+            <field name="attach_invoices" eval="True"/>
+            <field name="text" type="html"><p>This is a friendly reminder that the invoices below are past their due date. If payment is already on its way, please ignore this message.</p></field>
+        </record>
+        <record id="level_second" model="ebshel.followup.level">
+            <field name="name">Second reminder</field>
+            <field name="days">21</field>
+            <field name="action">email_call</field>
+            <field name="template_id" ref="mail_template_reminder"/>
+            <field name="text" type="html"><p>Despite our previous reminder, the invoices below remain unpaid. Please settle them within seven days or contact us to agree a payment plan.</p></field>
+        </record>
+        <record id="level_final" model="ebshel.followup.level">
+            <field name="name">Final notice</field>
+            <field name="days">45</field>
+            <field name="action">letter</field>
+            <field name="on_hold" eval="True"/>
+            <field name="repeat_days">15</field>
+            <field name="text" type="html"><p>This is a final notice. The account is now on hold and no further orders will be processed until the overdue invoices below are settled.</p></field>
+        </record>
+    </data>
+</odoo>

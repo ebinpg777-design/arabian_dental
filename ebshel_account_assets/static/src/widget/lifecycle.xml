@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ebshel_account_assets.Lifecycle">
+        <div class="o_eal">
+            <div class="o_eal_chart" t-if="chart">
+                <div class="o_eal_h">Book value <span class="text-muted">— solid is posted, dotted is still to come</span></div>
+                <svg t-att-viewBox="'0 0 ' + chart.W + ' ' + chart.H" preserveAspectRatio="none" class="o_eal_svg">
+                    <line t-if="chart.salvageY" x1="0" t-att-y1="chart.salvageY" t-att-x2="chart.W" t-att-y2="chart.salvageY" class="o_eal_salvage"/>
+                    <polyline t-att-points="chart.solid" class="o_eal_solid"/>
+                    <polyline t-att-points="chart.dotted" class="o_eal_dotted"/>
+                    <t t-foreach="chart.points" t-as="p" t-key="p_index">
+                        <circle t-att-cx="p.x" t-att-cy="p.y" r="3" t-att-class="p.posted ? 'o_eal_dot' : 'o_eal_dot o_eal_dot_future'">
+                            <title t-esc="p.label + ': ' + money(p.book)"/>
+                        </circle>
+                    </t>
+                    <t t-foreach="chart.ticks" t-as="tk" t-key="tk_index">
+                        <text t-att-x="tk.x" t-att-y="chart.H - 6" class="o_eal_tick" t-att-text-anchor="tk_index === 0 ? 'start' : tk_index === 2 ? 'end' : 'middle'" t-esc="tk.label"/>
+                    </t>
+                    <text x="8" y="10" class="o_eal_tick" t-esc="chart.topLabel"/>
+                </svg>
+            </div>
+            <div class="o_eal_h mt-3">Timeline</div>
+            <div class="o_eal_timeline" t-if="events.length">
+                <div t-foreach="events" t-as="e" t-key="e_index" t-att-class="'o_eal_event o_eal_e_' + e.kind">
+                    <div class="o_eal_dotcol"><i t-att-class="'fa ' + icon(e.kind)"/></div>
+                    <div class="o_eal_body">
+                        <div><b t-esc="e.label"/> <span class="text-muted small" t-esc="e.date"/><span t-if="e.user" class="text-muted small"> · <t t-esc="e.user"/></span></div>
+                        <div class="small" t-if="e.note" t-esc="e.note"/>
+                        <div class="small text-muted" t-if="e.amount" t-esc="money(e.amount)"/>
+                    </div>
+                </div>
+            </div>
+            <div t-else="" class="text-muted small">Nothing has happened to this asset yet.</div>
+        </div>
+    </t>
+</templates>

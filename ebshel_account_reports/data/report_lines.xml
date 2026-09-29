@@ -1,0 +1,794 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <record id="bs_assets" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">10</field>
+        <field name="name">ASSETS</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">CUR_ASSETS + FIXED + NONCUR_ASSETS</field>
+        <field name="code">ASSETS</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="bs_current_assets" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">20</field>
+        <field name="name">Current assets</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_assets"/>
+        <field name="formula">CASH + RECV + CUR_A + PREPAID</field>
+        <field name="code">CUR_ASSETS</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="bs_cash" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">30</field>
+        <field name="name">Bank and cash</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_current_assets"/>
+        <field name="account_types">asset_cash</field>
+        <field name="code">CASH</field>
+    </record>
+    <record id="bs_recv" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">40</field>
+        <field name="name">Receivables</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_current_assets"/>
+        <field name="account_types">asset_receivable</field>
+        <field name="code">RECV</field>
+    </record>
+    <record id="bs_cur_a" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">50</field>
+        <field name="name">Other current assets</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_current_assets"/>
+        <field name="account_types">asset_current</field>
+        <field name="code">CUR_A</field>
+    </record>
+    <record id="bs_prepaid" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">60</field>
+        <field name="name">Prepayments</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_current_assets"/>
+        <field name="account_types">asset_prepayments</field>
+        <field name="code">PREPAID</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
+    <record id="bs_fixed" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">70</field>
+        <field name="name">Fixed assets</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_assets"/>
+        <field name="account_types">asset_fixed</field>
+        <field name="code">FIXED</field>
+    </record>
+    <record id="bs_noncur_a" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">80</field>
+        <field name="name">Non-current assets</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_assets"/>
+        <field name="account_types">asset_non_current</field>
+        <field name="code">NONCUR_ASSETS</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
+    <record id="bs_liab" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">100</field>
+        <field name="name">LIABILITIES</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">CUR_LIAB + NONCUR_LIAB</field>
+        <field name="code">LIAB</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="bs_cur_liab" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">110</field>
+        <field name="name">Current liabilities</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_liab"/>
+        <field name="formula">PAYABLE + CUR_L + CREDIT_CARD</field>
+        <field name="code">CUR_LIAB</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="bs_payable" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">120</field>
+        <field name="name">Payables</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_cur_liab"/>
+        <field name="account_types">liability_payable</field>
+        <field name="code">PAYABLE</field>
+    </record>
+    <record id="bs_cur_l" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">130</field>
+        <field name="name">Other current liabilities</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_cur_liab"/>
+        <field name="account_types">liability_current</field>
+        <field name="code">CUR_L</field>
+    </record>
+    <record id="bs_cc" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">140</field>
+        <field name="name">Credit cards</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_cur_liab"/>
+        <field name="account_types">liability_credit_card</field>
+        <field name="code">CREDIT_CARD</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
+    <record id="bs_noncur_l" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">150</field>
+        <field name="name">Non-current liabilities</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_liab"/>
+        <field name="account_types">liability_non_current</field>
+        <field name="code">NONCUR_LIAB</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
+    <record id="bs_equity" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">200</field>
+        <field name="name">EQUITY</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">EQ_ACC + EARN_CUR + EARN_PREV</field>
+        <field name="code">EQUITY</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="bs_eq_acc" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">210</field>
+        <field name="name">Equity</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_equity"/>
+        <field name="account_types">equity</field>
+        <field name="code">EQ_ACC</field>
+    </record>
+    <record id="bs_earn_cur" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">220</field>
+        <field name="name">Current year earnings</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">earnings_current</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_equity"/>
+        <field name="account_types">income,income_other,expense,expense_direct_cost,expense_depreciation</field>
+        <field name="code">EARN_CUR</field>
+        <field name="note">Profit and loss accounts since the fiscal year began</field>
+    </record>
+    <record id="bs_earn_prev_pl" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">230</field>
+        <field name="name">Earnings of previous years (P&amp;L)</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">earnings_previous</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">income,income_other,expense,expense_direct_cost,expense_depreciation</field>
+        <field name="code">EARN_PREV_PL</field>
+        <field name="hidden" eval="True"/>
+    </record>
+    <record id="bs_earn_prev_un" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">231</field>
+        <field name="name">Retained earnings account</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">equity_unaffected</field>
+        <field name="code">EARN_PREV_UN</field>
+        <field name="hidden" eval="True"/>
+    </record>
+    <record id="bs_earn_prev" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">235</field>
+        <field name="name">Previous years unallocated earnings</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="bs_equity"/>
+        <field name="formula">EARN_PREV_PL + EARN_PREV_UN</field>
+        <field name="code">EARN_PREV</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="bs_liab_eq" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">300</field>
+        <field name="name">LIABILITIES + EQUITY</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">LIAB + EQUITY</field>
+        <field name="code">LIAB_EQ</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="bs_check" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_balance_sheet"/>
+        <field name="sequence">310</field>
+        <field name="name">Assets less liabilities and equity</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">check</field>
+        <field name="formula">ASSETS - LIAB_EQ</field>
+        <field name="code">CHECK</field>
+        <field name="unfold_accounts" eval="False"/>
+        <field name="note">Reads Balanced when every account is on the sheet</field>
+    </record>
+    <record id="pl_rev" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">10</field>
+        <field name="name">Revenue</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">income</field>
+        <field name="code">REV</field>
+        <field name="bold" eval="True"/>
+    </record>
+    <record id="pl_cogs" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">20</field>
+        <field name="name">Cost of revenue</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="account_types">expense_direct_cost</field>
+        <field name="code">COGS</field>
+    </record>
+    <record id="pl_gp" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">30</field>
+        <field name="name">Gross profit</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">REV - COGS</field>
+        <field name="code">GP</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="pl_gm" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">35</field>
+        <field name="name">Gross margin</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">percent</field>
+        <field name="formula">GP / REV * 100</field>
+        <field name="code">GM</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="pl_opex" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">40</field>
+        <field name="name">Operating expenses</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="account_types">expense</field>
+        <field name="code">OPEX</field>
+    </record>
+    <record id="pl_dep" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">50</field>
+        <field name="name">Depreciation and amortisation</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="account_types">expense_depreciation</field>
+        <field name="code">DEP</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
+    <record id="pl_opinc" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">60</field>
+        <field name="name">Operating income</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">GP - OPEX - DEP</field>
+        <field name="code">OPINC</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="pl_oinc" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">70</field>
+        <field name="name">Other income</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">income_other</field>
+        <field name="code">OINC</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
+    <record id="pl_net" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">80</field>
+        <field name="name">Net profit</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">OPINC + OINC</field>
+        <field name="code">NET</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="pl_nm" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">90</field>
+        <field name="name">Net margin</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">percent</field>
+        <field name="formula">NET / REV * 100</field>
+        <field name="code">NM</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="cf_net" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">10</field>
+        <field name="name">Net profit</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">income,income_other,expense,expense_direct_cost,expense_depreciation</field>
+        <field name="code">NP</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="cf_wc_recv" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">30</field>
+        <field name="name">Change in receivables</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">asset_receivable</field>
+        <field name="code">D_RECV</field>
+    </record>
+    <record id="cf_wc_cur" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">40</field>
+        <field name="name">Change in other current assets and prepayments</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">asset_current,asset_prepayments</field>
+        <field name="code">D_CURA</field>
+    </record>
+    <record id="cf_wc_pay" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">50</field>
+        <field name="name">Change in payables</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">liability_payable</field>
+        <field name="code">D_PAY</field>
+    </record>
+    <record id="cf_wc_curl" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">60</field>
+        <field name="name">Change in other current liabilities</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">liability_current</field>
+        <field name="code">D_CURL</field>
+    </record>
+    <record id="cf_ops" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">70</field>
+        <field name="name">Cash from operating activities</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">NP + D_RECV + D_CURA + D_PAY + D_CURL</field>
+        <field name="code">OPS</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="cf_inv" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">80</field>
+        <field name="name">Net investment in fixed and non-current assets (after depreciation)</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">asset_fixed,asset_non_current</field>
+        <field name="code">INV</field>
+        <field name="bold" eval="True"/>
+    </record>
+    <record id="cf_fin_l" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">90</field>
+        <field name="name">Non-current liabilities raised or repaid</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">liability_non_current</field>
+        <field name="code">FIN_L</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
+    <record id="cf_fin_e" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">100</field>
+        <field name="name">Equity contributed or withdrawn</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="account_types">equity,equity_unaffected</field>
+        <field name="code">FIN_E</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
+    <record id="cf_fin" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">110</field>
+        <field name="name">Cash from financing activities</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">FIN_L + FIN_E</field>
+        <field name="code">FIN</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="cf_change" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">120</field>
+        <field name="name">Net change in cash</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="formula">OPS + INV + FIN</field>
+        <field name="code">CHANGE</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="cf_open" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">130</field>
+        <field name="name">Cash at the start of the period</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">opening</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="account_types">asset_cash,liability_credit_card</field>
+        <field name="code">CASH_OPEN</field>
+    </record>
+    <record id="cf_close" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">140</field>
+        <field name="name">Cash at the end of the period</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="account_types">asset_cash,liability_credit_card</field>
+        <field name="code">CASH_CLOSE</field>
+        <field name="bold" eval="True"/>
+    </record>
+    <record id="cf_check" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_cash_flow"/>
+        <field name="sequence">150</field>
+        <field name="name">Unexplained difference</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">check</field>
+        <field name="formula">CASH_CLOSE - CASH_OPEN - CHANGE</field>
+        <field name="code">CHECK</field>
+        <field name="unfold_accounts" eval="False"/>
+        <field name="note">Reads Balanced when every balance sheet account is covered above</field>
+    </record>
+    <record id="es_h_cash" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">10</field>
+        <field name="name">Cash and receivables</field>
+        <field name="kind">header</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_cash" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">20</field>
+        <field name="name">Cash in hand and at bank</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_cash"/>
+        <field name="account_types">asset_cash,liability_credit_card</field>
+        <field name="code">CASH</field>
+    </record>
+    <record id="es_recv" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">30</field>
+        <field name="name">Owed by customers</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_cash"/>
+        <field name="account_types">asset_receivable</field>
+        <field name="code">RECV</field>
+    </record>
+    <record id="es_pay" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">40</field>
+        <field name="name">Owed to suppliers</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_cash"/>
+        <field name="account_types">liability_payable</field>
+        <field name="code">PAY</field>
+    </record>
+    <record id="es_h_perf" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">50</field>
+        <field name="name">Performance</field>
+        <field name="kind">header</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_rev" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">60</field>
+        <field name="name">Revenue</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_perf"/>
+        <field name="account_types">income,income_other</field>
+        <field name="code">REV</field>
+    </record>
+    <record id="es_cogs" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">65</field>
+        <field name="name">Cost of revenue</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_perf"/>
+        <field name="account_types">expense_direct_cost</field>
+        <field name="code">COGS</field>
+        <field name="hidden" eval="True"/>
+    </record>
+    <record id="es_exp" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">70</field>
+        <field name="name">Expenses</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_perf"/>
+        <field name="account_types">expense,expense_direct_cost,expense_depreciation</field>
+        <field name="code">EXP</field>
+    </record>
+    <record id="es_net" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">80</field>
+        <field name="name">Net profit</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_perf"/>
+        <field name="formula">REV - EXP</field>
+        <field name="code">NET</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_gm" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">90</field>
+        <field name="name">Gross margin</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">percent</field>
+        <field name="parent_id" ref="es_h_perf"/>
+        <field name="formula">(REV - COGS) / REV * 100</field>
+        <field name="code">GM</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_nm" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">100</field>
+        <field name="name">Net margin</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">percent</field>
+        <field name="parent_id" ref="es_h_perf"/>
+        <field name="formula">NET / REV * 100</field>
+        <field name="code">NM</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_h_pos" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">110</field>
+        <field name="name">Position</field>
+        <field name="kind">header</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="bold" eval="True"/>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_cura" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">120</field>
+        <field name="name">Current assets</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_pos"/>
+        <field name="account_types">asset_cash,asset_receivable,asset_current,asset_prepayments</field>
+        <field name="code">CUR_A</field>
+        <field name="hidden" eval="True"/>
+    </record>
+    <record id="es_curl" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">130</field>
+        <field name="name">Current liabilities</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">-1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_pos"/>
+        <field name="account_types">liability_payable,liability_current,liability_credit_card</field>
+        <field name="code">CUR_L</field>
+        <field name="hidden" eval="True"/>
+    </record>
+    <record id="es_wc" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">140</field>
+        <field name="name">Working capital</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="parent_id" ref="es_h_pos"/>
+        <field name="formula">CUR_A - CUR_L</field>
+        <field name="code">WC</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_cr" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">150</field>
+        <field name="name">Current ratio</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">cumulative</field>
+        <field name="sign">1</field>
+        <field name="display">ratio</field>
+        <field name="parent_id" ref="es_h_pos"/>
+        <field name="formula">CUR_A / CUR_L</field>
+        <field name="code">CR</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_dd" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">160</field>
+        <field name="name">Average days customers take to pay</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">days</field>
+        <field name="parent_id" ref="es_h_pos"/>
+        <field name="formula">RECV / REV * DAYS</field>
+        <field name="code">DD</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+    <record id="es_cd" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_executive_summary"/>
+        <field name="sequence">170</field>
+        <field name="name">Average days taken to pay suppliers</field>
+        <field name="kind">formula</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">days</field>
+        <field name="parent_id" ref="es_h_pos"/>
+        <field name="formula">PAY / EXP * DAYS</field>
+        <field name="code">CD</field>
+        <field name="unfold_accounts" eval="False"/>
+    </record>
+</odoo>

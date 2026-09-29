@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fin_report_list" model="ir.ui.view">
+        <field name="name">ebshel.fin.report.list</field>
+        <field name="model">ebshel.fin.report</field>
+        <field name="arch" type="xml">
+            <list default_order="sequence, id">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="key"/>
+                <field name="kind"/>
+                <field name="custom"/>
+                <field name="line_count" string="Lines"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <button name="action_open_viewer" type="object" string="Open" icon="fa-external-link" class="btn-link"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_fin_report_form" model="ir.ui.view">
+        <field name="name">ebshel.fin.report.form</field>
+        <field name="model">ebshel.fin.report</field>
+        <field name="arch" type="xml">
+            <form string="Report">
+                <header>
+                    <button name="action_open_viewer" type="object" string="Open report" class="btn-primary" icon="fa-table"/>
+                    <button name="action_create_menu" type="object" string="Add to the Reporting menu"
+                            invisible="menu_id" groups="account.group_account_manager"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Clinic Profitability"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="key" placeholder="e.g. clinic_profitability"/>
+                            <field name="kind"/>
+                            <field name="date_mode"/>
+                            <field name="default_preset"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="custom" invisible="1"/>
+                            <field name="menu_id" invisible="1"/>
+                        </group>
+                        <group string="On the screen">
+                            <field name="allow_comparison"/>
+                            <field name="default_comparison" invisible="not allow_comparison"/>
+                            <field name="show_growth" invisible="not allow_comparison"/>
+                            <field name="allow_journals"/>
+                            <field name="allow_partners"/>
+                            <field name="allow_analytic"/>
+                            <field name="allow_accounts"/>
+                            <field name="allow_hierarchy"/>
+                            <field name="allow_posted_toggle"/>
+                            <field name="unfold_all_default"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Lines" name="lines" invisible="kind != 'statement'">
+                            <div class="text-muted mb-2">
+                                A <b>sum</b> line adds the balances of the accounts it names (by code
+                                prefix, by type, by tag, or one by one). A <b>formula</b> line computes
+                                over other lines' codes - <code>REV - COGS</code>, <code>GP / REV * 100</code>;
+                                <code>DAYS</code> is the number of days in the column's period. Reverse the
+                                sign for revenue, liabilities and equity so they read as positive figures.
+                            </div>
+                            <field name="line_ids" context="{'default_report_id': id}">
+                                <list editable="bottom" default_order="sequence, id">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="code"/>
+                                    <field name="parent_id" domain="[('report_id', '=', parent.id)]"/>
+                                    <field name="kind"/>
+                                    <field name="balance_mode"/>
+                                    <field name="sign" invisible="kind != 'sum'"/>
+                                    <field name="account_types" invisible="kind != 'sum'" optional="show"/>
+                                    <field name="account_prefixes" invisible="kind != 'sum'" optional="show"/>
+                                    <field name="exclude_prefixes" invisible="kind != 'sum'" optional="hide"/>
+                                    <field name="account_ids" widget="many2many_tags" invisible="kind != 'sum'" optional="hide"/>
+                                    <field name="account_tag_ids" widget="many2many_tags" invisible="kind != 'sum'" optional="hide"/>
+                                    <field name="domain" invisible="kind != 'sum'" optional="hide"/>
+                                    <field name="formula" invisible="kind != 'formula'"/>
+                                    <field name="display"/>
+                                    <field name="bold" optional="show"/>
+                                    <field name="unfold_accounts" invisible="kind != 'sum'" optional="hide"/>
+                                    <field name="hide_if_zero" optional="hide"/>
+                                    <field name="hidden" optional="hide"/>
+                                    <field name="note" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Ledger settings" name="ledger" invisible="kind not in ('partner_ledger', 'aged')">
+                            <group>
+                                <field name="ledger_account_types" invisible="kind != 'partner_ledger'"/>
+                                <field name="aged_interval" invisible="kind != 'aged'"/>
+                                <field name="aged_buckets" invisible="kind != 'aged'"/>
+                            </group>
+                        </page>
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="What this report answers, for whoever opens it."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_fin_report_search" model="ir.ui.view">
+        <field name="name">ebshel.fin.report.search</field>
+        <field name="model">ebshel.fin.report</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="key"/>
+                <filter name="custom" string="Designed here" domain="[('custom', '=', True)]"/>
+                <filter name="shipped" string="Shipped" domain="[('custom', '=', False)]"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_kind" string="Kind" context="{'group_by': 'kind'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fin_reports_config" model="ir.actions.act_window">
+        <field name="name">Report Designer</field>
+        <field name="res_model">ebshel.fin.report</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Design a report</p>
+            <p>Name the lines, say which accounts each one sums, and write formulas over
+               them. It opens like every other report: folded, compared, drilled, exported.</p>
+        </field>
+    </record>
+</odoo>

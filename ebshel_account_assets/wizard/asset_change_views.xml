@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_asset_change_form" model="ir.ui.view">
+        <field name="name">ebshel.asset.change.form</field>
+        <field name="model">ebshel.asset.change</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="asset_id" readonly="1"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="kind" widget="radio"/>
+                        <field name="date"/>
+                    </group>
+                    <group>
+                        <field name="current_book"/>
+                        <field name="current_remaining_periods"/>
+                    </group>
+                </group>
+                <group invisible="kind != 'life'">
+                    <field name="duration"/>
+                    <field name="salvage_value"/>
+                </group>
+                <group invisible="kind == 'life'">
+                    <field name="amount"/>
+                </group>
+                <group>
+                    <field name="note" placeholder="Why - it goes on the timeline"/>
+                </group>
+                <div class="text-muted small">
+                    A longer or shorter life rebuilds the remaining schedule from the period after the date.
+                    An increase becomes a linked asset depreciated over the remaining life.
+                    A write-down posts an impairment entry and rebuilds the schedule on the new book value.
+                </div>
+                <footer>
+                    <button name="action_apply" type="object" string="Apply" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

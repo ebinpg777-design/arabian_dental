@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_fin_report_read,fin report read,model_ebshel_fin_report,account.group_account_readonly,1,0,0,0
+access_fin_report_manager,fin report manager,model_ebshel_fin_report,account.group_account_manager,1,1,1,1
+access_fin_report_line_read,fin report line read,model_ebshel_fin_report_line,account.group_account_readonly,1,0,0,0
+access_fin_report_line_manager,fin report line manager,model_ebshel_fin_report_line,account.group_account_manager,1,1,1,1
+access_fin_annotation_read,fin annotation read,model_ebshel_fin_report_annotation,account.group_account_readonly,1,0,0,0
+access_fin_annotation_user,fin annotation user,model_ebshel_fin_report_annotation,account.group_account_invoice,1,1,1,1
+access_fin_view_user,fin saved view user,model_ebshel_fin_report_view,account.group_account_readonly,1,1,1,1
+access_fin_schedule_read,fin schedule read,model_ebshel_fin_report_schedule,account.group_account_readonly,1,0,0,0
+access_fin_schedule_manager,fin schedule manager,model_ebshel_fin_report_schedule,account.group_account_manager,1,1,1,1
+access_ebshel_fin_report_view_billing_read,ebshel_fin_report_view billing read,model_ebshel_fin_report_view,account.group_account_invoice,1,0,0,0

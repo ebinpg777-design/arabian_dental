@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_form_deferrals" model="ir.ui.view">
+        <field name="name">account.move.form.deferrals</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_ebshel_open_deferrals" type="object" class="oe_stat_button" icon="fa-calendar"
+                        invisible="not ebshel_deferral_count">
+                    <field name="ebshel_deferral_count" widget="statinfo" string="Deferrals"/>
+                </button>
+            </div>
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='account_id']" position="after">
+                <field name="ebshel_deferral_start" optional="hide" string="Deferral from"/>
+                <field name="ebshel_deferral_end" optional="hide" string="Deferral to"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

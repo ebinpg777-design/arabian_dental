@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_balance_sheet" model="ir.actions.client">
+        <field name="name">Balance Sheet</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'balance_sheet'}"/>
+    </record>
+    <record id="action_profit_loss" model="ir.actions.client">
+        <field name="name">Profit and Loss</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'profit_loss'}"/>
+    </record>
+    <record id="action_cash_flow" model="ir.actions.client">
+        <field name="name">Cash Flow Statement</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'cash_flow'}"/>
+    </record>
+    <record id="action_executive_summary" model="ir.actions.client">
+        <field name="name">Executive Summary</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'executive_summary'}"/>
+    </record>
+    <record id="action_general_ledger" model="ir.actions.client">
+        <field name="name">General Ledger</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'general_ledger'}"/>
+    </record>
+    <record id="action_trial_balance" model="ir.actions.client">
+        <field name="name">Trial Balance</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'trial_balance'}"/>
+    </record>
+    <record id="action_journal" model="ir.actions.client">
+        <field name="name">Journal Audit</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'journal'}"/>
+    </record>
+    <record id="action_day_book" model="ir.actions.client">
+        <field name="name">Day Book</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'day_book'}"/>
+    </record>
+    <record id="action_cash_book" model="ir.actions.client">
+        <field name="name">Cash and Bank Book</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'cash_book'}"/>
+    </record>
+    <record id="action_partner_ledger" model="ir.actions.client">
+        <field name="name">Partner Ledger</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'partner_ledger'}"/>
+    </record>
+    <record id="action_aged_receivable" model="ir.actions.client">
+        <field name="name">Aged Receivable</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'aged_receivable'}"/>
+    </record>
+    <record id="action_aged_payable" model="ir.actions.client">
+        <field name="name">Aged Payable</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'aged_payable'}"/>
+    </record>
+    <record id="action_customer_statement" model="ir.actions.client">
+        <field name="name">Customer Statements</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'customer_statement'}"/>
+    </record>
+    <record id="action_vendor_statement" model="ir.actions.client">
+        <field name="name">Vendor Statements</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'vendor_statement'}"/>
+    </record>
+    <record id="action_tax" model="ir.actions.client">
+        <field name="name">Tax Report</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'tax'}"/>
+    </record>
+    <record id="action_analytic" model="ir.actions.client">
+        <field name="name">Analytic Report</field>
+        <field name="tag">ebshel_fin_report</field>
+        <field name="params" eval="{'report_key': 'analytic'}"/>
+    </record>
+</odoo>
