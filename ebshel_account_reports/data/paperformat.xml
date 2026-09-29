@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="paperformat_landscape" model="report.paperformat">
-        <field name="name">Financial report (A4 landscape)</field>
+        <!-- upright by itself: the report asks for the long side when its columns need it -->
+        <field name="name">Financial report (A4)</field>
         <field name="format">A4</field>
-        <field name="orientation">Landscape</field>
-        <field name="margin_top">28</field>
-        <field name="margin_bottom">18</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">24</field>
+        <field name="margin_bottom">14</field>
         <field name="margin_left">8</field>
         <field name="margin_right">8</field>
-        <field name="header_spacing">22</field>
+        <field name="header_spacing">19</field>
         <field name="dpi">90</field>
     </record>
     <record id="action_fin_report_pdf" model="ir.actions.report">

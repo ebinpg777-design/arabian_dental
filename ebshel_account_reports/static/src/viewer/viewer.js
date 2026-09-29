@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onMounted, onWillUnmount, useState, useRef } from "@odoo/owl";
+import { Component, onWillStart, onMounted, onWillUnmount, useEffect, useState, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
@@ -17,6 +17,10 @@ import { deserializeDate, serializeDate } from "@web/core/l10n/dates";
  * returns its children. Nothing is computed here that the PDF or the workbook
  * could compute differently.
  */
+// lines drawn at once: a statement of every customer is thousands of rows, and drawing
+// them all held the screen for seconds
+const PAGE_OF_LINES = 300;
+
 export class FinReportViewer extends Component {
     static template = "ebshel_account_reports.Viewer";
     static components = { DateTimeInput };
@@ -62,14 +66,24 @@ export class FinReportViewer extends Component {
             full: false,
             display: this.loadDisplay(),
             draft: {},                  // the More filters panel, before Apply
+            exporter: null,             // the export panel: {format, scope, orientation, filters, notes, preview}
+            refreshing: false,          // a reload under a report already on the screen
+            limit: PAGE_OF_LINES,       // how many lines are drawn; the rest come as the reader scrolls
         });
         this.loadToken = 0;
+        this.countToken = 0;
         this.onDocClick = (ev) => {
             if (this.state.menu && !ev.target.closest(".o_efr_pop, .o_efr_popbtn")) {
                 this.state.menu = null;
             }
         };
         this.onKey = (ev) => this.keyboard(ev);
+        // once a popover is drawn, it is pulled back inside the window
+        useEffect((menu) => {
+            if (menu) {
+                this.fitPopover();
+            }
+        }, () => [this.state.menu]);
         onWillStart(() => this.load());
         onMounted(() => {
             document.addEventListener("click", this.onDocClick);
@@ -84,7 +98,11 @@ export class FinReportViewer extends Component {
     // ------------------------------------------------------------------ loading
     async load() {
         const token = ++this.loadToken;
-        this.state.loading = true;
+        if (this.state.report && this.state.lines.length) {
+            this.state.refreshing = true;
+        } else {
+            this.state.loading = true;
+        }
         this.state.error = null;
         try {
             const data = this.state.report
@@ -110,6 +128,7 @@ export class FinReportViewer extends Component {
             this.state.reports = data.reports || [];
             this.state.items = {};
             this.state.selected = {};
+            this.state.limit = PAGE_OF_LINES;
             if (this.state.movers) {
                 this.loadMovers();
             }
@@ -121,6 +140,7 @@ export class FinReportViewer extends Component {
         } finally {
             if (token === this.loadToken) {
                 this.state.loading = false;
+                this.state.refreshing = false;
             }
         }
     }
@@ -262,6 +282,22 @@ export class FinReportViewer extends Component {
         this.state.menu = this.state.menu === name ? null : name;
     }
 
+    /** A popover hangs from its button; near the right edge it is pulled back into the window. */
+    fitPopover() {
+        const el = document.querySelector(".o_efr .o_efr_pop");
+        if (!el || window.innerWidth < 768) {
+            return;                     // on a phone a popover is a sheet, laid out by the stylesheet
+        }
+        el.style.transform = "";
+        const box = el.getBoundingClientRect();
+        const over = box.right - (window.innerWidth - 8);
+        if (over > 0) {
+            el.style.transform = `translateX(${-Math.min(over, Math.max(0, box.left - 8))}px)`;
+        } else if (box.left < 8) {
+            el.style.transform = `translateX(${8 - box.left}px)`;
+        }
+    }
+
     get periodLabel() {
         return this.state.periodText || (this.state.columns.length ? this.state.columns[0].label : "");
     }
@@ -278,6 +314,42 @@ export class FinReportViewer extends Component {
     }
 
     // ------------------------------------------------------------------ lines
+    /** The lines on the screen now: the first page of what the search leaves, grown by scrolling. */
+    get shownLines() {
+        const all = this.visibleLines;
+        return all.length > this.state.limit ? all.slice(0, this.state.limit) : all;
+    }
+
+    /** Nothing but a total of nothing: the report has nothing to say. */
+    get isEmpty() {
+        return !this.visibleLines.some((l) => l.kind !== "total");
+    }
+
+    get linesLeft() {
+        return Math.max(0, this.visibleLines.length - this.state.limit);
+    }
+
+    showMoreLines() {
+        this.state.limit += PAGE_OF_LINES;
+    }
+
+    onTableScroll(ev) {
+        const el = ev.target;
+        if (this.linesLeft && el.scrollTop + el.clientHeight > el.scrollHeight - 600) {
+            this.showMoreLines();
+        }
+    }
+
+    cellClass(line, cell, index) {
+        const cls = ["o_efr_cell", "o_efr_c_" + cell.display];
+        if (cell.class) cls.push("o_efr_" + cell.class);
+        if (cell.drill) cls.push("o_efr_drill");
+        if (cell.value < 0) cls.push("o_efr_neg");
+        if (cell.value === 0 && cell.display === "amount" && !line.bold) cls.push("o_efr_zero");
+        if (this.isSelected(line, index)) cls.push("o_efr_sel");
+        return cls.join(" ");
+    }
+
     get visibleLines() {
         const q = this.state.search.trim().toLowerCase();
         if (!q) {
@@ -610,27 +682,184 @@ export class FinReportViewer extends Component {
         this.state.savedViews = this.state.savedViews.filter((v) => v.id !== view.id);
     }
 
-    async exportXlsx() {
-        this.state.busy = true;
+    // ------------------------------------------------------------------ out of the screen
+    exportPrefs() {
+        const base = { format: "xlsx", scope: "screen", orientation: "auto", filters: true, notes: true };
         try {
-            const file = await this.orm.call("ebshel.fin.report", "export_xlsx", [this.rid], { options: this.state.options });
-            const bytes = Uint8Array.from(atob(file.content), (c) => c.charCodeAt(0));
-            const url = URL.createObjectURL(new Blob([bytes], { type: file.mimetype }));
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = file.filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 2000);
-        } finally {
-            this.state.busy = false;
+            const kept = JSON.parse(window.localStorage.getItem("ebshel_fin_export") || "{}");
+            const prefs = { ...base, ...kept };
+            if (!["xlsx", "pdf", "csv", "copy"].includes(prefs.format)) prefs.format = base.format;
+            if (!["screen", "summary", "full"].includes(prefs.scope)) prefs.scope = base.scope;
+            if (!["auto", "portrait", "landscape"].includes(prefs.orientation)) prefs.orientation = base.orientation;
+            return prefs;
+        } catch {
+            return base;
         }
     }
 
-    async exportPdf() {
-        const action = await this.orm.call("ebshel.fin.report", "get_pdf_action", [this.rid], { options: this.state.options });
-        this.action.doAction(action);
+    openExport(format) {
+        this.state.menu = null;
+        const prefs = this.exportPrefs();
+        this.state.exporter = { ...prefs, format: format || prefs.format, preview: null, counting: false, busy: false };
+        this.countExport();
+    }
+
+    closeExport() {
+        if (this.state.exporter && !this.state.exporter.busy) {
+            this.state.exporter = null;
+        }
+    }
+
+    setExport(key, value) {
+        const x = this.state.exporter;
+        x[key] = value;
+        try {
+            window.localStorage.setItem("ebshel_fin_export", JSON.stringify(
+                { format: x.format, scope: x.scope, orientation: x.orientation, filters: x.filters, notes: x.notes }));
+        } catch {
+            // private mode: the choice lasts as long as the panel
+        }
+        if (key === "scope" || key === "orientation") {
+            this.countExport();
+        }
+    }
+
+    get exportLayout() {
+        const x = this.state.exporter;
+        return { scope: x.scope, orientation: x.orientation, filters: x.filters, notes: x.notes };
+    }
+
+    async countExport() {
+        const token = ++this.countToken;
+        this.state.exporter.counting = true;
+        try {
+            const res = await this.orm.call("ebshel.fin.report", "get_export_preview", [this.rid],
+                                            { options: this.state.options, layout: this.exportLayout });
+            if (token === this.countToken && this.state.exporter) {
+                this.state.exporter.preview = res;
+            }
+        } finally {
+            if (token === this.countToken && this.state.exporter) {
+                this.state.exporter.counting = false;
+            }
+        }
+    }
+
+    get exportFormats() {
+        return [
+            { key: "xlsx", tone: "green", icon: "fa-file-excel-o", name: _t("Excel"), text: _t("To work in, and to print") },
+            { key: "pdf", tone: "red", icon: "fa-file-pdf-o", name: _t("PDF"), text: _t("To read and to send") },
+            { key: "csv", tone: "blue", icon: "fa-file-text-o", name: _t("CSV"), text: _t("Plain rows, for another program") },
+            { key: "copy", tone: "amber", icon: "fa-clipboard", name: _t("Copy"), text: _t("To paste into a sheet") },
+        ];
+    }
+
+    get exportScopes() {
+        return [
+            { key: "screen", icon: "fa-desktop", name: _t("As on the screen"), text: _t("What you have unfolded") },
+            { key: "summary", icon: "fa-compress", name: _t("Summary"), text: _t("Every line folded") },
+            { key: "full", icon: "fa-expand", name: _t("Everything"), text: _t("Down to the entries") },
+        ];
+    }
+
+    /** What the chosen export comes to, in words. */
+    get exportSize() {
+        const x = this.state.exporter, p = x.preview;
+        if (!p) {
+            return "";
+        }
+        const lines = p.lines.toLocaleString();
+        if (x.format !== "pdf") {
+            return p.lines === 1 ? _t("1 line") : _t("%s lines", lines);
+        }
+        const side = p.landscape ? _t("landscape") : _t("portrait");
+        const shown = p.cut ? p.cap.toLocaleString() : lines;
+        return p.pages === 1 ? _t("%(n)s lines · 1 page, %(side)s", { n: shown, side })
+            : _t("%(n)s lines · about %(p)s pages, %(side)s", { n: shown, p: p.pages, side });
+    }
+
+    get exportTone() {
+        return this.exportFormats.find((f) => f.key === this.state.exporter.format).tone;
+    }
+
+    get exportButton() {
+        const names = { xlsx: _t("Download the workbook"), pdf: _t("Make the PDF"), csv: _t("Download the CSV"), copy: _t("Copy the rows") };
+        return names[this.state.exporter.format];
+    }
+
+    saveFile(name, blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    saveBase64(file) {
+        const bytes = Uint8Array.from(atob(file.content), (c) => c.charCodeAt(0));
+        this.saveFile(file.filename, new Blob([bytes], { type: file.mimetype }));
+    }
+
+    async runExport() {
+        const x = this.state.exporter;
+        if (!x || x.busy) {
+            return;
+        }
+        x.busy = true;
+        const args = { options: this.state.options, layout: this.exportLayout };
+        try {
+            if (x.format === "xlsx") {
+                this.saveBase64(await this.orm.call("ebshel.fin.report", "export_xlsx", [this.rid], args));
+            } else if (x.format === "pdf") {
+                this.saveBase64(await this.orm.call("ebshel.fin.report", "export_pdf", [this.rid], args));
+            } else {
+                const res = await this.orm.call("ebshel.fin.report", "export_rows", [this.rid], args);
+                if (x.format === "csv") {
+                    const csv = res.rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+                    this.saveFile(res.filename + ".csv", new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+                } else {
+                    const clean = (v) => String(v).replace(/[\t\n\r]+/g, " ");
+                    const text = res.rows.map((r, i) => ["  ".repeat(res.levels[i] || 0) + clean(r[0]), ...r.slice(1).map(clean)].join("\t")).join("\n");
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        this.notification.add(_t("%s rows copied. Paste them into a sheet.", res.rows.length - 1), { type: "success" });
+                    } catch {
+                        this.notification.add(_t("The browser did not allow copying; take the CSV instead."), { type: "warning" });
+                        return;
+                    }
+                }
+            }
+            this.state.exporter = null;
+        } finally {
+            if (this.state.exporter) {
+                this.state.exporter.busy = false;
+            }
+        }
+    }
+
+    /** The journal items open under a line, as a sheet of their own. */
+    async downloadItems(line) {
+        const it = this.state.items[line.id];
+        if (!it || it.saving) {
+            return;
+        }
+        it.saving = true;
+        try {
+            const file = await this.orm.call("ebshel.fin.report", "export_items_xlsx", [this.rid], {
+                options: this.state.options, line_id: line.id, column_key: it.colKey, search: it.search, order: it.order,
+            });
+            this.saveBase64(file);
+            if (file.total > file.items) {
+                this.notification.add(_t("The sheet holds the first %(n)s of %(t)s items.", { n: file.items, t: file.total }), { type: "warning" });
+            }
+        } finally {
+            if (this.state.items[line.id]) {
+                this.state.items[line.id].saving = false;
+            }
+        }
     }
 
     schedule() {
@@ -682,7 +911,8 @@ export class FinReportViewer extends Component {
     get rootClass() {
         const d = this.state.display;
         return ["o_efr", "o_action", "d-flex", "flex-column", "o_efr_" + d.density, d.zebra ? "o_efr_zebra" : "",
-                d.signs ? "o_efr_signs" : "", this.state.full ? "o_efr_full" : ""].join(" ");
+                d.signs ? "o_efr_signs" : "", this.state.full ? "o_efr_full" : "",
+                this.state.refreshing ? "o_efr_refreshing" : ""].join(" ");
     }
 
     get barTops() {
@@ -870,6 +1100,9 @@ export class FinReportViewer extends Component {
         this.state.options = keep;
         this.state.search = "";
         this.state.movers = null;
+        this.state.chart = false;
+        this.state.explain = null;
+        this.state.lines = [];
         this.load();
     }
 
@@ -995,51 +1228,13 @@ export class FinReportViewer extends Component {
         this.state.selected = {};
     }
 
-    // ------------------------------------------------------------------ out of the screen
-    tableRows() {
-        const head = [_t("Line"), ...this.state.columns.map((c) => c.label)];
-        const rows = [head];
-        for (const line of this.visibleLines) {
-            if (line.kind === "more") {
-                continue;
-            }
-            const name = "  ".repeat(line.level || 0) + (line.parts
-                ? [line.parts.date, line.parts.move, line.parts.partner, line.parts.label].filter(Boolean).join(" · ") : line.name);
-            rows.push([name, ...(line.columns || []).map((c) => (c.value === null || c.value === undefined ? c.text || "" : c.value))]);
-        }
-        return rows;
-    }
-
-    exportCsv() {
-        this.state.menu = null;
-        const csv = this.tableRows().map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
-        const url = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${this.state.report.name} - ${this.state.options.date.to}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }
-
-    async copyTable() {
-        this.state.menu = null;
-        const text = this.tableRows().map((r) => r.join("\t")).join("\n");
-        try {
-            await navigator.clipboard.writeText(text);
-            this.notification.add(_t("Copied. Paste it into a sheet."), { type: "success" });
-        } catch {
-            this.notification.add(_t("The browser did not allow copying; use CSV instead."), { type: "warning" });
-        }
-    }
-
     // ------------------------------------------------------------------ keyboard
     keyboard(ev) {
         if (ev.target && /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) {
             return;
         }
         if (ev.key === "Escape") {
+            this.closeExport();
             this.state.menu = null;
             this.state.help = false;
             this.state.explain = null;
@@ -1074,7 +1269,7 @@ export class FinReportViewer extends Component {
         if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Enter"].includes(ev.key)) {
             return;
         }
-        const lines = this.visibleLines;
+        const lines = this.shownLines;
         if (!lines.length) {
             return;
         }

@@ -138,7 +138,9 @@ class FinReportSchedule(models.Model):
         if self.format in ('pdf', 'both'):
             pdf, _kind = self.env['ir.actions.report'].with_user(self.user_id).with_company(self.company_id)\
                 ._render_qweb_pdf('ebshel_account_reports.action_fin_report_pdf', res_ids=[report.id],
-                                  data={'options': options, 'report_id': report.id})
+                                  data={'options': options, 'report_id': report.id,
+                                        # paper is for reading: the view as it was saved; the workbook carries every line
+                                        'layout': {'scope': 'screen'}})
             out.append(('%s.pdf' % report.name, base64.b64encode(pdf).decode()))
         norm = self.env['ebshel.fin.engine'].with_user(self.user_id).normalize(report, options)
         period = self._period_text(norm)

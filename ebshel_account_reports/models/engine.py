@@ -23,7 +23,7 @@ from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models, _
 from odoo.tools import SQL, date_utils
-from odoo.tools.misc import formatLang
+from odoo.tools.misc import format_date, formatLang
 
 PRESETS = [
     ('this_month', 'This month'),
@@ -131,16 +131,23 @@ class FinEngine(models.AbstractModel):
         return end - timedelta(days=span - 1), end
 
     @api.model
+    def fmt_date(self, day):
+        """A date the way the reader writes dates (their language), never the database's."""
+        if not day:
+            return ''
+        return format_date(self.env, fields.Date.to_date(day))
+
+    @api.model
     def period_label(self, date_from, date_to, single=False):
         if single:
-            return _('As of %s', fields.Date.to_string(date_to))
+            return _('As of %s', self.fmt_date(date_to))
         if date_from.day == 1 and date_to == date_utils.end_of(date_to, 'month'):
             if date_from.month == date_to.month and date_from.year == date_to.year:
                 return date_from.strftime('%b %Y')
             if date_from.month == 1 and date_to.month == 12 and date_from.year == date_to.year:
                 return str(date_from.year)
             return '%s – %s' % (date_from.strftime('%b %Y'), date_to.strftime('%b %Y'))
-        return '%s – %s' % (date_from.strftime('%d/%m/%Y'), date_to.strftime('%d/%m/%Y'))
+        return '%s – %s' % (self.fmt_date(date_from), self.fmt_date(date_to))
 
     # ------------------------------------------------------------------ options
     @api.model
@@ -239,7 +246,7 @@ class FinEngine(models.AbstractModel):
                              'from': fields.Date.to_string(c_from), 'to': fields.Date.to_string(c_to),
                              'type': 'amount'})
         if len(cols) > 1 and options.get('growth'):
-            cols.append({'key': 'growth', 'label': _('%'), 'type': 'growth',
+            cols.append({'key': 'growth', 'label': _('Change'), 'type': 'growth',
                          'from': cols[0]['from'], 'to': cols[0]['to']})
         return cols
 

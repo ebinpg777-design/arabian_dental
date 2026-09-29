@@ -1,72 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- The report on paper. It draws its own slim heading: the company's letter paper is as
+         tall as its address, and ran over the figures. Laid out with floats - the renderer
+         knows no flex, and a table used for layout prints a box. -->
     <template id="fin_report_pdf">
+        <t t-set="data_report_landscape" t-value="landscape and 'True' or None"/>
         <t t-call="web.html_container">
-            <t t-foreach="docs" t-as="o">
-                <t t-call="web.external_layout">
-                    <div class="page ebshel-fin-pdf" style="font-size:11px;">
-                        <style>
-                            .ebshel-fin-pdf table.fin { width:100%; border-collapse:collapse; }
-                            .ebshel-fin-pdf table.fin th { text-align:right; border-bottom:2px solid #1f3a5f; padding:4px 6px; color:#1f3a5f; font-size:10px; text-transform:uppercase; letter-spacing:.3px; }
-                            .ebshel-fin-pdf table.fin th:first-child { text-align:left; }
-                            .ebshel-fin-pdf table.fin td { padding:3px 6px; border-bottom:1px solid #e6eaf0; white-space:nowrap; }
-                            .ebshel-fin-pdf table.fin td.num { text-align:right; font-variant-numeric:tabular-nums; }
-                            .ebshel-fin-pdf table.fin tr.bold td { font-weight:700; }
-                            .ebshel-fin-pdf table.fin tr.total td { border-top:2px solid #1f3a5f; font-weight:700; }
-                            .ebshel-fin-pdf table.fin tr.header td { background:#f3f5f8; font-weight:700; }
-                            .ebshel-fin-pdf table.fin tr.move_line td { color:#444; font-size:10px; }
-                            .ebshel-fin-pdf .lvl1 { padding-left:14px !important; } .ebshel-fin-pdf .lvl2 { padding-left:28px !important; }
-                            .ebshel-fin-pdf .lvl3 { padding-left:42px !important; } .ebshel-fin-pdf .lvl4 { padding-left:56px !important; }
-                            .ebshel-fin-pdf .up { color:#067647; } .ebshel-fin-pdf .down { color:#b42318; } .ebshel-fin-pdf .danger { color:#b42318; font-weight:700; }
-                            .ebshel-fin-pdf .ok { color:#067647; }
-                            .ebshel-fin-pdf .note { font-size:10px; color:#444; }
-                            .ebshel-fin-pdf .mark { color:#3730a3; font-size:9px; vertical-align:super; }
-                        </style>
-                        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8px;">
-                            <div>
-                                <div style="font-size:18px; font-weight:700; color:#1f3a5f;"><t t-out="report.name"/></div>
-                                <div style="color:#666;"><t t-out="company.name"/></div>
-                            </div>
-                            <div style="text-align:right; color:#666;"><t t-out="summary"/></div>
-                        </div>
-                        <table class="fin">
-                            <thead>
-                                <tr>
-                                    <th></th>
-                                    <t t-foreach="columns" t-as="col"><th><t t-out="col['label']"/></th></t>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <t t-foreach="lines" t-as="line">
-                                    <tr t-att-class="(line.get('kind') or '') + (' bold' if line.get('bold') else '')"
-                                        t-att-style="'page-break-before:always;' if line.get('page_break') and not line_first else ''">
-                                        <td t-att-class="'lvl%d' % min(line.get('level', 0), 4)">
-                                            <t t-if="line.get('parts')">
-                                                <t t-out="line['parts'].get('date')"/> ·
-                                                <b t-out="line['parts'].get('move')"/>
-                                                <t t-if="line['parts'].get('partner')"> · <t t-out="line['parts']['partner']"/></t>
-                                                <t t-if="line['parts'].get('label')"> · <span class="text-muted" t-out="line['parts']['label']"/></t>
-                                                <t t-if="line['parts'].get('account')"> · <span class="text-muted" t-out="line['parts']['account']"/></t>
-                                            </t>
-                                            <t t-else=""><t t-out="line['name']"/></t>
-                                            <span t-if="note_marks.get(line['id'])" class="mark">[<t t-out="note_marks[line['id']]"/>]</span>
-                                        </td>
-                                        <t t-foreach="line['columns']" t-as="cell">
-                                            <td t-att-class="'num ' + (cell.get('class') or '')"><t t-out="cell.get('text') or ''"/></td>
-                                        </t>
-                                    </tr>
-                                </t>
-                            </tbody>
-                        </table>
-                        <div t-if="notes" style="margin-top:14px;">
-                            <div style="font-weight:700; color:#1f3a5f;">Notes</div>
-                            <t t-foreach="notes" t-as="note">
-                                <div class="note">[<t t-out="note_index + 1"/>] <b t-out="note.get('line_name') or note['line_key']"/>: <t t-out="note['text']"/> — <i t-out="note['user']"/>, <t t-out="note['date']"/></div>
-                            </t>
+            <div class="header">
+                <div style="border-bottom:2px solid #1f3a5f; padding:0 0 5px 0; overflow:hidden;">
+                    <div style="float:left; max-width:55%;">
+                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" alt="Logo"
+                             style="float:left; max-height:40px; max-width:150px; margin-right:10px;"/>
+                        <div style="float:left;">
+                            <div style="font-size:14px; font-weight:700; color:#1f2937; line-height:1.25;" t-out="company.name"/>
+                            <div style="font-size:9px; color:#6b7280;" t-out="company_line"/>
                         </div>
                     </div>
+                    <div style="float:right; text-align:right;">
+                        <div style="font-size:18px; font-weight:700; color:#1f3a5f; line-height:1.2; white-space:nowrap;" t-out="report.name"/>
+                        <div style="font-size:10px; color:#6b7280; white-space:nowrap;">
+                            <t t-out="period"/><t t-if="unit_label"> · figures in <t t-out="unit_label"/></t>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="article ebshel-fin-pdf" t-att-data-oe-model="'ebshel.fin.report'" t-att-data-oe-id="report.id"
+                 t-attf-style="font-size:#{font}px; color:#1f2937;">
+                <style>
+                    .ebshel-fin-pdf table, .ebshel-fin-pdf thead, .ebshel-fin-pdf tbody, .ebshel-fin-pdf tr,
+                    .ebshel-fin-pdf th, .ebshel-fin-pdf td { border-style:none; border-width:0; }
+                    .ebshel-fin-pdf table.fin { width:100%; border-collapse:collapse; table-layout:fixed; margin:0; }
+                    .ebshel-fin-pdf table.fin thead { display:table-header-group; }
+                    .ebshel-fin-pdf table.fin tr { page-break-inside:avoid; }
+                    .ebshel-fin-pdf table.fin th { text-align:right; background:#1f3a5f; color:#fff; padding:5px 6px; font-size:.82em;
+                        font-weight:700; text-transform:uppercase; letter-spacing:.3px; overflow:hidden; }
+                    .ebshel-fin-pdf table.fin th.name { text-align:left; }
+                    .ebshel-fin-pdf table.fin td { padding:3px 6px; border-bottom:1px solid #e6eaf0; white-space:nowrap; overflow:hidden; }
+                    .ebshel-fin-pdf table.fin td.name { text-overflow:ellipsis; }
+                    .ebshel-fin-pdf table.fin td.num { text-align:right; }
+                    .ebshel-fin-pdf table.fin tr.even td { background:#fafbfd; }
+                    .ebshel-fin-pdf table.fin tr.bold td { font-weight:700; }
+                    .ebshel-fin-pdf table.fin tr.total td { border-top:2px solid #1f3a5f; font-weight:700; background:#f7f9fc; }
+                    .ebshel-fin-pdf table.fin tr.header td { background:#eef3fa; font-weight:700; color:#1f3a5f; }
+                    .ebshel-fin-pdf table.fin tr.move_line td, .ebshel-fin-pdf table.fin tr.open_item td { color:#374151; font-size:.9em; }
+                    .ebshel-fin-pdf table.fin tr.initial td { color:#6b7280; font-style:italic; }
+                    .ebshel-fin-pdf .neg { color:#b42318; }
+                    .ebshel-fin-pdf table.fin td.zero { color:#b6bdc8; }
+                    .ebshel-fin-pdf .up { color:#067647; } .ebshel-fin-pdf .down { color:#b42318; }
+                    .ebshel-fin-pdf .danger { color:#b42318; font-weight:700; } .ebshel-fin-pdf .ok { color:#067647; }
+                    .ebshel-fin-pdf .soft { color:#6b7280; }
+                    .ebshel-fin-pdf .entry { font-weight:700; color:#1f3a5f; }
+                    .ebshel-fin-pdf .facts { margin:0 0 8px 0; overflow:hidden; }
+                    .ebshel-fin-pdf .fact { float:left; margin:0 6px 4px 0; padding:2px 8px; background:#f3f5f8; border-left:3px solid #1f3a5f;
+                        font-size:.86em; }
+                    .ebshel-fin-pdf .fact b { color:#6b7280; font-weight:400; }
+                    .ebshel-fin-pdf .cut { margin-top:10px; padding:6px 10px; background:#fdecec; border-left:3px solid #b42318; color:#b42318; }
+                    .ebshel-fin-pdf .none { padding:24px; text-align:center; color:#6b7280; }
+                    .ebshel-fin-pdf .note { font-size:.9em; color:#374151; margin-top:2px; }
+                    .ebshel-fin-pdf .mark { color:#b45309; font-size:.8em; vertical-align:super; }
+                </style>
+                <div class="facts" t-if="facts">
+                    <t t-foreach="facts" t-as="fact">
+                        <div class="fact"><b><t t-out="fact[0]"/>: </b><t t-out="fact[1]"/></div>
+                    </t>
+                </div>
+                <div t-if="empty" class="none">Nothing in this period with these filters.</div>
+                <t t-set="row_no" t-value="0"/>
+                <t t-foreach="slices" t-as="slice">
+                    <table class="fin">
+                        <colgroup>
+                            <col t-attf-style="width:#{name_w}%;"/>
+                            <t t-foreach="columns" t-as="col"><col t-attf-style="width:#{col_w}%;"/></t>
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th class="name"/>
+                                <t t-foreach="columns" t-as="col"><th><t t-out="col['label']"/></th></t>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="slice" t-as="line">
+                                <t t-set="row_no" t-value="row_no + 1"/>
+                                <tr t-att-class="(line.get('kind') or 'line') + (' bold' if line.get('bold') else '') + (' even' if row_no % 2 == 0 else '')"
+                                    t-att-style="'page-break-before:always;' if line.get('page_break') and row_no &gt; 1 else None">
+                                    <td class="name" t-attf-style="padding-left:#{6 + 13 * min(line.get('level') or 0, 6)}px;">
+                                        <t t-if="line.get('parts')">
+                                            <t t-set="parts" t-value="line['parts']"/>
+                                            <span class="soft" t-out="parts.get('date_text') or parts.get('date')"/>
+                                            <span class="entry" t-out="parts.get('move')"/>
+                                            <t t-if="parts.get('partner')"> · <t t-out="parts['partner']"/></t>
+                                            <t t-if="parts.get('label')"> · <span class="soft" t-out="parts['label']"/></t>
+                                            <t t-if="parts.get('account')"> · <span class="soft" t-out="parts['account']"/></t>
+                                        </t>
+                                        <t t-else=""><t t-out="line['name']"/></t>
+                                        <span t-if="note_marks.get(line['id'])" class="mark">[<t t-out="note_marks[line['id']]"/>]</span>
+                                    </td>
+                                    <t t-foreach="line['columns']" t-as="cell">
+                                        <td t-att-class="'num ' + (cell.get('class') or '') + (' neg' if (cell.get('value') or 0) &lt; 0 and cell.get('display') == 'amount' else '') + (' zero' if cell.get('value') == 0 and cell.get('display') == 'amount' and not line.get('bold') else '')"><t t-out="cell.get('text') or ''"/></td>
+                                    </t>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
                 </t>
-            </t>
+                <div t-if="cut_total" class="cut">
+                    Cut at <t t-out="'{:,}'.format(line_count)"/> lines of <t t-out="'{:,}'.format(cut_total)"/>:
+                    a ledger this long is not for paper. The Excel workbook carries every line.
+                </div>
+                <div t-if="notes" style="margin-top:14px; page-break-inside:avoid;">
+                    <div style="font-weight:700; color:#1f3a5f;">Notes</div>
+                    <t t-foreach="notes" t-as="note">
+                        <div class="note">[<t t-out="note_index + 1"/>] <b t-out="note.get('line_name') or note['line_key']"/>: <t t-out="note['text']"/> — <i t-out="note['user']"/>, <t t-out="note['date']"/></div>
+                    </t>
+                </div>
+            </div>
+            <div class="footer">
+                <div style="border-top:1px solid #e6eaf0; padding-top:3px; font-size:9px; color:#6b7280; overflow:hidden;">
+                    <div style="float:left;">Printed <t t-out="stamp"/></div>
+                    <div style="float:right;">Page <span class="page"/> / <span class="topage"/></div>
+                </div>
+            </div>
         </t>
     </template>
 </odoo>

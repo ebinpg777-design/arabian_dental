@@ -71,17 +71,8 @@
                         </div>
                     </div>
                     <!-- out -->
-                    <div class="o_efr_group">
-                        <button class="o_efr_tool o_efr_tool_go o_efr_popbtn" t-on-click="() => this.openMenu('export')" t-att-disabled="state.busy"><i class="fa fa-download"/><span>Export</span></button>
-                        <div class="o_efr_pop o_efr_pop_right o_efr_pop_menu" t-if="state.menu === 'export'">
-                            <a href="#" t-on-click.prevent="() => { state.menu = null; this.exportXlsx(); }"><i class="fa fa-file-excel-o text-success"/>Excel workbook</a>
-                            <a href="#" t-on-click.prevent="() => { state.menu = null; this.exportPdf(); }"><i class="fa fa-file-pdf-o text-danger"/>PDF</a>
-                            <a href="#" t-on-click.prevent="() => this.exportCsv()"><i class="fa fa-file-text-o text-primary"/>CSV, as on the screen</a>
-                            <a href="#" t-on-click.prevent="() => this.copyTable()"><i class="fa fa-clipboard text-warning"/>Copy for a sheet</a>
-                            <a href="#" t-on-click.prevent="() => { state.menu = null; this.schedule(); }"><i class="fa fa-clock-o text-info"/>Email on a schedule</a>
-                            <a href="#" t-if="state.report.kind === 'statement_of_account'" t-on-click.prevent="() => { state.menu = null; this.sendStatements(); }"><i class="fa fa-paper-plane text-primary"/>Email each partner their statement</a>
-                        </div>
-                    </div>
+                    <button class="o_efr_tool o_efr_tool_go" t-on-click="() => this.openExport()" t-att-disabled="state.busy" title="Excel, PDF, CSV or the clipboard">
+                        <i class="fa fa-download"/><span>Export</span></button>
                     <button class="o_efr_tool o_efr_tool_icon" t-if="state.canDesign and state.report.kind === 'statement'" t-on-click="() => this.design()" title="Designer"><i class="fa fa-pencil"/></button>
                     <button class="o_efr_tool o_efr_tool_icon" t-on-click="toggleFull" t-att-title="state.full ? 'Leave full screen' : 'Full screen'"><i t-att-class="'fa ' + (state.full ? 'fa-compress' : 'fa-expand')"/></button>
                     <button class="o_efr_tool o_efr_tool_icon" t-on-click="() => state.help = !state.help" title="Keys  ?"><i class="fa fa-keyboard-o"/></button>
@@ -306,7 +297,14 @@
             <!-- ═══════════════════════════ the body ═══════════════════════════ -->
             <div class="o_content o_efr_body">
                 <div t-if="state.error" class="alert alert-danger m-3" t-esc="state.error"/>
-                <div t-if="state.loading" class="o_efr_loading"><i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the ledger…</div>
+                <div t-if="state.refreshing" class="o_efr_progress"><span/></div>
+                <div t-if="state.loading" class="o_efr_skeleton">
+                    <div class="o_efr_sk_head"/>
+                    <div t-foreach="[62, 48, 70, 40, 56, 66, 44, 58, 50, 36]" t-as="w" t-key="w_index" class="o_efr_sk_row">
+                        <span t-attf-style="width: {{ w / 2 }}%"/><span class="num"/><span class="num"/>
+                    </div>
+                    <div class="o_efr_sk_note"><i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the ledger…</div>
+                </div>
                 <div class="o_efr_stage" t-if="!state.loading and state.report">
                     <div class="o_efr_main">
                         <!-- the chart -->
@@ -323,7 +321,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="o_efr_table_wrap">
+                        <div class="o_efr_table_wrap" t-on-scroll="onTableScroll">
                             <table class="o_efr_table" t-ref="table">
                                 <thead>
                                     <tr>
@@ -333,22 +331,22 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <t t-foreach="visibleLines" t-as="line" t-key="line.id">
+                                    <t t-foreach="isEmpty ? [] : shownLines" t-as="line" t-key="line.id">
                                         <tr t-att-class="rowClass(line)" t-att-data-line="line.id" t-on-click="() => line.kind === 'more' ? this.loadMore(line) : this.toggle(line)">
-                                            <td class="o_efr_name">
+                                            <td class="o_efr_name" t-att-title="line.parts ? '' : line.name"><div class="o_efr_namebox">
                                                 <span class="o_efr_indent" t-attf-style="width: {{ (line.level || 0) * 1.1 }}rem"/>
                                                 <i t-if="line.unfoldable" t-att-class="'fa fa-fw ' + (line.unfolded ? 'fa-caret-down' : 'fa-caret-right') + ' o_efr_caret'"/>
                                                 <span t-else="" class="o_efr_caret o_efr_caret_none"/>
                                                 <t t-if="line.parts">
                                                     <span class="o_efr_parts">
-                                                        <span class="o_efr_p_date" t-esc="line.parts.date"/>
+                                                        <span class="o_efr_p_date" t-esc="line.parts.date_text || line.parts.date"/>
                                                         <a href="#" class="o_efr_p_move" t-on-click.prevent="(ev) => this.openRecord(line, ev)" t-esc="line.parts.move"/>
                                                         <span class="o_efr_p_partner" t-if="line.parts.partner" t-esc="line.parts.partner"/>
                                                         <span class="o_efr_p_label" t-if="line.parts.label" t-esc="line.parts.label"/>
                                                         <span class="o_efr_p_acc" t-if="line.parts.account" t-esc="line.parts.account"/>
                                                         <span class="o_efr_p_due" t-if="line.parts.days !== undefined" t-att-class="line.parts.days > 0 ? 'text-danger' : ''">
                                                             <t t-if="line.parts.days > 0"><t t-esc="line.parts.days"/> days late</t>
-                                                            <t t-else="">due <t t-esc="line.parts.due"/></t>
+                                                            <t t-elif="line.parts.due">due <t t-esc="line.parts.due_text || line.parts.due"/></t>
                                                         </span>
                                                         <span class="o_efr_p_match" t-if="line.parts.matching" t-esc="line.parts.matching"/>
                                                     </span>
@@ -364,7 +362,7 @@
                                                     </span>
                                                     <i t-elif="state.canAnnotate" class="fa fa-comment-o o_efr_note_add" title="Add a note" t-on-click="(ev) => this.openNote(line, ev)"/>
                                                 </span>
-                                            </td>
+                                            </div></td>
                                             <td t-if="state.options.trend" class="o_efr_trend">
                                                 <svg t-if="state.trends[line.id]" width="72" height="18" class="o_efr_spark">
                                                     <t t-foreach="spark(state.trends[line.id])" t-as="b" t-key="b_index">
@@ -373,7 +371,7 @@
                                                 </svg>
                                             </td>
                                             <t t-foreach="line.columns" t-as="cell" t-key="cell_index">
-                                                <td t-att-class="'o_efr_cell o_efr_c_' + cell.display + (cell.class ? ' o_efr_' + cell.class : '') + (cell.drill ? ' o_efr_drill' : '') + (cell.value &lt; 0 ? ' o_efr_neg' : '') + (isSelected(line, cell_index) ? ' o_efr_sel' : '')"
+                                                <td t-att-class="cellClass(line, cell, cell_index)"
                                                     t-att-style="barStyle(line, cell, cell_index)"
                                                     t-on-click="(ev) => this.drill(line, cell, ev)"
                                                     t-on-mousedown="(ev) => this.keepText(ev)"
@@ -407,6 +405,8 @@
                                                             <option value="partner" t-att-selected="it.order === 'partner'">By partner</option>
                                                             <option value="account" t-att-selected="it.order === 'account'">By account</option>
                                                         </select>
+                                                        <button class="o_efr_ra o_efr_ra_save" t-on-click="() => this.downloadItems(line)" t-att-disabled="it.saving or !it.total" title="These journal items as an Excel sheet">
+                                                            <i t-att-class="'fa ' + (it.saving ? 'fa-circle-o-notch fa-spin' : 'fa-file-excel-o')"/><span>Excel</span></button>
                                                         <button class="o_efr_ra" t-on-click="() => this.openList(line, it.colKey)" title="Open these items as a list, pivot or graph"><i class="fa fa-external-link"/><span>Open as a list</span></button>
                                                         <button class="o_efr_ra o_efr_ra_x" t-on-click="() => this.closeItems(line)" title="Close"><i class="fa fa-times"/></button>
                                                     </div>
@@ -416,7 +416,7 @@
                                                         <thead><tr><th>Date</th><th>Entry</th><th>Jrnl</th><th>Account</th><th>Partner</th><th>Label</th><th class="num">Debit</th><th class="num">Credit</th><th>Match</th></tr></thead>
                                                         <tbody>
                                                             <tr t-foreach="it.rows" t-as="r" t-key="r.id" t-att-class="r.state === 'draft' ? 'draft' : ''" t-on-click="(ev) => this.openEntry(r, ev)">
-                                                                <td class="nowrap" t-esc="r.date"/>
+                                                                <td class="nowrap" t-esc="r.date_text || r.date"/>
                                                                 <td class="nowrap"><a href="#" t-on-click.prevent="(ev) => this.openEntry(r, ev)" t-esc="r.move"/><span t-if="r.state === 'draft'" class="o_efr_drafttag">draft</span></td>
                                                                 <td class="nowrap muted" t-esc="r.journal"/>
                                                                 <td class="trunc" t-esc="r.account" t-att-title="r.account"/>
@@ -439,7 +439,27 @@
                                             </td>
                                         </tr>
                                     </t>
-                                    <tr t-if="!visibleLines.length"><td t-att-colspan="state.columns.length + 1" class="text-muted p-4 text-center">Nothing in this period<t t-if="activeChips.length"> with these filters</t>.</td></tr>
+                                    <tr t-if="linesLeft" class="o_efr_morelines" t-on-click="showMoreLines">
+                                        <td t-att-colspan="state.columns.length + 1 + (state.options.trend ? 1 : 0)">
+                                            <i class="fa fa-angle-double-down me-1"/>Show more lines · <t t-esc="linesLeft"/> left</td>
+                                    </tr>
+                                    <tr t-if="isEmpty" class="o_efr_empty_row">
+                                        <td t-att-colspan="state.columns.length + 1 + (state.options.trend ? 1 : 0)">
+                                            <div class="o_efr_empty">
+                                                <i class="fa fa-inbox"/>
+                                                <b t-if="state.search">No line matches "<t t-esc="state.search"/>"</b>
+                                                <b t-else="">Nothing in this period<t t-if="activeChips.length"> with these filters</t></b>
+                                                <span t-if="state.search">Lines that are still folded are not searched; unfold them first.</span>
+                                                <span t-elif="activeChips.length">Take a filter off, or widen the period.</span>
+                                                <span t-else="">No entry was posted between these dates.</span>
+                                                <div>
+                                                    <button t-if="state.search" class="o_efr_seg" t-on-click="() => state.search = ''">Clear the search</button>
+                                                    <button t-elif="activeChips.length" class="o_efr_seg" t-on-click="clearAll">Clear the filters</button>
+                                                    <button class="o_efr_seg" t-on-click="() => this.openMenu('period')">Another period</button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -515,6 +535,78 @@
                     <div><b>Ctrl + click</b> a figure: open the items as a list, pivot or graph</div>
                 </div>
             </div>
+
+            <!-- ═══════════════════════════ the export panel ═══════════════════════════ -->
+            <t t-if="state.exporter">
+                <t t-set="x" t-value="state.exporter"/>
+                <div class="o_efr_modal_backdrop" t-on-click="closeExport"/>
+                <div class="o_efr_modal o_efr_export">
+                    <div class="o_efr_x_head">
+                        <span class="o_efr_x_icon"><i class="fa fa-download"/></span>
+                        <div>
+                            <div class="o_efr_x_title">Export · <t t-esc="state.report.name"/></div>
+                            <div class="o_efr_x_sub"><t t-esc="periodLabel"/><t t-if="activeChips.length"> · <t t-esc="activeChips.length"/> filter<t t-if="activeChips.length !== 1">s</t></t></div>
+                        </div>
+                        <button class="o_efr_x_close" t-on-click="closeExport" title="Close"><i class="fa fa-times"/></button>
+                    </div>
+                    <div class="o_efr_x_body">
+                        <div class="o_efr_pop_title">As</div>
+                        <div class="o_efr_x_formats">
+                            <button t-foreach="exportFormats" t-as="f" t-key="f.key" t-att-class="'o_efr_x_format o_efr_x_' + f.tone + (x.format === f.key ? ' on' : '')"
+                                    t-on-click="() => this.setExport('format', f.key)">
+                                <i t-att-class="'fa ' + f.icon"/>
+                                <b t-esc="f.name"/>
+                                <span t-esc="f.text"/>
+                            </button>
+                        </div>
+                        <div class="o_efr_pop_title mt-3">What goes in</div>
+                        <div class="o_efr_x_scopes">
+                            <button t-foreach="exportScopes" t-as="sc" t-key="sc.key" t-att-class="'o_efr_x_scope' + (x.scope === sc.key ? ' on' : '')"
+                                    t-on-click="() => this.setExport('scope', sc.key)">
+                                <i t-att-class="'fa ' + sc.icon"/>
+                                <span><b t-esc="sc.name"/><em t-esc="sc.text"/></span>
+                            </button>
+                        </div>
+                        <div class="o_efr_x_opts">
+                            <div t-if="x.format === 'pdf'">
+                                <div class="o_efr_pop_title">Paper</div>
+                                <div class="o_efr_segs">
+                                    <button t-att-class="'o_efr_seg' + (x.orientation === 'auto' ? ' on' : '')" t-on-click="() => this.setExport('orientation', 'auto')">Best fit</button>
+                                    <button t-att-class="'o_efr_seg' + (x.orientation === 'portrait' ? ' on' : '')" t-on-click="() => this.setExport('orientation', 'portrait')"><i class="fa fa-file-o me-1"/>Upright</button>
+                                    <button t-att-class="'o_efr_seg' + (x.orientation === 'landscape' ? ' on' : '')" t-on-click="() => this.setExport('orientation', 'landscape')"><i class="fa fa-file-o fa-rotate-90 me-1"/>On its side</button>
+                                </div>
+                            </div>
+                            <div t-if="x.format === 'pdf' or x.format === 'xlsx'">
+                                <div class="o_efr_pop_title">With</div>
+                                <label class="o_efr_check"><input type="checkbox" t-att-checked="x.filters" t-on-change="(ev) => this.setExport('filters', ev.target.checked)"/> The filters, in words</label>
+                                <label class="o_efr_check"><input type="checkbox" t-att-checked="x.notes" t-on-change="(ev) => this.setExport('notes', ev.target.checked)"/> The notes on the lines</label>
+                            </div>
+                        </div>
+                        <div t-att-class="'o_efr_x_size' + (x.preview and x.preview.cut and x.format === 'pdf' ? ' warn' : '')">
+                            <t t-if="x.counting"><i class="fa fa-circle-o-notch fa-spin me-1"/>Counting the lines…</t>
+                            <t t-elif="x.preview">
+                                <i class="fa fa-info-circle me-1"/><t t-esc="exportSize"/>
+                                <div t-if="x.preview.cut and x.format === 'pdf'" class="o_efr_x_warn">
+                                    The report has <b t-esc="x.preview.lines.toLocaleString()"/> lines; paper stops at <b t-esc="x.preview.cap.toLocaleString()"/> and says so.
+                                    <a href="#" t-on-click.prevent="() => this.setExport('format', 'xlsx')">Take the workbook for all of them.</a>
+                                </div>
+                                <div t-elif="x.preview.empty" class="o_efr_x_warn">Nothing was posted in this period with these filters: the export will be empty.</div>
+                            </t>
+                        </div>
+                    </div>
+                    <div class="o_efr_x_foot">
+                        <a href="#" class="o_efr_x_link" t-on-click.prevent="() => { state.exporter = null; this.schedule(); }"><i class="fa fa-clock-o me-1"/>Email it on a schedule</a>
+                        <a href="#" class="o_efr_x_link" t-if="state.report.kind === 'statement_of_account'"
+                           t-on-click.prevent="() => { state.exporter = null; this.sendStatements(); }"><i class="fa fa-paper-plane me-1"/>Email each partner their statement</a>
+                        <span class="o_efr_x_gap"/>
+                        <button class="btn btn-light" t-on-click="closeExport" t-att-disabled="x.busy">Cancel</button>
+                        <button t-att-class="'btn o_efr_x_go o_efr_x_' + exportTone" t-on-click="runExport"
+                                t-att-disabled="x.busy or x.counting">
+                            <i t-att-class="'fa me-1 ' + (x.busy ? 'fa-circle-o-notch fa-spin' : 'fa-download')"/><t t-esc="exportButton"/>
+                        </button>
+                    </div>
+                </div>
+            </t>
 
             <!-- ═══════════════════════════ modals ═══════════════════════════ -->
             <div t-if="state.modal" class="o_efr_modal_backdrop" t-on-click="() => state.modal = null"/>

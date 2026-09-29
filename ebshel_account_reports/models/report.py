@@ -3,8 +3,6 @@
 (for statement reports) say what to sum, and the record carries every switch the
 screen offers. Users design their own the same way."""
 import ast
-import base64
-import io
 import json
 import operator
 import re
@@ -178,7 +176,7 @@ class FinReport(models.Model):
         self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
         self._check_report_access()
         engine, handler, options, columns = self._prepare(options)
-        lines = handler.lines(self, options, columns)
+        lines = self._polish(handler.lines(self, options, columns))
         currency = engine.currency(options)
         return {
             'report': {
@@ -254,20 +252,15 @@ class FinReport(models.Model):
         'partner': 'partner_id, date, id', 'account': 'account_id, date, id',
     }
 
-    def get_items(self, options, line_id, column_key='p0', offset=0, limit=40, search='', order='date desc'):
-        """The journal items that make one figure, a page at a time - so any line of any
-        report can be opened in place, down to the entries."""
-        self.ensure_one()
-        self.env.flush_all()
-        self._check_report_access()
+    def _items_domain(self, options, line_id, column_key='p0', search=''):
+        """(engine, options, domain, title, other_model) of the journal items behind one figure."""
         engine, handler, options, columns = self._prepare(options)
         target = handler.drill(self, options, columns, str(line_id), column_key or 'p0')
-        empty = {'rows': [], 'total': 0, 'title': '', 'sums': {}, 'has_more': False, 'other_model': False}
         if not target:
-            return empty
+            return engine, options, None, '', False
         if isinstance(target, dict):
             if target.get('res_model') != 'account.move.line':
-                return dict(empty, other_model=target.get('res_model'), title=target.get('name') or '')
+                return engine, options, None, target.get('name') or '', target.get('res_model')
             domain, title = list(target.get('domain') or []), target.get('name') or ''
         else:
             domain, title = list(target[0]), target[1]
@@ -279,6 +272,20 @@ class FinReport(models.Model):
             except ValueError:
                 domain += ['|', '|', '|', '|', ('move_name', 'ilike', search), ('name', 'ilike', search),
                            ('ref', 'ilike', search), ('partner_id', 'ilike', search), ('account_id', 'ilike', search)]
+        return engine, options, domain, title, False
+
+    def get_items(self, options, line_id, column_key='p0', offset=0, limit=40, search='', order='date desc'):
+        """The journal items that make one figure, a page at a time - so any line of any
+        report can be opened in place, down to the entries."""
+        self.ensure_one()
+        self.env.flush_all()
+        self._check_report_access()
+        engine, options, domain, title, other_model = self._items_domain(options, line_id, column_key, search)
+        empty = {'rows': [], 'total': 0, 'title': '', 'sums': {}, 'has_more': False, 'other_model': False}
+        if other_model:
+            return dict(empty, other_model=other_model, title=title)
+        if domain is None:
+            return empty
         AML = self.env['account.move.line']
         total = AML.search_count(domain)
         debit, credit, balance = AML._read_group(domain, [], ['debit:sum', 'credit:sum', 'balance:sum'])[0]
@@ -294,6 +301,7 @@ class FinReport(models.Model):
             tags = [names.get(int(k), '') for key in (l.analytic_distribution or {}) for k in str(key).split(',') if k.isdigit()]
             rows.append({
                 'id': l.id, 'move_id': l.move_id.id, 'date': fields.Date.to_string(l.date), 'move': l.move_name or l.move_id.name or '',
+                'date_text': engine.fmt_date(l.date),
                 'journal': l.journal_id.code or '', 'account': l.account_id.display_name or '',
                 'partner': l.partner_id.display_name or '', 'label': l.name or '', 'ref': l.ref or '',
                 'debit': l.debit, 'credit': l.credit, 'balance': l.balance,
@@ -363,7 +371,9 @@ class FinReport(models.Model):
         self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
         self._check_report_access()
         engine, handler, options, columns = self._prepare(options)
-        return handler.expand(self, options, columns, str(line_id), int(offset or 0))
+        res = handler.expand(self, options, columns, str(line_id), int(offset or 0))
+        self._polish(res.get('lines') or [])
+        return res
 
     def get_drill_action(self, options, line_id, column_key='p0'):
         """The journal items behind one figure, as a list."""
@@ -404,86 +414,29 @@ class FinReport(models.Model):
         engine, handler, options, columns = self._prepare(options)
         return handler.trends(self, options, [str(i) for i in line_ids][:200])
 
-    def export_xlsx(self, options):
-        """The report as a workbook, fully unfolded."""
-        self.ensure_one()
-        self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
-        self._check_report_access()
-        try:
-            import xlsxwriter
-        except ImportError:                                           # pragma: no cover
-            raise UserError(_("The xlsxwriter library is not installed on the server."))
-        engine, handler, options, columns = self._prepare(dict(options or {}, unfold_all=True))
-        lines = handler.lines(self, options, columns, for_export=True)
-        currency = engine.currency(options)
-        output = io.BytesIO()
-        book = xlsxwriter.Workbook(output, {'in_memory': True})
-        sheet = book.add_worksheet(self.name[:31])
-        title = book.add_format({'bold': True, 'font_size': 14})
-        muted = book.add_format({'italic': True, 'font_color': '#666666'})
-        head = book.add_format({'bold': True, 'bg_color': '#1f3a5f', 'font_color': '#ffffff',
-                                'border': 1, 'align': 'center'})
-        money = '#,##0.00;[Red]-#,##0.00'
-        fmts = {}
-
-        def style(level, bold, kind):
-            key = (min(level, 6), bold, kind)
-            if key not in fmts:
-                spec = {'indent': min(level, 6), 'bold': bold}
-                if kind == 'amount':
-                    spec['num_format'] = money
-                elif kind == 'growth' or kind == 'percent':
-                    spec['num_format'] = '0.0"%"'
-                if kind == 'text':
-                    spec['align'] = 'left'
-                fmts[key] = book.add_format(spec)
-            return fmts[key]
-
-        sheet.write(0, 0, self.name, title)
-        sheet.write(1, 0, self.env['res.company'].browse(options['companies'][0]).name, muted)
-        sheet.write(2, 0, self._options_summary(options), muted)
-        row = 4
-        sheet.write(row, 0, _('Line'), head)
-        for c, col in enumerate(columns, start=1):
-            sheet.write(row, c, col['label'], head)
-        sheet.set_column(0, 0, 48)
-        sheet.set_column(1, len(columns), 18)
-        sheet.freeze_panes(row + 1, 1)
+    def _polish(self, lines):
+        """The last pass over detail rows, shared by the screen and every export: dates the
+        way the reader writes them, and nothing said twice - an entry whose label is its own
+        number, a partner repeated under the partner's own heading."""
+        engine = self.env['ebshel.fin.engine']
+        under_partner = self.kind in ('partner_ledger', 'aged', 'statement_of_account')
+        under_account = self.kind == 'general_ledger'
         for line in lines:
-            row += 1
-            bold = bool(line.get('bold'))
-            sheet.write(row, 0, line['name'], style(line.get('level', 0), bold, 'text'))
-            for c, (col, cell) in enumerate(zip(columns, line['columns']), start=1):
-                value = cell.get('value')
-                kind = 'growth' if col['type'] == 'growth' else (cell.get('display') or 'amount')
-                if value is None:
-                    sheet.write(row, c, cell.get('text') or '', style(0, bold, 'text'))
-                elif kind in ('amount', 'growth', 'percent', 'ratio', 'days', 'count'):
-                    sheet.write_number(row, c, value, style(0, bold, kind if kind in ('amount', 'growth', 'percent') else 'text'))
-                else:
-                    sheet.write(row, c, cell.get('text') or '', style(0, bold, 'text'))
-        notes = self.env['ebshel.fin.report.annotation'].for_report(self)
-        if notes:
-            row += 2
-            sheet.write(row, 0, _('Notes'), title)
-            for line_key, items in notes.items():
-                for note in items:
-                    row += 1
-                    sheet.write(row, 0, '%s — %s (%s)' % (note['line_name'] or line_key, note['text'], note['user']), muted)
-        book.close()
-        return {
-            'filename': '%s - %s.xlsx' % (self.name, options['date']['to']),
-            'content': base64.b64encode(output.getvalue()).decode(),
-            'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        }
-
-    def get_pdf_action(self, options):
-        self.ensure_one()
-        self._check_report_access()
-        action = self.env.ref('ebshel_account_reports.action_fin_report_pdf').read()[0]
-        action['data'] = {'options': options, 'report_id': self.id}
-        action['context'] = {'active_ids': [self.id]}
-        return action
+            parts = line.get('parts')
+            if not parts:
+                continue
+            parts['date_text'] = engine.fmt_date(parts.get('date'))
+            if not under_partner:
+                parts['due'] = ''               # a due date says something about what is owed, nothing about a ledger line
+            parts['due_text'] = engine.fmt_date(parts.get('due'))
+            if (parts.get('label') or '').strip() == (parts.get('move') or '').strip():
+                parts['label'] = ''
+            if line.get('parent_id'):
+                if under_partner:
+                    parts['partner'] = ''
+                if under_account:
+                    parts['account'] = ''
+        return lines
 
     def _options_summary(self, options):
         parts = ['%s → %s' % (options['date']['from'], options['date']['to'])]
