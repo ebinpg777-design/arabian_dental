@@ -51,6 +51,17 @@ export class FinReportViewer extends Component {
             partnerHits: [],
             busy: false,
             focus: null,                // keyboard cursor: line id
+            unitLabel: "",
+            periodText: "",
+            reports: [],
+            items: {},                  // line id -> the journal items opened under it
+            movers: null,               // the "what changed" panel
+            chart: false,
+            selected: {},               // "line|col" -> value, for the totals bar
+            help: false,
+            full: false,
+            display: this.loadDisplay(),
+            draft: {},                  // the More filters panel, before Apply
         });
         this.loadToken = 0;
         this.onDocClick = (ev) => {
@@ -94,6 +105,14 @@ export class FinReportViewer extends Component {
             this.state.canAnnotate = data.can_annotate;
             this.state.trends = {};
             this.state.explain = null;
+            this.state.unitLabel = data.unit_label || "";
+            this.state.periodText = data.period_label || "";
+            this.state.reports = data.reports || [];
+            this.state.items = {};
+            this.state.selected = {};
+            if (this.state.movers) {
+                this.loadMovers();
+            }
             if (this.state.options.trend) {
                 this.loadTrends();
             }
@@ -244,7 +263,7 @@ export class FinReportViewer extends Component {
     }
 
     get periodLabel() {
-        return this.state.columns.length ? this.state.columns[0].label : "";
+        return this.state.periodText || (this.state.columns.length ? this.state.columns[0].label : "");
     }
 
     presetLabel(key) {
@@ -338,18 +357,138 @@ export class FinReportViewer extends Component {
         this.reload({ unfold_all: !this.state.options.unfold_all, expanded: [] });
     }
 
+    /**
+     * A click on a figure opens the journal items behind it, in place.
+     * Shift+click adds the figure to the totals bar; Ctrl/Cmd+click opens the list view.
+     */
     async drill(line, col, ev) {
         ev.stopPropagation();
+        const index = line.columns.indexOf(col);
+        if (ev.shiftKey) {
+            this.select(line, col, index);
+            return;
+        }
         if (!col.drill) {
             return;
         }
-        const colKey = this.state.columns[line.columns.indexOf(col)].key;
+        const colKey = this.state.columns[index].key;
+        if (ev.ctrlKey || ev.metaKey) {
+            return this.openList(line, colKey);
+        }
+        return this.openItems(line, colKey);
+    }
+
+    async openList(line, colKey) {
         const action = await this.orm.call("ebshel.fin.report", "get_drill_action", [this.rid], {
             options: this.state.options, line_id: line.id, column_key: colKey,
         });
         if (action) {
             this.action.doAction(action);
         }
+    }
+
+    // ------------------------------------------------------------------ journal items, in place
+    canOpenItems(line) {
+        return !["more", "move_line", "open_item", "initial", "header"].includes(line.kind)
+            && (line.columns || []).some((c) => c.drill);
+    }
+
+    firstDrillKey(line) {
+        const index = (line.columns || []).findIndex((c) => c.drill);
+        return index >= 0 ? this.state.columns[index].key : null;
+    }
+
+    itemColumns(line) {
+        return this.state.columns.filter((c, i) => line.columns[i] && line.columns[i].drill);
+    }
+
+    async toggleItems(line, ev) {
+        if (ev) {
+            ev.stopPropagation();
+        }
+        const open = this.state.items[line.id];
+        if (open) {
+            delete this.state.items[line.id];
+            return;
+        }
+        const key = this.firstDrillKey(line);
+        if (key) {
+            await this.openItems(line, key);
+        }
+    }
+
+    async openItems(line, colKey) {
+        const current = this.state.items[line.id];
+        if (current && current.colKey === colKey) {
+            delete this.state.items[line.id];
+            return;
+        }
+        this.state.items[line.id] = { colKey, rows: [], total: 0, loading: true, search: "", order: "date desc",
+                                      sums: {}, title: line.name, has_more: false };
+        await this.fetchItems(line, false);
+    }
+
+    async fetchItems(line, more) {
+        const it = this.state.items[line.id];
+        if (!it) {
+            return;
+        }
+        it.loading = true;
+        try {
+            const res = await this.orm.call("ebshel.fin.report", "get_items", [this.rid], {
+                options: this.state.options, line_id: line.id, column_key: it.colKey,
+                offset: more ? it.rows.length : 0, limit: 40, search: it.search, order: it.order,
+            });
+            const live = this.state.items[line.id];
+            if (!live) {
+                return;
+            }
+            if (res.other_model) {
+                delete this.state.items[line.id];
+                return this.openList(line, it.colKey);
+            }
+            live.rows = more ? [...live.rows, ...res.rows] : res.rows;
+            live.total = res.total;
+            live.sums = res.sums;
+            live.has_more = res.has_more;
+            live.title = res.title || line.name;
+        } finally {
+            if (this.state.items[line.id]) {
+                this.state.items[line.id].loading = false;
+            }
+        }
+    }
+
+    onItemsSearch(line, ev) {
+        if (ev.key === "Enter") {
+            this.state.items[line.id].search = ev.target.value;
+            this.fetchItems(line, false);
+        }
+    }
+
+    setItemsOrder(line, ev) {
+        this.state.items[line.id].order = ev.target.value;
+        this.fetchItems(line, false);
+    }
+
+    setItemsColumn(line, colKey) {
+        const it = this.state.items[line.id];
+        if (it.colKey !== colKey) {
+            it.colKey = colKey;
+            this.fetchItems(line, false);
+        }
+    }
+
+    openEntry(row, ev) {
+        if (ev) {
+            ev.stopPropagation();
+        }
+        this.action.doAction({ type: "ir.actions.act_window", res_model: "account.move", res_id: row.move_id,
+                               views: [[false, "form"]], target: "current" });
+    }
+
+    closeItems(line) {
+        delete this.state.items[line.id];
     }
 
     openRecord(line, ev) {
@@ -364,6 +503,7 @@ export class FinReportViewer extends Component {
     async explain(line, col, ev) {
         ev.stopPropagation();
         const colKey = this.state.columns[line.columns.indexOf(col)].key;
+        this.state.movers = null;
         this.state.explain = { loading: true, title: line.name };
         const data = await this.orm.call("ebshel.fin.report", "explain_cell", [this.rid], {
             options: this.state.options, line_id: line.id, column_key: colKey,
@@ -520,9 +660,415 @@ export class FinReportViewer extends Component {
         }
     }
 
+    // ------------------------------------------------------------------ how it looks
+    loadDisplay() {
+        const base = { density: "cozy", bars: false, zebra: true, signs: true };
+        try {
+            return { ...base, ...JSON.parse(window.localStorage.getItem("ebshel_fin_display") || "{}") };
+        } catch {
+            return base;
+        }
+    }
+
+    setDisplay(key, value) {
+        this.state.display[key] = value;
+        try {
+            window.localStorage.setItem("ebshel_fin_display", JSON.stringify(this.state.display));
+        } catch {
+            // private mode: the choice lasts as long as the page
+        }
+    }
+
+    get rootClass() {
+        const d = this.state.display;
+        return ["o_efr", "o_action", "d-flex", "flex-column", "o_efr_" + d.density, d.zebra ? "o_efr_zebra" : "",
+                d.signs ? "o_efr_signs" : "", this.state.full ? "o_efr_full" : ""].join(" ");
+    }
+
+    get barTops() {
+        // the largest leaf figure of each column: what a full bar stands for
+        const tops = [];
+        for (const line of this.visibleLines) {
+            if (line.bold || !line.columns) {
+                continue;
+            }
+            line.columns.forEach((c, i) => {
+                if (c.display === "amount" && c.value) {
+                    tops[i] = Math.max(tops[i] || 0, Math.abs(c.value));
+                }
+            });
+        }
+        return tops;
+    }
+
+    barStyle(line, cell, index) {
+        if (!this.state.display.bars || line.bold || cell.display !== "amount" || !cell.value) {
+            return "";
+        }
+        const top = this.barTops[index] || 0;
+        if (!top) {
+            return "";
+        }
+        const pct = Math.max(2, Math.round((Math.abs(cell.value) / top) * 100));
+        const colour = cell.value < 0 ? "rgba(220, 38, 38, .14)" : "rgba(37, 99, 235, .14)";
+        return `background-image: linear-gradient(to left, ${colour} ${pct}%, transparent ${pct}%);`;
+    }
+
+    get shareBase() {
+        const code = this.state.report && this.state.report.share_code;
+        return code ? this.state.lines.find((l) => l.code === code) : null;
+    }
+
+    shareText(line, cell, index) {
+        if (!this.state.options.share || cell.display !== "amount" || cell.value === null || cell.value === undefined) {
+            return "";
+        }
+        const base = this.shareBase;
+        const b = base && base.columns[index] && base.columns[index].value;
+        if (!b) {
+            return "";
+        }
+        return ((cell.value / b) * 100).toFixed(1) + "%";
+    }
+
+    setUnit(unit) {
+        this.reload({ unit });
+    }
+
+    toggleFull() {
+        this.state.full = !this.state.full;
+    }
+
+    // ------------------------------------------------------------------ periods, quickly
+    byMonth(count) {
+        const d = this.state.options.date;
+        const to = deserializeDate(d.to);
+        const from = to.startOf("month");
+        const end = to.endOf("month");
+        this.reload({
+            date: { preset: "custom", from: serializeDate(from), to: serializeDate(end) },
+            comparison: { mode: "previous", periods: count - 1, from: null, to: null }, growth: false,
+        });
+    }
+
+    // ------------------------------------------------------------------ the wider filters
+    openMore() {
+        const o = this.state.options;
+        this.state.draft = {
+            journal_types: [...(o.journal_types || [])], partner_categories: [...(o.partner_categories || [])],
+            salespeople: [...(o.salespeople || [])], teams: [...(o.teams || [])],
+            product_categories: [...(o.product_categories || [])], label: o.label || "",
+            amount_min: o.amount_min === null || o.amount_min === undefined ? "" : o.amount_min,
+            amount_max: o.amount_max === null || o.amount_max === undefined ? "" : o.amount_max,
+            unreconciled: !!o.unreconciled,
+        };
+        this.openMenu("filters");
+    }
+
+    draftToggle(key, id) {
+        const list = this.state.draft[key];
+        const i = list.indexOf(id);
+        if (i >= 0) {
+            list.splice(i, 1);
+        } else {
+            list.push(id);
+        }
+    }
+
+    applyMore() {
+        const d = this.state.draft;
+        this.reload({
+            journal_types: d.journal_types, partner_categories: d.partner_categories, salespeople: d.salespeople,
+            teams: d.teams, product_categories: d.product_categories, label: d.label,
+            amount_min: d.amount_min === "" ? null : Number(d.amount_min),
+            amount_max: d.amount_max === "" ? null : Number(d.amount_max), unreconciled: d.unreconciled,
+        });
+    }
+
+    get moreCount() {
+        const o = this.state.options;
+        let n = 0;
+        for (const key of ["journal_types", "partner_categories", "salespeople", "teams", "product_categories"]) {
+            n += (o[key] || []).length ? 1 : 0;
+        }
+        n += o.label ? 1 : 0;
+        n += o.amount_min !== null && o.amount_min !== undefined ? 1 : 0;
+        n += o.amount_max !== null && o.amount_max !== undefined ? 1 : 0;
+        n += o.unreconciled ? 1 : 0;
+        return n;
+    }
+
+    nameIn(list, id) {
+        const found = (list || []).find((x) => (Array.isArray(x) ? x[0] : x.id) === id);
+        return found ? (Array.isArray(found) ? found[1] : found.name) : "#" + id;
+    }
+
+    /** Every filter that narrows the report, as a chip that can be taken off. */
+    get activeChips() {
+        const o = this.state.options, c = this.state.choices, chips = [];
+        const many = (key, label, list, icon) => {
+            const ids = o[key] || [];
+            if (ids.length) {
+                const names = ids.slice(0, 2).map((id) => this.nameIn(list, id)).join(", ");
+                chips.push({ key, icon, tone: key, text: `${label}: ${names}${ids.length > 2 ? " +" + (ids.length - 2) : ""}`, clear: { [key]: [] } });
+            }
+        };
+        many("journals", _t("Journals"), c.journals, "fa-book");
+        many("journal_types", _t("Journal type"), c.journal_types, "fa-tags");
+        many("analytic", _t("Analytic"), c.analytic, "fa-sitemap");
+        many("partners", _t("Partners"), c.partners, "fa-user");
+        many("partner_categories", _t("Partner tag"), c.partner_categories, "fa-tag");
+        many("salespeople", _t("Salesperson"), c.salespeople, "fa-id-badge");
+        many("teams", _t("Sales team"), c.teams, "fa-users");
+        many("product_categories", _t("Product category"), c.product_categories, "fa-cubes");
+        if (o.accounts_query) {
+            chips.push({ key: "accounts_query", icon: "fa-search", tone: "accounts", text: _t("Account: %s", o.accounts_query), clear: { accounts_query: "" } });
+        }
+        if (o.label) {
+            chips.push({ key: "label", icon: "fa-quote-left", tone: "label", text: _t("Label contains: %s", o.label), clear: { label: "" } });
+        }
+        if (o.amount_min !== null && o.amount_min !== undefined || o.amount_max !== null && o.amount_max !== undefined) {
+            chips.push({ key: "amount", icon: "fa-sliders", tone: "amount",
+                         text: _t("Amount: %(a)s to %(b)s", { a: o.amount_min ?? 0, b: o.amount_max ?? "∞" }), clear: { amount_min: null, amount_max: null } });
+        }
+        if (o.unreconciled) {
+            chips.push({ key: "unreconciled", icon: "fa-chain-broken", tone: "unreconciled", text: _t("Unreconciled only"), clear: { unreconciled: false } });
+        }
+        if (o.posted_only === false) {
+            chips.push({ key: "posted_only", icon: "fa-pencil-square-o", tone: "draft", text: _t("Draft entries included"), clear: { posted_only: true } });
+        }
+        if (o.unit && o.unit !== 1) {
+            chips.push({ key: "unit", icon: "fa-compress", tone: "unit", text: _t("In %s", this.state.unitLabel), clear: { unit: 1 } });
+        }
+        if (o.share) {
+            chips.push({ key: "share", icon: "fa-percent", tone: "share", text: _t("Share of %s", this.shareBase ? this.shareBase.name : ""), clear: { share: false } });
+        }
+        return chips;
+    }
+
+    clearChip(chip) {
+        this.reload(chip.clear);
+    }
+
+    clearAll() {
+        const patch = {};
+        for (const chip of this.activeChips) {
+            Object.assign(patch, chip.clear);
+        }
+        this.reload(patch);
+    }
+
+    // ------------------------------------------------------------------ another report
+    switchReport(report) {
+        this.state.menu = null;
+        if (report.key === this.state.report.key) {
+            return;
+        }
+        this.reportKey = report.key;
+        const keep = { date: { ...this.state.options.date }, unit: this.state.options.unit };
+        this.state.report = null;
+        this.state.options = keep;
+        this.state.search = "";
+        this.state.movers = null;
+        this.load();
+    }
+
+    get reportGroups() {
+        const families = [
+            [_t("Statements"), ["statement"]],
+            [_t("Ledgers"), ["general_ledger", "trial_balance", "journal", "day_book", "cash_book"]],
+            [_t("Partners"), ["partner_ledger", "aged", "statement_of_account"]],
+            [_t("Tax and analysis"), ["tax", "analytic"]],
+        ];
+        const used = new Set();
+        const groups = families.map(([label, kinds]) => {
+            const items = this.state.reports.filter((r) => kinds.includes(r.kind));
+            items.forEach((r) => used.add(r.key));
+            return { label, items };
+        });
+        groups.push({ label: _t("More"), items: this.state.reports.filter((r) => !used.has(r.key)) });
+        return groups.filter((g) => g.items.length);
+    }
+
+    // ------------------------------------------------------------------ what changed
+    async toggleMovers() {
+        if (this.state.movers) {
+            this.state.movers = null;
+            return;
+        }
+        this.state.explain = null;
+        this.state.movers = { loading: true, rows: [] };
+        await this.loadMovers();
+    }
+
+    async loadMovers() {
+        const data = await this.orm.call("ebshel.fin.report", "get_movers", [this.rid], { options: this.state.options, limit: 10 });
+        if (this.state.movers) {
+            this.state.movers = { loading: false, ...data };
+        }
+    }
+
+    moverWidth(row) {
+        const top = Math.max(...this.state.movers.rows.map((r) => Math.abs(r.change)), 1);
+        return Math.max(3, Math.round((Math.abs(row.change) / top) * 100));
+    }
+
+    openMover(row) {
+        const m = this.state.movers;
+        this.action.doAction({
+            type: "ir.actions.act_window", name: row.name, res_model: "account.move.line",
+            views: [[false, "list"], [false, "pivot"]], domain: [...m.domain_now, ["account_id", "=", row.account_id]],
+            context: { create: false },
+        });
+    }
+
+    // ------------------------------------------------------------------ the chart
+    get chartData() {
+        const cols = this.state.columns.map((c, i) => ({ ...c, index: i })).filter((c) => c.type === "amount").slice(0, 3);
+        const lines = this.state.lines.filter((l) => (l.level || 0) <= 1 && l.columns && l.columns.length
+            && l.columns[0].display === "amount" && l.columns[0].value !== null && l.kind !== "header"
+            && !["more", "move_line", "open_item", "initial"].includes(l.kind)).slice(0, 14);
+        if (!lines.length || !cols.length) {
+            return null;
+        }
+        const top = Math.max(...lines.flatMap((l) => cols.map((c) => Math.abs((l.columns[c.index] || {}).value || 0))), 1);
+        const tones = ["#2563eb", "#f59e0b", "#0d9488"];
+        return {
+            cols: cols.map((c, i) => ({ label: c.label, tone: tones[i] })),
+            rows: lines.map((l) => ({
+                id: l.id, name: l.name, bold: l.bold,
+                bars: cols.map((c, i) => {
+                    const cell = l.columns[c.index] || {};
+                    const v = cell.value || 0;
+                    return { width: Math.max(v ? 1 : 0, Math.round((Math.abs(v) / top) * 100)), tone: v < 0 ? "#dc2626" : tones[i], text: cell.text || "" };
+                }),
+            })),
+        };
+    }
+
+    // ------------------------------------------------------------------ adding figures up
+    /** Shift+click picks figures; the browser would also sweep a text selection across the page. */
+    keepText(ev) {
+        if (ev.shiftKey) {
+            ev.preventDefault();
+        }
+    }
+
+    select(line, cell, index) {
+        if (cell.value === null || cell.value === undefined) {
+            return;
+        }
+        const key = line.id + "|" + index;
+        if (key in this.state.selected) {
+            delete this.state.selected[key];
+        } else {
+            this.state.selected[key] = { value: cell.value, display: cell.display };
+        }
+    }
+
+    isSelected(line, index) {
+        return (line.id + "|" + index) in this.state.selected;
+    }
+
+    get selection() {
+        const values = Object.values(this.state.selected).map((s) => s.value);
+        if (!values.length) {
+            return null;
+        }
+        const sum = values.reduce((t, v) => t + v, 0);
+        return { count: values.length, sum: this.number(sum), avg: this.number(sum / values.length),
+                 min: this.number(Math.min(...values)), max: this.number(Math.max(...values)) };
+    }
+
+    number(v) {
+        const c = this.state.currency || {};
+        const unit = this.state.options.unit || 1;
+        const scaled = Math.abs(v / unit) < 0.005 ? 0 : v / unit;
+        const text = scaled.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (unit !== 1) {
+            return text;
+        }
+        return c.position === "before" ? `${c.symbol || ""} ${text}` : `${text} ${c.symbol || ""}`;
+    }
+
+    clearSelection() {
+        this.state.selected = {};
+    }
+
+    // ------------------------------------------------------------------ out of the screen
+    tableRows() {
+        const head = [_t("Line"), ...this.state.columns.map((c) => c.label)];
+        const rows = [head];
+        for (const line of this.visibleLines) {
+            if (line.kind === "more") {
+                continue;
+            }
+            const name = "  ".repeat(line.level || 0) + (line.parts
+                ? [line.parts.date, line.parts.move, line.parts.partner, line.parts.label].filter(Boolean).join(" · ") : line.name);
+            rows.push([name, ...(line.columns || []).map((c) => (c.value === null || c.value === undefined ? c.text || "" : c.value))]);
+        }
+        return rows;
+    }
+
+    exportCsv() {
+        this.state.menu = null;
+        const csv = this.tableRows().map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+        const url = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${this.state.report.name} - ${this.state.options.date.to}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    async copyTable() {
+        this.state.menu = null;
+        const text = this.tableRows().map((r) => r.join("\t")).join("\n");
+        try {
+            await navigator.clipboard.writeText(text);
+            this.notification.add(_t("Copied. Paste it into a sheet."), { type: "success" });
+        } catch {
+            this.notification.add(_t("The browser did not allow copying; use CSV instead."), { type: "warning" });
+        }
+    }
+
     // ------------------------------------------------------------------ keyboard
     keyboard(ev) {
         if (ev.target && /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) {
+            return;
+        }
+        if (ev.key === "Escape") {
+            this.state.menu = null;
+            this.state.help = false;
+            this.state.explain = null;
+            this.state.movers = null;
+            this.clearSelection();
+            return;
+        }
+        if (ev.key === "?") {
+            this.state.help = !this.state.help;
+            return;
+        }
+        if (ev.key === "/") {
+            const input = document.querySelector(".o_efr_search input");
+            if (input) {
+                ev.preventDefault();
+                input.focus();
+            }
+            return;
+        }
+        if (ev.key === "i" || ev.key === "e") {
+            const line = this.visibleLines.find((l) => l.id === this.state.focus);
+            if (line && ev.key === "i" && this.canOpenItems(line)) {
+                this.toggleItems(line);
+            } else if (line && ev.key === "e") {
+                const col = (line.columns || []).find((c) => c.drill);
+                if (col) {
+                    this.explain(line, col, ev);
+                }
+            }
             return;
         }
         if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Enter"].includes(ev.key)) {
@@ -564,6 +1110,7 @@ export class FinReportViewer extends Component {
 
     rowClass(line) {
         const cls = ["o_efr_row", "o_efr_k_" + (line.kind || "line"), "o_efr_l" + Math.min(line.level || 0, 6)];
+        if (this.state.items[line.id]) cls.push("o_efr_has_items");
         if (line.bold) cls.push("o_efr_bold");
         if (line.unfoldable) cls.push("o_efr_foldable");
         if (line.unfolded) cls.push("o_efr_open");

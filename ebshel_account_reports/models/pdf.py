@@ -11,11 +11,9 @@ class FinReportPdf(models.AbstractModel):
         self.env.flush_all()
         data = data or {}
         report = self.env['ebshel.fin.report'].browse(int(data.get('report_id') or (docids or [0])[0]))
-        engine = self.env['ebshel.fin.engine']
-        handler = report._handler()
-        options = handler.adjust_options(report, engine.normalize(report, data.get('options') or {}))
-        options['unfold_all'] = bool(options.get('unfold_all', True)) if data.get('options') else True
-        columns = handler.columns(report, options)
+        given = dict(data.get('options') or {})
+        given['unfold_all'] = bool(given.get('unfold_all', True)) if data.get('options') else True
+        engine, handler, options, columns = report._prepare(given)
         lines = handler.lines(report, options, columns, for_export=True)
         currency = engine.currency(options)
         company = self.env['res.company'].browse(options['companies'][0])
@@ -24,7 +22,7 @@ class FinReportPdf(models.AbstractModel):
         return {
             'doc_ids': [report.id], 'doc_model': 'ebshel.fin.report', 'docs': report,
             'report': report, 'company': company, 'currency': currency,
-            'options': options, 'summary': report._options_summary(options),
+            'options': options, 'summary': report._options_summary(options), 'unit_label': engine.unit_label(options),
             'columns': columns, 'lines': lines, 'notes': flat_notes,
             'note_marks': {n['line_key']: i + 1 for i, n in enumerate(flat_notes)},
         }

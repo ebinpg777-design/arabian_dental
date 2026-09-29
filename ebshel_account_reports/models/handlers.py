@@ -83,7 +83,9 @@ class FinHandler(models.AbstractModel):
         if g is None:
             return self._blank()
         css = 'up' if g > 0 else 'down' if g < 0 else ''
-        return {'value': g, 'text': '%s%%' % ('%+.1f' % g), 'display': 'growth', 'drill': False, 'class': css}
+        # against a base of a few rupees the percentage is arithmetic, not information
+        text = '%+.1f%%' % g if abs(g) <= 999.9 else '> +999%' if g > 0 else '< -999%'
+        return {'value': g, 'text': text, 'display': 'growth', 'drill': False, 'class': css}
 
     def _finish(self, cells, columns, options):
         """Append the growth cell when the columns ask for one."""

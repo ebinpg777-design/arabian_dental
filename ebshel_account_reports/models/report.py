@@ -11,6 +11,7 @@ import re
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import SQL
 
 from .engine import BALANCE_MODES, COMPARISON_MODES, PRESETS
 
@@ -92,6 +93,9 @@ class FinReport(models.Model):
     allow_comparison = fields.Boolean(default=True)
     default_comparison = fields.Selection(COMPARISON_MODES, default='none')
     show_growth = fields.Boolean(string='Growth column', default=True)
+    share_code = fields.Char(string='Share of (line code)',
+                             help="Common-size analysis: every amount can also be shown as a percentage of this line, "
+                                  "e.g. REV on a profit and loss or ASSETS on a balance sheet.")
     allow_journals = fields.Boolean(string='Journal filter', default=True)
     allow_partners = fields.Boolean(string='Partner filter', default=False)
     allow_analytic = fields.Boolean(string='Analytic filter', default=True)
@@ -130,6 +134,16 @@ class FinReport(models.Model):
             raise UserError(_("No engine is installed for '%s' reports.", self.kind))
         return self.env[name]
 
+    def _prepare(self, options):
+        """(engine, handler, options, columns), the display unit carried in the context
+        so every figure - screen, workbook, PDF - is formatted the same way."""
+        self.ensure_one()
+        engine = self.env['ebshel.fin.engine']
+        options = engine.normalize(self, options)
+        handler = self._handler().with_context(fin_unit=options['unit'])
+        options = handler.adjust_options(self, options)
+        return engine.with_context(fin_unit=options['unit']), handler, options, handler.columns(self, options)
+
     @api.model
     def by_key(self, key):
         report = self.with_context(active_test=False).search([('key', '=', key)], limit=1)
@@ -163,11 +177,7 @@ class FinReport(models.Model):
         self.ensure_one()
         self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
         self._check_report_access()
-        engine = self.env['ebshel.fin.engine']
-        handler = self._handler()
-        options = engine.normalize(self, options)
-        options = handler.adjust_options(self, options)
-        columns = handler.columns(self, options)
+        engine, handler, options, columns = self._prepare(options)
         lines = handler.lines(self, options, columns)
         currency = engine.currency(options)
         return {
@@ -179,7 +189,13 @@ class FinReport(models.Model):
                 'allow_hierarchy': self.allow_hierarchy, 'allow_posted_toggle': self.allow_posted_toggle,
                 'custom': self.custom, 'description': self.description or '',
                 'extra_filters': handler.extra_filters(self, options),
+                'share_code': self.share_code or '', 'wide_filters': self.kind != 'analytic',
             },
+            'unit_label': engine.unit_label(options),
+            # the period the reader chose, in words - a ledger's first column is "Debit", not a period
+            'period_label': engine.period_label(fields.Date.to_date(options['date']['from']),
+                                                fields.Date.to_date(options['date']['to']), self.date_mode == 'single'),
+            'reports': [{'key': r.key, 'name': r.name, 'kind': r.kind} for r in self.search([])],
             'options': options,
             'columns': columns,
             'lines': lines,
@@ -206,17 +222,147 @@ class FinReport(models.Model):
             'presets': PRESETS,
             'comparison_modes': COMPARISON_MODES,
             'account_types': ACCOUNT_TYPES,
+            **self._wide_choices(options),
         }
+
+    def _wide_choices(self, options):
+        """What the wider filters can be set to: only values the ledger really uses."""
+        companies = tuple(options['companies'])
+        users = self.env.execute_query(SQL(
+            "SELECT DISTINCT invoice_user_id FROM account_move WHERE company_id IN %s AND invoice_user_id IS NOT NULL", companies))
+        Users = self.env['res.users'].sudo().with_context(active_test=False)
+        out = {
+            'journal_types': [[k, v] for k, v in self.env['account.journal']._fields['type']._description_selection(self.env)
+                              if k in ('sale', 'purchase', 'bank', 'cash', 'credit', 'general')],
+            'partner_categories': [{'id': c.id, 'name': c.display_name}
+                                   for c in self.env['res.partner.category'].sudo().search([], limit=200)],
+            'salespeople': sorted(({'id': u.id, 'name': u.name} for u in Users.browse([r[0] for r in users]).exists()),
+                                  key=lambda u: u['name'] or ''),
+            'product_categories': [{'id': c.id, 'name': c.complete_name or c.name}
+                                   for c in self.env['product.category'].sudo().search([], order='complete_name', limit=300)],
+            'teams': [],
+            'units': [[1, _('Exact')], [1000, _('Thousands')], [100000, _('Lakhs')],
+                      [1000000, _('Millions')], [10000000, _('Crores')]],
+        }
+        if 'team_id' in self.env['account.move']._fields and 'crm.team' in self.env:
+            out['teams'] = [{'id': t.id, 'name': t.name} for t in self.env['crm.team'].sudo().search([], limit=200)]
+        return out
+
+    # ------------------------------------------------------------------ the journal items behind a line
+    ITEM_ORDERS = {
+        'date desc': 'date desc, id desc', 'date': 'date, id', 'amount desc': 'balance desc, id', 'amount': 'balance, id',
+        'partner': 'partner_id, date, id', 'account': 'account_id, date, id',
+    }
+
+    def get_items(self, options, line_id, column_key='p0', offset=0, limit=40, search='', order='date desc'):
+        """The journal items that make one figure, a page at a time - so any line of any
+        report can be opened in place, down to the entries."""
+        self.ensure_one()
+        self.env.flush_all()
+        self._check_report_access()
+        engine, handler, options, columns = self._prepare(options)
+        target = handler.drill(self, options, columns, str(line_id), column_key or 'p0')
+        empty = {'rows': [], 'total': 0, 'title': '', 'sums': {}, 'has_more': False, 'other_model': False}
+        if not target:
+            return empty
+        if isinstance(target, dict):
+            if target.get('res_model') != 'account.move.line':
+                return dict(empty, other_model=target.get('res_model'), title=target.get('name') or '')
+            domain, title = list(target.get('domain') or []), target.get('name') or ''
+        else:
+            domain, title = list(target[0]), target[1]
+        search = (search or '').strip()
+        if search:
+            try:
+                amount = float(search.replace(',', ''))
+                domain += ['|', '|', ('balance', '=', amount), ('balance', '=', -amount), ('move_name', 'ilike', search)]
+            except ValueError:
+                domain += ['|', '|', '|', '|', ('move_name', 'ilike', search), ('name', 'ilike', search),
+                           ('ref', 'ilike', search), ('partner_id', 'ilike', search), ('account_id', 'ilike', search)]
+        AML = self.env['account.move.line']
+        total = AML.search_count(domain)
+        debit, credit, balance = AML._read_group(domain, [], ['debit:sum', 'credit:sum', 'balance:sum'])[0]
+        limit = max(1, min(int(limit or 40), 200))
+        offset = max(0, int(offset or 0))
+        lines = AML.search(domain, order=self.ITEM_ORDERS.get(order, self.ITEM_ORDERS['date desc']), limit=limit, offset=offset)
+        currency = engine.currency(options)
+        plain = engine.with_context(fin_unit=1)          # an entry is always shown to the paisa
+        analytic_ids = {int(k) for l in lines for key in (l.analytic_distribution or {}) for k in str(key).split(',') if k.isdigit()}
+        names = {a.id: a.name for a in self.env['account.analytic.account'].sudo().browse(list(analytic_ids)).exists()}
+        rows = []
+        for l in lines:
+            tags = [names.get(int(k), '') for key in (l.analytic_distribution or {}) for k in str(key).split(',') if k.isdigit()]
+            rows.append({
+                'id': l.id, 'move_id': l.move_id.id, 'date': fields.Date.to_string(l.date), 'move': l.move_name or l.move_id.name or '',
+                'journal': l.journal_id.code or '', 'account': l.account_id.display_name or '',
+                'partner': l.partner_id.display_name or '', 'label': l.name or '', 'ref': l.ref or '',
+                'debit': l.debit, 'credit': l.credit, 'balance': l.balance,
+                'debit_text': plain.fmt(l.debit, currency) if l.debit else '', 'credit_text': plain.fmt(l.credit, currency) if l.credit else '',
+                'matching': l.matching_number or '', 'state': l.parent_state, 'analytic': ', '.join(t for t in tags if t),
+                'due': fields.Date.to_string(l.date_maturity) if l.date_maturity else '',
+            })
+        return {
+            'rows': rows, 'total': total, 'title': title, 'offset': offset, 'has_more': offset + len(rows) < total,
+            'sums': {'debit': plain.fmt(debit or 0.0, currency), 'credit': plain.fmt(credit or 0.0, currency),
+                     'balance': plain.fmt(balance or 0.0, currency), 'balance_value': balance or 0.0,
+                     'net': plain.fmt(abs(balance or 0.0), currency),
+                     'side': _('Dr') if (balance or 0.0) > 0.005 else _('Cr') if (balance or 0.0) < -0.005 else ''},
+            'other_model': False,
+        }
+
+    def get_movers(self, options, limit=8):
+        """What changed: the accounts that moved most between the period and the one it
+        is compared with (the period before, when no comparison is set)."""
+        self.ensure_one()
+        self.env.flush_all()
+        self._check_report_access()
+        engine, handler, options, columns = self._prepare(options)
+        amount_cols = [c for c in columns if c['type'] == 'amount']
+        if not amount_cols:
+            return {'rows': [], 'now': '', 'before': ''}
+        d_from, d_to = fields.Date.to_date(amount_cols[0]['from']), fields.Date.to_date(amount_cols[0]['to'])
+        single = self.date_mode == 'single'
+        if len(amount_cols) > 1:
+            p_from, p_to = fields.Date.to_date(amount_cols[1]['from']), fields.Date.to_date(amount_cols[1]['to'])
+        else:
+            p_from, p_to = engine.shift_period(d_from, d_to, 'previous', 1)
+        mode = 'cumulative' if single else 'flow'
+        now = engine.sums_by_account(options, mode, d_from, d_to)
+        before = engine.sums_by_account(options, mode, p_from, p_to)
+        accounts = engine.accounts(options)
+        currency = engine.currency(options)
+        credit_side = ('income', 'income_other', 'liability_payable', 'liability_credit_card', 'liability_current',
+                       'liability_non_current', 'equity', 'equity_unaffected')
+        wanted = None if single else ('income', 'income_other', 'expense', 'expense_other', 'expense_depreciation',
+                                      'expense_direct_cost')
+        rows = []
+        for aid in set(now) | set(before):
+            meta = accounts.get(aid)
+            if not meta or (wanted and meta['type'] not in wanted):
+                continue
+            sign = -1.0 if meta['type'] in credit_side else 1.0
+            a = sign * now.get(aid, {}).get('balance', 0.0)
+            b = sign * before.get(aid, {}).get('balance', 0.0)
+            change = a - b
+            if abs(change) < 0.005:
+                continue
+            rows.append({'account_id': aid, 'name': '%s %s' % (meta['code'], meta['name']), 'type': meta['type'],
+                         'now': a, 'before': b, 'change': change,
+                         'pct': round(change / abs(b) * 100, 1) if b else None,
+                         'now_text': engine.fmt(a, currency), 'before_text': engine.fmt(b, currency),
+                         'change_text': engine.fmt(change, currency),
+                         'good': (change > 0) == (meta['type'] in ('income', 'income_other') or single and sign > 0)})
+        rows.sort(key=lambda r: -abs(r['change']))
+        return {'rows': rows[:max(1, int(limit or 8))], 'count': len(rows),
+                'now': engine.period_label(d_from, d_to, single), 'before': engine.period_label(p_from, p_to, single),
+                'domain_now': engine.domain(options, mode, d_from, d_to, None)}
 
     def expand_line(self, options, line_id, offset=0):
         """The children of one folded line, page by page."""
         self.ensure_one()
         self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
         self._check_report_access()
-        engine = self.env['ebshel.fin.engine']
-        handler = self._handler()
-        options = handler.adjust_options(self, engine.normalize(self, options))
-        columns = handler.columns(self, options)
+        engine, handler, options, columns = self._prepare(options)
         return handler.expand(self, options, columns, str(line_id), int(offset or 0))
 
     def get_drill_action(self, options, line_id, column_key='p0'):
@@ -224,10 +370,7 @@ class FinReport(models.Model):
         self.ensure_one()
         self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
         self._check_report_access()
-        engine = self.env['ebshel.fin.engine']
-        handler = self._handler()
-        options = handler.adjust_options(self, engine.normalize(self, options))
-        columns = handler.columns(self, options)
+        engine, handler, options, columns = self._prepare(options)
         target = handler.drill(self, options, columns, str(line_id), column_key)
         if not target:
             return False
@@ -250,10 +393,7 @@ class FinReport(models.Model):
         self.ensure_one()
         self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
         self._check_report_access()
-        engine = self.env['ebshel.fin.engine']
-        handler = self._handler()
-        options = handler.adjust_options(self, engine.normalize(self, options))
-        columns = handler.columns(self, options)
+        engine, handler, options, columns = self._prepare(options)
         return handler.explain(self, options, columns, str(line_id), column_key)
 
     def get_trends(self, options, line_ids):
@@ -261,9 +401,7 @@ class FinReport(models.Model):
         self.ensure_one()
         self.env.flush_all()                      # the SQL must see pending ORM writes (parent_state, balance)
         self._check_report_access()
-        engine = self.env['ebshel.fin.engine']
-        handler = self._handler()
-        options = handler.adjust_options(self, engine.normalize(self, options))
+        engine, handler, options, columns = self._prepare(options)
         return handler.trends(self, options, [str(i) for i in line_ids][:200])
 
     def export_xlsx(self, options):
@@ -275,11 +413,7 @@ class FinReport(models.Model):
             import xlsxwriter
         except ImportError:                                           # pragma: no cover
             raise UserError(_("The xlsxwriter library is not installed on the server."))
-        engine = self.env['ebshel.fin.engine']
-        handler = self._handler()
-        options = handler.adjust_options(self, engine.normalize(self, options))
-        options['unfold_all'] = True
-        columns = handler.columns(self, options)
+        engine, handler, options, columns = self._prepare(dict(options or {}, unfold_all=True))
         lines = handler.lines(self, options, columns, for_export=True)
         currency = engine.currency(options)
         output = io.BytesIO()
@@ -361,7 +495,21 @@ class FinReport(models.Model):
             parts.append(_('%s partner(s)', len(options['partners'])))
         if options.get('analytic'):
             parts.append(_('%s analytic account(s)', len(options['analytic'])))
+        for key, label in (('journal_types', _('journal type(s)')), ('partner_categories', _('partner tag(s)')),
+                           ('salespeople', _('salesperson(s)')), ('teams', _('sales team(s)')),
+                           ('product_categories', _('product categor(ies)'))):
+            if options.get(key):
+                parts.append('%s %s' % (len(options[key]), label))
+        if options.get('label'):
+            parts.append(_('label contains "%s"', options['label']))
+        if options.get('amount_min') is not None or options.get('amount_max') is not None:
+            parts.append(_('amounts %(a)s to %(b)s', a=options.get('amount_min') or 0,
+                           b=options.get('amount_max') if options.get('amount_max') is not None else '∞'))
+        if options.get('unreconciled'):
+            parts.append(_('unreconciled only'))
         parts.append(_('posted entries') if options['posted_only'] else _('posted and draft entries'))
+        if options.get('unit') and options['unit'] != 1:
+            parts.append(_('in %s', self.env['ebshel.fin.engine'].unit_label(options)))
         return ' · '.join(parts)
 
     # ------------------------------------------------------------------ designer

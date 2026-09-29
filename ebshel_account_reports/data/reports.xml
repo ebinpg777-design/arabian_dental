@@ -11,6 +11,7 @@
         <field name="default_comparison">none</field>
         <field name="allow_analytic" eval="True"/>
         <field name="description">Assets, liabilities and equity as they stood on the date. Current and previous years' earnings are read straight from the profit and loss accounts, the way Odoo keeps them.</field>
+        <field name="share_code">ASSETS</field>
     </record>
     <record id="report_profit_loss" model="ebshel.fin.report">
         <field name="name">Profit and Loss</field>
@@ -21,6 +22,7 @@
         <field name="default_preset">this_month</field>
         <field name="default_comparison">previous</field>
         <field name="description">Revenue, cost of revenue, expenses and the profit between them, with margins.</field>
+        <field name="share_code">REV</field>
     </record>
     <record id="report_cash_flow" model="ebshel.fin.report">
         <field name="name">Cash Flow Statement</field>

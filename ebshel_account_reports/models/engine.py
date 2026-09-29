@@ -45,6 +45,10 @@ COMPARISON_MODES = [
     ('custom', 'Custom period'),
 ]
 
+JOURNAL_TYPES = ('sale', 'purchase', 'bank', 'cash', 'credit', 'general')
+# the unit the figures are shown in; the ledger itself is never rounded
+UNITS = {1: '', 1000: 'thousands', 100000: 'lakhs', 1000000: 'millions', 10000000: 'crores'}
+
 # account types whose balance starts again every fiscal year (no opening balance)
 PL_ONLY_TYPES = ('income', 'income_other', 'expense', 'expense_other', 'expense_depreciation', 'expense_direct_cost', 'equity_unaffected')
 PL_TYPES = ('income', 'income_other', 'expense', 'expense_other', 'expense_direct_cost',
@@ -187,8 +191,30 @@ class FinEngine(models.AbstractModel):
             options['aged_buckets'] = max(2, min(8, int(options.get('aged_buckets') or report.aged_buckets or 5)))
         except (TypeError, ValueError):
             options['aged_interval'], options['aged_buckets'] = 30, 5
+        # ---- the wider filters
+        for key in ('partner_categories', 'salespeople', 'product_categories', 'teams'):
+            options[key] = [int(v) for v in (options.get(key) or []) if str(v).isdigit()]
+        options['journal_types'] = [t for t in (options.get('journal_types') or []) if t in JOURNAL_TYPES]
+        options['unreconciled'] = bool(options.get('unreconciled', False))
+        options['label'] = (options.get('label') or '').strip()[:80]
+        for key in ('amount_min', 'amount_max'):
+            try:
+                options[key] = abs(float(options.get(key))) if options.get(key) not in (None, '', False) else None
+            except (TypeError, ValueError):
+                options[key] = None
+        # ---- how the figures are shown
+        try:
+            unit = int(options.get('unit') or 1)
+        except (TypeError, ValueError):
+            unit = 1
+        options['unit'] = unit if unit in UNITS else 1
+        options['share'] = bool(options.get('share', False)) and bool(report.share_code)
         options['report_id'] = report.id
         return options
+
+    @api.model
+    def unit_label(self, options):
+        return UNITS.get(options.get('unit') or 1, '')
 
     @api.model
     def period_columns(self, report, options):
@@ -219,13 +245,21 @@ class FinEngine(models.AbstractModel):
 
     # ------------------------------------------------------------------ SQL parts
     @api.model
-    def _root_company_key(self, options):
-        company = self.env['res.company'].browse(options['companies'][0])
-        return str(company.root_id.id)
+    def _root_company_keys(self, options):
+        """The keys an account's code may be stored under, the reader's own company first."""
+        keys = []
+        for company in self.env['res.company'].browse(options['companies']).sudo():
+            key = str(company.root_id.id)
+            if key not in keys:
+                keys.append(key)
+        return keys
 
     @api.model
     def code_sql(self, options, alias='a'):
-        return SQL("%s->>%s", SQL.identifier(alias, 'code_store'), self._root_company_key(options))
+        # a code is stored per company: with two companies open, an account of the second has
+        # no code under the first one's key - it came out blank and no prefix rule could find it
+        store = SQL.identifier(alias, 'code_store')
+        return SQL("COALESCE(%s)", SQL(", ").join(SQL("%s->>%s", store, key) for key in self._root_company_keys(options)))
 
     @api.model
     def name_sql(self, alias='a', field='name'):
@@ -249,7 +283,59 @@ class FinEngine(models.AbstractModel):
         if options.get('analytic'):
             keys = [str(i) for i in options['analytic']]
             parts.append(SQL("%s ?| %s::text[]", l('analytic_distribution'), keys))
+        if options.get('journal_types'):
+            parts.append(SQL("%s IN (SELECT id FROM account_journal WHERE type IN %s)",
+                             l('journal_id'), tuple(options['journal_types'])))
+        if options.get('partner_categories'):
+            parts.append(SQL("%s IN (SELECT partner_id FROM res_partner_res_partner_category_rel WHERE category_id IN %s)",
+                             l('partner_id'), tuple(options['partner_categories'])))
+        if options.get('salespeople'):
+            parts.append(SQL("%s IN (SELECT id FROM account_move WHERE invoice_user_id IN %s)",
+                             l('move_id'), tuple(options['salespeople'])))
+        if options.get('teams') and 'team_id' in self.env['account.move']._fields:
+            parts.append(SQL("%s IN (SELECT id FROM account_move WHERE team_id IN %s)",
+                             l('move_id'), tuple(options['teams'])))
+        if options.get('product_categories'):
+            categs = self.env['product.category'].sudo().search([('id', 'child_of', options['product_categories'])]).ids
+            parts.append(SQL("""%s IN (SELECT pp.id FROM product_product pp JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                                        WHERE pt.categ_id IN %s)""", l('product_id'), tuple(categs or [0])))
+        if options.get('unreconciled'):
+            parts.append(SQL("%s IS NULL AND %s IN (SELECT id FROM account_account WHERE reconcile)",
+                             l('full_reconcile_id'), l('account_id')))
+        if options.get('label'):
+            like = '%' + options['label'] + '%'
+            parts.append(SQL("(%s ILIKE %s OR %s ILIKE %s OR %s ILIKE %s)",
+                             l('name'), like, l('ref'), like, l('move_name'), like))
+        if options.get('amount_min') is not None:
+            parts.append(SQL("ABS(%s) >= %s", l('balance'), options['amount_min']))
+        if options.get('amount_max') is not None:
+            parts.append(SQL("ABS(%s) <= %s", l('balance'), options['amount_max']))
         return SQL(" AND ").join(parts)
+
+    @api.model
+    def filter_domain(self, options):
+        """The same wider filters as an ORM domain, for the lists a figure opens."""
+        dom = []
+        if options.get('journal_types'):
+            dom.append(('journal_id.type', 'in', options['journal_types']))
+        if options.get('partner_categories'):
+            dom.append(('partner_id.category_id', 'in', options['partner_categories']))
+        if options.get('salespeople'):
+            dom.append(('move_id.invoice_user_id', 'in', options['salespeople']))
+        if options.get('teams') and 'team_id' in self.env['account.move']._fields:
+            dom.append(('move_id.team_id', 'in', options['teams']))
+        if options.get('product_categories'):
+            dom.append(('product_id.categ_id', 'child_of', options['product_categories']))
+        if options.get('unreconciled'):
+            dom += [('full_reconcile_id', '=', False), ('account_id.reconcile', '=', True)]
+        if options.get('label'):
+            dom += ['|', '|', ('name', 'ilike', options['label']), ('ref', 'ilike', options['label']),
+                    ('move_name', 'ilike', options['label'])]
+        if options.get('amount_min') is not None:
+            dom += ['|', ('balance', '>=', options['amount_min']), ('balance', '<=', -options['amount_min'])]
+        if options.get('amount_max') is not None:
+            dom += [('balance', '<=', options['amount_max']), ('balance', '>=', -options['amount_max'])]
+        return dom
 
     @api.model
     def weight_sql(self, options, alias='l'):
@@ -434,6 +520,7 @@ class FinEngine(models.AbstractModel):
             dom.append(('partner_id', 'in', options['partners']))
         if options.get('analytic'):
             dom.append(('analytic_distribution', 'in', options['analytic']))
+        dom += self.filter_domain(options)
         if mode == 'flow':
             dom += [('date', '>=', date_from), ('date', '<=', date_to)]
         elif mode == 'cumulative':
@@ -461,6 +548,14 @@ class FinEngine(models.AbstractModel):
     def fmt(self, value, currency, display='amount'):
         if value is None:
             return ''
+        unit = self.env.context.get('fin_unit') or 1
+        if display == 'amount':
+            value = value / unit
+            if abs(value) < 0.005:
+                value = 0.0          # never "-0.00": three rupees in thousands is nothing, not minus nothing
+        if display == 'amount' and unit != 1:
+            # shown in thousands, lakhs, millions or crores: no symbol, the heading says which
+            return formatLang(self.env, value, digits=2)
         if display == 'percent':
             return '%s%%' % formatLang(self.env, value, digits=1)
         if display == 'ratio':
@@ -473,7 +568,7 @@ class FinEngine(models.AbstractModel):
 
     @api.model
     def growth(self, current, previous):
-        if not previous:
+        if not previous or abs(previous) < 0.005:
             return None
         return round((current - previous) / abs(previous) * 100, 1)
 
