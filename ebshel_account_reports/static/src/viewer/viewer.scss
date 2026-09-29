@@ -398,6 +398,11 @@ $efr-tones: (
     .o_efr_explain_panel { flex: 0 0 22rem; max-width: 22rem; background: #fff; border: 1px solid var(--efr-line); border-top: 3px solid #7c3aed; border-radius: .6rem;
         padding: .7rem .8rem; font-size: .8rem; max-height: 100%; overflow-y: auto; }
     .o_efr_movers { border-top-color: #f59e0b; }
+    .o_efr_failed { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .4rem .5rem; margin-top: .6rem; padding: .5rem .6rem; border-radius: .45rem;
+        background: #fdecec; color: #b42318; font-size: .8rem;
+        > i { margin-top: .15rem; }
+        > span { flex: 1 1 12rem; display: flex; flex-direction: column; gap: .15rem; }
+        em { font-style: normal; font-size: .72rem; color: #7f1d1d; opacity: .85; overflow-wrap: anywhere; } }
     .o_efr_ex_title { font-weight: 700; color: var(--efr-navy); }
     .o_efr_ex_close { cursor: pointer; color: var(--efr-muted); padding: .2rem; }
     .o_efr_ex_sec { margin-top: .6rem; }

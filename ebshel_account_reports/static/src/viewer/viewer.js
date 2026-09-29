@@ -103,7 +103,11 @@ export class FinReportViewer extends Component {
                 this.fitPopover();
             }
         }, () => [this.state.menu]);
-        onWillStart(() => this.load());
+        // not awaited: the screen is drawn at once with the shape of what is coming, and fills
+        // in when the ledger answers - awaiting here left it blank for as long as the query ran
+        onWillStart(() => {
+            this.load();
+        });
         onMounted(() => {
             document.addEventListener("click", this.onDocClick);
             document.addEventListener("keydown", this.onKey);
@@ -650,9 +654,15 @@ export class FinReportViewer extends Component {
             && (line.columns || []).some((c) => c.drill);
     }
 
+    /** Which figure the Items button opens: the line's total where it has one, else the first
+     *  figure that is not nothing - on an aged report the first bucket is usually empty. */
     firstDrillKey(line) {
-        const index = (line.columns || []).findIndex((c) => c.drill);
-        return index >= 0 ? this.state.columns[index].key : null;
+        const cols = line.columns || [];
+        const keyAt = (i) => (this.state.columns[i] || {}).key;
+        let index = cols.findIndex((c, i) => c.drill && c.value && keyAt(i) === "total");
+        if (index < 0) index = cols.findIndex((c) => c.drill && c.value);
+        if (index < 0) index = cols.findIndex((c) => c.drill);
+        return index >= 0 ? keyAt(index) : null;
     }
 
     itemColumns(line) {
@@ -757,20 +767,44 @@ export class FinReportViewer extends Component {
                                views: [[false, "form"]], target: "current" });
     }
 
+    /** What went wrong, in words, from whatever a call threw. */
+    errorText(error) {
+        return (error && error.data && error.data.message) || (error && error.message) || String(error);
+    }
+
     async explain(line, col, ev) {
         ev.stopPropagation();
         const colKey = this.state.columns[line.columns.indexOf(col)].key;
         this.state.movers = null;
-        this.state.explain = { loading: true, title: line.name };
-        const data = await this.orm.call("ebshel.fin.report", "explain_cell", [this.rid], {
-            options: this.state.options, line_id: this.sourceId(line), column_key: colKey,
-        });
+        this.state.explain = { loading: true, title: line.name, retry: () => this.explain(line, col, { stopPropagation() {} }) };
+        let data;
+        try {
+            data = await this.orm.call("ebshel.fin.report", "explain_cell", [this.rid], {
+                options: this.state.options, line_id: this.sourceId(line), column_key: colKey,
+            });
+        } catch (error) {
+            // a panel left on its spinner for good is worse than one that says what happened
+            if (this.state.explain) {
+                this.state.explain = { ...this.state.explain, loading: false, failed: this.errorText(error) };
+            }
+            return;
+        }
+        if (!this.state.explain) {
+            return;
+        }
         if (!data || !Object.keys(data).length) {
             this.state.explain = null;
             this.notification.add(_t("Nothing to break down for this line."), { type: "info" });
             return;
         }
         this.state.explain = { loading: false, ...data };
+    }
+
+    retryExplain() {
+        const retry = this.state.explain && this.state.explain.retry;
+        if (retry) {
+            retry();
+        }
     }
 
     barWidth(item, items) {
@@ -786,10 +820,14 @@ export class FinReportViewer extends Component {
         if (!want.length) {
             return;
         }
-        const trends = await this.orm.call("ebshel.fin.report", "get_trends", [this.rid], {
-            options: this.state.options, line_ids: want.slice(0, 200),
-        });
-        this.state.trends = { ...this.state.trends, ...trends };
+        try {
+            const trends = await this.orm.call("ebshel.fin.report", "get_trends", [this.rid], {
+                options: this.state.options, line_ids: want.slice(0, 200),
+            });
+            this.state.trends = { ...this.state.trends, ...trends };
+        } catch {
+            // the trend is an extra: without it the lines are still right
+        }
     }
 
     spark(points) {
@@ -1805,10 +1843,21 @@ export class FinReportViewer extends Component {
     }
 
     async loadMovers() {
-        const data = await this.orm.call("ebshel.fin.report", "get_movers", [this.rid], { options: this.state.options, limit: 10 });
-        if (this.state.movers) {
-            this.state.movers = { loading: false, ...data };
+        try {
+            const data = await this.orm.call("ebshel.fin.report", "get_movers", [this.rid], { options: this.state.options, limit: 10 });
+            if (this.state.movers) {
+                this.state.movers = { loading: false, ...data };
+            }
+        } catch (error) {
+            if (this.state.movers) {
+                this.state.movers = { loading: false, rows: [], failed: this.errorText(error) };
+            }
         }
+    }
+
+    retryMovers() {
+        this.state.movers = { loading: true, rows: [] };
+        this.loadMovers();
     }
 
     moverWidth(row) {

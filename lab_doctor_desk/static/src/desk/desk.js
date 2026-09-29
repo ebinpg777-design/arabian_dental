@@ -52,7 +52,10 @@ export class DoctorDesk extends Component {
         });
         this.wanted = params.ticket_id || null;
         this.onKey = (ev) => this.keyboard(ev);
-        onWillStart(() => this.load());
+        // not awaited: the board is drawn at once and fills in when the desk answers
+        onWillStart(() => {
+            this.load();
+        });
         onMounted(() => {
             document.addEventListener("keydown", this.onKey);
             // the board repaints by itself: a callback comes due, somebody else takes a ticket

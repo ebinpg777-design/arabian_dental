@@ -642,6 +642,10 @@
                             <i class="fa fa-times o_efr_ex_close" t-on-click="() => state.explain = null"/>
                         </div>
                         <div t-if="state.explain.loading" class="text-muted small mt-2"><i class="fa fa-circle-o-notch fa-spin me-1"/>Breaking it down…</div>
+                        <div t-elif="state.explain.failed" class="o_efr_failed">
+                            <i class="fa fa-exclamation-circle"/><span>This figure could not be broken down.<em t-esc="state.explain.failed"/></span>
+                            <button class="o_efr_seg" t-on-click="retryExplain"><i class="fa fa-refresh me-1"/>Try again</button>
+                        </div>
                         <t t-else="">
                             <t t-foreach="[['accounts', 'By account'], ['partners', 'By partner'], ['months', 'By month']]" t-as="sec" t-key="sec[0]">
                                 <div class="o_efr_ex_sec" t-if="(state.explain[sec[0]] || []).length">
@@ -662,6 +666,10 @@
                             <i class="fa fa-times o_efr_ex_close" t-on-click="() => state.movers = null"/>
                         </div>
                         <div t-if="state.movers.loading" class="text-muted small mt-2"><i class="fa fa-circle-o-notch fa-spin me-1"/>Comparing the two periods…</div>
+                        <div t-elif="state.movers.failed" class="o_efr_failed">
+                            <i class="fa fa-exclamation-circle"/><span>The two periods could not be compared.<em t-esc="state.movers.failed"/></span>
+                            <button class="o_efr_seg" t-on-click="retryMovers"><i class="fa fa-refresh me-1"/>Try again</button>
+                        </div>
                         <t t-else="">
                             <div class="small text-muted mb-2"><b t-esc="state.movers.now"/> against <b t-esc="state.movers.before"/> · the <t t-esc="state.movers.rows.length"/> accounts that moved most, of <t t-esc="state.movers.count"/></div>
                             <div t-if="!state.movers.rows.length" class="small text-muted">Nothing moved between the two periods.</div>
