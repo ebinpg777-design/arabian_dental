@@ -539,7 +539,10 @@ $efr-tones: (
             .btn { flex: 1 1 0; min-height: 2.6rem; } }
         .o_efr_table .o_efr_ra_items { span { display: none; } padding: .2rem .5rem; }
         .o_efr_table .o_efr_rowacts { position: static; transform: none; opacity: 1; pointer-events: auto; background: none; padding: 0; }
-        .o_efr_split { display: none; }
+        // nested as the base rule is: a media query adds no specificity, and the bare class
+        // lost to `.o_efr .o_efr_table .o_efr_split`, leaving a 12px strip that swallowed the
+        // sideways swipe exactly where the buckets are dragged
+        .o_efr_table .o_efr_split { display: none; }
         .o_efr_table .o_efr_pinbtn { display: none; &.on { display: inline-block; } }
         .o_efr_pin { flex: 1 1 8rem; }
         // a note is written at a desk; on a phone only the notes that exist are shown
