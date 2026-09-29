@@ -1,10 +1,11 @@
 /** @odoo-module **/
 
-import { Component } from "@odoo/owl";
+import { Component, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { session } from "@web/session";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
+import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
 
 /**
  * A header button that captures the browser's location before calling its method.
@@ -36,6 +37,12 @@ export class FwGeoButton extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
+        // While the browser looks for a position - which includes the time Chrome's
+        // "Allow location?" question is on screen - the button is off. Every extra tap
+        // used to queue another request, and the moment Allow was pressed they all
+        // reached the server together: one opened the visit, the next was told "This
+        // visit is not waiting to be started". (client, 2026-09-29)
+        this.state = useState({ busy: false });
     }
 
     get label() {
@@ -43,39 +50,36 @@ export class FwGeoButton extends Component {
     }
 
     async onClick() {
-        const record = this.props.record;
-        if (record.isDirty) {
-            await record.save();
-        }
-        // An excused phone is not asked, and not warned. (client, 2026-09-28)
-        const exempt = Boolean(session.fw_location_exception);
-        const coords = exempt ? null : await this.getPosition();
-        if (!coords && !exempt) {
-            this.notification.add(
-                "Turn on Location for this browser, wait for the arrow to appear, " +
-                "then try again. A visit cannot be recorded without it.",
-                { type: "danger", title: "Location is off", sticky: true }
-            );
+        if (this.state.busy) {
             return;
         }
-        await this.orm.call(record.resModel, this.props.method, [[record.resId]], {
-            latitude: coords ? coords.latitude : false,
-            longitude: coords ? coords.longitude : false,
-        });
-        await record.model.root.load();
-    }
-
-    getPosition() {
-        return new Promise((resolve) => {
-            if (!navigator.geolocation) {
-                return resolve(null);
+        this.state.busy = true;
+        try {
+            const record = this.props.record;
+            if (record.isDirty) {
+                await record.save();
             }
-            navigator.geolocation.getCurrentPosition(
-                (pos) => resolve(pos.coords),
-                () => resolve(null),
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-            );
-        });
+            // An excused phone is not asked, and not warned. (client, 2026-09-28)
+            const exempt = Boolean(session.fw_location_exception);
+            let coords = null;
+            if (!exempt) {
+                const found = await locate();
+                if (!found.coords) {
+                    warnNoPosition(this.notification, found.error,
+                        "A visit cannot be recorded without it.");
+                    return;
+                }
+                clearPositionWarning();
+                coords = found.coords;
+            }
+            await this.orm.call(record.resModel, this.props.method, [[record.resId]], {
+                latitude: coords ? coords.latitude : false,
+                longitude: coords ? coords.longitude : false,
+            });
+            await record.model.root.load();
+        } finally {
+            this.state.busy = false;
+        }
     }
 }
 

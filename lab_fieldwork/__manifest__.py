@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '19.0.5.15.0',
+    'version': '19.0.5.16.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -112,6 +112,7 @@ in the server, not merely in the form.
             'lab_fieldwork/static/src/xml/day_map.xml',
             # The watcher is a service, so it must load whatever screen the web
             # client opens on — not only My Day.
+            'lab_fieldwork/static/src/js/position.js',
             'lab_fieldwork/static/src/js/live_track.js',
             'lab_fieldwork/static/src/js/geo_button.js',
             'lab_fieldwork/static/src/xml/geo_button.xml',

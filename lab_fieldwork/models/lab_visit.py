@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
 from math import asin, cos, radians, sin, sqrt
 from urllib.parse import quote_plus
 
@@ -524,9 +525,28 @@ class LabVisit(models.Model):
             who=self.env.user.name))
         return True
 
+    # How close together two presses of the same button must be to be one press.
+    REPEAT_WINDOW = timedelta(minutes=2)
+
+    def _just_done(self, stamp):
+        """The same person pressed the same button a moment ago.
+
+        A browser that was asking "Allow location?" holds every tap made while the
+        question was open, and releases them all together the moment Allow is
+        pressed - in every tab of the site at once. The first reaches the server and
+        opens the visit; the rest used to be told "This visit is not waiting to be
+        started", an error about something that had just gone right. A repeat within
+        a couple of minutes by the visit's own executive is that, and is answered as
+        done. (client, 2026-09-29)
+        """
+        return bool(stamp) and self.user_id == self.env.user \
+            and fields.Datetime.now() - stamp <= self.REPEAT_WINDOW
+
     def do_check_in(self, latitude=False, longitude=False):
         """Arrive at the clinic. Called by the geo button, which supplies the fix."""
         self.ensure_one()
+        if self.state == 'open' and self._just_done(self.check_in):
+            return True
         if self.state != 'planned':
             raise UserError(_("This visit is not waiting to be started."))
         self._require_fix(latitude, longitude, _("start a visit"))
@@ -546,6 +566,8 @@ class LabVisit(models.Model):
 
     def do_check_out(self, latitude=False, longitude=False):
         self.ensure_one()
+        if self.state == 'done' and self._just_done(self.check_out):
+            return True
         if self.state != 'open':
             raise UserError(_("Check in before checking out."))
         if not self.outcome:

@@ -6,6 +6,7 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { session } from "@web/session";
 import { formatMonetary } from "@web/views/fields/formatters";
+import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
 
 /**
  * The executive's whole application.
@@ -149,16 +150,14 @@ export class LabMyDay extends Component {
                 // asked for one, and never told to switch it on: the time is
                 // the record. (client, 2026-09-28)
                 const exempt = Boolean(session.fw_location_exception);
-                const coords = exempt ? null : await this.getPosition();
+                const found = exempt ? {} : await this.getPosition();
+                const coords = found.coords || null;
                 if (!coords && !exempt) {
-                    // The server refuses this too; saying so here means the
-                    // executive gets an instruction instead of an error dialog.
-                    this.notification.add(
-                        "Turn on Location for this browser, wait for the arrow " +
-                        "to appear, then tap again. A visit cannot be started " +
-                        "without it.",
-                        { type: "danger", title: "Location is off", sticky: true }
-                    );
+                    // The server refuses this too; saying so here - and saying WHICH
+                    // thing is wrong - means the executive gets an instruction
+                    // instead of an error dialog.
+                    warnNoPosition(this.notification, found.error,
+                        "A visit cannot be started without it.");
                     return;
                 }
                 await this.orm.call("lab.visit", "do_check_in", [[v.id]], {
@@ -177,40 +176,13 @@ export class LabMyDay extends Component {
         }
     }
 
-    getPosition() {
-        return new Promise((resolve) => {
-            if (!navigator.geolocation) {
-                return resolve(null);
-            }
-            // A WebView that was never granted location permission can call NEITHER
-            // callback and not honour its own `timeout` either: the request is dropped
-            // before it starts. This promise then stays pending for ever, and so does
-            // the `await` in toggleAttendance — whose `finally` is the only thing that
-            // clears `state.busy` and re-enables the button. The executive taps Start
-            // the day, the button greys out, and nothing short of a reload brings it
-            // back. Hence our own timer: whatever the platform does, this settles.
-            // (client, 2026-09-01)
-            let settled = false;
-            const finish = (value) => {
-                if (settled) {
-                    return;
-                }
-                settled = true;
-                resolve(value);
-            };
-            const timer = setTimeout(() => finish(null), 10000);
-            navigator.geolocation.getCurrentPosition(
-                (p) => {
-                    clearTimeout(timer);
-                    finish(p.coords);
-                },
-                () => {
-                    clearTimeout(timer);
-                    finish(null);
-                },
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-            );
-        });
+    /** {coords} or {error} - see position.js for everything this used to get wrong. */
+    async getPosition() {
+        const found = await locate();
+        if (found.coords) {
+            clearPositionWarning();
+        }
+        return found;
     }
 
     openVisit(v) {
@@ -309,7 +281,9 @@ export class LabMyDay extends Component {
         }
         this.state.busy = "att";
         try {
-            const coords = session.fw_location_exception ? null : await this.getPosition();
+            const exempt = Boolean(session.fw_location_exception);
+            const found = exempt ? {} : await this.getPosition();
+            const coords = found.coords || null;
             await this.orm.call("lab.my.day", "attendance_toggle", [], {
                 latitude: coords ? coords.latitude : false,
                 longitude: coords ? coords.longitude : false,
@@ -322,6 +296,15 @@ export class LabMyDay extends Component {
                 this.onDuty ? "You are on duty. Have a good day." : "Day ended.",
                 { type: "success" }
             );
+            if (!coords && !exempt) {
+                // The day is still marked - attendance is about time - but the
+                // executive hears that it carries no position, and why, instead of
+                // finding out from the day sheet. (client, 2026-09-29)
+                warnNoPosition(this.notification, found.error,
+                    this.onDuty ? "Your day started without a location."
+                                : "Your day ended without a location.",
+                    { sticky: false });
+            }
         } finally {
             this.state.busy = 0;
         }

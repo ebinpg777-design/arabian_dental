@@ -3,10 +3,17 @@
     <t t-name="lab_fieldwork.GeoButton">
         <button type="button" class="btn me-1"
                 t-att-class="props.btn_class || 'btn-primary'"
+                t-att-disabled="state.busy"
                 t-on-click="onClick">
-            <i t-if="props.icon" t-att-class="'fa ' + props.icon + ' me-1'"
-               t-att-title="label"/>
-            <t t-esc="label"/>
+            <t t-if="state.busy">
+                <i class="fa fa-circle-o-notch fa-spin me-1" title="Finding your location"/>
+                Finding your location…
+            </t>
+            <t t-else="">
+                <i t-if="props.icon" t-att-class="'fa ' + props.icon + ' me-1'"
+                   t-att-title="label"/>
+                <t t-esc="label"/>
+            </t>
         </button>
     </t>
 </templates>
