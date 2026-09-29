@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_doctor_ticket_user,doctor ticket read,model_lab_doctor_ticket,base.group_user,1,0,0,0
+access_doctor_ticket_agent,doctor ticket desk,model_lab_doctor_ticket,group_doctor_desk_agent,1,1,0,0
+access_doctor_ticket_lead,doctor ticket lead,model_lab_doctor_ticket,group_doctor_desk_lead,1,1,1,1
+access_doctor_call_desk,doctor call desk,lab_order_control.model_lab_doctor_call_log,group_doctor_desk_agent,1,1,1,0
+access_doctor_ticket_answer,doctor ticket answer,model_lab_doctor_ticket_answer,base.group_user,1,1,1,1
+access_doctor_ticket_attempt,doctor ticket attempt,model_lab_doctor_ticket_attempt,group_doctor_desk_agent,1,1,1,1

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_doctor_desk" model="ir.ui.view">
+        <field name="name">sale.order.form.lab.doctor.desk</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="lab_order_control.view_order_form_hold"/>
+        <field name="priority">60</field>
+        <field name="arch" type="xml">
+            <!-- with a ticket open the call is the desk's: the order's own buttons step aside -->
+            <xpath expr="//button[@name='action_log_doctor_call']" position="attributes">
+                <attribute name="invisible">state in ('done','cancel') or doctor_ticket_open &gt; 0</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_resolve_doctor_call']" position="attributes">
+                <attribute name="invisible">not call_pending or doctor_ticket_open &gt; 0</attribute>
+            </xpath>
+            <xpath expr="//div[hasclass('alert-danger')][field[@name='call_doctor_reason']]" position="attributes">
+                <attribute name="invisible">not call_pending or doctor_ticket_open &gt; 0</attribute>
+            </xpath>
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-danger m-0 rounded-0 d-flex align-items-center gap-2" role="alert"
+                     invisible="doctor_ticket_open == 0">
+                    <i class="fa fa-phone" title="Doctor ticket"/>
+                    <span><strong>Waiting for the doctor</strong> —
+                        <field name="doctor_ticket_note" nolabel="1" readonly="1" class="oe_inline"/>.
+                        This order can be confirmed once the ticket is closed.</span>
+                    <button name="action_view_doctor_tickets" type="object" string="Open the ticket"
+                            class="btn btn-sm btn-light ms-auto"/>
+                </div>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_doctor_tickets" type="object" class="oe_stat_button" icon="fa-phone"
+                        invisible="doctor_ticket_count == 0">
+                    <field name="doctor_ticket_count" widget="statinfo" string="Doctor Tickets"/>
+                </button>
+            </xpath>
+            <xpath expr="//field[@name='call_pending']" position="after">
+                <field name="doctor_ticket_open" invisible="1"/>
+                <field name="doctor_tickets_on" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

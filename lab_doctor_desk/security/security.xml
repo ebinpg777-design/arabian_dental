@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="privilege_doctor_desk" model="res.groups.privilege">
+            <field name="name">Doctor Call Desk</field>
+            <field name="category_id" ref="base.module_category_sales_sales"/>
+            <field name="sequence">36</field>
+        </record>
+
+        <!-- The role asked for: its own, implied by nothing. Holding it is what puts
+             somebody at the desk - not being a salesperson, not being a manager. -->
+        <record id="group_doctor_desk_agent" model="res.groups">
+            <field name="name">Desk</field>
+            <field name="privilege_id" ref="privilege_doctor_desk"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Takes doctor call tickets, calls the doctor and records the answer.</field>
+        </record>
+
+        <record id="group_doctor_desk_lead" model="res.groups">
+            <field name="name">Desk Lead</field>
+            <field name="privilege_id" ref="privilege_doctor_desk"/>
+            <field name="implied_ids" eval="[(4, ref('group_doctor_desk_agent'))]"/>
+            <field name="comment">Shares tickets out, takes escalations, and may close or withdraw a
+                ticket the doctor could not be reached for.</field>
+        </record>
+    </data>
+
+    <data noupdate="1">
+        <record id="rule_doctor_ticket_company" model="ir.rule">
+            <field name="name">Doctor ticket: own companies</field>
+            <field name="model_id" ref="model_lab_doctor_ticket"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Everybody sees where their own question stands; the desk and whoever checks
+             orders see them all. -->
+        <record id="rule_doctor_ticket_own" model="ir.rule">
+            <field name="name">Doctor ticket: the ones I raised, sold or was asked to ask</field>
+            <field name="model_id" ref="model_lab_doctor_ticket"/>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="domain_force">['|', '|', ('raised_by_id', '=', user.id), ('salesperson_id', '=', user.id), ('field_user_id', '=', user.id)]</field>
+        </record>
+        <record id="rule_doctor_ticket_desk" model="ir.rule">
+            <field name="name">Doctor ticket: the desk sees all</field>
+            <field name="model_id" ref="model_lab_doctor_ticket"/>
+            <field name="groups" eval="[(4, ref('group_doctor_desk_agent')), (4, ref('lab_order_control.group_lab_order_checker'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+    </data>
+</odoo>

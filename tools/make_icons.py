@@ -84,6 +84,7 @@ ICONS = {
     'lab_workcenter_scan':   ('f02a', GREY),     # barcode
     'lab_rework':            ('f021', GREY),     # refresh
     'lab_order_control':     ('f14a', GREY),     # check-square
+    'lab_doctor_desk':       ('f095', MAROON),   # phone
     'lab_reports':           ('f15c', GREY),     # file-text
     # where the work is watched
     'lab_dashboards':        ('f080', STEEL),    # bar chart

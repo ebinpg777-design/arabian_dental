@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Whoever raised the question sees where it stands, without asking the desk. -->
+    <record id="view_case_form_doctor_desk" model="ir.ui.view">
+        <field name="name">lab.case.form.doctor.desk</field>
+        <field name="model">lab.case</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_case_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='needs_doctor_call']" position="before">
+                <field name="doctor_ticket_id" invisible="1"/>
+                <field name="doctor_ticket_state" invisible="1"/>
+                <field name="doctor_ticket_mine" invisible="1"/>
+                <div class="o_ddk_case o_ddk_case_open" invisible="doctor_ticket_state not in ('new', 'taken', 'waiting')">
+                    <i class="fa fa-phone" title="Doctor call"/>
+                    <div>
+                        <b>The desk is calling the doctor</b>
+                        <field name="doctor_ticket_line" nolabel="1" readonly="1"/>
+                        <span class="o_ddk_case_hint">The order goes ahead when the doctor has answered.</span>
+                    </div>
+                </div>
+                <div class="o_ddk_case o_ddk_case_field" invisible="doctor_ticket_state != 'field'">
+                    <i class="fa fa-map-marker" title="In person"/>
+                    <div>
+                        <b invisible="not doctor_ticket_mine">The desk asks you to ask the doctor in person</b>
+                        <b invisible="doctor_ticket_mine">To be asked at the clinic</b>
+                        <field name="doctor_ticket_ask" nolabel="1" readonly="1" class="o_ddk_case_answer"/>
+                        <field name="doctor_ticket_line" nolabel="1" readonly="1"/>
+                        <button name="action_answer_doctor_ticket" type="object" class="o_ddk_case_btn"
+                                invisible="not doctor_ticket_mine" icon="fa-check">The doctor has answered</button>
+                    </div>
+                </div>
+                <div class="o_ddk_case o_ddk_case_done" invisible="doctor_ticket_state != 'closed'">
+                    <i class="fa fa-check-circle" title="Answered"/>
+                    <div>
+                        <b>The doctor has answered</b>
+                        <field name="doctor_ticket_line" nolabel="1" readonly="1"/>
+                        <field name="doctor_ticket_answer" nolabel="1" readonly="1" class="o_ddk_case_answer"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_case_list_doctor_desk" model="ir.ui.view">
+        <field name="name">lab.case.list.doctor.desk</field>
+        <field name="model">lab.case</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_case_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="doctor_ticket_state" widget="badge" optional="show" string="Doctor Call"
+                       decoration-info="doctor_ticket_state == 'new'" decoration-primary="doctor_ticket_state == 'taken'"
+                       decoration-warning="doctor_ticket_state in ('waiting', 'field')"
+                       decoration-success="doctor_ticket_state == 'closed'"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

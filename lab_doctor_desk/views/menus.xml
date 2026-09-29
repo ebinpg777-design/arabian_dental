@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_doctor_desk_root" name="Doctor Calls" sequence="46"
+              web_icon="lab_doctor_desk,static/description/icon.png"
+              groups="lab_doctor_desk.group_doctor_desk_agent"/>
+
+    <menuitem id="menu_doctor_desk" name="Desk" parent="menu_doctor_desk_root"
+              action="action_doctor_desk" sequence="10"/>
+    <menuitem id="menu_doctor_tickets" name="Tickets" parent="menu_doctor_desk_root"
+              action="action_doctor_tickets" sequence="20"/>
+    <menuitem id="menu_doctor_calls" name="Every Call" parent="menu_doctor_desk_root"
+              action="lab_order_control.action_doctor_call" sequence="30"/>
+    <menuitem id="menu_doctor_report" name="How the Calls Went" parent="menu_doctor_desk_root"
+              action="action_doctor_tickets_report" sequence="40"
+              groups="lab_doctor_desk.group_doctor_desk_lead"/>
+
+    <!-- where the people who check orders already look -->
+    <menuitem id="menu_doctor_tickets_verification" name="Doctor Tickets"
+              parent="lab_order_control.menu_lab_order_verification"
+              action="action_doctor_tickets" sequence="45"/>
+</odoo>

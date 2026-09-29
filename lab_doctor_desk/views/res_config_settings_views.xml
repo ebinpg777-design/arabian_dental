@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_doctor_desk" model="ir.ui.view">
+        <field name="name">res.config.settings.form.doctor.desk</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="lab_order_control.res_config_settings_view_form_order_control"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@name='lab_order_control_setting_container']" position="after">
+                <block title="Doctor Call Desk" name="lab_doctor_desk_setting_container"
+                       groups="lab_access_control.group_lab_config_manager">
+                    <setting id="doctor_tickets_setting" company_dependent="1" string="Doctor call tickets"
+                             help="A case that needs the doctor raises a ticket for the desk, and its order cannot be confirmed until the ticket is closed.">
+                        <field name="doctor_tickets"/>
+                        <div class="mt-2 text-warning" invisible="doctor_tickets or doctor_ticket_waiting == 0">
+                            <field name="doctor_ticket_waiting" class="oe_inline"/> order(s) are already waiting on
+                            the doctor: each gets its ticket when this is switched on.
+                        </div>
+                        <div class="mt-2 text-muted" invisible="not doctor_tickets">
+                            Tickets are taken by the people who hold the <b>Doctor Call Desk</b> role
+                            (Settings &gt; Users).
+                        </div>
+                    </setting>
+                    <setting id="doctor_ticket_assign_setting" company_dependent="1" string="Who gets a new ticket"
+                             help="Taken from the pool by whoever is free, or given to the person at the desk with the fewest open."
+                             invisible="not doctor_tickets">
+                        <field name="doctor_ticket_assign" widget="radio"/>
+                    </setting>
+                    <setting id="doctor_ticket_time_setting" company_dependent="1" string="How long an answer may take"
+                             help="Past this, a ticket is late and is escalated to the desk lead - once."
+                             invisible="not doctor_tickets">
+                        <div class="content-group">
+                            <div class="row mt-2">
+                                <label for="doctor_ticket_hours" class="col-lg-7 o_light_label" string="A normal case (hours)"/>
+                                <field name="doctor_ticket_hours" class="col-lg-3"/>
+                            </div>
+                            <div class="row">
+                                <label for="doctor_ticket_rush_hours" class="col-lg-7 o_light_label" string="An urgent case (hours); an emergency gets half"/>
+                                <field name="doctor_ticket_rush_hours" class="col-lg-3"/>
+                            </div>
+                        </div>
+                    </setting>
+                    <setting id="doctor_ticket_retry_setting" company_dependent="1" string="When the doctor does not answer"
+                             help="The ticket waits, and comes back to the top of the desk by itself."
+                             invisible="not doctor_tickets">
+                        <div class="content-group">
+                            <div class="row mt-2">
+                                <label for="doctor_ticket_retry" class="col-lg-7 o_light_label" string="Try again after (minutes)"/>
+                                <field name="doctor_ticket_retry" class="col-lg-3"/>
+                            </div>
+                            <div class="row">
+                                <label for="doctor_ticket_escalate" class="col-lg-7 o_light_label" string="Escalate after this many attempts (0: never)"/>
+                                <field name="doctor_ticket_escalate" class="col-lg-3"/>
+                            </div>
+                        </div>
+                    </setting>
+                    <setting id="doctor_ticket_confirm_setting" company_dependent="1"
+                             help="Only an order that needs no checking, or is already verified, and only when the doctor said to go ahead as written."
+                             invisible="not doctor_tickets">
+                        <field name="doctor_ticket_confirm"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>
