@@ -173,7 +173,8 @@ class TestFinReports(TransactionCase):
         total = self._line(data, name='Total')['columns'][-1]['value'] or 0.0
         Line = self.env['account.move.line']
         lines = Line.search([('account_id.account_type', '=', 'asset_receivable'), ('parent_state', '=', 'posted'),
-                             ('date', '<=', self.today), ('company_id', '=', self.company.id)])
+                             ('date', '<=', self.today), ('company_id', 'in', self.env.companies.ids)])
+        # the report reads every company selected in the switcher, as Odoo's own reports do
         Partial = self.env['account.partial.reconcile']
         settled_debit = {r['debit_move_id'][0]: r['amount'] for r in Partial._read_group(
             [('max_date', '<=', self.today), ('debit_move_id', 'in', lines.ids)], ['debit_move_id'], ['amount:sum'])} \

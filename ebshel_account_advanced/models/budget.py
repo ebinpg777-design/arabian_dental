@@ -10,7 +10,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tools import SQL, date_utils, float_round
 
 REVENUE_TYPES = ('income', 'income_other')
-EXPENSE_TYPES = ('expense', 'expense_depreciation', 'expense_direct_cost')
+EXPENSE_TYPES = ('expense', 'expense_other', 'expense_depreciation', 'expense_direct_cost')
 
 
 class Budget(models.Model):

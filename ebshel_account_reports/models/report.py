@@ -23,7 +23,7 @@ ACCOUNT_TYPES = [
     ('liability_payable', 'Payable'), ('liability_credit_card', 'Credit Card'),
     ('liability_current', 'Current Liabilities'), ('liability_non_current', 'Non-current Liabilities'),
     ('equity', 'Equity'), ('equity_unaffected', 'Current Year Earnings'),
-    ('income', 'Income'), ('income_other', 'Other Income'), ('expense', 'Expenses'),
+    ('income', 'Income'), ('income_other', 'Other Income'), ('expense', 'Expenses'), ('expense_other', 'Other Expenses'),
     ('expense_depreciation', 'Depreciation'), ('expense_direct_cost', 'Cost of Revenue'),
     ('off_balance', 'Off-Balance Sheet'),
 ]

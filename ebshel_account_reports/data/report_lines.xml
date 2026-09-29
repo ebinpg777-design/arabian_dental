@@ -212,7 +212,7 @@
         <field name="sign">-1</field>
         <field name="display">amount</field>
         <field name="parent_id" ref="bs_equity"/>
-        <field name="account_types">income,income_other,expense,expense_direct_cost,expense_depreciation</field>
+        <field name="account_types">income,income_other,expense,expense_other,expense_direct_cost,expense_depreciation</field>
         <field name="code">EARN_CUR</field>
         <field name="note">Profit and loss accounts since the fiscal year began</field>
     </record>
@@ -224,7 +224,7 @@
         <field name="balance_mode">earnings_previous</field>
         <field name="sign">-1</field>
         <field name="display">amount</field>
-        <field name="account_types">income,income_other,expense,expense_direct_cost,expense_depreciation</field>
+        <field name="account_types">income,income_other,expense,expense_other,expense_direct_cost,expense_depreciation</field>
         <field name="code">EARN_PREV_PL</field>
         <field name="hidden" eval="True"/>
     </record>
@@ -375,6 +375,18 @@
         <field name="code">OINC</field>
         <field name="hide_if_zero" eval="True"/>
     </record>
+    <record id="pl_oexp" model="ebshel.fin.report.line">
+        <field name="report_id" ref="report_profit_loss"/>
+        <field name="sequence">75</field>
+        <field name="name">Other expenses</field>
+        <field name="kind">sum</field>
+        <field name="balance_mode">flow</field>
+        <field name="sign">1</field>
+        <field name="display">amount</field>
+        <field name="account_types">expense_other</field>
+        <field name="code">OEXP</field>
+        <field name="hide_if_zero" eval="True"/>
+    </record>
     <record id="pl_net" model="ebshel.fin.report.line">
         <field name="report_id" ref="report_profit_loss"/>
         <field name="sequence">80</field>
@@ -383,7 +395,7 @@
         <field name="balance_mode">flow</field>
         <field name="sign">1</field>
         <field name="display">amount</field>
-        <field name="formula">OPINC + OINC</field>
+        <field name="formula">OPINC + OINC - OEXP</field>
         <field name="code">NET</field>
         <field name="bold" eval="True"/>
         <field name="unfold_accounts" eval="False"/>
@@ -408,7 +420,7 @@
         <field name="balance_mode">flow</field>
         <field name="sign">-1</field>
         <field name="display">amount</field>
-        <field name="account_types">income,income_other,expense,expense_direct_cost,expense_depreciation</field>
+        <field name="account_types">income,income_other,expense,expense_other,expense_direct_cost,expense_depreciation</field>
         <field name="code">NP</field>
         <field name="unfold_accounts" eval="False"/>
     </record>
@@ -659,7 +671,7 @@
         <field name="sign">1</field>
         <field name="display">amount</field>
         <field name="parent_id" ref="es_h_perf"/>
-        <field name="account_types">expense,expense_direct_cost,expense_depreciation</field>
+        <field name="account_types">expense,expense_other,expense_direct_cost,expense_depreciation</field>
         <field name="code">EXP</field>
     </record>
     <record id="es_net" model="ebshel.fin.report.line">

@@ -29,8 +29,8 @@ class TestAdvanced(TransactionCase):
         cls.receivable = Account.search([('account_type', '=', 'asset_receivable')], limit=1)
         Journal = cls.env['account.journal']
         cls.general = Journal.search([('type', '=', 'general'), ('company_id', '=', cls.company.id)], limit=1)
-        cls.bank = Journal.search([('type', '=', 'bank'), ('company_id', '=', cls.company.id)], limit=1) or Journal.create(
-            {'name': 'Test Bank', 'type': 'bank', 'code': 'TBNK'})
+        # a journal of our own: a real one may sit on an archived bank account
+        cls.bank = Journal.create({'name': 'EAA Test Bank', 'type': 'bank', 'code': 'EAAB'})
         cls.company.write({'ebshel_deferred_revenue_account_id': cls.deferred.id, 'ebshel_deferred_expense_account_id': cls.prepaid.id,
                            'ebshel_deferral_journal_id': cls.general.id, 'ebshel_deferral_method': 'days', 'ebshel_deferral_auto': True,
                            'ebshel_followup_auto': True, 'ebshel_followup_min_amount': 0.0, 'ebshel_cash_collection_rate': 100,
@@ -40,16 +40,19 @@ class TestAdvanced(TransactionCase):
         cls.l1 = Level.create({'name': 'T1 friendly', 'days': 7, 'action': 'email', 'attach_statement': True, 'attach_invoices': True})
         cls.l2 = Level.create({'name': 'T2 second', 'days': 21, 'action': 'email_call', 'auto': True})
         cls.l3 = Level.create({'name': 'T3 final', 'days': 45, 'action': 'letter', 'on_hold': True, 'repeat_days': 15})
-        cls.customer = cls.env['res.partner'].create({'name': 'Test Clinic', 'email': 'clinic@example.com', 'is_company': True})
-        cls.vendor = cls.env['res.partner'].create({'name': 'Test Vendor', 'is_company': True})
+        cls.customer = cls.env['res.partner'].create({'name': 'Test Clinic', 'email': 'clinic@example.com', 'is_company': True,
+                                                      'property_payment_term_id': False})
+        cls.vendor = cls.env['res.partner'].create({'name': 'Test Vendor', 'is_company': True, 'property_supplier_payment_term_id': False})
 
     # ------------------------------------------------------------------ helpers
     def _invoice(self, partner, amount, date, due=None, kind='out_invoice', account=None, extra=None, post=True):
         account = account or (self.income if kind.startswith('out') else self.expense)
         line = {'name': 'Service', 'quantity': 1, 'price_unit': amount, 'account_id': account.id, 'tax_ids': [(6, 0, [])]}
         line.update(extra or {})
+        # no payment term: a customer's default term would move the due date the test is about
         move = self.env['account.move'].create({'move_type': kind, 'partner_id': partner.id, 'invoice_date': date,
-                                                'invoice_date_due': due or date, 'invoice_line_ids': [(0, 0, line)]})
+                                                'invoice_payment_term_id': False, 'invoice_date_due': due or date,
+                                                'invoice_line_ids': [(0, 0, line)]})
         if post:
             move.action_post()
         return move

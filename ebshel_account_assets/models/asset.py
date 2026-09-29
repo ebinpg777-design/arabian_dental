@@ -87,13 +87,13 @@ class AssetCategory(models.Model):
         help="Credited by every depreciation entry.")
     expense_account_id = fields.Many2one(
         'account.account', string='Depreciation expense account', required=True, check_company=True,
-        domain="[('account_type', 'in', ('expense', 'expense_depreciation'))]")
+        domain="[('account_type', 'in', ('expense', 'expense_other', 'expense_depreciation'))]")
     gain_account_id = fields.Many2one(
         'account.account', string='Gain on disposal account', check_company=True,
         domain="[('account_type', 'in', ('income', 'income_other'))]")
     loss_account_id = fields.Many2one(
         'account.account', string='Loss on disposal account', check_company=True,
-        domain="[('account_type', 'in', ('expense', 'expense_depreciation'))]")
+        domain="[('account_type', 'in', ('expense', 'expense_other', 'expense_depreciation'))]")
     journal_id = fields.Many2one('account.journal', required=True, check_company=True,
                                  domain="[('type', '=', 'general')]")
     method = fields.Selection(METHODS, default='linear', required=True)

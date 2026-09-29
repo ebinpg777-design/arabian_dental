@@ -46,8 +46,8 @@ COMPARISON_MODES = [
 ]
 
 # account types whose balance starts again every fiscal year (no opening balance)
-PL_ONLY_TYPES = ('income', 'income_other', 'expense', 'expense_depreciation', 'expense_direct_cost', 'equity_unaffected')
-PL_TYPES = ('income', 'income_other', 'expense', 'expense_direct_cost',
+PL_ONLY_TYPES = ('income', 'income_other', 'expense', 'expense_other', 'expense_depreciation', 'expense_direct_cost', 'equity_unaffected')
+PL_TYPES = ('income', 'income_other', 'expense', 'expense_other', 'expense_direct_cost',
             'expense_depreciation')
 BS_TYPES = ('asset_receivable', 'asset_cash', 'asset_current', 'asset_non_current',
             'asset_prepayments', 'asset_fixed', 'liability_payable',
