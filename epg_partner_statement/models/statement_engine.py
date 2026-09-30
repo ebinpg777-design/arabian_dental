@@ -344,11 +344,15 @@ class PartnerStatement(models.AbstractModel):
                     'debit_total': _('Payments made'), 'credit_total': _('Bills received'),
                     'due': _('Amount payable'), 'open': _('Outstanding')}
         if statement_type == 'both':
-            return {'debit': _('Charges'), 'credit': _('Payments'),
-                    'debit_total': _('Charges'), 'credit_total': _('Payments'),
+            # this column also carries what WE paid a partner who is a vendor too,
+            # so "Invoiced" alone would be wrong
+            return {'debit': _('Invoiced / paid'), 'credit': _('Payments'),
+                    'debit_total': _('Invoiced / paid'), 'credit_total': _('Payments'),
                     'due': _('Balance due'), 'open': _('Outstanding')}
-        return {'debit': _('Charges'), 'credit': _('Payments & Credits'),
-                'debit_total': _('Charges in period'), 'credit_total': _('Payments received'),
+        # "Invoiced", not "Charges": what the clinic was billed, in the word on the
+        # invoices it holds. (client, 2026-09-30)
+        return {'debit': _('Invoiced'), 'credit': _('Payments & Credits'),
+                'debit_total': _('Invoiced in period'), 'credit_total': _('Payments received'),
                 'due': _('Amount due'), 'open': _('Outstanding')}
 
     # ------------------------------------------------------------------ helpers for renderers
