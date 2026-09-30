@@ -31,6 +31,7 @@ class CashCollection(models.Model):
         default=lambda self: self.env.user, tracking=True)
     partner_id = fields.Many2one(
         'res.partner', string='Doctor / Clinic', required=True, index=True,
+        domain="[('lab_on_my_route', '=', True)]",
         tracking=True, help="Who the money came from.")
     date = fields.Date(
         string='Collected on', required=True, index=True,

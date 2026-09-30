@@ -24,8 +24,12 @@ class CollectCash(models.TransientModel):
     user_id = fields.Many2one(
         'res.users', string='Collected by', required=True,
         default=lambda self: self.env.user)
+    # The same rule as a visit: an executive is offered the clinics (and their
+    # doctors) on their own sales route, a manager every one. Without it Cash in
+    # listed every contact in the database. (client, 2026-09-30)
     partner_id = fields.Many2one(
         'res.partner', string='Doctor / Clinic', required=True,
+        domain="[('lab_on_my_route', '=', True)]",
         help="Who the money came from.")
     amount = fields.Monetary(
         string='Amount', required=True, currency_field='currency_id')
