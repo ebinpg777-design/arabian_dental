@@ -85,11 +85,6 @@
             <field name="partner_id" position="after">
                 <field name="patient"/>
                 <field name="priority"/>
-                <!-- What the case IS, under the priority. Answered while the order
-                     is still being registered: required on the draft state, so the
-                     desk cannot save without it and a case already confirmed is not
-                     dragged back to be classified. (client, 2026-09-09) -->
-                <field name="appliance_type" required="state == 'draft'"/>
                 <field name="is_3d_model_print"/>
                 <!-- Courier straight to the patient: the address box only appears when
                      the box is ticked, and it is required then - the sticker has
@@ -203,7 +198,6 @@
             <field name="partner_id" position="after">
                 <field name="patient" optional="show"/>
                 <field name="date_due" string="Due" optional="show"/>
-                <field name="appliance_type" optional="show"/>
                 <field name="product_names" string="Products" optional="show"/>
                 <field name="is_3d_model_print" string="3D Print" optional="hide" widget="boolean_toggle" readonly="1"/>
             </field>
@@ -235,7 +229,6 @@
             <field name="partner_id" position="after">
                 <field name="patient" optional="show"/>
                 <field name="date_due" string="Due" optional="show"/>
-                <field name="appliance_type" optional="show"/>
                 <field name="product_names" string="Products" optional="show"/>
                 <field name="is_3d_model_print" string="3D Print" optional="hide" widget="boolean_toggle" readonly="1"/>
             </field>
@@ -278,10 +271,6 @@
                 <field name="create_uid" string="Created by"/>
             </field>
             <filter name="salesperson" position="after">
-                <!-- "How many clear retainers went out last month" was a question
-                     nothing on this screen could answer. (client, 2026-09-09) -->
-                <filter name="group_appliance_type" string="Appliance Type"
-                        context="{'group_by': 'appliance_type'}"/>
                 <filter name="group_create_uid" string="Created by" context="{'group_by': 'create_uid'}"/>
                 <filter name="group_team" string="Sales Route" context="{'group_by': 'team_id'}"/>
             </filter>

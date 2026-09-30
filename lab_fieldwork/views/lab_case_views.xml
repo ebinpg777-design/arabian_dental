@@ -137,12 +137,6 @@
                                 <div class="o_fw_sec_s">Blue is upper, teal is lower. Tap both for upper and lower.</div>
                             </div>
                         </div>
-                        <!-- the lab's first question about any case, and the order cannot be
-                             registered without it -->
-                        <div class="o_fw_sec_l">Kind of appliance</div>
-                        <field name="appliance_type" widget="fw_choice" readonly="state != 'draft'"
-                               required="state == 'draft'"
-                               options="{'colors': {'fixed': 'indigo', 'removable': 'teal', 'clear_retainer': 'blue', 'other': 'slate'}}"/>
                         <field name="line_ids" widget="fw_case_items" nolabel="1"
                                readonly="state != 'draft'"
                                context="{'default_ul': 'upper'}">

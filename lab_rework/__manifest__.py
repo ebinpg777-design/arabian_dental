@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Rework',
-    'version': '19.0.2.1.0',
+    'version': '19.0.2.2.0',
     'summary': "Reworks as sale orders: tick Rework, give a reason, optionally point at the original job",
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',

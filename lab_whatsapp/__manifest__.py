@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab WhatsApp Notifications',
-    'version': '19.0.2.18.0',
+    'version': '19.0.2.19.0',
     'category': 'Marketing/WhatsApp',
     'summary': "Dental-lab WhatsApp notifications - case registered, dispatched, invoice, "
                "payment, reminders - sent free from the lab's own WhatsApp or by Cloud API",

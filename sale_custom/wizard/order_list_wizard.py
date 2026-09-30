@@ -62,16 +62,7 @@ class SaleOrderListWizard(models.TransientModel):
         [('open', 'Everything except cancelled'), ('confirmed', 'Confirmed orders only'),
          ('all', 'Including cancelled')],
         string='Orders', default='open', required=True)
-    # The kind of appliance, ticked: "the removable cases this month", "what
-    # still has no type". Nothing ticked means every kind. Tick-boxes rather
-    # than a single choice because the question is often two kinds at once.
-    # (client, 2026-09-18)
-    type_fixed = fields.Boolean('Fixed')
-    type_removable = fields.Boolean('Removable')
-    type_clear_retainer = fields.Boolean('Clear Retainer')
-    type_other = fields.Boolean('Other')
-    type_unset = fields.Boolean('Not set', help="Orders whose appliance type was never filled in.")
-    # How urgent, ticked the same way: "the urgent cases this month" is the
+    # How urgent, as tick-boxes: "the urgent cases this month" is the
     # question the counter asks when a doctor rings about a promise.
     # Nothing ticked means every priority. (client, 2026-09-19)
     prio_emergency = fields.Boolean('Emergency')
@@ -80,8 +71,7 @@ class SaleOrderListWizard(models.TransientModel):
     prio_low = fields.Boolean('Low')
     group_by = fields.Selection(
         [('none', 'No grouping'), ('team', 'Sales Route'),
-         ('partner', 'Customer'), ('product', 'Product'),
-         ('appliance', 'Appliance Type')],
+         ('partner', 'Customer'), ('product', 'Product')],
         string='Group by', default='team', required=True)
     company_id = fields.Many2one(
         'res.company', required=True, default=lambda self: self.env.company)
@@ -101,22 +91,6 @@ class SaleOrderListWizard(models.TransientModel):
     def _onchange_date_from(self):
         if self.date_from and self.date_to and self.date_to < self.date_from:
             self.date_to = self.date_from
-
-    # The wizard's tick-boxes against the order's own selection keys.
-    APPLIANCE_TICKS = (('type_fixed', 'fixed'), ('type_removable', 'removable'),
-                       ('type_clear_retainer', 'clear_retainer'), ('type_other', 'other'))
-
-    def _appliance_keys(self):
-        """The ticked appliance types, as sale.order.appliance_type keys."""
-        self.ensure_one()
-        return [key for field, key in self.APPLIANCE_TICKS if self[field]]
-
-    def _appliance_labels(self):
-        labels = dict(self.env['sale.order']._fields['appliance_type'].selection)
-        chosen = [labels[key] for key in self._appliance_keys()]
-        if self.type_unset:
-            chosen.append(_('Not set'))
-        return chosen
 
     # The wizard's priority ticks against the order's own selection keys. No
     # "not set" here: priority is required on an order and defaults to normal.
@@ -163,13 +137,6 @@ class SaleOrderListWizard(models.TransientModel):
             domain.append(('invoice_status', '=', 'invoiced'))
         elif self.invoice_filter == 'not_invoiced':
             domain.append(('invoice_status', '!=', 'invoiced'))
-        keys = self._appliance_keys()
-        if keys and self.type_unset:
-            domain += ['|', ('appliance_type', 'in', keys), ('appliance_type', '=', False)]
-        elif keys:
-            domain.append(('appliance_type', 'in', keys))
-        elif self.type_unset:
-            domain.append(('appliance_type', '=', False))
         priorities = self._priority_keys()
         if priorities:
             domain.append(('priority', 'in', priorities))
@@ -271,8 +238,6 @@ class SaleOrderListReport(models.AbstractModel):
         """
         groups = {}
         order_of = []
-        appliance_selection = self.env['sale.order']._fields['appliance_type'].selection
-        appliance_labels = dict(appliance_selection)
 
         def bucket(key, label):
             if key not in groups:
@@ -297,9 +262,6 @@ class SaleOrderListReport(models.AbstractModel):
                 key, label = order.team_id.id, order.team_id.name
             elif wizard.group_by == 'partner':
                 key, label = order.partner_id.id, order.partner_id.name
-            elif wizard.group_by == 'appliance':
-                key = order.appliance_type or 'none'
-                label = appliance_labels.get(order.appliance_type) or _('Not set')
             else:
                 key, label = 0, ''
             group = bucket(key, label)
@@ -307,12 +269,7 @@ class SaleOrderListReport(models.AbstractModel):
             group['total'] += order.amount_total
 
         result = [groups[k] for k in order_of]
-        if wizard.group_by == 'appliance':
-            # The lab's own order of the four kinds, the untyped last - not the
-            # alphabet's.
-            rank = {label: index for index, (_key, label) in enumerate(appliance_selection)}
-            result.sort(key=lambda g: rank.get(g['label'], len(rank)))
-        elif wizard.group_by != 'none':
+        if wizard.group_by != 'none':
             result.sort(key=lambda g: (g['label'] == 'None', g['label'] or ''))
         return result
 
@@ -330,8 +287,6 @@ class SaleOrderListReport(models.AbstractModel):
             criteria.append(('Routes', ', '.join(wizard.team_ids.mapped('name'))))
         if wizard.product_ids and not wizard.order_ids:
             criteria.append(('Products', ', '.join(wizard.product_ids.mapped('display_name'))))
-        if (wizard._appliance_keys() or wizard.type_unset) and not wizard.order_ids:
-            criteria.append(('Appliance', ', '.join(wizard._appliance_labels())))
         if wizard._priority_keys() and not wizard.order_ids:
             criteria.append(('Priority', ', '.join(wizard._priority_labels())))
         if wizard.invoice_filter != 'all' and not wizard.order_ids:

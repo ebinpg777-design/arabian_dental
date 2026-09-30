@@ -54,17 +54,11 @@ class SaleOrder(models.Model):
     # Reworks menu and to line up with the preserved column in the upgraded DB.
     active = fields.Boolean(string='Active', default=True)
 
-    # What KIND of appliance the case is. The lab's four words for it, which every
-    # other classification here (the Appliance tick-boxes, the product) only
-    # approaches sideways: those say what is IN the box, this says what the box is.
-    # No default - an unanswered question must read as unanswered, not as "Fixed".
-    # (client, 2026-09-09)
-    appliance_type = fields.Selection(
-        [('fixed', 'Fixed'),
-         ('removable', 'Removable'),
-         ('clear_retainer', 'Clear Retainer'),
-         ('other', 'Other')],
-        string='Appliance Type', tracking=True, index=True, copy=True)
+    # No "Appliance Type" here: fixed / removable / clear retainer is an
+    # orthodontics question the suite brought with it, and a dental lab's case is
+    # named by its works (crown, bridge, denture) - which the order lines already
+    # say. It was required on a draft, so every order stopped for a question that
+    # has no answer here. Removed at the lab's request. (client, 2026-09-30)
 
     priority = fields.Selection(
         [('low', 'Low'), ('normal', 'Normal'), ('urgent', 'Urgent')],

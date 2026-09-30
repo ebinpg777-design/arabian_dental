@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""The Appliance Type filter and grouping on the Order List. (client, 2026-09-18)
+"""The Order List print wizard's filters. (client, 2026-09-18 / 2026-09-19)
 
-"The removable cases this month", "what still has no type": tick-boxes on the
-wizard, and a grouping that counts the four kinds side by side.
+The appliance-type ticks that used to open this file went with the field itself
+(client, 2026-09-30) - see test_appliance_type.
 """
 from datetime import timedelta
 
@@ -11,68 +11,12 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged('post_install', '-at_install')
-class TestOrderListAppliance(TransactionCase):
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.clinic = cls.env['res.partner'].create({'name': 'Appliance Filter Clinic'})
-        Order = cls.env['sale.order']
-        cls.fixed = Order.create({'partner_id': cls.clinic.id, 'appliance_type': 'fixed'})
-        cls.removable = Order.create({'partner_id': cls.clinic.id, 'appliance_type': 'removable'})
-        cls.other = Order.create({'partner_id': cls.clinic.id, 'appliance_type': 'other'})
-        cls.untyped = Order.create({'partner_id': cls.clinic.id})
-
-    def _wizard(self, **vals):
-        vals.setdefault('partner_ids', [(6, 0, self.clinic.ids)])
-        return self.env['sale.order.list.report'].create(vals)
-
-    def test_nothing_ticked_is_every_kind(self):
-        self.assertEqual(self._wizard()._orders(),
-                         self.fixed | self.removable | self.other | self.untyped)
-
-    def test_a_ticked_kind_narrows_the_list(self):
-        self.assertEqual(self._wizard(type_fixed=True)._orders(), self.fixed)
-        self.assertEqual(self._wizard(type_fixed=True, type_removable=True)._orders(),
-                         self.fixed | self.removable)
-
-    def test_not_set_finds_the_untyped_alone_or_with_a_kind(self):
-        self.assertEqual(self._wizard(type_unset=True)._orders(), self.untyped)
-        self.assertEqual(self._wizard(type_other=True, type_unset=True)._orders(),
-                         self.other | self.untyped)
-
-    def test_grouping_by_appliance_counts_the_kinds_in_the_labs_order(self):
-        wizard = self._wizard(group_by='appliance')
-        renderer = self.env['report.sale_custom.report_order_list']
-        groups = renderer._rows(wizard, wizard._orders())
-        self.assertEqual([g['label'] for g in groups], ['Fixed', 'Removable', 'Other', 'Not set'])
-        self.assertEqual([len(g['rows']) for g in groups], [1, 1, 1, 1])
-        values = renderer._get_report_values(wizard.ids)
-        self.assertEqual(values['group_label'], 'Appliance Type')
-
-    def test_the_print_names_the_filter(self):
-        wizard = self._wizard(type_fixed=True, type_removable=True, type_unset=True)
-        values = self.env['report.sale_custom.report_order_list']._get_report_values(wizard.ids)
-        self.assertIn(('Appliance', 'Fixed, Removable, Not set'), values['criteria'])
-        self.assertEqual(values['order_count'], 3)
-        plain = self._wizard()
-        values = self.env['report.sale_custom.report_order_list']._get_report_values(plain.ids)
-        self.assertFalse([c for c in values['criteria'] if c[0] == 'Appliance'])
-
-    def test_the_boxes_are_on_the_wizard(self):
-        arch = self.env['sale.order.list.report'].get_view(
-            self.env.ref('sale_custom.view_order_list_report_form').id, 'form')['arch']
-        for name in ('type_fixed', 'type_removable', 'type_clear_retainer', 'type_other', 'type_unset'):
-            self.assertIn('name="%s"' % name, arch)
-
-
-@tagged('post_install', '-at_install')
 class TestOrderListPriority(TransactionCase):
     """The Priority filter on the Order List print wizard. (client, 2026-09-19)
 
     "The urgent cases this month" is what the counter is asked when a doctor
-    rings about a promise. Ticked the same way the appliance kinds are, because
-    it is the same kind of question and two at once is ordinary.
+    rings about a promise. Tick-boxes, because two priorities at once is an
+    ordinary question.
     """
 
     @classmethod
@@ -98,11 +42,11 @@ class TestOrderListPriority(TransactionCase):
                          self.urgent | self.normal)
 
     def test_the_priority_filter_stacks_with_the_others(self):
-        """Two filters are an AND, not a wider net: urgent AND fixed."""
-        self.urgent.appliance_type = 'fixed'
-        self.normal.appliance_type = 'fixed'
+        """Two filters are an AND, not a wider net: urgent AND on this route."""
+        route = self.env['crm.team'].create({'name': 'Priority Filter Route'})
+        (self.urgent | self.normal).team_id = route
         self.assertEqual(
-            self._wizard(prio_urgent=True, type_fixed=True)._orders(), self.urgent)
+            self._wizard(prio_urgent=True, team_ids=[(6, 0, route.ids)])._orders(), self.urgent)
 
     def test_the_print_names_the_filter(self):
         wizard = self._wizard(prio_urgent=True, prio_low=True)

@@ -42,9 +42,14 @@ class LiveTrackCase(DailyFlowCase):
     def _on_duty(self, start_hour=3, end_hour=12):
         """An attendance covering the day. Hours are UTC; the executive is on IST,
         so 03:30–12:30 UTC is a 09:00–18:00 working day in Kerala."""
+        check_in = self._at(start_hour, 30)
+        if not end_hour:
+            # still on duty NOW: a check-in later today is in the future when the
+            # suite runs before 03:30 UTC, and nobody is on duty from the future
+            check_in = min(check_in, fields.Datetime.now() - timedelta(minutes=5))
         return self.env['hr.attendance'].sudo().create({
             'employee_id': self.employee.id,
-            'check_in': self._at(start_hour, 30),
+            'check_in': check_in,
             'check_out': self._at(end_hour, 30) if end_hour else False,
         })
 

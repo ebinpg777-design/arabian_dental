@@ -30,29 +30,7 @@
                         <field name="company_id" groups="base.group_multi_company"/>
                     </group>
                 </group>
-                <!-- The kind of appliance, as tick-boxes: two kinds at once is an
-                     ordinary question. Nothing ticked means every kind. -->
-                <group string="Appliance Type" name="appliance" invisible="order_count">
-                    <div colspan="2" class="d-flex flex-wrap align-items-center gap-4">
-                        <span class="d-inline-flex align-items-center gap-1">
-                            <field name="type_fixed" nolabel="1"/><label for="type_fixed" class="mb-0 fw-normal"/>
-                        </span>
-                        <span class="d-inline-flex align-items-center gap-1">
-                            <field name="type_removable" nolabel="1"/><label for="type_removable" class="mb-0 fw-normal"/>
-                        </span>
-                        <span class="d-inline-flex align-items-center gap-1">
-                            <field name="type_clear_retainer" nolabel="1"/><label for="type_clear_retainer" class="mb-0 fw-normal"/>
-                        </span>
-                        <span class="d-inline-flex align-items-center gap-1">
-                            <field name="type_other" nolabel="1"/><label for="type_other" class="mb-0 fw-normal"/>
-                        </span>
-                        <span class="d-inline-flex align-items-center gap-1">
-                            <field name="type_unset" nolabel="1"/><label for="type_unset" class="mb-0 fw-normal"/>
-                        </span>
-                        <span class="text-muted small">Nothing ticked: every kind.</span>
-                    </div>
-                </group>
-                <!-- How urgent, the same way. Nothing ticked means every priority.
+                <!-- How urgent, as tick-boxes. Nothing ticked means every priority.
                      (client, 2026-09-19) -->
                 <group string="Priority" name="priority" invisible="order_count">
                     <div colspan="2" class="d-flex flex-wrap align-items-center gap-4">

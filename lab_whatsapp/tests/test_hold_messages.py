@@ -21,9 +21,10 @@ class TestHoldMessages(TransactionCase):
         cls.Template = cls.env['epg.whatsapp.template']
         cls.doctor = cls.env['res.partner'].create({
             'name': 'Dr Holdup', 'whatsapp_number': '+91 90000 33333'})
+        cls.product = cls.env['product.product'].create({'name': 'Zirconia Crown', 'type': 'consu'})
         cls.order = cls.env['sale.order'].create({
             'partner_id': cls.doctor.id, 'patient': 'Meera K',
-            'appliance_type': 'removable'})
+            'order_line': [(0, 0, {'product_id': cls.product.id, 'product_uom_qty': 1})]})
 
     def _template(self, event):
         return self.Template._find('sale.order', event)
@@ -53,7 +54,7 @@ class TestHoldMessages(TransactionCase):
         self.order.write({'hold_reason': 'missing_info'})
         rendered = self._template('hold_details').render(self.order)
         self.assertIn('Missing Information', rendered, "the label, not the key")
-        self.assertIn('Removable', rendered)
+        self.assertIn('Zirconia Crown', rendered, "the works, by name")
         self.assertNotIn('{{', rendered)
 
     def test_the_one_with_choices_offers_them_as_taps(self):

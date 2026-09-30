@@ -21,10 +21,6 @@ CARRY_OVER = (
     'is_screw', 'is_bite', 'is_bands', 'is_wires', 'is_teeth', 'is_facebow',
     'is_others', 'is_3d_model_print', 'impression_type', 'scanned_impression',
     'impression_tray', 'wax_bite', 'user_id', 'team_id', 'partner_id',
-    # The kind of appliance: a remake of a fixed appliance is a fixed appliance,
-    # and the field is required in draft - without it, picking the original left
-    # the counter with a form it could not save. (client, 2026-09-10)
-    'appliance_type',
 )
 
 

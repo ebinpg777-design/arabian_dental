@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """What the lab's order asks for and the slip did not carry.
 
-The order form of this lab has an appliance type it cannot be registered without, a
-place the finished work goes, and - on every line - the teeth and the cast. None of
+The order form of this lab has a place the finished work goes and - on every line -
+the teeth and the cast. None of
 it was on the executive's slip, so the counter rang the clinic to ask. These hold the
 slip to the order: what is entered at the clinic must arrive on the order, written the
 way the order writes it."""
@@ -43,17 +43,13 @@ class TestCaseLabFields(TransactionCase):
             case.sudo().action_create_order()
         return case.sudo().sale_order_id
 
-    def test_the_kind_of_appliance_reaches_the_order(self):
-        for kind in ('fixed', 'removable', 'clear_retainer', 'other'):
-            with self.subTest(kind=kind):
-                order = self._order(self._case(appliance_type=kind, patient='Patient %s' % kind))
-                self.assertEqual(order.appliance_type, kind)
-        self.assertFalse(self._order(self._case(patient='Nobody Said')).appliance_type,
-                         "unanswered stays unanswered: it is never guessed as Fixed")
+    def test_the_slip_asks_no_appliance_type(self):
+        """An orthodontics question a dental lab has no answer to. (client, 2026-09-30)"""
+        self.assertNotIn('appliance_type', self.env['lab.case']._fields)
+        order = self._order(self._case(patient='No Kind Asked'))
+        self.assertTrue(order, "a slip with no appliance type still makes its order")
 
-    def test_the_slip_and_the_order_name_the_same_kinds(self):
-        self.assertEqual(self.env['lab.case']._fields['appliance_type'].selection,
-                         self.env['sale.order']._fields['appliance_type'].selection)
+    def test_the_slip_and_the_order_name_the_same_casts(self):
         self.assertEqual([k for k, _v in self.env['lab.case.line']._fields['cast'].selection],
                          [k for k, _v in self.env['sale.order.line']._fields['cast'].selection])
 
@@ -110,9 +106,7 @@ class TestCaseLabFields(TransactionCase):
 
     def test_the_form_asks_for_what_the_order_cannot_do_without(self):
         arch = etree.fromstring(self.env['lab.case'].with_user(self.exec_user).get_view(view_type='form')['arch'])
-        kind = arch.xpath("//field[@name='appliance_type']")[0]
-        self.assertEqual(kind.get('required'), "state == 'draft'")
-        self.assertEqual(kind.get('widget'), 'fw_choice')
+        self.assertFalse(arch.xpath("//field[@name='appliance_type']"))
         address = arch.xpath("//field[@name='delivery_address']")[0]
         self.assertIn("deliver_to != 'clinic'", address.get('required'))
         loaded = arch.xpath("//field[@name='line_ids']/list/field/@name")

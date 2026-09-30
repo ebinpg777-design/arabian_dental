@@ -47,7 +47,6 @@
                 <field name="patient"/>
                 <field name="team_id" string="Route"/>
                 <field name="priority" string="Priority"/>
-                <field name="appliance_type" string="Appliance Type"/>
                 <filter name="due_today" string="Due today"
                         domain="[('date_due', '=', context_today().strftime('%Y-%m-%d'))]"/>
                 <filter name="overdue" string="Past its day"
@@ -71,20 +70,11 @@
                         domain="[('invoice_status', '=', 'to invoice')]"/>
                 <filter name="nothing_billable" string="Nothing billable yet"
                         domain="[('invoice_status', '=', 'no')]"/>
-                <separator/>
-                <!-- Appliance type quick filters for common cases -->
-                <filter name="appliance_fixed" string="Fixed"
-                        domain="[('appliance_type', '=', 'fixed')]"/>
-                <filter name="appliance_removable" string="Removable"
-                        domain="[('appliance_type', '=', 'removable')]"/>
-                <filter name="appliance_clear_retainer" string="Clear Retainer"
-                        domain="[('appliance_type', '=', 'clear_retainer')]"/>
                 <group>
                     <filter name="group_route" string="Sales Route" context="{'group_by': 'team_id'}"/>
                     <filter name="group_due" string="Due Date" context="{'group_by': 'date_due'}"/>
                     <filter name="group_customer" string="Customer" context="{'group_by': 'partner_id'}"/>
                     <filter name="group_priority" string="Priority" context="{'group_by': 'priority'}"/>
-                    <filter name="group_appliance" string="Appliance Type" context="{'group_by': 'appliance_type'}"/>
                 </group>
             </search>
         </field>

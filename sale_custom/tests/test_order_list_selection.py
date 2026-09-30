@@ -42,15 +42,15 @@ class TestOrderListSelection(TransactionCase):
 
     def test_the_filters_step_aside_for_a_selection(self):
         wizard = self._wizard_of(self.old | self.new)
-        wizard.write({'partner_ids': [(6, 0, self.clinic.ids)], 'type_fixed': True,
+        wizard.write({'partner_ids': [(6, 0, self.clinic.ids)], 'prio_urgent': True,
                       'date_from': fields.Date.context_today(wizard),
                       'date_to': fields.Date.context_today(wizard)})
         self.assertEqual(wizard._orders(), self.old | self.new,
-                         "a clinic, a kind and a period do not narrow a selection")
+                         "a clinic, a priority and a period do not narrow a selection")
         values = self.env['report.sale_custom.report_order_list']._get_report_values(wizard.ids)
         self.assertEqual(values['order_count'], 2)
         self.assertIn(('Selection', '2 orders picked in the list'), values['criteria'])
-        self.assertFalse([c for c in values['criteria'] if c[0] in ('Customers', 'Appliance')])
+        self.assertFalse([c for c in values['criteria'] if c[0] in ('Customers', 'Priority')])
 
     def test_grouping_still_applies_to_a_selection(self):
         wizard = self._wizard_of(self.old | self.new)

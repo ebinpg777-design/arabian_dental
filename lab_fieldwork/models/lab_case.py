@@ -122,13 +122,6 @@ class LabCase(models.Model):
     is_3d_model_print = fields.Boolean(
         '3D Model Print', help="This case is (or includes) a 3D-printed model.")
 
-    # What KIND of appliance, in the lab's own four words - the order cannot be
-    # registered without it, so a slip that does not carry it stops at the counter.
-    appliance_type = fields.Selection(
-        [('fixed', 'Fixed'), ('removable', 'Removable'),
-         ('clear_retainer', 'Clear Retainer'), ('other', 'Other')],
-        string='Appliance Type', tracking=True)
-
     # Where the finished work goes. One answer out of three on the slip; the order
     # keeps it as two switches and two addresses, and is written that way.
     deliver_to = fields.Selection(
@@ -506,7 +499,6 @@ class LabCase(models.Model):
             # thing: two flags for one fact drift apart the first time somebody ticks
             # one of them.
             'is_pending_work': self.needs_doctor_call,
-            'appliance_type': self.appliance_type or False,
             'is_3d_model_print': self.is_3d_model_print,
             'is_dd_cheque': self.is_dd_cheque, 'is_others': self.is_others,
             'deliver_to_patient': self.deliver_to == 'patient',

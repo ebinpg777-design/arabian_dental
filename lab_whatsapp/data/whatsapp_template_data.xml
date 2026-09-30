@@ -409,7 +409,7 @@ Dear {{partner_id.name|doctor}},
 The work for *{{patient}}* has been held since {{hold_date|date}}.
 
 📋 *Case*      {{name}}
-🦷 *Work*      {{appliance_type}}
+🦷 *Work*      {{product_names}}
 📌 *Held for*  {{hold_reason}}
 ⏳ *Waiting*   {{days_on_hold}} day(s)
 
