@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onMounted, useRef, useState } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, useRef, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { usePopover } from "@web/core/popover/popover_hook";
@@ -168,9 +168,14 @@ export class FdiTeethField extends Component {
     static props = { ...standardFieldProps, placeholder: { type: String, optional: true } };
 
     setup() {
-        this.popover = usePopover(FdiTeethChart, { position: "bottom-start" });
+        this.popover = usePopover(FdiTeethChart, {
+            position: "bottom-start",
+            onClose: () => this.chartClosed(),
+        });
         this.rootRef = useRef("root");
         this.inputRef = useRef("input");
+        this.handingBack = false;
+        onWillUnmount(() => clearTimeout(this.handBackTimer));
         // Entering the cell is entering the mouth: when the list puts the row in
         // edition and hands this field the focus, the chart is already open.
         onMounted(() => {
@@ -191,6 +196,45 @@ export class FdiTeethField extends Component {
     get chips() {
         const { teeth, extras } = this.parsed;
         return [...teeth, ...extras];
+    }
+
+    /**
+     * The chart has just closed - by a click outside it, or Escape.
+     *
+     * As a popover goes, the web client hands the focus back to whatever had it
+     * before the popover opened: this field's own box. The field opens the chart
+     * whenever focus arrives, so the chart closed and was open again before the eye
+     * could tell - "it does not close when I click outside", and Escape was a trap
+     * a keyboard could not leave. Focus that is being handed BACK is not somebody
+     * arriving, and for a moment after a close it is not answered.
+     * (client, 2026-09-30)
+     */
+    chartClosed() {
+        this.handingBack = true;
+        clearTimeout(this.handBackTimer);
+        this.handBackTimer = setTimeout(() => {
+            this.handingBack = false;
+        }, 250);
+    }
+
+    onFocusIn(ev) {
+        const from = ev.relatedTarget;
+        if (this.handingBack || (from && from.closest && from.closest(".o_fdi_chart"))) {
+            return;
+        }
+        this.openChart();
+    }
+
+    /** With the chart closed the box is an ordinary box: the down arrow brings the
+        chart back, and Backspace in the empty box takes the last tooth off. */
+    onInputKeydown(ev) {
+        if (ev.key === "ArrowDown" && !this.popover.isOpen) {
+            ev.preventDefault();
+            this.openChart();
+        } else if (ev.key === "Backspace" && !ev.target.value && this.chips.length) {
+            ev.preventDefault();
+            this.removeChip(this.chips[this.chips.length - 1]);
+        }
     }
 
     openChart() {

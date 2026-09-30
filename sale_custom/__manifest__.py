@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Sales Custom',
-    'version': '19.0.1.43.0',
+    'version': '19.0.1.44.0',
     'category': 'Sales',
     'summary': 'Dental lab customization: per-patient orders, MRP job cards, GST invoicing, daily sales',
     'description': """

@@ -3,7 +3,7 @@
 
     <t t-name="sale_custom.FdiTeethField">
         <div class="o_fdi_field d-flex align-items-center gap-1 flex-wrap" t-att-class="{ o_fdi_readonly: props.readonly }"
-             t-ref="root" t-on-click="openChart" t-on-focusin="openChart">
+             t-ref="root" t-on-click="openChart" t-on-focusin="onFocusIn">
             <t t-if="props.readonly">
                 <span t-if="!chips.length" class="text-muted">—</span>
                 <span t-foreach="chips" t-as="chip" t-key="chip" class="o_fdi_chip"><t t-esc="chip"/></span>
@@ -11,13 +11,15 @@
             <t t-else="">
                 <span t-foreach="chips" t-as="chip" t-key="chip" class="o_fdi_chip">
                     <t t-esc="chip"/>
-                    <button type="button" class="o_fdi_chip_x" t-on-click.stop="() => this.removeChip(chip)" title="Remove">×</button>
+                    <!-- not a tab stop: the cell's focus belongs to the box, and Enter on a
+                         focused "×" would quietly delete a tooth -->
+                    <button type="button" class="o_fdi_chip_x" tabindex="-1" t-on-click.stop="() => this.removeChip(chip)" title="Remove">×</button>
                 </span>
                 <!-- the box ADDS teeth (typed, then Enter or Tab) and empties itself: the
                      chips are the value, so repeating it in a text box only cluttered the cell -->
                 <input type="text" class="o_fdi_input o_input" value="" t-ref="input"
                        t-att-placeholder="chips.length ? '+' : (props.placeholder || 'e.g. 11, 21')"
-                       t-on-change="onInputChange"/>
+                       t-on-change="onInputChange" t-on-keydown="onInputKeydown"/>
             </t>
         </div>
     </t>
