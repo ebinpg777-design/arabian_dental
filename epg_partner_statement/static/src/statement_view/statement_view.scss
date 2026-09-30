@@ -114,22 +114,112 @@ $esv-accent: #714b67;
 }
 html .o_web_client > .o_action_manager > .o_action.o_esv { overflow-y: auto; min-height: 0; }
 
-// a phone: the list, then the statement in its place, with a way back
-@media (max-width: 767px) {
-    .o_esv { padding: .5rem .5rem 1rem;
-        .o_esv_head { align-items: flex-start; }
-        .o_esv_acts { width: 100%; .o_esv_btn { flex: 1 1 0; justify-content: center; min-height: 2.5rem; } }
-        .o_esv_kpi { flex: 1 1 42%; }
-        .o_esv_body { flex-direction: column; }
-        .o_esv_list { flex: 1 1 auto; max-width: none; width: 100%; position: static; max-height: none; }
-        .o_esv_prow { min-height: 3rem; }
-        .o_esv_doc { display: none; width: 100%; padding: .6rem; }
+// the cards are the phone's ledger; everywhere else the table is
+.o_esv .o_esv_cards { display: none; }
+
+// ── a tablet: side by side still, everything tighter ─────────────────────
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .o_esv { padding: .6rem .7rem .8rem;
+        .o_esv_head { margin-bottom: .5rem; }
+        .o_esv_titles h2 { font-size: 1.15rem; }
+        .o_esv_btn { padding: .28rem .55rem; }
+        // all five totals on one line
+        .o_esv_kpis { flex-wrap: nowrap; gap: .35rem; margin-bottom: .5rem; }
+        .o_esv_kpi { flex: 1 1 0; padding: .3rem .5rem; border-left-width: 3px;
+            span { font-size: .58rem; } b { font-size: .88rem; } em { font-size: .6rem; } }
+        .o_esv_body { gap: .5rem; }
+        .o_esv_list { flex: 0 0 16.5rem; max-height: calc(100vh - 10.5rem); }
+        .o_esv_prow { padding: .3rem .45rem; }
+        .o_esv_pn b, .o_esv_pa b { font-size: .76rem; }
+        .o_esv_doc { padding: .6rem .7rem .8rem; }
+        .o_esv_dochead { padding-bottom: .45rem; margin-bottom: .5rem; }
+        .o_esv_who h3 { font-size: 1rem; }
+        .o_esv_mini { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .3rem; margin-bottom: .45rem;
+            > div { padding: .25rem .4rem; span { font-size: .56rem; } b { font-size: .8rem; } } }
+        .o_esv_table { font-size: .74rem;
+            th { font-size: .58rem; padding: .3rem .35rem; }
+            td { padding: .3rem .35rem; } }
+        .o_esv_desc { min-width: 8rem; }
+    }
+}
+
+// ── a phone: fewer, smaller boxes, and a ledger that never scrolls sideways ──
+@media (max-width: 767.98px) {
+    .o_esv { padding: .45rem .45rem 1rem;
+        .o_esv_head { align-items: flex-start; gap: .45rem; margin-bottom: .45rem; }
+        .o_esv_titles h2 { font-size: 1.05rem; }
+        .o_esv_titles .o_esv_period { font-size: .8rem; margin-left: .2rem; }
+        .o_esv_sub { font-size: .72rem; }
+        // the run's buttons as icons beside the title, not a row of their own
+        .o_esv_head { flex-wrap: nowrap; align-items: center; }
+        .o_esv_titles { flex: 1 1 auto; }
+        .o_esv_acts { flex: 0 0 auto; flex-wrap: nowrap; gap: .25rem;
+            .o_esv_btn { font-size: 0; gap: 0; width: 2.4rem; height: 2.4rem; padding: 0; justify-content: center; i { font-size: .95rem; } } }
+        // looking at one partner: the whole run's totals and buttons step aside
+        &.o_esv_detailmode { .o_esv_kpis, .o_esv_acts, .o_esv_sub { display: none; } .o_esv_head { margin-bottom: .3rem; } }
+        // the totals: two rows of three, what is owed first
+        .o_esv_kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; margin-bottom: .45rem; }
+        .o_esv_kpi { padding: .28rem .45rem; border-left-width: 3px; min-width: 0;
+            span { font-size: .55rem; letter-spacing: .2px; } b { font-size: .8rem; } em { font-size: .56rem; } }
+        .o_esv_kpi.k_due { order: 1; grid-column: span 2; b { font-size: 1rem; } }
+        .o_esv_kpi.k_late { order: 2; }
+        .o_esv_kpi.k_open { order: 3; } .o_esv_kpi.k_debit { order: 4; } .o_esv_kpi.k_credit { order: 5; }
+        .o_esv_body { flex-direction: column; gap: .45rem; }
+        // search and sort on one row, the filters under them
+        .o_esv_list { flex: 1 1 auto; max-width: none; width: 100%; position: static; max-height: none; min-height: 0;
+            display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "search sort" "chips chips" "rows rows"; }
+        .o_esv_search { grid-area: search; margin: .45rem .3rem .3rem .45rem; input { min-height: 2.4rem; font-size: .9rem; } }
+        .o_esv_sortrow { grid-area: sort; border-bottom: 0; padding: .45rem .45rem .3rem 0; select { width: 7.8rem; } }
+        .o_esv_chips { grid-area: chips; border-bottom: 1px solid $esv-line; }
+        .o_esv_rows { grid-area: rows; }
+        // one swipeable row of filters instead of two wrapped ones
+        .o_esv_chips { flex-wrap: nowrap; overflow-x: auto; padding: 0 .45rem .35rem; scrollbar-width: none;
+            &::-webkit-scrollbar { display: none; }
+            .o_esv_chip { flex: 0 0 auto; padding: .2rem .65rem; font-size: .78rem; } }
+        .o_esv_sortrow .o_esv_keys { display: none; }
+        .o_esv_sortrow select { min-height: 2.4rem; font-size: .78rem; }
+        .o_esv_route { padding: .4rem .4rem .1rem; }
+        .o_esv_prow { min-height: 2.9rem; padding: .32rem .45rem; }
+        .o_esv_doc { display: none; width: 100%; padding: 0 .55rem .7rem; }
         .o_esv_showdetail {
             .o_esv_list { display: none; }
             .o_esv_doc { display: block; }
         }
-        .o_esv_back { display: inline-flex; align-items: center; justify-content: center; }
-        .o_esv_dochead { flex-wrap: wrap; }
-        .o_esv_docacts { width: 100%; .o_esv_btn { flex: 1 1 0; justify-content: center; min-height: 2.5rem; } }
+        // the name and the way back stay on screen while a long statement scrolls
+        .o_esv_dochead { position: sticky; top: 0; z-index: 3; background: #fff; flex-wrap: wrap; gap: .4rem .5rem;
+            margin: 0 -.55rem .5rem; padding: .5rem .55rem .45rem; box-shadow: 0 1px 0 $esv-line; }
+        .o_esv_back { display: inline-flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; }
+        .o_esv_who h3 { font-size: .98rem; }
+        .o_esv_meta { font-size: .7rem; gap: .15rem .6rem; }
+        .o_esv_addr { display: none; }
+        .o_esv_docacts { width: 100%; flex-wrap: nowrap; .o_esv_btn { flex: 1 1 0; justify-content: center; min-height: 2.3rem; } }
+        .o_esv_loading { top: .7rem; right: .7rem; }
+        .o_esv_mini { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .28rem; margin-bottom: .45rem;
+            > div { padding: .25rem .4rem; span { font-size: .54rem; } b { font-size: .78rem; } }
+            .k_due { order: 1; grid-column: span 2; b { font-size: .95rem; } }
+            .k_late { order: 2; } .k_open { order: 3; } .k_debit { order: 4; } .k_credit { order: 5; } }
+        .o_esv_age { margin-bottom: .5rem; }
+        .o_esv_agelegend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .1rem .6rem; font-size: .66rem; }
+    }
+}
+
+// ── the ledger as cards wherever a seven-column table would scroll sideways:
+//    phones and portrait tablets ────────────────────────────────────────────
+@media (max-width: 991.98px) {
+    .o_esv {
+        .o_esv_tablewrap { display: none; }
+        .o_esv_cards { display: block; border: 1px solid $esv-line; border-radius: .5rem; overflow: hidden; }
+        .o_esv_card { padding: .38rem .55rem; border-bottom: 1px solid #eef1f5; font-size: .76rem;
+            &:last-child { border-bottom: 0; }
+            &.late { box-shadow: inset 3px 0 0 $esv-bad; }
+            &.open { background: $esv-soft; color: $esv-muted; font-weight: 600; }
+            &.total { background: #fbf7fa; color: $esv-accent; font-weight: 700; } }
+        .o_esv_card_t { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem;
+            > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: $esv-muted;
+                b { color: $esv-ink; } em { font-style: normal; font-size: .64rem; } }
+            > b { flex: 0 0 auto; font-variant-numeric: tabular-nums; &.good { color: $esv-good; } } }
+        .o_esv_card_b { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; margin-top: .05rem;
+            .o_esv_card_d { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; em { font-style: normal; } }
+            .o_esv_card_bal { flex: 0 0 auto; font-size: .7rem; color: $esv-muted; font-variant-numeric: tabular-nums; } }
     }
 }
