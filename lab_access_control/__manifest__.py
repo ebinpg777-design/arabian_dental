@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Access Control',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'State-based write locks, role hierarchy and configuration security '
                'shared by the Lab field-force, order-control and finance modules.',
     'description': """
