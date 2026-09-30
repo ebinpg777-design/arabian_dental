@@ -10,8 +10,11 @@ import { useService } from "@web/core/utils/hooks";
  *   Heatmap   how full each slot was (hands on a job), how many jobs were handed on
  *             in it, and whether the person stood idle while work waited at their
  *             stations - the one pattern a lead can fix today.
- *   Timeline  the same day as bars: attendance behind, jobs on top, coloured by
- *             station, with the accept and hand-on marks.
+ *   Gantt     the same day as bars, one lane per job so "seven at once" reads as
+ *             seven bars: attendance behind, jobs on top coloured by station and
+ *             labelled with the sale order and the patient, the accept and hand-on
+ *             marks, and a time-use bar per person (on jobs / idle while work
+ *             waited / present with nothing on the bench).
  *   Floor     the whole floor per slot: people busy, jobs handed on, work waiting.
  *
  * Minutes arrive counted from the lab's local midnight, so nothing here does
@@ -232,6 +235,121 @@ export class LabTechDay extends Component {
         return Math.max(0.35, this.x(b) - this.x(a));
     }
 
+    // ------------------------------------------------------------ gantt
+    /**
+     * One lane per job. A bench span and the timer runs inside it are ONE job, drawn
+     * as one bar with the runs inset; carried-in work collapses into a single hatched
+     * band per person, because a hundred forgotten clocks are one fact, not a hundred
+     * lanes. Everything else is packed greedily, earliest first.
+     */
+    get gantt() {
+        if (!this.state.data) {
+            return [];
+        }
+        return this.rows.map((r) => {
+            const jobs = new Map();
+            const carried = [];
+            for (const s of r.segments) {
+                if (s.kind === "carried") {
+                    carried.push(s);
+                    continue;
+                }
+                let j = jobs.get(s.wo);
+                if (!j) {
+                    j = { wo: s.wo, seg: s, bench: null, runs: [], a: s.a, b: s.b, open: false };
+                    jobs.set(s.wo, j);
+                }
+                if (s.kind === "bench") {
+                    j.bench = s;
+                    j.seg = s;
+                    j.open = j.open || s.open;
+                } else {
+                    j.runs.push(s);
+                }
+                j.a = Math.min(j.a, s.a);
+                j.b = Math.max(j.b, s.b);
+            }
+            const list = [...jobs.values()].sort((p, q) => p.a - q.a || p.b - q.b);
+            const ends = [];
+            for (const j of list) {
+                let lane = ends.findIndex((e) => e <= j.a);
+                if (lane < 0) {
+                    lane = ends.length;
+                    ends.push(0);
+                }
+                ends[lane] = j.b;
+                j.lane = lane;
+                // a bench span carries its timer runs inset; a job only a timer put here
+                // is drawn as its runs
+                j.spans = j.bench ? [j.bench] : j.runs;
+                j.inner = j.bench ? j.runs : [];
+                j.timed = j.runs.filter((t) => t.kind === "timer").reduce((m, t) => m + (t.b - t.a), 0);
+                j.rush = j.seg.priority === "emergency" || j.seg.priority === "urgent";
+            }
+            const laneOf = {};
+            for (const j of list) {
+                laneOf[j.wo] = j.lane;
+            }
+            const band = carried.length
+                ? { n: new Set(carried.map((c) => c.wo)).size, a: Math.min(...carried.map((c) => c.a)), b: Math.max(...carried.map((c) => c.b)) }
+                : null;
+            return {
+                row: r, jobs: list, band, bandLane: ends.length,
+                lanes: Math.max(1, ends.length + (band ? 1 : 0)),
+                events: r.events.map((e) => ({ ...e, lane: laneOf[e.wo] ?? ends.length })),
+            };
+        });
+    }
+    laneTop(lane) {
+        return 6 + lane * 22;
+    }
+    trackHeight(g) {
+        return this.laneTop(g.lanes) + 4;
+    }
+    barLabel(j) {
+        const s = j.seg;
+        const who = s.so || s.mo || "Job";
+        return s.patient ? `${who} · ${s.patient}` : who;
+    }
+    barTitle(j) {
+        const s = j.seg, d = this.state.data;
+        const lines = [[s.so, s.mo].filter(Boolean).join(" · ") || "Job"];
+        const who = [s.patient, d.partners[s.partner_id]].filter(Boolean).join(" · ");
+        if (who) {
+            lines.push(who);
+        }
+        lines.push(`${this.stationName(s.station_id)} · ${this.hm(j.a)}–${j.open ? "open" : this.hm(j.b)} (${this.dur(j.b - j.a)})`);
+        if (j.inner.length) {
+            lines.push(`timer ${this.dur(j.timed)} in ${j.inner.length} run(s)`);
+        }
+        if (s.expected) {
+            lines.push(`costed ${this.dur(s.expected)}`);
+        }
+        if (j.rush) {
+            lines.push(s.priority.toUpperCase());
+        }
+        return lines.join("\n");
+    }
+    /** How the person's presence was spent: on jobs, idle while work waited, present with nothing on the bench. */
+    use(r) {
+        const present = Math.max(r.present, r.busy + r.idle_wait);
+        const free = Math.max(0, present - r.busy - r.idle_wait);
+        const pct = (m) => (present ? (m / present) * 100 : 0);
+        return { present, busy: r.busy, idle: r.idle_wait, free, pb: pct(r.busy), pi: pct(r.idle_wait), pf: pct(free) };
+    }
+    /** The stations that appear on the chart, so the colours are explained. */
+    get stationLegend() {
+        const seen = new Set();
+        for (const r of this.rows) {
+            for (const s of r.segments) {
+                if (s.kind !== "carried") {
+                    seen.add(s.station_id);
+                }
+            }
+        }
+        return (this.state.data.stations || []).filter((st) => seen.has(st.id)).map((st) => ({ id: st.id, name: st.name, color: this.stationColor(st.id) }));
+    }
+
     // ------------------------------------------------------------ floor chart
     get floorChart() {
         const d = this.state.data;
@@ -256,7 +374,24 @@ export class LabTechDay extends Component {
     openCell(row, cell) {
         const slot = this.state.data.slot;
         const a = cell.m, b = cell.m + slot;
-        const jobs = row.segments.filter((s) => s.a < b && s.b > a).map((s) => ({ ...s, inSlot: Math.min(s.b, b) - Math.max(s.a, a) }));
+        // one line per JOB: a bench span and the timer runs inside it are the same
+        // job, and the panel used to list it once per piece (client, 2026-09-30)
+        const byJob = new Map();
+        for (const s of row.segments) {
+            if (s.a >= b || s.b <= a) {
+                continue;
+            }
+            const here = Math.min(s.b, b) - Math.max(s.a, a);
+            const j = byJob.get(s.wo) || { seg: s, inSlot: 0, lo: s.a, hi: s.b };
+            if (s.kind === "bench" || s.kind === "carried") {
+                j.seg = s; // the bench span is what names the job
+            }
+            j.inSlot = Math.max(j.inSlot, here);
+            j.lo = Math.min(j.lo, s.a);
+            j.hi = Math.max(j.hi, s.b);
+            byJob.set(s.wo, j);
+        }
+        const jobs = [...byJob.values()].map((j) => ({ ...j.seg, inSlot: j.inSlot, a: j.lo, b: j.hi })).sort((p, q) => p.a - q.a);
         const events = row.events.filter((e) => e.m >= a && e.m < b);
         this.state.drawer = { kind: "cell", row, cell, jobs, events, a, b };
     }
@@ -270,7 +405,7 @@ export class LabTechDay extends Component {
         }
         for (const e of row.events) {
             const seg = row.segments.find((s) => s.wo === e.wo);
-            const what = seg ? `${seg.mo}${seg.patient ? " · " + seg.patient : ""}` : e.label;
+            const what = seg ? [seg.so, seg.mo].filter(Boolean).join(" · ") + (seg.patient ? " · " + seg.patient : "") : e.label;
             if (e.kind === "accept") {
                 story.push({ m: e.m, icon: "fa-play", text: `Picked up ${what} at ${this.stationName(e.station_id)}`, cls: "", wo: e.wo });
             } else if (e.kind === "handed") {
@@ -298,11 +433,18 @@ export class LabTechDay extends Component {
         const mixTotal = stationMix.reduce((t, s) => t + s.m, 0) || 1;
         this.state.drawer = { kind: "person", row, story, profile, slot, stationMix, mixTotal };
     }
+    /** A bar on the Gantt: the case behind it, with the way to its orders. */
+    openBar(row, j) {
+        this.state.drawer = { kind: "job", row, job: j, seg: j.seg, doctor: this.state.data.partners[j.seg.partner_id] || "" };
+    }
     closeDrawer() {
         this.state.drawer = null;
     }
     openJob(wo) {
         this.action.doAction({ type: "ir.actions.act_window", res_model: "mrp.workorder", res_id: wo, views: [[false, "form"]] });
+    }
+    openSale(id) {
+        this.action.doAction({ type: "ir.actions.act_window", res_model: "sale.order", res_id: id, views: [[false, "form"]] });
     }
     openStationFilter() {
         this.state.stationMenu = !this.state.stationMenu;

@@ -235,3 +235,45 @@ class TestTechDay(TransactionCase):
         self.stamp(today, self.asha, self.at(9, 0), self.at(10, 10))
         r = self.row(self.Day.get_day(day=fields.Date.to_string(self.day), slot=60), self.asha)
         self.assertEqual(r['usual_handed'], 0.5, "those weeks' jobs were Asha's, whoever scanned them")
+
+    # ------------------------------------------------------ what a bar says
+    # The chart and the slot list name the sale order and the patient, which is
+    # how the counter knows a case; the MO alone is the lab's own number. And a
+    # job that only Odoo's timer put on the chart is named all the same.
+    # (client, 2026-09-30)
+    def _order(self, patient):
+        clinic = self.env['res.partner'].create({'name': 'TD Clinic %s' % patient})
+        return self.env['sale.order'].create({
+            'partner_id': clinic.id, 'patient': patient,
+            'order_line': [(0, 0, {'product_id': self.product.id, 'product_uom_qty': 1})]})
+
+    def _sold(self, wo, patient):
+        """Tie the job to a sale order the way the lab's orders are tied: through the
+        line. `mrp.production.sale_id` is a stored related field on it, so writing
+        the order directly writes nothing."""
+        order = self._order(patient)
+        wo.production_id.sale_line_id = order.order_line[:1]
+        return order
+
+    def test_the_bar_names_the_sale_order_and_the_patient(self):
+        wo = self.job()
+        order = self._sold(wo, 'TD Patient')
+        self.stamp(wo, self.asha, self.at(9, 0), self.at(10, 0))
+        data = self.Day.get_day(day=fields.Date.to_string(self.day), slot=60)
+        seg = next(s for s in self.row(data, self.asha)['segments'] if s['wo'] == wo.id)
+        self.assertEqual((seg['so'], seg['so_id'], seg['mo'], seg['patient']),
+                         (order.name, order.id, wo.production_id.name, 'TD Patient'))
+        self.assertIn(order.partner_id.id, data['partners'], "the doctor's name is sent for the tooltip")
+
+    def test_a_job_only_a_timer_put_on_the_chart_is_named_too(self):
+        wo = self.job()
+        order = self._sold(wo, 'Timer Patient')
+        loss = self.env['mrp.workcenter.productivity.loss'].search([('loss_type', '=', 'productive')], limit=1)
+        self.env['mrp.workcenter.productivity'].create({
+            'workorder_id': wo.id, 'workcenter_id': self.bench.id, 'user_id': self.asha.id, 'loss_id': loss.id,
+            'date_start': self.at(11, 0), 'date_end': self.at(11, 30)})
+        data = self.Day.get_day(day=fields.Date.to_string(self.day), slot=60)
+        seg = next(s for s in self.row(data, self.asha)['segments'] if s['wo'] == wo.id)
+        self.assertEqual(seg['kind'], 'timer')
+        self.assertEqual((seg['so'], seg['mo'], seg['patient'], seg['partner_id']),
+                         (order.name, wo.production_id.name, 'Timer Patient', order.partner_id.id))

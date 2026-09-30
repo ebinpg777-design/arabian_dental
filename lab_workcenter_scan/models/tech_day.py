@@ -126,6 +126,7 @@ class LabTechDay(models.AbstractModel):
         Who pressed Accept on the board is not read at all."""
         return self.env.execute_query_dict(SQL("""
             SELECT wo.id, wo.name, wo.workcenter_id, wo.production_id, mo.name AS mo,
+                   so.id AS so_id, so.name AS so,
                    p.uid, wo.bench_user_id AS tech, wo.accepted_at, wo.handed_over_at,
                    COALESCE(wo.finisher_user_id, wo.bench_user_id) AS finisher,
                    wo.state, COALESCE(wo.duration_expected, 0) AS expected,
@@ -143,6 +144,22 @@ class LabTechDay(models.AbstractModel):
                AND (wo.handed_over_at >= %(start)s
                     OR (wo.handed_over_at IS NULL AND wo.state NOT IN ('done', 'cancel')))
         """, start=start, end=end, since=since))
+
+    @api.model
+    def _job_names(self, wo_ids):
+        """What a work order IS, for a bar that only a timer put on the chart: the
+        order, the sale order, the patient and the doctor."""
+        if not wo_ids:
+            return {}
+        rows = self.env.execute_query_dict(SQL("""
+            SELECT wo.id, wo.name, wo.production_id, mo.name AS mo, so.id AS so_id, so.name AS so,
+                   so.patient, so.partner_id, so.priority, COALESCE(wo.duration_expected, 0) AS expected
+              FROM mrp_workorder wo
+              JOIN mrp_production mo ON mo.id = wo.production_id
+         LEFT JOIN sale_order so ON so.id = mo.sale_id
+             WHERE wo.id IN %s
+        """, tuple(wo_ids)))
+        return {r['id']: r for r in rows}
 
     @api.model
     def _timers(self, start, end, now):
@@ -266,8 +283,9 @@ class LabTechDay(models.AbstractModel):
     def get_day(self, day=None, slot=60, station_ids=None, rostered=False):
         """Everything the screen draws for one day. Minutes count from local midnight."""
         self._check_day_access()
-        self.env['mrp.workorder'].flush_model()
-        self.env['mrp.workcenter.productivity'].flush_model()
+        # everything the SQL below reads - jobs, timers, the MO's order and its
+        # patient - or a write still in the cache is invisible to it
+        self.env.flush_all()
         Station = self.env['lab.station']
         tz = Station._lab_tz()
         day = fields.Date.to_date(day) if day else Station._lab_today()
@@ -330,7 +348,8 @@ class LabTechDay(models.AbstractModel):
                 self._fill(u['held'], a, b)
                 self._fill(u['active'], a, b)
                 self._add(u['stack'], a, b)
-            seg = {'wo': job['id'], 'name': job['name'], 'mo': job['mo'], 'production_id': job['production_id'],
+            seg = {'wo': job['id'], 'name': job['name'], 'mo': job['mo'], 'so': job['so'] or '', 'so_id': job['so_id'] or False,
+                   'production_id': job['production_id'],
                    'station_id': job['workcenter_id'], 'patient': (job['patient'] or '').strip(),
                    'partner_id': job['partner_id'], 'priority': job['priority'] or 'normal',
                    'a': a, 'b': b, 'kind': kind, 'open': not job['handed_over_at'],
@@ -367,18 +386,29 @@ class LabTechDay(models.AbstractModel):
                 handed_jobs[job['id']] = m
                 u['events'].append({'kind': 'handed', 'm': m, 'wo': job['id'],
                                     'station_id': job['workcenter_id'], 'label': job['mo']})
-        # timers on jobs that are not on anybody's bench (the plain Odoo start/stop)
+        # timers on jobs that are not on anybody's bench (the plain Odoo start/stop) -
+        # named all the same, so the bar says which case it was
+        named = self._job_names([wo_id for (wo_id, _uid) in timed])
         for (wo_id, uid), rows in timed.items():
             u = users[uid]
+            info = named.get(wo_id) or {}
+            if info.get('production_id'):
+                productions.add(info['production_id'])
+            if info.get('partner_id'):
+                partners.add(info['partner_id'])
+            base = {'wo': wo_id, 'name': info.get('name') or '', 'mo': info.get('mo') or '',
+                    'so': info.get('so') or '', 'so_id': info.get('so_id') or False,
+                    'production_id': info.get('production_id') or False,
+                    'patient': (info.get('patient') or '').strip(), 'partner_id': info.get('partner_id') or False,
+                    'priority': info.get('priority') or 'normal', 'expected': round(info.get('expected') or 0.0, 1),
+                    'accepted': None, 'handed': None}
             for t in rows:
                 ta, tb = self._minute(max(t['date_start'], start), start), self._minute(min(t['date_end'], end), start)
                 good = t['loss_type'] in ('productive', 'performance')
                 if stale(t):
                     u['carried'] += 1
                     self._fill(u['held'], ta, tb)
-                    u['segments'].append({'wo': wo_id, 'name': '', 'mo': '', 'production_id': False, 'station_id': t['workcenter_id'],
-                                          'patient': '', 'partner_id': False, 'priority': 'normal', 'a': ta, 'b': tb,
-                                          'kind': 'carried', 'open': True, 'expected': 0.0, 'accepted': None, 'handed': None})
+                    u['segments'].append(dict(base, station_id=t['workcenter_id'], a=ta, b=tb, kind='carried', open=True))
                     continue
                 if good:
                     self._fill(u['busy'], ta, tb)
@@ -387,10 +417,8 @@ class LabTechDay(models.AbstractModel):
                     self._fill(u['blocked'], ta, tb)
                 self._fill(u['active'], ta, tb)
                 u['stations'].add(t['workcenter_id'])
-                u['segments'].append({'wo': wo_id, 'name': '', 'mo': '', 'production_id': False, 'station_id': t['workcenter_id'],
-                                      'patient': '', 'partner_id': False, 'priority': 'normal', 'a': ta, 'b': tb,
-                                      'kind': 'timer' if good else 'blocked', 'open': False, 'expected': 0.0,
-                                      'accepted': None, 'handed': None})
+                u['segments'].append(dict(base, station_id=t['workcenter_id'], a=ta, b=tb,
+                                          kind='timer' if good else 'blocked', open=False))
         for wo_id, uid, at, wc in self._given(start, end):
             if keep(wc):
                 users[uid]['given'] += 1

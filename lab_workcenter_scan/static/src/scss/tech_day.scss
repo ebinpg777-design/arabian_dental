@@ -91,26 +91,36 @@ $td-bad: #b42318;
     .o_td_lg { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: .2rem; border: 1px solid rgba(0,0,0,.05);
         &.o_td_lg_ev { width: 8px; height: 8px; border-radius: 50%; &.accept { background: #fff; border: 2px solid $td-navy; } &.handed { background: $td-good; } } }
 
-    // timeline
+    // gantt
     .o_td_line { overflow-x: auto; }
-    .o_td_lrow { display: flex; align-items: stretch; min-width: 820px; border-bottom: 1px solid #f1f3f6; &.o_td_lhead { border-bottom: 1px solid $td-line; } }
-    .o_td_lname { flex: 0 0 200px; padding: .3rem .4rem .3rem 0; cursor: pointer; min-width: 0; }
+    .o_td_lrow { display: flex; align-items: stretch; min-width: 820px; border-bottom: 1px solid #f1f3f6;
+        &.o_td_lhead { border-bottom: 1px solid $td-line; } &.o_td_lfloor { border-top: 1px solid $td-line; border-bottom: 0; background: #fbfcfd; } }
+    .o_td_lname { flex: 0 0 210px; padding: .3rem .4rem .3rem 0; cursor: pointer; min-width: 0; }
     .o_td_ltrack { position: relative; flex: 1 1 auto; height: 40px; }
     .o_td_lhead .o_td_ltrack { height: 20px; }
+    .o_td_use { display: flex; height: 6px; width: 160px; border-radius: 3px; overflow: hidden; background: #f1f3f6; margin-top: .25rem;
+        span { display: block; height: 100%; } .busy { background: $td-navy; } .idle { background: #f7c98b; } .free { background: #dff3e4; } }
+    .o_td_barlbl { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .64rem; font-weight: 600; color: #fff; padding: 0 .3rem; line-height: 18px; text-shadow: 0 0 2px rgba(0,0,0,.25); }
+    .o_td_fbar { position: absolute; bottom: 2px; background: #cfe0ef; border-radius: 2px 2px 0 0; margin-left: 1px;
+        b { position: absolute; top: -13px; left: 0; right: 0; text-align: center; font-size: .6rem; color: $td-teal; } }
+    .o_td_stlegend { margin-top: .2rem; }
     .o_td_tick { position: absolute; top: 2px; transform: translateX(-50%); font-size: .62rem; color: $td-muted; }
     .o_td_grid { position: absolute; top: 0; bottom: 0; width: 1px; background: #eef1f5; }
     .o_td_att { position: absolute; top: 4px; bottom: 4px; background: #dff3e4; border-radius: 6px; }
     .o_td_waitmark { position: absolute; bottom: 2px; height: 5px; background: #f7c98b; border-radius: 3px; }
-    .o_td_bar { position: absolute; top: 10px; height: 20px; border-radius: 4px; background: var(--c); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
-        &.bench { background: var(--c); opacity: .85; }
-        &.timer { top: 12px; height: 16px; background: var(--c); opacity: 1; }
-        &.carried { background: repeating-linear-gradient(45deg, #cfd6df 0 3px, #fff 3px 6px); border: 1px solid #b8c2cf; }
-        &.blocked { background: repeating-linear-gradient(45deg, #f4b5b0 0 3px, #fff 3px 6px); }
+    .o_td_bar { position: absolute; height: 18px; border-radius: 4px; background: var(--c); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+        &.span { opacity: .88; }
+        // the timer runs: a strip along the foot of the bar, so the label stays readable
+        &.inner { height: 5px; border-radius: 2px; opacity: 1; box-shadow: none; filter: brightness(.7); pointer-events: none; z-index: 1;
+            &.blocked { background: repeating-linear-gradient(45deg, #f4b5b0 0 3px, #fff 3px 6px); } }
+        &.carried { background: repeating-linear-gradient(45deg, #cfd6df 0 3px, #fff 3px 6px); border: 1px solid #b8c2cf; opacity: 1;
+            .o_td_barlbl { color: $td-muted; text-shadow: none; } }
+        &.narrow .o_td_barlbl { display: none; }
         &.open { border-right: 3px dashed #fff; }
         &.rush { box-shadow: inset 0 -3px 0 $td-bad; }
         &:hover { filter: brightness(1.1); z-index: 2; } }
-    .o_td_ev { position: absolute; top: 15px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; z-index: 3; pointer-events: auto;
-        &.accept { background: #fff; border: 2px solid $td-navy; } &.handed { background: $td-good; border: 2px solid #fff; } &.given { top: 3px; width: 6px; height: 6px; margin-left: -3px; background: $td-muted; } }
+    .o_td_ev { position: absolute; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; z-index: 3; pointer-events: auto;
+        &.accept { background: #fff; border: 2px solid $td-navy; } &.handed { background: $td-good; border: 2px solid #fff; } &.given { width: 6px; height: 6px; margin-left: -3px; background: $td-muted; } }
     .o_td_now { position: absolute; top: 0; bottom: 0; width: 2px; background: $td-bad; z-index: 4; }
 
     // floor
@@ -141,6 +151,12 @@ $td-bad: #b42318;
     .o_td_ptoday { position: absolute; left: 25%; right: 25%; bottom: 0; background: $td-navy; border-radius: 2px; }
     .o_td_mix { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #f1f3f6; span { display: block; min-width: 2px; } }
     .o_td_mixlegend { display: flex; flex-wrap: wrap; gap: .6rem; font-size: .72rem; color: $td-navy; margin-top: .3rem; }
+    .o_td_facts { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .7rem; font-size: .82rem;
+        > div { display: flex; flex-direction: column; min-width: 0; span { font-size: .62rem; color: $td-muted; text-transform: uppercase; letter-spacing: .3px; }
+            b { color: $td-navy; overflow: hidden; text-overflow: ellipsis; } } }
+    .o_td_run { display: flex; align-items: baseline; gap: .5rem; font-size: .78rem; padding: .15rem 0; border-bottom: 1px solid #f1f3f6;
+        .o_td_stt { font-variant-numeric: tabular-nums; color: $td-muted; font-size: .72rem; } }
+    .o_td_actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: 1rem; }
     .o_td_story { border-left: 2px solid $td-line; margin-left: .4rem; }
     .o_td_st { display: flex; align-items: baseline; gap: .45rem; font-size: .78rem; padding: .22rem 0 .22rem .6rem; cursor: default; color: $td-navy;
         .o_td_stt { font-variant-numeric: tabular-nums; color: $td-muted; font-size: .72rem; width: 2.8rem; flex: 0 0 auto; }
