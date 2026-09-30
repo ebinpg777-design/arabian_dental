@@ -160,6 +160,74 @@ $efr-tones: (
         input { width: 100%; border: 1px solid var(--efr-line); border-radius: 1.2rem; padding: .22rem .5rem .22rem 1.6rem; font-size: .78rem; } }
     .o_efr_picklist .o_efr_check.on { font-weight: 600; color: #1d4ed8; }
 
+    // ── more filters: one card per question ──────────────────────────
+    // Hung from the filter bar, not from its own button: at this width a panel that
+    // starts under a button half-way along the bar runs off the right of the screen.
+    .o_efr_group_wide { position: static; }
+    .o_efr_pop.o_efr_mf { left: .75rem; right: .75rem; width: auto; max-width: 62rem; }
+    .o_efr_mf_x { border: 0; background: transparent; color: var(--efr-muted); width: 2rem; height: 2rem; border-radius: .4rem; flex: 0 0 auto;
+        &:hover { background: rgba(0, 0, 0, .07); color: var(--efr-ink); } }
+    .o_efr_mf_b { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .6rem; align-items: start;
+        padding: .7rem .75rem; background: #f6f8fb; }
+    .o_efr_mf_card { background: #fff; border: 1px solid var(--efr-line); border-radius: .6rem; padding: .55rem .65rem .65rem; min-width: 0; }
+    .o_efr_mf_h { display: flex; align-items: center; gap: .4rem; min-height: 1.5rem; margin-bottom: .45rem;
+        > i { color: var(--pt); width: 1rem; text-align: center; font-size: .82rem; }
+        > b { font-size: .85rem; color: var(--efr-ink); margin-right: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+    .o_efr_mf_n { background: var(--pt); color: #fff; border-radius: 1rem; padding: 0 .5rem; font-size: .68rem; font-weight: 700; line-height: 1.35rem; white-space: nowrap; }
+    .o_efr_mf_all { font-size: .7rem; color: var(--efr-muted); white-space: nowrap; }
+    .o_efr_mf_clr { border: 0; background: transparent; color: var(--efr-bad); font-size: .72rem; font-weight: 600; padding: .05rem .3rem; border-radius: .3rem;
+        &:hover { background: #fdecec; } }
+    .o_efr_mf_l { font-size: .66rem; text-transform: uppercase; letter-spacing: .4px; font-weight: 700; color: var(--efr-muted); margin: .6rem 0 .28rem; }
+    .o_efr_mf_h + .o_efr_mf_l { margin-top: 0; }
+    // off is plainly off: the old pills were tinted whether chosen or not
+    .o_efr_mf .o_efr_tagpick { display: inline-flex; align-items: center; gap: .3rem; border: 1.5px solid var(--efr-line); background: #fff; color: #475569;
+        border-radius: 1rem; padding: .18rem .65rem; font-size: .78rem; font-weight: 600; line-height: 1.3;
+        &:hover { border-color: #94a3b8; background: #f8fafc; }
+        &.on { background: var(--pt); border-color: var(--pt); color: #fff; }
+        i { font-size: .66rem; } }
+    .o_efr_mf_in { position: relative;
+        > i { position: absolute; left: .62rem; top: 50%; transform: translateY(-50%); color: var(--efr-muted); font-size: .76rem; }
+        input { width: 100%; border: 1.5px solid var(--efr-line); border-radius: .5rem; padding: .3rem 1.9rem; font-size: .82rem; min-height: 2.1rem;
+            &:focus { outline: 0; border-color: var(--pt); } } }
+    .o_efr_mf_inx { position: absolute; right: .3rem; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--efr-muted);
+        padding: .2rem .4rem; border-radius: .3rem; &:hover { color: var(--efr-ink); background: rgba(0, 0, 0, .07); } }
+    .o_efr_mf_range { display: flex; align-items: center; gap: .45rem;
+        input { flex: 1 1 0; min-width: 0; border: 1.5px solid var(--efr-line); border-radius: .5rem; padding: .3rem .55rem; font-size: .82rem; min-height: 2.1rem;
+            &:focus { outline: 0; border-color: var(--pt); } }
+        span { font-size: .76rem; color: var(--efr-muted); } }
+    .o_efr_mf_sw { margin-top: .65rem; padding-top: .45rem; border-top: 1px dashed var(--efr-line); }
+    .o_efr_switch { display: flex; align-items: center; gap: .55rem; font-size: .82rem; padding: .24rem 0; margin: 0; cursor: pointer; position: relative;
+        input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+        > span { flex: 0 0 auto; width: 2rem; height: 1.15rem; border-radius: 1rem; background: #cbd5e1; position: relative; transition: background .15s;
+            &::after { content: ""; position: absolute; top: .15rem; left: .15rem; width: .85rem; height: .85rem; border-radius: 50%; background: #fff;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; } }
+        input:checked + span { background: var(--pt); &::after { transform: translateX(.85rem); } }
+        input:focus-visible + span { outline: 2px solid rgba(29, 78, 216, .5); outline-offset: 2px; } }
+    .o_efr_mf .o_efr_picklist { max-height: 12.6rem; padding: .2rem; border-radius: .5rem; }
+    // the whole row is the target; the box only shows the choice
+    .o_efr_pk { display: flex; align-items: center; gap: .5rem; width: 100%; border: 0; background: transparent; text-align: left; color: var(--efr-ink);
+        padding: .26rem .4rem; border-radius: .35rem; font-size: .82rem; min-height: 1.95rem;
+        &:hover { background: var(--efr-soft); }
+        &.on { background: var(--ps, #eef1f5); color: var(--pt); font-weight: 600; }
+        // under the ones the report is already filtered by
+        &.sep { margin-top: .3rem; position: relative;
+            &::before { content: ""; position: absolute; left: .3rem; right: .3rem; top: -.17rem; border-top: 1px dashed var(--efr-line); } } }
+    .o_efr_pk_box { flex: 0 0 auto; width: 1rem; height: 1rem; border: 1.5px solid #94a3b8; border-radius: .25rem; background: #fff;
+        display: inline-flex; align-items: center; justify-content: center; font-size: .58rem; color: #fff; }
+    .o_efr_pk.on .o_efr_pk_box { background: var(--pt); border-color: var(--pt); &::after { content: "\f00c"; font-family: FontAwesome; } }
+    .o_efr_pk_n { min-width: 0; display: flex; flex-direction: column; line-height: 1.2;
+        > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        > em { font-style: normal; font-weight: 400; font-size: .67rem; color: var(--efr-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+    .o_efr_mf_step { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .25rem 0; font-size: .82rem;
+        > div { display: inline-flex; align-items: stretch; border: 1.5px solid var(--efr-line); border-radius: .5rem; overflow: hidden; flex: 0 0 auto; }
+        button { border: 0; background: #f1f5f9; width: 1.9rem; font-weight: 700; color: #334155; &:hover { background: #e2e8f0; } }
+        input { width: 3.2rem; border: 0; text-align: center; font-size: .84rem; font-weight: 600; min-height: 2rem; -moz-appearance: textfield;
+            &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+            &:focus { outline: 0; background: #f8fafc; } } }
+    .o_efr_mf_sum { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; padding: .45rem .75rem; max-height: 4.6rem; overflow-y: auto;
+        border-top: 1px solid var(--efr-line); background: #fff; }
+    .o_efr_mf_suml { font-size: .66rem; text-transform: uppercase; letter-spacing: .4px; font-weight: 700; color: var(--efr-muted); margin-right: .15rem; }
+
     // ── popovers ─────────────────────────────────────────────────────
     .o_efr_pop { position: absolute; top: calc(100% + .3rem); left: 0; z-index: 20; width: 19rem; max-width: 92vw;
         background: #fff; border: 1px solid var(--efr-line); border-radius: .6rem; box-shadow: 0 10px 30px rgba(31, 58, 95, .22);
@@ -540,6 +608,11 @@ $efr-tones: (
         .o_efr_table .o_efr_namebox > .o_efr_rowacts { margin-left: auto; padding-left: .3rem; }
         .o_efr_table > tbody > tr > td { padding-left: .45rem; padding-right: .45rem; }
         .o_efr_pop_wide { padding-bottom: 0; }
+        .o_efr_mf_b { grid-template-columns: minmax(0, 1fr); padding: .55rem; }
+        .o_efr_mf .o_efr_picklist { max-height: 11rem; }
+        .o_efr_pk { min-height: 2.5rem; font-size: .9rem; }
+        .o_efr_switch { padding: .45rem 0; font-size: .9rem; }
+        .o_efr_mf .o_efr_tagpick { padding: .35rem .8rem; font-size: .84rem; }
         .o_efr_pop_foot { position: sticky; bottom: 0; background: #fff; padding: .6rem 0; border-top: 1px solid var(--efr-line);
             .btn { flex: 1 1 0; min-height: 2.6rem; } }
         .o_efr_table .o_efr_ra_items { span { display: none; } padding: .2rem .5rem; }

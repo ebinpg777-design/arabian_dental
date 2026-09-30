@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Dynamic Financial Reports',
-    'version': '19.0.1.7.2',
+    'version': '19.0.1.8.0',
     'category': 'Accounting/Accounting',
     'summary': 'Balance sheet, profit & loss, cash flow, ledgers, ageing, tax and your own '
                'reports - folding, drilling, comparing, trending, annotated, exported and '

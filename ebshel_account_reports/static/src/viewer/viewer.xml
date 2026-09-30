@@ -298,96 +298,109 @@
                         </div>
                     </div>
                     <!-- the wider filters -->
-                    <div class="o_efr_group" t-if="state.report.wide_filters">
+                    <div class="o_efr_group o_efr_group_wide" t-if="state.report.wide_filters">
                         <button class="o_efr_f o_efr_f_more o_efr_popbtn" t-att-class="moreCount ? 'on' : ''" t-on-click="() => this.openMore()">
                             <i class="fa fa-filter"/>More filters<b t-if="moreCount" class="o_efr_count" t-esc="moreCount"/>
                         </button>
-                        <div class="o_efr_pop o_efr_pop_wide" t-if="state.menu === 'filters'">
-                            <div class="o_efr_fgrid">
-                                <div>
-                                    <div class="o_efr_pop_title">Journal type</div>
+                        <!-- One card per question, and nothing takes effect until Apply: the two
+                             switches and the bucket sizes used to reload the report the moment
+                             they were touched, closing the panel on whatever else was half chosen. -->
+                        <div class="o_efr_pop o_efr_pnl o_efr_pnl_more o_efr_mf" t-if="state.menu === 'filters'">
+                            <div class="o_efr_pnl_h">
+                                <span class="o_efr_pnl_i"><i class="fa fa-filter"/></span>
+                                <span class="o_efr_pnl_t"><b>More filters</b>
+                                    <span><t t-if="draftActive"><t t-esc="draftActive"/> in use — every figure on this report is narrowed by them</t><t t-else="">Narrow every figure on this report</t></span></span>
+                                <button class="o_efr_pnl_clear" t-if="draftActive" t-on-click="resetDraft"><i class="fa fa-eraser me-1"/>Clear all</button>
+                                <button class="o_efr_mf_x" t-on-click="() => state.menu = null" title="Close without applying"><i class="fa fa-times"/></button>
+                            </div>
+                            <div class="o_efr_pnl_b o_efr_mf_b">
+                                <!-- what kind of entry -->
+                                <div class="o_efr_mf_card">
+                                    <div class="o_efr_mf_h"><i class="fa fa-book"/><b>Entries</b></div>
+                                    <div class="o_efr_mf_l">Journal type</div>
                                     <div class="o_efr_tags">
-                                        <span t-foreach="state.choices.journal_types || []" t-as="t" t-key="t[0]" t-att-class="'o_efr_tagpick' + (state.draft.journal_types.includes(t[0]) ? ' on' : '')"
-                                              t-on-click="() => this.draftToggle('journal_types', t[0])" t-esc="t[1]"/>
+                                        <button type="button" t-foreach="state.choices.journal_types || []" t-as="t" t-key="t[0]"
+                                                t-att-class="'o_efr_tagpick' + (state.draft.journal_types.includes(t[0]) ? ' on' : '')"
+                                                t-on-click="() => this.draftToggle('journal_types', t[0])">
+                                            <i t-if="state.draft.journal_types.includes(t[0])" class="fa fa-check"/><t t-esc="t[1]"/>
+                                        </button>
                                     </div>
-                                    <div class="o_efr_pop_title mt-2">Label, reference or entry contains</div>
-                                    <input type="text" class="form-control form-control-sm" placeholder="e.g. rent, INV/2026" t-model="state.draft.label"/>
-                                    <div class="o_efr_pop_title mt-2">Amount of each item</div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <input type="number" min="0" step="any" class="form-control form-control-sm" placeholder="from" t-model="state.draft.amount_min"/>
-                                        <span class="small text-muted">to</span>
-                                        <input type="number" min="0" step="any" class="form-control form-control-sm" placeholder="no limit" t-model="state.draft.amount_max"/>
+                                    <div class="o_efr_mf_l">Label, reference or entry contains</div>
+                                    <div class="o_efr_mf_in">
+                                        <i class="fa fa-search"/>
+                                        <input type="text" placeholder="e.g. rent, INV/2026" t-model="state.draft.label"/>
+                                        <button type="button" t-if="state.draft.label" class="o_efr_mf_inx" t-on-click="() => state.draft.label = ''" title="Clear"><i class="fa fa-times"/></button>
                                     </div>
-                                    <label class="o_efr_check mt-2"><input type="checkbox" t-model="state.draft.unreconciled"/> Unreconciled items only</label>
-                                    <label class="o_efr_check" t-if="state.report.allow_posted_toggle">
-                                        <input type="checkbox" t-att-checked="!state.options.posted_only" t-on-change="() => this.toggleFlag('posted_only')"/> Include draft entries
-                                    </label>
-                                    <label class="o_efr_check" t-if="state.report.allow_hierarchy">
-                                        <input type="checkbox" t-att-checked="state.options.hierarchy" t-on-change="() => this.toggleFlag('hierarchy')"/> Group by account groups
-                                    </label>
+                                    <div class="o_efr_mf_l">Amount of each item</div>
+                                    <div class="o_efr_mf_range">
+                                        <input type="number" min="0" step="any" placeholder="from" t-model="state.draft.amount_min"/>
+                                        <span>to</span>
+                                        <input type="number" min="0" step="any" placeholder="no limit" t-model="state.draft.amount_max"/>
+                                    </div>
+                                    <div class="o_efr_mf_sw">
+                                        <label class="o_efr_switch"><input type="checkbox" t-model="state.draft.unreconciled"/><span/>Unreconciled items only</label>
+                                        <label class="o_efr_switch" t-if="state.report.allow_posted_toggle"><input type="checkbox" t-model="state.draft.drafts"/><span/>Include draft entries</label>
+                                        <label class="o_efr_switch" t-if="state.report.allow_hierarchy"><input type="checkbox" t-model="state.draft.hierarchy"/><span/>Group by account groups</label>
+                                    </div>
                                 </div>
-                                <div t-if="(state.choices.salespeople || []).length or (state.choices.teams || []).length">
-                                    <t t-if="(state.choices.salespeople || []).length">
-                                        <div class="o_efr_pop_title">Salesperson</div>
-                                        <div class="o_efr_picklist">
-                                            <div class="o_efr_mini_s"><i class="fa fa-search"/><input type="text" t-att-value="state.wideQ.salespeople || ''" placeholder="Find…"
-                                                   t-on-input="(ev) => state.wideQ.salespeople = ev.target.value"/></div>
-                                            <label t-foreach="wideList('salespeople')" t-as="u" t-key="u.id" t-att-class="'o_efr_check' + (state.draft.salespeople.includes(u.id) ? ' on' : '')">
-                                                <input type="checkbox" t-att-checked="state.draft.salespeople.includes(u.id)" t-on-change="() => this.draftToggle('salespeople', u.id)"/> <t t-esc="u.name"/>
-                                            </label>
-                                        </div>
-                                    </t>
-                                    <t t-if="(state.choices.teams || []).length">
-                                        <div class="o_efr_pop_title mt-2">Sales team</div>
-                                        <div class="o_efr_picklist">
-                                            <div class="o_efr_mini_s"><i class="fa fa-search"/><input type="text" t-att-value="state.wideQ.teams || ''" placeholder="Find…"
-                                                   t-on-input="(ev) => state.wideQ.teams = ev.target.value"/></div>
-                                            <label t-foreach="wideList('teams')" t-as="u" t-key="u.id" t-att-class="'o_efr_check' + (state.draft.teams.includes(u.id) ? ' on' : '')">
-                                                <input type="checkbox" t-att-checked="state.draft.teams.includes(u.id)" t-on-change="() => this.draftToggle('teams', u.id)"/> <t t-esc="u.name"/>
-                                            </label>
-                                        </div>
-                                    </t>
-                                </div>
-                                <div>
-                                    <t t-if="(state.choices.partner_categories || []).length">
-                                        <div class="o_efr_pop_title">Partner tag</div>
-                                        <div class="o_efr_picklist">
-                                            <div class="o_efr_mini_s"><i class="fa fa-search"/><input type="text" t-att-value="state.wideQ.partner_categories || ''" placeholder="Find…"
-                                                   t-on-input="(ev) => state.wideQ.partner_categories = ev.target.value"/></div>
-                                            <label t-foreach="wideList('partner_categories')" t-as="u" t-key="u.id" t-att-class="'o_efr_check' + (state.draft.partner_categories.includes(u.id) ? ' on' : '')">
-                                                <input type="checkbox" t-att-checked="state.draft.partner_categories.includes(u.id)" t-on-change="() => this.draftToggle('partner_categories', u.id)"/> <t t-esc="u.name"/>
-                                            </label>
-                                        </div>
-                                    </t>
-                                    <div class="o_efr_pop_title" t-att-class="(state.choices.partner_categories || []).length ? 'mt-2' : ''">Product category</div>
+                                <!-- one card per list: who sold it, on which route, which kind of partner, which kind of product -->
+                                <div t-foreach="wideCards" t-as="c" t-key="c.key" class="o_efr_mf_card">
+                                    <div class="o_efr_mf_h"><i t-att-class="'fa ' + c.icon"/><b t-esc="c.title"/>
+                                        <t t-if="c.chosen">
+                                            <span class="o_efr_mf_n"><t t-esc="c.chosen"/> selected</span>
+                                            <button type="button" class="o_efr_mf_clr" t-on-click="() => this.clearWide(c.key)">Clear</button>
+                                        </t>
+                                        <span t-else="" class="o_efr_mf_all">all <t t-esc="c.total"/></span>
+                                    </div>
+                                    <div class="o_efr_mini_s" t-if="c.total &gt; 7"><i class="fa fa-search"/>
+                                        <input type="text" t-att-value="state.wideQ[c.key] || ''" t-att-placeholder="'Find among ' + c.total + '…'"
+                                               t-on-input="(ev) => state.wideQ[c.key] = ev.target.value"/></div>
                                     <div class="o_efr_picklist">
-                                        <div class="o_efr_mini_s"><i class="fa fa-search"/><input type="text" t-att-value="state.wideQ.product_categories || ''" placeholder="Find…"
-                                                   t-on-input="(ev) => state.wideQ.product_categories = ev.target.value"/></div>
-                                            <label t-foreach="wideList('product_categories')" t-as="u" t-key="u.id" t-att-class="'o_efr_check' + (state.draft.product_categories.includes(u.id) ? ' on' : '')">
-                                                <input type="checkbox" t-att-checked="state.draft.product_categories.includes(u.id)" t-on-change="() => this.draftToggle('product_categories', u.id)"/> <t t-esc="u.name"/>
-                                            </label>
+                                        <button type="button" t-foreach="c.items" t-as="u" t-key="u.id" t-att-title="u.name"
+                                                t-att-class="'o_efr_pk' + (u.on ? ' on' : '') + (u.sep ? ' sep' : '')" t-on-click="() => this.draftToggle(c.key, u.id)">
+                                            <span class="o_efr_pk_box"/>
+                                            <span class="o_efr_pk_n"><span t-esc="u.leaf"/><em t-if="u.path" t-esc="u.path"/></span>
+                                        </button>
+                                        <div t-if="!c.items.length" class="o_efr_pnl_none">Nothing by that name.</div>
                                     </div>
+                                </div>
+                                <!-- what this report alone can be asked -->
+                                <div class="o_efr_mf_card" t-if="(state.report.extra_filters || []).length">
+                                    <div class="o_efr_mf_h"><i class="fa fa-sliders"/><b>This report</b></div>
+                                    <t t-foreach="state.report.extra_filters" t-as="f" t-key="f.key">
+                                        <label class="o_efr_switch" t-if="f.type === 'toggle'">
+                                            <input type="checkbox" t-att-checked="state.draft.extra[f.key]" t-on-change="(ev) => state.draft.extra[f.key] = ev.target.checked"/><span/><t t-esc="f.label"/>
+                                        </label>
+                                        <div class="o_efr_mf_step" t-if="f.type === 'int'">
+                                            <span t-esc="f.label"/>
+                                            <div>
+                                                <button type="button" t-on-click="() => this.bumpExtra(f.key, -1)" title="One less">−</button>
+                                                <input type="number" min="1" t-att-value="state.draft.extra[f.key]" t-on-change="(ev) => this.setDraftExtra(f.key, ev.target.value)"/>
+                                                <button type="button" t-on-click="() => this.bumpExtra(f.key, 1)" title="One more">+</button>
+                                            </div>
+                                        </div>
+                                        <t t-if="f.type === 'multi'">
+                                            <div class="o_efr_mf_l" t-esc="f.label"/>
+                                            <div class="o_efr_tags">
+                                                <button type="button" t-foreach="f.choices" t-as="ch" t-key="ch[0]"
+                                                        t-att-class="'o_efr_tagpick' + ((state.draft.extra[f.key] || []).includes(ch[0]) ? ' on' : '')"
+                                                        t-on-click="() => this.draftExtraMulti(f.key, ch[0])">
+                                                    <i t-if="(state.draft.extra[f.key] || []).includes(ch[0])" class="fa fa-check"/><t t-esc="ch[1]"/>
+                                                </button>
+                                            </div>
+                                        </t>
+                                    </t>
                                 </div>
                             </div>
-                            <t t-foreach="state.report.extra_filters" t-as="f" t-key="f.key">
-                                <label class="o_efr_check" t-if="f.type === 'toggle'">
-                                    <input type="checkbox" t-att-checked="state.options[f.key]" t-on-change="() => this.toggleFlag(f.key)"/> <t t-esc="f.label"/>
-                                </label>
-                                <div class="d-flex align-items-center gap-2 my-1" t-if="f.type === 'int'">
-                                    <span class="small" t-esc="f.label"/>
-                                    <input type="number" class="form-control form-control-sm o_efr_num" t-att-value="state.options[f.key]"
-                                           t-on-change="(ev) => this.setExtra(f.key, parseInt(ev.target.value))"/>
-                                </div>
-                                <div t-if="f.type === 'multi'" class="my-1">
-                                    <div class="small text-muted" t-esc="f.label"/>
-                                    <label t-foreach="f.choices" t-as="c" t-key="c[0]" class="o_efr_check">
-                                        <input type="checkbox" t-att-checked="(state.options[f.key] || []).includes(c[0])" t-on-change="() => this.toggleExtraMulti(f.key, c[0])"/> <t t-esc="c[1]"/>
-                                    </label>
-                                </div>
-                            </t>
-                            <div class="o_efr_pop_foot">
-                                <button class="o_efr_pnl_clear me-auto" t-on-click="resetDraft"><i class="fa fa-eraser me-1"/>Reset all</button>
-                                <button class="btn btn-sm btn-light" t-on-click="() => state.menu = null">Close</button>
+                            <!-- what is chosen, in one line, whatever is scrolled out of sight above -->
+                            <div class="o_efr_mf_sum" t-if="draftSummary.length">
+                                <span class="o_efr_mf_suml">Showing only</span>
+                                <span t-foreach="draftSummary" t-as="sm" t-key="sm.key" class="o_efr_achip o_efr_ac_more">
+                                    <b t-esc="sm.label"/> <t t-esc="sm.text"/><i class="fa fa-times o_efr_achip_x" t-on-click="() => this.clearWide(sm.key)" title="Remove"/>
+                                </span>
+                            </div>
+                            <div class="o_efr_pnl_f">
+                                <button class="btn btn-light" t-on-click="() => state.menu = null">Cancel</button>
                                 <button class="o_efr_pnl_go" t-on-click="applyMore" t-att-disabled="!draftChanges">
                                     <i class="fa fa-check me-1"/><t t-if="draftChanges">Apply <t t-esc="draftChanges"/> change<t t-if="draftChanges !== 1">s</t></t><t t-else="">No change</t></button>
                             </div>

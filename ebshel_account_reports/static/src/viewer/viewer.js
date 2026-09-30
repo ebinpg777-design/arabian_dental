@@ -1608,12 +1608,121 @@ export class FinReportViewer extends Component {
     }
 
     // ------------------------------------------------------------------ the wider filters
-    /** One list of the wider filters, narrowed by what is typed over it, the chosen ones first. */
+    /**
+     * One list of the wider filters, narrowed by what is typed over it.
+     *
+     * What the report is ALREADY filtered by comes first; what is ticked now stays
+     * where it is. Sorting by the live ticks moved a row to the top under the cursor
+     * the moment it was clicked, so the next click landed on a different name.
+     */
     wideList(key) {
         const q = this.state.wideQ[key] || "";
         const chosen = new Set(this.state.draft[key] || []);
+        const applied = new Set(this.state.options[key] || []);
         const items = (this.state.choices[key] || []).filter((i) => chosen.has(i.id) || this.matches(q, i.name));
-        return items.sort((a, b) => Number(chosen.has(b.id)) - Number(chosen.has(a.id)));
+        return items.sort((a, b) => Number(applied.has(b.id)) - Number(applied.has(a.id)));
+    }
+
+    /** The lists as cards: only those this database has anything to offer for. */
+    get wideCards() {
+        const cards = [];
+        for (const [key, title, icon] of [
+            ["salespeople", _t("Salesperson"), "fa-user"], ["teams", _t("Sales team"), "fa-users"],
+            ["partner_categories", _t("Partner tag"), "fa-tag"], ["product_categories", _t("Product category"), "fa-cubes"],
+        ]) {
+            const all = this.state.choices[key] || [];
+            if (!all.length) {
+                continue;
+            }
+            const chosen = new Set(this.state.draft[key] || []);
+            const applied = new Set(this.state.options[key] || []);
+            // a root every name shares ("ALL / …") says nothing under each row
+            const nested = all.map((i) => String(i.name).split(" / ")).filter((p) => p.length > 1);
+            const root = nested.length && nested.every((p) => p[0] === nested[0][0]) ? nested[0][0] : null;
+            let wasApplied = false;
+            const items = this.wideList(key).map((i) => {
+                // "ALL / SALEABLE / CLASSIC FIXED APPLIANCES" is its last word, under its path
+                let parts = String(i.name).split(" / ");
+                if (root && parts.length > 1 && parts[0] === root) {
+                    parts = parts.slice(1);
+                }
+                const isApplied = applied.has(i.id);
+                const sep = wasApplied && !isApplied;
+                wasApplied = isApplied;
+                return { id: i.id, name: i.name, on: chosen.has(i.id), sep, leaf: parts[parts.length - 1],
+                         path: parts.length > 1 ? parts.slice(0, -1).join(" / ") : "" };
+            });
+            cards.push({ key, title, icon, total: all.length, chosen: chosen.size, items });
+        }
+        return cards;
+    }
+
+    /** How many of the filters are set in the panel as it stands. */
+    get draftActive() {
+        const d = this.state.draft;
+        if (!d || !d.journal_types) {
+            return 0;
+        }
+        let n = 0;
+        for (const key of ["journal_types", "partner_categories", "salespeople", "teams", "product_categories"]) {
+            n += (d[key] || []).length ? 1 : 0;
+        }
+        return n + (d.label ? 1 : 0) + (d.amount_min !== "" || d.amount_max !== "" ? 1 : 0) + (d.unreconciled ? 1 : 0);
+    }
+
+    /** What is chosen, one chip a filter, for the line above the buttons. */
+    get draftSummary() {
+        const d = this.state.draft, c = this.state.choices, out = [];
+        if (!d || !d.journal_types) {
+            return out;
+        }
+        const few = (names) => (names.length > 3 ? `${names.slice(0, 3).join(", ")} +${names.length - 3}` : names.join(", "));
+        const leaf = (name) => String(name || "").split(" / ").pop();
+        const named = (key) => few((d[key] || []).map((id) => leaf(this.nameIn(c[key], id))).filter(Boolean));
+        for (const [key, label] of [["journal_types", _t("Journal")], ["salespeople", _t("Salesperson")], ["teams", _t("Team")],
+                                    ["partner_categories", _t("Tag")], ["product_categories", _t("Category")]]) {
+            if ((d[key] || []).length) {
+                out.push({ key, label, text: named(key) });
+            }
+        }
+        if (d.label) {
+            out.push({ key: "label", label: _t("Contains"), text: d.label });
+        }
+        if (d.amount_min !== "" || d.amount_max !== "") {
+            out.push({ key: "amount", label: _t("Amount"), text: `${d.amount_min === "" ? "0" : d.amount_min} – ${d.amount_max === "" ? _t("no limit") : d.amount_max}` });
+        }
+        if (d.unreconciled) {
+            out.push({ key: "unreconciled", label: _t("Unreconciled"), text: "" });
+        }
+        return out;
+    }
+
+    clearWide(key) {
+        const d = this.state.draft;
+        if (key === "label") {
+            d.label = "";
+        } else if (key === "amount") {
+            d.amount_min = "";
+            d.amount_max = "";
+        } else if (key === "unreconciled") {
+            d.unreconciled = false;
+        } else {
+            d[key] = [];
+            delete this.state.wideQ[key];
+        }
+    }
+
+    // what the report alone can be asked (bucket sizes, accounts without movement…)
+    setDraftExtra(key, value) {
+        const n = parseInt(value);
+        this.state.draft.extra[key] = Number.isFinite(n) ? Math.max(1, n) : 1;
+    }
+    bumpExtra(key, step) {
+        this.setDraftExtra(key, (parseInt(this.state.draft.extra[key]) || 0) + step);
+    }
+    draftExtraMulti(key, value) {
+        const list = this.state.draft.extra[key] || [];
+        this.state.draft.extra[key] = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
     }
 
     get draftChanges() {
@@ -1631,6 +1740,20 @@ export class FinReportViewer extends Component {
         n += String(o.amount_min ?? "") !== String(d.amount_min ?? "") ? 1 : 0;
         n += String(o.amount_max ?? "") !== String(d.amount_max ?? "") ? 1 : 0;
         n += !!o.unreconciled !== !!d.unreconciled ? 1 : 0;
+        // the switches and this report's own settings wait for Apply like the rest
+        const r = this.state.report || {};
+        if (r.allow_posted_toggle) {
+            n += !o.posted_only !== !!d.drafts ? 1 : 0;
+        }
+        if (r.allow_hierarchy) {
+            n += !!o.hierarchy !== !!d.hierarchy ? 1 : 0;
+        }
+        const same = (a, b) => (Array.isArray(a) || Array.isArray(b)
+            ? JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort())
+            : String(a ?? "") === String(b ?? ""));
+        for (const f of r.extra_filters || []) {
+            n += same(o[f.key], (d.extra || {})[f.key]) ? 0 : 1;
+        }
         return n;
     }
 
@@ -1698,6 +1821,9 @@ export class FinReportViewer extends Component {
             amount_min: o.amount_min === null || o.amount_min === undefined ? "" : o.amount_min,
             amount_max: o.amount_max === null || o.amount_max === undefined ? "" : o.amount_max,
             unreconciled: !!o.unreconciled,
+            drafts: !o.posted_only, hierarchy: !!o.hierarchy,
+            extra: Object.fromEntries(((this.state.report || {}).extra_filters || []).map(
+                (f) => [f.key, Array.isArray(o[f.key]) ? [...o[f.key]] : o[f.key]])),
         };
         this.state.wideQ = {};
         this.openMenu("filters");
@@ -1714,13 +1840,21 @@ export class FinReportViewer extends Component {
     }
 
     applyMore() {
-        const d = this.state.draft;
-        this.reload({
+        const d = this.state.draft, r = this.state.report || {};
+        const patch = {
             journal_types: d.journal_types, partner_categories: d.partner_categories, salespeople: d.salespeople,
             teams: d.teams, product_categories: d.product_categories, label: d.label,
             amount_min: d.amount_min === "" ? null : Number(d.amount_min),
             amount_max: d.amount_max === "" ? null : Number(d.amount_max), unreconciled: d.unreconciled,
-        });
+            ...(d.extra || {}),
+        };
+        if (r.allow_posted_toggle) {
+            patch.posted_only = !d.drafts;
+        }
+        if (r.allow_hierarchy) {
+            patch.hierarchy = !!d.hierarchy;
+        }
+        this.reload(patch);
     }
 
     get moreCount() {
