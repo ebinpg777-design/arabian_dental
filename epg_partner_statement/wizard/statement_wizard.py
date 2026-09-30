@@ -220,6 +220,29 @@ class PartnerStatementWizard(models.TransientModel):
         return partners
 
     # ------------------------------------------------------------------ actions
+    def action_view(self):
+        """The statements on screen - the same partners and filters Print would use.
+
+        Everything the screen needs rides in its params (not the wizard id), so it
+        still works after the transient wizard is cleaned away or the page reloads.
+        """
+        partners = self._checked_partners()
+        options = self._options()
+        return {
+            'type': 'ir.actions.client', 'tag': 'epg_statement_view',
+            'name': _('Statements'),
+            'params': {
+                'partner_ids': partners.ids,
+                'data': {
+                    'statement_type': options['statement_type'],
+                    'date_from': str(options['date_from']), 'date_to': str(options['date_to']),
+                    'company_id': options['company'].id, 'open_items_only': options['open_items_only'],
+                    'show_ageing': options['show_ageing'],
+                    **self.env['epg.partner.statement'].entered_data(options)},
+                'routes': self.team_ids.mapped('name'),
+            },
+        }
+
     def action_print(self):
         partners = self._checked_partners()
         options = self._options()

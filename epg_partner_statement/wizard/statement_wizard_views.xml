@@ -44,7 +44,8 @@
                     </group>
                 </group>
                 <footer>
-                    <button name="action_print" type="object" string="Print PDF" class="btn-primary" data-hotkey="q"/>
+                    <button name="action_view" type="object" string="View statements" class="btn-primary" icon="fa-eye" data-hotkey="v"/>
+                    <button name="action_print" type="object" string="Print PDF" data-hotkey="q"/>
                     <button name="action_export_xlsx" type="object" string="Export Excel"/>
                     <button name="action_send_email" type="object" string="Send by E-mail"
                             confirm="E-mail the statement (PDF attached) to every selected partner that has an e-mail address?"/>

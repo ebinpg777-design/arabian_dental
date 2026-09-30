@@ -1,0 +1,135 @@
+// The statements on screen. SCSS variables only: Odoo 19's backend has no --bs-* properties.
+$esv-ink: #1f2937;
+$esv-navy: #1f3a5f;
+$esv-muted: #6b7280;
+$esv-line: #e5e9f0;
+$esv-soft: #f6f8fb;
+$esv-good: #067647;
+$esv-bad: #b42318;
+$esv-warn: #b45309;
+$esv-accent: #714b67;
+
+.o_esv {
+    display: flex; flex-direction: column; min-height: 100%; background: $esv-soft; color: $esv-ink; padding: .8rem 1rem 1rem;
+    .o_esv_wait { padding: 3rem; text-align: center; color: $esv-muted; }
+    .o_esv_head { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-bottom: .7rem; }
+    .o_esv_titles { flex: 1 1 auto; min-width: 0;
+        h2 { margin: 0; font-size: 1.35rem; font-weight: 700; color: $esv-navy; }
+        .o_esv_period { font-weight: 500; color: $esv-muted; font-size: 1rem; margin-left: .35rem; } }
+    .o_esv_eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .5px; color: $esv-accent; font-weight: 700; }
+    .o_esv_sub { font-size: .8rem; color: $esv-muted; margin-top: .1rem; }
+    .o_esv_acts, .o_esv_docacts { display: flex; gap: .35rem; flex-wrap: wrap; }
+    .o_esv_btn { border: 1px solid $esv-line; background: #fff; color: $esv-ink; border-radius: .45rem; padding: .32rem .7rem; font-size: .8rem; font-weight: 600;
+        display: inline-flex; align-items: center; gap: .35rem; min-height: 2rem;
+        &:hover:not([disabled]) { background: #f1f3f8; border-color: #cfd6e2; }
+        &[disabled] { opacity: .45; cursor: default; } }
+
+    .o_esv_kpis { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
+    .o_esv_kpi { flex: 1 1 9rem; min-width: 0; background: #fff; border: 1px solid $esv-line; border-left: 4px solid $esv-navy; border-radius: .55rem; padding: .4rem .7rem;
+        display: flex; flex-direction: column;
+        span { font-size: .66rem; text-transform: uppercase; letter-spacing: .4px; font-weight: 700; color: $esv-muted; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        b { font-size: 1.1rem; color: $esv-navy; white-space: nowrap; }
+        em { font-style: normal; font-size: .68rem; color: $esv-muted; }
+        &.good { border-left-color: $esv-good; b { color: $esv-good; } }
+        &.main { border-left-color: $esv-accent; background: #fbf7fa; b { color: $esv-accent; } }
+        &.bad { border-left-color: $esv-bad; b { color: $esv-bad; } } }
+
+    .o_esv_body { flex: 1 1 auto; display: flex; gap: .7rem; min-height: 0; align-items: flex-start; }
+    // ── the list ──
+    .o_esv_list { flex: 0 0 22rem; max-width: 40%; background: #fff; border: 1px solid $esv-line; border-radius: .6rem; display: flex; flex-direction: column;
+        position: sticky; top: .5rem; max-height: calc(100vh - 13rem); min-height: 16rem; }
+    .o_esv_search { position: relative; margin: .6rem .6rem .35rem;
+        i { position: absolute; left: .7rem; top: 50%; transform: translateY(-50%); color: $esv-muted; font-size: .8rem; }
+        input { width: 100%; border: 1.5px solid $esv-line; border-radius: 2rem; padding: .35rem .8rem .35rem 2rem; font-size: .84rem; min-height: 2.2rem;
+            &:focus { outline: 0; border-color: $esv-accent; } } }
+    .o_esv_chips { display: flex; flex-wrap: wrap; gap: .25rem; padding: 0 .6rem .35rem; }
+    .o_esv_chip { border: 1.5px solid $esv-line; background: #fff; color: #475569; border-radius: 1rem; padding: .08rem .55rem; font-size: .74rem; font-weight: 600;
+        b { font-weight: 700; margin-left: .15rem; opacity: .75; }
+        &:hover { border-color: #b7c0cf; }
+        &.on { background: $esv-navy; border-color: $esv-navy; color: #fff; }
+        &.warn:not(.on) { color: $esv-bad; } }
+    .o_esv_sortrow { display: flex; align-items: center; gap: .4rem; padding: 0 .6rem .45rem; border-bottom: 1px solid $esv-line;
+        select { flex: 1 1 auto; border: 1px solid $esv-line; border-radius: .4rem; font-size: .76rem; padding: .15rem .3rem; color: $esv-ink; background: #fff; }
+        .o_esv_keys { font-size: .7rem; color: $esv-muted; } }
+    .o_esv_rows { overflow-y: auto; flex: 1 1 auto; padding: .25rem .3rem .5rem; }
+    .o_esv_route { font-size: .66rem; text-transform: uppercase; letter-spacing: .4px; font-weight: 700; color: $esv-accent; padding: .5rem .45rem .2rem; }
+    .o_esv_prow { display: flex; align-items: center; gap: .5rem; width: 100%; border: 0; background: transparent; text-align: left; border-radius: .45rem;
+        padding: .38rem .5rem; color: $esv-ink; border-left: 3px solid transparent;
+        &:hover { background: $esv-soft; }
+        &.on { background: #f4eef3; border-left-color: $esv-accent; }
+        &.quiet { opacity: .6; } }
+    .o_esv_pn { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25;
+        b { font-size: .82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        em { font-style: normal; font-size: .68rem; color: $esv-muted; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+    .o_esv_pa { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25;
+        b { font-size: .8rem; font-variant-numeric: tabular-nums; &.credit { color: $esv-good; } }
+        em.late { font-style: normal; font-size: .66rem; color: $esv-bad; font-weight: 600; } }
+    .o_esv_none { padding: 2rem 1rem; text-align: center; color: $esv-muted; font-size: .85rem; }
+
+    // ── the statement ──
+    .o_esv_doc { flex: 1 1 auto; min-width: 0; background: #fff; border: 1px solid $esv-line; border-radius: .6rem; padding: .8rem 1rem 1rem; position: relative; }
+    .o_esv_dochead { display: flex; align-items: flex-start; gap: .8rem; padding-bottom: .6rem; border-bottom: 1px solid $esv-line; margin-bottom: .7rem; }
+    .o_esv_back { display: none; border: 0; background: $esv-soft; border-radius: .45rem; width: 2.3rem; height: 2.3rem; flex: 0 0 auto; }
+    .o_esv_who { flex: 1 1 auto; min-width: 0;
+        h3 { margin: 0; font-size: 1.1rem; font-weight: 700; color: $esv-navy; } }
+    .o_esv_meta { display: flex; flex-wrap: wrap; gap: .3rem .9rem; font-size: .76rem; color: $esv-muted; margin-top: .15rem; i { margin-right: .15rem; } }
+    .o_esv_addr { font-size: .74rem; color: $esv-muted; margin-top: .1rem; }
+    .o_esv_loading { position: absolute; top: .9rem; right: 1rem; color: $esv-muted; }
+    .o_esv_block + .o_esv_block { margin-top: 1.2rem; }
+    .o_esv_mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .4rem; margin-bottom: .6rem;
+        > div { background: $esv-soft; border-radius: .45rem; padding: .35rem .55rem; display: flex; flex-direction: column; min-width: 0;
+            span { font-size: .64rem; text-transform: uppercase; letter-spacing: .35px; color: $esv-muted; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            b { font-size: .95rem; color: $esv-navy; white-space: nowrap; font-variant-numeric: tabular-nums; }
+            &.main { background: #f4eef3; b { color: $esv-accent; } }
+            &.bad b { color: $esv-bad; } } }
+    // ageing: grey to red as it gets later
+    $esv-age: (#94a3b8, #f59e0b, #f97316, #ef4444, #991b1b);
+    .o_esv_age { margin-bottom: .7rem; }
+    .o_esv_agebar { display: flex; height: .55rem; border-radius: .3rem; overflow: hidden; background: #eef1f5; }
+    .o_esv_agelegend { display: flex; flex-wrap: wrap; gap: .2rem .9rem; font-size: .72rem; color: $esv-ink; margin-top: .3rem;
+        i { display: inline-block; width: .55rem; height: .55rem; border-radius: 2px; margin-right: .3rem; }
+        .nil { opacity: .45; } }
+    @for $i from 1 through 5 {
+        .o_esv_agebar .a#{$i - 1}, .o_esv_agelegend i.a#{$i - 1} { background: nth($esv-age, $i); }
+    }
+    .o_esv_tablewrap { overflow-x: auto; }
+    .o_esv_table { width: 100%; border-collapse: collapse; font-size: .8rem;
+        th { font-size: .66rem; text-transform: uppercase; letter-spacing: .35px; color: $esv-muted; font-weight: 700; padding: .35rem .5rem;
+            border-bottom: 2px solid $esv-line; text-align: left; white-space: nowrap; }
+        td { padding: .38rem .5rem; border-bottom: 1px solid #eef1f5; vertical-align: top; }
+        .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .nowrap { white-space: nowrap; }
+        .good { color: $esv-good; }
+        .strong { font-weight: 700; }
+        tr.link { cursor: pointer; &:hover td { background: #fafbfd; } }
+        tr.late td:first-child { box-shadow: inset 3px 0 0 $esv-bad; }
+        tr.o_esv_open td { background: $esv-soft; font-weight: 600; color: $esv-muted; }
+        tfoot td { font-weight: 700; border-top: 2px solid $esv-line; border-bottom: 0; background: #fbf7fa; color: $esv-accent; } }
+    .o_esv_kind { font-size: .66rem; color: $esv-muted; }
+    .o_esv_desc { min-width: 12rem; }
+    .o_esv_pat { color: $esv-muted; }
+    .o_esv_ref { font-size: .68rem; color: $esv-muted; }
+    .o_esv_late { font-size: .66rem; color: $esv-bad; font-weight: 600; }
+    .o_esv_paid { font-size: .66rem; color: $esv-good; font-weight: 600; }
+}
+html .o_web_client > .o_action_manager > .o_action.o_esv { overflow-y: auto; min-height: 0; }
+
+// a phone: the list, then the statement in its place, with a way back
+@media (max-width: 767px) {
+    .o_esv { padding: .5rem .5rem 1rem;
+        .o_esv_head { align-items: flex-start; }
+        .o_esv_acts { width: 100%; .o_esv_btn { flex: 1 1 0; justify-content: center; min-height: 2.5rem; } }
+        .o_esv_kpi { flex: 1 1 42%; }
+        .o_esv_body { flex-direction: column; }
+        .o_esv_list { flex: 1 1 auto; max-width: none; width: 100%; position: static; max-height: none; }
+        .o_esv_prow { min-height: 3rem; }
+        .o_esv_doc { display: none; width: 100%; padding: .6rem; }
+        .o_esv_showdetail {
+            .o_esv_list { display: none; }
+            .o_esv_doc { display: block; }
+        }
+        .o_esv_back { display: inline-flex; align-items: center; justify-content: center; }
+        .o_esv_dochead { flex-wrap: wrap; }
+        .o_esv_docacts { width: 100%; .o_esv_btn { flex: 1 1 0; justify-content: center; min-height: 2.5rem; } }
+    }
+}

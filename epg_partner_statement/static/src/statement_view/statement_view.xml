@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="epg_partner_statement.StatementView">
+    <div class="o_esv o_action">
+        <div t-if="state.loading and !state.summary" class="o_esv_wait"><i class="fa fa-circle-o-notch fa-spin me-2"/>Preparing the statements…</div>
+        <div t-elif="state.failed" class="alert alert-danger m-3" t-esc="state.failed"/>
+        <t t-elif="state.summary">
+            <t t-set="s" t-value="state.summary"/>
+            <t t-set="tot" t-value="s.totals[0]"/>
+            <!-- ═══════ what this run is ═══════ -->
+            <div class="o_esv_head">
+                <div class="o_esv_titles">
+                    <div class="o_esv_eyebrow"><t t-esc="s.type_label"/></div>
+                    <h2>Statements <span class="o_esv_period" t-esc="periodText"/></h2>
+                    <div class="o_esv_sub">
+                        <b t-esc="counts.all"/> partner<t t-if="counts.all !== 1">s</t>
+                        <t t-if="filterText"> · <t t-esc="filterText"/></t>
+                    </div>
+                </div>
+                <div class="o_esv_acts">
+                    <button class="o_esv_btn" t-on-click="() => this.print('all')" t-att-disabled="!visible.length or state.busy">
+                        <i t-att-class="'fa ' + (state.busy === 'print-all' ? 'fa-circle-o-notch fa-spin' : 'fa-print')"/> Print <t t-esc="visible.length"/></button>
+                    <button class="o_esv_btn" t-on-click="() => this.excel('all')" t-att-disabled="!visible.length or state.busy">
+                        <i t-att-class="'fa ' + (state.busy === 'xlsx-all' ? 'fa-circle-o-notch fa-spin' : 'fa-file-excel-o')"/> Excel</button>
+                    <button class="o_esv_btn" t-on-click="() => this.email('all')" t-att-disabled="!visible.length or state.busy">
+                        <i t-att-class="'fa ' + (state.busy === 'mail-all' ? 'fa-circle-o-notch fa-spin' : 'fa-envelope-o')"/> E-mail</button>
+                </div>
+            </div>
+
+            <div class="o_esv_kpis" t-if="tot">
+                <div t-if="!s.open_items_only" class="o_esv_kpi"><span>Opening</span><b t-esc="money(tot.opening, tot.currency)"/></div>
+                <div class="o_esv_kpi"><span t-esc="s.labels.debit_total"/><b t-esc="money(tot.debit, tot.currency)"/></div>
+                <div class="o_esv_kpi good"><span t-esc="s.labels.credit_total"/><b t-esc="money(tot.credit, tot.currency)"/></div>
+                <div class="o_esv_kpi main"><span t-esc="s.labels.due"/><b t-esc="money(tot.closing, tot.currency)"/></div>
+                <div t-att-class="'o_esv_kpi ' + (tot.overdue &gt; 0.005 ? 'bad' : '')"><span>Overdue</span><b t-esc="money(tot.overdue, tot.currency)"/>
+                    <em><t t-esc="tot.overdue_partners"/> partner<t t-if="tot.overdue_partners !== 1">s</t></em></div>
+            </div>
+
+            <div t-att-class="'o_esv_body' + (state.mobileDetail ? ' o_esv_showdetail' : '')">
+                <!-- ═══════ who ═══════ -->
+                <aside class="o_esv_list">
+                    <div class="o_esv_search"><i class="fa fa-search"/>
+                        <input type="text" placeholder="Find a partner, route or town…" t-model="state.q"/></div>
+                    <div class="o_esv_chips">
+                        <button t-foreach="[['all', 'All'], ['due', 'Owing'], ['overdue', 'Overdue'], ['quiet', 'No activity'], ['noemail', 'No e-mail']]" t-as="f" t-key="f[0]"
+                                t-if="f[0] === 'all' or counts[f[0]]"
+                                t-att-class="'o_esv_chip' + (state.show === f[0] ? ' on' : '') + (f[0] === 'overdue' ? ' warn' : '')"
+                                t-on-click="() => state.show = f[0]">
+                            <t t-esc="f[1]"/> <b t-esc="counts[f[0]]"/>
+                        </button>
+                    </div>
+                    <div class="o_esv_sortrow">
+                        <select t-model="state.sort">
+                            <option value="route">Route order (as printed)</option>
+                            <option value="due">Most owed first</option>
+                            <option value="overdue">Most overdue first</option>
+                            <option value="name">By name</option>
+                        </select>
+                        <span class="o_esv_keys" title="Move between partners with the arrow keys">↑ ↓</span>
+                    </div>
+                    <div class="o_esv_rows">
+                        <t t-foreach="visible" t-as="p" t-key="p.id">
+                            <div t-if="routeHead(p, p_index)" class="o_esv_route"><i class="fa fa-map-marker me-1"/><t t-esc="routeHead(p, p_index)"/></div>
+                            <button t-att-data-id="p.id" t-att-class="'o_esv_prow' + (state.current === p.id ? ' on' : '') + (p.has_data ? '' : ' quiet')"
+                                    t-on-click="() => this.select(p)">
+                                <span class="o_esv_pn">
+                                    <b t-esc="p.name"/>
+                                    <em><t t-if="p.city" t-esc="p.city"/><t t-if="!p.has_data"> · no activity</t><t t-if="!p.email"> · <i class="fa fa-envelope-o"/> none</t></em>
+                                </span>
+                                <span class="o_esv_pa">
+                                    <b t-att-class="due(p) &lt; -0.005 ? 'credit' : ''" t-esc="money(due(p), main(p) and main(p).currency)"/>
+                                    <em t-if="overdue(p) &gt; 0.005" class="late"><t t-esc="money(overdue(p), main(p).currency)"/> overdue</em>
+                                </span>
+                            </button>
+                        </t>
+                        <div t-if="!visible.length" class="o_esv_none">Nobody matches.</div>
+                    </div>
+                </aside>
+
+                <!-- ═══════ the statement ═══════ -->
+                <section class="o_esv_doc">
+                    <t t-set="st" t-value="state.statement"/>
+                    <div t-if="!st" class="o_esv_none">Pick a partner on the left.</div>
+                    <t t-else="">
+                        <div class="o_esv_dochead">
+                            <button class="o_esv_back" t-on-click="backToList"><i class="fa fa-arrow-left"/></button>
+                            <div class="o_esv_who">
+                                <h3 t-esc="st.name"/>
+                                <div class="o_esv_meta">
+                                    <span t-if="st.route"><i class="fa fa-map-marker"/> <t t-esc="st.route"/></span>
+                                    <span t-if="st.email"><i class="fa fa-envelope-o"/> <t t-esc="st.email"/></span>
+                                    <span t-if="st.phone"><i class="fa fa-phone"/> <t t-esc="st.phone"/></span>
+                                </div>
+                                <div class="o_esv_addr" t-if="st.address and st.address.length"><t t-esc="st.address.join(', ')"/></div>
+                            </div>
+                            <div class="o_esv_docacts">
+                                <button class="o_esv_btn" t-on-click="() => this.print('one')" t-att-disabled="state.busy" title="Print this statement">
+                                    <i t-att-class="'fa ' + (state.busy === 'print-one' ? 'fa-circle-o-notch fa-spin' : 'fa-print')"/> Print</button>
+                                <button class="o_esv_btn" t-on-click="() => this.excel('one')" t-att-disabled="state.busy" title="Download this statement as Excel">
+                                    <i t-att-class="'fa ' + (state.busy === 'xlsx-one' ? 'fa-circle-o-notch fa-spin' : 'fa-file-excel-o')"/></button>
+                                <button class="o_esv_btn" t-on-click="() => this.email('one')" t-att-disabled="state.busy or !st.email"
+                                        t-att-title="st.email ? 'E-mail this statement to ' + st.email : 'No e-mail address on this partner'">
+                                    <i t-att-class="'fa ' + (state.busy === 'mail-one' ? 'fa-circle-o-notch fa-spin' : 'fa-envelope-o')"/></button>
+                                <button class="o_esv_btn" t-on-click="openPartner" title="Open the partner"><i class="fa fa-external-link"/></button>
+                            </div>
+                        </div>
+                        <div t-if="state.stLoading" class="o_esv_loading"><i class="fa fa-circle-o-notch fa-spin"/></div>
+
+                        <div t-if="!st.has_data" class="o_esv_none">No entries for this period.</div>
+                        <div t-foreach="st.blocks" t-as="b" t-key="b_index" class="o_esv_block">
+                            <div class="o_esv_mini">
+                                <div t-if="!s.open_items_only"><span>Opening</span><b t-esc="money(b.opening, b.currency)"/></div>
+                                <div><span t-esc="s.labels.debit_total"/><b t-esc="money(b.total_debit, b.currency)"/></div>
+                                <div><span t-esc="s.labels.credit_total"/><b t-esc="money(b.total_credit, b.currency)"/></div>
+                                <div class="main"><span t-esc="s.labels.due"/><b t-esc="money(b.closing, b.currency)"/></div>
+                                <div t-att-class="b.overdue &gt; 0.005 ? 'bad' : ''"><span>Overdue</span><b t-esc="money(b.overdue, b.currency)"/></div>
+                            </div>
+                            <!-- where the open money sits, by how late it is -->
+                            <div class="o_esv_age" t-if="b.ageing_total">
+                                <div class="o_esv_agebar">
+                                    <span t-foreach="ageingBar(b)" t-as="a" t-key="a.i" t-if="a.pct"
+                                          t-att-class="'a' + a.i" t-attf-style="width: {{ a.pct }}%" t-att-title="a.label + ': ' + money(a.amount, b.currency)"/>
+                                </div>
+                                <div class="o_esv_agelegend">
+                                    <span t-foreach="ageingBar(b)" t-as="a" t-key="a.i" t-att-class="a.amount ? '' : 'nil'">
+                                        <i t-att-class="'a' + a.i"/><t t-esc="a.label"/> <b t-esc="money(a.amount, b.currency)"/>
+                                    </span>
+                                    <span t-if="b.credits_open" class="text-muted">less unallocated <b t-esc="money(b.credits_open, b.currency)"/></span>
+                                </div>
+                            </div>
+                            <div class="o_esv_tablewrap">
+                                <table class="o_esv_table">
+                                    <thead><tr>
+                                        <th>Date</th><th>Document</th><th>Description</th><th>Due</th>
+                                        <th class="num" t-esc="s.labels.debit"/><th class="num" t-esc="s.labels.credit"/><th class="num">Balance</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        <tr t-if="!s.open_items_only" class="o_esv_open">
+                                            <td t-esc="date(s.date_from)"/><td colspan="5">Opening balance</td>
+                                            <td class="num" t-esc="money(b.opening, b.currency)"/>
+                                        </tr>
+                                        <tr t-foreach="b.lines" t-as="l" t-key="l_index" t-on-click="() => this.openMove(l)"
+                                            t-att-class="(l.move_id ? 'link' : '') + (l.days_overdue ? ' late' : '')">
+                                            <td class="nowrap" t-esc="date(l.date)"/>
+                                            <td class="nowrap"><b t-esc="l.move"/><div class="o_esv_kind" t-esc="l.kind"/></td>
+                                            <td class="o_esv_desc">
+                                                <span t-esc="l.name"/><span t-if="l.patient" class="o_esv_pat"> · <t t-esc="l.patient"/></span>
+                                                <div t-if="l.ref and l.ref !== l.move" class="o_esv_ref" t-esc="l.ref"/>
+                                            </td>
+                                            <td class="nowrap">
+                                                <t t-esc="date(l.due)"/>
+                                                <div t-if="l.days_overdue" class="o_esv_late"><t t-esc="l.days_overdue"/> days late</div>
+                                                <div t-elif="l.debit and l.paid" class="o_esv_paid"><i class="fa fa-check"/> paid</div>
+                                            </td>
+                                            <td class="num" t-esc="l.debit ? money(l.debit, b.currency) : ''"/>
+                                            <td class="num good" t-esc="l.credit ? money(l.credit, b.currency) : ''"/>
+                                            <td class="num strong" t-esc="money(l.balance, b.currency)"/>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot><tr>
+                                        <td colspan="4" t-esc="s.labels.due"/>
+                                        <td class="num" t-esc="money(b.total_debit, b.currency)"/>
+                                        <td class="num good" t-esc="money(b.total_credit, b.currency)"/>
+                                        <td class="num strong" t-esc="money(b.closing, b.currency)"/>
+                                    </tr></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </t>
+                </section>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

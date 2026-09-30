@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Partner Statement of Account',
-    'version': '19.0.1.9.0',
+    'version': '19.0.1.10.0',
     'category': 'Accounting/Accounting',
     'summary': 'Customer / vendor statements: ledger with running balance, open items, ageing, '
                'PDF & Excel, e-mail sending, monthly auto-send, portal self-service',
@@ -49,6 +49,11 @@ GSTIN / PAN / DCI numbers, company payment QR and authorised-signatory signature
     'assets': {
         'web.report_assets_common': [
             'epg_partner_statement/static/src/scss/statement_report.scss',
+        ],
+        'web.assets_backend': [
+            'epg_partner_statement/static/src/statement_view/statement_view.scss',
+            'epg_partner_statement/static/src/statement_view/statement_view.js',
+            'epg_partner_statement/static/src/statement_view/statement_view.xml',
         ],
     },
     'post_init_hook': 'post_init_hook',

@@ -495,3 +495,66 @@ class TestMigratedDocumentNumber(TransactionCase):
         self.assertFalse(row['old_number'], "nothing migrated about it")
         self.assertIn('Hawleys Appliance', row['name'], "what the invoice was for")
         self.assertEqual(row['entry'], invoice.name)
+
+
+class TestStatementOnScreen(TestPartnerStatement):
+    """The statements on screen read the same numbers the PDF prints. (client, 2026-09-30)"""
+
+    def _wizard(self, **vals):
+        return self.env['epg.partner.statement.wizard'].create(dict({
+            'partner_ids': [(6, 0, self.partner.ids)], 'statement_type': 'receivable', 'period': 'custom',
+            'date_from': self.today, 'date_to': self.today, 'company_id': self.company.id}, **vals))
+
+    def test_the_view_button_carries_the_wizard_filters(self):
+        self._invoice(120, self.today)
+        action = self._wizard(open_items_only=True).action_view()
+        self.assertEqual(action['tag'], 'epg_statement_view')
+        params = action['params']
+        self.assertEqual(params['partner_ids'], self.partner.ids)
+        self.assertEqual(params['data']['date_from'], str(self.today))
+        self.assertTrue(params['data']['open_items_only'])
+
+    def test_the_summary_and_the_statement_agree_with_the_engine(self):
+        inv = self._invoice(120, self.today)
+        self._pay(inv, 20, self.today)
+        params = self._wizard().action_view()['params']
+        summary = self.Engine.view_summary(params['partner_ids'], params['data'])
+        row = summary['partners'][0]
+        self.assertEqual(row['id'], self.partner.id)
+        self.assertAlmostEqual(row['blocks'][0]['closing'], 100.0)
+        self.assertNotIn('lines', row['blocks'][0], "the list stays light: no lines in the summary")
+        self.assertAlmostEqual(summary['totals'][0]['closing'], 100.0)
+        st = self.Engine.view_statement(self.partner.id, params['data'])
+        lines = st['blocks'][0]['lines']
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(lines[-1]['balance'], 100.0)
+        self.assertEqual({l['move_id'] for l in lines}, {inv.id, (inv.line_ids.matched_credit_ids.credit_move_id.move_id).id})
+        engine = self.Engine.compute(self.partner, self.Engine.normalize_options(params['data']))[self.partner.id]
+        self.assertEqual(st['blocks'][0]['closing'], engine['blocks'][0]['closing'], "the screen and the PDF read one engine")
+
+    def test_the_order_handed_over_is_kept(self):
+        self._invoice(120, self.today)
+        other = self.env['res.partner'].create({'name': 'Aardvark Clinic'})
+        data = self._wizard().action_view()['params']['data']
+        summary = self.Engine.view_summary([self.partner.id, other.id], data)
+        self.assertEqual([p['id'] for p in summary['partners']], [self.partner.id, other.id],
+                         "route order, as printed - not alphabetical")
+
+    def test_print_and_excel_from_the_screen(self):
+        self._invoice(120, self.today)
+        data = self._wizard().action_view()['params']['data']
+        action = self.Engine.view_print(self.partner.ids, data)
+        self.assertEqual(action['report_name'], 'epg_partner_statement.report_statement')
+        self.assertEqual(action['data']['date_from'], str(self.today))
+        url = self.Engine.view_xlsx(self.partner.ids, data)
+        self.assertTrue(url['url'].startswith('/web/content/'))
+
+    def test_a_user_who_cannot_run_the_wizard_cannot_read_the_screen(self):
+        portal = self.env['res.users'].create({
+            'name': 'Statement Portal', 'login': 'statement_portal_view',
+            'group_ids': [(6, 0, [self.env.ref('base.group_portal').id])]})
+        self._invoice(120, self.today)
+        data = self._wizard().action_view()['params']['data']
+        from odoo.exceptions import AccessError
+        with self.assertRaises(AccessError):
+            self.Engine.with_user(portal).view_summary(self.partner.ids, data)

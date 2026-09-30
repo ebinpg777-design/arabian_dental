@@ -260,6 +260,8 @@ class PartnerStatement(models.AbstractModel):
                     # journal entry it was booked on stays in 'entry'.
                     'move': old_number or move.name,
                     'entry': move.name,
+                    # for the on-screen statement: a row opens its document
+                    'move_id': move.id,
                     'old_number': old_number,
                     'ref': line.ref or move.ref or origin or '',
                     'journal': line.journal_id.code,
