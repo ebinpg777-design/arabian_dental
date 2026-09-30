@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Partner Statement of Account',
-    'version': '19.0.1.10.1',
+    'version': '19.0.1.11.0',
     'category': 'Accounting/Accounting',
     'summary': 'Customer / vendor statements: ledger with running balance, open items, ageing, '
                'PDF & Excel, e-mail sending, monthly auto-send, portal self-service',

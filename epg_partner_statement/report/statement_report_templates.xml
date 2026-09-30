@@ -12,32 +12,57 @@
                          statement (2026-08-18). -->
                     <t t-set="hide_letterhead" t-value="True"/>
                     <div class="page epg-statement">
-                        <t t-call="sale_custom.letterhead_block"/>
-                        <!-- head: title + period on the left, the partner on the right -->
-                        <div class="row">
-                            <div class="col-7">
-                                <h2 class="epg-title">
-                                    <t t-if="open_mode">Open Items Statement</t>
-                                    <t t-else="">Statement of Account</t>
-                                </h2>
-                                <div class="epg-subtitle">Printed <span t-out="printed_on" t-options="{'widget': 'date'}"/></div>
-                                <span class="epg-meta"><b>Type</b> <span t-out="statement_type_label"/></span>
-                                <span class="epg-meta"><b>Period</b>
-                                    <span t-out="date_from" t-options="{'widget': 'date'}"/> → <span t-out="date_to" t-options="{'widget': 'date'}"/></span>
-                                <span class="epg-meta" t-if="o.ref"><b>Ref</b> <span t-field="o.ref"/></span>
-                            </div>
-                            <div class="col-5">
-                                <div class="epg-partner">
-                                    <div class="epg-partner-name" t-field="o.name"/>
-                                    <div t-foreach="st and st['address'] or []" t-as="aline" t-out="aline"/>
-                                    <div t-if="o.phone">Ph: <span t-field="o.phone"/></div>
-                                    <div t-if="o.email" t-field="o.email"/>
-                                    <div class="epg-ident" t-foreach="st and st['identifiers'] or []" t-as="ident">
-                                        <span t-out="ident[0]"/>: <span t-out="ident[1]"/>
+                        <!-- ONE compact band for the letterhead, drawn in the body. The page
+                             used to carry Odoo's standard header (with the country) AND the
+                             lab letterhead under it, whose GSTIN line printed over the
+                             address; the two with a 52 mm top margin put the first line of
+                             the ledger 42% of the way down page 1. (client, 2026-09-30) -->
+                        <t t-set="lh_logo" t-value="company.logo1 if 'logo1' in company._fields and company.logo1 else company.logo"/>
+                        <t t-set="lh_cert" t-value="company.logo2 if 'logo2' in company._fields else False"/>
+                        <table class="epg-lh">
+                            <tr>
+                                <td class="epg-lh-logo"><img t-if="lh_logo" t-att-src="image_data_uri(lh_logo)"/></td>
+                                <td class="epg-lh-addr">
+                                    <div t-out="', '.join(x.strip(' ,') for x in [company.street or '', company.street2 or ''] if x.strip(' ,'))"/>
+                                    <div>
+                                        <t t-out="', '.join(x for x in [company.city or '', company.state_id.name or ''] if x)"/><t t-if="company.zip"> - <t t-out="company.zip"/></t>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
+                                    <div class="epg-lh-ids">
+                                        <t t-if="'pan_number' in company._fields and company.pan_number">PAN <b t-out="company.pan_number"/></t>
+                                        <t t-if="'gst_number' in company._fields and company.gst_number">&#160;&#160;GSTIN <b t-out="company.gst_number"/></t>
+                                        <t t-if="not ('gst_number' in company._fields and company.gst_number) and company.vat">&#160;&#160;GSTIN <b t-out="company.vat"/></t>
+                                    </div>
+                                </td>
+                                <td class="epg-lh-cert"><img t-if="lh_cert" t-att-src="image_data_uri(lh_cert)"/></td>
+                            </tr>
+                        </table>
+                        <!-- what this is on the left, who it is for on the right, both condensed -->
+                        <table class="epg-head">
+                            <tr>
+                                <td class="epg-head-l">
+                                    <h2 class="epg-title">
+                                        <t t-if="open_mode">Open Items Statement</t>
+                                        <t t-else="">Statement of Account</t>
+                                    </h2>
+                                    <div class="epg-headmeta">
+                                        <b t-out="statement_type_label"/>
+                                        <div><span t-out="date_from" t-options="{'widget': 'date'}"/> → <span t-out="date_to" t-options="{'widget': 'date'}"/></div>
+                                        <div class="epg-printed">Printed <span t-out="printed_on" t-options="{'widget': 'date'}"/><t t-if="o.ref"> · Ref <span t-field="o.ref"/></t></div>
+                                    </div>
+                                </td>
+                                <td class="epg-head-r">
+                                    <div class="epg-partner">
+                                        <div class="epg-to">Statement for</div>
+                                        <div class="epg-partner-name" t-field="o.name"/>
+                                        <div t-if="st and st['address']" t-out="', '.join(st['address'])"/>
+                                        <div t-if="o.phone or o.email">
+                                            <t t-if="o.phone">Ph: <span t-field="o.phone"/></t><t t-if="o.phone and o.email"> · </t><t t-if="o.email" t-out="o.email"/>
+                                        </div>
+                                        <div class="epg-ident" t-if="st and st['identifiers']" t-out="' · '.join('%s: %s' % (i[0], i[1]) for i in st['identifiers'])"/>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
 
                         <t t-if="not blocks or not st['has_data']">
                             <p class="epg-empty">No entries for this period.</p>
@@ -82,25 +107,28 @@
                                             nowrap and already fit their longest figure.
                                             (client, 2026-08-27)
                                         -->
-                                        <th style="width:9%">Date</th>
-                                        <th style="width:11%">Document</th>
-                                        <th style="width:7%">Type</th>
+                                        <!-- Type now rides under the document number: a column of
+                                             its own for one word was what squeezed "B2C/2026-27/15140"
+                                             into the Type column and broke every date over two lines.
+                                             (client, 2026-09-30) -->
+                                        <th style="width:11%">Date</th>
+                                        <th style="width:18%">Document</th>
                                         <th style="width:25%">Description</th>
-                                        <th style="width:10%">Due</th>
-                                        <th class="num" style="width:12%" t-out="labels['debit']"/>
-                                        <th class="num" style="width:13%" t-out="labels['credit']"/>
-                                        <th class="num" style="width:13%"><t t-if="open_mode"><span t-out="labels['open']"/></t><t t-else="">Balance</t></th>
+                                        <th style="width:12%">Due</th>
+                                        <th class="num" style="width:11%" t-out="labels['debit']"/>
+                                        <th class="num" style="width:12%" t-out="labels['credit']"/>
+                                        <th class="num" style="width:11%"><t t-if="open_mode"><span t-out="labels['open']"/></t><t t-else="">Balance</t></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr t-if="not open_mode" class="epg-row-open">
                                         <td><span t-out="date_from" t-options="{'widget': 'date'}"/></td>
-                                        <td colspan="4">Opening balance</td>
+                                        <td colspan="3">Opening balance</td>
                                         <td class="num"/><td class="num"/>
                                         <td class="num"><span t-out="block['opening']" t-options="mo"/></td>
                                     </tr>
                                     <tr t-if="not block['lines'] and not open_mode">
-                                        <td colspan="8" class="epg-sub text-center">No transactions in this period.</td>
+                                        <td colspan="7" class="epg-sub text-center">No transactions in this period.</td>
                                     </tr>
                                     <tr t-foreach="block['lines']" t-as="l">
                                         <td><span t-out="l['doc_date']" t-options="{'widget': 'date'}"/></td>
@@ -110,8 +138,8 @@
                                                  shows; the journal entry it was booked on
                                                  is only of interest to the lab. -->
                                             <div t-if="l.get('old_number')" class="epg-sub" t-out="l['entry']"/>
+                                            <div><span t-attf-class="epg-kind #{'epg-kind-inv' if l['kind'] == 'Invoice' else 'epg-kind-pay' if l['kind'] in ('Payment', 'Bank') else 'epg-kind-cn' if l['kind'] == 'Credit Note' else ''}" t-out="l['kind']"/></div>
                                         </td>
-                                        <td><span t-attf-class="epg-kind #{'epg-kind-inv' if l['kind'] == 'Invoice' else 'epg-kind-pay' if l['kind'] in ('Payment', 'Bank') else 'epg-kind-cn' if l['kind'] == 'Credit Note' else ''}" t-out="l['kind']"/></td>
                                         <td>
                                             <span t-out="l['name']"/>
                                             <div t-if="l['patient']" class="epg-sub">Patients: <span t-out="l['patient']"/></div>
@@ -126,7 +154,7 @@
                                     </tr>
                                     <tr class="epg-row-total">
                                         <td><span t-out="date_to" t-options="{'widget': 'date'}"/></td>
-                                        <td colspan="4"><t t-if="open_mode">Total <span t-out="labels['due']"/></t><t t-else="">Closing balance — <span t-out="labels['due']"/></t></td>
+                                        <td colspan="3"><t t-if="open_mode">Total <span t-out="labels['due']"/></t><t t-else="">Closing balance — <span t-out="labels['due']"/></t></td>
                                         <td class="num"><span t-out="block['total_debit']" t-options="mo"/></td>
                                         <td class="num"><span t-out="block['total_credit']" t-options="mo"/></td>
                                         <td class="num"><span t-out="block['ageing_total'] if open_mode else block['closing']" t-options="mo"/></td>

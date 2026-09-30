@@ -303,11 +303,11 @@ class PartnerStatement(models.AbstractModel):
     def _address_lines(self, partner):
         """Address without repeating the partner's own name (QWeb's contact widget needs
         a dotted t-field path, which `o` - the partner itself - cannot provide)."""
-        company_country = self.env.company.country_id
+        # No country: every clinic is in the lab's own, and the line only made the
+        # header taller. (client, 2026-09-30)
         parts = [
             partner.street, partner.street2,
             ' '.join(x for x in (partner.city, partner.state_id.name, partner.zip) if x),
-            partner.country_id.name if partner.country_id and partner.country_id != company_country else '',
         ]
         return [p.strip() for p in parts if p and p.strip()]
 
@@ -383,9 +383,16 @@ class PartnerStatement(models.AbstractModel):
 
     @api.model
     def layout_template(self):
+        """The page frame. The statement draws its own letterhead, so the frame only has
+        to give the footer bar - the suite's own layout, whose page-top band the
+        template switches off. Odoo's standard frame printed the company address (with
+        the country) in a 52 mm band, over the letterhead below it. (client, 2026-09-30)"""
         xmlid = self.env['ir.config_parameter'].sudo().get_param('epg_partner_statement.layout')
         if xmlid and self.env.ref(xmlid, raise_if_not_found=False):
             return xmlid
+        for candidate in ('sale_custom.external_layout_lab', 'sale_custom.external_layout_ortho'):
+            if self.env.ref(candidate, raise_if_not_found=False):
+                return candidate
         return 'web.external_layout'
 
     @api.model

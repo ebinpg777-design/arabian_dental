@@ -17,36 +17,46 @@
     $danger: #b42318;
     $danger-soft: #fdecea;
 
-    h2.epg-title {
-        font-size: 20pt; font-weight: 700; letter-spacing: .2px; margin: 0 0 2px;
-        color: $accent;
+    // the letterhead: logo, address and tax numbers, certificate - one band
+    table.epg-lh { width: 100%; border-collapse: collapse; margin: 0 0 5px;
+        td { vertical-align: middle; padding: 0; }
+        td.epg-lh-logo { width: 34%; img { max-height: 15mm; max-width: 62mm; } }
+        td.epg-lh-addr { width: 46%; font-size: 8.4pt; line-height: 1.3; color: #333; text-align: center; }
+        .epg-lh-ids { color: $muted; margin-top: 1px; b { color: #333; font-weight: 600; } }
+        td.epg-lh-cert { width: 20%; text-align: right; img { max-height: 13mm; max-width: 36mm; } }
     }
-    .epg-subtitle { color: $muted; font-size: 9pt; margin-bottom: 8px; }
-    .epg-meta {
-        display: inline-block; margin: 2px 8px 2px 0; padding: 2px 8px; border-radius: 3px;
-        background: $accent-soft; color: #234; font-size: 9pt;
-        b { color: $accent; margin-right: 3px; }
+    // title on the left, the clinic on the right, between two rules
+    table.epg-head { width: 100%; border-collapse: collapse; margin: 0 0 6px;
+        border-top: 2px solid $accent; border-bottom: 1px solid $rule;
+        td { vertical-align: top; padding: 5px 0 6px; }
+        td.epg-head-l { width: 42%; padding-right: 10px; }
+        td.epg-head-r { width: 58%; }
     }
-
+    h2.epg-title { font-size: 15pt; font-weight: 700; letter-spacing: .2px; margin: 0 0 2px; color: $accent; line-height: 1.15; }
+    .epg-headmeta { font-size: 8.8pt; line-height: 1.35; color: #234;
+        b { color: $accent; font-weight: 600; }
+        .epg-printed { color: $muted; font-size: 8pt; } }
     .epg-partner {
-        border-left: 3px solid $accent; padding: 4px 10px; font-size: 9.5pt;
-        .epg-partner-name { font-size: 12pt; font-weight: 700; margin-bottom: 1px; }
+        border-left: 3px solid $accent; padding: 1px 0 1px 9px; font-size: 8.8pt; line-height: 1.35;
+        .epg-to { font-size: 7.4pt; text-transform: uppercase; letter-spacing: .5px; color: $muted; }
+        .epg-partner-name { font-size: 11pt; font-weight: 700; margin-bottom: 1px; line-height: 1.2; }
         .epg-ident { color: $muted; }
     }
 
     // summary strip — a table, not flexbox: wkhtmltopdf ignores flex, so the tiles used
     // to shrink to their text and left the rest of the row empty. table-layout: fixed
     // splits the full width evenly between them.
+    // No negative side margin (it pushed the strip past the page body); the spacing
+    // insets the tiles a few points instead.
     table.epg-summary {
-        width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 8px 0;
-        margin: 12px -8px 10px;
+        width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 5px 0; margin: 0 0 7px;
     }
     .epg-card {
-        border: 1px solid $rule; border-radius: 4px; padding: 7px 10px; vertical-align: top;
-        .epg-card-label { font-size: 8.6pt; text-transform: uppercase; letter-spacing: .5px; color: $muted; }
-        .epg-card-value { font-size: 13.5pt; font-weight: 700; margin-top: 1px; white-space: nowrap; }
+        border: 1px solid $rule; border-radius: 3px; padding: 4px 8px; vertical-align: top;
+        .epg-card-label { font-size: 7.4pt; text-transform: uppercase; letter-spacing: .4px; color: $muted; }
+        .epg-card-value { font-size: 11.5pt; font-weight: 700; margin-top: 0; white-space: nowrap; }
         &.epg-card-due { background: $accent; border-color: $accent; color: #fff;
-            .epg-card-label { color: rgba(255,255,255,.9); } .epg-card-value { font-size: 15pt; } }
+            .epg-card-label { color: rgba(255,255,255,.9); } .epg-card-value { font-size: 12.5pt; } }
         &.epg-card-danger { border-color: $danger; .epg-card-value { color: $danger; } }
     }
 
@@ -59,17 +69,17 @@
     // (client, 2026-08-27)
     table.epg-ledger {
         width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 8px;
-        font-size: 10.5pt;
+        font-size: 9.6pt;
         thead th {
-            background: $accent; color: #fff; font-weight: 600; padding: 6px 6px; border: none;
-            font-size: 9.4pt; text-transform: uppercase; letter-spacing: .3px;
+            background: $accent; color: #fff; font-weight: 600; padding: 5px 5px; border: none;
+            font-size: 8.4pt; text-transform: uppercase; letter-spacing: .3px;
             // Headings WRAP, cells do not. Under fixed layout a nowrap heading cannot
             // shrink to its column, so "Payments & Credits" ran straight over
             // "Balance". A two-line heading costs nothing; the figures below it are
             // still nowrap and still fit. (client, 2026-08-27)
             white-space: normal; word-break: break-word;
         }
-        tbody td { padding: 6px 6px; border-bottom: 1px solid $rule; vertical-align: top; }
+        tbody td { padding: 4px 5px; border-bottom: 1px solid $rule; vertical-align: top; }
         tbody tr:nth-child(even) td { background: #fafbfc; }
         tr.epg-row-total td { background: $accent-soft !important; font-weight: 700; border-top: 2px solid $accent; }
         tr.epg-row-open td { background: $accent-soft !important; font-weight: 600; }
@@ -79,16 +89,19 @@
         // into "Balance". Figures still never wrap. (client, 2026-08-27)
         td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
         td.num { white-space: nowrap; }
-        .epg-kind { display: inline-block; font-size: 8.6pt; padding: 0 5px; border-radius: 8px;
+        .epg-kind { display: inline-block; font-size: 7.6pt; padding: 0 5px; border-radius: 8px; margin-top: 1px; font-weight: 400;
                     background: #eef0f2; color: #333; white-space: nowrap; }
         .epg-kind-inv { background: #e6f0ff; color: #1d4ed8; }
         .epg-kind-pay { background: #e6f7ee; color: #067647; }
         .epg-kind-cn  { background: #fff3e0; color: #b45309; }
         .epg-overdue { display: inline-block; font-size: 8.6pt; padding: 0 5px; border-radius: 8px;
                        background: $danger-soft; color: $danger; white-space: nowrap; }
-        .epg-sub { color: $muted; font-size: 9.4pt; }
+        .epg-sub { color: $muted; font-size: 8.6pt; }
         td.epg-due { white-space: nowrap; }
-        .epg-doc { font-weight: 600; white-space: nowrap; }
+        // May wrap, may never run into the next column: a number longer than the
+        // column used to print over "Invoice". word-wrap is what wkhtmltopdf's WebKit knows.
+        .epg-doc { font-weight: 600; word-wrap: break-word; }
+        tbody td:first-child { white-space: nowrap; }
     }
 
     // ageing
