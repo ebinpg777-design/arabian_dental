@@ -171,3 +171,67 @@ class TestTechDay(TransactionCase):
                                                  'group_ids': [(6, 0, [self.env.ref('base.group_user').id])]})
         with self.assertRaises(AccessError):
             self.Day.with_user(outsider).get_day()
+
+    # ------------------------------------------------------ whose job it is
+    # The lead scans for the whole room, so Accept and Hand over carry the lead's
+    # name. The day is the TECHNICIAN's and the FINISHER's, from the names on
+    # the work order - the first version put every job on the lead. (client, 2026-09-30)
+    def test_the_job_is_the_technicians_not_the_leads_who_scanned_it(self):
+        lead = self.env['res.users'].create({'name': 'Lead Day', 'login': 'td_lead',
+                                             'group_ids': [(4, self.env.ref('mrp.group_mrp_user').id)]})
+        wo = self.job()
+        wo.write({'bench_user_id': self.asha.id, 'accepted_by_id': lead.id, 'accepted_at': self.at(9, 0),
+                  'handed_over_by_id': lead.id, 'handed_over_at': self.at(10, 0)})
+        data = self.Day.get_day(day=fields.Date.to_string(self.day), slot=60)
+        r = self.row(data, self.asha)
+        self.assertEqual((r['busy'], r['handed'], r['accepted']), (60, 1, 1))
+        self.assertNotIn(lead.id, [row['id'] for row in data['rows']],
+                         "the lead who pressed the buttons did none of the work")
+
+    def test_a_finisher_shares_the_job_and_takes_the_hand_over(self):
+        wo = self.job()
+        wo.write({'bench_user_id': self.asha.id, 'finisher_user_id': self.ben.id,
+                  'accepted_by_id': self.asha.id, 'accepted_at': self.at(9, 0),
+                  'handed_over_by_id': self.asha.id, 'handed_over_at': self.at(10, 0)})
+        data = self.Day.get_day(day=fields.Date.to_string(self.day), slot=60)
+        asha, ben = self.row(data, self.asha), self.row(data, self.ben)
+        self.assertEqual(asha['busy'], 60, "the technician had it on the bench")
+        self.assertEqual(ben['busy'], 60, "so did the finisher")
+        self.assertEqual((asha['accepted'], asha['handed']), (1, 1), "the technician's job")
+        self.assertEqual((ben['accepted'], ben['handed']), (0, 1), "and the finisher's too")
+        self.assertEqual(data['kpis']['handed'], 1, "but on the floor a job two people share is one job")
+        self.assertEqual(self.cell(self.row(data, self.asha), 10)['handed'], 1)
+        self.assertEqual(next(f for f in data['floor'] if f['m'] == 10 * 60)['handed'], 1)
+
+    def test_a_clock_left_running_from_an_earlier_day_is_carried_not_worked(self):
+        wo = self.job()
+        loss = self.env['mrp.workcenter.productivity.loss'].search([('loss_type', '=', 'productive')], limit=1)
+        self.env['mrp.workcenter.productivity'].create({
+            'workorder_id': wo.id, 'workcenter_id': self.bench.id, 'user_id': self.asha.id, 'loss_id': loss.id,
+            'date_start': self.at(9, 0, self.day - timedelta(days=3)), 'date_end': False})
+        data = self.Day.get_day(day=fields.Date.to_string(self.day), slot=60)
+        r = self.row(data, self.asha)
+        self.assertEqual(r['busy'], 0, "a month-old timer is not a day on the job")
+        self.assertEqual(r['carried'], 1)
+        self.assertEqual({s['kind'] for s in r['segments']}, {'carried'})
+
+    def test_a_job_with_nobody_named_is_on_nobodys_row(self):
+        wo = self.job()
+        wo.write({'accepted_by_id': self.asha.id, 'accepted_at': self.at(9, 0),
+                  'handed_over_by_id': self.asha.id, 'handed_over_at': self.at(10, 0)})
+        data = self.Day.get_day(day=fields.Date.to_string(self.day), slot=60)
+        self.assertNotIn(self.asha.id, [row['id'] for row in data['rows']],
+                         "pressing the button is not doing the work")
+
+    def test_the_usual_profile_follows_the_same_names(self):
+        lead = self.env['res.users'].create({'name': 'Lead Usual', 'login': 'td_lead_usual',
+                                             'group_ids': [(4, self.env.ref('mrp.group_mrp_user').id)]})
+        for weeks in (1, 2):
+            then = self.day - timedelta(weeks=weeks)
+            wo = self.job()
+            wo.write({'bench_user_id': self.asha.id, 'accepted_by_id': lead.id, 'accepted_at': self.at(9, 0, then),
+                      'handed_over_by_id': lead.id, 'handed_over_at': self.at(10, 10, then)})
+        today = self.job()
+        self.stamp(today, self.asha, self.at(9, 0), self.at(10, 10))
+        r = self.row(self.Day.get_day(day=fields.Date.to_string(self.day), slot=60), self.asha)
+        self.assertEqual(r['usual_handed'], 0.5, "those weeks' jobs were Asha's, whoever scanned them")

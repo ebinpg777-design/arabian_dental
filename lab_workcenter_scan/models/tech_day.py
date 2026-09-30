@@ -10,10 +10,24 @@ Three honest signals, strongest first, and never mixed up:
   present    the attendance check-in/out where the lab records one; otherwise the
              span from the person's first to last scan of the day.
 
+WHOSE job it is comes from the work order's own two names - the Technician
+(`bench_user_id`) and, at a bench that records one, the Finishing Technician
+(`finisher_user_id`) - never from who pressed Accept or Hand over on the board.
+The lead scans for the whole room, so the accepter is the lead, and the first
+version of this screen put every job of the day on the lead's row and left the
+technicians at "0 jobs". A job with both names is on both people's rows for the
+time it was on the bench, and each of them counts it as a job handed on - both
+did it, which is `mrp.workorder._person_credit`'s rule too. The floor and its
+KPIs count the JOB, once. A job whose technician was never named is on nobody's
+row - it has no person to be busy. (client, 2026-09-30)
+
 A job accepted on an EARLIER day and still not handed on is "carried in": drawn
 as held, never counted as busy - a case forgotten on a bench for three days is not
-three days of work. OdooBot's automatic time-tracking rows are ignored: they are
-not a person.
+three days of work. The same for a work-order timer somebody started on an earlier
+day and never stopped: it is a clock left running, not a month of work, and one
+person on the live floor had 129 of them drawing every day as "on jobs since
+midnight". OdooBot's automatic time-tracking rows are ignored: they are not a
+person.
 
 The one number a lead acts on is "idle while work waited": minutes a technician
 was present and not on a job while a job stood arrived-but-not-picked-up at one
@@ -103,17 +117,28 @@ class LabTechDay(models.AbstractModel):
     @api.model
     def _bench(self, start, end, since):
         """Jobs on somebody's bench during the day: accepted before it ended and
-        handed on after it began (or not yet handed on)."""
+        handed on after it began (or not yet handed on).
+
+        One row per (job, person): the technician named on the job and, where a
+        different person finished it, the finisher too. `uid` is the person the
+        row is drawn for; `finisher` is who the hand-over is credited to - the
+        finisher where one is named, else the technician - so it is credited once.
+        Who pressed Accept on the board is not read at all."""
         return self.env.execute_query_dict(SQL("""
             SELECT wo.id, wo.name, wo.workcenter_id, wo.production_id, mo.name AS mo,
-                   COALESCE(wo.accepted_by_id, wo.bench_user_id) AS uid,
-                   wo.accepted_at, wo.handed_over_at,
-                   COALESCE(wo.handed_over_by_id, wo.accepted_by_id, wo.bench_user_id) AS finisher,
+                   p.uid, wo.bench_user_id AS tech, wo.accepted_at, wo.handed_over_at,
+                   COALESCE(wo.finisher_user_id, wo.bench_user_id) AS finisher,
                    wo.state, COALESCE(wo.duration_expected, 0) AS expected,
                    so.patient, so.partner_id, so.priority
               FROM mrp_workorder wo
               JOIN mrp_production mo ON mo.id = wo.production_id
          LEFT JOIN sale_order so ON so.id = mo.sale_id
+        CROSS JOIN LATERAL (
+                   SELECT wo.bench_user_id AS uid WHERE wo.bench_user_id IS NOT NULL
+                   UNION ALL
+                   SELECT wo.finisher_user_id WHERE wo.finisher_user_id IS NOT NULL
+                      AND wo.finisher_user_id IS DISTINCT FROM wo.bench_user_id
+                   ) p
              WHERE wo.accepted_at IS NOT NULL AND wo.accepted_at < %(end)s AND wo.accepted_at >= %(since)s
                AND (wo.handed_over_at >= %(start)s
                     OR (wo.handed_over_at IS NULL AND wo.state NOT IN ('done', 'cancel')))
@@ -125,7 +150,8 @@ class LabTechDay(models.AbstractModel):
         skip = tuple({1, root.id if root else 1})
         return self.env.execute_query_dict(SQL("""
             SELECT p.workorder_id, p.user_id AS uid, p.workcenter_id, p.date_start,
-                   COALESCE(p.date_end, %(now)s) AS date_end, COALESCE(t.loss_type, 'productive') AS loss_type
+                   COALESCE(p.date_end, %(now)s) AS date_end, p.date_end IS NULL AS open,
+                   COALESCE(t.loss_type, 'productive') AS loss_type
               FROM mrp_workcenter_productivity p
          LEFT JOIN mrp_workcenter_productivity_loss l ON l.id = p.loss_id
          LEFT JOIN mrp_workcenter_productivity_loss_type t ON t.id = l.loss_id
@@ -202,11 +228,13 @@ class LabTechDay(models.AbstractModel):
         if not uids:
             return {}
         cond = SQL(" OR ").join(SQL("(handed_over_at >= %s AND handed_over_at < %s)", a, b) for a, b in windows)
+        # the same person the day credits the hand-over to: the finisher where one
+        # is named, else the technician - never who pressed the button
         rows = self.env.execute_query(SQL("""
-            SELECT COALESCE(handed_over_by_id, accepted_by_id, bench_user_id) AS uid,
+            SELECT COALESCE(finisher_user_id, bench_user_id) AS uid,
                    (EXTRACT(HOUR FROM (handed_over_at AT TIME ZONE 'UTC' AT TIME ZONE %s)) * 60
                     + EXTRACT(MINUTE FROM (handed_over_at AT TIME ZONE 'UTC' AT TIME ZONE %s)))::int AS m
-              FROM mrp_workorder WHERE (%s) AND COALESCE(handed_over_by_id, accepted_by_id, bench_user_id) IN %s
+              FROM mrp_workorder WHERE (%s) AND COALESCE(finisher_user_id, bench_user_id) IN %s
         """, tz.zone, tz.zone, cond, tuple(uids)))
         usual = defaultdict(lambda: defaultdict(float))
         for uid, m in rows:
@@ -222,7 +250,7 @@ class LabTechDay(models.AbstractModel):
         _a, b = Station._day_window(day)
         rows = self.env.execute_query(SQL("""
             SELECT (handed_over_at AT TIME ZONE 'UTC' AT TIME ZONE %s)::date AS d, COUNT(*),
-                   COUNT(DISTINCT COALESCE(handed_over_by_id, accepted_by_id, bench_user_id))
+                   COUNT(DISTINCT COALESCE(finisher_user_id, bench_user_id))
               FROM mrp_workorder WHERE handed_over_at >= %s AND handed_over_at < %s GROUP BY 1
         """, tz.zone, a, b))
         by_day = {r[0]: (r[1], r[2]) for r in rows}
@@ -264,6 +292,12 @@ class LabTechDay(models.AbstractModel):
 
         bench = self._bench(start, end, since)
         timers = self._timers(start, end, now)
+        # the floor counts each JOB once, however many people are named on it
+        handed_jobs, accepted_jobs = {}, {}
+
+        def stale(t):
+            """A clock started on an earlier day and never stopped."""
+            return t['open'] and t['date_start'] < start
         timed = defaultdict(list)
         for t in timers:
             if keep(t['workcenter_id']):
@@ -306,6 +340,10 @@ class LabTechDay(models.AbstractModel):
             u['segments'].append(seg)
             for t in own_timers:
                 ta, tb = self._minute(max(t['date_start'], start), start), self._minute(min(t['date_end'], end), start)
+                if stale(t):
+                    self._fill(u['held'], ta, tb)
+                    u['segments'].append(dict(seg, a=ta, b=tb, kind='carried'))
+                    continue
                 if t['loss_type'] in ('productive', 'performance'):
                     self._fill(u['busy'], ta, tb)
                     self._add(u['stack'], ta, tb)
@@ -313,15 +351,21 @@ class LabTechDay(models.AbstractModel):
                     self._fill(u['blocked'], ta, tb)
                 self._fill(u['active'], ta, tb)
                 u['segments'].append(dict(seg, a=ta, b=tb, kind='timer' if t['loss_type'] in ('productive', 'performance') else 'blocked'))
-            if start <= job['accepted_at'] < end:
+            # each stamp is one event on one row: the accept on the technician's
+            # (the finisher's, only when there is no technician), the hand-over on
+            # the finisher's - so a job two people share is never counted twice
+            if start <= job['accepted_at'] < end and job['uid'] == (job['tech'] or job['finisher']):
+                m = self._minute(job['accepted_at'], start)
                 u['accepted'] += 1
-                u['events'].append({'kind': 'accept', 'm': self._minute(job['accepted_at'], start), 'wo': job['id'],
+                accepted_jobs[job['id']] = m
+                u['events'].append({'kind': 'accept', 'm': m, 'wo': job['id'],
                                     'station_id': job['workcenter_id'], 'label': job['mo']})
             if job['handed_over_at'] and start <= job['handed_over_at'] < end:
-                f = users[job['finisher']] if job['finisher'] else u
-                f['handed'] += 1
-                f['earned'] += job['expected'] or 0.0
-                f['events'].append({'kind': 'handed', 'm': self._minute(job['handed_over_at'], start), 'wo': job['id'],
+                m = self._minute(job['handed_over_at'], start)
+                u['handed'] += 1
+                u['earned'] += job['expected'] or 0.0
+                handed_jobs[job['id']] = m
+                u['events'].append({'kind': 'handed', 'm': m, 'wo': job['id'],
                                     'station_id': job['workcenter_id'], 'label': job['mo']})
         # timers on jobs that are not on anybody's bench (the plain Odoo start/stop)
         for (wo_id, uid), rows in timed.items():
@@ -329,6 +373,13 @@ class LabTechDay(models.AbstractModel):
             for t in rows:
                 ta, tb = self._minute(max(t['date_start'], start), start), self._minute(min(t['date_end'], end), start)
                 good = t['loss_type'] in ('productive', 'performance')
+                if stale(t):
+                    u['carried'] += 1
+                    self._fill(u['held'], ta, tb)
+                    u['segments'].append({'wo': wo_id, 'name': '', 'mo': '', 'production_id': False, 'station_id': t['workcenter_id'],
+                                          'patient': '', 'partner_id': False, 'priority': 'normal', 'a': ta, 'b': tb,
+                                          'kind': 'carried', 'open': True, 'expected': 0.0, 'accepted': None, 'handed': None})
+                    continue
                 if good:
                     self._fill(u['busy'], ta, tb)
                     self._add(u['stack'], ta, tb)
@@ -452,8 +503,6 @@ class LabTechDay(models.AbstractModel):
                 idle_wait_total += iw
                 f = floor[i]
                 f['busy_people'] += 1 if b_ else 0
-                f['handed'] += handed
-                f['accepted'] += acc
                 f['busy_min'] += b_
                 f['idle_wait'] += iw
             gap_start, gap_len = self._runs(bytearray(1 if present[m] and not busy[m] else 0 for m in range(DAY)), lo, hi)
@@ -478,6 +527,8 @@ class LabTechDay(models.AbstractModel):
             e_ = min(s + slot, DAY)
             floor[i]['waiting'] = sum(w[e_ - 1] for w in waiting.values())
             floor[i]['arrived'] = sum(arrivals[s:e_])
+            floor[i]['handed'] = sum(1 for m in handed_jobs.values() if s <= m < e_)
+            floor[i]['accepted'] = sum(1 for m in accepted_jobs.values() if s <= m < e_)
         rows.sort(key=lambda r: (-(r['busy'] + r['handed'] * 5 + r['present'] / 10), r['name']))
         insights = self._insights(rows, floor, slot, stations, waiting, lo, hi)
         partners_map = {p.id: p.display_name for p in self.env['res.partner'].sudo().browse(list(partners)).exists()}
@@ -493,7 +544,7 @@ class LabTechDay(models.AbstractModel):
             'station_ids': station_ids, 'partners': partners_map,
             'kpis': {
                 'people': sum(1 for r in rows if r['busy'] or r['handed'] or r['accepted']),
-                'rostered': len(roster), 'handed': sum(r['handed'] for r in rows), 'accepted': sum(r['accepted'] for r in rows),
+                'rostered': len(roster), 'handed': len(handed_jobs), 'accepted': len(accepted_jobs),
                 'busy_h': round(total_busy / 60.0, 1), 'present_h': round(total_present / 60.0, 1),
                 'utilisation': round(total_busy / total_present * 100) if total_present else None,
                 'earned_h': round(total_earned / 60.0, 1),

@@ -822,7 +822,8 @@ class LabMrpReport(models.AbstractModel):
             hours[station[0]] = hours.get(station[0], 0.0) \
                 + (row.get('duration_expected') or 0.0)
         if not here:
-            return {'rows': [], 'in_week': 0, 'out_week': 0, 'net': 0}
+            # the same shape as a busy floor: the screen reads `days` either way
+            return {'rows': [], 'in_week': 0, 'out_week': 0, 'net': 0, 'days': days}
 
         start, _end = self.env['lab.station']._day_window(
             self.env['lab.station']._lab_today() - timedelta(days=days - 1))
