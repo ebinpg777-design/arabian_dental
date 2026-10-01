@@ -43,7 +43,7 @@
                     .ebshel-fin-pdf table.fin tr.total td { border-top:2px solid #1f3a5f; font-weight:700; background:#f7f9fc; }
                     .ebshel-fin-pdf table.fin tr.header td { background:#eef3fa; font-weight:700; color:#1f3a5f; }
                     .ebshel-fin-pdf table.fin tr.move_line td, .ebshel-fin-pdf table.fin tr.open_item td { color:#374151; font-size:.9em; }
-                    .ebshel-fin-pdf table.fin tr.initial td { color:#6b7280; font-style:italic; }
+                    .ebshel-fin-pdf table.fin tr.initial td, .ebshel-fin-pdf table.fin tr.note td { color:#6b7280; font-style:italic; }
                     .ebshel-fin-pdf .neg { color:#b42318; }
                     .ebshel-fin-pdf table.fin td.zero { color:#b6bdc8; }
                     .ebshel-fin-pdf .up { color:#067647; } .ebshel-fin-pdf .down { color:#b42318; }

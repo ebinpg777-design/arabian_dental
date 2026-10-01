@@ -20,6 +20,9 @@ from .engine import PL_TYPES, BS_TYPES, LIQUIDITY_TYPES
 from .report import evaluate_formula
 
 PAGE = 80
+GL_FIRST = 100          # entries of an account shown when it is opened
+GL_MORE = 500           # entries each 'show more' adds
+GL_EXPORT = 20000       # entries of one account an export carries; a note says what it leaves out
 
 
 class FinHandler(models.AbstractModel):
@@ -126,7 +129,7 @@ class FinHandler(models.AbstractModel):
         rows = self.env.execute_query(SQL("""
             SELECT * FROM (
                 SELECT %s, %s AS grp,
-                       ROW_NUMBER() OVER (PARTITION BY %s ORDER BY l.date, l.id) AS rn
+                       ROW_NUMBER() OVER (PARTITION BY %s ORDER BY l.date, l.move_name, l.id) AS rn
                   FROM %s
                  WHERE %s) s
              WHERE s.rn <= %s
@@ -138,7 +141,7 @@ class FinHandler(models.AbstractModel):
         return table
 
     def _move_line_rows(self, options, where, order_dates, offset, limit, running_start=0.0,
-                        parent_id=None, level=2, extra_select=None, prefetched=None):
+                        parent_id=None, level=2, extra_select=None, prefetched=None, lead_blanks=0):
         """Journal items as detail rows with a running balance. `prefetched` are the rows
         of this heading when they were read together with every other open heading's."""
         w = self.engine.weight_sql(options)
@@ -148,7 +151,7 @@ class FinHandler(models.AbstractModel):
                 SELECT COALESCE(SUM(s.bal), 0) FROM (
                     SELECT l.balance * %s AS bal FROM account_move_line l
                       JOIN account_account a ON a.id = l.account_id
-                     WHERE %s ORDER BY l.date, l.id LIMIT %s) s""", w, base, offset))
+                     WHERE %s ORDER BY l.date, l.move_name, l.id LIMIT %s) s""", w, base, offset))
             running_start += float(skipped[0][0] or 0)
         if prefetched is not None and not offset:
             rows = prefetched
@@ -157,7 +160,7 @@ class FinHandler(models.AbstractModel):
                 SELECT %s
                   FROM %s
                  WHERE %s
-                 ORDER BY l.date, l.id
+                 ORDER BY l.date, l.move_name, l.id
                  LIMIT %s OFFSET %s
             """, self._detail_columns(options), self.DETAIL_FROM, base, limit + 1, offset))
         has_more = len(rows) > limit
@@ -170,8 +173,10 @@ class FinHandler(models.AbstractModel):
             parts = {'date': fields.Date.to_string(day), 'move': move_name or '', 'partner': partner or '',
                      'label': label or ref or '', 'journal': jcode or '', 'account': acode or '',
                      'matching': matching or '', 'due': fields.Date.to_string(due) if due else ''}
-            cells = [self._cell(float(debit or 0), currency), self._cell(float(credit or 0), currency),
-                     self._cell(running, currency)]
+            # a debit line has no credit: the other side stays empty, the way a ledger is written
+            cells = [self._blank()] * lead_blanks + [
+                self._cell(float(debit or 0) or None, currency), self._cell(float(credit or 0) or None, currency),
+                self._cell(running, currency)]
             out.append(self._line('ml:%d' % lid, '%s · %s' % (parts['date'], move_name or ''), level, cells,
                                   parent_id=parent_id, kind='move_line', parts=parts,
                                   model='account.move', res_id=move_id))
@@ -490,8 +495,15 @@ class GeneralLedgerHandler(models.AbstractModel):
     _description = 'Financial report engine: general ledger'
     _kind_label = 'General ledger'
 
+    # the figure a column opens: what the account started with, what moved, where it ended
+    MODE_OF_COLUMN = {'opening': 'initial', 'balance': 'ledger'}
+
     def columns(self, report, options):
-        return [{'key': 'debit', 'label': _('Debit'), 'type': 'amount'},
+        # Opening + Debit - Credit = Balance, on every account line. With the opening left
+        # out, Bank read 45,624,542 in and 43,962,421 out and a balance of 2,232,241 - a
+        # line that does not add up to anyone holding a calculator. (client, 2026-10-01)
+        return [{'key': 'opening', 'label': _('Opening'), 'type': 'amount'},
+                {'key': 'debit', 'label': _('Debit'), 'type': 'amount', 'items': True},
                 {'key': 'credit', 'label': _('Credit'), 'type': 'amount'},
                 {'key': 'balance', 'label': _('Balance'), 'type': 'amount'}]
 
@@ -503,6 +515,120 @@ class GeneralLedgerHandler(models.AbstractModel):
         period = self.engine.sums_by_account(options, 'flow', d_from, d_to, account_ids=account_ids)
         return initial, period
 
+    # ------------------------------------------------------------------ the grouping
+    def _tree(self, options, accounts, account_ids):
+        """Where every account sits on the page.
+
+        {'order': [('head', line id, name, level, parent) | ('acc', account id, level, parent)],
+         'place': {account id: (parent line id, level)},
+         'chain': {account id: [the headings above it, nearest first]},
+         'members': {heading line id: {account ids}}}
+
+        Grouped, an account sits under its account group - and when the chart has no
+        groups at all, under its type inside Assets, Liabilities, Equity, Income and
+        Expenses. Neither the lab's chart nor Ortho's has a single account group, so
+        the switch used to change nothing. (client, 2026-10-01)"""
+        code = lambda aid: accounts.get(aid, {}).get('code', '')          # noqa: E731
+        ids = sorted({a for a in account_ids if a in accounts}, key=code)
+        tree = {'order': [], 'place': {}, 'chain': {}, 'members': {}}
+        if not options.get('hierarchy'):
+            for aid in ids:
+                tree['order'].append(('acc', aid, 0, None))
+                tree['place'][aid] = (None, 0)
+                tree['chain'][aid] = []
+            return tree
+        groups = self._groups(options)
+        if groups:
+            self._tree_by_groups(tree, groups, accounts, ids)
+        else:
+            self._tree_by_types(tree, accounts, ids)
+        for aid, chain in tree['chain'].items():
+            for hid in chain:
+                tree['members'].setdefault(hid, set()).add(aid)
+        return tree
+
+    def _tree_by_groups(self, tree, groups, accounts, ids):
+        group_of = {aid: self._group_of(accounts[aid]['code'], groups) for aid in ids}
+        used = set()
+        for gid in group_of.values():
+            while gid and gid in groups and gid not in used:
+                used.add(gid)
+                gid = groups[gid]['parent']
+        children, members = {}, {}
+        for gid in used:
+            parent = groups[gid]['parent'] if groups[gid]['parent'] in used else None
+            children.setdefault(parent, []).append(gid)
+        for aid in ids:
+            members.setdefault(group_of[aid], []).append(aid)
+
+        def walk(gid, level, parent, chain):
+            hid = 'grp:%d' % gid
+            g = groups[gid]
+            tree['order'].append(('head', hid, ('%s %s' % (g['start'], g['name'])).strip(), level, parent))
+            for sub in sorted(children.get(gid, []), key=lambda x: groups[x]['start']):
+                walk(sub, level + 1, hid, [hid] + chain)
+            for aid in members.get(gid, []):
+                tree['order'].append(('acc', aid, level + 1, hid))
+                tree['place'][aid] = (hid, level + 1)
+                tree['chain'][aid] = [hid] + chain
+
+        for root in sorted(children.get(None, []), key=lambda x: groups[x]['start']):
+            walk(root, 0, None, [])
+        loose = members.get(None) or []
+        if loose:
+            tree['order'].append(('head', 'grp:none', _('Accounts without a group'), 0, None))
+            for aid in loose:
+                tree['order'].append(('acc', aid, 1, 'grp:none'))
+                tree['place'][aid] = ('grp:none', 1)
+                tree['chain'][aid] = ['grp:none']
+
+    def _tree_by_types(self, tree, accounts, ids):
+        tops = [('asset', _('Assets')), ('liability', _('Liabilities')), ('equity', _('Equity')),
+                ('income', _('Income')), ('expense', _('Expenses')), ('off', _('Off-balance sheet'))]
+        field = self.env['account.account']._fields['account_type']
+        types = field._description_selection(self.env)
+        label = dict(types)
+        rank = {key: i for i, (key, _l) in enumerate(types)}
+        known = {key for key, _l in tops}
+        top_of = lambda t: t.split('_')[0] if t.split('_')[0] in known else 'other'      # noqa: E731
+        by_type = {}
+        for aid in ids:
+            by_type.setdefault(accounts[aid]['type'], []).append(aid)
+        # whether a heading is split by type is the CHART's to say, not the page's: an account
+        # opened on its own must land where the whole ledger put it
+        in_chart = {}
+        for meta in accounts.values():
+            in_chart.setdefault(top_of(meta['type']), set()).add(meta['type'])
+        for top, top_name in tops + [('other', _('Other'))]:
+            kinds = sorted((t for t in by_type if top_of(t) == top), key=lambda t: rank.get(t, 99))
+            if not kinds:
+                continue
+            hid = 'hd:%s' % top
+            tree['order'].append(('head', hid, top_name, 0, None))
+            for kind in kinds:
+                if len(in_chart.get(top, ())) > 1:
+                    tid = 'ty:%s' % kind
+                    tree['order'].append(('head', tid, label.get(kind, kind), 1, hid))
+                    parent, level, chain = tid, 2, [tid, hid]
+                else:
+                    parent, level, chain = hid, 1, [hid]
+                for aid in by_type[kind]:
+                    tree['order'].append(('acc', aid, level, parent))
+                    tree['place'][aid] = (parent, level)
+                    tree['chain'][aid] = chain
+
+    # ------------------------------------------------------------------ lines
+    def _more_label(self, left):
+        """What the next click brings and what is still behind it."""
+        writer = self.engine.with_context(fin_unit=1)
+        return _("Show %(n)s more · %(left)s not shown yet",
+                 n=writer.fmt(min(GL_MORE, left), None, 'count'), left=writer.fmt(left, None, 'count'))
+
+    def _export_note(self, left):
+        writer = self.engine.with_context(fin_unit=1)
+        return _("%(left)s more entries of this account are not in this export: narrow the period, or "
+                 "open the account's journal items as a list to export them.", left=writer.fmt(left, None, 'count'))
+
     def lines(self, report, options, columns, for_export=False):
         engine = self.engine
         currency = engine.currency(options)
@@ -512,43 +638,48 @@ class GeneralLedgerHandler(models.AbstractModel):
         ids = set(initial) | set(period)
         if options.get('show_zero'):
             ids |= set(wanted if wanted is not None else accounts)
-        rows, tot_d, tot_c, tot_b = [], 0.0, 0.0, 0.0
-        groups = self._groups(options) if options.get('hierarchy') else {}
-        group_rows = {}
-        limit = PAGE if not for_export else 5000
-        opened = [aid for aid in ids if self._is_open(options, 'ac:%d' % aid)]
+        figures = {}
+        for aid in ids:
+            if aid not in accounts:
+                continue
+            ini = initial.get(aid, {}).get('balance', 0.0)
+            per = period.get(aid, {})
+            d, c = per.get('debit', 0.0), per.get('credit', 0.0)
+            bal = ini + per.get('balance', 0.0)
+            if not options.get('show_zero') and all(abs(v) < 0.005 for v in (ini, d, c, bal)):
+                continue
+            figures[aid] = (ini, d, c, bal, per.get('count', 0))
+        tree = self._tree(options, accounts, list(figures))
+        heads = {}
+        for aid, (ini, d, c, bal, _n) in figures.items():
+            for hid in tree['chain'].get(aid, []):
+                sums = heads.setdefault(hid, [0.0, 0.0, 0.0, 0.0])
+                for i, v in enumerate((ini, d, c, bal)):
+                    sums[i] += v
+        limit = GL_EXPORT if for_export else GL_FIRST
+        opened = [aid for aid in figures if self._is_open(options, 'ac:%d' % aid)]
         together = None
         if len(opened) > 3:
             d_from, d_to = self._period(options)
             together = self._prefetch_details(
                 options, [engine.date_where('flow', d_from, d_to, options), SQL("l.account_id IN %s", tuple(opened))],
                 SQL("l.account_id"), limit)
-        for aid in sorted(ids, key=lambda i: accounts.get(i, {}).get('code', '')):
-            meta = accounts.get(aid)
-            if not meta:
+        rows, totals = [], [0.0, 0.0, 0.0, 0.0]
+        for slot in tree['order']:
+            if slot[0] == 'head':
+                _kind, hid, name, level, parent = slot
+                sums = heads.get(hid, [0.0] * 4)
+                rows.append(self._line(hid, name, level, [self._cell(v, currency, drill=True) for v in sums],
+                                       parent_id=parent, bold=True, kind='group', unfoldable=True, unfolded=True))
                 continue
-            ini = initial.get(aid, {}).get('balance', 0.0)
-            per = period.get(aid, {})
-            d, c = per.get('debit', 0.0), per.get('credit', 0.0)
-            bal = ini + per.get('balance', 0.0)
-            if not options.get('show_zero') and abs(d) < 0.005 and abs(c) < 0.005 and abs(bal) < 0.005:
-                continue
-            tot_d, tot_c, tot_b = tot_d + d, tot_c + c, tot_b + bal
+            _kind, aid, level, parent = slot
+            meta = accounts[aid]
+            ini, d, c, bal, count = figures[aid]
+            totals = [t + v for t, v in zip(totals, (ini, d, c, bal))]
             lid = 'ac:%d' % aid
             unfolded = self._is_open(options, lid)
-            parent = None
-            level = 0
-            if groups:
-                gid = self._group_of(meta['code'], groups)
-                if gid:
-                    parent, level = 'grp:%d' % gid, groups[gid]['level'] + 1
-                    group_rows.setdefault(gid, [0.0, 0.0, 0.0])
-                    group_rows[gid][0] += d
-                    group_rows[gid][1] += c
-                    group_rows[gid][2] += bal
             rows.append(self._line(lid, '%s %s' % (meta['code'], meta['name']), level,
-                                   [self._cell(d, currency, drill=True), self._cell(c, currency, drill=True),
-                                    self._cell(bal, currency, drill=True)],
+                                   [self._cell(v, currency, drill=True) for v in (ini, d, c, bal)],
                                    parent_id=parent, unfoldable=True, unfolded=unfolded, kind='account',
                                    account_id=aid, initial=ini))
             if unfolded:
@@ -557,33 +688,21 @@ class GeneralLedgerHandler(models.AbstractModel):
                     prefetched=None if together is None else together.get(aid, []))
                 rows.extend(detail)
                 if has_more:
-                    rows.append(self._line(lid + ':more', _('Load more…'), level + 1, [self._blank()] * 3,
-                                           parent_id=lid, kind='more', offset=len(detail) - 1))
-        if groups and group_rows:
-            # Group rows come first in their own order; the account rows keep parent ids.
-            heads = []
-            for gid, (d, c, b) in group_rows.items():
-                g = groups[gid]
-                heads.append(self._line('grp:%d' % gid, '%s %s' % (g['start'], g['name']), g['level'],
-                                        [self._cell(d, currency), self._cell(c, currency), self._cell(b, currency)],
-                                        parent_id=('grp:%d' % g['parent']) if g['parent'] in group_rows else None,
-                                        bold=True, kind='group'))
-            heads.sort(key=lambda r: r['name'])
-            ordered = []
-            for head in heads:
-                ordered.append(head)
-                ordered.extend(r for r in rows if r['parent_id'] == head['id'] or
-                               (r['parent_id'] and r['parent_id'].startswith('ac:') and any(
-                                   a['id'] == r['parent_id'] and a['parent_id'] == head['id'] for a in rows)))
-            rows = ordered
+                    shown = sum(1 for r in detail if r['kind'] == 'move_line')
+                    left = max(count - shown, 1)
+                    rows.append(self._line(lid + ':more', self._more_label(left), level + 1, [self._blank()] * 4,
+                                           parent_id=lid, kind='more', offset=shown, left=left,
+                                           export_note=self._export_note(left)))
         unalloc = self._undistributed(options, accounts, wanted)
         if abs(unalloc) >= 0.005:
-            tot_b += unalloc
+            totals[0] += unalloc
+            totals[3] += unalloc
             rows.append(self._line('unalloc', _("Undistributed profit and loss of previous years"), 0,
-                                   [self._blank(), self._blank(), self._cell(unalloc, currency, drill=True)],
+                                   [self._cell(unalloc, currency, drill=True), self._blank(), self._blank(),
+                                    self._cell(unalloc, currency, drill=True)],
                                    kind='initial', css='muted'))
-        rows.append(self._line('total', _('Total'), 0, [self._cell(tot_d, currency), self._cell(tot_c, currency),
-                                                        self._cell(tot_b, currency)], bold=True, kind='total'))
+        rows.append(self._line('total', _('Total'), 0, [self._cell(v, currency, drill=True) for v in totals],
+                               bold=True, kind='total'))
         return rows
 
     def _undistributed(self, options, accounts, wanted):
@@ -595,42 +714,64 @@ class GeneralLedgerHandler(models.AbstractModel):
         sums = self.engine.sums_by_account(options, 'earnings_previous', d_from, d_from, account_ids=pl_ids)
         return sum(v['balance'] for v in sums.values())
 
-    def _detail(self, options, account_id, initial, parent_lid, level, offset, limit=PAGE, prefetched=None):
+    def _detail(self, options, account_id, initial, parent_lid, level, offset, limit=None, prefetched=None):
         d_from, d_to = self._period(options)
         currency = self.engine.currency(options)
         rows = []
         if offset == 0:
             rows.append(self._line(parent_lid + ':ini', _('Initial balance'), level,
-                                   [self._blank(), self._blank(), self._cell(initial, currency, drill=True)],
+                                   [self._cell(initial, currency, drill=True), self._blank(), self._blank(),
+                                    self._cell(initial, currency)],
                                    parent_id=parent_lid, kind='initial'))
         where = [self.engine.date_where('flow', d_from, d_to, options), SQL("l.account_id = %s", account_id)]
-        detail, has_more, running = self._move_line_rows(options, where, None, offset, limit,
+        detail, has_more, running = self._move_line_rows(options, where, None, offset, limit or GL_FIRST,
                                                          running_start=initial, parent_id=parent_lid, level=level,
-                                                         prefetched=prefetched)
+                                                         prefetched=prefetched, lead_blanks=1)
         rows.extend(detail)
         return rows, has_more, running
 
     def expand(self, report, options, columns, line_id, offset=0):
-        if not line_id.startswith('ac:'):
+        if not line_id.startswith('ac:') or line_id.count(':') != 1:
             return {'lines': [], 'has_more': False}
         aid = int(line_id.split(':')[1])
+        accounts = self.engine.accounts(options)
+        _parent, level = self._tree(options, accounts, [aid])['place'].get(aid, (None, 0))
         d_from, d_to = self._period(options)
         initial = self.engine.sums_by_account(options, 'initial', d_from, d_to, account_ids=[aid]).get(aid, {}).get('balance', 0.0)
-        rows, has_more, _r = self._detail(options, aid, initial, line_id, 1, offset)
-        return {'lines': rows, 'has_more': has_more}
+        count = self.engine.sums_by_account(options, 'flow', d_from, d_to, account_ids=[aid]).get(aid, {}).get('count', 0)
+        # the first look is short; asking for more brings a real page, not another eighty
+        rows, has_more, _r = self._detail(options, aid, initial, line_id, level + 1, offset,
+                                          limit=GL_MORE if offset else GL_FIRST)
+        res = {'lines': rows, 'has_more': has_more}
+        if has_more:
+            shown = offset + sum(1 for r in rows if r['kind'] == 'move_line')
+            res['more_label'] = self._more_label(max(count - shown, 1))
+        return res
+
+    def _heading_accounts(self, options, accounts, line_id):
+        wanted = self._account_filter(options, accounts)
+        tree = self._tree(dict(options, hierarchy=True), accounts, list(accounts) if wanted is None else wanted)
+        name = next((s[2] for s in tree['order'] if s[0] == 'head' and s[1] == line_id), '')
+        return sorted(tree['members'].get(line_id) or ()), name
 
     def drill(self, report, options, columns, line_id, column_key):
         d_from, d_to = self._period(options)
         accounts = self.engine.accounts(options)
+        mode = self.MODE_OF_COLUMN.get(column_key, 'flow')
         if line_id.startswith('ac:'):
             aid = int(line_id.split(':')[1])
-            mode = 'initial' if line_id.endswith(':ini') else 'flow'
             if line_id.endswith(':ini'):
-                aid = int(line_id.split(':')[1])
+                mode = 'initial'
             name = '%s %s' % (accounts.get(aid, {}).get('code', ''), accounts.get(aid, {}).get('name', ''))
             return self.engine.domain(options, mode, d_from, d_to, [aid]), name
+        if line_id.startswith(('grp:', 'hd:', 'ty:')):
+            ids, name = self._heading_accounts(options, accounts, line_id)
+            return (self.engine.domain(options, mode, d_from, d_to, ids), name) if ids else None
         if line_id == 'total':
-            return self.engine.domain(options, 'flow', d_from, d_to, None), _('All journal items')
+            # the total's opening and balance also carry the profit of earlier years: they are
+            # everything before the period, and everything up to its end
+            mode = {'opening': 'opening', 'balance': 'cumulative'}.get(column_key, 'flow')
+            return self.engine.domain(options, mode, d_from, d_to, self._account_filter(options, accounts)), _('All journal items')
         if line_id == 'unalloc':
             pl_ids = [a for a, m in accounts.items() if m['type'] in PL_TYPES]
             return self.engine.domain(options, 'earnings_previous', d_from, d_from, pl_ids), _("Previous years' profit and loss")
@@ -641,7 +782,8 @@ class GeneralLedgerHandler(models.AbstractModel):
             return {}
         aid = int(line_id.split(':')[1])
         d_from, d_to = self._period(options)
-        out = self._explain_sets(options, 'flow', d_from, d_to, [aid])
+        mode = 'initial' if line_id.endswith(':ini') else self.MODE_OF_COLUMN.get(column_key, 'flow')
+        out = self._explain_sets(options, mode, d_from, d_to, [aid])
         accounts = self.engine.accounts(options)
         out['title'] = '%s %s' % (accounts.get(aid, {}).get('code', ''), accounts.get(aid, {}).get('name', ''))
         return out

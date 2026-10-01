@@ -57,7 +57,17 @@ class FinReportExport(models.Model):
         elif layout['scope'] == 'full':
             given['unfold_all'] = True
         engine, handler, options, columns = self._prepare(given)
-        lines = [l for l in handler.lines(self, options, columns, for_export=True) if l.get('kind') != 'more']
+        lines = []
+        for line in handler.lines(self, options, columns, for_export=True):
+            if line.get('kind') == 'more':
+                # An account with more entries than an export carries used to lose the rest
+                # without a word: the workbook looked whole and its running balance stopped
+                # short. Ortho's Debtors has 191,839 entries in one year. (client, 2026-10-01)
+                line = dict(line, kind='note', unfoldable=False, columns=[
+                    {'value': None, 'text': '', 'display': 'text'} for _c in columns],
+                    name=line.get('export_note') or _("More entries follow that this export leaves out: "
+                                                      "open the line's journal items to export every one of them."))
+            lines.append(line)
         lines = self._polish(lines)
         if self.env['ebshel.fin.engine'].lead_company(options).sudo().ebshel_fin_totals_last:
             lines = self._totals_last(lines)
@@ -293,7 +303,7 @@ class FinReportExport(models.Model):
                 spec.update(top=2, top_color=NAVY, bg_color='#F7F9FC')
             elif kind in ('move_line', 'open_item'):
                 spec.update(font_color='#374151', font_size=9)
-            elif kind == 'initial':
+            elif kind in ('initial', 'note'):
                 spec.update(italic=True, font_color=MUTED)
             return spec
 

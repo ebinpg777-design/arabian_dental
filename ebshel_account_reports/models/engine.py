@@ -425,6 +425,11 @@ class FinEngine(models.AbstractModel):
             fy_from = self.fiscal_year_start(date_from, company)
             return SQL("%s < %s AND (%s OR %s >= %s)", d, date_from,
                        self.carries_opening_sql(account_alias), d, fy_from)
+        if mode == 'ledger':
+            # a ledger's closing balance: its opening and the period together
+            fy_from = self.fiscal_year_start(date_from, company)
+            return SQL("%s <= %s AND (%s OR %s >= %s)", d, date_to,
+                       self.carries_opening_sql(account_alias), d, fy_from)
         raise ValueError(mode)
 
     # ------------------------------------------------------------------ one reading, one memo
@@ -706,6 +711,10 @@ class FinEngine(models.AbstractModel):
         elif mode == 'initial':
             fy_from = self.fiscal_year_start(date_from, company)
             dom += [('date', '<', date_from), '|', ('account_id.account_type', 'not in', PL_ONLY_TYPES),
+                    ('date', '>=', fy_from)]
+        elif mode == 'ledger':
+            fy_from = self.fiscal_year_start(date_from, company)
+            dom += [('date', '<=', date_to), '|', ('account_id.account_type', 'not in', PL_ONLY_TYPES),
                     ('date', '>=', fy_from)]
         if account_ids is not None:
             dom.append(('account_id', 'in', list(account_ids)))

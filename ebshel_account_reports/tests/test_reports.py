@@ -122,23 +122,25 @@ class TestFinReports(TransactionCase):
         tb = self._data('trial_balance', self.year)
         gl_total = self._line(gl, name='Total')['columns']
         tb_total = self._line(tb, name='Total')['columns']
-        self.assertAlmostEqual(gl_total[0]['value'], tb_total[2]['value'], 2)
-        self.assertAlmostEqual(gl_total[1]['value'], tb_total[3]['value'], 2)
-        self.assertAlmostEqual(gl_total[2]['value'], (tb_total[4]['value'] or 0) - (tb_total[5]['value'] or 0), 2)
+        self.assertAlmostEqual(gl_total[0]['value'], (tb_total[0]['value'] or 0) - (tb_total[1]['value'] or 0), 2)
+        self.assertAlmostEqual(gl_total[1]['value'], tb_total[2]['value'], 2)
+        self.assertAlmostEqual(gl_total[2]['value'], tb_total[3]['value'], 2)
+        self.assertAlmostEqual(gl_total[3]['value'], (tb_total[4]['value'] or 0) - (tb_total[5]['value'] or 0), 2)
 
     def test_an_account_unfolds_to_its_items_with_a_running_balance(self):
         gl = self._data('general_ledger', self.year)
-        account = next(l for l in gl['lines'] if l['kind'] == 'account' and (l['columns'][0]['value'] or l['columns'][1]['value']))
+        account = next(l for l in gl['lines'] if l['kind'] == 'account' and (l['columns'][1]['value'] or l['columns'][2]['value']))
         res = self.Report.by_key('general_ledger').expand_line(self.year, account['id'])
         rows = [r for r in res['lines'] if r['kind'] == 'move_line']
         self.assertTrue(rows)
         self.assertEqual(res['lines'][0]['kind'], 'initial')
-        running = res['lines'][0]['columns'][2]['value'] or 0.0
+        running = res['lines'][0]['columns'][3]['value'] or 0.0
+        self.assertAlmostEqual(running, account['columns'][0]['value'] or 0.0, 2, "it starts from the account's opening")
         for r in rows:
-            running += (r['columns'][0]['value'] or 0) - (r['columns'][1]['value'] or 0)
-            self.assertAlmostEqual(r['columns'][2]['value'], running, 2)
+            running += (r['columns'][1]['value'] or 0) - (r['columns'][2]['value'] or 0)
+            self.assertAlmostEqual(r['columns'][3]['value'], running, 2)
         if not res['has_more']:
-            self.assertAlmostEqual(running, account['columns'][2]['value'], 2)
+            self.assertAlmostEqual(running, account['columns'][3]['value'], 2)
 
     def test_the_partner_ledger_agrees_with_the_general_ledger(self):
         pl = self._data('partner_ledger', self.year)
@@ -146,14 +148,14 @@ class TestFinReports(TransactionCase):
         accounts = self.engine.accounts(self.engine.normalize(self.Report.by_key('partner_ledger'), self.year))
         rec_pay = [a for a, m in accounts.items() if m['type'] in ('asset_receivable', 'liability_payable')]
         gl = self._data('general_ledger', self.year)
-        gl_sum = sum(l['columns'][2]['value'] or 0 for l in gl['lines'] if l['kind'] == 'account' and l.get('account_id') in rec_pay)
+        gl_sum = sum(l['columns'][3]['value'] or 0 for l in gl['lines'] if l['kind'] == 'account' and l.get('account_id') in rec_pay)
         self.assertAlmostEqual(total[2]['value'], gl_sum, 2)
 
     def test_the_day_book_agrees_with_the_general_ledger(self):
         db = self._data('day_book', self.year)
         gl = self._data('general_ledger', self.year)
         self.assertAlmostEqual(self._line(db, name='Total')['columns'][0]['value'],
-                               self._line(gl, name='Total')['columns'][0]['value'], 2)
+                               self._line(gl, name='Total')['columns'][1]['value'], 2)
 
     def test_the_cash_book_reads_the_liquidity_accounts(self):
         cb = self._data('cash_book', self.year)

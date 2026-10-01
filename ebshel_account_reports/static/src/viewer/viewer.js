@@ -73,6 +73,7 @@ export class FinReportViewer extends Component {
             wideQ: {},                  // what is typed in each list of the wider filters
             fiscal: null,               // the fiscal years around the period, for its shortcuts
             pins: [],                   // line ids kept in sight above the table
+            collapsed: {},              // heading line id -> true: its accounts are folded away on the screen
             took: 0,                    // seconds the last reading took, as the reader felt it
             exporter: null,             // the export panel: {format, scope, orientation, filters, notes, preview}
             refreshing: false,          // a reload under a report already on the screen
@@ -143,6 +144,11 @@ export class FinReportViewer extends Component {
             this.state.report = data.report;
             this.state.options = data.options;
             this.state.columns = data.columns;
+            for (const l of data.lines) {
+                if (l.kind === "group" && this.state.collapsed[l.id]) {
+                    l.unfolded = false;
+                }
+            }
             this.state.lines = data.lines;
             if (data.choices) {
                 this.state.choices = data.choices;
@@ -521,6 +527,26 @@ export class FinReportViewer extends Component {
     }
 
     get visibleLines() {
+        return this.withoutFolded(this.searchedLines);
+    }
+
+    /** Out of the lines, those under a heading folded on the screen. */
+    withoutFolded(lines) {
+        const folded = this.state.collapsed;
+        if (!Object.keys(folded).length) {
+            return lines;
+        }
+        const hidden = new Set();
+        return lines.filter((l) => {
+            if (l.parent_id && (folded[l.parent_id] || hidden.has(l.parent_id))) {
+                hidden.add(l.id);
+                return false;
+            }
+            return true;
+        });
+    }
+
+    get searchedLines() {
         const q = this.state.search.trim().toLowerCase();
         if (!q) {
             return this.state.lines;
@@ -546,6 +572,17 @@ export class FinReportViewer extends Component {
 
     async toggle(line) {
         if (!line.unfoldable) {
+            return;
+        }
+        if (line.kind === "group") {
+            // a heading folds on the screen: its accounts are already here, nothing is read again
+            if (this.state.collapsed[line.id]) {
+                delete this.state.collapsed[line.id];
+                line.unfolded = true;
+            } else {
+                this.state.collapsed[line.id] = true;
+                line.unfolded = false;
+            }
             return;
         }
         if (line.unfolded) {
@@ -574,7 +611,7 @@ export class FinReportViewer extends Component {
         });
         const at = this.state.lines.indexOf(line);
         const extra = res.has_more
-            ? [...res.lines, { id: line.id + ":more", parent_id: line.id, name: _t("Load more…"), level: line.level + 1,
+            ? [...res.lines, { id: line.id + ":more", parent_id: line.id, name: res.more_label || _t("Load more…"), level: line.level + 1,
                               kind: "more", columns: [], unfoldable: false, offset: res.lines.length - 1 }]
             : res.lines;
         if (res.totals_last) {
@@ -602,7 +639,7 @@ export class FinReportViewer extends Component {
         const rows = res.lines.filter((l) => l.kind !== "initial");
         this.state.lines.splice(at, 1, ...rows);
         if (res.has_more) {
-            this.state.lines.splice(at + rows.length, 0, { ...more, offset: more.offset + rows.length });
+            this.state.lines.splice(at + rows.length, 0, { ...more, offset: more.offset + rows.length, name: res.more_label || more.name });
         }
         if (parent && this.state.options.trend) {
             this.loadTrends(rows.map((l) => l.id));
@@ -659,7 +696,9 @@ export class FinReportViewer extends Component {
     firstDrillKey(line) {
         const cols = line.columns || [];
         const keyAt = (i) => (this.state.columns[i] || {}).key;
-        let index = cols.findIndex((c, i) => c.drill && c.value && keyAt(i) === "total");
+        // a report may name the column its Items stand for (a ledger: the period, not the opening)
+        let index = cols.findIndex((c, i) => c.drill && (this.state.columns[i] || {}).items);
+        if (index < 0) index = cols.findIndex((c, i) => c.drill && c.value && keyAt(i) === "total");
         if (index < 0) index = cols.findIndex((c) => c.drill && c.value);
         if (index < 0) index = cols.findIndex((c) => c.drill);
         return index >= 0 ? keyAt(index) : null;
@@ -1044,6 +1083,17 @@ export class FinReportViewer extends Component {
     }
 
     goToLine(id) {
+        // a line under a folded heading is brought out: the headings above it open again
+        const byId = new Map(this.state.lines.map((l) => [l.id, l]));
+        for (let up = byId.get(id); up && up.parent_id; up = byId.get(up.parent_id)) {
+            if (this.state.collapsed[up.parent_id]) {
+                delete this.state.collapsed[up.parent_id];
+                const head = byId.get(up.parent_id);
+                if (head) {
+                    head.unfolded = true;
+                }
+            }
+        }
         const at = this.visibleLines.findIndex((l) => l.id === id);
         if (at >= this.state.limit) {
             this.state.limit = at + PAGE_OF_LINES;

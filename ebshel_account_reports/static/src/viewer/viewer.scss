@@ -343,7 +343,9 @@ $efr-tones: (
         .o_efr_indent { display: inline-block; }
         .o_efr_caret { color: var(--efr-muted); width: 1rem; display: inline-block; }
         .o_efr_caret_none { width: 1rem; }
-        .o_efr_explain { opacity: 0; margin-left: .35rem; color: #7c3aed; font-size: .75rem; cursor: pointer; }
+        // the magnifier floats at the free left end of the cell: in the flow it pushed every figure
+        // that can be explained 1.1rem left of the ones that cannot, so a column did not line up
+        .o_efr_explain { opacity: 0; position: absolute; left: .3rem; top: 50%; transform: translateY(-50%); color: #7c3aed; font-size: .75rem; cursor: pointer; }
         td.o_efr_cell:hover .o_efr_explain { opacity: .85; }
 
         // what can be done with a line: it floats over the end of the name while the line is
@@ -368,6 +370,8 @@ $efr-tones: (
         tr.o_efr_k_total > td { border-top: 2px solid var(--efr-navy); font-weight: 700; background-color: #f7f9fc; }
         tr.o_efr_k_move_line > td, tr.o_efr_k_open_item > td { font-size: .78rem; color: #374151; background-color: #fcfcfd; }
         tr.o_efr_k_initial > td { color: var(--efr-muted); font-style: italic; }
+        tr.o_efr_k_group > td, tr.o_efr_k_group > td.o_efr_name { background: #f7f9fc; }
+        tr.o_efr_k_group.o_efr_l0 > td { border-top: 1px solid #dfe5ee; color: #1f3a5f; }
         tr.o_efr_k_more > td { color: #1d4ed8; cursor: pointer; font-size: .78rem; }
         tr.o_efr_focus > td { outline: 2px solid #7c3aed; outline-offset: -2px; }
         tr.o_efr_muted > td { color: var(--efr-muted); }

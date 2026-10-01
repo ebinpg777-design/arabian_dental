@@ -53,7 +53,8 @@
         <field name="allow_partners" eval="True"/>
         <field name="allow_accounts" eval="True"/>
         <field name="allow_hierarchy" eval="True"/>
-        <field name="default_preset">this_month</field>
+        <!-- a ledger opened on the first of a month showed every account standing still -->
+        <field name="default_preset">today</field>
     </record>
     <record id="report_trial_balance" model="ebshel.fin.report">
         <field name="name">Trial Balance</field>
