@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_customer_otif_view_form" model="ir.ui.view">
+        <field name="name">asr.report.customer.otif.form</field>
+        <field name="model">asr.report.customer.otif</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="group_by" widget="radio"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="partner_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    Confirmed order lines of storable products delivered in the period (first or last delivery of
+                    the line, per the company setting), plus the lines promised in the period that have not shipped.
+                    Promised date: commitment date, else expected date, else the move deadline. In full: delivered
+                    quantity at least the ordered quantity minus the company tolerance.
+                </p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_customer_otif_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.customer.otif.line.list</field>
+        <field name="model">asr.report.customer.otif.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="partner_id"/>
+                <field name="order_id" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="product_id" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="date_promised" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="date_delivered" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="days_late" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="qty_ordered" sum="Total" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="qty_delivered" sum="Total" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="on_time" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="in_full" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="otif" column_invisible="context.get('asr_group_by') == 'customer'"/>
+                <field name="line_count" sum="Total" column_invisible="context.get('asr_group_by') != 'customer'"/>
+                <field name="on_time_count" sum="Total" column_invisible="context.get('asr_group_by') != 'customer'"/>
+                <field name="in_full_count" sum="Total" column_invisible="context.get('asr_group_by') != 'customer'"/>
+                <field name="otif_count" sum="Total" column_invisible="context.get('asr_group_by') != 'customer'"/>
+                <field name="on_time_rate" column_invisible="context.get('asr_group_by') != 'customer'"/>
+                <field name="in_full_rate" column_invisible="context.get('asr_group_by') != 'customer'"/>
+                <field name="otif_rate" column_invisible="context.get('asr_group_by') != 'customer'"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_customer_otif_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.customer.otif.line.pivot</field>
+        <field name="model">asr.report.customer.otif.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="partner_id" type="row"/>
+                <field name="line_count" type="measure"/>
+                <field name="otif_count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_customer_otif_line_view_graph" model="ir.ui.view">
+        <field name="name">asr.report.customer.otif.line.graph</field>
+        <field name="model">asr.report.customer.otif.line</field>
+        <field name="arch" type="xml">
+            <graph type="bar">
+                <field name="partner_id"/>
+                <field name="otif_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="report_customer_otif_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.customer.otif.line.search</field>
+        <field name="model">asr.report.customer.otif.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="order_id"/>
+                <field name="product_id"/>
+                <filter name="late" string="Late" domain="[('on_time', '=', False)]"/>
+                <filter name="short" string="Not In Full" domain="[('in_full', '=', False)]"/>
+                <group>
+                    <filter name="group_partner" string="Customer" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_month" string="Promised Month" context="{'group_by': 'date_promised:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_customer_otif" model="ir.actions.act_window">
+        <field name="name">Customer OTIF</field>
+        <field name="res_model">asr.report.customer.otif</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

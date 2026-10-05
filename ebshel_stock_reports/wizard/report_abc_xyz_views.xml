@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_abc_xyz_view_form" model="ir.ui.view">
+        <field name="name">asr.report.abc.xyz.form</field>
+        <field name="model">asr.report.abc.xyz</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="date_to" string="Report Date"/>
+                        <field name="months"/>
+                        <field name="recompute"/>
+                        <field name="include_summary"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    ABC ranks the products by their issue value at cost (deliveries and consumption) over the
+                    window; XYZ measures how regular the monthly issue quantity is. Thresholds are company
+                    settings. The classes shown are those of the last monthly run unless "Recompute now" is ticked
+                    (the window and the report date then apply); the on-hand columns are always as of the report date.
+                </p>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_abc_xyz_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.abc.xyz.line.list</field>
+        <field name="model">asr.report.abc.xyz.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" decoration-bf="is_summary">
+                <field name="is_summary" column_invisible="1"/>
+                <field name="product_id"/>
+                <field name="default_code" optional="show"/>
+                <field name="categ_id" optional="show"/>
+                <field name="abc_class"/>
+                <field name="xyz_class"/>
+                <field name="combined_class" optional="show"/>
+                <field name="product_count" optional="hide"/>
+                <field name="issue_qty" sum="Total"/>
+                <field name="issue_value" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cumulative_share"/>
+                <field name="variation"/>
+                <field name="qty_on_hand" sum="Total"/>
+                <field name="value_on_hand" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_abc_xyz_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.abc.xyz.line.pivot</field>
+        <field name="model">asr.report.abc.xyz.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="abc_class" type="row"/>
+                <field name="xyz_class" type="col"/>
+                <field name="product_count" type="measure"/>
+                <field name="issue_qty" type="measure"/>
+                <field name="qty_on_hand" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_abc_xyz_line_view_graph" model="ir.ui.view">
+        <field name="name">asr.report.abc.xyz.line.graph</field>
+        <field name="model">asr.report.abc.xyz.line</field>
+        <field name="arch" type="xml">
+            <graph type="bar" stacked="1">
+                <field name="combined_class"/>
+                <field name="product_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="report_abc_xyz_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.abc.xyz.line.search</field>
+        <field name="model">asr.report.abc.xyz.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="default_code"/>
+                <field name="categ_id"/>
+                <field name="combined_class"/>
+                <filter name="filter_products" string="Products" domain="[('is_summary', '=', False)]"/>
+                <filter name="filter_summary" string="Summary rows" domain="[('is_summary', '=', True)]"/>
+                <filter name="filter_a" string="Class A" domain="[('abc_class', '=', 'A')]"/>
+                <filter name="filter_b" string="Class B" domain="[('abc_class', '=', 'B')]"/>
+                <filter name="filter_c" string="Class C" domain="[('abc_class', '=', 'C')]"/>
+                <group>
+                    <filter name="group_combined" string="Class" context="{'group_by': 'combined_class'}"/>
+                    <filter name="group_abc" string="ABC" context="{'group_by': 'abc_class'}"/>
+                    <filter name="group_xyz" string="XYZ" context="{'group_by': 'xyz_class'}"/>
+                    <filter name="group_categ" string="Category" context="{'group_by': 'categ_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_abc_xyz" model="ir.actions.act_window">
+        <field name="name">ABC / XYZ Analysis</field>
+        <field name="res_model">asr.report.abc.xyz</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

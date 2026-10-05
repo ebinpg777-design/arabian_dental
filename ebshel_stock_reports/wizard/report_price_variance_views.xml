@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_price_variance_view_form" model="ir.ui.view">
+        <field name="name">asr.report.price.variance.form</field>
+        <field name="model">asr.report.price.variance</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="group_by" widget="radio"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"/>
+                        <field name="partner_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    Done receipts of purchase order lines dated in the period. The valued price is the receipt
+                    move value per unit: the purchase price until the vendor bill is posted, the bill price after.
+                    The standard cost is the standard price in force at the receipt date for standard-cost products
+                    and the current cost for AVCO and FIFO products.
+                </p>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_price_variance_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.price.variance.line.list</field>
+        <field name="model">asr.report.price.variance.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="reference" column_invisible="context.get('asr_group_by') == 'product'"/>
+                <field name="date" column_invisible="context.get('asr_group_by') == 'product'"/>
+                <field name="partner_id" column_invisible="context.get('asr_group_by') == 'product'"/>
+                <field name="order_id" column_invisible="context.get('asr_group_by') == 'product'"/>
+                <field name="product_id"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="move_count" sum="Total" column_invisible="context.get('asr_group_by') != 'product'"/>
+                <field name="quantity" sum="Total"/>
+                <field name="price_po" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="price_valued" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="price_standard" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="var_po_std" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="var_po_std_pct" optional="show" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="var_inv_po" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="var_inv_po_pct" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="var_total" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="var_total_pct" optional="show" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="move_id" column_invisible="1"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_price_variance_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.price.variance.line.pivot</field>
+        <field name="model">asr.report.price.variance.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="product_id" type="row"/>
+                <field name="quantity" type="measure"/>
+                <field name="var_po_std" type="measure" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="var_inv_po" type="measure" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="var_total" type="measure" groups="ebshel_stock_reports.group_see_values"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_price_variance_line_view_graph" model="ir.ui.view">
+        <field name="name">asr.report.price.variance.line.graph</field>
+        <field name="model">asr.report.price.variance.line</field>
+        <field name="arch" type="xml">
+            <graph type="bar">
+                <field name="product_id"/>
+                <field name="var_total" type="measure" groups="ebshel_stock_reports.group_see_values"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="report_price_variance_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.price.variance.line.search</field>
+        <field name="model">asr.report.price.variance.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="partner_id"/>
+                <field name="order_id"/>
+                <field name="reference"/>
+                <group>
+                    <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_partner" string="Vendor" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_categ" string="Category" context="{'group_by': 'categ_id'}"/>
+                    <filter name="group_month" string="Month" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_price_variance" model="ir.actions.act_window">
+        <field name="name">Purchase Price Variance</field>
+        <field name="res_model">asr.report.price.variance</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_mo_cost_view_form" model="ir.ui.view">
+        <field name="name">asr.report.mo.cost.form</field>
+        <field name="model">asr.report.mo.cost</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <p class="text-muted">Real cost of the done manufacturing orders of the period (components,
+                    operations, extra cost, less the by-product share) against the bill of materials cost
+                    at today's standard prices, per order or summed per finished product and month.</p>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="date_from" string="Finished From"/>
+                        <field name="date_to" string="Finished To"/>
+                        <field name="group_by"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags" string="Finished Product Categories"/>
+                        <field name="product_ids" widget="many2many_tags" string="Finished Products"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_mo_cost_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.mo.cost.line.list</field>
+        <field name="model">asr.report.mo.cost.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" default_order="month, date_finished, production_id, id">
+                <field name="production_id" optional="show"/>
+                <field name="product_id"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="date_finished" optional="show"/>
+                <field name="month" optional="hide"/>
+                <field name="mo_count" sum="Total" optional="hide"/>
+                <field name="uom_id" optional="show"/>
+                <field name="qty_produced" sum="Total"/>
+                <field name="cost_component" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cost_operation" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cost_extra" sum="Total" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="byproduct_share" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cost_total" sum="Total" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cost_finished" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cost_unit" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cost_bom" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cost_bom_unit" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="variance" sum="Total" groups="ebshel_stock_reports.group_see_values"
+                       decoration-danger="variance &gt; 0" decoration-success="variance &lt; 0"/>
+                <field name="variance_pct" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_mo_cost_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.mo.cost.line.pivot</field>
+        <field name="model">asr.report.mo.cost.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="product_id" type="row"/>
+                <field name="month" interval="month" type="col"/>
+                <field name="qty_produced" type="measure"/>
+                <field name="cost_finished" type="measure"/>
+                <field name="cost_bom" type="measure"/>
+                <field name="variance" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_mo_cost_line_view_graph" model="ir.ui.view">
+        <field name="name">asr.report.mo.cost.line.graph</field>
+        <field name="model">asr.report.mo.cost.line</field>
+        <field name="arch" type="xml">
+            <graph type="bar" stacked="0">
+                <field name="product_id"/>
+                <field name="cost_finished" type="measure"/>
+                <field name="cost_bom" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="report_mo_cost_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.mo.cost.line.search</field>
+        <field name="model">asr.report.mo.cost.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="production_id"/>
+                <field name="product_id"/>
+                <field name="categ_id"/>
+                <filter name="over" string="Over BoM Cost" domain="[('variance', '&gt;', 0)]"/>
+                <filter name="under" string="Under BoM Cost" domain="[('variance', '&lt;', 0)]"/>
+                <group>
+                    <filter name="group_product" string="Finished Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_categ" string="Category" context="{'group_by': 'categ_id'}"/>
+                    <filter name="group_month" string="Month" context="{'group_by': 'month:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_mo_cost" model="ir.actions.act_window">
+        <field name="name">MO Cost / Production Analysis</field>
+        <field name="res_model">asr.report.mo.cost</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

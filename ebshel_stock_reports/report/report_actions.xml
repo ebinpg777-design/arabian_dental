@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="action_report_document" model="ir.actions.report">
+        <field name="name">Advanced Stock Report</field>
+        <field name="model">asr.report.print</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_stock_reports.report_document</field>
+        <field name="report_file">ebshel_stock_reports.report_document</field>
+        <field name="print_report_name">object.name</field>
+        <field name="paperformat_id" ref="ebshel_stock_reports.paperformat_landscape"/>
+    </record>
+</odoo>

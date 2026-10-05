@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <!-- Root: Inventory > Advanced Reports -->
+    <menuitem id="menu_advanced" name="Advanced Reports" parent="stock.menu_stock_root" sequence="95"
+              groups="ebshel_stock_reports.group_user"/>
+
+    <!-- Stock -->
+    <menuitem id="menu_stock" name="Stock" parent="menu_advanced" sequence="10"/>
+    <menuitem id="menu_report_stock_ledger" name="Stock Ledger / Card" parent="menu_stock" sequence="10"
+              action="action_report_stock_ledger"/>
+    <menuitem id="menu_report_aging" name="Inventory Aging" parent="menu_stock" sequence="20"
+              action="action_report_aging"/>
+    <menuitem id="menu_report_slow_moving" name="Slow / Non-Moving Stock" parent="menu_stock" sequence="30"
+              action="action_report_slow_moving"/>
+    <menuitem id="menu_report_abc_xyz" name="ABC / XYZ Analysis" parent="menu_stock" sequence="40"
+              action="action_report_abc_xyz"/>
+    <menuitem id="menu_report_turnover" name="Turnover / Days of Cover" parent="menu_stock" sequence="50"
+              action="action_report_turnover"/>
+    <menuitem id="menu_report_count_variance" name="Valued Count Variance" parent="menu_stock" sequence="60"
+              action="action_report_count_variance"/>
+    <menuitem id="menu_report_scrap_return" name="Scrap and Returns by Reason" parent="menu_stock" sequence="70"
+              action="action_report_scrap_return"/>
+    <menuitem id="menu_report_register" name="Movement Registers" parent="menu_stock" sequence="80"
+              action="action_report_register"/>
+
+    <!-- Manufacturing -->
+    <menuitem id="menu_manufacturing" name="Manufacturing" parent="menu_advanced" sequence="20"/>
+    <menuitem id="menu_report_consumption" name="Planned vs Actual Consumption" parent="menu_manufacturing" sequence="10"
+              action="action_report_consumption"/>
+    <menuitem id="menu_report_wip" name="Work in Progress" parent="menu_manufacturing" sequence="20"
+              action="action_report_wip"/>
+    <menuitem id="menu_report_mo_cost" name="MO Cost / Production Analysis" parent="menu_manufacturing" sequence="30"
+              action="action_report_mo_cost"/>
+    <menuitem id="menu_report_mo_shortage" name="MO Component Shortage" parent="menu_manufacturing" sequence="40"
+              action="action_report_mo_shortage"/>
+
+    <!-- Purchase and sales -->
+    <menuitem id="menu_trade" name="Purchase and Sales" parent="menu_advanced" sequence="30"/>
+    <menuitem id="menu_report_customer_otif" name="Customer OTIF" parent="menu_trade" sequence="10"
+              action="action_report_customer_otif"/>
+    <menuitem id="menu_report_vendor_otif" name="Vendor OTIF" parent="menu_trade" sequence="20"
+              action="action_report_vendor_otif"/>
+    <menuitem id="menu_report_price_variance" name="Purchase Price Variance" parent="menu_trade" sequence="30"
+              action="action_report_price_variance"/>
+    <menuitem id="menu_report_order_shortage" name="Open Order Shortage" parent="menu_trade" sequence="40"
+              action="action_report_order_shortage"/>
+    <menuitem id="menu_vendor_delay" name="Vendor Delay (Odoo)" parent="menu_trade" sequence="50"
+              action="purchase_stock.action_purchase_vendor_delay_report"/>
+
+    <!-- Accounting -->
+    <menuitem id="menu_accounting" name="Accounting" parent="menu_advanced" sequence="40"
+              groups="ebshel_stock_reports.group_see_values"/>
+    <menuitem id="menu_report_accrual" name="Inventory vs GL and Accruals" parent="menu_accounting" sequence="10"
+              action="action_report_accrual"/>
+    <menuitem id="menu_stock_valuation_closing" name="Inventory Valuation (Odoo)" parent="menu_accounting" sequence="20"
+              action="stock_account.action_report_stock_valuation"/>
+    <menuitem id="menu_moves_valuation" name="Moves Analysis - Valuation (Odoo)" parent="menu_accounting" sequence="30"
+              action="stock_account.stock_move_valuation_action"/>
+
+    <!-- India GST -->
+    <menuitem id="menu_gst" name="India GST" parent="menu_advanced" sequence="50"
+              groups="ebshel_stock_reports.group_india_gst"/>
+    <menuitem id="menu_report_gst_register" name="GST Stock Register" parent="menu_gst" sequence="10"
+              action="action_report_gst_register"/>
+    <menuitem id="menu_report_production_account" name="Monthly Production Account" parent="menu_gst" sequence="20"
+              action="action_report_production_account"/>
+
+    <!-- Standard reports, linked not rebuilt -->
+    <menuitem id="menu_standard" name="Standard Reports" parent="menu_advanced" sequence="60"/>
+    <menuitem id="menu_std_stock" name="Stock" parent="menu_standard" sequence="10" action="stock.action_product_stock_view"/>
+    <menuitem id="menu_std_moves_history" name="Moves History" parent="menu_standard" sequence="20" action="stock.stock_move_line_action"/>
+    <menuitem id="menu_std_moves_analysis" name="Moves Analysis" parent="menu_standard" sequence="30" action="stock.stock_move_action"/>
+    <menuitem id="menu_std_replenishment" name="Replenishment" parent="menu_standard" sequence="40" action="stock.action_replenishment"/>
+    <menuitem id="menu_std_purchase" name="Purchase Analysis" parent="menu_standard" sequence="50" action="purchase.action_purchase_order_report_all"/>
+    <menuitem id="menu_std_sales" name="Sales Analysis" parent="menu_standard" sequence="60" action="sale.action_order_report_all"/>
+
+    <!-- Configuration -->
+    <menuitem id="menu_configuration" name="Configuration" parent="menu_advanced" sequence="90"
+              groups="ebshel_stock_reports.group_manager"/>
+    <menuitem id="menu_settings" name="Settings" parent="menu_configuration" sequence="5"
+              action="stock.action_stock_config_settings"/>
+    <menuitem id="menu_reasons" name="Reasons" parent="menu_configuration" sequence="10" action="scrap_reason_tag_action"/>
+    <menuitem id="menu_product_class" name="ABC / XYZ Classes" parent="menu_configuration" sequence="20" action="product_class_action"/>
+    <menuitem id="menu_wip_snapshot" name="WIP Snapshots" parent="menu_configuration" sequence="30" action="wip_snapshot_action"/>
+    <menuitem id="menu_move_daily" name="Daily Movement Summary" parent="menu_configuration" sequence="40" action="stock_move_daily_action"/>
+    <menuitem id="menu_value_daily" name="Daily Valuation Summary" parent="menu_configuration" sequence="50" action="stock_value_daily_action"/>
+    <menuitem id="menu_dirty" name="Recompute Queue" parent="menu_configuration" sequence="60" action="stock_dirty_action"/>
+
+</odoo>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.advanced.stock.reports</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="stock.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Advanced Stock Reports" string="Advanced Stock Reports" name="ebshel_stock_reports"
+                     groups="ebshel_stock_reports.group_manager">
+                    <block title="Engine" name="asr_engine_block">
+                        <setting id="asr_tz" string="Reporting timezone"
+                                 help="Day boundaries of every report. Default: the company's timezone.">
+                            <field name="asr_report_tz"/>
+                        </setting>
+                        <setting id="asr_state" string="Daily tables"
+                                 help="The movement and valuation summaries that every report reads.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="asr_engine_state" class="col-lg-5 o_light_label"/>
+                                    <field name="asr_engine_state"/>
+                                </div>
+                                <div class="row">
+                                    <label for="asr_engine_last_run" class="col-lg-5 o_light_label"/>
+                                    <field name="asr_engine_last_run"/>
+                                </div>
+                                <div class="row">
+                                    <label for="asr_dirty_count" string="Waiting to recompute" class="col-lg-5 o_light_label"/>
+                                    <field name="asr_dirty_count"/>
+                                </div>
+                                <div class="mt8">
+                                    <button name="action_asr_run_now" type="object" string="Recompute now" class="btn-link" icon="fa-refresh"/>
+                                    <button name="action_asr_rebuild" type="object" string="Rebuild everything" class="btn-link" icon="fa-database"
+                                            confirm="The daily tables of this company will be dropped and rebuilt by the cron. Reports show partial figures until it finishes. Continue?"/>
+                                    <button name="action_asr_health_check" type="object" string="Health check" class="btn-link" icon="fa-stethoscope"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Definitions" name="asr_definitions_block">
+                        <setting id="asr_aging" string="Aging buckets" help="Upper bounds in days, e.g. 30,60,90,180.">
+                            <field name="asr_aging_buckets"/>
+                        </setting>
+                        <setting id="asr_slow" string="Slow moving after (days)">
+                            <field name="asr_slow_days"/>
+                        </setting>
+                        <setting id="asr_abc" string="ABC thresholds (%)" help="Cumulative issue value closing A and B, e.g. 80,95.">
+                            <field name="asr_abc_thresholds"/>
+                        </setting>
+                        <setting id="asr_xyz" string="XYZ thresholds" help="Coefficient of variation closing X and Y, e.g. 0.5,1.0.">
+                            <field name="asr_xyz_thresholds"/>
+                        </setting>
+                        <setting id="asr_cover" string="Days of cover window (days)">
+                            <field name="asr_cover_days"/>
+                        </setting>
+                        <setting id="asr_otif" string="OTIF" help="Which delivery counts, and the in-full tolerance.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="asr_otif_basis" class="col-lg-5 o_light_label"/>
+                                    <field name="asr_otif_basis"/>
+                                </div>
+                                <div class="row">
+                                    <label for="asr_otif_tolerance" class="col-lg-5 o_light_label"/>
+                                    <field name="asr_otif_tolerance"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting id="asr_wip" string="WIP component pricing">
+                            <field name="asr_wip_component_price"/>
+                        </setting>
+                    </block>
+                    <block title="Output" name="asr_output_block">
+                        <setting id="asr_pdf" string="PDF row cap">
+                            <field name="asr_pdf_row_cap"/>
+                        </setting>
+                        <setting id="asr_gst" string="India GST reports" help="GST stock register and monthly production account.">
+                            <field name="asr_india_gst"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

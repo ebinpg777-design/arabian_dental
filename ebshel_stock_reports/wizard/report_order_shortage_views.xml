@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_order_shortage_view_form" model="ir.ui.view">
+        <field name="name">asr.report.order.shortage.form</field>
+        <field name="model">asr.report.order.shortage</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="show_all"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="partner_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    Open sale order lines of storable products in promised-date order. Free stock of the order
+                    warehouse is allocated to the earlier lines first; the shortage is what remains after the
+                    reservations and that allocation, before and after the incoming quantity. This is an estimate
+                    as of now: Odoo's Reception report remains the tool to assign incoming stock to orders.
+                </p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_order_shortage_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.order.shortage.line.list</field>
+        <field name="model">asr.report.order.shortage.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" decoration-danger="qty_shortage_after > 0" decoration-warning="qty_shortage > 0 and qty_shortage_after == 0">
+                <field name="date_promised"/>
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="warehouse_id" optional="show"/>
+                <field name="product_id"/>
+                <field name="qty_to_deliver" sum="Total"/>
+                <field name="qty_reserved" sum="Total"/>
+                <field name="qty_free"/>
+                <field name="qty_allocated" sum="Total"/>
+                <field name="qty_shortage" sum="Total"/>
+                <field name="qty_incoming"/>
+                <field name="qty_shortage_after" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_order_shortage_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.order.shortage.line.pivot</field>
+        <field name="model">asr.report.order.shortage.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="product_id" type="row"/>
+                <field name="qty_to_deliver" type="measure"/>
+                <field name="qty_shortage" type="measure"/>
+                <field name="qty_shortage_after" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_order_shortage_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.order.shortage.line.search</field>
+        <field name="model">asr.report.order.shortage.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="partner_id"/>
+                <field name="order_id"/>
+                <filter name="short" string="Short" domain="[('qty_shortage', '>', 0)]"/>
+                <filter name="short_after" string="Short After Incoming" domain="[('qty_shortage_after', '>', 0)]"/>
+                <group>
+                    <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_partner" string="Customer" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_warehouse" string="Warehouse" context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_day" string="Promised Day" context="{'group_by': 'date_promised:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_order_shortage" model="ir.actions.act_window">
+        <field name="name">Open Order Shortage</field>
+        <field name="res_model">asr.report.order.shortage</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_register_view_form" model="ir.ui.view">
+        <field name="name">asr.report.register.form</field>
+        <field name="model">asr.report.register</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="register" widget="radio"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_register_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.register.line.list</field>
+        <field name="model">asr.report.register.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="serial"/>
+                <field name="date"/>
+                <field name="reference"/>
+                <field name="picking_type_id" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="origin" optional="show"/>
+                <field name="purchase_order" optional="hide"/>
+                <field name="sale_order" optional="hide"/>
+                <field name="product_id"/>
+                <field name="lot_id" optional="show"/>
+                <field name="package_id" optional="hide"/>
+                <field name="location_id" optional="show"/>
+                <field name="location_dest_id" optional="show"/>
+                <field name="quantity" sum="Total"/>
+                <field name="uom_id" optional="show"/>
+                <field name="value" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="unit_value" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_register_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.register.line.pivot</field>
+        <field name="model">asr.report.register.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="product_id" type="row"/>
+                <field name="quantity" type="measure"/>
+                <field name="value" type="measure" groups="ebshel_stock_reports.group_see_values"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_register_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.register.line.search</field>
+        <field name="model">asr.report.register.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="reference"/>
+                <field name="partner_id"/>
+                <field name="origin"/>
+                <field name="lot_id"/>
+                <group>
+                    <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_partner" string="Partner" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_picking_type" string="Operation Type" context="{'group_by': 'picking_type_id'}"/>
+                    <filter name="group_day" string="Day" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_register" model="ir.actions.act_window">
+        <field name="name">Movement Registers</field>
+        <field name="res_model">asr.report.register</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

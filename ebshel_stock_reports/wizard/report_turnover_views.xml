@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_turnover_view_form" model="ir.ui.view">
+        <field name="name">asr.report.turnover.form</field>
+        <field name="model">asr.report.turnover</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="hide_empty"/>
+                        <field name="cover_days" string="Cover window (days)"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    Turnover = issue value at cost (deliveries and consumption of the period) / average inventory
+                    value (mean of the opening value and the closing values at each month end). Days of cover =
+                    on-hand quantity at the end date / average daily issue over the cover window.
+                </p>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_turnover_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.turnover.line.list</field>
+        <field name="model">asr.report.turnover.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="product_id"/>
+                <field name="default_code" optional="show"/>
+                <field name="categ_id" optional="show"/>
+                <field name="uom_id" optional="show"/>
+                <field name="qty_opening" sum="Total"/>
+                <field name="qty_issue" sum="Total"/>
+                <field name="value_issue" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_avg_inventory" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="turnover" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="qty_on_hand" sum="Total"/>
+                <field name="avg_daily_issue"/>
+                <field name="days_of_cover"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_turnover_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.turnover.line.pivot</field>
+        <field name="model">asr.report.turnover.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="categ_id" type="row"/>
+                <field name="qty_issue" type="measure"/>
+                <field name="qty_on_hand" type="measure"/>
+                <field name="days_of_cover" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_turnover_line_view_graph" model="ir.ui.view">
+        <field name="name">asr.report.turnover.line.graph</field>
+        <field name="model">asr.report.turnover.line</field>
+        <field name="arch" type="xml">
+            <graph type="bar">
+                <field name="categ_id"/>
+                <field name="days_of_cover" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="report_turnover_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.turnover.line.search</field>
+        <field name="model">asr.report.turnover.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="default_code"/>
+                <field name="categ_id"/>
+                <filter name="filter_low_cover" string="Cover under 30 days"
+                        domain="[('days_of_cover', '>', 0), ('days_of_cover', '&lt;', 30)]"/>
+                <filter name="filter_no_issue" string="No issue in period" domain="[('qty_issue', '=', 0)]"/>
+                <group>
+                    <filter name="group_categ" string="Category" context="{'group_by': 'categ_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_turnover" model="ir.actions.act_window">
+        <field name="name">Turnover / Days of Cover</field>
+        <field name="res_model">asr.report.turnover</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

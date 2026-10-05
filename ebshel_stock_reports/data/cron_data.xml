@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+
+    <record id="cron_recompute_dirty" model="ir.cron">
+        <field name="name">Advanced Stock Reports: recompute daily summaries</field>
+        <field name="model_id" ref="model_asr_stock_dirty"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_recompute()</field>
+        <field name="interval_number">5</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="cron_product_class" model="ir.cron">
+        <field name="name">Advanced Stock Reports: ABC / XYZ classification</field>
+        <field name="model_id" ref="model_asr_product_class"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_classify()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="cron_wip_snapshot" model="ir.cron">
+        <field name="name">Advanced Stock Reports: month-end WIP snapshot</field>
+        <field name="model_id" ref="model_asr_wip_snapshot"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_month_end()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_gst_register_view_form" model="ir.ui.view">
+        <field name="name">asr.report.gst.register.form</field>
+        <field name="model">asr.report.gst.register</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="period"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="hide_empty"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    Rows are grouped by the GST stock class of the product category (Rule 56). Losses are split
+                    by the GST category of the reason recorded on the scrap, count or other outgoing move.
+                </p>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_gst_register_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.gst.register.line.list</field>
+        <field name="model">asr.report.gst.register.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="gst_class"/>
+                <field name="product_id"/>
+                <field name="default_code" optional="show"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="hsn_code" optional="show"/>
+                <field name="uom_id" optional="show"/>
+                <field name="qty_opening" sum="Total"/>
+                <field name="qty_received" sum="Total"/>
+                <field name="qty_issued" sum="Total"/>
+                <field name="qty_consumed" sum="Total"/>
+                <field name="qty_vendor_return" sum="Total" optional="show"/>
+                <field name="qty_lost" sum="Total" optional="show"/>
+                <field name="qty_stolen" sum="Total" optional="show"/>
+                <field name="qty_destroyed" sum="Total" optional="show"/>
+                <field name="qty_written_off" sum="Total" optional="show"/>
+                <field name="qty_gift" sum="Total" optional="show"/>
+                <field name="qty_free_sample" sum="Total" optional="show"/>
+                <field name="qty_other_loss" sum="Total" optional="show"/>
+                <field name="qty_transfer_out" sum="Total" optional="hide"/>
+                <field name="qty_closing" sum="Total"/>
+                <field name="value_opening" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_closing" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="note" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_gst_register_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.gst.register.line.pivot</field>
+        <field name="model">asr.report.gst.register.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="gst_class" type="row"/>
+                <field name="qty_received" type="measure"/>
+                <field name="qty_issued" type="measure"/>
+                <field name="qty_consumed" type="measure"/>
+                <field name="qty_closing" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_gst_register_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.gst.register.line.search</field>
+        <field name="model">asr.report.gst.register.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="categ_id"/>
+                <field name="hsn_code"/>
+                <group>
+                    <filter name="group_class" string="GST Stock Class" context="{'group_by': 'gst_class'}"/>
+                    <filter name="group_categ" string="Category" context="{'group_by': 'categ_id'}"/>
+                    <filter name="group_hsn" string="HSN Code" context="{'group_by': 'hsn_code'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_gst_register" model="ir.actions.act_window">
+        <field name="name">GST Stock Register</field>
+        <field name="res_model">asr.report.gst.register</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

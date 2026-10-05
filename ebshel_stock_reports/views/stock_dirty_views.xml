@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="stock_dirty_view_list" model="ir.ui.view">
+        <field name="name">asr.stock.dirty.list</field>
+        <field name="model">asr.stock.dirty</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <header>
+                    <button name="action_process_now" type="object" string="Recompute now" class="btn-primary"/>
+                </header>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="product_id"/>
+                <field name="day_from"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="stock_dirty_action" model="ir.actions.act_window">
+        <field name="name">Recompute Queue</field>
+        <field name="res_model">asr.stock.dirty</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing waiting</p>
+            <p>Every daily summary row is up to date with the stock moves.</p>
+        </field>
+    </record>
+
+</odoo>

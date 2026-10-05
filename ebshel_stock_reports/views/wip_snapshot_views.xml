@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="wip_snapshot_view_list" model="ir.ui.view">
+        <field name="name">asr.wip.snapshot.list</field>
+        <field name="model">asr.wip.snapshot</field>
+        <field name="arch" type="xml">
+            <list create="0">
+                <header>
+                    <button name="action_take_now" type="object" string="Snapshot today" class="btn-primary"
+                            groups="ebshel_stock_reports.group_manager"/>
+                </header>
+                <field name="date"/>
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="kind"/>
+                <field name="pricing"/>
+                <field name="production_count"/>
+                <field name="component_value" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="overhead_value" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="total_value" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="wip_snapshot_view_form" model="ir.ui.view">
+        <field name="name">asr.wip.snapshot.form</field>
+        <field name="model">asr.wip.snapshot</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <sheet>
+                    <h1><field name="name"/></h1>
+                    <group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="date"/>
+                            <field name="instant"/>
+                            <field name="kind"/>
+                            <field name="pricing"/>
+                        </group>
+                        <group groups="ebshel_stock_reports.group_see_values">
+                            <field name="production_count"/>
+                            <field name="component_value"/>
+                            <field name="overhead_value"/>
+                            <field name="total_value"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <field name="line_ids">
+                        <list>
+                            <field name="production_id"/>
+                            <field name="product_id"/>
+                            <field name="line_type"/>
+                            <field name="component_id"/>
+                            <field name="workcenter_id"/>
+                            <field name="quantity" sum="Total"/>
+                            <field name="value" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="wip_snapshot_action" model="ir.actions.act_window">
+        <field name="name">WIP Snapshots</field>
+        <field name="res_model">asr.wip.snapshot</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">No snapshot yet</p>
+            <p>A snapshot is taken automatically at every month end. The WIP report reads snapshots for past dates.</p>
+        </field>
+    </record>
+
+</odoo>

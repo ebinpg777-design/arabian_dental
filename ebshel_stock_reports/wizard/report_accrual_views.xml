@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_accrual_view_form" model="ir.ui.view">
+        <field name="name">asr.report.accrual.form</field>
+        <field name="model">asr.report.accrual</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="listing" widget="radio"/>
+                        <field name="date_to" string="As of"/>
+                        <field name="date_from" invisible="1"/>
+                    </group>
+                    <group>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    The listings show the quantities open today on the orders confirmed up to the date, at the
+                    order price and at cost, grouped per partner. The summary compares the stock value of the
+                    daily stock summary with the balance of the stock valuation accounts at that date.
+                </p>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button name="action_open_odoo_valuation" type="object" class="btn-secondary"
+                            string="Open Odoo's Inventory Valuation report" icon="fa-external-link"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_accrual_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.accrual.line.list</field>
+        <field name="model">asr.report.accrual.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="sequence" column_invisible="1"/>
+                <field name="label" column_invisible="context.get('asr_listing') != 'summary'"/>
+                <field name="row_count" column_invisible="context.get('asr_listing') != 'summary'"/>
+                <field name="partner_id" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="order_ref" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="order_date" optional="show" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="product_id" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="default_code" optional="hide" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="uom_id" optional="show" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="qty_ordered" optional="hide" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="qty_done" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="qty_invoiced" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="qty_open" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="price_unit" groups="ebshel_stock_reports.group_see_values"
+                       column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="amount_price" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="unit_cost" groups="ebshel_stock_reports.group_see_values" optional="show"
+                       column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="amount_cost" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="date_expected" optional="show" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="invoice_status" optional="show" column_invisible="context.get('asr_listing') == 'summary'"/>
+                <field name="note" column_invisible="context.get('asr_listing') != 'summary'"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_accrual_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.accrual.line.pivot</field>
+        <field name="model">asr.report.accrual.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="partner_id" type="row"/>
+                <field name="qty_open" type="measure"/>
+                <field name="amount_price" type="measure" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="amount_cost" type="measure" groups="ebshel_stock_reports.group_see_values"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_accrual_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.accrual.line.search</field>
+        <field name="model">asr.report.accrual.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="order_ref"/>
+                <field name="product_id"/>
+                <group>
+                    <filter name="group_partner" string="Partner" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_order" string="Order" context="{'group_by': 'order_ref'}"/>
+                    <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_accrual" model="ir.actions.act_window">
+        <field name="name">Inventory vs GL and Accruals</field>
+        <field name="res_model">asr.report.accrual</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

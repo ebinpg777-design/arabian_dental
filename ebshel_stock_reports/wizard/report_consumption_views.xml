@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_consumption_view_form" model="ir.ui.view">
+        <field name="name">asr.report.consumption.form</field>
+        <field name="model">asr.report.consumption</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <p class="text-muted">Done manufacturing orders finished in the period: the bill of materials
+                    quantity frozen at confirmation times the quantity produced, against what was consumed.</p>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="date_from" string="Finished From"/>
+                        <field name="date_to" string="Finished To"/>
+                        <field name="production_ids" widget="many2many_tags"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags" string="Finished Product Categories"/>
+                        <field name="product_ids" widget="many2many_tags" string="Finished Products"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_consumption_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.consumption.line.list</field>
+        <field name="model">asr.report.consumption.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" default_order="date_finished, production_id, id">
+                <field name="production_id"/>
+                <field name="product_id"/>
+                <field name="date_finished" optional="show"/>
+                <field name="component_id"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="uom_id" optional="show"/>
+                <field name="qty_produced"/>
+                <field name="qty_planned" sum="Total"/>
+                <field name="estimated" optional="show"/>
+                <field name="qty_actual" sum="Total"/>
+                <field name="qty_scrap" sum="Total" optional="show"/>
+                <field name="qty_variance" sum="Total" decoration-danger="qty_variance &gt; 0" decoration-success="qty_variance &lt; 0"/>
+                <field name="variance_pct"/>
+                <field name="value_planned" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_actual" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_variance" sum="Total" groups="ebshel_stock_reports.group_see_values"
+                       decoration-danger="value_variance &gt; 0" decoration-success="value_variance &lt; 0"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_consumption_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.consumption.line.pivot</field>
+        <field name="model">asr.report.consumption.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="component_id" type="row"/>
+                <field name="qty_planned" type="measure"/>
+                <field name="qty_actual" type="measure"/>
+                <field name="qty_variance" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_consumption_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.consumption.line.search</field>
+        <field name="model">asr.report.consumption.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="production_id"/>
+                <field name="product_id"/>
+                <field name="component_id"/>
+                <filter name="over" string="Over-consumed" domain="[('qty_variance', '&gt;', 0)]"/>
+                <filter name="under" string="Under-consumed" domain="[('qty_variance', '&lt;', 0)]"/>
+                <filter name="estimated" string="Estimated Plan" domain="[('estimated', '=', True)]"/>
+                <group>
+                    <filter name="group_production" string="Manufacturing Order" context="{'group_by': 'production_id'}"/>
+                    <filter name="group_product" string="Finished Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_component" string="Component" context="{'group_by': 'component_id'}"/>
+                    <filter name="group_month" string="Month" context="{'group_by': 'date_finished:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_consumption" model="ir.actions.act_window">
+        <field name="name">Planned vs Actual Consumption</field>
+        <field name="res_model">asr.report.consumption</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

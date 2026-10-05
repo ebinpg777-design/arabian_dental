@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_aging_view_form" model="ir.ui.view">
+        <field name="name">asr.report.aging.form</field>
+        <field name="model">asr.report.aging</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="mode" widget="radio"/>
+                        <field name="date_to" string="Report Date"/>
+                        <field name="bucket_info" string="Buckets (days)"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted" invisible="mode != 'valuation'">
+                    Valuation mode walks the incoming valued moves newest first until the quantity at the report
+                    date is covered, like Odoo's Remaining Quantity; the ages are those of the incoming moves.
+                    With a warehouse or location filter the quantity covered is that of the selected locations.
+                </p>
+                <p class="text-muted" invisible="mode != 'physical'">
+                    Physical mode ages the current quants by their incoming date, valued at the average cost
+                    of the report date.
+                </p>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_aging_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.aging.line.list</field>
+        <field name="model">asr.report.aging.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="product_id"/>
+                <field name="default_code" optional="show"/>
+                <field name="categ_id" optional="show"/>
+                <field name="uom_id" optional="show"/>
+                <field name="qty_b1" sum="Total"/>
+                <field name="qty_b2" sum="Total"/>
+                <field name="qty_b3" sum="Total"/>
+                <field name="qty_b4" sum="Total"/>
+                <field name="qty_b5" sum="Total"/>
+                <field name="qty_b6" sum="Total" optional="hide"/>
+                <field name="qty_b7" sum="Total" optional="hide"/>
+                <field name="qty_b8" sum="Total" optional="hide"/>
+                <field name="qty_total" sum="Total"/>
+                <field name="value_b1" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_b2" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_b3" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_b4" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_b5" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_b6" sum="Total" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_b7" sum="Total" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_b8" sum="Total" optional="hide" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_total" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="oldest_date"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_aging_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.aging.line.pivot</field>
+        <field name="model">asr.report.aging.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="categ_id" type="row"/>
+                <field name="qty_b1" type="measure"/>
+                <field name="qty_b2" type="measure"/>
+                <field name="qty_b3" type="measure"/>
+                <field name="qty_b4" type="measure"/>
+                <field name="qty_b5" type="measure"/>
+                <field name="qty_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_aging_line_view_graph" model="ir.ui.view">
+        <field name="name">asr.report.aging.line.graph</field>
+        <field name="model">asr.report.aging.line</field>
+        <field name="arch" type="xml">
+            <graph type="bar" stacked="1">
+                <field name="categ_id"/>
+                <field name="qty_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="report_aging_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.aging.line.search</field>
+        <field name="model">asr.report.aging.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="default_code"/>
+                <field name="categ_id"/>
+                <group>
+                    <filter name="group_categ" string="Category" context="{'group_by': 'categ_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_aging" model="ir.actions.act_window">
+        <field name="name">Inventory Aging</field>
+        <field name="res_model">asr.report.aging</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

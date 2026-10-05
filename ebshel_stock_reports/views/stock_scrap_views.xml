@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="scrap_reason_tag_view_list" model="ir.ui.view">
+        <field name="name">stock.scrap.reason.tag.list.asr</field>
+        <field name="model">stock.scrap.reason.tag</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="asr_usage"/>
+                <field name="asr_gst_category"/>
+                <field name="asr_description" optional="show"/>
+                <field name="color" widget="color_picker" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="scrap_reason_tag_action" model="ir.actions.act_window">
+        <field name="name">Reasons</field>
+        <field name="res_model">stock.scrap.reason.tag</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="scrap_reason_tag_view_list"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a reason</p>
+            <p>Reasons are offered on scraps, returns and count adjustments, and group the scrap, return and GST reports.</p>
+        </field>
+    </record>
+
+</odoo>

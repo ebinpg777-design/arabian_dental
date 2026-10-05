@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_production_account_view_form" model="ir.ui.view">
+        <field name="name">asr.report.production.account.form</field>
+        <field name="model">asr.report.production.account</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    One section per month: the goods finished by the manufacturing orders done in that month
+                    (by-products flagged) and the materials those orders consumed. Product and category filters
+                    select the manufacturing orders by their finished product; warehouse and location filters
+                    apply to the stock columns.
+                </p>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_production_account_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.production.account.line.list</field>
+        <field name="model">asr.report.production.account.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="month"/>
+                <field name="month_start" column_invisible="1"/>
+                <field name="section"/>
+                <field name="product_id"/>
+                <field name="default_code" optional="show"/>
+                <field name="uom_id" optional="show"/>
+                <field name="is_byproduct" optional="show"/>
+                <field name="mo_count" optional="hide"/>
+                <field name="qty_opening"/>
+                <field name="qty_produced" sum="Total"/>
+                <field name="qty_received" sum="Total" optional="show"/>
+                <field name="qty_sold" sum="Total"/>
+                <field name="qty_consumed" sum="Total"/>
+                <field name="qty_wastage" sum="Total" optional="show"/>
+                <field name="qty_other_out" sum="Total" optional="show"/>
+                <field name="qty_closing"/>
+                <field name="value_production" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_consumption" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="value_opening" groups="ebshel_stock_reports.group_see_values" optional="hide"/>
+                <field name="value_closing" groups="ebshel_stock_reports.group_see_values" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_production_account_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.production.account.line.pivot</field>
+        <field name="model">asr.report.production.account.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="month" type="col"/>
+                <field name="section" type="row"/>
+                <field name="product_id" type="row"/>
+                <field name="qty_produced" type="measure"/>
+                <field name="qty_consumed" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_production_account_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.production.account.line.search</field>
+        <field name="model">asr.report.production.account.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="month"/>
+                <filter name="filter_finished" string="Finished Goods" domain="[('section', '=', 'finished')]"/>
+                <filter name="filter_material" string="Materials Consumed" domain="[('section', '=', 'material')]"/>
+                <group>
+                    <filter name="group_month" string="Month" context="{'group_by': 'month'}"/>
+                    <filter name="group_section" string="Section" context="{'group_by': 'section'}"/>
+                    <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_production_account" model="ir.actions.act_window">
+        <field name="name">Monthly Production Account</field>
+        <field name="res_model">asr.report.production.account</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

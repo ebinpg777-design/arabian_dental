@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_slow_moving_view_form" model="ir.ui.view">
+        <field name="name">asr.report.slow.moving.form</field>
+        <field name="model">asr.report.slow.moving</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="date_to" string="Report Date"/>
+                        <field name="status" widget="radio"/>
+                        <field name="include_without_stock"/>
+                        <field name="slow_days" string="Slow after (days)"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="location_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    An issue is a delivery or a consumption. A product is slow moving when its last issue is older
+                    than the company's "Slow Moving After" setting, and non-moving when it had no issue at all in
+                    twice that period.
+                </p>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_slow_moving_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.slow.moving.line.list</field>
+        <field name="model">asr.report.slow.moving.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0"
+                  decoration-danger="status == 'non_moving'" decoration-warning="status == 'slow'">
+                <field name="product_id"/>
+                <field name="default_code" optional="show"/>
+                <field name="categ_id" optional="show"/>
+                <field name="uom_id" optional="show"/>
+                <field name="last_issue_day"/>
+                <field name="last_receipt_day" optional="show"/>
+                <field name="days_since_issue"/>
+                <field name="qty_on_hand" sum="Total"/>
+                <field name="value_on_hand" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="status" widget="badge"
+                       decoration-danger="status == 'non_moving'" decoration-warning="status == 'slow'"
+                       decoration-success="status == 'active'"/>
+                <field name="abc_class" optional="show"/>
+                <field name="xyz_class" optional="show"/>
+                <field name="combined_class" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_slow_moving_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.slow.moving.line.pivot</field>
+        <field name="model">asr.report.slow.moving.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="categ_id" type="row"/>
+                <field name="status" type="col"/>
+                <field name="qty_on_hand" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_slow_moving_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.slow.moving.line.search</field>
+        <field name="model">asr.report.slow.moving.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="default_code"/>
+                <field name="categ_id"/>
+                <filter name="filter_slow" string="Slow Moving" domain="[('status', '=', 'slow')]"/>
+                <filter name="filter_non_moving" string="Non-Moving" domain="[('status', '=', 'non_moving')]"/>
+                <filter name="filter_active" string="Active" domain="[('status', '=', 'active')]"/>
+                <group>
+                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
+                    <filter name="group_categ" string="Category" context="{'group_by': 'categ_id'}"/>
+                    <filter name="group_abc" string="ABC Class" context="{'group_by': 'abc_class'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_slow_moving" model="ir.actions.act_window">
+        <field name="name">Slow / Non-Moving Stock</field>
+        <field name="res_model">asr.report.slow.moving</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

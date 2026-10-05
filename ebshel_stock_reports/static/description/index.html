@@ -1,0 +1,82 @@
+<section class="oe_container">
+    <div class="oe_row oe_spaced">
+        <h2 class="oe_slogan">Advanced Stock Reports</h2>
+        <h3 class="oe_slogan">Nineteen inventory and manufacturing reports, every figure reconciled to the Odoo valuation.</h3>
+        <div class="oe_span12 text-center">
+            <img class="oe_picture oe_screenshot" src="banner.png" alt="Advanced Stock Reports"/>
+        </div>
+    </div>
+</section>
+<section class="oe_container oe_dark">
+    <div class="oe_row oe_spaced">
+        <div class="oe_span6">
+            <h3>One engine, not nineteen queries</h3>
+            <p>A daily movement table and a daily valuation table mirror, line for line, how Odoo 19 values stock: standard price history, AVCO replay, FIFO stack, anchored on the current quants, per company and reporting timezone. Every report reads those tables, so the ledger, the aging, the turnover and the GST register all foot to Inventory &gt; Reporting &gt; Stock.</p>
+        </div>
+        <div class="oe_span6">
+            <h3>Kept current automatically</h3>
+            <p>Every write path that changes a done move's value feeds a recompute queue: adjust valuation, vendor bills, landed costs, purchase price edits, backdated pickings, move line corrections, standard price changes. A five-minute cron rebuilds only what changed; a health check compares the tables with Odoo's live figures.</p>
+        </div>
+    </div>
+</section>
+<section class="oe_container">
+    <div class="oe_row oe_spaced">
+        <h3 class="oe_slogan">The reports</h3>
+        <div class="oe_span4">
+            <h4>Stock</h4>
+            <ul>
+                <li>Stock ledger and stock card, with a valuation adjustment column that makes every warehouse foot to the company value</li>
+                <li>Inventory aging (valuation stack or physical in-date)</li>
+                <li>Slow and non-moving stock</li>
+                <li>ABC / XYZ classification</li>
+                <li>Turnover and days of cover</li>
+                <li>Valued count variance</li>
+                <li>Scrap and returns by reason</li>
+                <li>Inward, outward, internal and dropship registers</li>
+            </ul>
+        </div>
+        <div class="oe_span4">
+            <h4>Manufacturing</h4>
+            <ul>
+                <li>Planned vs actual consumption, with the BoM quantity frozen at confirmation</li>
+                <li>Work in progress at a date, month-end snapshots</li>
+                <li>MO cost and production analysis, BoM cost vs real cost</li>
+                <li>MO component shortage</li>
+            </ul>
+            <h4>Purchase and sales</h4>
+            <ul>
+                <li>Customer OTIF</li>
+                <li>Vendor OTIF beside Odoo's vendor delay rate</li>
+                <li>Purchase price variance</li>
+                <li>Open order shortage</li>
+            </ul>
+        </div>
+        <div class="oe_span4">
+            <h4>Accounting and India GST</h4>
+            <ul>
+                <li>Inventory vs general ledger</li>
+                <li>Bill to receive, billed not received, invoices to be issued, invoiced not delivered</li>
+                <li>GST stock register (Rule 56 grouping, loss categories by reason)</li>
+                <li>Monthly production account</li>
+            </ul>
+            <h4>Output</h4>
+            <ul>
+                <li>On screen with list, pivot and graph views</li>
+                <li>Excel (constant memory, no row limit)</li>
+                <li>PDF, landscape, with a configurable row cap</li>
+            </ul>
+        </div>
+    </div>
+</section>
+<section class="oe_container oe_dark">
+    <div class="oe_row oe_spaced">
+        <div class="oe_span6">
+            <h3>Security</h3>
+            <p>Three groups: User, See Values and Manager. Without See Values, cost and value columns disappear from the screen, from Excel and from PDF. Multi-company record rules on every stored table.</p>
+        </div>
+        <div class="oe_span6">
+            <h3>Compatibility</h3>
+            <p>Odoo 19.0 Community, designed to install on Enterprise. Depends on stock_account, mrp_account, purchase_stock and sale_stock. Uses xlsxwriter, which ships with Odoo. No JavaScript, no external library.</p>
+        </div>
+    </div>
+</section>

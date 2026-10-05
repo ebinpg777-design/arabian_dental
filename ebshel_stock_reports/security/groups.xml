@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <!--
+        Three rights.
+
+        User   - opens the reports.
+        See Values - adds every cost and value column; without it a user sees
+                 quantities only, on screen, in Excel and in PDF.
+        Manager - settings, the rebuild button, the health check and the
+                 engine tables.
+    -->
+    <record id="group_user" model="res.groups">
+        <field name="name">Advanced Stock Reports / User</field>
+        <field name="comment">Can open the reports. Sees quantities only unless also in the See Values group.</field>
+        <field name="implied_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+    </record>
+
+    <record id="group_see_values" model="res.groups">
+        <field name="name">Advanced Stock Reports / See Values</field>
+        <field name="comment">Can see cost and value columns on screen, in Excel files and in PDF documents.</field>
+        <field name="implied_ids" eval="[(4, ref('group_user'))]"/>
+    </record>
+
+    <!-- Toggled from the settings (India GST reports): carries the GST menu. -->
+    <record id="group_india_gst" model="res.groups">
+        <field name="name">Advanced Stock Reports / India GST Reports</field>
+        <field name="comment">Technical group behind the "India GST reports" setting: shows the GST menu.</field>
+    </record>
+    <record id="group_user" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_india_gst'))]"/>
+    </record>
+
+    <record id="group_manager" model="res.groups">
+        <field name="name">Advanced Stock Reports / Manager</field>
+        <field name="comment">Settings, rebuild of the daily tables, health check, product classes and WIP snapshots.</field>
+        <field name="implied_ids" eval="[(4, ref('group_see_values'))]"/>
+    </record>
+
+    <!-- Inventory administrators manage the reports out of the box. -->
+    <record id="stock.group_stock_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('ebshel_stock_reports.group_manager'))]"/>
+    </record>
+
+    <!-- Multi-company: every stored table carries a company and is only visible inside it. -->
+    <record id="rule_stock_move_daily_company" model="ir.rule">
+        <field name="name">Stock movement summary: multi-company</field>
+        <field name="model_id" ref="model_asr_stock_move_daily"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+    <record id="rule_stock_value_daily_company" model="ir.rule">
+        <field name="name">Stock valuation summary: multi-company</field>
+        <field name="model_id" ref="model_asr_stock_value_daily"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+    <record id="rule_stock_dirty_company" model="ir.rule">
+        <field name="name">Stock recompute queue: multi-company</field>
+        <field name="model_id" ref="model_asr_stock_dirty"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+    <record id="rule_product_class_company" model="ir.rule">
+        <field name="name">Product classes: multi-company</field>
+        <field name="model_id" ref="model_asr_product_class"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+    <record id="rule_wip_snapshot_company" model="ir.rule">
+        <field name="name">WIP snapshots: multi-company</field>
+        <field name="model_id" ref="model_asr_wip_snapshot"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+    <record id="rule_wip_snapshot_line_company" model="ir.rule">
+        <field name="name">WIP snapshot lines: multi-company</field>
+        <field name="model_id" ref="model_asr_wip_snapshot_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="report_mo_shortage_view_form" model="ir.ui.view">
+        <field name="name">asr.report.mo.shortage.form</field>
+        <field name="model">asr.report.mo.shortage</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-warning" role="alert" invisible="not engine_warning">
+                    <field name="engine_warning" nolabel="1"/>
+                </div>
+                <p class="text-muted">Open manufacturing orders in start-date order: for each component still to
+                    consume, the free quantity of the order's warehouse left after the earlier orders, and the
+                    shortage that remains.</p>
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="horizon_date"/>
+                        <field name="show_all"/>
+                    </group>
+                    <group>
+                        <field name="warehouse_ids" widget="many2many_tags"/>
+                        <field name="categ_ids" widget="many2many_tags" string="Finished Product Categories"/>
+                        <field name="product_ids" widget="many2many_tags" string="Finished Products"/>
+                        <field name="row_limit"/>
+                        <field name="show_values" invisible="1"/>
+                    </group>
+                </group>
+                <p class="text-muted" invisible="show_values">Value columns are hidden: you are not in the "See Values" group.</p>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary"/>
+                    <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="report_mo_shortage_line_view_list" model="ir.ui.view">
+        <field name="name">asr.report.mo.shortage.line.list</field>
+        <field name="model">asr.report.mo.shortage.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" default_order="date_start, production_id, id">
+                <field name="production_id"/>
+                <field name="product_id"/>
+                <field name="date_start" optional="show"/>
+                <field name="state" optional="show"/>
+                <field name="warehouse_id" optional="show"/>
+                <field name="component_id"/>
+                <field name="uom_id" optional="show"/>
+                <field name="qty_required" sum="Total"/>
+                <field name="qty_reserved" sum="Total"/>
+                <field name="qty_to_consume" sum="Total"/>
+                <field name="qty_on_hand"/>
+                <field name="qty_free"/>
+                <field name="qty_incoming"/>
+                <field name="qty_shortage" sum="Total" decoration-danger="qty_shortage &gt; 0"/>
+                <field name="value_shortage" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="report_mo_shortage_line_view_pivot" model="ir.ui.view">
+        <field name="name">asr.report.mo.shortage.line.pivot</field>
+        <field name="model">asr.report.mo.shortage.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="component_id" type="row"/>
+                <field name="qty_to_consume" type="measure"/>
+                <field name="qty_shortage" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="report_mo_shortage_line_view_search" model="ir.ui.view">
+        <field name="name">asr.report.mo.shortage.line.search</field>
+        <field name="model">asr.report.mo.shortage.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="production_id"/>
+                <field name="product_id"/>
+                <field name="component_id"/>
+                <field name="warehouse_id"/>
+                <filter name="short" string="Short" domain="[('qty_shortage', '&gt;', 0)]"/>
+                <group>
+                    <filter name="group_production" string="Manufacturing Order" context="{'group_by': 'production_id'}"/>
+                    <filter name="group_component" string="Component" context="{'group_by': 'component_id'}"/>
+                    <filter name="group_warehouse" string="Warehouse" context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_week" string="Start Week" context="{'group_by': 'date_start:week'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_mo_shortage" model="ir.actions.act_window">
+        <field name="name">MO Component Shortage</field>
+        <field name="res_model">asr.report.mo.shortage</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

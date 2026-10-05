@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="report_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <t t-set="o" t-value="doc"/>
+                    <t t-set="columns" t-value="doc._columns()"/>
+                    <t t-set="rows" t-value="doc._rows()"/>
+                    <t t-set="totals" t-value="doc._totals()"/>
+                    <div class="page asr_report_page">
+                        <h2 class="mb-1"><span t-field="doc.name"/></h2>
+                        <div class="text-muted small mb-2">
+                            <span t-field="doc.company_id.name"/>
+                            <t t-if="doc.subtitle"> - <span t-field="doc.subtitle"/></t>
+                        </div>
+                        <table class="table table-sm table-borderless asr_report_table" style="font-size: 9px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #000;">
+                                    <t t-foreach="columns" t-as="column">
+                                        <th t-att-class="'text-end' if column['type'] in numeric_types else ''">
+                                            <t t-out="column['label']"/>
+                                        </th>
+                                    </t>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="rows" t-as="row">
+                                    <tr t-if="row.get('_group')" style="background-color: #f2f2f2;">
+                                        <td t-att-colspan="len(columns)"><strong t-out="row['_group']"/></td>
+                                    </tr>
+                                    <tr t-else="" style="border-bottom: 1px solid #ddd;">
+                                        <t t-foreach="columns" t-as="column">
+                                            <td t-att-class="'text-end' if column['type'] in numeric_types else ''">
+                                                <t t-out="fmt(row.get(column['key']), column['type'], doc)"/>
+                                            </td>
+                                        </t>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot t-if="totals">
+                                <tr style="border-top: 1px solid #000;">
+                                    <t t-foreach="columns" t-as="column">
+                                        <td t-att-class="'text-end' if column['type'] in numeric_types else ''">
+                                            <strong t-if="column_index == 0 and column['key'] not in totals">Total</strong>
+                                            <strong t-if="column['key'] in totals" t-out="fmt(totals[column['key']], column['type'], doc)"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <p t-if="doc.truncated" class="text-muted small">
+                            Only the first <t t-out="doc.row_cap"/> rows are printed. Export the report to Excel for the complete list.
+                        </p>
+                        <p class="text-muted small">
+                            <t t-out="doc.row_count"/> rows. Printed <span t-out="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')"/>.
+                        </p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

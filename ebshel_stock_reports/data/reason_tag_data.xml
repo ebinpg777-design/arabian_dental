@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <record id="reason_damaged" model="stock.scrap.reason.tag">
+        <field name="name">Damaged</field>
+        <field name="asr_usage">any</field>
+        <field name="asr_gst_category">destroyed</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="reason_expired" model="stock.scrap.reason.tag">
+        <field name="name">Expired</field>
+        <field name="asr_usage">scrap</field>
+        <field name="asr_gst_category">written_off</field>
+        <field name="sequence">20</field>
+    </record>
+    <record id="reason_lost" model="stock.scrap.reason.tag">
+        <field name="name">Lost</field>
+        <field name="asr_usage">count</field>
+        <field name="asr_gst_category">lost</field>
+        <field name="sequence">30</field>
+    </record>
+    <record id="reason_stolen" model="stock.scrap.reason.tag">
+        <field name="name">Stolen</field>
+        <field name="asr_usage">count</field>
+        <field name="asr_gst_category">stolen</field>
+        <field name="sequence">40</field>
+    </record>
+    <record id="reason_free_sample" model="stock.scrap.reason.tag">
+        <field name="name">Free Sample</field>
+        <field name="asr_usage">any</field>
+        <field name="asr_gst_category">free_sample</field>
+        <field name="sequence">50</field>
+    </record>
+    <record id="reason_gift" model="stock.scrap.reason.tag">
+        <field name="name">Gift</field>
+        <field name="asr_usage">any</field>
+        <field name="asr_gst_category">gift</field>
+        <field name="sequence">60</field>
+    </record>
+    <record id="reason_wrong_item" model="stock.scrap.reason.tag">
+        <field name="name">Wrong Item Shipped</field>
+        <field name="asr_usage">return</field>
+        <field name="asr_gst_category">other</field>
+        <field name="sequence">70</field>
+    </record>
+    <record id="reason_quality" model="stock.scrap.reason.tag">
+        <field name="name">Quality Issue</field>
+        <field name="asr_usage">return</field>
+        <field name="asr_gst_category">other</field>
+        <field name="sequence">80</field>
+    </record>
+    <record id="reason_count_correction" model="stock.scrap.reason.tag">
+        <field name="name">Count Correction</field>
+        <field name="asr_usage">count</field>
+        <field name="asr_gst_category">other</field>
+        <field name="sequence">90</field>
+    </record>
+</odoo>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="product_class_view_list" model="ir.ui.view">
+        <field name="name">asr.product.class.list</field>
+        <field name="model">asr.product.class</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <header>
+                    <button name="action_classify_now" type="object" string="Classify now" class="btn-primary"
+                            groups="ebshel_stock_reports.group_manager"/>
+                </header>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="product_id"/>
+                <field name="categ_id" optional="show"/>
+                <field name="abc_class"/>
+                <field name="xyz_class"/>
+                <field name="combined_class"/>
+                <field name="issue_qty" sum="Total"/>
+                <field name="issue_value" sum="Total" groups="ebshel_stock_reports.group_see_values"/>
+                <field name="cumulative_share"/>
+                <field name="variation"/>
+                <field name="date_from" optional="hide"/>
+                <field name="date_to" optional="hide"/>
+                <field name="computed_at" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="product_class_view_pivot" model="ir.ui.view">
+        <field name="name">asr.product.class.pivot</field>
+        <field name="model">asr.product.class</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="abc_class" type="row"/>
+                <field name="xyz_class" type="col"/>
+                <field name="issue_qty" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="product_class_view_search" model="ir.ui.view">
+        <field name="name">asr.product.class.search</field>
+        <field name="model">asr.product.class</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="categ_id"/>
+                <filter name="class_a" string="A" domain="[('abc_class', '=', 'A')]"/>
+                <filter name="class_b" string="B" domain="[('abc_class', '=', 'B')]"/>
+                <filter name="class_c" string="C" domain="[('abc_class', '=', 'C')]"/>
+                <separator/>
+                <filter name="class_x" string="X" domain="[('xyz_class', '=', 'X')]"/>
+                <filter name="class_y" string="Y" domain="[('xyz_class', '=', 'Y')]"/>
+                <filter name="class_z" string="Z" domain="[('xyz_class', '=', 'Z')]"/>
+                <group>
+                    <filter name="group_abc" string="ABC" context="{'group_by': 'abc_class'}"/>
+                    <filter name="group_xyz" string="XYZ" context="{'group_by': 'xyz_class'}"/>
+                    <filter name="group_categ" string="Product Category" context="{'group_by': 'categ_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="product_class_action" model="ir.actions.act_window">
+        <field name="name">ABC / XYZ Classes</field>
+        <field name="res_model">asr.product.class</field>
+        <field name="view_mode">list,pivot</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">No classes yet</p>
+            <p>Classes are computed monthly by the cron over the last twelve months of deliveries and consumption. Use "Classify now" to compute them immediately.</p>
+        </field>
+    </record>
+
+</odoo>
