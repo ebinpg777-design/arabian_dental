@@ -108,14 +108,20 @@ class StockDirty(models.Model):
             company = keys[0].company_id
             keys = keys.filtered(lambda k: k.company_id == company)
             product_from_day = {}
+            # the key ids of each product are taken NOW: the commit after a chunk clears the
+            # cache, and a key deleted by SQL can no longer be read (MissingError on the
+            # lab's first run, 2026-10-05 - tests never commit, so they never saw it)
+            keys_by_product = {}
             for key in keys:
+                keys_by_product.setdefault(key.product_id.id, []).append(key.id)
                 current = product_from_day.get(key.product_id.id)
                 if current is None or key.day_from < current:
                     product_from_day[key.product_id.id] = key.day_from
             for chunk in split_every(CHUNK, list(product_from_day.items()), dict):
                 self._rebuild_products(company, chunk)
-                done_keys = keys.filtered(lambda k: k.product_id.id in chunk)
-                self.env.cr.execute(SQL("DELETE FROM asr_stock_dirty WHERE id IN %s", tuple(done_keys.ids)))
+                done_ids = [key_id for product_id in chunk for key_id in keys_by_product[product_id]]
+                self.env.cr.execute(SQL("DELETE FROM asr_stock_dirty WHERE id IN %s", tuple(done_ids)))
+                self.invalidate_model()
                 processed += len(chunk)
                 if commit:
                     self.env['ir.cron']._commit_progress(len(chunk))

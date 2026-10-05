@@ -1,5 +1,6 @@
 # Part of Advanced Stock Reports. See LICENSE file for full copyright and licensing details.
 from datetime import timedelta
+from unittest.mock import patch
 
 from odoo import fields
 from odoo.tests import tagged
@@ -103,3 +104,20 @@ class TestDirtyQueue(AdvancedStockReportsCase):
         self.assertTrue(self._queued(self.p_fifo))
         self.assertTrue(self.Dirty._ensure_fresh(self.company, self.p_fifo))
         self.assertFalse(self._queued(self.p_fifo))
+
+    def test_cron_path_survives_the_commit_between_chunks(self):
+        """The cron commits after every chunk and a commit clears the cache: a queue
+        row deleted in SQL must not be read again. The lab's first run died on it."""
+        from odoo.addons.ebshel_stock_reports.models import stock_dirty
+
+        def commit_like_the_cron(cron, *args, **kwargs):
+            cron.env.invalidate_all()          # what Cursor.commit() does to the cache
+
+        self.Dirty._mark_products(self.products, company=self.company)
+        self.assertGreaterEqual(self.Dirty.search_count([('company_id', '=', self.company.id)]), 3)
+        with patch.object(stock_dirty, 'CHUNK', 1), \
+                patch.object(type(self.env['ir.cron']), '_commit_progress', commit_like_the_cron):
+            processed = self.Dirty._process_queue(commit=True, companies=self.company)
+        self.assertGreaterEqual(processed, 3)
+        self.assertEqual(self.Dirty.search_count([('company_id', '=', self.company.id)]), 0)
+        self.assertEqual(self.company.asr_engine_state, 'ready')
