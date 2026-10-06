@@ -547,7 +547,8 @@ class MigrationBackend(models.Model):
             stats.append("%-22s SKIPPED (%s)" % ("Product Routes", e))
             return
 
-        wanted = {}  # v17 template id -> set(v19 route ids)
+        wanted = {}  # v17 template id -> set(v20 route ids)
+        warehouse_level = set()
         for row in links:
             rname = (self._coerce(row['rname']) or '').lower()
             if 'manufacture' in rname:
@@ -558,6 +559,12 @@ class MigrationBackend(models.Model):
                 tgt = buy
             else:
                 tgt = None  # receipt/ship/cross-dock rules are warehouse-defined in v19
+            if tgt and not tgt.product_selectable:
+                # Odoo 20 refuses to put a route on a product unless it is
+                # product-selectable; Buy is a warehouse route there (every v17
+                # product carried it), so the warehouse already buys for them
+                warehouse_level.add(tgt.name)
+                continue
             if tgt:
                 wanted.setdefault(row['tmpl'], set()).add(tgt.id)
 
@@ -581,8 +588,10 @@ class MigrationBackend(models.Model):
             except Exception as e:
                 skipped += 1
                 _logger.warning("route apply tmpl=%s: %s", v10_tmpl, e)
-        stats.append("%-22s applied=%d (manufacture=%d) skipped=%d"
-                     % ("Product Routes", applied, manufactured, skipped))
+        stats.append("%-22s applied=%d (manufacture=%d) skipped=%d%s"
+                     % ("Product Routes", applied, manufactured, skipped,
+                        (" (warehouse-level, not set on products: %s)" % ", ".join(sorted(warehouse_level)))
+                        if warehouse_level else ""))
 
     # ------------------------------------------------------------------ invoice / bill numbering
     _SEQ_ANCHOR_REF = 'Odoo 17 numbering anchor - do not delete'
