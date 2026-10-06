@@ -10,8 +10,8 @@ one a label, a live number, a trend, and a filter behind it.
 Tiles are `filter.tile` records: created, coloured, sized and arranged by the people who use them,
 on any model, with no XML and no code.
 
-* Version: `19.0.2.3.0`
-* Odoo 19.0 — **Community and Enterprise**
+* Version: `20.0.2.4.0`
+* Odoo 20.0 — **Community and Enterprise**
 * Depends on: `web`, `bus` (no Enterprise-only module, no external library)
 * Licence: OPL-1
 

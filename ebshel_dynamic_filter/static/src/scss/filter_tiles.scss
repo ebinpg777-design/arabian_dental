@@ -1025,7 +1025,7 @@
         position: relative;
         margin-bottom: 8px;
 
-        .fa-search {
+        > .oi {
             position: absolute;
             top: 50%;
             left: 8px;
@@ -1103,7 +1103,7 @@
         font-size: 0.6rem;
         transition: transform 0.12s ease, box-shadow 0.12s ease;
 
-        .fa-check {
+        .oi {
             opacity: 0;
         }
 
@@ -1114,7 +1114,7 @@
         &.o_dft_swatch_current {
             box-shadow: 0 0 0 2px var(--body-bg), 0 0 0 4px var(--dft-color);
 
-            .fa-check {
+            .oi {
                 opacity: 1;
             }
         }

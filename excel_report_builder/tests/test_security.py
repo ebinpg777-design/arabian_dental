@@ -101,6 +101,32 @@ class TestReportBuilderSecurity(TransactionCase):
             with self.subTest(raw=raw), self.assertRaises(UserError):
                 parse_domain(self.env, raw)
 
+    def test_a_domain_is_handed_no_record(self):
+        """A record in the eval context hands the filter the ORM: with ``user`` in
+        it, ``user.sudo().write(...)`` let any internal user grant themselves
+        Settings. The filter may name ``uid``, never a user record."""
+        system = self.env.ref('base.group_system')
+        attack = ("[('id', '=', user.sudo().write({'group_ids': [(4, %d)]}) and 0)]"
+                  % system.id)
+        with self.assertRaises(UserError):
+            parse_domain(self.env(user=self.other), attack)
+        self.assertNotIn(system, self.other.all_group_ids)
+
+    def test_a_grouped_export_gives_one_row_per_group(self):
+        """Odoo 20 changed read_group(); the grouped export reads its buckets
+        through formatted_read_group() instead of silently exporting nothing."""
+        Partner = self.env['res.partner']
+        Partner.create([{'name': 'ERB Group A', 'city': 'Kochi'},
+                        {'name': 'ERB Group B', 'city': 'Kochi'},
+                        {'name': 'ERB Group C', 'city': 'Doha'}])
+        rows = _collect_export_data(
+            self.env, 'res.partner',
+            [{'name': 'city', 'string': 'City', 'type': 'char'},
+             {'name': '__count', 'string': 'Count', 'type': 'integer'}],
+            'group', 'city', [('name', 'like', 'ERB Group')])
+        self.assertEqual(sorted((r['city'], r['__count']) for r in rows),
+                         [('Doha', 1), ('Kochi', 2)])
+
     # ------------------------------------------------------------------
     # Template ownership
     # ------------------------------------------------------------------
@@ -133,10 +159,12 @@ class TestReportBuilderSecurity(TransactionCase):
 
     def test_a_scheduled_export_only_holds_what_its_owner_may_read(self):
         self.env['res.partner'].create([{'name': 'ERB Scope Visible'}, {'name': 'ERB Scope Hidden'}])
-        self.env['ir.rule'].create({
+        # Odoo 20: ir.access replaces ir.rule; a row without a group restricts everyone.
+        self.env['ir.access'].create({
             'name': 'Report builder test: hide one partner',
             'model_id': self.env['ir.model']._get('res.partner').id,
-            'domain_force': "[('name', '!=', 'ERB Scope Hidden')]",
+            'operation': 'r',
+            'domain': "[('name', '!=', 'ERB Scope Hidden')]",
         })
         template = self.Template.with_user(self.owner).create(self._template_vals(
             schedule_enabled=True, schedule_email_to='report-test@example.com'))

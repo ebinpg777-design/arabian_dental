@@ -35,14 +35,14 @@ class TestLivechatAssistant(CommunityAICase):
     def bodies(self, channel):
         messages = self.env['mail.message'].search([('model', '=', 'discuss.channel'), ('res_id', '=', channel.id),
                                                     ('message_type', '=', 'comment')], order='id')
-        return [(m.author_id == channel.livechat_operator_id, str(m.body)) for m in messages]
+        return [(m.author_id == channel._cai_operator_partner(), str(m.body)) for m in messages]
 
     def test_ai_operator_session(self):
         channel, _guest = self.open_chat()
         operator = self.livechat.cai_operator_partner_id
         self.assertTrue(operator)
         self.assertFalse(operator.active, 'the AI author never shows up as a contact')
-        self.assertEqual(channel.livechat_operator_id, operator)
+        self.assertEqual(channel._cai_operator_partner(), operator)
         self.assertEqual(channel.cai_livechat_assistant_id, self.helper)
         self.assertEqual(channel.name, 'Web Helper')
         self.assertNotIn('cai_assistant_id', self.env['im_livechat.channel'].with_user(self.user_plain).fields_get(),

@@ -36,7 +36,8 @@ class CommunityAIAssistant(models.Model):
     summary = fields.Char(translate=True, help='One line shown to users when they pick an assistant.')
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
-    glyph = fields.Char('Icon', default='fa-comments', help='Font Awesome icon class, e.g. fa-life-ring.')
+    glyph = fields.Char('Icon', default='forum',
+                        help='Icon name from the Odoo icon set (Material Symbols), e.g. support, forum, work.')
     color = fields.Integer()
     company_id = fields.Many2one('res.company', help='Leave empty to make the assistant available to every company.')
 
@@ -191,7 +192,7 @@ class CommunityAIAssistant(models.Model):
     # ------------------------------------------------------------------
     def _cai_card(self) -> dict:
         self.ensure_one()
-        return {'id': self.id, 'title': self.title, 'summary': self.summary or '', 'glyph': self.glyph or 'fa-comments',
+        return {'id': self.id, 'title': self.title, 'summary': self.summary or '', 'glyph': self.glyph or 'forum',
                 'uses_context': self.allow_record_context, 'has_knowledge': bool(self.knowledge_ids)}
 
     def action_cai_test(self):

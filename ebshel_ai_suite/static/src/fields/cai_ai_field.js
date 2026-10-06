@@ -1,9 +1,8 @@
-import { Component, proxy, usePlugin } from "@odoo/owl";
+import { Component, proxy, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
 const fieldRegistry = registry.category("fields");
 
@@ -13,11 +12,9 @@ const fieldRegistry = registry.category("fields");
  */
 export class CommunityAIFieldRefresh extends Component {
     static template = "ebshel_ai_suite.CommunityAIFieldRefresh";
-    static props = {
-        ...standardFieldProps,
-        caiInnerType: String,
-        caiInnerProps: { type: Object, optional: true },
-    };
+    // standard field props + caiInnerType/caiInnerProps; every other prop given by the
+    // Field component is forwarded untouched to the wrapped widget
+    props = useProps();
 
     setup() {
         this.bridge = useService("communityAiBridge");

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
     <!-- Technical group: no privilege category, it is not a per-app right. -->
     <record id="group_tile_manager" model="res.groups">
@@ -8,4 +9,18 @@
     <record id="base.group_system" model="res.groups">
         <field name="implied_ids" eval="[(4, ref('ebshel_dynamic_filter.group_tile_manager'))]"/>
     </record>
-    </odoo>
+    <!--
+        Ownership model (enforced in security/ir.access.csv - Odoo 20 merged
+        access rights and record rules into ir.access)
+        ===============
+        `owner_id` empty  = shared tile: everybody sees it, only a manager edits it.
+        `owner_id` set    = personal tile: only its owner sees it, and only its owner edits it.
+
+        Regular users may read shared tiles and their own, and create / update /
+        delete their own only; `create()` stamps their tiles as personal, so that
+        is never a surprise at save time. A manager reads and edits everything
+        that is not somebody else's private tile. History points follow the tile
+        they belong to - for managers too - and a tile pinned to a company only
+        exists inside it.
+    -->
+</odoo>

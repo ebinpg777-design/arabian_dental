@@ -8,7 +8,7 @@
             <button t-if="this.state.enabled and !this.props.readonly" class="btn btn-link p-0 o_cai_ai_field_refresh"
                     t-on-click="this.regenerate" t-att-disabled="this.state.busy"
                     title="Generate with AI" aria-label="Generate with AI">
-                <i t-if="this.state.busy" class="fa fa-circle-o-notch fa-spin"/>
+                <i t-if="this.state.busy" class="oi oi-spin" data-icon="progress_activity"/>
                 <span t-else="" class="o_cai_mark o_cai_mark_sm"/>
             </button>
         </div>

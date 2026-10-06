@@ -68,7 +68,7 @@ class EpgWhatsappCampaign(models.Model):
              "following days at 10 AM. Keeps the lab's own number safe from being "
              "flagged for bulk messaging.")
 
-    message_ids = fields.One2many('epg.whatsapp.message', 'campaign_id')
+    message_ids = fields.One2many('epg.whatsapp.message', 'campaign_id', string='Messages')
     preview = fields.Text(compute='_compute_preview')
     recipient_count = fields.Integer(compute='_compute_counts')
     reachable_count = fields.Integer(compute='_compute_counts')
@@ -261,8 +261,12 @@ class EpgWhatsappCampaign(models.Model):
 
     def action_stop(self):
         """Cancel everything not sent yet."""
+        self.check_access('write')
         for campaign in self:
-            campaign.message_ids.filtered(
+            # Every message of the campaign, not only the ones this person's rules
+            # show them: a campaign stopped by a colleague must not keep going out
+            # from its launcher's Desk. (review, 2026-10-04)
+            campaign.sudo().message_ids.filtered(
                 lambda m: m.state in ('draft', 'ready', 'opened')).write(
                 {'state': 'cancel', 'scheduled_at': False,
                  'error': _("Campaign stopped by %s.", self.env.user.name)})

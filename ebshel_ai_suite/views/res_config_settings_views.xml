@@ -14,7 +14,7 @@
                                  help="Used by assistants and AI features that do not specify their own connection (per company).">
                             <field name="cai_connection_id" options="{'no_create': True}"/>
                             <div class="mt8">
-                                <button name="%(ebshel_ai_suite.action_cai_connection)d" icon="oi-arrow-right"
+                                <button name="%(ebshel_ai_suite.action_cai_connection)d" icon="arrow_forward"
                                         type="action" string="Manage Connections" class="btn-link"/>
                             </div>
                         </setting>
@@ -37,7 +37,7 @@
                         </setting>
                         <setting id="cai_privacy_rules" string="Privacy Rules"
                                  help="Fields that are never sent to an AI engine, in addition to built-in secret patterns.">
-                            <button name="%(ebshel_ai_suite.action_cai_privacy_rule)d" icon="oi-arrow-right"
+                            <button name="%(ebshel_ai_suite.action_cai_privacy_rule)d" icon="arrow_forward"
                                     type="action" string="Privacy Rules" class="btn-link"/>
                         </setting>
                         <setting id="cai_private_urls" help="Allow knowledge sources to be imported from private network addresses (disabled to prevent SSRF).">
@@ -64,7 +64,7 @@
                                 <div class="text-muted">Endpoint</div>
                                 <field name="cai_mcp_url" readonly="1" widget="CopyClipboardChar"/>
                                 <button name="action_cai_generate_mcp_key" type="object" string="Generate MCP Key"
-                                        icon="fa-key" class="btn-link"/>
+                                        icon="key" class="btn-link"/>
                             </div>
                         </setting>
                         <setting id="cai_mcp_write" string="Allow Changes Through MCP"

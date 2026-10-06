@@ -779,8 +779,10 @@ class EpgLabelElement(models.Model):
         elif self.rule_info == 'min_quantity':
             body = '%g' % (rule.min_quantity or 0.0)
         elif self.rule_info == 'discount':
-            if rule.compute_price == 'percentage':
-                body = '-%g%%' % (rule.percent_price or 0.0)
+            # Odoo 20: a percentage off is compute_price 'discount' with its
+            # rate in price_discount ('percentage' / percent_price are gone).
+            if rule.compute_price == 'discount':
+                body = '-%g%%' % (rule.price_discount or 0.0)
             else:
                 body = ''
         elif self.rule_info == 'date_start':

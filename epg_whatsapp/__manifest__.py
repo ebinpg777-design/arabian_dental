@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'EPG WhatsApp',
-    'version': '19.0.2.13.0',
+    'version': '20.0.2.13.0',
     'summary': 'WhatsApp from Odoo for free through your own WhatsApp, or through the '
                'Meta Cloud API - with chatter logging, read receipts and quick replies',
     'description': """
@@ -93,6 +93,9 @@ them.
             'epg_whatsapp/static/src/desk/chats.xml',
             'epg_whatsapp/static/src/desk/wa_editor.js',
             'epg_whatsapp/static/src/desk/wa_editor.xml',
+        ],
+        'web.assets_unit_tests': [
+            'epg_whatsapp/static/tests/**/*',
         ],
     },
     'installable': True,

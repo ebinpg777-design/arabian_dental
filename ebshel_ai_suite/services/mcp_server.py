@@ -97,7 +97,7 @@ class McpServer:
             return {
                 'protocolVersion': requested if requested in SUPPORTED_VERSIONS else SUPPORTED_VERSIONS[0],
                 'capabilities': {'tools': {'listChanged': False}},
-                'serverInfo': {'name': SERVER_NAME, 'version': '19.0'},
+                'serverInfo': {'name': SERVER_NAME, 'version': '20.0'},
                 'instructions': (
                     'Tools of an Odoo database. Call get_context first. Use list_models and describe_model to '
                     'discover data, search_records / aggregate_records to read it. Domains are lists of '
@@ -268,7 +268,8 @@ class McpServer:
         if hasattr(value, '_name'):                       # recordset
             if not value:
                 return False
-            return [{'id': r.id, 'name': r.display_name} for r in value][:20] if len(value) != 1 else \
+            # slice first: display names of a large x2many are not computed only to be dropped
+            return [{'id': r.id, 'name': r.display_name} for r in value[:20]] if len(value) != 1 else \
                 {'id': value.id, 'name': value.display_name}
         if hasattr(value, 'isoformat'):
             return value.isoformat()
@@ -362,6 +363,8 @@ class McpServer:
                 raise ToolFailure(f'Cannot group by {name}.')
             if interval and (field.type not in ('date', 'datetime') or interval not in INTERVALS):
                 raise ToolFailure(f'Invalid interval for {name}.')
+            if field.type in ('date', 'datetime') and not interval:
+                interval = 'month'   # the ORM refuses a date(time) group without granularity
             groupby.append(f'{name}:{interval}' if interval else name)
         specs = []
         for spec in aggregates or ['__count']:

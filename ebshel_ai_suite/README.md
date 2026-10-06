@@ -1,6 +1,6 @@
 # Ebshel AI Suite (`ebshel_ai_suite`)
 
-An independently designed AI framework for **Odoo 19 Community**. It depends only on
+An independently designed AI framework for **Odoo 20 Community**. It depends only on
 `base`, `web` and `mail`, and works with any OpenAI-compatible endpoint (OpenAI, Ollama,
 vLLM, LM Studio, LocalAI, OpenRouter, …), with Google Gemini, or with a built-in offline
 mock engine for tests and demos.

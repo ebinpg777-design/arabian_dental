@@ -180,6 +180,24 @@ class CommunityAIAutomation(models.Model):
             return records.filtered(lambda r: r.id not in handled)
         return records.filtered(lambda r: r.id not in handled or r.write_date > handled[r.id])
 
+    def _cai_next_batch(self, Model, domain, date_field, job_domain, now):
+        """Return ``(fresh records, new scan position)`` for one scan.
+
+        Batches that only hold records already handled are skipped: a bulk import shares one
+        ``create_date``, and restarting from the last date of a full batch would otherwise read
+        the same handled batch forever and never reach the records after it."""
+        Job = Model.env['community.ai.job'].sudo()
+        offset = 0
+        while True:
+            records = Model.search(domain, limit=SCAN_BATCH, offset=offset, order=f'{date_field} asc, id asc')
+            jobs = Job.search(job_domain + [('res_id', 'in', records.ids)])
+            fresh = self._cai_new_records(records, jobs, date_field)
+            if len(records) < SCAN_BATCH:
+                return fresh, now
+            if fresh:
+                return fresh, records[-1][date_field]
+            offset += SCAN_BATCH
+
     def _cai_scan(self, now):
         self.ensure_one()
         if self.trigger_event == 'manual' or self.execution_mode == 'manual':
@@ -190,14 +208,13 @@ class CommunityAIAutomation(models.Model):
         # long transaction can appear after a scan. The overlap window plus the per-record dedupe
         # below make sure they are neither missed nor processed twice.
         since = (self.last_scan_at or self.create_date) - SCAN_OVERLAP
-        domain = self._cai_domain() + [(date_field, '>', since), (date_field, '<=', now)]
-        records = Model.search(domain, limit=SCAN_BATCH, order=f'{date_field} asc, id asc')
-        jobs = self.env['community.ai.job'].sudo().search([('automation_id', '=', self.id),
-                                                           ('res_id', 'in', records.ids)])
-        fresh = self._cai_new_records(records, jobs, date_field)
+        # ``uid``/``user`` in the condition mean the user the automation runs as, not the cron's user
+        domain = self.with_user(self.run_as_user_id)._cai_domain() + [(date_field, '>', since),
+                                                                      (date_field, '<=', now)]
+        fresh, self.last_scan_at = self._cai_next_batch(Model, domain, date_field,
+                                                        [('automation_id', '=', self.id)], now)
         if fresh:
             self._cai_enqueue(fresh)
-        self.last_scan_at = records[-1][date_field] if len(records) == SCAN_BATCH else now
         return len(fresh)
 
     @api.model
@@ -212,13 +229,10 @@ class CommunityAIAutomation(models.Model):
         for rule in self.env['community.ai.field.rule'].sudo().search(
                 [('active', '=', True), ('trigger_mode', '=', 'on_create')]):
             since = (rule.last_scan_at or rule.create_date) - SCAN_OVERLAP
-            records = self.env[rule.model_name].search([('create_date', '>', since), ('create_date', '<=', now)],
-                                                        limit=SCAN_BATCH, order='create_date asc, id asc')
-            jobs = self.env['community.ai.job'].sudo().search([('field_rule_id', '=', rule.id),
-                                                               ('res_id', 'in', records.ids)])
-            fresh = self._cai_new_records(records, jobs, 'create_date')
+            fresh, rule.last_scan_at = self._cai_next_batch(
+                self.env[rule.model_name], [('create_date', '>', since), ('create_date', '<=', now)],
+                'create_date', [('field_rule_id', '=', rule.id)], now)
             owner = rule.write_uid if rule.write_uid.has_group('ebshel_ai_suite.group_cai_user') else rule.create_uid
             # jobs run with the rights of the rule's author
             rule.with_user(owner)._cai_enqueue(fresh)
-            rule.last_scan_at = records[-1].create_date if len(records) == SCAN_BATCH else now
         return True

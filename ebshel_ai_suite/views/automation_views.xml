@@ -30,7 +30,7 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_cai_open_jobs" type="object" class="oe_stat_button" icon="fa-tasks">
+                        <button name="action_cai_open_jobs" type="object" class="oe_stat_button" icon="checklist">
                             <field name="job_count" widget="statinfo" string="Jobs"/>
                         </button>
                     </div>

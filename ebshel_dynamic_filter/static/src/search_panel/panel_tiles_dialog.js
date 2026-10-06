@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, t, useProps } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { AUTO_COLOR_CYCLE, TILE_COLORS } from "../core/tile_colors";
 
@@ -13,15 +13,15 @@ import { AUTO_COLOR_CYCLE, TILE_COLORS } from "../core/tile_colors";
 export class PanelTilesDialog extends Component {
     static template = "ebshel_dynamic_filter.PanelTilesDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        sectionName: String,
-        values: Array, // [{id, label, count}] - count is null without counters
-        maxTiles: Number,
-        canManage: { type: Boolean, optional: true },
-        actionName: { type: String, optional: true },
-        onConfirm: Function, // (picked, personal, thisActionOnly) => Promise
-    };
+    props = useProps({
+        close: t.function(),
+        sectionName: t.string(),
+        values: t.array(), // [{id, label, count}] - count is null without counters
+        maxTiles: t.number(),
+        canManage: t.boolean().optional(),
+        actionName: t.string().optional(),
+        onConfirm: t.function(), // (picked, personal, thisActionOnly) => Promise
+    });
 
     setup() {
         const initial = this.props.values.slice(0, Math.min(6, this.props.maxTiles));

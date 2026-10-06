@@ -20,7 +20,6 @@ with :func:`register_index_backend` and a ``selection_add`` on
 """
 from __future__ import annotations
 
-import base64
 import io
 import ipaddress
 import json
@@ -47,8 +46,9 @@ _lt = LazyTranslate(__name__)
 
 try:
     import requests
+    import urllib3
 except ImportError:  # pragma: no cover
-    requests = None
+    requests = urllib3 = None
 
 CHUNK_SIZE = 900
 CHUNK_OVERLAP = 150
@@ -183,9 +183,24 @@ def _is_public_host(hostname: str) -> bool:
     for info in infos:
         address = ipaddress.ip_address(info[4][0])
         if (address.is_private or address.is_loopback or address.is_link_local or address.is_reserved
-                or address.is_multicast or address.is_unspecified):
+                or address.is_multicast or address.is_unspecified or not address.is_global):
             return False
     return True
+
+
+def _request_host(url: str) -> str:
+    """Host that ``requests`` will really connect to.
+
+    ``urlparse`` and ``requests``/``urllib3`` disagree on URLs such as
+    ``http://127.0.0.1\\@example.com/``: the check must use the same parser as the download."""
+    try:
+        prepared = requests.Request('GET', url).prepare()
+        parsed = urllib3.util.parse_url(prepared.url)
+    except (requests.exceptions.RequestException, urllib3.exceptions.HTTPError, ValueError):
+        return ''
+    if parsed.scheme not in ('http', 'https'):
+        return ''
+    return (parsed.host or '').strip('[]')
 
 
 def fetch_url_text(env, url: str) -> str:
@@ -193,10 +208,11 @@ def fetch_url_text(env, url: str) -> str:
     if requests is None:  # pragma: no cover
         raise ExtractionError(env._('The python "requests" library is required to import URLs.'))
     parsed = urlparse(url or '')
-    if parsed.scheme not in ('http', 'https') or not parsed.hostname:
+    host = _request_host(url or '') if parsed.scheme in ('http', 'https') else ''
+    if not host:
         raise ExtractionError(env._('Only http(s) URLs can be imported.'))
     allow_private = env['ir.config_parameter'].sudo().get_str('ebshel_ai_suite.allow_private_urls') == 'True'
-    if not allow_private and not _is_public_host(parsed.hostname):
+    if not allow_private and not _is_public_host(host):
         raise ExtractionError(env._('This URL points to a private or local network address and was blocked.'))
     try:
         response = requests.get(url, timeout=15, stream=True, allow_redirects=False,
@@ -250,10 +266,10 @@ def extract_source_text(env, source) -> str:
         text = source.content_text or ''
         return html2plaintext(text) if '<' in text and '>' in text else text
     if kind == 'file':
-        data = source.sudo().with_context(bin_size=False).file_data
+        data = source.sudo().file_data
         if not data:
             raise ExtractionError(env._('Please upload a file.'))
-        content = base64.b64decode(data)
+        content = data.content
         return extract_bytes(env, content, guess_mimetype(content, default=''), source.file_name or '')
     if kind == 'url':
         return fetch_url_text(env, source.url)

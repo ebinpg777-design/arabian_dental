@@ -7,13 +7,13 @@ same flat list of slots that :meth:`_collect_slots` produces, so a PDF and a ZPL
 job from the same wizard contain exactly the same labels in the same order.
 """
 
-import base64
 import logging
 
 from markupsafe import Markup
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.binary import BinaryBytes
 
 _logger = logging.getLogger(__name__)
 
@@ -349,7 +349,7 @@ class EpgLabelPrint(models.TransientModel):
         self.env['epg.label.print.log']._log_print(self, 'zpl')
         self.write({
             'zpl_text': zpl,
-            'zpl_data': base64.b64encode(zpl.encode('utf-8')),
+            'zpl_data': BinaryBytes(zpl.encode('utf-8'), 'labels.zpl'),
             'zpl_filename': '%s.zpl' % (
                 self.template_id.code or self.template_id.name or 'labels'
             ).replace(' ', '_').lower(),

@@ -80,7 +80,8 @@ class TestBackupSafety(TransactionCase):
         system = self.env.ref('base.group_system')
         for model in ('database.backup', 'auto.database.backup', 'auto.database.backup.status',
                       'dropbox.auth.refresh.token.wiz'):
-            accesses = self.env['ir.model.access'].search([('model_id.model', '=', model)])
+            # Odoo 20: ir.access replaces ir.model.access (and the record rules).
+            accesses = self.env['ir.access'].search([('model_id.model', '=', model)])
             self.assertTrue(accesses, model)
             self.assertEqual(accesses.mapped('group_id'), system, model)
 
@@ -102,7 +103,7 @@ class TestBackupSafety(TransactionCase):
         with tempfile.TemporaryDirectory() as data_dir, \
                 patch.dict(odoo.tools.config.options, {'data_dir': data_dir}):
             rule = self.env['database.backup'].new({
-                'upload_file': base64.b64encode(b'-----BEGIN OPENSSH PRIVATE KEY-----'),
+                'upload_file': base64.b64encode(b'-----BEGIN OPENSSH PRIVATE KEY-----').decode(),
                 'file_name': '../../escape.pem',
             })
             rule.onchange_upload_file()

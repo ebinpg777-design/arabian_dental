@@ -113,8 +113,8 @@ class TestLabelElement(LabelCase):
             'name': 'Label Test List',
             'item_ids': [(0, 0, {
                 'applied_on': '3_global',
-                'compute_price': 'percentage',
-                'percent_price': 10.0,
+                'compute_price': 'discount',
+                'price_discount': 10.0,
             })],
         })
         context = self.template._build_render_context(pricelist=pricelist)
@@ -126,8 +126,8 @@ class TestLabelElement(LabelCase):
             'name': 'Label Test Promo',
             'item_ids': [(0, 0, {
                 'applied_on': '3_global',
-                'compute_price': 'percentage',
-                'percent_price': 20.0,
+                'compute_price': 'discount',
+                'price_discount': 20.0,
             })],
         })
         context = self.template._build_render_context(promo_pricelist=promo)
@@ -414,7 +414,8 @@ class TestLabelElement(LabelCase):
             self.assertFalse(element._is_visible(self.product, self.context))
 
     def test_condition_still_reads_fields_and_relations(self):
-        self.product.categ_id.name = 'Widgets'
+        # Odoo 20 gives a new product no category (19 defaulted it to "All").
+        self.product.categ_id = self.env['product.category'].create({'name': 'Widgets'})
         for condition, expected in [
                 ("object.default_code == 'LTW-001'", True),
                 ("object.categ_id.name == 'Widgets'", True),

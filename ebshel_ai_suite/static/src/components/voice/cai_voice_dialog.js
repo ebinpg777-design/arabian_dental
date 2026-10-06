@@ -1,4 +1,4 @@
-import { Component, onWillUnmount, proxy } from "@odoo/owl";
+import { Component, onWillUnmount, proxy, t, useProps } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
@@ -8,7 +8,7 @@ import { CaiVoiceRecorder } from "../../core/cai_voice";
 export class CommunityAIVoiceDialog extends Component {
     static template = "ebshel_ai_suite.CommunityAIVoiceDialog";
     static components = { Dialog };
-    static props = { close: Function, onInsert: { type: Function, optional: true } };
+    props = useProps({ close: t.function(), onInsert: t.function().optional() });
 
     setup() {
         this.bridge = useService("communityAiBridge");

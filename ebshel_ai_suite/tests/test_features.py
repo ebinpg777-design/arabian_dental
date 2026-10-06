@@ -1,6 +1,8 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
 import base64
+import socket
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from odoo import fields
 from odoo.exceptions import UserError
@@ -25,8 +27,9 @@ def partner_field(name):
 class TestNaturalSearch(CommunityAICase):
 
     def test_valid_search(self):
-        self.env['res.partner'].create([{'name': 'NL Ghent', 'city': 'Ghent', 'is_company': True},
-                                        {'name': 'NL Paris', 'city': 'Paris', 'is_company': True}])
+        # since 20.0 ``is_company`` is computed: a partner with a VAT number is a company
+        self.env['res.partner'].create([{'name': 'NL Ghent', 'city': 'Ghent', 'vat': 'BE0477472701'},
+                                        {'name': 'NL Paris', 'city': 'Paris', 'vat': 'FR23334175221'}])
         MockEngine.queue({'model': 'res.partner', 'domain': [['city', '=', 'Ghent'], ['is_company', '=', True]],
                           'order': 'name asc', 'limit': 20, 'view_type': 'list', 'title': 'Companies in Ghent',
                           'explanation': 'Companies located in Ghent'})
@@ -188,6 +191,47 @@ class TestAutomation(CommunityAICase):
         self.assertEqual(person.function, 'Buyer')
         self.assertIn('A buyer.', person.message_ids[0].body)
 
+    def test_scan_moves_past_bulk_imports(self):
+        """Records sharing one create date (an import) must not stall the scan on a handled batch."""
+        automation = self.automation('approval')
+        rule = self.env['community.ai.field.rule'].create({
+            'name': 'Function on create', 'model_id': self.env.ref('base.model_res_partner').id,
+            'field_id': self.env.ref(partner_field('function')).id, 'instruction': 'Guess.',
+            'trigger_mode': 'on_create'})
+        imported = self.env['res.partner'].create([{'name': f'Jane Import {i}'} for i in range(7)])
+        # leave the demo data (created minutes ago, inside the overlap) out of the rule's window
+        automation.last_scan_at = rule.last_scan_at = imported[0].create_date - timedelta(seconds=1)
+        Job = self.env['community.ai.job']
+        with patch('odoo.addons.ebshel_ai_suite.models.automation.SCAN_BATCH', 3), \
+                patch('odoo.addons.ebshel_ai_suite.models.automation.SCAN_OVERLAP', timedelta(seconds=1)):
+            for _scan in range(8):
+                self.env['community.ai.automation']._cai_cron_scan()
+        self.assertEqual(set(Job.search([('automation_id', '=', automation.id)]).mapped('res_id')),
+                         set(imported.ids))
+        queued_for_rule = set(Job.search([('field_rule_id', '=', rule.id)]).mapped('res_id'))
+        self.assertTrue(set(imported.ids) <= queued_for_rule)
+
+    def test_scan_condition_uses_run_as_user(self):
+        """``uid`` in the trigger condition is the Run As user, also when the cron (superuser) scans."""
+        automation = self.automation('approval', filter_domain="[('user_id', '=', uid)]",
+                                     run_as_user_id=self.user_manager.id)
+        automation.last_scan_at = fields.Datetime.now() - timedelta(minutes=5)
+        mine = self.env['res.partner'].create({'name': 'Managed account', 'user_id': self.user_manager.id})
+        self.env['res.partner'].create({'name': 'Unassigned account'})
+        self.env['community.ai.automation']._cai_cron_scan()
+        jobs = self.env['community.ai.job'].search([('automation_id', '=', automation.id)])
+        self.assertEqual(jobs.mapped('res_id'), mine.ids)
+
+    def test_job_cron_stops_when_time_is_up(self):
+        automation = self.automation('automatic')
+        people = self.env['res.partner'].create([{'name': 'Jane One'}, {'name': 'Jane Two'}])
+        jobs = automation._cai_enqueue(people)
+        MockEngine.queue({'values': {'function': 'A'}, 'summary': 'a'}, {'values': {'function': 'B'}, 'summary': 'b'})
+        with patch.object(type(self.env['ir.cron']), '_commit_progress', return_value=0) as progress:
+            self.env['community.ai.job'].with_context(ir_cron_progress_id=1)._cai_cron_run()
+        self.assertEqual(progress.call_count, 1)
+        self.assertEqual(sorted(jobs.mapped('state')), ['done', 'queued'], 'the next job waits for the next run')
+
     def test_automatic_mode_and_untrusted_data(self):
         automation = self.automation('automatic', capability_ids=[Command.set(self.cap_create.ids)])
         person = self.env['res.partner'].create({
@@ -277,10 +321,23 @@ class TestRetrieval(CommunityAICase):
             with self.subTest(url=url), self.assertRaises(ExtractionError):
                 fetch_url_text(self.env, url)
 
+    def test_url_ssrf_parser_differential(self):
+        """The address check must look at the host the download really connects to."""
+        public = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('93.184.215.14', 0))]
+        loopback = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('127.0.0.1', 0))]
+        fake_dns = lambda host, *args, **kwargs: loopback if host.startswith('127.') else public  # noqa: E731
+        with patch('odoo.addons.ebshel_ai_suite.services.retrieval_engine.socket.getaddrinfo', fake_dns), \
+                patch('odoo.addons.ebshel_ai_suite.services.retrieval_engine.requests.get') as download:
+            for url in ('http://127.0.0.1:8069\\@example.com/web/database/manager',
+                        'http://127.0.0.1\\@example.com/'):
+                with self.subTest(url=url), self.assertRaises(ExtractionError):
+                    fetch_url_text(self.env, url)
+            self.assertFalse(download.called, 'nothing may be fetched from a private address')
+
     def test_file_source(self):
         source = self.env['community.ai.source'].create({
             'name': 'Upload', 'source_kind': 'file', 'file_name': 'faq.txt',
-            'file_data': base64.b64encode(b'Question: opening hours?\n\nAnswer: 9 to 5.')})
+            'file_data': base64.b64encode(b'Question: opening hours?\n\nAnswer: 9 to 5.').decode()})
         source.action_cai_index()
         self.assertEqual(source.state, 'ready')
         bad = self.env['community.ai.source'].create({'name': 'Empty', 'source_kind': 'text', 'content_text': ' '})
@@ -300,6 +357,16 @@ class TestWritingTools(CommunityAICase):
         self.assertIn('<untrusted_data kind="text"', user_turn)
         with self.assertRaises(UserError):
             self.env['community.ai.text.service'].with_user(self.user_ai).cai_transform_text('explode', 'x')
+
+    def test_html_proposals_are_sanitized(self):
+        """HTML answers become markup in the user's editor: injected scripts must not survive."""
+        MockEngine.queue('<p>Dear <b>customer</b></p><img src="x" onerror="alert(document.cookie)">'
+                         '<script>alert(1)</script><a href="javascript:alert(2)">link</a>')
+        result = self.env['community.ai.text.service'].with_user(self.user_ai).cai_transform_text(
+            'improve', '<p>draft</p>', {'html': True})['text']
+        self.assertIn('<b>customer</b>', result)
+        for vector in ('onerror', '<script', 'javascript:'):
+            self.assertNotIn(vector, result)
 
     def test_wizard_writes_back(self):
         partner = self.env['res.partner'].create({'name': 'Wizard', 'comment': '<p>draft note</p>'})
@@ -330,7 +397,7 @@ class TestWritingTools(CommunityAICase):
         wizard = self.env['community.ai.image.wizard'].with_user(self.user_ai).create({'prompt': 'a blue square'})
         wizard.action_cai_generate()
         self.assertTrue(wizard.attachment_id)
-        self.assertEqual(wizard.attachment_id.raw[:4], b'\x89PNG')
+        self.assertEqual(wizard.attachment_id.raw.content[:4], b'\x89PNG')
 
 
 @tagged('ebshel_ai')

@@ -1,5 +1,5 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
-from odoo import api, fields, models, tools
+from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 from ..services.prompt_renderer import PromptRenderError, PromptRenderer
@@ -57,7 +57,7 @@ class CommunityAIPrompt(models.Model):
                     raise ValidationError(self.env._('Invalid prompt template: %s', exc)) from exc
 
     @api.model
-    @tools.ormcache('code', 'self.env.lang')
+    @api.ormcache('code', 'self.env.lang')
     def _cai_prompt_id_by_code(self, code):
         return self.sudo().search([('code', '=', code), ('active', '=', True)], limit=1).id
 

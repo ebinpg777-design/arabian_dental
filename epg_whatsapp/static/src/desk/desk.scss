@@ -204,12 +204,15 @@ $wa-blue: #53bdeb;
     .o_wa_chip_warn { background: rgba($warning, .2); color: darken($warning, 30%); }
     .o_wa_chip_doc { background: rgba($danger, .08); color: $danger; }
     .o_wa_ticks { color: $o-gray-500; font-size: .8rem; letter-spacing: -.35em; margin-right: .35em; }
+    // The icon font resets letter-spacing on the glyph itself: overlap the two
+    // ticks by margin, as the old font's spacing used to.
+    .o_wa_ticks .oi + .oi { margin-left: -.55em; }
     .o_wa_ticks_seen { color: $wa-blue; }
 
     .o_wa_empty {
         text-align: center; color: $o-gray-600; padding: 3rem 1rem;
         border: 1px dashed $border-color; border-radius: .9rem;
-        > .fa { font-size: 2.5rem; color: $wa-green; margin-bottom: .5rem; }
+        > .oi { font-size: 2.5rem; color: $wa-green; margin-bottom: .5rem; }
     }
     .o_wa_empty_h { font-weight: 700; color: $o-gray-900; font-size: 1.05rem; }
 }
@@ -236,7 +239,7 @@ html .o_web_client .o_action_manager main.o_content.o_wa_desk {
 .o_wa_systray_btn {
     position: relative; border: 0; background: none; padding: 0 .5rem; height: 100%;
     color: inherit; font-size: 1.15rem;
-    .fa-whatsapp { color: $wa-teal; }
+    .oi[data-icon="oi_whatsapp"] { color: $wa-teal; }
 }
 .o_wa_systray_badge {
     position: absolute; top: .35rem; right: 0; font-size: .6rem;
@@ -360,7 +363,7 @@ html .o_web_client .o_action_manager main.o_content.o_wa_desk {
             &:focus { background: $o-gray-200; } }
     }
     .o_wa_chats_empty { padding: 2.5rem 1rem; text-align: center; color: $o-gray-600; font-size: .875rem;
-        > .fa { display: block; font-size: 2rem; color: $wa-green; margin-bottom: .5rem; } }
+        > .oi { display: block; font-size: 2rem; color: $wa-green; margin-bottom: .5rem; } }
     .o_wa_chat {
         display: flex; gap: .7rem; align-items: center; width: 100%; text-align: left;
         border: 0; border-bottom: 1px solid $border-color; background: transparent; padding: .65rem .75rem;

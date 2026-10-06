@@ -38,13 +38,22 @@ class CommunityAISession(models.Model):
         return self.env._('New conversation')
 
     def _compute_context_label(self):
+        labels = self._cai_readable_names([(s.context_model, s.context_res_id) for s in self])
         for session in self:
-            label = False
-            if session.context_model in self.env and session.context_res_id:
-                record = self.env[session.context_model].browse(session.context_res_id).exists()
-                if record and record.has_access('read'):
-                    label = record.display_name
-            session.context_label = label
+            session.context_label = labels.get((session.context_model, session.context_res_id), False)
+
+    def _cai_readable_names(self, references):
+        """``{(model, id): display name}`` of the referenced records that exist and that the
+        user can read, with one existence query per model instead of one per record."""
+        by_model = {}
+        for model_name, res_id in references:
+            if model_name in self.env and res_id:
+                by_model.setdefault(model_name, set()).add(res_id)
+        names = {}
+        for model_name, ids in by_model.items():
+            records = self.env[model_name].browse(ids).exists()._filtered_access('read')
+            names.update(((model_name, record.id), record.display_name) for record in records)
+        return names
 
     def _compute_totals(self):
         rows = self.env['community.ai.exchange']._read_group(
@@ -54,6 +63,13 @@ class CommunityAISession(models.Model):
         for session in self:
             count, tin, tout = totals.get(session, (0, 0, 0))
             session.exchange_count, session.total_input_tokens, session.total_output_tokens = count, tin, tout
+
+    def write(self, vals):
+        # ``readonly`` only hides the field in the UI: through RPC the author could otherwise hand a
+        # conversation (and the instructions typed in it) over to another user's history
+        if 'user_id' in vals and not self.env.su and any(session.user_id.id != vals['user_id'] for session in self):
+            raise AccessError(self.env._('The author of a conversation cannot be changed.'))
+        return super().write(vals)
 
     # ------------------------------------------------------------------
     # Guards
@@ -185,7 +201,8 @@ class CommunityAISession(models.Model):
         }
         if with_exchanges:
             exchanges = self.exchange_ids.sorted('id')
-            payload['exchanges'] = [ex._cai_payload() for ex in exchanges]
+            can_post = self._cai_context_thread() is not None   # once, not once per answer
+            payload['exchanges'] = [ex._cai_payload(can_post=can_post) for ex in exchanges]
         return payload
 
     def _cai_context_thread(self):

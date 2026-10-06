@@ -1,31 +1,30 @@
-import { Component, onPatched, usePlugin } from "@odoo/owl";
+import { Component, onPatched, signal, t, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { renderCaiMarkdown } from "../../core/cai_markdown";
 import { CaiActionDialogCard } from "./cai_action_card";
-import { useRef } from "@web/owl2/utils";
 
 /** Scrollable list of the visible messages of a conversation. */
 export class CaiMessageList extends Component {
     static template = "ebshel_ai_suite.CaiMessageList";
     static components = { CaiActionDialogCard };
-    static props = {
-        exchanges: Array,
-        busy: Boolean,
-        statusText: { type: [String, { value: null }], optional: true },
-        onDecide: Function,
-        onRetry: Function,
-        onNavigate: Function,
-        onSuggestion: Function,
-        onPost: { type: Function, optional: true },
-        suggestions: { type: Array, optional: true },
-    };
+    props = useProps({
+        exchanges: t.array(),
+        busy: t.boolean(),
+        statusText: t.or([t.string(), t.literal(null)]).optional(),
+        onDecide: t.function(),
+        onRetry: t.function(),
+        onNavigate: t.function(),
+        onSuggestion: t.function(),
+        onPost: t.function().optional(),
+        suggestions: t.array().optional(),
+    });
+    scrollRef = signal.ref();
 
     setup() {
         this.notification = usePlugin(NotificationPlugin);
-        this.scrollRef = useRef("scroll");
         onPatched(() => {
-            const el = this.scrollRef.el;
+            const el = this.scrollRef();
             if (el) {
                 el.scrollTop = el.scrollHeight;
             }
@@ -66,11 +65,22 @@ export class CaiMessageList extends Component {
     toolIcon(ex) {
         return (
             {
-                executed: "fa-check-circle text-success",
-                awaiting_confirmation: "fa-hand-paper-o text-warning",
-                rejected: "fa-ban text-danger",
-                failed: "fa-exclamation-triangle text-danger",
-            }[ex.tool_status] || "fa-cog"
+                executed: "check_circle",
+                awaiting_confirmation: "back_hand",
+                rejected: "block",
+                failed: "warning",
+            }[ex.tool_status] || "settings"
+        );
+    }
+
+    toolIconClass(ex) {
+        return (
+            {
+                executed: "text-success",
+                awaiting_confirmation: "text-warning",
+                rejected: "text-danger",
+                failed: "text-danger",
+            }[ex.tool_status] || ""
         );
     }
 }

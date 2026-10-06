@@ -36,10 +36,17 @@ class EpgWhatsappDesk(models.AbstractModel):
 
     @api.model
     def _today_start(self):
-        tz = pytz.timezone(self.env.context.get('tz') or self.env.user.tz
-                           or self.env.company.partner_id.tz or 'Asia/Kolkata')
-        local = tz.localize(datetime.combine(fields.Date.context_today(self), time.min))
-        return local.astimezone(pytz.utc).replace(tzinfo=None)
+        # Today in the same zone the midnight is placed in. context_today() falls
+        # back to UTC for a user with no timezone while the zone here falls back to
+        # the company's: for the five and a half hours after an Indian midnight
+        # "today" began a day early and took in all of yesterday. (review, 2026-10-04)
+        return self._local_midnight(self.env['epg.whatsapp.message']._local_now().date())
+
+    @api.model
+    def _local_midnight(self, day):
+        """The start of a local day, as naive UTC."""
+        tz = self.env['epg.whatsapp.message']._lab_tz()
+        return tz.localize(datetime.combine(day, time.min)).astimezone(pytz.utc).replace(tzinfo=None)
 
     @api.model
     def _due_domain(self):
@@ -102,9 +109,9 @@ class EpgWhatsappDesk(models.AbstractModel):
             'can_see_all': self.env.user.has_group('epg_whatsapp.group_whatsapp_admin'),
             'has_link_sender': bool(self.env['epg.whatsapp.account'].search_count(
                 [('channel', '=', 'link')])),
-            'link_problem': next((a._link_problem() for a in self.env['epg.whatsapp.account']
-                                  .sudo().search([('channel', '=', 'link')])
-                                  if a._link_problem()), ''),
+            'link_problem': next(filter(None, (
+                a._link_problem() for a in self.env['epg.whatsapp.account'].sudo().search(
+                    [('channel', '=', 'link')]))), ''),
         }
 
     @api.model
@@ -127,11 +134,11 @@ class EpgWhatsappDesk(models.AbstractModel):
     def _savings(self):
         """Messages sent free this month, and what the Cloud API would have charged."""
         Message = self.env['epg.whatsapp.message'].sudo()
-        month_start = fields.Date.context_today(self).replace(day=1)
+        month_start = self._local_midnight(Message._local_now().date().replace(day=1))
         rows = Message._read_group(
             [('channel', '=', 'link'), ('direction', '=', 'outbound'),
              ('state', 'in', ('sent', 'read')),
-             ('sent_at', '>=', fields.Datetime.to_datetime(month_start))],
+             ('sent_at', '>=', month_start)],
             ['account_id'], ['__count'])
         count = sum(n for _account, n in rows)
         amount = sum(n * (account.api_cost_per_message or 0.0) for account, n in rows)
@@ -171,11 +178,14 @@ class EpgWhatsappDesk(models.AbstractModel):
         return result
 
     @api.model
-    @api.model
     def _reply_card(self, message, records=None):
         """One thing a doctor said, waiting for an answer."""
         record = records.get(message.id) if records is not None else message._record()
-        asked = message.reply_to_id
+        # The message it answers is often another sender's, which this reader's
+        # rules hide: only its name is shown, so it is read through sudo - as
+        # the contact's name is - or the whole Desk dies on an AccessError.
+        # (review, 2026-10-04)
+        asked = message.sudo().reply_to_id
         return {
             'id': message.id,
             'partner': message.sudo().partner_id.display_name or '',

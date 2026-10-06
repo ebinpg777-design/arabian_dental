@@ -3,7 +3,7 @@
 # License OPL-1. See LICENSE file for full copyright and licensing details.
 {
     'name': 'Excel Report Builder',
-    "version": "19.0.0.3.0",
+    "version": "20.0.0.3.0",
     'description': """
             Dynamic Excel Report Builder for Odoo.
             Build and export custom Excel reports for any Odoo model — no developer needed.

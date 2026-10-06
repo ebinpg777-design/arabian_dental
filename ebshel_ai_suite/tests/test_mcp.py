@@ -76,6 +76,10 @@ class TestMcpServer(HttpCase):
         groups = self.call('aggregate_records', model='res.partner', group_by=['city'],
                            domain=[['city', '=', 'Ghent']])['structuredContent']['groups']
         self.assertEqual(groups, [{'city': 'Ghent', '__count': 1}])
+        by_date = self.call('aggregate_records', model='res.partner', group_by=['create_date'],
+                            domain=[['city', '=', 'Ghent']])
+        self.assertFalse(by_date['isError'], by_date)
+        self.assertEqual(by_date['structuredContent']['groups'][0]['__count'], 1)
         described = self.call('describe_model', model='res.partner')['structuredContent']
         self.assertIn('email', {f['name'] for f in described['fields']})
         models_ = {m['model'] for m in self.call('list_models', search='partner')['structuredContent']['models']}

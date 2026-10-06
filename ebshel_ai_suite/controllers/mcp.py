@@ -1,10 +1,10 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
 """MCP (Model Context Protocol) endpoint: ``POST /ebshel_ai/mcp``.
 
-Authentication: ``Authorization: Bearer <API key>``. Keys created with the
-"Generate MCP key" button carry the ``ebshel_ai_mcp`` scope; unscoped
-(global) API keys are accepted too. In multi-database setups, clients add the
-``X-Odoo-Database`` header.
+Authentication: ``Authorization: Bearer <API key>``. Only keys created with the
+"Generate MCP key" button (scope ``ebshel_ai_mcp``) are accepted: since 20.0
+every API key has a scope (the standard ones are ``rpc``). In multi-database
+setups, clients add the ``X-Odoo-Database`` header.
 """
 import json
 import logging

@@ -143,7 +143,12 @@ class ConversationRunner:
                 system_text += ('\n\nContext instructions (the user opened you from this kind of record):\n'
                                 + preset.instructions)
             turns = [ChatTurn('system', system_text)]
-            turns += self._history_turns(anchor)
+            history = self._history_turns(anchor)
+            turns += history
+            # earlier tool results stay in the conversation and an interface event quotes one: the
+            # turn involves untrusted data even when nothing new was fetched for it
+            if anchor.speaker_type == 'event' or any(turn.role == 'tool' for turn in history):
+                tainted = runner.tainted = True
             if blocks:
                 turns.append(ChatTurn('user', REFERENCE_PREAMBLE + '\n\n'.join(blocks)))
             anchor_turn = self._anchor_turn(anchor)

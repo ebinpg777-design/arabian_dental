@@ -11,7 +11,7 @@ import { registry } from "@web/core/registry";
  * view the tile lives above. The notification carries the tile's own filter, so
  * "why?" is one click away.
  *
- * The message arrives on the user's own partner channel, which the web client
+ * The message arrives on the user's own channel, which the web client
  * is already subscribed to: no extra channel, nothing guessable from outside.
  */
 export const filterTileAlertService = {

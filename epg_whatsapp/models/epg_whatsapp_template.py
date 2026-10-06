@@ -17,6 +17,23 @@ _logger = logging.getLogger(__name__)
 PLACEHOLDER = re.compile(r'\{\{\s*([a-zA-Z0-9_.]+)\s*(?:\|\s*([a-zA-Z_]+)\s*)?\}\}')
 FORMATS = ('date', 'datetime', 'time', 'money', 'number', 'int', 'raw', 'upper', 'lower',
            'title', 'first', 'doctor')
+# Countries whose numbers, without the country code and the leading 0, always have
+# this many digits - India and the Gulf, where this company's contacts are.
+NATIONAL_DIGITS = {'91': 10, '971': 9, '966': 9, '974': 8, '968': 8, '965': 8, '973': 8}
+
+
+def _usable_name(part):
+    """A name a placeholder may use: never a private or dunder one."""
+    return bool(part) and not part.startswith('_')
+
+
+def _steppable(value, part):
+    """May a placeholder take this step? Only from a record, and only into a public
+    name. Any sender writes campaigns, and a placeholder walked with getattr()
+    through anything reached the database connection ({{env.cr._cnx.dsn}}): a
+    placeholder is a record's fields, and the walk stops at anything that is not
+    a record. (review, 2026-10-04)"""
+    return isinstance(value, models.BaseModel) and _usable_name(part)
 
 
 class EpgWhatsappTemplate(models.Model):
@@ -191,10 +208,13 @@ class EpgWhatsappTemplate(models.Model):
         for index, part in enumerate(parts):
             field = Model._fields.get(part)
             if field is None:
-                if hasattr(Model, part):
-                    return True, ''          # a property or method: resolvable
-                return False, _("'%(part)s' is not a field of %(model)s",
-                                part=part, model=Model._description or model_name)
+                # A property of the record, as the last step only: _resolve() goes
+                # no further than a record, and never into a private name.
+                if not _usable_name(part) or index < len(parts) - 1 \
+                        or not hasattr(Model, part):
+                    return False, _("'%(part)s' is not a field of %(model)s",
+                                    part=part, model=Model._description or model_name)
+                return True, ''
             if index < len(parts) - 1:
                 if not field.relational:
                     return False, _("'%(part)s' is a plain %(type)s field - it has "
@@ -369,17 +389,12 @@ class EpgWhatsappTemplate(models.Model):
         sent = {t.id: n for t, n in Message._read_group(
             [('template_id', 'in', self.ids), ('direction', '=', 'outbound'),
              ('state', 'in', sent_states)], ['template_id'], ['__count'])}
-        replies = {t.id: n for t, n in Message._read_group(
-            [('reply_to_id.template_id', 'in', self.ids), ('direction', '=', 'inbound')],
-            ['reply_to_id.template_id'], ['__count'])}
         # How long they take to open it: from the moment it went, to the first sign.
-        opened = {}
-        for template, count in Message._read_group(
-                [('template_id', 'in', self.ids), ('seen_at', '!=', False),
-                 ('sent_at', '!=', False)], ['template_id'], ['__count']):
-            opened[template.id] = count
+        # One query (a count first only decided whether to run it), and flushed
+        # first: raw SQL does not see what this transaction has not written yet.
         minutes = {}
-        if opened:
+        if self._origin.ids:
+            Message.flush_model(['template_id', 'seen_at', 'sent_at'])
             self.env.cr.execute("""
                 SELECT template_id,
                        AVG(EXTRACT(EPOCH FROM (seen_at - sent_at)) / 60.0)::int AS mins
@@ -387,21 +402,22 @@ class EpgWhatsappTemplate(models.Model):
                  WHERE template_id = ANY(%s) AND seen_at IS NOT NULL AND sent_at IS NOT NULL
                    AND seen_at >= sent_at
               GROUP BY template_id
-            """, (list(opened),))
+            """, (self._origin.ids,))
             minutes = dict(self.env.cr.fetchall())
-        # Which answer they actually tap, most first.
-        tapped = {}
+        # Every answer, and which ones they actually tap, most first - one query.
+        replies, tapped = {}, {}
         for template, body, count in Message._read_group(
-                [('reply_to_id.template_id', 'in', self.ids), ('direction', '=', 'inbound'),
-                 ('body', '!=', False)],
+                [('reply_to_id.template_id', 'in', self.ids), ('direction', '=', 'inbound')],
                 ['reply_to_id.template_id', 'body'], ['__count']):
-            tapped.setdefault(template.id, []).append((count, body))
+            replies[template.id] = replies.get(template.id, 0) + count
+            if body:
+                tapped.setdefault(template.id, []).append((count, body))
         for template in self:
             out = sent.get(template.id, 0)
             answered = replies.get(template.id, 0)
             template.reply_count = answered
             template.reply_rate = round(answered / out * 100, 1) if out else 0.0
-            template.open_minutes = minutes.get(template.id, 0)
+            template.open_minutes = minutes.get(template._origin.id, 0)
             top = sorted(tapped.get(template.id, []), reverse=True)[:3]
             template.answers_tapped = ' · '.join(
                 '%s (%s)' % ((body or '').strip()[:28], count) for count, body in top)
@@ -536,7 +552,7 @@ class EpgWhatsappTemplate(models.Model):
             'type': 'ir.actions.act_window', 'name': _("Messages: %s", self.name),
             'res_model': 'epg.whatsapp.message', 'view_mode': 'list,form',
             'domain': [('template_id', '=', self.id)],
-            'context': {'search_default_group_state': 1},
+            'context': {'search_default_g_state': 1},
         }
 
     def _meta_variables(self, message):
@@ -604,11 +620,10 @@ class EpgWhatsappTemplate(models.Model):
         """
         value = record
         for part in (path or '').split('.'):
-            if value is None:
+            if not _steppable(value, part):
                 return None
             try:
-                value = value[part] if part in getattr(value, '_fields', {}) \
-                    else getattr(value, part, None)
+                value = value[part] if part in value._fields else getattr(value, part, None)
             except Exception:                                          # noqa: BLE001
                 return None
         return value
@@ -627,10 +642,10 @@ class EpgWhatsappTemplate(models.Model):
         """
         value, field, holder = record, None, None
         for part in path.split('.'):
-            if value is None:
+            if not _steppable(value, part):
                 return ''
             try:
-                fields_ = getattr(value, '_fields', {})
+                fields_ = value._fields
                 if part in fields_:
                     holder, field = value, fields_[part]
                     value = value[part]
@@ -709,9 +724,11 @@ class EpgWhatsappTemplate(models.Model):
             return text.split()[0] if text.split() else ''
         if fmt == 'doctor':
             # "Dr." once: the lab's contacts often carry it in the name already, and
-            # a clinic is not a doctor.
-            clinic = holder is not None and holder._name == 'res.partner' and \
-                getattr(holder, 'is_company', False)
+            # a clinic is not a doctor. Odoo 20 computes is_company from the VAT
+            # (a clinic without one reads as a person), so the lab's own Clinic
+            # flag counts too where a module adds it.
+            clinic = holder is not None and holder._name == 'res.partner' and (
+                getattr(holder, 'is_company', False) or getattr(holder, 'is_clinic', False))
             if not text or clinic or re.match(r'(?i)^dr\b', text):
                 return text
             return 'Dr. %s' % text
@@ -738,11 +755,19 @@ class EpgWhatsappTemplate(models.Model):
         if digits.startswith('00'):
             return digits[2:]
         country = self.env.company.country_id
-        partner = getattr(record, 'partner_id', None) if record else None
+        # A contact is its own partner: its country, not the company's, says what
+        # a local number means - a Dubai contact's 050... is not an Indian number.
+        partner = None
+        if record:
+            partner = record if record._name == 'res.partner' else \
+                getattr(record, 'partner_id', None)
         if partner is not None and getattr(partner, 'country_id', False):
             country = partner.country_id
         code = str(country.phone_code or '') if country else ''
-        if code and digits.startswith(code):
+        # Starting with the country code is not having it: an Indian mobile can
+        # itself start with 91 (91234 56789). Where a country's numbers have one
+        # length, a number of exactly that length is a local one. (review, 2026-10-04)
+        if code and digits.startswith(code) and len(digits) != NATIONAL_DIGITS.get(code):
             return digits
         return '%s%s' % (code, digits.lstrip('0'))
 

@@ -7,10 +7,13 @@ how often, and the messages appear on the Desk every morning on their own - at
 most once per doctor every N days, and never more than a day's worth at once.
 (client, 2026-09-17)
 """
+import logging
 from datetime import datetime, time, timedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class EpgWhatsappAutomation(models.Model):
@@ -49,7 +52,7 @@ class EpgWhatsappAutomation(models.Model):
 
     last_run_at = fields.Datetime(readonly=True, copy=False)
     run_count = fields.Integer(readonly=True, copy=False)
-    message_ids = fields.One2many('epg.whatsapp.message', 'automation_id')
+    message_ids = fields.One2many('epg.whatsapp.message', 'automation_id', string='Messages')
     due_count = fields.Integer('Due Now', compute='_compute_due')
     sent_count = fields.Integer(compute='_compute_stats')
     waiting_count = fields.Integer(compute='_compute_stats')
@@ -59,10 +62,14 @@ class EpgWhatsappAutomation(models.Model):
     def _candidates(self):
         """Everyone in the audience who has not had this lately."""
         self.ensure_one()
+        # A new automation has no audience yet: the form's Due Now used to die on
+        # _partners()' ensure_one() before anything was filled in.
+        if not self.audience_id:
+            return self.env['res.partner']
         partners = self.audience_id._partners()
-        if not partners:
+        if not partners or not self._origin.id:
             return partners
-        domain = [('automation_id', '=', self.id), ('direction', '=', 'outbound'),
+        domain = [('automation_id', '=', self._origin.id), ('direction', '=', 'outbound'),
                   ('state', '!=', 'cancel'), ('partner_id', 'in', partners.ids)]
         if self.repeat_days:
             domain.append(('create_date', '>=',
@@ -150,7 +157,16 @@ class EpgWhatsappAutomation(models.Model):
 
     @api.model
     def _cron_run(self):
-        self.search([('active', '=', True)])._run()
+        # One at a time: an audience whose rules no longer read (audiences are any
+        # sender's to edit) failed the whole run, every day, and silenced every
+        # other automation with it. It is logged and skipped. (review, 2026-10-04)
+        for automation in self.search([('active', '=', True)]):
+            try:
+                with self.env.cr.savepoint():
+                    automation._run()
+            except Exception:                                        # noqa: BLE001
+                _logger.exception("WhatsApp automation %s (%s) did not run",
+                                  automation.name, automation.id)
 
     def action_run_now(self):
         created = self._run()

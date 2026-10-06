@@ -1,16 +1,15 @@
 /** @odoo-module **/
 
-import { Component, onWillDestroy, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillDestroy, onWillStart, proxy, useProps } from "@odoo/owl";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { _t } from "@web/core/l10n/translation";
-import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useBus, useService } from "@web/core/utils/hooks";
 import { Layout } from "@web/search/layout";
 
 import { initials } from "./format";
 import { WaSendDialog } from "./send_dialog";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 /**
  * The WhatsApp Desk: every message waiting to be sent from the lab's own WhatsApp,
@@ -22,13 +21,13 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 export class WaDesk extends Component {
     static template = "epg_whatsapp.Desk";
     static components = { Layout };
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.dialog = useService("dialog");
-        this.notification = usePlugin(NotificationPlugin);
+        this.notification = useService("notification");
         this.state = proxy({
             data: null,
             scope: "mine",
@@ -232,17 +231,11 @@ export class WaDesk extends Component {
         });
     }
 
-    openRecord(row) {
-        this.action.doAction({
-            type: "ir.actions.act_window", res_model: row.res_model,
-            res_id: row.res_id, views: [[false, "form"]],
-        });
-    }
-
     async handled(row) {
         await this.orm.call("epg.whatsapp.desk", "mark_handled", [row.id]);
+        // The bus reloads the Desk (and the top-bar count): a second load here
+        // asked the server for the whole Desk twice.
         this.env.bus.trigger("EPG_WA:CHANGED");
-        await this.load(true);
     }
 
     // ------------------------------------------------------------------ editing

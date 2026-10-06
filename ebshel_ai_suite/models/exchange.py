@@ -42,7 +42,9 @@ class CommunityAIExchange(models.Model):
     error_detail = fields.Text('Technical Error', groups='ebshel_ai_suite.group_cai_admin')
     file_ids = fields.One2many('community.ai.session.file', 'exchange_id', string='Files')
 
-    def _cai_payload(self):
+    def _cai_payload(self, can_post=None):
+        """``can_post``: whether the conversation's record accepts messages, when the caller
+        already knows it (a whole conversation is serialized at once)."""
         self.ensure_one()
         payload = {
             'id': self.id,
@@ -65,7 +67,9 @@ class CommunityAIExchange(models.Model):
         if self.file_ids:
             payload['files'] = self.file_ids.sudo()._cai_payload()
         if self.speaker_type == 'assistant' and self.processing_state == 'done' and self.message_body:
-            payload['can_post'] = self.session_id._cai_context_thread() is not None
+            if can_post is None:
+                can_post = self.session_id._cai_context_thread() is not None
+            payload['can_post'] = can_post
         return payload
 
     def cai_compose_action(self, mode='message'):
@@ -86,6 +90,9 @@ class CommunityAIExchange(models.Model):
             'default_res_ids': record.ids,
             'default_composition_mode': 'comment',
             'default_body': markdown_to_html(self.message_body),
+            # open it like the chatter's full composer: followers are the default recipients
+            # (without this flag 20.0 makes the "To" field required, even to log a note)
+            'is_full_composer': True,
         }
         if mode == 'note':
             context['default_subtype_xmlid'] = 'mail.mt_note'

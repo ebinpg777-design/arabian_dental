@@ -15,11 +15,13 @@ window for a number of the attacker's choosing.
 """
 import json
 import logging
+from datetime import datetime, timezone
 
 from markupsafe import Markup
 
 from odoo import _, fields, http
 from odoo.http import request
+from odoo.tools import SQL
 
 _logger = logging.getLogger(__name__)
 
@@ -51,11 +53,19 @@ class EpgWhatsappWebhook(http.Controller):
             payload = json.loads(raw or b'{}')
         except ValueError:
             return request.make_response('', status=400)
+        if not isinstance(payload, dict):
+            # Valid JSON that is not Meta's envelope (a list, a number): a 400, not
+            # an AttributeError and a 500 in the log for every stranger's POST.
+            return request.make_response('', status=400)
 
         Account = request.env['epg.whatsapp.account'].sudo()
         handled = 0
         for entry in payload.get('entry') or []:
+            if not isinstance(entry, dict):
+                continue
             for change in entry.get('changes') or []:
+                if not isinstance(change, dict):
+                    continue
                 value = change.get('value') or {}
                 # Template approvals arrive at the business-account level, with no
                 # phone number in them: routed by the WABA id on the entry instead.
@@ -121,10 +131,23 @@ class EpgWhatsappWebhook(http.Controller):
         Conversation = env['epg.whatsapp.conversation'].sudo()
         Message = env['epg.whatsapp.message'].sudo()
         count = 0
-        for msg in value.get('messages') or []:
+        messages = [msg for msg in value.get('messages') or [] if isinstance(msg, dict)]
+        # Meta delivers at least once: a callback it thinks went unanswered (a slow
+        # reply, a timeout) comes again with the same message ids. Seen once, kept
+        # once - or every retry is another reply on the record and the tray.
+        # (review, 2026-10-04)
+        known = set(Message.search([
+            ('direction', '=', 'inbound'),
+            ('external_id', 'in', [m['id'] for m in messages if m.get('id')]),
+        ]).mapped('external_id')) if messages else set()
+        for msg in messages:
             number = msg.get('from')
             if not number:
                 continue
+            if msg.get('id'):
+                if msg['id'] in known:
+                    continue
+                known.add(msg['id'])
             body = self._body_of(msg)
             partner = self._partner_for(number)
             conv = Conversation._get_or_create(account, number, partner)
@@ -188,10 +211,15 @@ class EpgWhatsappWebhook(http.Controller):
 
     @staticmethod
     def _stamp(raw):
-        """Meta sends unix seconds as a string."""
+        """Meta sends unix seconds as a string; stored as naive UTC.
+
+        Datetime.to_datetime() does not take a number (it raised TypeError, which
+        was swallowed), so every receipt and reply used to be stamped with the
+        moment the callback arrived instead of Meta's own time."""
         try:
-            return fields.Datetime.to_datetime(int(raw)) if raw else None
-        except (TypeError, ValueError):
+            return datetime.fromtimestamp(int(raw), tz=timezone.utc).replace(tzinfo=None) \
+                if raw else None
+        except (TypeError, ValueError, OverflowError, OSError):
             return None
 
     @staticmethod
@@ -199,7 +227,9 @@ class EpgWhatsappWebhook(http.Controller):
         """Best-effort match to a contact, on the last 9 digits.
 
         Country codes and punctuation vary between what a clinic typed into Odoo and
-        what WhatsApp reports; the tail of the number does not.
+        what WhatsApp reports; the tail of the number does not. Compared as digits:
+        a LIKE on the stored text never matched "+91 98765 43210", whose tail is
+        broken by the space. (review, 2026-10-04)
         """
         digits = ''.join(c for c in (number or '') if c.isdigit())
         if len(digits) < 9:
@@ -207,10 +237,14 @@ class EpgWhatsappWebhook(http.Controller):
         tail = digits[-9:]
         Partner = request.env['res.partner'].sudo()
         # The WhatsApp Number first: it is the number WhatsApp actually uses.
-        if 'whatsapp_number' in Partner._fields:
-            partner = Partner.search([('whatsapp_number', 'like', tail)], limit=1)
-            if partner:
-                return partner
-        return Partner.search(['|', ('phone', 'like', tail), ('mobile', 'like', tail)],
-                              limit=1) if 'mobile' in Partner._fields else \
-            Partner.search([('phone', 'like', tail)], limit=1)
+        columns = [c for c in ('whatsapp_number', 'phone', 'mobile')
+                   if c in Partner._fields and Partner._fields[c].store]
+        for column in columns:
+            request.env.cr.execute(SQL(
+                "SELECT id FROM res_partner WHERE active AND "
+                "regexp_replace(COALESCE(%s, ''), '\\D', '', 'g') LIKE %s "
+                "ORDER BY id LIMIT 1", SQL.identifier(column), '%' + tail))
+            row = request.env.cr.fetchone()
+            if row:
+                return Partner.browse(row[0])
+        return None

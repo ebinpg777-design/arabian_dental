@@ -29,7 +29,6 @@ import http.client
 import ftplib
 import boto3
 import paramiko
-import base64
 import httplib2
 from oauth2client.client import GoogleCredentials
 from pydrive.auth import GoogleAuth
@@ -344,7 +343,8 @@ class DatabaseBackup(models.Model):
         try:
             key_dir = self._backup_key_dir()
             path1 = os.path.join(key_dir, file_name)
-            content = base64.b64decode(self.upload_file)
+            # Odoo 20 reads a binary field as its raw content (a BinaryValue).
+            content = self.upload_file.content
             fd = os.open(path1, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, 'O_NOFOLLOW', 0), 0o600)
             with os.fdopen(fd, 'wb') as key_file:
                 key_file.write(content)

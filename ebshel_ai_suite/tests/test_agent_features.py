@@ -12,6 +12,7 @@ from ..services.engines import EngineReply, EngineSettings, ToolInvocation
 from ..services.engines.errors import EngineUnavailable
 from ..services.engines.mock import MockEngine
 from ..services.engines.openai_compat import OpenAICompatibleEngine
+from ..services.template_prompts import fill_prompt_blocks
 from ..services.text_tools import markdown_to_html
 from .common import CommunityAICase
 
@@ -195,7 +196,7 @@ class TestConversationFilesAndActions(CommunityAICase):
         self.assertEqual(final.media[0]['type'], 'image')
         attachment = self.env['ir.attachment'].browse(final.media[0]['attachment_id'])
         self.assertEqual((attachment.res_model, attachment.res_id), ('community.ai.session', session.id))
-        self.assertEqual(attachment.raw[:4], b'\x89PNG')
+        self.assertEqual(attachment.raw.content[:4], b'\x89PNG')
 
 
 @tagged('ebshel_ai')
@@ -300,6 +301,14 @@ class TestTemplatesFieldsVoice(CommunityAICase):
         self.assertIn('Welcome aboard, Bob!', rendered[partners[1].id])
         self.assertNotIn('o_cai_prompt', rendered[partners[1].id])
         self.assertIn('Ann', MockEngine.received[0].turns[1].content, 'the record is sent as context')
+
+    def test_template_prompt_blocks_keep_text_escaped(self):
+        """Text before the first tag (an unsanitized body) must stay escaped after the AI fill."""
+        rendered = 'Dear &lt;img src=x onerror=alert(1)&gt; &amp; co, <div class="o_cai_prompt">Write one sentence</div>'
+        MockEngine.queue('Thank you.')
+        filled = fill_prompt_blocks(self.env, rendered, None, None)
+        self.assertEqual(filled, 'Dear &lt;img src=x onerror=alert(1)&gt; &amp; co, '
+                                 '<div class="o_cai_generated"><p>Thank you.</p></div>')
 
     def test_template_prompt_block_failures_are_invisible(self):
         partner = self.env['res.partner'].create({'name': 'Cid'})

@@ -2,13 +2,12 @@
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
-import { Component, onWillStart, onWillUpdateProps, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, onWillUpdateProps, proxy, t, usePlugin, useProps } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { ControlPanel } from "@web/search/control_panel/control_panel";
 import { DomainSelector } from "@web/core/domain_selector/domain_selector";
 import { user } from "@web/core/user";
 import { Domain } from "@web/core/domain";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * A domain as the Python-literal string the domain editor and the server both
@@ -32,13 +31,13 @@ class ExportDialog extends Component {
     static template = "excel_report_builder.ExportDialog";
     static components = { Dialog, DomainSelector };
 
-    static props = {
-        model: String,
-        ids: { type: Array, optional: true },
-        initialDomain: { type: String, optional: true },
-        listViewFields: { type: Array, optional: true },
-        close: Function,
-    };
+    props = useProps({
+        model: t.string(),
+        ids: t.array().optional(),
+        initialDomain: t.string().optional(),
+        listViewFields: t.array().optional(),
+        close: t.function(),
+    });
 
     setup() {
         this.orm = useService("orm");
@@ -560,8 +559,12 @@ class ExportDialog extends Component {
                 );
                 const aggs = measures.map(f => `${f.name}:${f.agg_type || 'sum'}`);
 
-                const groups = await this.orm.call(this.props.model, "read_group", [dom, aggs, gbList], {
-                    lazy: false,
+                // Odoo 20: read_group() has _read_group()'s signature and returns
+                // tuples; formatted_read_group() gives one dict per bucket.
+                const groups = await this.orm.call(this.props.model, "formatted_read_group", [], {
+                    domain: dom,
+                    groupby: gbList,
+                    aggregates: [...aggs, "__count"],
                     limit: 5,
                 });
                 this.state.previewData = (groups || []).map(group => {
@@ -997,7 +1000,7 @@ patch(ControlPanel.prototype, {
         super.setup();
         this.dialog = useService("dialog");
         this.orm = useService("orm");
-        this.actionService = usePlugin(ActionManagerPlugin);
+        this.actionService = useService("action");
         this.savedTemplates = [];
         this.isExcelReportUser = false;
         this.allowedModels = [];
@@ -1050,6 +1053,9 @@ patch(ControlPanel.prototype, {
                 "dynamic.export.template", "get_templates", [resModel]
             );
         } catch (err) {
+            // Navigating away while the call is out destroys the control panel;
+            // that is not a failure worth reporting.
+            if (err?.message?.includes("Component is destroyed")) return;
             console.error("Failed to load export templates:", err);
             this.savedTemplates = [];
         }

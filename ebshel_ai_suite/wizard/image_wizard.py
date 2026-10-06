@@ -1,8 +1,7 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
-import base64
-
 from odoo import fields, models
 from odoo.exceptions import AccessError, UserError
+from odoo.tools.binary import BinaryBytes
 
 from ..services.engines.errors import EngineError
 from ..services.llm_gateway import LLMGateway
@@ -41,6 +40,6 @@ class CommunityAIImageWizard(models.TransientModel):
             if record:
                 record.check_access('write')
                 values.update(res_model=record._name, res_id=record.id)
-        self.write({'image': base64.b64encode(data), 'attachment_id': self.env['ir.attachment'].create(values).id})
+        self.write({'image': BinaryBytes(data), 'attachment_id': self.env['ir.attachment'].create(values).id})
         return {'type': 'ir.actions.act_window', 'res_model': self._name, 'res_id': self.id,
                 'views': [[False, 'form']], 'target': 'new'}

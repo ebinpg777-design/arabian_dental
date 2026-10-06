@@ -80,7 +80,7 @@ class CommunityAIAudit(models.Model):
 
     @api.model
     def _cai_cron_purge(self):
-        days = int(self.env['ir.config_parameter'].sudo().get_str('ebshel_ai_suite.audit_retention_days', 0) or 0)
+        days = self.env['ir.config_parameter'].sudo().get_int('ebshel_ai_suite.audit_retention_days', 0)
         if days > 0:
             old = self.sudo().search([('event_time', '<', fields.Datetime.now() - timedelta(days=days))], limit=50000)
             old.with_context(cai_audit_purge=True).unlink()

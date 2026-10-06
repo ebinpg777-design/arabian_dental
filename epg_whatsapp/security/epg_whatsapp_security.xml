@@ -10,6 +10,23 @@
             <field name="comment">Owns the senders and the templates. The access token is
                 a paid credential, so configuring is deliberately separate from sending.</field>
         </record>
+        <!-- WHOSE MESSAGES ARE WHOSE (client, 2026-09-19) - in security/ir.access.csv.
+             There were no rules on the message at all, so anybody with "WhatsApp: send"
+             could read every message the company had ever sent, for every contact. A sender
+             sees the ones that are theirs; configuring sees the lot.
+
+             "Theirs" is three things, because the model already means three: user_id is
+             who SHOULD send it (empty meaning anybody with the right, which is the shared
+             queue and must stay visible or nobody sends it), and sent_by_id is who
+             actually DID (rule_whatsapp_message_own).
+
+             Odoo 20 OR-s every permission row a user's groups give them. Odoo 19's
+             read-only ACL for every internal user (for the record smart buttons of
+             business modules) carried no rule, so a sender - also an internal user -
+             still saw only their own; as a plain permission row in 20 it would hand
+             every sender every message again. So that row gives nothing to a sender
+             (their own row decides) and stays all-records for an internal user who
+             does not send, exactly as in 19. -->
         <record id="base.user_admin" model="res.users">
             <field name="group_ids" eval="[(4, ref('group_whatsapp_admin'))]"/>
         </record>

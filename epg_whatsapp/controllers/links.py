@@ -12,12 +12,11 @@ record's chatter, and the doctor sees a short thank-you.
 
 `/wa/o/<token>` - stop these messages: asked on GET, done on POST.
 """
-import base64
-
 from markupsafe import Markup
 
 from odoo import http
-from odoo.http import content_disposition, request
+from odoo.http import request
+from odoo.http.stream import content_disposition
 from odoo.tools.mimetypes import guess_mimetype
 
 
@@ -51,7 +50,8 @@ class WhatsappLinks(http.Controller):
 
     @staticmethod
     def _image_response(campaign):
-        data = base64.b64decode(campaign.image or b'')
+        # A binary field reads back as a BinaryValue holding the raw bytes in 20.
+        data = campaign.image.content if campaign.image else b''
         if not data:
             return request.not_found()
         return request.make_response(data, headers=[
@@ -84,12 +84,19 @@ class WhatsappLinks(http.Controller):
         agent = request.httprequest.headers.get('User-Agent', '')
         message._register_seen(agent)
         attachment = message.attachment_id.sudo()
-        content = attachment.raw or b''
+        content = attachment.raw.content if attachment.raw else b''
+        mimetype = attachment.mimetype or 'application/pdf'
+        # A PDF or a picture opens in the browser; anything a browser would run
+        # (HTML, SVG, XML) is handed over as a download, on this public address
+        # that shares the company's Odoo origin. (review, 2026-10-04)
+        inline = mimetype == 'application/pdf' or (
+            mimetype.startswith('image/') and 'svg' not in mimetype)
         return request.make_response(content, headers=[
-            ('Content-Type', attachment.mimetype or 'application/pdf'),
+            ('Content-Type', mimetype),
             ('Content-Length', str(len(content))),
             ('Content-Disposition', content_disposition(attachment.name or 'document.pdf',
-                                                        'inline')),
+                                                        'inline' if inline else 'attachment')),
+            ('X-Content-Type-Options', 'nosniff'),
             ('Cache-Control', 'private, no-store'),
             ('X-Robots-Tag', 'noindex'),
         ])

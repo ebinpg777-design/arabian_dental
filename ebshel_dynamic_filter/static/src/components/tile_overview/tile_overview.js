@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillDestroy, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillDestroy, onWillStart, proxy, useProps } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { tileDomain, tileGroupBySpec } from "@ebshel_dynamic_filter/core/tile_domain";
 import { _t } from "@web/core/l10n/translation";
@@ -8,7 +8,7 @@ import { registry } from "@web/core/registry";
 import { KeepLast } from "@web/core/utils/concurrency";
 import { useService } from "@web/core/utils/hooks";
 import { FilterTile } from "../filter_tile/filter_tile";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 const REFRESH_MS = 60000;
 
@@ -27,11 +27,11 @@ const REFRESH_MS = 60000;
 export class TileOverview extends Component {
     static template = "ebshel_dynamic_filter.TileOverview";
     static components = { FilterTile };
-    static props = { action: { type: Object, optional: true }, "*": true };
+    props = useProps({ ...standardActionServiceProps });
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.keepLast = new KeepLast();
         this.state = proxy({
             sections: [],

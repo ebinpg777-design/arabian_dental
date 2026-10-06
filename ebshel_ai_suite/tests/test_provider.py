@@ -1,8 +1,11 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
+import io
 import json
 from unittest.mock import patch
 
 import requests
+from requests.structures import CaseInsensitiveDict
+from requests.utils import get_encoding_from_headers
 
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import tagged
@@ -211,6 +214,20 @@ class TestProviders(CommunityAICase):
         self.assertTrue(final.done)
         self.assertEqual((final.tool_invocations[0].name, final.tool_invocations[0].arguments), ('search', {'q': 'x'}))
         self.assertEqual((final.input_tokens, final.output_tokens), (5, 2))
+
+    def test_stream_is_utf8_without_charset(self):
+        """``text/event-stream`` without charset is UTF-8, not requests' ISO-8859-1 default for text/*."""
+        text = 'നമസ്കാരം, café'
+        event = {'candidates': [{'content': {'parts': [{'text': text}]}, 'finishReason': 'STOP'}]}
+        response = requests.Response()
+        response.status_code = 200
+        response.headers = CaseInsensitiveDict({'Content-Type': 'text/event-stream'})
+        response.encoding = get_encoding_from_headers(response.headers)   # what requests sets
+        response.raw = io.BytesIO(f'data: {json.dumps(event, ensure_ascii=False)}\r\n\r\n'.encode())
+        engine = GeminiEngine(settings(engine_type='gemini', model='gemini-test'))
+        with patch('requests.request', return_value=response):
+            pieces = list(engine.stream(EngineRequest(turns=[ChatTurn('user', 'x')])))
+        self.assertEqual(''.join(p.text for p in pieces), text)
 
     # -- Gemini adapter -----------------------------------------------------
     def test_gemini_payload_and_parsing(self):

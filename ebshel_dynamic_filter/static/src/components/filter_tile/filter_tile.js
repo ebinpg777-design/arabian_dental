@@ -1,11 +1,20 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUnmount, onWillUpdateProps, proxy } from "@odoo/owl";
+import {
+    Component,
+    onMounted,
+    onWillUnmount,
+    onWillUpdateProps,
+    proxy,
+    t,
+    useProps,
+} from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { _t } from "@web/core/l10n/translation";
 import { humanNumber } from "@web/core/utils/numbers";
 import { formatFloat, formatInteger } from "@web/views/fields/formatters";
 import { resolveTileColor } from "../../core/tile_colors";
+import { tileIconName } from "../../core/tile_icons";
 
 const ANIMATION_MS = 420;
 // How long a "+3" stays on a tile whose number just moved.
@@ -31,40 +40,29 @@ function easeOut(t) {
  */
 export class FilterTile extends Component {
     static template = "ebshel_dynamic_filter.FilterTile";
-    static props = {
-        def: Object, // tile definition, as served by filter.tile.get_tile_registry
-        data: { type: Object, optional: true }, // {value, count, trend, delta, alert, error}
-        total: { type: Number, optional: true },
-        active: { type: Boolean, optional: true },
-        compact: { type: Boolean, optional: true },
-        look: { type: String, optional: true }, // tile style: accent | card | midnight | pastel
+    props = useProps({
+        def: t.object(), // tile definition, as served by filter.tile.get_tile_registry
+        data: t.object().optional(), // {value, count, trend, delta, alert, error}
+        total: t.number().optional(0),
+        active: t.boolean().optional(false),
+        compact: t.boolean().optional(false),
+        look: t.string().optional("accent"), // tile style: accent | card | midnight | pastel
         // Identifies the filter the value was computed against; see `change`.
-        contextKey: { type: String, optional: true },
+        contextKey: t.string().optional(),
         // Its filter is something the browser cannot evaluate: shown, greyed,
         // and never applied - a bad tile used to take the view down with it.
         // (client, 2026-09-10)
-        broken: { type: Boolean, optional: true },
-        canManage: { type: Boolean, optional: true },
-        selectable: { type: Boolean, optional: true }, // multi-select mode is on
-        loading: { type: Boolean, optional: true },
-        shortcut: { type: Number, optional: true }, // 1-9: the Alt+n that toggles it
-        onSelect: { type: Function, optional: true },
-        onEdit: { type: Function, optional: true },
-        onBreakdown: { type: Function, optional: true },
-        onResize: { type: Function, optional: true }, // (width) => persisted
-        onDelete: { type: Function, optional: true },
-    };
-    static defaultProps = {
-        data: null,
-        total: 0,
-        active: false,
-        compact: false,
-        look: "accent",
-        canManage: false,
-        selectable: false,
-        loading: false,
-        shortcut: 0,
-    };
+        broken: t.boolean().optional(),
+        canManage: t.boolean().optional(false),
+        selectable: t.boolean().optional(false), // multi-select mode is on
+        loading: t.boolean().optional(false),
+        shortcut: t.number().optional(0), // 1-9: the Alt+n that toggles it
+        onSelect: t.function().optional(),
+        onEdit: t.function().optional(),
+        onBreakdown: t.function().optional(),
+        onResize: t.function().optional(), // (width) => persisted
+        onDelete: t.function().optional(),
+    });
 
     setup() {
         // `change`: how much the value moved at the last refresh, shown as a
@@ -217,12 +215,9 @@ export class FilterTile extends Component {
         return "";
     }
 
-    get iconClass() {
-        const icon = (this.props.def.icon || "").trim();
-        if (!icon) {
-            return "fa fa-circle-o";
-        }
-        return icon.startsWith("fa-") ? `fa ${icon}` : icon;
+    /** The tile's icon, as an Odoo 20 icon name (`<i class="oi" data-icon=…>`). */
+    get iconName() {
+        return tileIconName(this.props.def.icon);
     }
 
     /** "goal" swaps the sparkline for a progress ring towards `target`. */

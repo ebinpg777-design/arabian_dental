@@ -1,10 +1,9 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUpdateProps, proxy } from "@odoo/owl";
+import { Component, onWillStart, proxy, signal, t, useOnChange, useProps } from "@odoo/owl";
 import { useEmojiPicker } from "@web/core/emoji_picker/emoji_picker";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
 /**
@@ -16,29 +15,31 @@ import { standardFieldProps } from "@web/views/fields/standard_field_props";
  */
 export class WaEditorField extends Component {
     static template = "epg_whatsapp.WaEditor";
-    static props = {
+    props = useProps({
         ...standardFieldProps,
-        model: { type: String, optional: true },
-        modelField: { type: String, optional: true },
-        placeholder: { type: String, optional: true },
-    };
+        model: t.string().optional(),
+        modelField: t.string().optional(),
+        placeholder: t.string().optional(),
+    });
+    textareaRef = signal.ref();
+    emojiRef = signal.ref();
 
     setup() {
         this.orm = useService("orm");
-        this.textarea = useRef("textarea");
         this.state = proxy({ fields: [], showFields: false, query: "" });
         useEmojiPicker(
-            useRef("emoji"),
+            this.emojiRef,
             { onSelect: (codepoints) => this.insert(codepoints) },
             { position: "bottom" }
         );
         onWillStart(() => this.loadFields());
         // A template's model can change while the form is open: the fields follow.
-        onWillUpdateProps((next) => {
-            if (this.modelOf(next) !== this.modelOf(this.props)) {
-                this.loadFields(next);
-            }
-        });
+        // (Owl 3: the record is the same object, so this watches the value itself.)
+        useOnChange(
+            () => [this.modelOf(this.props)],
+            () => this.loadFields(),
+            { initialRun: false }
+        );
     }
 
     modelOf(props) {
@@ -72,7 +73,7 @@ export class WaEditorField extends Component {
 
     /** Put `text` where the cursor is, and leave the cursor after it. */
     insert(text) {
-        const el = this.textarea.el;
+        const el = this.textareaRef();
         if (!el || this.props.readonly) {
             return;
         }
@@ -84,7 +85,7 @@ export class WaEditorField extends Component {
 
     /** Wrap the selection in a WhatsApp mark: *bold*, _italic_, ~strike~. */
     wrap(mark) {
-        const el = this.textarea.el;
+        const el = this.textareaRef();
         if (!el || this.props.readonly) {
             return;
         }

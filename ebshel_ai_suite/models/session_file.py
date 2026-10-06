@@ -38,7 +38,8 @@ class CommunityAISessionFile(models.Model):
 
     def _cai_image_bytes(self):
         self.ensure_one()
-        return self.attachment_id.sudo().raw or b''
+        raw = self.attachment_id.sudo().raw
+        return raw.content if raw else b''
 
     def _cai_create_from_upload(self, session, name, data_b64):
         """Validate, extract and store an uploaded file (called by the session owner)."""

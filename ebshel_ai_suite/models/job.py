@@ -55,11 +55,11 @@ class CommunityAIJob(models.Model):
             job.name = f'{labels.get(job.job_kind, "")} #{job.id}'
 
     def _compute_record_label(self):
+        names = self.env['community.ai.session']._cai_readable_names([(j.res_model, j.res_id) for j in self])
         for job in self:
             label = False
             if job.res_model in self.env and job.res_id:
-                record = self.env[job.res_model].browse(job.res_id).exists()
-                label = record.display_name if record and record.has_access('read') else f'{job.res_model}#{job.res_id}'
+                label = names.get((job.res_model, job.res_id)) or f'{job.res_model}#{job.res_id}'
             job.record_label = label
 
     def _compute_proposal_text(self):
@@ -161,8 +161,11 @@ class CommunityAIJob(models.Model):
                                   limit=BATCH, order='next_attempt_at, id')
         for index, job in enumerate(jobs, start=1):
             job._cai_process()
-            if in_cron:   # commit each job so that a later crash does not lose finished work
-                cron._commit_progress(processed=1, remaining=len(jobs) - index)
+            # commit each job so that a later crash does not lose finished work, and stop when the
+            # cron's time budget is spent: an engine call can take minutes and the worker would be
+            # killed in the middle of the next job
+            if in_cron and not cron._commit_progress(processed=1, remaining=len(jobs) - index):
+                break
         return True
 
     # ------------------------------------------------------------------

@@ -4,7 +4,7 @@
     <div t-if="this.state.allowed" class="o_wa_systray o-dropdown dropdown">
         <button class="o_wa_systray_btn" t-on-click="() => this.open()"
                 t-att-title="this.state.count ? this.state.count + ' WhatsApp messages to send' : 'WhatsApp Desk'">
-            <i class="fa fa-whatsapp" title="WhatsApp Desk"/>
+            <i class="oi" data-icon="oi_whatsapp" title="WhatsApp Desk"/>
             <span t-if="this.state.count" class="o_wa_systray_badge badge rounded-pill" t-out="this.state.count"/>
         </button>
     </div>

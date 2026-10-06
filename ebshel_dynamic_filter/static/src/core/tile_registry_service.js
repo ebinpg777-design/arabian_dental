@@ -20,14 +20,20 @@ export const filterTileRegistryService = {
 
         function fetch() {
             if (!registryProm) {
-                registryProm = orm
+                const prom = orm
                     .silent
                     .call("filter.tile", "get_tile_registry", [])
                     .catch((error) => {
-                        // A tile bar must never take a view down with it.
+                        // A tile bar must never take a view down with it. Not
+                        // cached, either: one dropped request must not leave
+                        // every view without tiles until the page is reloaded.
                         console.warn("Filter tiles: registry unavailable", error);
+                        if (registryProm === prom) {
+                            registryProm = null;
+                        }
                         return EMPTY;
                     });
+                registryProm = prom;
             }
             return registryProm;
         }

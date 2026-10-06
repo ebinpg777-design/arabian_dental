@@ -6,7 +6,7 @@ import re
 
 from markupsafe import Markup
 from odoo.exceptions import UserError
-from odoo.tools import html2plaintext, html_escape, plaintext2html
+from odoo.tools import html2plaintext, html_escape, html_sanitize, plaintext2html
 from odoo.tools.translate import LazyTranslate
 
 from .context_builder import RecordContextBuilder
@@ -133,6 +133,7 @@ class TextTransformer:
         result = (reply.text or '').strip()
         if result.startswith('```'):
             result = result.strip('`').split('\n', 1)[-1].strip()
-        if output_html and '<' not in result:
-            result = plaintext2html(result)
+        if output_html:
+            # the answer is inserted as markup in the editor before any save: never trust model HTML
+            result = str(plaintext2html(result) if '<' not in result else html_sanitize(result))
         return result

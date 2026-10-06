@@ -10,7 +10,7 @@
                 <field name="channel" invisible="1"/>
                 <div class="alert alert-success py-2 d-flex align-items-center gap-2" role="status"
                      invisible="channel != 'link'">
-                    <i class="fa fa-whatsapp fa-lg" title="WhatsApp"/>
+                    <i class="oi oi-lg" data-icon="oi_whatsapp" title="WhatsApp"/>
                     <span>Opens in <b>your WhatsApp</b> with the message typed in - free, no Meta
                         charge. Press Send there, confirm here, and it is logged on
                         <field name="record_name" class="oe_inline fw-bold" readonly="1"/>.</span>
@@ -34,10 +34,10 @@
                        placeholder="The message that will be sent…"/>
                 <footer>
                     <button name="action_send" type="object" class="btn-primary" data-hotkey="q"
-                            invisible="channel != 'link'" icon="fa-whatsapp"
+                            invisible="channel != 'link'" icon="oi_whatsapp"
                             string="Open in WhatsApp"/>
                     <button name="action_queue" type="object" class="btn-secondary" data-hotkey="w"
-                            invisible="channel != 'link'" icon="fa-inbox"
+                            invisible="channel != 'link'" icon="inbox"
                             string="Send later from the Desk"/>
                     <button name="action_send" type="object" string="Send" class="btn-primary"
                             data-hotkey="q" invisible="channel == 'link'"/>

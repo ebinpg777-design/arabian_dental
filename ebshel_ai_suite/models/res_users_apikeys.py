@@ -1,5 +1,6 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
 from odoo import models
+from odoo.http import request
 from odoo.addons.base.models.res_users import check_identity
 
 from ..services.mcp_server import API_KEY_SCOPE
@@ -23,5 +24,10 @@ class ResUsersApikeysDescription(models.TransientModel):
         return {
             'type': 'ir.actions.act_window', 'res_model': 'res.users.apikeys.show',
             'name': self.env._('MCP Key Ready'), 'views': [(False, 'form')], 'target': 'new',
-            'context': {'default_key': key},
+            # the 20.0 dialog also shows the scope and a connection snippet built on the base URL
+            'context': {
+                'default_key': key,
+                'default_scope': API_KEY_SCOPE,
+                'default_base_url': ((request and request.httprequest.url_root) or '<Your URL>').rstrip('/'),
+            },
         }

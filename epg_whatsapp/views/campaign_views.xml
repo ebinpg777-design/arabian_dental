@@ -9,7 +9,7 @@
             <form>
                 <header>
                     <button name="action_launch" type="object" string="Put on the Desk"
-                            class="btn-success" icon="fa-whatsapp" invisible="state != 'draft'"
+                            class="btn-success" icon="oi_whatsapp" invisible="state != 'draft'"
                             confirm="One message per recipient goes on the WhatsApp Desk, paced per day. Continue?"/>
                     <button name="action_open_desk" type="object" string="Open the Desk"
                             class="btn-primary" invisible="state != 'running'"/>
@@ -22,22 +22,22 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box" invisible="state == 'draft'">
-                        <button name="action_view_queued" type="object" class="oe_stat_button" icon="fa-hourglass-half">
+                        <button name="action_view_queued" type="object" class="oe_stat_button" icon="hourglass_top">
                             <field name="queued_count" widget="statinfo" string="Waiting"/>
                         </button>
-                        <button name="action_view_sent" type="object" class="oe_stat_button" icon="fa-check">
+                        <button name="action_view_sent" type="object" class="oe_stat_button" icon="check">
                             <field name="sent_count" widget="statinfo" string="Sent"/>
                         </button>
-                        <button name="action_view_clicked" type="object" class="oe_stat_button" icon="fa-hand-pointer-o">
+                        <button name="action_view_clicked" type="object" class="oe_stat_button" icon="pan_tool_alt">
                             <div class="o_stat_info">
                                 <span class="o_stat_value"><field name="clicked_count"/> · <field name="click_rate"/>%</span>
                                 <span class="o_stat_text">Opened link</span>
                             </div>
                         </button>
-                        <button name="action_view_replied" type="object" class="oe_stat_button" icon="fa-reply">
+                        <button name="action_view_replied" type="object" class="oe_stat_button" icon="reply">
                             <field name="replied_count" widget="statinfo" string="Replied"/>
                         </button>
-                        <button name="action_view_optout" type="object" class="oe_stat_button" icon="fa-ban">
+                        <button name="action_view_optout" type="object" class="oe_stat_button" icon="block">
                             <field name="optout_count" widget="statinfo" string="Stopped"/>
                         </button>
                     </div>
@@ -58,7 +58,7 @@
                     <div class="o_wa_audience_row" invisible="not audience_id or state != 'draft'">
                         <span><b><field name="audience_count" class="oe_inline"/></b> in the audience right now.</span>
                         <button name="action_load_audience" type="object" class="btn btn-sm btn-secondary"
-                                string="Load them as recipients" icon="fa-download"/>
+                                string="Load them as recipients" icon="download"/>
                         <span class="text-muted small">An empty recipient list is filled from the audience at launch.</span>
                     </div>
                     <div class="alert alert-info py-2" role="status" invisible="state != 'draft' or not recipient_count or mode != 'personal'">
@@ -157,7 +157,7 @@
         <field name="arch" type="xml">
             <xpath expr="//div[@name='extras']" position="inside">
                 <div class="p-2 rounded border" invisible="not report_id">
-                    <div class="fw-bold"><i class="fa fa-bell-o me-1" title="Reminder"/>Remind if the document is not opened</div>
+                    <div class="fw-bold"><i class="oi me-1" data-icon="notifications" title="Reminder"/>Remind if the document is not opened</div>
                     <div class="d-flex align-items-baseline gap-2 flex-wrap">
                         <span class="text-muted small">after</span>
                         <field name="nudge_after_hours" class="oe_inline" style="width: 5rem"/>

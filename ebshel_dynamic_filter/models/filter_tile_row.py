@@ -56,8 +56,12 @@ class FilterTileRow(models.Model):
 
         Ascending order matters - the slot each name moves into was vacated by
         the step before it, so the (model, number) uniqueness never trips.
+
+        With the caller's own rights, like :meth:`set_row_name`: row names are
+        the managers' to change. As superuser, any user deleting a "row" over
+        RPC renamed and dropped the shared captions of everybody's ribbon.
         """
-        rows = self.sudo().search(
+        rows = self.search(
             [('model_name', '=', model_name), ('number', '>=', removed)], order='number')
         for row in rows:
             if row.number == removed:

@@ -14,9 +14,9 @@
                 <field name="attempt_count" optional="hide"/>
                 <field name="state" widget="badge" decoration-success="state == 'done'"
                        decoration-danger="state == 'failed'" decoration-info="state == 'awaiting_approval'"/>
-                <button name="action_cai_approve" type="object" icon="fa-check" string="Approve"
+                <button name="action_cai_approve" type="object" icon="check" string="Approve"
                         invisible="state != 'awaiting_approval'" groups="ebshel_ai_suite.group_cai_manager"/>
-                <button name="action_cai_reject" type="object" icon="fa-times" string="Reject"
+                <button name="action_cai_reject" type="object" icon="close" string="Reject"
                         invisible="state != 'awaiting_approval'" groups="ebshel_ai_suite.group_cai_manager"/>
             </list>
         </field>

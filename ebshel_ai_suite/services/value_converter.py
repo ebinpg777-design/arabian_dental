@@ -135,10 +135,14 @@ def describe_field_for_model(env, field) -> str:
     if ftype == 'selection':
         keys = [str(k) for k, _label in field._description_selection(env)]
         return f'one of {keys}'
+    if ftype == 'many2one':
+        return f'name or id of one {field.comodel_name} record'
+    if ftype == 'many2many':
+        return f'list of names or ids of {field.comodel_name} records'
+    # only relational fields have a ``comodel_name`` attribute
     return {
         'char': 'short text', 'text': 'text', 'html': 'text (may contain simple HTML)',
         'integer': 'integer', 'float': 'number', 'monetary': 'number (amount)',
         'date': 'date YYYY-MM-DD', 'datetime': 'datetime YYYY-MM-DD HH:MM:SS (UTC)',
-        'boolean': 'true or false', 'many2one': f'name or id of one {field.comodel_name} record',
-        'many2many': f'list of names or ids of {field.comodel_name} records',
+        'boolean': 'true or false',
     }.get(ftype, ftype)

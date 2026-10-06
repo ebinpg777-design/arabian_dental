@@ -1,54 +1,58 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, useProps } from "@odoo/owl";
 import { Dropdown } from "@web/core/dropdown/dropdown";
 import { useDropdownState } from "@web/core/dropdown/dropdown_hooks";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
+import { tileIconName } from "../core/tile_icons";
 
 /**
- * A curated slice of the FontAwesome 4.7 set Odoo already ships - the icons
- * that actually read at tile size, grouped so the grid tells a story.
+ * A curated slice of the icons Odoo 20 ships - Material Symbols, plus the
+ * odoo_ui_icons "oi_*" set - the ones that actually read at tile size, grouped
+ * so the grid tells a story. (Odoo 20 has no FontAwesome: this list replaces
+ * the 19.0 one name for name, see models/tile_icons.py.)
  */
 export const TILE_ICONS = [
     // status
-    "fa-bolt", "fa-check-circle", "fa-check-square-o", "fa-times-circle", "fa-ban",
-    "fa-exclamation-triangle", "fa-exclamation-circle", "fa-question-circle", "fa-info-circle",
-    "fa-hourglass-half", "fa-clock-o", "fa-history", "fa-refresh", "fa-spinner", "fa-flag",
-    "fa-flag-checkered", "fa-thumbs-o-up", "fa-thumbs-o-down", "fa-star", "fa-star-o",
-    "fa-heart", "fa-bookmark-o", "fa-bell", "fa-bullhorn", "fa-lock", "fa-unlock",
+    "flash_on", "check_circle", "check_box", "cancel", "block", "warning", "error", "help",
+    "info", "priority_high", "emergency", "hourglass_top", "schedule", "timer", "history",
+    "refresh", "progress_activity", "flag", "sports_score", "thumb_up", "thumb_down", "star",
+    "favorite", "bookmark", "notifications", "campaign", "lock", "lock_open", "visibility",
+    "verified",
     // documents
-    "fa-file-text-o", "fa-file-o", "fa-files-o", "fa-folder-open-o", "fa-clipboard",
-    "fa-pencil", "fa-pencil-square-o", "fa-paperclip", "fa-print", "fa-envelope-o",
-    "fa-paper-plane", "fa-inbox", "fa-archive", "fa-sticky-note-o", "fa-book", "fa-newspaper-o",
+    "description", "article", "content_copy", "folder_open", "assignment", "task", "checklist",
+    "edit", "edit_square", "attach_file", "print", "mail", "send", "inbox", "archive",
+    "sticky_note_2", "book", "newspaper", "receipt_long",
     // money
-    "fa-money", "fa-credit-card", "fa-bank", "fa-calculator", "fa-percent", "fa-tag", "fa-tags",
-    "fa-shopping-cart", "fa-shopping-basket", "fa-shopping-bag", "fa-gift", "fa-balance-scale",
+    "payments", "attach_money", "euro", "credit_card", "account_balance", "calculate", "percent",
+    "sell", "label", "shopping_cart", "shopping_basket", "shopping_bag", "storefront",
+    "card_giftcard", "balance",
     // logistics
-    "fa-truck", "fa-cube", "fa-cubes", "fa-industry", "fa-wrench", "fa-cogs",
-    "fa-barcode", "fa-qrcode", "fa-recycle", "fa-map-marker", "fa-globe", "fa-plane", "fa-ship",
+    "local_shipping", "deployed_code", "inventory_2", "factory", "build", "settings", "barcode",
+    "qr_code", "recycling", "location_on", "public", "flight", "directions_boat", "directions_car",
     // people
-    "fa-user", "fa-user-o", "fa-users", "fa-user-plus", "fa-user-secret", "fa-address-card-o",
-    "fa-handshake-o", "fa-comments-o", "fa-comment-o", "fa-phone", "fa-headphones", "fa-child",
+    "person", "group", "person_add", "oi_user-secret", "badge", "handshake", "forum",
+    "chat_bubble", "phone", "oi_whatsapp", "headphones", "child_care",
     // analytics
-    "fa-line-chart", "fa-bar-chart", "fa-area-chart", "fa-pie-chart", "fa-tachometer",
-    "fa-signal", "fa-dashboard", "fa-trophy", "fa-bullseye", "fa-rocket", "fa-magic",
-    "fa-lightbulb-o", "fa-fire", "fa-leaf", "fa-diamond", "fa-crosshairs",
+    "show_chart", "bar_chart", "area_chart", "pie_chart", "speed", "signal_cellular_4_bar",
+    "trophy", "radio_button_checked", "rocket_launch", "wand_stars", "lightbulb", "whatshot",
+    "eco", "diamond", "my_location",
     // time & places
-    "fa-calendar", "fa-calendar-check-o", "fa-calendar-times-o", "fa-hourglass-end",
-    "fa-building-o", "fa-home", "fa-briefcase", "fa-suitcase", "fa-shield", "fa-stethoscope",
-    "fa-medkit", "fa-graduation-cap", "fa-coffee", "fa-life-ring", "fa-key", "fa-filter",
-    "fa-search", "fa-list-ul", "fa-th-large", "fa-sitemap", "fa-random", "fa-share-alt",
-    "fa-circle-o", "fa-square-o", "fa-dot-circle-o", "fa-ellipsis-h", "fa-plus-circle",
-    "fa-minus-circle", "fa-arrow-circle-up", "fa-arrow-circle-down", "fa-long-arrow-right",
+    "calendar_today", "today", "event_available", "event_busy", "event_upcoming",
+    "hourglass_bottom", "business", "home", "work", "luggage", "security", "stethoscope",
+    "medical_services", "local_hospital", "school", "coffee", "restaurant", "support", "key",
+    "filter_alt", "search", "format_list_bulleted", "grid_view", "account_tree", "shuffle",
+    "share", "radio_button_unchecked", "square", "more_horiz", "add_circle", "remove_circle",
+    "arrow_circle_up", "arrow_circle_down", "arrow_forward",
 ];
 
-/** Searchable FontAwesome picker for a char field holding an icon class. */
-export class FaIconPickerField extends Component {
-    static template = "ebshel_dynamic_filter.FaIconPickerField";
+/** Searchable icon picker for a char field holding an Odoo 20 icon name. */
+export class TileIconPickerField extends Component {
+    static template = "ebshel_dynamic_filter.TileIconPickerField";
     static components = { Dropdown };
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     setup() {
         this.state = proxy({ query: "" });
@@ -56,19 +60,16 @@ export class FaIconPickerField extends Component {
     }
 
     get currentIcon() {
-        return (this.props.record.data[this.props.name] || "").trim() || "fa-circle-o";
+        return tileIconName(this.props.record.data[this.props.name]);
     }
 
     get icons() {
-        const query = this.state.query.trim().toLowerCase().replace(/^fa-/, "");
+        // "local shipping", "Local-Shipping" and "local_shipping" all find it.
+        const query = this.state.query.trim().toLowerCase().replace(/[\s-]+/g, "_");
         if (!query) {
             return TILE_ICONS;
         }
         return TILE_ICONS.filter((icon) => icon.includes(query));
-    }
-
-    iconClass(icon) {
-        return icon.startsWith("fa-") ? `fa ${icon}` : icon;
     }
 
     select(icon) {
@@ -84,10 +85,12 @@ export class FaIconPickerField extends Component {
     }
 }
 
-export const faIconPickerField = {
-    component: FaIconPickerField,
+export const tileIconPickerField = {
+    component: TileIconPickerField,
     displayName: _t("Icon Picker"),
     supportedTypes: ["char"],
 };
 
-registry.category("fields").add("fa_icon_picker", faIconPickerField);
+registry.category("fields").add("tile_icon_picker", tileIconPickerField);
+// The 19.0 name of the widget, for views written against it.
+registry.category("fields").add("fa_icon_picker", tileIconPickerField);

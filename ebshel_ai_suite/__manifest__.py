@@ -1,7 +1,7 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
 {
     'name': 'Ebshel AI Suite',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Productivity',
     'summary': 'Provider-agnostic AI assistants, tools, knowledge retrieval and automation for Odoo Community',
     'description': """

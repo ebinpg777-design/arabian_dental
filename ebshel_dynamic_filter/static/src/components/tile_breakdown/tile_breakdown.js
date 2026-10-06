@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy } from "@odoo/owl";
+import { Component, onWillStart, proxy, t, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { humanNumber } from "@web/core/utils/numbers";
 import { useService } from "@web/core/utils/hooks";
@@ -18,12 +18,12 @@ import { formatFloat, formatInteger } from "@web/views/fields/formatters";
  */
 export class TileBreakdown extends Component {
     static template = "ebshel_dynamic_filter.TileBreakdown";
-    static props = {
-        close: { type: Function, optional: true },
-        def: Object,
-        baseDomain: { type: [Array, String], optional: true },
-        onPick: { type: Function, optional: true },
-    };
+    props = useProps({
+        close: t.function().optional(),
+        def: t.object(),
+        baseDomain: t.or([t.array(), t.string()]).optional(),
+        onPick: t.function().optional(),
+    });
 
     setup() {
         this.orm = useService("orm");

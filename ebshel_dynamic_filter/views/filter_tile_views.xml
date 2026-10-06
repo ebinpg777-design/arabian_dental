@@ -51,7 +51,7 @@
                                    invisible="group_by_field_type not in ('date', 'datetime')"/>
                         </group>
                         <group string="How it looks" name="look">
-                            <field name="icon" widget="fa_icon_picker"/>
+                            <field name="icon" widget="tile_icon_picker"/>
                             <field name="color" widget="tile_color_picker"/>
                             <field name="custom_color" placeholder="#1f8fff"/>
                             <field name="tooltip" placeholder="Shown on hover"/>
@@ -129,10 +129,20 @@
                         <page string="Visibility" name="visibility">
                             <group>
                                 <group string="Where">
-                                    <field name="action_candidate_ids" invisible="1"/>
+                                    <field name="action_candidate_ids" invisible="1"
+                                           groups="base.group_system"/>
                                     <field name="action_id" options="{'no_create': True}"
                                            domain="[('id', 'in', action_candidate_ids)]"
-                                           placeholder="Every view of this model"/>
+                                           placeholder="Every view of this model"
+                                           groups="base.group_system"/>
+                                    <!-- Odoo 20 lets only administrators read actions:
+                                         anybody else would get an access error from
+                                         the dropdown, so they see the scope the tile
+                                         was made in without picking another. -->
+                                    <field name="action_id" readonly="1" force_save="1"
+                                           options="{'no_open': True}"
+                                           placeholder="Every view of this model"
+                                           groups="!base.group_system"/>
                                     <field name="view_types" widget="radio"/>
                                     <label for="row"/>
                                     <div class="o_row">
@@ -248,16 +258,16 @@
                     a toggle too.
                 -->
                 <searchpanel>
-                    <field name="model_id" string="Model" icon="fa-cube"
+                    <field name="model_id" string="Model" icon="deployed_code"
                            enable_counters="1"/>
                     <field name="owner_id" select="multi" string="Owner"
-                           icon="fa-user-secret" enable_counters="1"/>
+                           icon="oi_user-secret" enable_counters="1"/>
                     <field name="group_ids" select="multi" string="Restricted To"
-                           icon="fa-users" enable_counters="1"/>
+                           icon="group" enable_counters="1"/>
                     <field name="trend_source" select="multi" string="Trend From"
-                           icon="fa-line-chart" enable_counters="1"/>
+                           icon="show_chart" enable_counters="1"/>
                     <field name="company_id" select="multi" string="Company"
-                           icon="fa-building" enable_counters="1"
+                           icon="business" enable_counters="1"
                            groups="base.group_multi_company"/>
                 </searchpanel>
             </search>
@@ -326,7 +336,7 @@
                      everybody's history is not something you scroll through, it is
                      something you drill into one tile at a time. -->
                 <searchpanel>
-                    <field name="tile_id" string="Tile" icon="fa-bolt"
+                    <field name="tile_id" string="Tile" icon="flash_on"
                            enable_counters="1" limit="200"/>
                 </searchpanel>
             </search>

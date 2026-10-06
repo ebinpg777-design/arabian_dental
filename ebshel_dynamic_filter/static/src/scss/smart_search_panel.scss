@@ -85,7 +85,7 @@
     flex: 1 1 auto;
     min-width: 0;
 
-    > .fa-search {
+    > .o_dft_sp_find_icon {
         position: absolute;
         top: 50%;
         left: 8px;
@@ -449,7 +449,7 @@
     font-size: 0.8rem;
     color: var(--secondary-color);
 
-    > .fa-search {
+    > .o_dft_sp_nomatch_icon {
         font-size: 1.2rem;
         opacity: 0.5;
     }
@@ -578,7 +578,7 @@
     color: var(--emphasis-color);
     transition: border-color 0.12s ease, background-color 0.12s ease;
 
-    .fa {
+    .oi {
         color: var(--secondary-color);
     }
 
@@ -607,7 +607,7 @@
         border-color: var(--dft-color);
         background-color: color-mix(in srgb, var(--dft-color) 12%, var(--body-bg));
 
-        .fa {
+        .oi {
             color: var(--dft-color);
         }
     }

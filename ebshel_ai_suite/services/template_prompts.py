@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 
 from lxml import etree, html
+from markupsafe import escape
 
 from .context_builder import RecordContextBuilder
 from .engines import ChatTurn
@@ -66,7 +67,10 @@ def fill_prompt_blocks(env, rendered: str, model: str | None, res_id: int | None
             block.getparent().replace(block, replacement)
         else:
             block.drop_tree()   # never send the instruction itself
-    return (root.text or '') + ''.join(etree.tostring(child, encoding='unicode', method='html') for child in root)
+    # lxml hands the leading text back decoded: escape it again or "&lt;b&gt;" in a rendered
+    # value (a customer name, ...) would be sent as real markup
+    return str(escape(root.text or '')) + ''.join(
+        etree.tostring(child, encoding='unicode', method='html') for child in root)
 
 
 def _generate(env, instruction: str, context_block: str, language: str) -> str:

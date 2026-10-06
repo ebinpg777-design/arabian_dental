@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { KeepLast } from "@web/core/utils/concurrency";
@@ -20,7 +20,7 @@ import { FilterTile } from "../components/filter_tile/filter_tile";
 export class FilterTilePreviewField extends Component {
     static template = "ebshel_dynamic_filter.FilterTilePreviewField";
     static components = { FilterTile };
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     setup() {
         this.orm = useService("orm");
@@ -39,6 +39,8 @@ export class FilterTilePreviewField extends Component {
                 data.name,
                 data.model_name,
                 data.domain,
+                data.only_mine,
+                data.user_field_name,
                 data.measure_name,
                 data.aggregate,
                 data.symbol,
@@ -82,7 +84,7 @@ export class FilterTilePreviewField extends Component {
             symbol: record.symbol || "",
             color: record.color || "indigo",
             custom_color: record.custom_color || "",
-            icon: record.icon || "fa-bolt",
+            icon: record.icon || "flash_on",
             tooltip: record.tooltip || "",
             width: record.width || 0,
             show_trend: Boolean(record.show_trend),

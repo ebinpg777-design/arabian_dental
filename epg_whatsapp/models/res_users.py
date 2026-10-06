@@ -15,11 +15,6 @@ class ResUsers(models.Model):
     whatsapp_open_with = fields.Selection(
         OPEN_WITH, string='Open WhatsApp In', default='auto',
         help="Where the Send button opens a WhatsApp message prepared in Odoo.")
-
-    @property
-    def SELF_READABLE_FIELDS(self):
-        return super().SELF_READABLE_FIELDS + ['whatsapp_open_with']
-
-    @property
-    def SELF_WRITEABLE_FIELDS(self):
-        return super().SELF_WRITEABLE_FIELDS + ['whatsapp_open_with']
+    # Odoo 20 dropped SELF_READABLE_FIELDS / SELF_WRITEABLE_FIELDS: a user may read
+    # and update their own record through ir.access (res_users_rule_write_self),
+    # so the preference needs no whitelist any more.

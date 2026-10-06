@@ -1,7 +1,7 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
 {
     'name': 'Ebshel AI Suite - Live Chat',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Productivity',
     'summary': 'Let an Ebshel AI assistant answer website live chat visitors first',
     'description': """

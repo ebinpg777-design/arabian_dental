@@ -221,12 +221,19 @@ def _token_to_number(val):
 # ── Export domains ─────────────────────────────────────────────────────────────
 
 def _domain_eval_context(env):
-    """Names a stored / posted domain may use - the same ones the web client offers."""
+    """Names a stored / posted domain may use - the same ones the web client offers.
+
+    Values only - never a record. The domain arrives from the browser (or from a
+    template any user may save), and Odoo's safe_eval still lets an expression call
+    ORM methods on a record it is handed: with ``user`` (a live res.users) in here,
+    ``user.sudo().write({...})`` inside a filter made any internal user an
+    administrator. The web client offers no ``user`` in a domain either.
+    """
     today = odoo_fields.Date.context_today(env.user)
     return {
         'uid': env.uid,
-        'user': env.user,
-        'context': dict(env.context),
+        'context': {key: value for key, value in env.context.items()
+                    if isinstance(value, (str, int, float, bool, type(None), list, tuple))},
         'datetime': safe_datetime,
         'time': safe_time,
         'relativedelta': relativedelta,
@@ -373,12 +380,10 @@ def _collect_export_data(env, model_name, field_list, field_type, groupby,
             for f in measure_fields
         ]
         try:
-            groups = env[model_name].read_group(
-                domain=final_domain,
-                fields=agg_fields,
-                groupby=groupby_list,
-                lazy=False,
-            )
+            # Odoo 20: read_group() took _read_group()'s signature and returns
+            # tuples; formatted_read_group() is the dict-per-bucket form this reads.
+            groups = env[model_name].formatted_read_group(
+                final_domain, groupby_list, agg_fields + ['__count'])
         except Exception as e:
             _logger.error("read_group failed for %s: %s", model_name, e)
             groups = []
@@ -398,7 +403,8 @@ def _collect_export_data(env, model_name, field_list, field_type, groupby,
             rows.append(row)
     else:
         order = f"{sort_field} {sort_dir}" if sort_field else None
-        limit = int(export_limit) if export_limit else 0
+        # None, not 0, for "no limit": Odoo 20 reads limit=0 as "no records".
+        limit = int(export_limit) if export_limit else None
         try:
             records = env[model_name].search(final_domain, order=order, limit=limit)
         except Exception as e:

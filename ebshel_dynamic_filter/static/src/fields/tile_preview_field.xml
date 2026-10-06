@@ -5,7 +5,7 @@
         <div class="o_dft_preview">
             <div class="o_dft_preview_stage">
                 <div t-if="!this.modelName" class="o_dft_preview_placeholder">
-                    <i class="fa fa-hand-o-down me-2"/>
+                    <i class="oi me-2" data-icon="arrow_downward"/>
                     Choose a model to see the tile take shape.
                 </div>
                 <FilterTile t-else=""
@@ -15,7 +15,7 @@
                             loading="this.state.loading and !this.state.data"/>
             </div>
             <div class="o_dft_preview_caption">
-                <i class="fa fa-bolt me-1"/>
+                <i class="oi me-1" data-icon="flash_on"/>
                 Live preview — real numbers from your database, as you type.
             </div>
         </div>

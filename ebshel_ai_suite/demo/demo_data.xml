@@ -35,7 +35,7 @@ An extended warranty of three additional years can be purchased within 30 days o
     <record id="demo_assistant_policy" model="community.ai.assistant">
         <field name="title">Policy Helper</field>
         <field name="summary">Answers questions strictly from company policies.</field>
-        <field name="glyph">fa-book</field>
+        <field name="glyph">book</field>
         <field name="sequence">5</field>
         <field name="system_instruction">You answer employees' questions about company policies. Be precise and quote the relevant policy.</field>
         <field name="answer_from_sources_only" eval="True"/>

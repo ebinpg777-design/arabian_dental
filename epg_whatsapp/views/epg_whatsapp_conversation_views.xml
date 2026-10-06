@@ -35,11 +35,11 @@
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_messages" type="object"
-                                class="oe_stat_button" icon="fa-comments">
+                                class="oe_stat_button" icon="forum">
                             <field name="message_count" widget="statinfo" string="Messages"/>
                         </button>
                         <button name="action_view_messages" type="object"
-                                class="oe_stat_button" icon="fa-inbox">
+                                class="oe_stat_button" icon="inbox">
                             <field name="inbound_count" widget="statinfo" string="Received"/>
                         </button>
                     </div>

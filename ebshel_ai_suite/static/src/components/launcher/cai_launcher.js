@@ -5,7 +5,6 @@ import { useService } from "@web/core/utils/hooks";
 /** Systray button opening the AI console (also reachable from the command palette). */
 export class CommunityAILauncher extends Component {
     static template = "ebshel_ai_suite.CommunityAILauncher";
-    static props = {};
 
     setup() {
         this.bridge = useService("communityAiBridge");

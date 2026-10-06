@@ -12,9 +12,9 @@
                 <field name="forced_by_untrusted_data" optional="hide"/>
                 <field name="state" widget="badge" decoration-success="state == 'executed'"
                        decoration-danger="state == 'failed'" decoration-info="state == 'proposed'"/>
-                <button name="action_cai_approve" type="object" string="Approve" icon="fa-check"
+                <button name="action_cai_approve" type="object" string="Approve" icon="check"
                         invisible="state != 'proposed'"/>
-                <button name="action_cai_reject" type="object" string="Reject" icon="fa-times"
+                <button name="action_cai_reject" type="object" string="Reject" icon="close"
                         invisible="state != 'proposed'"/>
             </list>
         </field>

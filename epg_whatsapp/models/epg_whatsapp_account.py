@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
 import hashlib
 import hmac
 import ipaddress
@@ -128,7 +127,7 @@ class EpgWhatsappAccount(models.Model):
             account.conversation_count = convs.get(account, 0)
 
     def _compute_webhook_url(self):
-        base = self.env['ir.config_parameter'].sudo().get_str('web.base.url', '')
+        base = self.env['ir.config_parameter'].sudo().get_str('web.base.url')
         reachable, detail = self._webhook_reachable()
         for account in self:
             account.webhook_url = '%s/whatsapp/webhook' % base.rstrip('/')
@@ -149,8 +148,8 @@ class EpgWhatsappAccount(models.Model):
         problem that no amount of correct module setup can overcome.
         """
         try:
-            from odoo.http import db_filter
-            from odoo.service.db import list_dbs
+            from odoo.http.router import db_filter
+            from odoo.modules.db import list_dbs
             matching = db_filter(list_dbs(force=True))
         except Exception:
             # list_db disabled, or no permission to enumerate — cannot judge, so say
@@ -223,7 +222,7 @@ class EpgWhatsappAccount(models.Model):
         """The address links start with: the sender's public address, or the system's."""
         self.ensure_one()
         base = (self.link_base_url or '').strip() or \
-            self.env['ir.config_parameter'].sudo().get_str('web.base.url', '')
+            self.env['ir.config_parameter'].sudo().get_str('web.base.url')
         return base.rstrip('/')
 
     @api.model
@@ -347,13 +346,16 @@ class EpgWhatsappAccount(models.Model):
                 data={'messaging_product': 'whatsapp',
                       'type': attachment.mimetype or 'application/pdf'},
                 files={'file': (attachment.name,
-                                base64.b64decode(attachment.datas or b''),
+                                attachment.raw.content if attachment.raw else b'',
                                 attachment.mimetype or 'application/pdf')})
         except requests.RequestException as exc:
             return None, str(exc)[:500]
         if response.status_code >= 300:
             return None, response.text[:500]
-        return response.json().get('id'), None
+        try:
+            return response.json().get('id'), None
+        except ValueError:
+            return None, response.text[:500] or 'empty answer from Meta'
 
     def _payload(self, number, body, attachment=None, template=None, variables=None):
         """What actually goes on the wire.
@@ -411,7 +413,14 @@ class EpgWhatsappAccount(models.Model):
             response = requests.post(self._endpoint('messages'), json=payload,
                                      timeout=TIMEOUT, headers=self._headers())
             if response.status_code < 300:
-                return True, (response.json().get('messages') or [{}])[0].get('id', '')
+                # Accepted - even if the answer cannot be read. This method never
+                # raises (see above), and raising here, after Meta has the message,
+                # rolled back its "sent" with the rest of the queue's batch, so the
+                # next run sent it again. (review, 2026-10-04)
+                try:
+                    return True, (response.json().get('messages') or [{}])[0].get('id', '')
+                except (ValueError, AttributeError, IndexError):
+                    return True, ''
             # Meta's own message, not a generic one: it names the actual problem
             # (unverified number, template not approved, window expired).
             detail = response.text[:500]

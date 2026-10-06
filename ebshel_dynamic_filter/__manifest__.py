@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Dynamic Filter Tiles',
-    'version': '19.0.2.4.0',
+    'version': '20.0.2.4.0',
     'summary': 'Turn any filter into a one-click tile on every list and kanban view - live counts, '
                'KPIs, trends, thresholds, breakdowns and a tile wall. Built from the UI, no code.',
     'description': """
@@ -28,7 +28,7 @@ The Tile Studio
 * **Live preview** - the tile editor renders the real tile, with the real count
   from your database, updating as you type the domain.
 * **Drag to reorder** - grab a tile and drop it; the order is saved for everyone.
-* **Icon & colour pickers** - searchable FontAwesome grid and a swatch palette.
+* **Icon & colour pickers** - searchable grid of Odoo's own icons and a swatch palette.
 * **Export / import** - move a whole ribbon to another database as a JSON file.
 
 The tile widget
@@ -95,7 +95,7 @@ Governance
 
 Compatibility
 -------------
-* Odoo 19.0, **Community and Enterprise**.
+* Odoo 20.0, **Community and Enterprise**.
 * Depends on ``web`` and ``bus`` only: no Enterprise-only module, no external
   Python package, no external JavaScript library.
 * Adds nothing to existing views - the ribbon is injected by extending the list
@@ -125,6 +125,7 @@ Compatibility
         'web.assets_backend': [
             'ebshel_dynamic_filter/static/src/core/tile_colors.js',
             'ebshel_dynamic_filter/static/src/core/tile_domain.js',
+            'ebshel_dynamic_filter/static/src/core/tile_icons.js',
             'ebshel_dynamic_filter/static/src/core/tile_registry_service.js',
             'ebshel_dynamic_filter/static/src/core/tile_alert_service.js',
             'ebshel_dynamic_filter/static/src/components/**/*.js',

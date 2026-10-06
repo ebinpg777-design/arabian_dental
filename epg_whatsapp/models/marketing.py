@@ -119,11 +119,18 @@ class EpgWhatsappCampaign(models.Model):
             self.name = idea.name
 
     def _compute_interest(self):
-        Message = self.env['epg.whatsapp.message'].sudo()
+        # One query for the whole list, not one per campaign row.
+        with_lead = self.filtered('lead_reply')
+        counts = {}
+        if with_lead._origin:
+            for campaign, body, n in self.env['epg.whatsapp.message'].sudo()._read_group(
+                    [('campaign_id', 'in', with_lead._origin.ids), ('direction', '=', 'inbound'),
+                     ('body', 'in', list(set(with_lead.mapped('lead_reply'))))],
+                    ['campaign_id', 'body'], ['__count']):
+                counts[campaign.id, body] = n
         for campaign in self:
-            campaign.interested_count = Message.search_count([
-                ('campaign_id', '=', campaign.id), ('direction', '=', 'inbound'),
-                ('body', '=', campaign.lead_reply)]) if campaign.lead_reply else 0
+            campaign.interested_count = counts.get(
+                (campaign._origin.id, campaign.lead_reply), 0) if campaign.lead_reply else 0
 
     def _reply_labels(self):
         self.ensure_one()
@@ -146,7 +153,13 @@ class EpgWhatsappCampaign(models.Model):
 
     def _page_base(self):
         self.ensure_one()
-        return '%s/wa/c/%s' % (self.account_id.sudo()._link_base(), self.access_token or '')
+        # A campaign being written may have no sender yet - none is set to WhatsApp
+        # app / Web - and the form computes this text as it opens: the system's
+        # address then, not a singleton error on the new form. (review, 2026-10-04)
+        account = self.account_id.sudo()
+        base = account._link_base() if account else \
+            self.env['epg.whatsapp.message']._base_url()
+        return '%s/wa/c/%s' % (base, self.access_token or '')
 
     def _page_text(self):
         """The message as everyone receives it: no doctor's name to fill in."""

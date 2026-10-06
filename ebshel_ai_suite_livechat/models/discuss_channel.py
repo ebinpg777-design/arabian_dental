@@ -41,8 +41,8 @@ class DiscussChannel(models.Model):
     # ------------------------------------------------------------------
     # Trigger
     # ------------------------------------------------------------------
-    def _message_post_after_hook(self, message, msg_vals):
-        result = super()._message_post_after_hook(message, msg_vals)
+    def _message_post_after_hook(self, message):
+        result = super()._message_post_after_hook(message)
         if self._cai_should_answer(message):
             channel_id, dbname = self.id, self.env.cr.dbname
             if odoo_module.current_test:   # read at call time: the attribute is set per test
@@ -65,11 +65,19 @@ class DiscussChannel(models.Model):
             return False
         if message.message_type != 'comment' or not (message.body and html2plaintext(message.body).strip()):
             return False
-        operator = channel.livechat_operator_id
+        operator = channel._cai_operator_partner()
         if message.author_id and message.author_id == operator:
             return False      # our own answer
         # stop once a human agent joined the conversation
         return not channel.livechat_agent_history_ids
+
+    def _cai_operator_partner(self):
+        """Partner the AI answers as: the live chat's bot member (``livechat_operator_id`` before 20.0).
+
+        Read from the member history, which survives the bot member being removed on a hand-over.
+        """
+        self.ensure_one()
+        return self.sudo().livechat_bot_history_ids[:1].partner_id
 
     # ------------------------------------------------------------------
     # Answer
@@ -87,12 +95,13 @@ class DiscussChannel(models.Model):
         messages = self.env['mail.message'].sudo().search([
             ('model', '=', 'discuss.channel'), ('res_id', '=', self.id), ('message_type', '=', 'comment'),
         ], order='id desc', limit=HISTORY_MESSAGES)
+        operator = self._cai_operator_partner()
         turns = []
         for message in reversed(messages):
             text = truncate(html2plaintext(message.body or '').strip(), 2000)
             if not text:
                 continue
-            role = 'assistant' if message.author_id == self.livechat_operator_id else 'user'
+            role = 'assistant' if operator and message.author_id == operator else 'user'
             turns.append(ChatTurn(role, text))
         while turns and turns[0].role != 'user':
             turns.pop(0)
@@ -140,7 +149,7 @@ class DiscussChannel(models.Model):
 
     def _cai_post(self, text):
         return self.with_context(mail_post_autofollow_author_skip=True).sudo().message_post(
-            author_id=self.livechat_operator_id.id, body=markdown_to_html(text),
+            author_id=self._cai_operator_partner().id, body=markdown_to_html(text),
             message_type='comment', subtype_xmlid='mail.mt_comment')
 
     def _cai_handover(self, text):

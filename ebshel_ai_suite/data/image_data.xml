@@ -23,7 +23,7 @@ Rules:
         <record id="assistant_image_designer" model="community.ai.assistant">
             <field name="title">Image Designer</field>
             <field name="summary">Creates images from your descriptions.</field>
-            <field name="glyph">fa-picture-o</field>
+            <field name="glyph">image</field>
             <field name="sequence">20</field>
             <field name="system_instruction">You help employees create professional images. Ask at most one clarifying question when the request is vague; otherwise generate right away.</field>
             <field name="allow_record_context" eval="False"/>

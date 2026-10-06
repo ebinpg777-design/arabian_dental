@@ -43,7 +43,7 @@
         <record id="assistant_business" model="community.ai.assistant">
             <field name="title">Business Assistant</field>
             <field name="summary">Answers questions, finds contacts, summarizes records and drafts text.</field>
-            <field name="glyph">fa-briefcase</field>
+            <field name="glyph">work</field>
             <field name="sequence">1</field>
             <field name="system_instruction">You help employees with their daily work in Odoo.
 - Answer general business questions clearly.

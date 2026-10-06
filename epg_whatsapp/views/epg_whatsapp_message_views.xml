@@ -20,11 +20,11 @@
                 <field name="seen_count" string="Opened" optional="show"/>
                 <field name="reply_summary" string="Reply" optional="show"/>
                 <field name="error" optional="show"/>
-                <button name="action_open_in_whatsapp" type="object" icon="fa-whatsapp"
+                <button name="action_open_in_whatsapp" type="object" icon="oi_whatsapp"
                         title="Open in WhatsApp" invisible="state not in ('ready', 'opened')"/>
-                <button name="action_retry" type="object" icon="fa-refresh"
+                <button name="action_retry" type="object" icon="refresh"
                         title="Try again" invisible="state != 'error' or channel == 'link'"/>
-                <button name="action_open_document" type="object" icon="fa-external-link"
+                <button name="action_open_document" type="object" icon="open_in_new"
                         title="Open the record" invisible="not res_model"/>
             </list>
         </field>
@@ -37,7 +37,7 @@
             <form create="false">
                 <header>
                     <button name="action_open_in_whatsapp" type="object" string="Open in WhatsApp"
-                            class="btn-success" icon="fa-whatsapp"
+                            class="btn-success" icon="oi_whatsapp"
                             invisible="state not in ('ready', 'opened')"/>
                     <button name="action_mark_sent" type="object" string="Mark as sent"
                             invisible="state not in ('ready', 'opened')"/>

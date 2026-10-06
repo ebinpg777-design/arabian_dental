@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
 
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -256,7 +255,7 @@ class TestLabelTemplate(LabelCase):
     def _export(self, template):
         action = template.action_export_xml()
         attachment_id = int(action['url'].split('/web/content/')[1].split('?')[0])
-        return base64.b64decode(self.env['ir.attachment'].browse(attachment_id).datas)
+        return self.env['ir.attachment'].browse(attachment_id).raw.content
 
     # ------------------------------------------------------------------
     # copies and access

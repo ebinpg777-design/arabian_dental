@@ -226,6 +226,8 @@ class CommunityAIConnection(models.Model):
 
     def action_cai_set_company_default(self):
         self.ensure_one()
+        if not self._cai_is_admin():
+            raise UserError(self.env._('Only AI administrators can change the default connection.'))
         company = self.company_id or self.env.company
         company.sudo().cai_connection_id = self
         return True

@@ -14,44 +14,45 @@
     -->
     <t t-inherit="web.SearchPanel.Regular" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('o_search_panel')]" position="attributes">
-            <attribute name="t-attf-class">#{env.isSmall ? 'px-3' : (dftOn ? 'pe-1 ps-2' : 'pe-1 ps-3')} #{dftOn ? 'o_dft_sp' : ''} #{dftOn and dft.options.compact ? 'o_dft_sp_compact' : ''}</attribute>
+            <attribute name="class" remove="ps-3" separator=" "/>
+            <attribute name="t-attf-class">#{this.dftOn ? 'pe-1 ps-2 o_dft_sp' : 'ps-3'} #{this.dftOn and this.dft.options.compact ? 'o_dft_sp_compact' : ''}</attribute>
         </xpath>
 
-        <!-- Odoo's fold button is absolutely placed at the top of the panel, where
-             the sticky toolbar would cover it: while the smart look is on, the
-             toolbar carries the same button instead. -->
-        <xpath expr="//div[hasclass('o_search_panel')]/button" position="attributes">
-            <attribute name="t-if">!env.isSmall and !dftOn</attribute>
+        <!-- Odoo's fold button has a row of its own at the top of the panel
+             (Odoo 20): while the smart look is on, the sticky toolbar carries the
+             same button instead, so the panel does not spend a line on it. -->
+        <xpath expr="//div[hasclass('o_search_panel')]/div[button[@t-on-click='this.toggleSidebar']]" position="attributes">
+            <attribute name="t-if">!this.uiService.isSmall and !this.dftOn</attribute>
         </xpath>
 
         <!-- Toolbar: find, saved selections, options. Sticky while the panel scrolls. -->
-        <xpath expr="//div[hasclass('o_search_panel')]/button" position="after">
-            <div class="o_dft_sp_toolbar" t-att-class="{ o_dft_sp_toolbar_classic: !dftOn }">
+        <xpath expr="//div[hasclass('o_search_panel')]/div[button[@t-on-click='this.toggleSidebar']]" position="after">
+            <div class="o_dft_sp_toolbar" t-att-class="{ o_dft_sp_toolbar_classic: !this.dftOn }">
 
                 <!-- Next to Odoo's "fold the panel" button, top right. -->
                 <div class="o_dft_sp_tools">
-                    <t t-if="dftOn" t-component="DftDropdown" position="'bottom-end'"
+                    <t t-if="this.dftOn" t-component="this.DftDropdown" position="'bottom-end'"
                        menuClass="'o_dft_sp_menu o_dft_sp_presets'">
                         <button class="btn btn-sm btn-light o_dft_sp_tool" title="Saved selections">
-                            <i class="fa fa-bookmark-o" role="img" aria-label="Saved selections"/>
-                            <span t-if="dft.presets.length" class="o_dft_sp_tool_count"
-                                  t-out="dft.presets.length"/>
+                            <i class="oi" data-icon="bookmark" role="img" aria-label="Saved selections"/>
+                            <span t-if="this.dft.presets.length" class="o_dft_sp_tool_count"
+                                  t-out="this.dft.presets.length"/>
                         </button>
                         <t t-set-slot="content">
                             <div class="dropdown-header">Saved selections</div>
-                            <div t-if="!dft.presets.length" class="o_dft_sp_menu_note">
+                            <div t-if="!this.dft.presets.length" class="o_dft_sp_menu_note">
                                 Pick values in the panel, name the combination here,
                                 and get it back later in one click.
                             </div>
-                            <t t-foreach="dft.presets" t-as="preset" t-key="preset.name">
-                                <t t-component="DftDropdownItem" class="'o_dft_sp_preset'"
+                            <t t-foreach="this.dft.presets" t-as="preset" t-key="preset.name">
+                                <t t-component="this.DftDropdownItem" class="'o_dft_sp_preset'"
                                    onSelected="() => this.dftApplyPreset(preset)">
-                                    <i class="fa fa-bookmark o_dft_sp_preset_icon" role="img" aria-hidden="true"/>
+                                    <i class="oi oi-filled o_dft_sp_preset_icon" data-icon="bookmark" role="img" aria-hidden="true"/>
                                     <span class="o_dft_sp_preset_name" t-out="preset.name"/>
-                                    <span class="o_dft_sp_preset_size" t-out="dftPresetSize(preset)"/>
+                                    <span class="o_dft_sp_preset_size" t-out="this.dftPresetSize(preset)"/>
                                     <button class="btn btn-link o_dft_sp_preset_delete" title="Delete this selection"
                                             t-on-click.stop="() => this.dftDeletePreset(preset)">
-                                        <i class="fa fa-trash-o" role="img" aria-label="Delete"/>
+                                        <i class="oi" data-icon="delete" role="img" aria-label="Delete"/>
                                     </button>
                                 </t>
                             </t>
@@ -59,111 +60,111 @@
                             <div class="o_dft_sp_preset_save">
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="Name the current selection"
-                                       t-att-disabled="!dftChips.length"
-                                       t-custom-model="dft.presetName" t-on-keydown="onDftPresetKeydown"/>
+                                       t-att-disabled="!this.dftChips.length"
+                                       t-model.proxy="this.dft.presetName" t-on-keydown="this.onDftPresetKeydown"/>
                                 <button class="btn btn-sm btn-primary"
-                                        t-att-disabled="!dftChips.length or !dft.presetName.trim()"
-                                        t-on-click="dftSavePreset">Save</button>
+                                        t-att-disabled="!this.dftChips.length or !this.dft.presetName.trim()"
+                                        t-on-click="this.dftSavePreset">Save</button>
                             </div>
-                            <div t-if="!dftChips.length" class="o_dft_sp_menu_note">
+                            <div t-if="!this.dftChips.length" class="o_dft_sp_menu_note">
                                 Nothing is selected in the panel yet.
                             </div>
                         </t>
                     </t>
 
-                    <t t-component="DftDropdown" position="'bottom-end'" menuClass="'o_dft_sp_menu'">
+                    <t t-component="this.DftDropdown" position="'bottom-end'" menuClass="'o_dft_sp_menu'">
                         <button class="btn btn-sm btn-light o_dft_sp_tool" title="Panel options">
-                            <i class="fa fa-sliders" role="img" aria-label="Panel options"/>
+                            <i class="oi" data-icon="tune" role="img" aria-label="Panel options"/>
                         </button>
                         <t t-set-slot="content">
-                            <t t-if="dftOn">
+                            <t t-if="this.dftOn">
                                 <div class="dropdown-header">Sort values</div>
-                                <t t-foreach="dftSortChoices" t-as="choice" t-key="choice.key">
-                                    <t t-component="DftDropdownItem" closingMode="'none'"
+                                <t t-foreach="this.dftSortChoices" t-as="choice" t-key="choice.key">
+                                    <t t-component="this.DftDropdownItem" closingMode="'none'"
                                        onSelected="() => this.dftSetOption('sort', choice.key)">
-                                        <i class="fa fa-fw o_dft_sp_check" role="img" aria-hidden="true"
-                                           t-att-class="dft.options.sort === choice.key ? 'fa-check' : ''"/>
+                                        <i class="oi oi-fw o_dft_sp_check" role="img" aria-hidden="true"
+                                           t-att-data-icon="this.dft.options.sort === choice.key ? 'check' : ''"/>
                                         <t t-out="choice.label"/>
                                     </t>
                                 </t>
                                 <div class="dropdown-divider"/>
                                 <div class="dropdown-header">Show</div>
-                                <t t-component="DftDropdownItem" closingMode="'none'"
-                                   onSelected="() => this.dftSetOption('bars', !dft.options.bars)">
-                                    <i class="fa fa-fw o_dft_sp_check" role="img" aria-hidden="true"
-                                       t-att-class="dft.options.bars ? 'fa-check' : ''"/>
+                                <t t-component="this.DftDropdownItem" closingMode="'none'"
+                                   onSelected="() => this.dftSetOption('bars', !this.dft.options.bars)">
+                                    <i class="oi oi-fw o_dft_sp_check" role="img" aria-hidden="true"
+                                       t-att-data-icon="this.dft.options.bars ? 'check' : ''"/>
                                     Count bars
                                 </t>
-                                <t t-component="DftDropdownItem" closingMode="'none'"
-                                   onSelected="() => this.dftSetOption('hideEmpty', !dft.options.hideEmpty)">
-                                    <i class="fa fa-fw o_dft_sp_check" role="img" aria-hidden="true"
-                                       t-att-class="dft.options.hideEmpty ? 'fa-check' : ''"/>
+                                <t t-component="this.DftDropdownItem" closingMode="'none'"
+                                   onSelected="() => this.dftSetOption('hideEmpty', !this.dft.options.hideEmpty)">
+                                    <i class="oi oi-fw o_dft_sp_check" role="img" aria-hidden="true"
+                                       t-att-data-icon="this.dft.options.hideEmpty ? 'check' : ''"/>
                                     Hide values with no records
                                 </t>
-                                <t t-component="DftDropdownItem" closingMode="'none'"
-                                   onSelected="() => this.dftSetOption('compact', !dft.options.compact)">
-                                    <i class="fa fa-fw o_dft_sp_check" role="img" aria-hidden="true"
-                                       t-att-class="dft.options.compact ? 'fa-check' : ''"/>
+                                <t t-component="this.DftDropdownItem" closingMode="'none'"
+                                   onSelected="() => this.dftSetOption('compact', !this.dft.options.compact)">
+                                    <i class="oi oi-fw o_dft_sp_check" role="img" aria-hidden="true"
+                                       t-att-data-icon="this.dft.options.compact ? 'check' : ''"/>
                                     Compact rows
                                 </t>
                                 <div class="dropdown-divider"/>
-                                <t t-component="DftDropdownItem" onSelected="() => this.dftSetAllCollapsed(true)">
-                                    <i class="fa fa-fw fa-compress" role="img" aria-hidden="true"/>
+                                <t t-component="this.DftDropdownItem" onSelected="() => this.dftSetAllCollapsed(true)">
+                                    <i class="oi oi-fw" data-icon="expand_less" role="img" aria-hidden="true"/>
                                     Collapse all sections
                                 </t>
-                                <t t-component="DftDropdownItem" onSelected="() => this.dftSetAllCollapsed(false)">
-                                    <i class="fa fa-fw fa-expand" role="img" aria-hidden="true"/>
+                                <t t-component="this.DftDropdownItem" onSelected="() => this.dftSetAllCollapsed(false)">
+                                    <i class="oi oi-fw" data-icon="expand_more" role="img" aria-hidden="true"/>
                                     Expand all sections
                                 </t>
                                 <div class="dropdown-divider"/>
                             </t>
-                            <t t-component="DftDropdownItem"
-                               onSelected="() => this.dftSetOption('enhanced', !dft.options.enhanced)">
-                                <i class="fa fa-fw o_dft_sp_check" role="img" aria-hidden="true"
-                                   t-att-class="dftOn ? '' : 'fa-check'"/>
+                            <t t-component="this.DftDropdownItem"
+                               onSelected="() => this.dftSetOption('enhanced', !this.dft.options.enhanced)">
+                                <i class="oi oi-fw o_dft_sp_check" role="img" aria-hidden="true"
+                                   t-att-data-icon="this.dftOn ? '' : 'check'"/>
                                 Classic look
                             </t>
                         </t>
                     </t>
-                    <button t-if="dftOn and !env.isSmall" class="btn btn-sm btn-light o_dft_sp_tool"
-                            title="Fold the panel" t-on-click="toggleSidebar">
-                        <i class="oi oi-fw oi-panel-right fa-flip-horizontal" role="img" aria-label="Fold the panel"/>
+                    <button t-if="this.dftOn and !this.uiService.isSmall" class="btn btn-sm btn-light o_dft_sp_tool"
+                            title="Fold the panel" t-on-click="this.toggleSidebar">
+                        <i class="oi" data-icon="left_panel_close" role="img" aria-label="Fold the panel"/>
                     </button>
                 </div>
 
-                <div t-if="dftOn and dftShowFind" class="o_dft_sp_find">
-                    <i class="fa fa-search" role="img" aria-hidden="true"/>
+                <div t-if="this.dftOn and this.dftShowFind" class="o_dft_sp_find">
+                    <i class="oi o_dft_sp_find_icon" data-icon="search" role="img" aria-hidden="true"/>
                     <input type="text" class="form-control form-control-sm"
                            placeholder="Find…" aria-label="Find in panel"
-                           t-custom-model="dft.query" t-on-keydown="onDftFindKeydown"/>
-                    <button t-if="dft.query" class="btn btn-link o_dft_sp_find_clear"
-                            title="Clear" t-on-click="dftClearQuery">
-                        <i class="fa fa-times" role="img" aria-label="Clear"/>
+                           t-model.proxy="this.dft.query" t-on-keydown="this.onDftFindKeydown"/>
+                    <button t-if="this.dft.query" class="btn btn-link o_dft_sp_find_clear"
+                            title="Clear" t-on-click="this.dftClearQuery">
+                        <i class="oi" data-icon="close" role="img" aria-label="Clear"/>
                     </button>
                 </div>
             </div>
 
             <!-- What the panel is filtering on right now, one removable chip per value. -->
-            <div t-if="dftOn and dftChips.length" class="o_dft_sp_chips">
-                <span t-foreach="dftChips" t-as="chip" t-key="chip.key" class="o_dft_sp_chip"
+            <div t-if="this.dftOn and this.dftChips.length" class="o_dft_sp_chips">
+                <span t-foreach="this.dftChips" t-as="chip" t-key="chip.key" class="o_dft_sp_chip"
                       t-att-style="chip.section.color and ('--dft-sp-color: ' + chip.section.color)"
                       t-att-title="chip.section.description + ': ' + chip.label">
-                    <i t-if="chip.section.icon" t-attf-class="fa {{ chip.section.icon }} o_dft_sp_chip_icon"
-                       role="img" aria-hidden="true"/>
+                    <i t-if="chip.section.icon" class="oi o_dft_sp_chip_icon" t-att-class="chip.section.iconClass"
+                       t-att-data-icon="chip.section.icon" role="img" aria-hidden="true"/>
                     <span class="o_dft_sp_chip_label" t-out="chip.label"/>
                     <button class="btn btn-link o_dft_sp_chip_remove" title="Remove"
                             t-on-click="() => this.dftRemoveChip(chip)">
-                        <i class="fa fa-times" role="img" aria-label="Remove"/>
+                        <i class="oi" data-icon="close" role="img" aria-label="Remove"/>
                     </button>
                 </span>
-                <button t-if="dftChips.length gt 1" class="btn btn-link o_dft_sp_clear_all"
+                <button t-if="this.dftChips.length gt 1" class="btn btn-link o_dft_sp_clear_all"
                         t-on-click="() => this.clearSelection()">Clear all</button>
             </div>
         </xpath>
 
         <xpath expr="//section[@t-as='section']" position="attributes">
-            <attribute name="t-foreach">dftVisibleSections()</attribute>
-            <attribute name="t-att-class">{ o_dft_sp_collapsed: dftIsCollapsed(section) }</attribute>
+            <attribute name="t-foreach">this.dftVisibleSections()</attribute>
+            <attribute name="t-att-class">{ o_dft_sp_collapsed: this.dftIsCollapsed(section) }</attribute>
         </xpath>
 
         <xpath expr="//header[hasclass('o_search_panel_section_header')]" position="attributes">
@@ -172,52 +173,52 @@
         </xpath>
 
         <xpath expr="//header[hasclass('o_search_panel_section_header')]/b" position="after">
-            <t t-if="dftOn">
-                <span t-if="dftQuery" class="o_dft_sp_badge o_dft_sp_badge_match"
-                      title="Values matching the search" t-out="dftMatchCount(section)"/>
-                <span t-elif="dftSelectedCount(section)" class="o_dft_sp_badge"
-                      title="Selected in this section" t-out="dftSelectedCount(section)"/>
+            <t t-if="this.dftOn">
+                <span t-if="this.dftQuery" class="o_dft_sp_badge o_dft_sp_badge_match"
+                      title="Values matching the search" t-out="this.dftMatchCount(section)"/>
+                <span t-elif="this.dftSelectedCount(section)" class="o_dft_sp_badge"
+                      title="Selected in this section" t-out="this.dftSelectedCount(section)"/>
                 <span class="o_dft_sp_head_tools">
-                    <button t-if="dftSelectedCount(section)" class="btn btn-link o_dft_sp_head_btn o_dft_sp_head_clear"
+                    <button t-if="this.dftSelectedCount(section)" class="btn btn-link o_dft_sp_head_btn o_dft_sp_head_clear"
                             title="Clear this section"
                             t-on-click.stop="() => this.dftClearSection(section)">
-                        <i class="fa fa-times-circle" role="img" aria-label="Clear this section"/>
+                        <i class="oi" data-icon="cancel" role="img" aria-label="Clear this section"/>
                     </button>
                     <t t-if="section.type === 'filter' and !section.errorMsg">
                         <button class="btn btn-link o_dft_sp_head_btn" title="Select every value shown"
                                 t-on-click.stop="() => this.dftSelectAll(section)">
-                            <i class="fa fa-check-square-o" role="img" aria-label="Select all"/>
+                            <i class="oi" data-icon="check_box" role="img" aria-label="Select all"/>
                         </button>
                         <button class="btn btn-link o_dft_sp_head_btn" title="Invert the selection"
                                 t-on-click.stop="() => this.dftInvert(section)">
-                            <i class="fa fa-exchange" role="img" aria-label="Invert the selection"/>
+                            <i class="oi" data-icon="swap_horiz" role="img" aria-label="Invert the selection"/>
                         </button>
                     </t>
-                    <button t-if="dftCanGroupBy(section)" class="btn btn-link o_dft_sp_head_btn"
+                    <button t-if="this.dftCanGroupBy(section)" class="btn btn-link o_dft_sp_head_btn"
                             t-attf-title="Group the view by {{ section.description }}"
                             t-on-click.stop="() => this.dftGroupBy(section)">
-                        <i class="fa fa-th-list" role="img" aria-label="Group by"/>
+                        <i class="oi" data-icon="view_list" role="img" aria-label="Group by"/>
                     </button>
-                    <button t-if="dftTilesAvailable and !section.errorMsg" class="btn btn-link o_dft_sp_head_btn"
+                    <button t-if="this.dftTilesAvailable and !section.errorMsg" class="btn btn-link o_dft_sp_head_btn"
                             title="Turn this section into filter tiles"
                             t-on-click.stop="() => this.dftSectionToTiles(section)">
-                        <i class="fa fa-th-large" role="img" aria-label="Make tiles"/>
+                        <i class="oi" data-icon="grid_view" role="img" aria-label="Make tiles"/>
                     </button>
-                    <i t-if="!dftQuery" class="fa o_dft_sp_chevron" role="img" aria-hidden="true"
-                       t-att-class="dftIsCollapsed(section) ? 'fa-angle-right' : 'fa-angle-down'"/>
+                    <i t-if="!this.dftQuery" class="oi o_dft_sp_chevron" role="img" aria-hidden="true"
+                       t-att-data-icon="this.dftIsCollapsed(section) ? 'chevron_right' : 'expand_more'"/>
                 </span>
             </t>
         </xpath>
 
         <xpath expr="//section[@t-as='section']/t[@t-call='web.SearchPanel.Section']" position="attributes">
-            <attribute name="t-if">!dftIsCollapsed(section)</attribute>
+            <attribute name="t-if">!this.dftIsCollapsed(section)</attribute>
         </xpath>
 
         <xpath expr="//section[@t-as='section']" position="after">
-            <div t-if="dftQuery and !dftVisibleSections().length" class="o_dft_sp_nomatch">
-                <i class="fa fa-search" role="img" aria-hidden="true"/>
-                <div>Nothing in the panel matches “<t t-out="dft.query"/>”.</div>
-                <button class="btn btn-link" t-on-click="dftClearQuery">Clear the search</button>
+            <div t-if="this.dftQuery and !this.dftVisibleSections().length" class="o_dft_sp_nomatch">
+                <i class="oi o_dft_sp_nomatch_icon" data-icon="search" role="img" aria-hidden="true"/>
+                <div>Nothing in the panel matches “<t t-out="this.dft.query"/>”.</div>
+                <button class="btn btn-link" t-on-click="this.dftClearQuery">Clear the search</button>
             </div>
         </xpath>
     </t>
@@ -225,59 +226,59 @@
     <!-- Grouped filter sections: a group with nothing left to show is not drawn. -->
     <t t-inherit="web.SearchPanel.Section" t-inherit-mode="extension">
         <xpath expr="//li[hasclass('o_search_panel_filter_group')]" position="attributes">
-            <attribute name="t-foreach">dftGroupIds(section)</attribute>
+            <attribute name="t-foreach">this.dftGroupIds(section)</attribute>
         </xpath>
     </t>
 
     <t t-inherit="web.SearchPanel.Category" t-inherit-mode="extension">
         <xpath expr="//t[@t-foreach='values']" position="attributes">
-            <attribute name="t-foreach">dftCategoryIds(section, values)</attribute>
+            <attribute name="t-foreach">this.dftCategoryIds(section, values)</attribute>
         </xpath>
         <xpath expr="//li[hasclass('o_search_panel_category_value')]/header" position="attributes">
             <attribute name="class" add="o_dft_sp_row" separator=" "/>
-            <attribute name="t-att-style">dftBarStyle(section, value)</attribute>
+            <attribute name="t-att-style">this.dftBarStyle(section, value)</attribute>
         </xpath>
         <xpath expr="//button[hasclass('o_toggle_fold')]/i" position="attributes">
-            <attribute name="t-att-class">(state.expanded[section.id][valueId] or dftForceOpen()) ? 'fa-caret-down' : 'fa-caret-right'</attribute>
+            <attribute name="t-attf-data-icon">{{ (this.state.expanded[section.id][valueId] or this.dftForceOpen()) ? 'arrow_drop_down' : 'arrow_right' }}</attribute>
         </xpath>
         <xpath expr="//span[hasclass('o_search_panel_label_title')]" position="replace">
             <span class="o_search_panel_label_title text-truncate" t-att-class="{'fw-bold' : value.bold}">
-                <t t-foreach="dftParts(value.display_name)" t-as="part" t-key="part_index">
+                <t t-foreach="this.dftParts(value.display_name)" t-as="part" t-key="part_index">
                     <mark t-if="part.hit" class="o_dft_sp_hit" t-out="part.text"/>
                     <t t-else="" t-out="part.text"/>
                 </t>
             </span>
         </xpath>
         <xpath expr="//small[hasclass('o_search_panel_counter')]" position="after">
-            <button t-if="dftOn and valueId !== false" class="btn btn-link o_dft_sp_star"
-                    t-att-class="{ o_dft_sp_starred: dftIsStarred(section, valueId) }"
-                    t-att-title="dftIsStarred(section, valueId) ? 'Unstar' : 'Star: keep it at the top'"
+            <button t-if="this.dftOn and valueId !== false" class="btn btn-link o_dft_sp_star"
+                    t-att-class="{ o_dft_sp_starred: this.dftIsStarred(section, valueId) }"
+                    t-att-title="this.dftIsStarred(section, valueId) ? 'Unstar' : 'Star: keep it at the top'"
                     t-on-click.stop="() => this.dftToggleStar(section, value)">
-                <i class="fa" t-att-class="dftIsStarred(section, valueId) ? 'fa-star' : 'fa-star-o'"
+                <i class="oi" data-icon="star" t-att-class="{ 'oi-filled': this.dftIsStarred(section, valueId) }"
                    role="img" aria-label="Star"/>
             </button>
-            <button t-if="dftTilesAvailable and valueId !== false" class="btn btn-link o_dft_sp_pin"
+            <button t-if="this.dftTilesAvailable and valueId !== false" class="btn btn-link o_dft_sp_pin"
                     title="Pin as a filter tile"
                     t-on-click.stop="() => this.dftPinValue(section, value)">
-                <i class="fa fa-thumb-tack" role="img" aria-label="Pin as a filter tile"/>
+                <i class="oi" data-icon="push_pin" role="img" aria-label="Pin as a filter tile"/>
             </button>
         </xpath>
         <xpath expr="//li[hasclass('o_search_panel_category_value')]/ul" position="attributes">
-            <attribute name="t-if">value.childrenIds.length and (state.expanded[section.id][valueId] or dftForceOpen())</attribute>
+            <attribute name="t-if">value.childrenIds.length and (this.state.expanded[section.id][valueId] or this.dftForceOpen())</attribute>
         </xpath>
     </t>
 
     <t t-inherit="web.SearchPanel.FiltersGroup" t-inherit-mode="extension">
         <xpath expr="//li[hasclass('o_search_panel_filter_value')]" position="attributes">
-            <attribute name="t-foreach">dftFilterValueIds(section, values)</attribute>
+            <attribute name="t-foreach">this.dftFilterValueIds(section, values)</attribute>
         </xpath>
         <xpath expr="//div[hasclass('form-check')]" position="attributes">
             <attribute name="class" add="o_dft_sp_row" separator=" "/>
-            <attribute name="t-att-style">dftBarStyle(section, value)</attribute>
+            <attribute name="t-att-style">this.dftBarStyle(section, value)</attribute>
         </xpath>
         <xpath expr="//span[hasclass('o_search_panel_label_title')]" position="replace">
-            <span class="o_search_panel_label_title text-truncate">
-                <t t-foreach="dftParts(value.display_name)" t-as="part" t-key="part_index">
+            <span class="o_search_panel_label_title lh-base text-truncate">
+                <t t-foreach="this.dftParts(value.display_name)" t-as="part" t-key="part_index">
                     <mark t-if="part.hit" class="o_dft_sp_hit" t-out="part.text"/>
                     <t t-else="" t-out="part.text"/>
                 </t>
@@ -286,17 +287,17 @@
         <!-- Inside the label, so the row keeps Bootstrap's checkbox layout;
              `prevent` keeps the click from ticking the checkbox as well. -->
         <xpath expr="//span[hasclass('o_search_panel_counter')]" position="after">
-            <button t-if="dftOn" class="btn btn-link o_dft_sp_star"
-                    t-att-class="{ o_dft_sp_starred: dftIsStarred(section, valueId) }"
-                    t-att-title="dftIsStarred(section, valueId) ? 'Unstar' : 'Star: keep it at the top'"
+            <button t-if="this.dftOn" class="btn btn-link o_dft_sp_star"
+                    t-att-class="{ o_dft_sp_starred: this.dftIsStarred(section, valueId) }"
+                    t-att-title="this.dftIsStarred(section, valueId) ? 'Unstar' : 'Star: keep it at the top'"
                     t-on-click.stop.prevent="() => this.dftToggleStar(section, value)">
-                <i class="fa" t-att-class="dftIsStarred(section, valueId) ? 'fa-star' : 'fa-star-o'"
+                <i class="oi" data-icon="star" t-att-class="{ 'oi-filled': this.dftIsStarred(section, valueId) }"
                    role="img" aria-label="Star"/>
             </button>
-            <button t-if="dftTilesAvailable" class="btn btn-link o_dft_sp_pin"
+            <button t-if="this.dftTilesAvailable" class="btn btn-link o_dft_sp_pin"
                     title="Pin as a filter tile"
                     t-on-click.stop.prevent="() => this.dftPinValue(section, value)">
-                <i class="fa fa-thumb-tack" role="img" aria-label="Pin as a filter tile"/>
+                <i class="oi" data-icon="push_pin" role="img" aria-label="Pin as a filter tile"/>
             </button>
         </xpath>
     </t>

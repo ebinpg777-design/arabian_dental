@@ -1,9 +1,8 @@
 /** @odoo-module **/
 
-import { Component, markup, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, markup, onMounted, onWillStart, onWillUnmount, proxy, t, useProps } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
-import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
@@ -18,18 +17,18 @@ const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i;
  * must not end up with forty WhatsApp tabs, each logging in again.
  */
 export function whatsappUrl(mode, number, text) {
-    const t = encodeURIComponent(text || "");
+    const encoded = encodeURIComponent(text || "");
     const phone = (number || "").replace(/\D/g, "");
     if (mode === "app") {
-        return { url: `whatsapp://send?phone=${phone}&text=${t}`, target: "_self" };
+        return { url: `whatsapp://send?phone=${phone}&text=${encoded}`, target: "_self" };
     }
     if (mode === "web" || (mode === "auto" && !MOBILE.test(navigator.userAgent))) {
         return {
-            url: `https://web.whatsapp.com/send?phone=${phone}&text=${t}`,
+            url: `https://web.whatsapp.com/send?phone=${phone}&text=${encoded}`,
             target: "epg_whatsapp_web",
         };
     }
-    return { url: `https://wa.me/${phone}?text=${t}`, target: "_blank" };
+    return { url: `https://wa.me/${phone}?text=${encoded}`, target: "_blank" };
 }
 
 /**
@@ -43,17 +42,17 @@ export function whatsappUrl(mode, number, text) {
 export class WaSendDialog extends Component {
     static template = "epg_whatsapp.SendDialog";
     static components = { Dialog };
-    static props = {
-        messageId: { type: Number, optional: true },
-        messageIds: { type: Array, optional: true },
-        close: Function,
-        onDone: { type: Function, optional: true },
-        position: { type: String, optional: true },
-    };
+    props = useProps({
+        messageId: t.number().optional(),
+        messageIds: t.array().optional(),
+        close: t.function(),
+        onDone: t.function().optional(),
+        position: t.string().optional(),
+    });
 
     setup() {
         this.orm = useService("orm");
-        this.notification = usePlugin(NotificationPlugin);
+        this.notification = useService("notification");
         this.state = proxy({
             loading: true,
             payload: null,
@@ -152,10 +151,10 @@ export class WaSendDialog extends Component {
 
     get modes() {
         return [
-            ["auto", _t("Automatic"), "fa-magic"],
-            ["web", _t("WhatsApp Web"), "fa-globe"],
-            ["app", _t("Desktop app"), "fa-desktop"],
-            ["phone", _t("My phone"), "fa-mobile"],
+            ["auto", _t("Automatic"), "wand_stars"],
+            ["web", _t("WhatsApp Web"), "public"],
+            ["app", _t("Desktop app"), "desktop_windows"],
+            ["phone", _t("My phone"), "smartphone"],
         ];
     }
 

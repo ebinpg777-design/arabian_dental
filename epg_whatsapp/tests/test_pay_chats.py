@@ -207,7 +207,7 @@ class TestPayAndChats(PaySetup, TransactionCase):
     def _wizard(self, content, **vals):
         return self.env['epg.whatsapp.chat.import'].create(dict({
             'partner_id': self.partner.id,
-            'file': base64.b64encode(content.encode()),
+            'file': base64.b64encode(content.encode()).decode(),
             'filename': 'WhatsApp Chat with Dr Link.txt',
         }, **vals))
 
@@ -326,7 +326,7 @@ class TestReviewFixes(PaySetup, TransactionCase):
     def _wizard(self, content, **vals):
         return self.env['epg.whatsapp.chat.import'].create(dict({
             'partner_id': self.partner.id,
-            'file': base64.b64encode(content.encode()),
+            'file': base64.b64encode(content.encode()).decode(),
             'filename': 'chat.txt',
         }, **vals))
 

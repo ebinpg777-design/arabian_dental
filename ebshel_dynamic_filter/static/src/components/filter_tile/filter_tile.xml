@@ -28,32 +28,32 @@
                  place a manager will see it. (client, 2026-09-10) -->
             <span t-if="this.props.broken" class="o_dft_broken_flag"
                   title="This tile's filter cannot be applied — edit it and simplify the filter">
-                <i class="fa fa-exclamation-triangle" role="img" aria-label="Unusable filter"/>
+                <i class="oi" data-icon="warning" role="img" aria-label="Unusable filter"/>
             </span>
 
             <span t-if="this.props.canManage" class="o_dft_grip" title="Drag to reorder">
-                <i class="fa fa-ellipsis-v" role="img" aria-label="Drag handle"/>
+                <i class="oi" data-icon="drag_indicator" role="img" aria-label="Drag handle"/>
             </span>
 
             <div class="o_dft_body">
                 <div class="o_dft_head">
                     <span class="o_dft_icon">
-                        <i t-attf-class="{{ this.iconClass }}" role="img" aria-hidden="true"/>
+                        <i class="oi" t-att-data-icon="this.iconName" role="img" aria-hidden="true"/>
                     </span>
                     <span class="o_dft_label" t-out="this.props.def.name"/>
                     <!-- Private tile: nobody else has this one. -->
-                    <i t-if="this.props.def.personal" class="o_dft_private fa fa-user-secret"
+                    <i t-if="this.props.def.personal" class="o_dft_private oi" data-icon="oi_user-secret"
                        role="img" aria-label="Private tile"/>
                     <!-- Grouping tile: one click filters and groups the view. -->
-                    <i t-if="this.props.def.group_by" class="o_dft_grouped fa fa-th-list"
+                    <i t-if="this.props.def.group_by" class="o_dft_grouped oi" data-icon="view_list"
                        role="img" aria-label="Groups the view"/>
                     <!-- Past its threshold: the tile says so before anyone asks. -->
-                    <i t-if="this.isAlerting" class="o_dft_bell fa fa-bell" role="img"
+                    <i t-if="this.isAlerting" class="o_dft_bell oi oi-filled" data-icon="notifications" role="img"
                        aria-label="Threshold crossed"/>
                     <span t-if="this.delta and !this.props.compact and !this.isAlerting" class="o_dft_delta"
                           t-att-class="{ o_dft_delta_up: this.delta.up }"
                           title="Change vs the previous period">
-                        <i t-attf-class="fa fa-caret-{{ this.delta.up ? 'up' : 'down' }}"/>
+                        <i class="oi" t-att-data-icon="this.delta.up ? 'arrow_drop_up' : 'arrow_drop_down'"/>
                         <span t-out="this.delta.text"/>
                     </span>
                 </div>
@@ -65,10 +65,10 @@
                           t-att-class="{ o_dft_change_down: this.state.change &lt; 0 }"
                           title="Changed at the last refresh" t-out="this.changeText"/>
                     <span t-if="this.subLabel" class="o_dft_sub" t-out="this.subLabel"/>
-                    <i t-if="this.props.active" class="o_dft_check fa fa-check-circle" role="img"
+                    <i t-if="this.props.active" class="o_dft_check oi oi-filled" data-icon="check_circle" role="img"
                        aria-label="Filter applied"/>
                     <i t-if="this.props.selectable and !this.props.active"
-                       class="o_dft_check o_dft_unchecked fa fa-square-o" role="img"
+                       class="o_dft_check o_dft_unchecked oi" data-icon="square" role="img"
                        aria-label="Not selected"/>
                 </div>
 
@@ -95,7 +95,7 @@
                             transform="rotate(-90 18 18)"/>
                 </svg>
                 <span class="o_dft_ring_label">
-                    <i t-if="this.goal.reached" class="fa fa-trophy"/>
+                    <i t-if="this.goal.reached" class="oi" data-icon="trophy"/>
                     <t t-else=""><t t-out="this.goal.percent"/>%</t>
                 </span>
             </div>
@@ -109,15 +109,15 @@
                 <!-- What is inside this tile? -->
                 <button t-if="this.props.onBreakdown" class="o_dft_split btn btn-link"
                         title="Break this tile down" t-on-click="this.onBreakdownClick">
-                    <i class="fa fa-pie-chart" role="img" aria-label="Break down"/>
+                    <i class="oi" data-icon="pie_chart" role="img" aria-label="Break down"/>
                 </button>
                 <button t-if="this.props.def.editable" class="o_dft_edit btn btn-link"
                         title="Edit this tile" t-on-click="this.onEditClick">
-                    <i class="fa fa-pencil" role="img" aria-label="Edit tile"/>
+                    <i class="oi" data-icon="edit" role="img" aria-label="Edit tile"/>
                 </button>
                 <button t-if="this.props.onDelete" class="o_dft_remove btn btn-link"
                         title="Remove this tile" t-on-click="this.onDeleteClick">
-                    <i class="fa fa-trash-o" role="img" aria-label="Remove tile"/>
+                    <i class="oi" data-icon="delete" role="img" aria-label="Remove tile"/>
                 </button>
             </div>
 

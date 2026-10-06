@@ -2,6 +2,34 @@
 
 All notable changes to *Dynamic Filter Tiles*.
 
+## 20.0.2.4.0
+
+Port to Odoo 20. Same features as 19.0.2.4.0.
+
+### Changed
+
+* **Icons are Odoo 20 icons.** Odoo 20 ships no FontAwesome, so a `fa-*` icon draws nothing.
+  Tile icons are now Material Symbols names (`local_shipping`, `warning`...) or `oi_*` names
+  of Odoo's own icon font; the picker offers the same curated set, renamed. A FontAwesome
+  name is translated whenever it reaches the database - create, write, import of a 19.0
+  export - and the upgrade translates every stored one (`migrations/20.0.2.4.0`).
+* Access rights and record rules are one `ir.access` file; history points stay limited to
+  the tiles a manager can see, as under 19.0.
+* Threshold notifications go to the user's own bus channel (partner channels are
+  deprecated in 20).
+* The client is written for Owl 3: `useProps` schemas, signal refs, `t-model.proxy`,
+  `this.`-qualified templates; the ribbon wraps the list/kanban renderer together with
+  its new `t-if`, so the controller's offline `t-elif` still compiles.
+
+### Fixed (found while porting)
+
+* Batched counting used `Query._tables` and the 19.0 signatures of `Domain._to_sql`,
+  `_read_group_select` and `_read_group_groupby`; on 20 the whole ribbon errored.
+* The tile bar's own group-by facet replaced `searchModel.query` instead of editing it, which
+  in 20 leaves the search model's group-by computation reading a stale array.
+* The search panel's fold button moved into a row of its own; the smart panel's xpath to it
+  no longer matched, and `env.isSmall` (removed in 20) is read from the ui service.
+
 ## 19.0.2.4.0
 
 ### Added

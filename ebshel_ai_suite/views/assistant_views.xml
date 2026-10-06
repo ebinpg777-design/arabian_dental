@@ -25,7 +25,7 @@
                 <field name="glyph"/>
                 <templates>
                     <t t-name="card" class="flex-row align-items-center gap-3">
-                        <span class="o_cai_assistant_glyph fa fa-2x" t-att-class="record.glyph.raw_value" title="Assistant"/>
+                        <span class="o_cai_assistant_glyph oi oi-2x" t-att-data-icon="record.glyph.raw_value" title="Assistant"/>
                         <div class="flex-grow-1">
                             <field name="title" class="fw-bold fs-5"/>
                             <field name="summary" class="text-muted d-block"/>
@@ -46,11 +46,11 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_cai_test" type="object" string="Test" class="btn-primary" icon="fa-comments"/>
+                    <button name="action_cai_test" type="object" string="Test" class="btn-primary" icon="forum"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_cai_open_sessions" type="object" class="oe_stat_button" icon="fa-comments-o">
+                        <button name="action_cai_open_sessions" type="object" class="oe_stat_button" icon="forum">
                             <field name="session_count" widget="statinfo" string="Conversations"/>
                         </button>
                     </div>
@@ -139,11 +139,11 @@
                                     <field name="state" widget="badge" decoration-success="state == 'ready'"
                                            decoration-danger="state == 'error'" decoration-info="state == 'queued'"/>
                                     <field name="active" widget="boolean_toggle"/>
-                                    <button name="action_cai_index" type="object" icon="fa-refresh" title="Reprocess"/>
+                                    <button name="action_cai_index" type="object" icon="refresh" title="Reprocess"/>
                                 </list>
                             </field>
                             <button name="%(ebshel_ai_suite.action_cai_source_link_wizard)d" type="action"
-                                    string="Add Links" icon="fa-link" class="btn-link"
+                                    string="Add Links" icon="link" class="btn-link"
                                     context="{'default_assistant_ids': [id]}"/>
                         </page>
                         <page string="Access &amp; Limits" name="access">

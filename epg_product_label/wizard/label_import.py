@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
 
 from odoo import _, fields, models
 from odoo.exceptions import UserError
@@ -20,7 +19,8 @@ class EpgLabelImport(models.TransientModel):
     def action_import(self):
         self.ensure_one()
         try:
-            payload = base64.b64decode(self.file_data)
+            # Odoo 20 reads a binary field as its raw content (a BinaryValue).
+            payload = self.file_data.content
         except Exception as error:
             raise UserError(_("The uploaded file could not be read.")) from error
         templates = self.env['epg.label.template']._import_from_xml(

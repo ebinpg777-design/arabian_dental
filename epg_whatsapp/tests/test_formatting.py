@@ -33,7 +33,9 @@ class TestFormatting(TransactionCase):
         self.assertEqual(self.render(self.doctor, 'Dear {{name|doctor}},'), 'Dear DR AMAL GOPU MDS,')
         plain = self.env['res.partner'].create({'name': 'Anjali Menon'})
         self.assertEqual(self.render(plain, '{{name|doctor}}'), 'Dr. Anjali Menon')
-        clinic = self.env['res.partner'].create({'name': 'Smile Dental', 'is_company': True})
+        # Odoo 20: a company is a contact with a VAT number (is_company is computed).
+        clinic = self.env['res.partner'].create({'name': 'Smile Dental', 'vat': '32AAAAA0000A1Z5'})
+        self.assertTrue(clinic.is_company)
         self.assertEqual(self.render(clinic, '{{name|doctor}}'), 'Smile Dental',
                          "a clinic is not a doctor")
         self.assertEqual(self.render(plain, '{{name|first}} / {{name|upper}}'),

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
 import logging
 import time
 from datetime import timedelta
@@ -82,6 +81,47 @@ class EpgWhatsappMessage(models.Model):
 
     company_id = fields.Many2one('res.company', default=lambda s: s.env.company)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        self._check_linked_access(vals_list)
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if not self.env.su:
+            if 'res_model' in vals or 'res_id' in vals:
+                self._check_linked_access([{
+                    'res_model': vals.get('res_model', message.res_model),
+                    'res_id': vals.get('res_id', message.res_id),
+                } for message in self])
+            if vals.get('attachment_id'):
+                self._check_linked_access([{'attachment_id': vals['attachment_id']}])
+        return super().write(vals)
+
+    @api.model
+    def _check_linked_access(self, vals_list):
+        """What a person links a message to, they must be able to read.
+
+        The message's document and record are served through sudo on purpose: the
+        public /wa/d link hands the file to the contact, and the Desk renders the
+        record's values into the text for a sender who may not open that record.
+        A link chosen by a person (an RPC create or write) would otherwise turn
+        "WhatsApp: send" into "read any attachment or record in the database". The
+        server's own links (events, the queue, the webhook) are made through sudo
+        and are not checked. (review, 2026-10-04)
+        """
+        if self.env.su:
+            return
+        for vals in vals_list:
+            model, res_id = vals.get('res_model'), vals.get('res_id')
+            if model and res_id and model in self.env:
+                record = self.env[model].browse(res_id).exists()
+                if record:
+                    record.check_access('read')
+            if vals.get('attachment_id'):
+                attachment = self.env['ir.attachment'].browse(vals['attachment_id']).exists()
+                if attachment:
+                    attachment.check_access('read')
+
     def _attach_report(self, record):
         """Render the template's report and attach it."""
         self.ensure_one()
@@ -94,7 +134,7 @@ class EpgWhatsappMessage(models.Model):
         self.attachment_id = self.env['ir.attachment'].sudo().create({
             'name': '%s - %s.pdf' % (report.name, record.display_name or 'document'),
             'type': 'binary',
-            'datas': base64.b64encode(pdf),
+            'raw': pdf,
             'res_model': self._name,
             'res_id': self.id,
             'mimetype': 'application/pdf',
@@ -256,8 +296,8 @@ class EpgWhatsappMessage(models.Model):
         several runs instead of one run holding a worker for minutes.
         """
         started = time.monotonic()
-        budget = int(self.env['ir.config_parameter'].sudo().get_str(
-            'epg_whatsapp.queue_seconds', QUEUE_BUDGET_SECONDS))
+        budget = self.env['ir.config_parameter'].sudo().get_int(
+            'epg_whatsapp.queue_seconds', QUEUE_BUDGET_SECONDS)
         now = fields.Datetime.now()
         # Unsent WhatsApp app / Web messages past their sender's limit are dropped
         # first, so the Desk never fills with news nobody wants any more.

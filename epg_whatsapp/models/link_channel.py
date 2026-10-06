@@ -129,7 +129,7 @@ class EpgWhatsappMessage(models.Model):
                 [('channel', '=', 'link')], limit=1)
         if account:
             return account._link_base()
-        return self.env['ir.config_parameter'].sudo().get_str('web.base.url', '').rstrip('/')
+        return self.env['ir.config_parameter'].sudo().get_str('web.base.url').rstrip('/')
 
     def _reply_labels(self):
         self.ensure_one()
@@ -157,8 +157,12 @@ class EpgWhatsappMessage(models.Model):
         now = fields.Datetime.now()
         for message in self:
             account = message.account_id
-            if account.expire_hours and message.create_date and \
-                    message.create_date < now - timedelta(hours=account.expire_hours):
+            # Late counts from when it was due: a message held back on purpose (a
+            # template's "Wait Before Sending" of four days) is news the day it comes
+            # due, not stale because it was written four days ago. (review, 2026-10-04)
+            due = max(filter(None, (message.create_date, message.scheduled_at)), default=None)
+            if account.expire_hours and due and \
+                    due < now - timedelta(hours=account.expire_hours):
                 # Queued long ago and never prepared: already too late to be news.
                 message.write({'state': 'cancel', 'next_try_at': False, 'error': _(
                     "Not sent within %s hours, so it was dropped.", account.expire_hours)})
@@ -216,7 +220,9 @@ class EpgWhatsappMessage(models.Model):
     def _doctor_template(self):
         """The template as this message's doctor reads it."""
         self.ensure_one()
-        return self.template_id._for(self._record(), partner=self.partner_id) \
+        # The contact's language through sudo: a contact the sender cannot open
+        # (record rules on contacts) is still one they send to.
+        return self.template_id._for(self._record(), partner=self.sudo().partner_id) \
             if self.template_id else self.template_id
 
     def _render_part(self, text):
@@ -353,7 +359,7 @@ class EpgWhatsappMessage(models.Model):
             'length': len(text),
             # The words alone, for editing in the dialog; a bundle is edited on the Desk.
             'body': first.body or '' if len(usable) == 1 else '',
-            'partner': first.partner_id.display_name or '',
+            'partner': first.sudo().partner_id.display_name or '',
             'record': ', '.join(dict.fromkeys(
                 r.display_name for r in records.values() if r is not None)),
             'template': ', '.join(dict.fromkeys(
@@ -765,7 +771,7 @@ class EpgWhatsappMessage(models.Model):
             message._chatter_post(Markup(
                 '<p><b>📱 %s</b> %s</p><p>%s</p>') % (
                 _("WhatsApp to %(to)s (%(number)s)",
-                  to=message.partner_id.display_name or _("contact"),
+                  to=message.sudo().partner_id.display_name or _("contact"),
                   number=message.number),
                 _("sent %(how)s by %(who)s", how=how, who=who),
                 _lines(text)))

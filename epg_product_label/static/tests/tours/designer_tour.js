@@ -12,12 +12,10 @@ registry.category("web_tour.tours").add("epg_label_designer_tour", {
         {
             content: "the canvas is rendered",
             trigger: ".epg_designer .epg_designer_canvas",
-            run: () => {},
         },
         {
             content: "the element is drawn on the canvas",
             trigger: ".epg_designer_element",
-            run: () => {},
         },
         {
             content: "drag the element down and to the right",
@@ -53,7 +51,6 @@ registry.category("web_tour.tours").add("epg_label_designer_tour", {
         {
             content: "the quick property strip picks up the selection",
             trigger: ".epg_designer_props",
-            run: () => {},
         },
         {
             content: "save the template",
@@ -63,7 +60,6 @@ registry.category("web_tour.tours").add("epg_label_designer_tour", {
         {
             content: "the record is saved",
             trigger: ".o_form_saved",
-            run: () => {},
         },
     ],
 });

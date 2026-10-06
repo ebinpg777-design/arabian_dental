@@ -1,11 +1,10 @@
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
-import { useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 import { CharField, charField } from "@web/views/fields/char/char_field";
 import { useService } from "@web/core/utils/hooks";
 
-import { Component, onWillStart, proxy } from "@odoo/owl";
+import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
 
 /* ==========================================================================
  * Layout picker
@@ -85,7 +84,7 @@ const LAYOUT_SHAPES = {
 
 export class LayoutPickerField extends Component {
     static template = "epg_product_label.LayoutPickerField";
-    static props = { ...standardFieldProps };
+    props = useProps(standardFieldProps);
 
     get options() {
         // The field's own selection is the source of truth for which layouts are
@@ -135,7 +134,6 @@ registry.category("fields").add("epg_layout_picker", {
 
 export class FieldPathField extends CharField {
     static template = "epg_product_label.FieldPathField";
-    static props = { ...CharField.props };
 
     setup() {
         super.setup();
@@ -149,7 +147,6 @@ export class FieldPathField extends CharField {
             status: null,
             loading: false,
         });
-        this.rootRef = useRef("root");
         onWillStart(() => this.refreshStatus());
     }
 
@@ -279,7 +276,7 @@ const STATUS_LOOK = {
 
 export class BarcodeStatusField extends Component {
     static template = "epg_product_label.BarcodeStatusField";
-    static props = { ...standardFieldProps };
+    props = useProps(standardFieldProps);
 
     get state() {
         return this.props.record.data[this.props.name] || "empty";

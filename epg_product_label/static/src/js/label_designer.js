@@ -1,7 +1,7 @@
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
-import { useLayoutEffect, useRef } from "@web/owl2/utils";
+import { useLayoutEffect } from "@web/owl2/utils";
 import { X2ManyField, x2ManyField } from "@web/views/fields/x2many/x2many_field";
 import { useService } from "@web/core/utils/hooks";
 
@@ -65,13 +65,11 @@ const GUIDE_THRESHOLD_PX = 6;
 
 export class LabelDesignerField extends X2ManyField {
     static template = "epg_product_label.LabelDesignerField";
-    static props = { ...X2ManyField.props };
 
     setup() {
         super.setup();
         this.orm = useService("orm");
         this.notification = usePlugin(NotificationPlugin);
-        this.canvasRef = useRef("canvas");
         this.palette = ELEMENT_PALETTE;
         this.paletteGroups = PALETTE_GROUPS;
         this.handles = HANDLES;

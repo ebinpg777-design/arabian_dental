@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates xml:space="preserve">
 
-    <t t-name="ebshel_dynamic_filter.FaIconPickerField">
+    <t t-name="ebshel_dynamic_filter.TileIconPickerField">
         <div class="o_dft_icon_field">
             <Dropdown state="this.dropdown" menuClass="'o_dft_icon_menu'" disabled="this.props.readonly">
                 <button class="o_dft_icon_toggle btn btn-outline-secondary"
                         t-att-disabled="this.props.readonly" title="Pick an icon">
-                    <i t-att-class="this.iconClass(this.currentIcon)"/>
+                    <i class="oi" t-att-data-icon="this.currentIcon"/>
                     <span class="o_dft_icon_name" t-out="this.currentIcon"/>
-                    <i class="fa fa-caret-down ms-auto"/>
+                    <i class="oi ms-auto" data-icon="arrow_drop_down"/>
                 </button>
                 <t t-set-slot="content">
                     <div class="o_dft_icon_search">
-                        <i class="fa fa-search"/>
+                        <i class="oi" data-icon="search"/>
                         <input class="form-control form-control-sm" type="text"
                                placeholder="Search icons…" autocomplete="off"
-                               t-custom-model="this.state.query"/>
+                               t-model.proxy="this.state.query"/>
                     </div>
                     <div class="o_dft_icon_grid">
                         <button class="o_dft_icon_cell" t-att-class="{ o_dft_icon_current: icon === this.currentIcon }" t-foreach="this.icons"
@@ -23,7 +23,7 @@
                                 t-key="icon"
                                 t-att-title="icon"
                                 t-on-click="() => this.select(icon)">
-                            <i t-att-class="this.iconClass(icon)"/>
+                            <i class="oi" t-att-data-icon="icon"/>
                         </button>
                     </div>
                     <div t-if="!this.icons.length" class="o_dft_icon_empty">
@@ -31,7 +31,7 @@
                     </div>
                     <div class="o_dft_icon_manual">
                         <input class="form-control form-control-sm" type="text"
-                               placeholder="…or type any class, e.g. fa-cutlery"
+                               placeholder="…or type any icon name, e.g. restaurant"
                                t-att-value="this.props.record.data[this.props.name] or ''"
                                t-on-change="this.onManualInput"/>
                     </div>

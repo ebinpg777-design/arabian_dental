@@ -66,7 +66,9 @@ class EpgWhatsappConversation(models.Model):
     @api.depends('number', 'partner_id')
     def _compute_display_name(self):
         for conv in self:
-            conv.display_name = conv.partner_id.display_name or conv.number or _('New')
+            # The contact's name through sudo: a thread is the reader's to see even
+            # when the contact is one their record rules hide.
+            conv.display_name = conv.partner_id.sudo().display_name or conv.number or _('New')
 
     def _compute_counts(self):
         groups = self.env['epg.whatsapp.message']._read_group(
@@ -133,8 +135,13 @@ class EpgWhatsappConversation(models.Model):
         return conv
 
     def _note_inbound(self, when=None):
-        """A message FROM the customer — this is what opens the window."""
-        self.write({'last_inbound_at': when or fields.Datetime.now()})
+        """A message FROM the customer — this is what opens the window.
+
+        Only ever forward: Meta's callbacks arrive out of order and are retried, and
+        an older message landing late must not shut a window a newer one opened."""
+        when = when or fields.Datetime.now()
+        self.filtered(lambda c: not c.last_inbound_at or c.last_inbound_at < when).write(
+            {'last_inbound_at': when})
 
     def _note_outbound(self, when=None):
         self.write({'last_outbound_at': when or fields.Datetime.now()})

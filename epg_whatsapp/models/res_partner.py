@@ -108,7 +108,10 @@ class ResPartner(models.Model):
             ids |= sent - engaged - stopped
         if 'never' in wanted:
             # Everyone else: said as an exclusion, so it needs no list of all contacts.
-            return ['|', ('id', 'in', list(ids)), ('id', 'not in', list(sent | stopped))]
+            # The engaged too - a contact who only ever wrote to us was never sent
+            # anything, but is engaged, not "never". (review, 2026-10-04)
+            return ['|', ('id', 'in', list(ids)),
+                    ('id', 'not in', list(sent | stopped | engaged))]
         return [('id', 'in', list(ids))]
 
     def action_whatsapp_chat(self):

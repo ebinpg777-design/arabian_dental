@@ -9,3 +9,4 @@ from . import test_buttons
 from . import test_formatting
 from . import test_inbox
 from . import test_desk_access
+from . import test_review_fixes

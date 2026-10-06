@@ -24,7 +24,7 @@
 </t>
 
 <t t-name="epg_product_label.FieldPathField">
-    <div class="epg_field_path" t-custom-ref="root">
+    <div class="epg_field_path">
         <div class="epg_field_path_input">
             <input type="text" class="o_input"
                    t-att-id="this.props.id"

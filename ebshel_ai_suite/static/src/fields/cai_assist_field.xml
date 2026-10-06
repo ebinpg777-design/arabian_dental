@@ -7,18 +7,18 @@
                 <Dropdown beforeOpen.bind="this.loadOptions" position="'bottom-end'">
                     <button class="btn btn-sm btn-light o_cai_assist_toggle" t-att-disabled="this.state.busy"
                             title="AI writing assistant" aria-label="AI writing assistant">
-                        <i t-if="this.state.busy" class="fa fa-circle-o-notch fa-spin"/>
+                        <i t-if="this.state.busy" class="oi oi-spin" data-icon="progress_activity"/>
                         <span t-else="" class="o_cai_mark o_cai_mark_sm" aria-hidden="true"/>
                     </button>
                     <t t-set-slot="content">
                         <t t-foreach="this.state.shortcuts" t-as="shortcut" t-key="shortcut.id">
                             <DropdownItem onSelected="() => this.run('custom', { instruction: shortcut.prompt })">
-                                <i class="fa fa-bolt me-1 text-muted"/><t t-out="shortcut.title"/>
+                                <i class="oi me-1 text-muted" data-icon="flash_on"/><t t-out="shortcut.title"/>
                             </DropdownItem>
                         </t>
                         <div t-if="this.state.shortcuts.length" class="dropdown-divider"/>
                         <DropdownItem onSelected="() => this.openVoice()">
-                            <i class="fa fa-microphone me-1 text-muted"/>Voice transcript…
+                            <i class="oi me-1 text-muted" data-icon="mic"/>Voice transcript…
                         </DropdownItem>
                         <div class="dropdown-divider"/>
                         <t t-foreach="this.state.operations" t-as="op" t-key="op.key">
@@ -32,7 +32,7 @@
                         </t>
                         <t t-if="this.state.previous !== null">
                             <div class="dropdown-divider"/>
-                            <DropdownItem onSelected="() => this.undo()"><i class="fa fa-undo me-1"/>Undo AI change</DropdownItem>
+                            <DropdownItem onSelected="() => this.undo()"><i class="oi me-1" data-icon="undo"/>Undo AI change</DropdownItem>
                         </t>
                     </t>
                 </Dropdown>

@@ -283,6 +283,9 @@ class EngineAdapter:
     @staticmethod
     def _iter_sse_data(response) -> Iterator[str]:
         """Yield the ``data:`` payloads of a server-sent-events stream."""
+        # event streams are always UTF-8; without a charset in the Content-Type, requests would
+        # decode ``text/event-stream`` as ISO-8859-1 and garble every non-ASCII character
+        response.encoding = 'utf-8'
         try:
             for raw in response.iter_lines(decode_unicode=True):
                 if not raw or raw.startswith(':'):

@@ -8,13 +8,13 @@
             <form>
                 <header>
                     <button name="action_new_campaign" type="object" string="New campaign to them"
-                            class="btn-primary" icon="fa-bullhorn"/>
+                            class="btn-primary" icon="campaign"/>
                     <button name="action_preview" type="object" string="See the contacts"
-                            icon="fa-users"/>
+                            icon="group"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_campaigns" type="object" class="oe_stat_button" icon="fa-bullhorn">
+                        <button name="action_view_campaigns" type="object" class="oe_stat_button" icon="campaign">
                             <field name="campaign_count" widget="statinfo" string="Campaigns"/>
                         </button>
                     </div>
@@ -75,7 +75,7 @@
                 <field name="description" optional="show"/>
                 <field name="count" string="Contacts"/>
                 <field name="campaign_count" string="Campaigns"/>
-                <button name="action_new_campaign" type="object" icon="fa-bullhorn" title="New campaign to them"/>
+                <button name="action_new_campaign" type="object" icon="campaign" title="New campaign to them"/>
             </list>
         </field>
     </record>
@@ -98,7 +98,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_use" type="object" string="Use this idea" class="btn-primary" icon="fa-bullhorn"/>
+                    <button name="action_use" type="object" string="Use this idea" class="btn-primary" icon="campaign"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -134,7 +134,7 @@
                 <field name="name"/>
                 <field name="category"/>
                 <field name="note"/>
-                <button name="action_use" type="object" icon="fa-bullhorn" title="Use this idea"/>
+                <button name="action_use" type="object" icon="campaign" title="Use this idea"/>
             </list>
         </field>
     </record>
@@ -154,7 +154,7 @@
                             <div class="text-muted small"><t t-out="record.note.value"/></div>
                             <div class="o_wa_idea_body"><t t-out="record.body.value"/></div>
                             <button name="action_use" type="object" class="btn btn-sm btn-primary mt-2">
-                                <i class="fa fa-bullhorn me-1"/>Use it
+                                <i class="oi me-1" data-icon="campaign"/>Use it
                             </button>
                         </div>
                     </t>
@@ -182,17 +182,17 @@
             <form>
                 <header>
                     <button name="action_run_now" type="object" string="Run now" class="btn-primary"
-                            icon="fa-play" confirm="Put today's messages on the Desk now?"/>
+                            icon="play_arrow" confirm="Put today's messages on the Desk now?"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="fa-whatsapp">
+                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="oi_whatsapp">
                             <field name="sent_count" widget="statinfo" string="Sent"/>
                         </button>
-                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="fa-hourglass-half">
+                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="hourglass_top">
                             <field name="waiting_count" widget="statinfo" string="Waiting"/>
                         </button>
-                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="fa-reply">
+                        <button name="action_view_messages" type="object" class="oe_stat_button" icon="reply">
                             <field name="replied_count" widget="statinfo" string="Replied"/>
                         </button>
                     </div>
@@ -279,11 +279,11 @@
                         class="btn-success" icon="fa-check" invisible="state != 'draft' or mode != 'broadcast'"
                         confirm="The text has been sent from WhatsApp as a broadcast? It is logged to every doctor on the list."/>
                 <button name="action_follow_up" type="object" string="Follow up the silent"
-                        icon="fa-repeat" invisible="state == 'draft'"/>
-                <button name="action_duplicate" type="object" string="Duplicate" icon="fa-clone"/>
+                        icon="repeat" invisible="state == 'draft'"/>
+                <button name="action_duplicate" type="object" string="Duplicate" icon="content_copy"/>
             </button>
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_interested" type="object" class="oe_stat_button" icon="fa-star"
+                <button name="action_view_interested" type="object" class="oe_stat_button" icon="star"
                         invisible="not lead_reply">
                     <field name="interested_count" widget="statinfo" string="Interested"/>
                 </button>
@@ -335,7 +335,12 @@
                         stops are counted for the campaign; a doctor who answers or stops says
                         which number they are.
                     </div>
-                    <field name="broadcast_text" widget="CopyClipboardText" readonly="1"/>
+                    <!-- Odoo 20 has no CopyClipboardText: the text, then a copy button. -->
+                    <field name="broadcast_text" readonly="1"/>
+                    <div class="mt-1">
+                        <field name="broadcast_text" widget="CopyClipboardButton" string="Copy the text"
+                               options="{'icon': 'content_copy', 'btn_class': 'secondary'}"/>
+                    </div>
                     <group invisible="state == 'draft'">
                         <field name="page_url" widget="url" string="Flyer page"/>
                         <field name="broadcast_opens"/>

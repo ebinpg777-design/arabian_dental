@@ -36,7 +36,7 @@ class LinkSetup:
 
     def _attach(self, message):
         message.attachment_id = self.env['ir.attachment'].create({
-            'name': 'Invoice 42.pdf', 'datas': 'JVBERi0xLjQK', 'mimetype': 'application/pdf',
+            'name': 'Invoice 42.pdf', 'raw': b'%PDF-1.4\n', 'mimetype': 'application/pdf',
             'res_model': message._name, 'res_id': message.id}).id
 
 
@@ -368,7 +368,7 @@ class TestDeskWithoutRights(LinkSetup, TransactionCase):
         def spy(message, record):
             rendered.append(message.id)
             message.attachment_id = self.env['ir.attachment'].sudo().create({
-                'name': 'rendered.pdf', 'datas': 'JVBERi0xLjQK',
+                'name': 'rendered.pdf', 'raw': b'%PDF-1.4\n',
                 'mimetype': 'application/pdf'}).id
         with patch.object(type(Message), '_attach_report', spy):
             desk = self.env['epg.whatsapp.desk'].get_desk('all')

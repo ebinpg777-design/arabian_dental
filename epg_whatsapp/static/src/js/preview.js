@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, markup, proxy } from "@odoo/owl";
+import { Component, markup, proxy, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
 import { waMarkup } from "@epg_whatsapp/desk/format";
@@ -19,7 +19,7 @@ import { waMarkup } from "@epg_whatsapp/desk/format";
  */
 export class EpgWaPreview extends Component {
     static template = "epg_whatsapp.Preview";
-    static props = { ...standardWidgetProps };
+    props = useProps(standardWidgetProps);
 
     setup() {
         // Which of the texts is shown: the message, or what the second or third

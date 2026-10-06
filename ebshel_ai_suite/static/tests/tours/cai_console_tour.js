@@ -28,7 +28,7 @@ registry.category("web_tour.tours").add("ebshel_ai_suite_page_tour", {
 
 registry.category("web_tour.tours").add("ebshel_ai_suite_assist_field_tour", {
     steps: () => [
-        { trigger: ".o_notebook a[name='internal_notes']", run: "click" },
+        { trigger: ".o_notebook_headers button[name='internal_notes']", run: "click" },
         { trigger: ".o_cai_assist_field .o_cai_assist_toggle", run: "click" },
         { trigger: ".o-dropdown-item:contains('Shorten')", run: "click" },
         { trigger: ".o_cai_assist_field:contains('[mock]')" },

@@ -1,5 +1,5 @@
 # Part of Ebshel AI Suite. See LICENSE file for full copyright and licensing details.
-from odoo import api, fields, models, tools
+from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -29,7 +29,7 @@ class CommunityAIPrivacyRule(models.Model):
                 raise ValidationError(self.env._('The field pattern must be a single word of at most 64 characters.'))
 
     @api.model
-    @tools.ormcache('model_name')
+    @api.ormcache('model_name')
     def _cai_patterns_for(self, model_name):
         rules = self.sudo().search([('active', '=', True), '|', ('model_id', '=', False),
                                     ('model_id.model', '=', model_name)])

@@ -166,7 +166,7 @@
                  t-on-pointermove="this.onPointerMove"
                  t-on-pointerup="this.onPointerUp"
                  t-on-pointercancel="this.onPointerUp">
-                <div class="epg_designer_canvas" t-custom-ref="canvas"
+                <div class="epg_designer_canvas"
                      t-att-style="this.canvasStyle + this.gridStyle"
                      t-on-pointerdown="this.onCanvasPointerDown"
                      t-on-click="this.onCanvasClick">

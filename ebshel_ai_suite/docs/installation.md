@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* Odoo **19.0 Community** (no Enterprise module is needed or used).
+* Odoo **20.0 Community** (no Enterprise module is needed or used).
 * Modules `base`, `web`, `mail` (installed automatically).
 * Python `requests` (already required by Odoo). PDF extraction uses the PDF library Odoo
   itself ships with (`PyPDF2`/`pypdf`).

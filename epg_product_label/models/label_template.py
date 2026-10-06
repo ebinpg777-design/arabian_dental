@@ -17,7 +17,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
 from .label_units import ZPL_DENSITY_SELECTION, css, to_mm
-from .label_zpl import ZplBuilder, encode_image_b64
+from .label_zpl import ZplBuilder, binary_to_base64, encode_image_b64
 
 _logger = logging.getLogger(__name__)
 
@@ -921,8 +921,7 @@ class EpgLabelTemplate(models.Model):
                 self._append_value_node(node, name, template[name], template._fields[name])
             binary = etree.SubElement(node, 'binary', name='bg_image')
             if template.bg_image:
-                binary.text = (template.bg_image or b'').decode() \
-                    if isinstance(template.bg_image, bytes) else template.bg_image
+                binary.text = binary_to_base64(template.bg_image)
             elements = etree.SubElement(node, 'elements')
             for element in template.element_ids:
                 element_node = etree.SubElement(elements, 'element')
@@ -931,14 +930,13 @@ class EpgLabelTemplate(models.Model):
                         element_node, name, element[name], element._fields[name])
                 if element.image_data:
                     image = etree.SubElement(element_node, 'binary', name='image_data')
-                    image.text = element.image_data.decode() \
-                        if isinstance(element.image_data, bytes) else element.image_data
+                    image.text = binary_to_base64(element.image_data)
         payload = etree.tostring(
             root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
         attachment = self.env['ir.attachment'].create({
             'name': 'label_templates.xml',
             'type': 'binary',
-            'datas': base64.b64encode(payload),
+            'raw': payload,
             'mimetype': 'application/xml',
         })
         return {
@@ -1156,6 +1154,7 @@ class EpgLabelTemplate(models.Model):
         return available
 
     @api.model
-    def name_search(self, name='', args=None, operator='ilike', limit=100):
-        args = (args or []) + self._available_domain()
-        return super().name_search(name, args, operator, limit)
+    def name_search(self, name='', domain=None, operator='ilike', limit=100):
+        # `domain`, as core names it: the web client passes it by keyword.
+        domain = list(domain or []) + self._available_domain()
+        return super().name_search(name, domain, operator, limit)

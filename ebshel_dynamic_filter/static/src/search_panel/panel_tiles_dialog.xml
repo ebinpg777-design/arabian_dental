@@ -27,8 +27,8 @@
                         t-att-disabled="!this.isPicked(value) and this.isFull"
                         t-att-style="this.chipStyle(value)"
                         t-on-click="() => this.toggle(value)">
-                    <i class="fa fa-fw" role="img" aria-hidden="true"
-                       t-att-class="this.isPicked(value) ? 'fa-check-square' : 'fa-square-o'"/>
+                    <i class="oi oi-fw" role="img" aria-hidden="true"
+                       t-att-data-icon="this.isPicked(value) ? 'check_box' : 'square'"/>
                     <span class="o_dft_pt_label" t-out="value.label"/>
                     <span t-if="value.count !== null" class="o_dft_pt_count" t-out="value.count"/>
                 </button>
@@ -36,19 +36,19 @@
 
             <div t-if="this.props.canManage" class="form-check mt-3">
                 <input id="dft_pt_personal" class="form-check-input" type="checkbox"
-                       t-custom-model="this.state.personal"/>
+                       t-model.proxy="this.state.personal"/>
                 <label class="form-check-label" for="dft_pt_personal">
                     Keep them private - only I will see these tiles
                 </label>
             </div>
             <div t-else="" class="text-muted small mt-3">
-                <i class="fa fa-user-secret me-1" role="img" aria-hidden="true"/>
+                <i class="oi me-1" data-icon="oi_user-secret" role="img" aria-hidden="true"/>
                 These tiles will be private: only you will see them.
             </div>
 
             <div t-if="this.props.actionName" class="form-check mt-2">
                 <input id="dft_pt_action" class="form-check-input" type="checkbox"
-                       t-custom-model="this.state.thisActionOnly"/>
+                       t-model.proxy="this.state.thisActionOnly"/>
                 <label class="form-check-label" for="dft_pt_action">
                     Only on <b t-out="this.props.actionName"/> - leave unticked to put them on every
                     list and kanban view of this model
@@ -58,7 +58,7 @@
             <t t-set-slot="footer">
                 <button class="btn btn-primary" t-att-disabled="this.state.saving or !this.state.picked.length"
                         t-on-click="this.confirm">
-                    <i class="fa fa-th-large me-1" role="img" aria-hidden="true"/>
+                    <i class="oi me-1" data-icon="grid_view" role="img" aria-hidden="true"/>
                     Create <t t-out="this.state.picked.length"/> tiles
                 </button>
                 <button class="btn btn-secondary" t-on-click="() => this.props.close()">

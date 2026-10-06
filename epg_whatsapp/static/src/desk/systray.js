@@ -1,19 +1,17 @@
 /** @odoo-module **/
 
-import { Component, onWillDestroy, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillDestroy, onWillStart, proxy } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { user } from "@web/core/user";
 import { useBus, useService } from "@web/core/utils/hooks";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** The number of WhatsApp messages waiting for this person, one tap from the Desk. */
 export class WaSystray extends Component {
     static template = "epg_whatsapp.Systray";
-    static props = {};
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.state = proxy({ allowed: false, count: 0 });
         onWillStart(async () => {
             this.state.allowed = await user.hasGroup("epg_whatsapp.group_whatsapp_user");

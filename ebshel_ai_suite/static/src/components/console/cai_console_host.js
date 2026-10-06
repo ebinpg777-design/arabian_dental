@@ -1,4 +1,4 @@
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { CommunityAIConsole } from "./cai_console";
@@ -7,7 +7,6 @@ import { CommunityAIConsole } from "./cai_console";
 export class CommunityAIConsoleHost extends Component {
     static template = "ebshel_ai_suite.CommunityAIConsoleHost";
     static components = { CommunityAIConsole };
-    static props = {};
 
     setup() {
         this.bridge = useService("communityAiBridge");
@@ -19,7 +18,8 @@ export class CommunityAIConsoleHost extends Component {
 export class CommunityAIConsolePage extends Component {
     static template = "ebshel_ai_suite.CommunityAIConsolePage";
     static components = { CommunityAIConsole };
-    static props = ["*"];
+    // client action: receives the standard action props (action, actionId, ...)
+    props = useProps();
 }
 
 registry.category("main_components").add("ebshel_ai_suite.ConsoleHost", {

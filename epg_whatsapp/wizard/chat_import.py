@@ -13,7 +13,6 @@ Two line shapes, one per platform:
 
 A line that starts with neither continues the message before it.
 """
-import base64
 import re
 from datetime import datetime, timedelta
 
@@ -104,7 +103,8 @@ class EpgWhatsappChatImport(models.TransientModel):
     def _content(self):
         self.ensure_one()
         try:
-            return base64.b64decode(self.file or b'').decode('utf-8', errors='replace')
+            # A binary field reads back as a BinaryValue of the raw bytes in 20.
+            return self.file.decode('utf-8', errors='replace') if self.file else ''
         except Exception as exc:                                       # noqa: BLE001
             raise UserError(_("Could not read the file: %s", exc)) from exc
 
@@ -201,7 +201,7 @@ class EpgWhatsappChatImport(models.TransientModel):
             conv.sudo().write({'last_inbound_at': latest_inbound})
         self.env['ir.attachment'].sudo().create({
             'name': self.filename or _('WhatsApp chat %s.txt', self.partner_id.display_name),
-            'datas': self.file, 'mimetype': 'text/plain',
+            'raw': self.file, 'mimetype': 'text/plain',
             'res_model': 'res.partner', 'res_id': self.partner_id.id,
         })
         self.partner_id.sudo().message_post(

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Product Label Builder Pro',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'summary': "Design and print product, lot and address labels in PDF or ZPL",
     'description': """
 Product Label Builder Pro

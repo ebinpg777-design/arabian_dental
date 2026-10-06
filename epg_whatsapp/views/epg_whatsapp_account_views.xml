@@ -8,7 +8,7 @@
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_messages" type="object"
-                                class="oe_stat_button" icon="fa-whatsapp">
+                                class="oe_stat_button" icon="oi_whatsapp">
                             <field name="message_count" widget="statinfo" string="Messages"/>
                         </button>
                     </div>
@@ -31,7 +31,7 @@
                     </div>
                     <div class="alert alert-danger" role="alert"
                          invisible="channel != 'link' or not link_problem">
-                        <i class="fa fa-chain-broken me-1" title="Links"/>
+                        <i class="oi me-1" data-icon="link_off" title="Links"/>
                         <field name="link_problem" readonly="1" nolabel="1" class="oe_inline"/>
                     </div>
                     <group name="link" invisible="channel != 'link'">

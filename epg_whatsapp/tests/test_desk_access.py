@@ -68,6 +68,23 @@ class TestDeskAccess(LinkSetup, TransactionCase):
         visible = self.env['epg.whatsapp.message'].with_user(self.boss).search([])
         self.assertLessEqual(set(everyones.ids), set(visible.ids))
 
+    def test_an_internal_user_who_does_not_send_still_reads_every_message(self):
+        """Odoo 19's read-only ACL for every internal user (business modules'
+        record smart buttons) carried no rule, so a sender's own rule still limited
+        the sender. In Odoo 20 every permission row is OR-ed: that row must give a
+        sender nothing, and stay all-records - read only - for someone who does not
+        send. (port to 20.0, 2026-10-01)"""
+        plain = self.env['res.users'].create({
+            'name': 'Plain Clerk', 'login': 'wa_plain',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id])]})
+        bobs = self._message(user=self.bob)
+        Message = self.env['epg.whatsapp.message']
+        self.assertIn(bobs, Message.with_user(plain).search([]))
+        self.assertNotIn(bobs, Message.with_user(self.alice).search([]),
+                         "the everyone row must not hand a sender every message")
+        with self.assertRaises(AccessError):
+            bobs.with_user(plain).write({'body': 'changed'})
+
     def test_only_somebody_who_can_see_all_is_offered_Everyone(self):
         self.assertFalse(self.Desk.with_user(self.alice).get_desk()['can_see_all'])
         self.assertTrue(self.Desk.with_user(self.boss).get_desk()['can_see_all'])
@@ -78,11 +95,15 @@ class TestDeskAccess(LinkSetup, TransactionCase):
         message of theirs pointing at it: the Desk must still open."""
         secret = self.env['res.partner'].create(
             {'name': 'Unreadable Clinic', 'phone': '+91 98765 22222'})
-        self.env['ir.rule'].create({
+        # Odoo 20: ir.access replaces ir.rule. A row WITH a group only ever adds
+        # access, so a group-scoped limit is a restriction (no group) whose domain
+        # bites for the senders only.
+        self.env['ir.access'].create({
             'name': 'TEST: Alice sees no partner named Unreadable',
             'model_id': self.env.ref('base.model_res_partner').id,
-            'domain_force': "[('name', '!=', 'Unreadable Clinic')]",
-            'groups': [(6, 0, [self.env.ref('epg_whatsapp.group_whatsapp_user').id])],
+            'operation': 'r',
+            'domain': "[('name', '!=', 'Unreadable Clinic')] "
+                      "if user.has_group('epg_whatsapp.group_whatsapp_user') else []",
         })
         # Built directly, NOT through the res.partner template the rest of this
         # file uses. That template's linked record IS the contact, so the Desk

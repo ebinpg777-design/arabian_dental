@@ -1,5 +1,6 @@
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
+import { useService } from "@web/core/utils/hooks";
 
 const MIN_LENGTH = 3;
 
@@ -10,12 +11,13 @@ registry.category("command_categories").add("ebshel_ai", { name: _t("AI") }, { s
  * sentence: ask the assistant, or turn the sentence into a search.
  */
 registry.category("command_provider").add("ebshel_ai_suite", {
-    async provide(env, options) {
+    // called inside the palette's scope: hooks must run before the first await
+    async provide(options) {
+        const bridge = useService("communityAiBridge");
         const text = (options.searchValue || "").trim();
         if (text.length < MIN_LENGTH) {
             return [];
         }
-        const bridge = env.services.communityAiBridge;
         const config = await bridge.bootstrap();
         if (!config?.enabled) {
             return [];

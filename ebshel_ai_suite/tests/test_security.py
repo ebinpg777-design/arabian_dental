@@ -39,6 +39,25 @@ class TestSecurity(CommunityAICase):
         with self.assertRaises(UserError):
             self.connection.with_user(self.user_manager).action_cai_test_connection()
 
+    def test_company_default_connection_admin_only(self):
+        other = self.env['community.ai.connection'].create({'name': 'Other', 'engine_type': 'mock'})
+        with self.assertRaises(UserError):   # managers can read connections, not choose the company's
+            other.with_user(self.user_manager).action_cai_set_company_default()
+        self.assertEqual(self.env.company.cai_connection_id, self.connection)
+        other.with_user(self.user_admin).action_cai_set_company_default()
+        self.assertEqual(self.env.company.cai_connection_id, other)
+
+    def test_conversation_author_cannot_be_changed(self):
+        other = new_test_user(self.env, login='cai_victim', groups='base.group_user,ebshel_ai_suite.group_cai_user')
+        payload = self.env['community.ai.session'].with_user(self.user_ai).cai_start(self.assistant.id)
+        session = self.env['community.ai.session'].with_user(self.user_ai).browse(payload['id'])
+        with self.assertRaises(AccessError):   # would plant this conversation in someone else's history
+            session.write({'user_id': other.id})
+        with self.assertRaises(AccessError):
+            session.with_user(self.user_manager).write({'user_id': other.id})
+        session.write({'user_id': self.user_ai.id, 'subject': 'Renamed'})   # unchanged author is fine
+        self.assertEqual(session.sudo().user_id, self.user_ai)
+
     def test_conversations_are_private(self):
         other = new_test_user(self.env, login='cai_other', groups='base.group_user,ebshel_ai_suite.group_cai_user')
         mine = self.env['community.ai.session'].with_user(self.user_ai).cai_start(self.assistant.id)

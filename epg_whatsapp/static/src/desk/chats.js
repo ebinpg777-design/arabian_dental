@@ -1,16 +1,15 @@
 /** @odoo-module **/
 
-import { Component, onWillDestroy, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillDestroy, onWillStart, proxy, signal, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
-import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useBus, useService } from "@web/core/utils/hooks";
-import { useLayoutEffect, useRef } from "@web/owl2/utils";
+import { useLayoutEffect } from "@web/owl2/utils";
 import { Layout } from "@web/search/layout";
 
 import { initials, waLines } from "./format";
 import { WaSendDialog } from "./send_dialog";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 /**
  * Chats: every conversation with a doctor, as a chat app shows it.
@@ -23,13 +22,15 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 export class WaChats extends Component {
     static template = "epg_whatsapp.Chats";
     static components = { Layout };
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
+    threadRef = signal.ref();
+    composeRef = signal.ref();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.dialog = useService("dialog");
-        this.notification = usePlugin(NotificationPlugin);
+        this.notification = useService("notification");
         const params = (this.props.action && this.props.action.params) || {};
         this.state = proxy({
             chats: [],
@@ -46,14 +47,12 @@ export class WaChats extends Component {
             // Opened from a record: its own messages are picked out in the thread.
             focus: params.res_model && params.res_id ? { model: params.res_model, id: params.res_id } : null,
         });
-        this.threadRef = useRef("thread");
-        this.composeRef = useRef("compose");
         onWillStart(() => this.load(params.partner_id));
         useBus(this.env.bus, "EPG_WA:CHANGED", () => this.refresh());
         // The newest bubble is the one being looked for: keep the thread at the bottom.
         useLayoutEffect(
             () => {
-                const el = this.threadRef.el;
+                const el = this.threadRef();
                 if (el) {
                     el.scrollTop = el.scrollHeight;
                 }
@@ -159,7 +158,7 @@ export class WaChats extends Component {
             if (res.channel === "link") {
                 this.dialog.add(WaSendDialog, {
                     messageIds: [res.id],
-                    onDone: () => this.refresh(),
+                    onDone: (result) => this.onSendDone(result),
                 });
             } else {
                 this.notification.add(_t("Sent through the Cloud API."), { type: "success" });
@@ -190,8 +189,8 @@ export class WaChats extends Component {
             this.t.partner_id || false,
         ]);
         this.state.text = this.state.text.trim() ? `${this.state.text.trim()}\n\n${text}` : text;
-        if (this.composeRef.el) {
-            this.composeRef.el.focus();
+        if (this.composeRef()) {
+            this.composeRef().focus();
         }
     }
 
@@ -208,7 +207,19 @@ export class WaChats extends Component {
     }
 
     sendWaiting(bubble) {
-        this.dialog.add(WaSendDialog, { messageIds: [bubble.id], onDone: () => this.refresh() });
+        this.dialog.add(WaSendDialog, {
+            messageIds: [bubble.id],
+            onDone: (result) => this.onSendDone(result),
+        });
+    }
+
+    /** A dialog that decided something said so on the bus, which refreshes the
+     * list already; only one closed without a word needs its own refresh. Both
+     * used to run, so every send reloaded the chats and the thread twice. */
+    onSendDone(result) {
+        if (result === "closed") {
+            this.refresh();
+        }
     }
 
     // ------------------------------------------------------------------ drills

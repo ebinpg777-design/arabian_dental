@@ -1,4 +1,4 @@
-import { Component, onMounted, onWillStart, proxy } from "@odoo/owl";
+import { Component, onMounted, onWillStart, proxy, t, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { CaiPromptInput } from "./cai_prompt_input";
@@ -13,12 +13,11 @@ import { CaiMessageList } from "./cai_message_list";
 export class CommunityAIConsole extends Component {
     static template = "ebshel_ai_suite.CommunityAIConsole";
     static components = { CaiPromptInput, CaiContextBadge, CaiMessageList };
-    static props = {
-        mode: { type: String, optional: true },
-        onClose: { type: Function, optional: true },
-        initialAssistantId: { type: [Number, Boolean], optional: true },
-    };
-    static defaultProps = { mode: "overlay" };
+    props = useProps({
+        mode: t.string().optional("overlay"),
+        onClose: t.function().optional(),
+        initialAssistantId: t.or([t.number(), t.boolean()]).optional(),
+    });
 
     setup() {
         this.bridge = useService("communityAiBridge");

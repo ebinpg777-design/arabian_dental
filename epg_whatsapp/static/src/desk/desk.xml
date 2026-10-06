@@ -2,16 +2,20 @@
 <templates xml:space="preserve">
 
 <t t-name="epg_whatsapp.Desk">
+    <!-- Odoo 20: a client action's root is the .o_action flex column (control panel
+         on top, content below), as core's own client actions do. The Desk scrolls
+         itself, so the action does not on a phone (o_action_delegate_scroll). -->
+    <div class="o_action o_action_delegate_scroll">
     <Layout display="{ controlPanel: {} }" className="'o_wa_desk'">
     <div class="o_wa_desk_inner">
         <div t-if="this.state.loading and !this.d" class="text-center text-muted py-5">
-            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+            <i class="oi oi-spin oi-2x" data-icon="progress_activity" title="Loading"/>
         </div>
         <t t-else="">
             <!-- ================================================ header -->
             <div class="o_wa_desk_head">
                 <div class="o_wa_desk_title">
-                    <span class="o_wa_desk_logo"><i class="fa fa-whatsapp" title="WhatsApp"/></span>
+                    <span class="o_wa_desk_logo"><i class="oi" data-icon="oi_whatsapp" title="WhatsApp"/></span>
                     <div>
                         <h2>WhatsApp Desk</h2>
                         <div class="o_wa_desk_sub">Sent from your own WhatsApp · no Meta charges</div>
@@ -26,13 +30,13 @@
                         <button role="tab" t-att-class="{ o_wa_seg_on: this.state.scope === 'all' }" t-on-click="() => this.setScope('all')">Everyone</button>
                     </div>
                     <button class="btn btn-sm btn-light o_wa_camp_btn" t-on-click="() => this.openChats()">
-                        <i class="fa fa-comments-o me-1" title="Chats"/>Chats
+                        <i class="oi me-1" data-icon="forum" title="Chats"/>Chats
                     </button>
                     <button class="btn btn-sm btn-light o_wa_camp_btn" t-on-click="() => this.openCampaigns()">
-                        <i class="fa fa-bullhorn me-1" title="Campaigns"/>Campaigns
+                        <i class="oi me-1" data-icon="campaign" title="Campaigns"/>Campaigns
                     </button>
                     <label class="o_wa_openwith">
-                        <i class="fa fa-external-link me-1" title="Open in"/>
+                        <i class="oi me-1" data-icon="open_in_new" title="Open in"/>
                         <select t-on-change="(ev) => this.setOpenWith(ev)">
                             <option t-foreach="this.d.open_with_options" t-as="o" t-key="o[0]"
                                     t-att-value="o[0]" t-att-selected="this.d.open_with === o[0]" t-out="o[1]"/>
@@ -42,13 +46,13 @@
             </div>
 
             <div t-if="!this.d.has_link_sender" class="alert alert-info d-flex align-items-center gap-2" role="status">
-                <i class="fa fa-info-circle" title="Info"/>
+                <i class="oi" data-icon="info" title="Info"/>
                 <span class="flex-grow-1">No sender is set to <b>WhatsApp app / Web</b> yet, so nothing waits here: messages go through the paid Cloud API.</span>
                 <button t-if="this.d.can_configure" class="btn btn-sm btn-primary" t-on-click="() => this.openSenders()">Switch a sender</button>
             </div>
 
             <div t-if="this.d.link_problem" class="alert alert-danger d-flex align-items-center gap-2" role="alert">
-                <i class="fa fa-chain-broken" title="Links"/>
+                <i class="oi" data-icon="link_off" title="Links"/>
                 <span class="flex-grow-1"><t t-out="this.d.link_problem"/></span>
                 <button t-if="this.d.can_configure" class="btn btn-sm btn-danger" t-on-click="() => this.openSenders()">Set the public address</button>
             </div>
@@ -60,20 +64,20 @@
                     <div class="o_wa_stat_l">waiting to send</div>
                     <button class="btn btn-success o_wa_sendall" t-att-disabled="!this.d.groups.length or this.state.running"
                             t-on-click="() => this.sendAll()">
-                        <i class="fa fa-play me-2" title="Send all"/>Send all, one by one
+                        <i class="oi me-2" data-icon="play_arrow" title="Send all"/>Send all, one by one
                     </button>
                 </div>
                 <div class="o_wa_stat o_wa_stat_click" t-on-click="() => this.openMessages([['state', 'in', ['sent', 'read']], ['channel', '=', 'link']], 'Sent')">
                     <div class="o_wa_stat_v" t-out="this.d.counts.sent_today"/>
-                    <div class="o_wa_stat_l"><i class="fa fa-check me-1" title="Sent"/>sent today</div>
+                    <div class="o_wa_stat_l"><i class="oi me-1" data-icon="check" title="Sent"/>sent today</div>
                 </div>
                 <div class="o_wa_stat o_wa_stat_click" t-on-click="() => this.openMessages([['seen_at', '!=', false]], 'Opened by the recipient')">
                     <div class="o_wa_stat_v" t-out="this.d.counts.seen_today"/>
-                    <div class="o_wa_stat_l"><i class="fa fa-eye me-1" title="Opened"/>documents opened today</div>
+                    <div class="o_wa_stat_l"><i class="oi me-1" data-icon="visibility" title="Opened"/>documents opened today</div>
                 </div>
                 <div class="o_wa_stat o_wa_stat_click" t-on-click="() => this.openMessages([['direction', '=', 'inbound']], 'Replies')">
                     <div class="o_wa_stat_v" t-out="this.d.counts.replies_today"/>
-                    <div class="o_wa_stat_l"><i class="fa fa-reply me-1" title="Replies"/>replies today</div>
+                    <div class="o_wa_stat_l"><i class="oi me-1" data-icon="reply" title="Replies"/>replies today</div>
                 </div>
                 <div class="o_wa_stat o_wa_stat_save">
                     <div class="o_wa_stat_v">
@@ -81,7 +85,7 @@
                         <t t-else="" t-out="this.d.savings.count"/>
                     </div>
                     <div class="o_wa_stat_l">
-                        <i class="fa fa-leaf me-1" title="Saved"/>
+                        <i class="oi me-1" data-icon="eco" title="Saved"/>
                         <t t-if="this.d.savings.priced">saved on <t t-out="this.d.savings.count"/> messages this month</t>
                         <t t-else="">messages free this month</t>
                     </div>
@@ -93,7 +97,7 @@
                  t-att-title="this.d.safety.sent + ' sent today of a comfortable ' + this.d.safety.limit">
                 <div class="o_wa_meter_bar"><div class="o_wa_meter_fill" t-attf-style="width: {{ this.d.safety.pct }}%"/></div>
                 <span class="o_wa_meter_l">
-                    <i class="fa fa-shield me-1" title="Number safety"/>
+                    <i class="oi me-1" data-icon="security" title="Number safety"/>
                     <b t-out="this.d.safety.sent"/> of <t t-out="this.d.safety.limit"/> comfortable sends today
                     <t t-if="this.d.safety.level === 'high'"> — leave the rest for tomorrow</t>
                 </span>
@@ -118,15 +122,15 @@
                             t-att-class="{ o_wa_kind_on: this.state.kind === k[0] }" t-on-click="() => this.state.kind = k[0]" t-out="k[1]"/>
                 </div>
                 <label class="o_wa_find">
-                    <i class="fa fa-search" title="Find"/>
-                    <input type="search" placeholder="Find a doctor, order, text…" t-custom-model="this.state.query"/>
+                    <i class="oi" data-icon="search" title="Find"/>
+                    <input type="search" placeholder="Find a doctor, order, text…" t-model.proxy="this.state.query"/>
                 </label>
             </div>
 
             <!-- ================================================ to send -->
             <div t-if="this.state.tab === 'queue'" class="o_wa_list">
                 <div t-if="!this.d.groups.length" class="o_wa_empty">
-                    <i class="fa fa-check-circle" title="All sent"/>
+                    <i class="oi" data-icon="check_circle" title="All sent"/>
                     <div class="o_wa_empty_h">All caught up</div>
                     <div>New notifications appear here the moment they are raised.</div>
                 </div>
@@ -139,17 +143,17 @@
                             <div class="o_wa_card_main">
                                 <div class="o_wa_card_top">
                                     <span class="o_wa_card_name" t-out="g.partner or ('+' + g.number)"/>
-                                    <span class="o_wa_chip o_wa_chip_bundle"><i class="fa fa-object-group me-1" title="Bundle"/><t t-out="g.count"/> messages</span>
-                                    <span t-if="g.best_time" class="o_wa_chip o_wa_chip_time"><i class="fa fa-clock-o me-1" title="Best time"/><t t-out="g.best_time"/></span>
+                                    <span class="o_wa_chip o_wa_chip_bundle"><i class="oi me-1" data-icon="call_merge" title="Bundle"/><t t-out="g.count"/> messages</span>
+                                    <span t-if="g.best_time" class="o_wa_chip o_wa_chip_time"><i class="oi me-1" data-icon="schedule" title="Best time"/><t t-out="g.best_time"/></span>
                                 </div>
                                 <div class="o_wa_card_meta">+<t t-out="g.number"/> · they receive one WhatsApp instead of <t t-out="g.count"/></div>
                             </div>
                             <div class="o_wa_card_acts">
                                 <button class="btn btn-success" t-on-click="() => this.sendGroup(g)">
-                                    <i class="fa fa-whatsapp me-1" title="WhatsApp"/>Send as one
+                                    <i class="oi me-1" data-icon="oi_whatsapp" title="WhatsApp"/>Send as one
                                 </button>
                                 <div class="o_wa_card_small">
-                                    <button class="btn btn-sm btn-link" t-on-click="() => this.toggleSnooze(g.cards[0])" title="Send later"><i class="fa fa-clock-o" title="Later"/></button>
+                                    <button class="btn btn-sm btn-link" t-on-click="() => this.toggleSnooze(g.cards[0])" title="Send later"><i class="oi" data-icon="schedule" title="Later"/></button>
                                 </div>
                             </div>
                         </div>
@@ -173,7 +177,7 @@
                  from here or from the chat, takes it off the tray by itself. -->
             <div t-elif="this.state.tab === 'inbox'" class="o_wa_list">
                 <div t-if="!this.d.inbox.length" class="o_wa_empty">
-                    <i class="fa fa-check-circle" title="Nothing waiting"/>
+                    <i class="oi" data-icon="check_circle" title="Nothing waiting"/>
                     <div class="o_wa_empty_h">Nothing waiting for an answer</div>
                     <div class="o_wa_empty_p">A tapped answer or a message from a doctor appears here.</div>
                 </div>
@@ -190,13 +194,13 @@
                     </div>
                     <div class="o_wa_reply_acts">
                         <button class="btn btn-sm btn-success" t-on-click="() => this.answer(r)" title="Open the chat and answer">
-                            <i class="fa fa-reply me-1" title="Answer"/>Answer
+                            <i class="oi me-1" data-icon="reply" title="Answer"/>Answer
                         </button>
                         <button t-if="r.res_model" class="btn btn-sm btn-link" t-on-click="() => this.openRecord(r)" title="Open the case">
-                            <i class="fa fa-external-link" title="Open"/>
+                            <i class="oi" data-icon="open_in_new" title="Open"/>
                         </button>
                         <button class="btn btn-sm btn-link text-muted" t-on-click="() => this.handled(r)" title="Nothing to do">
-                            <i class="fa fa-check" title="Done"/>
+                            <i class="oi" data-icon="check" title="Done"/>
                         </button>
                     </div>
                 </div>
@@ -205,7 +209,7 @@
             <!-- ================================================ later -->
             <div t-elif="this.state.tab === 'later'" class="o_wa_list">
                 <div t-if="!this.d.later.length" class="o_wa_empty">
-                    <i class="fa fa-clock-o" title="Nothing snoozed"/>
+                    <i class="oi" data-icon="schedule" title="Nothing snoozed"/>
                     <div class="o_wa_empty_h">Nothing snoozed</div>
                     <div>Messages sent "later", and campaign messages for the coming days, wait here.</div>
                 </div>
@@ -215,7 +219,7 @@
                         <div class="o_wa_card_top">
                             <span class="o_wa_card_name" t-out="c.partner or ('+' + c.number)"/>
                             <span class="o_wa_chip" t-out="c.template"/>
-                            <span class="o_wa_card_age"><i class="fa fa-calendar me-1" title="Scheduled"/><t t-out="c.scheduled"/></span>
+                            <span class="o_wa_card_age"><i class="oi me-1" data-icon="calendar_today" title="Scheduled"/><t t-out="c.scheduled"/></span>
                         </div>
                         <div class="o_wa_card_meta">+<t t-out="c.number"/><t t-if="c.best_time"> · <t t-out="c.best_time"/></t></div>
                     </div>
@@ -228,7 +232,7 @@
             <!-- ================================================ sent -->
             <div t-else="" class="o_wa_list">
                 <div t-if="!this.d.recent.length" class="o_wa_empty">
-                    <i class="fa fa-paper-plane-o" title="Nothing sent"/>
+                    <i class="oi" data-icon="send" title="Nothing sent"/>
                     <div class="o_wa_empty_h">Nothing sent in the last two days</div>
                 </div>
                 <div t-foreach="this.visibleRecent" t-as="c" t-key="c.id" class="o_wa_card o_wa_card_sent">
@@ -239,28 +243,28 @@
                             <span class="o_wa_chip" t-out="c.template"/>
                             <span class="o_wa_ticks" t-att-class="{ o_wa_ticks_seen: c.read }"
                                   t-att-title="c.read ? 'Opened ' + c.seen_count + ' time(s)' : 'Sent'">
-                                <i class="fa fa-check" title="Sent"/><i t-if="c.read" class="fa fa-check" title="Opened"/>
+                                <i class="oi" data-icon="check" title="Sent"/><i t-if="c.read" class="oi" data-icon="check" title="Opened"/>
                             </span>
                             <span class="o_wa_card_age"><t t-out="c.sent_at"/><t t-if="c.sent_by"> · <t t-out="c.sent_by"/></t></span>
                         </div>
                         <div class="o_wa_card_meta">
                             <t t-if="c.record"><a href="#" t-on-click.prevent="() => this.openRecord(c)" t-out="c.record"/></t>
-                            <t t-if="c.seen"> · <i class="fa fa-eye text-success" title="Opened"/> opened the document</t>
+                            <t t-if="c.seen"> · <i class="oi text-success" data-icon="visibility" title="Opened"/> opened the document</t>
                         </div>
-                        <div t-if="c.reply" class="o_wa_card_answer"><i class="fa fa-reply me-1" title="Reply"/><t t-out="c.reply"/></div>
-                        <div t-if="c.paid" class="o_wa_card_answer"><i class="fa fa-credit-card me-1" title="Paid"/>says paid</div>
+                        <div t-if="c.reply" class="o_wa_card_answer"><i class="oi me-1" data-icon="reply" title="Reply"/><t t-out="c.reply"/></div>
+                        <div t-if="c.paid" class="o_wa_card_answer"><i class="oi me-1" data-icon="credit_card" title="Paid"/>says paid</div>
                         <div t-if="c.clicked or c.opted_out" class="o_wa_card_meta">
-                            <span t-if="c.clicked" class="text-success"><i class="fa fa-hand-pointer-o me-1" title="Clicked"/>opened the link</span>
-                            <span t-if="c.opted_out" class="text-danger ms-2"><i class="fa fa-ban me-1" title="Opted out"/>asked to stop</span>
+                            <span t-if="c.clicked" class="text-success"><i class="oi me-1" data-icon="pan_tool_alt" title="Clicked"/>opened the link</span>
+                            <span t-if="c.opted_out" class="text-danger ms-2"><i class="oi me-1" data-icon="block" title="Opted out"/>asked to stop</span>
                         </div>
                         <div t-if="this.state.reply[c.id] !== undefined" class="d-flex gap-2 mt-2">
-                            <input class="form-control form-control-sm" t-custom-model="this.state.reply[c.id]" placeholder="Paste their reply from WhatsApp"/>
+                            <input class="form-control form-control-sm" t-model.proxy="this.state.reply[c.id]" placeholder="Paste their reply from WhatsApp"/>
                             <button class="btn btn-sm btn-primary" t-on-click="() => this.saveReply(c)">Log</button>
                         </div>
                     </div>
                     <div class="o_wa_card_acts">
                         <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.openReply(c)">
-                            <i class="fa fa-reply me-1" title="Log a reply"/>Log reply
+                            <i class="oi me-1" data-icon="reply" title="Log a reply"/>Log reply
                         </button>
                     </div>
                 </div>
@@ -270,12 +274,13 @@
             <div class="o_wa_mobilebar" t-if="this.visibleGroups.length">
                 <span><b t-out="this.d.counts.ready + this.d.counts.opened"/> to send</span>
                 <button class="btn btn-success" t-att-disabled="this.state.running" t-on-click="() => this.sendAll()">
-                    <i class="fa fa-play me-1" title="Send all"/>Send all
+                    <i class="oi me-1" data-icon="play_arrow" title="Send all"/>Send all
                 </button>
             </div>
         </t>
     </div>
     </Layout>
+    </div>
 </t>
 
 <!-- One waiting message. Inside a doctor's group it loses its avatar and its own
@@ -287,13 +292,13 @@
             <div class="o_wa_card_top">
                 <span t-if="!inGroup" class="o_wa_card_name" t-out="c.partner or ('+' + c.number)"/>
                 <span class="o_wa_chip" t-out="c.template"/>
-                <span t-if="c.nudge" class="o_wa_chip o_wa_chip_nudge"><i class="fa fa-bell-o me-1" title="Reminder"/>Reminder · not opened</span>
-                <span t-if="c.campaign" class="o_wa_chip o_wa_chip_camp"><i class="fa fa-bullhorn me-1" title="Campaign"/>Campaign</span>
-                <span t-if="c.automation" class="o_wa_chip o_wa_chip_camp"><i class="fa fa-magic me-1" title="Automation"/><t t-out="c.automation"/></span>
+                <span t-if="c.nudge" class="o_wa_chip o_wa_chip_nudge"><i class="oi me-1" data-icon="notifications" title="Reminder"/>Reminder · not opened</span>
+                <span t-if="c.campaign" class="o_wa_chip o_wa_chip_camp"><i class="oi me-1" data-icon="campaign" title="Campaign"/>Campaign</span>
+                <span t-if="c.automation" class="o_wa_chip o_wa_chip_camp"><i class="oi me-1" data-icon="wand_stars" title="Automation"/><t t-out="c.automation"/></span>
                 <span t-if="c.state === 'opened'" class="o_wa_chip o_wa_chip_warn">Opened — not confirmed</span>
-                <span t-if="c.document" class="o_wa_chip o_wa_chip_doc"><i class="fa fa-file-pdf-o me-1" title="Document"/><t t-out="c.document"/></span>
-                <span t-if="c.best_time and !inGroup" class="o_wa_chip o_wa_chip_time"><i class="fa fa-clock-o me-1" title="Best time"/><t t-out="c.best_time"/></span>
-                <span class="o_wa_card_age" t-att-class="{ 'text-danger': c.overdue }"><i class="fa fa-clock-o me-1" title="Waiting"/><t t-out="c.waited"/></span>
+                <span t-if="c.document" class="o_wa_chip o_wa_chip_doc"><i class="oi me-1" data-icon="picture_as_pdf" title="Document"/><t t-out="c.document"/></span>
+                <span t-if="c.best_time and !inGroup" class="o_wa_chip o_wa_chip_time"><i class="oi me-1" data-icon="schedule" title="Best time"/><t t-out="c.best_time"/></span>
+                <span class="o_wa_card_age" t-att-class="{ 'text-danger': c.overdue }"><i class="oi me-1" data-icon="schedule" title="Waiting"/><t t-out="c.waited"/></span>
             </div>
             <div class="o_wa_card_meta">
                 <t t-if="!inGroup">+<t t-out="c.number"/></t>
@@ -301,7 +306,7 @@
                 <t t-if="c.user and this.state.scope === 'all'"> · for <t t-out="c.user"/></t>
             </div>
             <t t-if="this.state.editing[c.id] !== undefined">
-                <textarea class="form-control o_wa_edit" rows="6" t-custom-model="this.state.editing[c.id]"/>
+                <textarea class="form-control o_wa_edit" rows="6" t-model.proxy="this.state.editing[c.id]"/>
                 <div class="mt-2 d-flex gap-2">
                     <button class="btn btn-sm btn-primary" t-on-click="() => this.saveEdit(c)">Save</button>
                     <button class="btn btn-sm btn-light" t-on-click="() => this.cancelEdit(c)">Discard</button>
@@ -318,14 +323,14 @@
         </div>
         <div class="o_wa_card_acts">
             <button t-if="!inGroup" class="btn btn-success" t-on-click="() => this.send(c)">
-                <i class="fa fa-whatsapp me-1" title="WhatsApp"/>
+                <i class="oi me-1" data-icon="oi_whatsapp" title="WhatsApp"/>
                 <t t-if="c.state === 'opened'">Confirm</t><t t-else="">Send</t>
             </button>
             <button t-else="" class="btn btn-sm btn-outline-success" t-on-click="() => this.send(c)">Just this</button>
             <div class="o_wa_card_small">
-                <button t-if="!inGroup" class="btn btn-sm btn-link" t-on-click="() => this.toggleSnooze(c)" title="Send later"><i class="fa fa-clock-o" title="Later"/></button>
-                <button class="btn btn-sm btn-link" t-on-click="() => this.edit(c)" title="Edit the text"><i class="fa fa-pencil" title="Edit"/></button>
-                <button class="btn btn-sm btn-link text-danger" t-on-click="() => this.cancel(c)" title="Don't send"><i class="fa fa-ban" title="Cancel"/></button>
+                <button t-if="!inGroup" class="btn btn-sm btn-link" t-on-click="() => this.toggleSnooze(c)" title="Send later"><i class="oi" data-icon="schedule" title="Later"/></button>
+                <button class="btn btn-sm btn-link" t-on-click="() => this.edit(c)" title="Edit the text"><i class="oi" data-icon="edit" title="Edit"/></button>
+                <button class="btn btn-sm btn-link text-danger" t-on-click="() => this.cancel(c)" title="Don't send"><i class="oi" data-icon="block" title="Cancel"/></button>
             </div>
         </div>
     </div>

@@ -36,9 +36,14 @@ export function waLines(text, shortLinks = true) {
     return (text || "").split("\n").map((line) => {
         let out = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         out = waMarkup(out);
+        // The URL goes into an attribute, where a quote the contact typed would end
+        // it and start one of theirs (an inbound "…/wa/d/x"onmouseover="…"): quotes
+        // are escaped there too. (review, 2026-10-04)
         out = out.replace(/(https?:\/\/[^\s<]+)/g, (url) =>
             shortLinks && TRACKED.test(url)
-                ? `<span class="o_wa_link o_wa_link_short" title="${url}">🔗 link</span>`
+                ? `<span class="o_wa_link o_wa_link_short" title="${url
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#39;")}">🔗 link</span>`
                 : `<span class="o_wa_link">${url}</span>`
         );
         return { blank: !line.trim(), html: markup(out) };
@@ -48,7 +53,7 @@ export function waLines(text, shortLinks = true) {
 /** Two letters for an avatar: "DR ANJALI MENON" → "AM". */
 export function initials(name) {
     return (name || "?")
-        .replace(/^(dr\.?\s+)/i, "")
+        .replace(/^((dr|mr|mrs|ms|sri|smt)\.?\s+)/i, "")
         .split(/\s+/)
         .filter(Boolean)
         .slice(0, 2)

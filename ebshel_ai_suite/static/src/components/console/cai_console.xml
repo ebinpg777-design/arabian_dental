@@ -17,24 +17,24 @@
                 <span t-else="" class="fw-bold flex-grow-1 text-truncate" t-out="this.currentAssistant?.title or 'AI'"/>
                 <button class="btn btn-sm btn-link text-reset o_cai_history_btn" t-on-click="this.toggleHistory"
                         title="Conversation history" aria-label="Conversation history">
-                    <i class="fa fa-history"/>
+                    <i class="oi" data-icon="history"/>
                 </button>
                 <button class="btn btn-sm btn-link text-reset o_cai_new_btn" t-on-click="this.newConversation"
                         title="New conversation" aria-label="New conversation">
-                    <i class="fa fa-plus"/>
+                    <i class="oi" data-icon="add"/>
                 </button>
                 <button t-if="this.props.mode === 'overlay'" class="btn btn-sm btn-link text-reset"
                         t-on-click="this.openFullPage" title="Open full page" aria-label="Open full page">
-                    <i class="fa fa-expand"/>
+                    <i class="oi" data-icon="fullscreen"/>
                 </button>
                 <button t-if="this.props.mode === 'overlay'" class="btn btn-sm btn-link text-reset o_cai_close"
                         t-on-click="this.close" title="Close" aria-label="Close">
-                    <i class="fa fa-times"/>
+                    <i class="oi" data-icon="close"/>
                 </button>
             </div>
 
             <t t-if="!this.state.ready">
-                <div class="p-4 text-center text-muted"><i class="fa fa-circle-o-notch fa-spin"/></div>
+                <div class="p-4 text-center text-muted"><i class="oi oi-spin" data-icon="progress_activity"/></div>
             </t>
             <t t-elif="!this.state.enabled">
                 <div class="p-4 text-muted">AI features are not enabled for your user. Please ask an administrator.</div>
@@ -82,7 +82,7 @@
     </t>
 
     <t t-name="ebshel_ai_suite.CaiMessageList">
-        <div class="o_cai_messages flex-grow-1 overflow-auto px-3 py-3" t-custom-ref="scroll">
+        <div class="o_cai_messages flex-grow-1 overflow-auto px-3 py-3" t-ref="this.scrollRef">
             <t t-if="!this.props.exchanges.length">
                 <div class="o_cai_welcome text-center text-muted py-4">
                     <span class="o_cai_mark o_cai_mark_lg d-inline-block mb-2" aria-hidden="true"/>
@@ -104,13 +104,13 @@
                             <img t-if="file.is_image and file.url" t-att-src="file.url" t-att-alt="file.name"
                                  class="o_cai_file_thumb rounded border"/>
                             <span t-else="" class="badge text-bg-light o_cai_file_chip">
-                                <i class="fa fa-file-text-o me-1"/><t t-out="file.name"/>
+                                <i class="oi me-1" data-icon="description"/><t t-out="file.name"/>
                             </span>
                         </t>
                     </div>
                 </div>
                 <div t-elif="ex.speaker === 'tool'" class="o_cai_tool_step small text-muted mb-2">
-                    <i t-attf-class="fa {{ this.toolIcon(ex) }} me-1"/>
+                    <i t-attf-class="oi {{ this.toolIconClass(ex) }} me-1" t-att-data-icon="this.toolIcon(ex)"/>
                     <span t-out="ex.tool_label"/>
                     <CaiActionDialogCard t-if="ex.operation" operation="ex.operation" busy="this.props.busy"
                                          onDecide="this.props.onDecide"/>
@@ -118,12 +118,12 @@
                 <div t-else="" t-attf-class="o_cai_message o_cai_message_assistant mb-3 {{ ex.state === 'failed' ? 'o_cai_failed' : '' }}">
                     <div class="o_cai_bubble">
                         <t t-if="ex.state === 'failed'">
-                            <i class="fa fa-exclamation-triangle text-danger me-1"/>
+                            <i class="oi text-danger me-1" data-icon="warning"/>
                             <span t-out="ex.error"/>
                             <div t-if="ex.id === this.lastFailedId" class="mt-2">
                                 <button class="btn btn-sm btn-secondary o_cai_retry" t-on-click="() => this.props.onRetry()"
                                         t-att-disabled="this.props.busy">
-                                    <i class="fa fa-repeat me-1"/>Retry
+                                    <i class="oi me-1" data-icon="refresh"/>Retry
                                 </button>
                             </div>
                         </t>
@@ -144,20 +144,20 @@
                         </div>
                         <div t-if="ex.navigation" class="mt-2">
                             <button class="btn btn-sm btn-primary o_cai_navigate" t-on-click="() => this.props.onNavigate(ex.navigation)">
-                                <i class="fa fa-external-link me-1"/><t t-out="ex.navigation.name"/>
+                                <i class="oi me-1" data-icon="open_in_new"/><t t-out="ex.navigation.name"/>
                             </button>
                         </div>
                         <div t-if="ex.state === 'done' and ex.body" class="o_cai_answer_actions mt-1">
                             <button class="btn btn-link btn-sm p-0 me-2 o_cai_copy" t-on-click="() => this.copy(ex)"
-                                    title="Copy" aria-label="Copy"><i class="fa fa-copy"/></button>
+                                    title="Copy" aria-label="Copy"><i class="oi" data-icon="content_copy"/></button>
                             <t t-if="ex.can_post and this.props.onPost">
                                 <button class="btn btn-link btn-sm p-0 me-2 o_cai_send_message"
                                         t-on-click="() => this.props.onPost(ex, 'message')">
-                                    <i class="fa fa-envelope-o me-1"/>Send as message
+                                    <i class="oi me-1" data-icon="mail"/>Send as message
                                 </button>
                                 <button class="btn btn-link btn-sm p-0 o_cai_log_note"
                                         t-on-click="() => this.props.onPost(ex, 'note')">
-                                    <i class="fa fa-sticky-note-o me-1"/>Log as note
+                                    <i class="oi me-1" data-icon="sticky_note_2"/>Log as note
                                 </button>
                             </t>
                         </div>
@@ -180,7 +180,7 @@
         <div t-attf-class="o_cai_operation card mt-2 text-body o_cai_operation_{{ this.props.operation.state }}">
             <div class="card-body p-2">
                 <div class="fw-bold mb-1">
-                    <i class="fa fa-shield me-1"/><t t-out="this.props.operation.title"/>
+                    <i class="oi me-1" data-icon="security"/><t t-out="this.props.operation.title"/>
                 </div>
                 <div class="o_cai_operation_preview small mb-2" t-out="this.props.operation.preview"/>
                 <div t-if="this.props.operation.forced" class="small text-muted mb-2">
@@ -189,7 +189,7 @@
                 <t t-if="this.props.operation.state === 'proposed'">
                     <button class="btn btn-sm btn-primary me-2 o_cai_approve" t-att-disabled="this.state.sending or this.props.busy"
                             t-on-click="() => this.decide(true)">
-                        <i class="fa fa-check me-1"/>Confirm
+                        <i class="oi me-1" data-icon="check"/>Confirm
                     </button>
                     <button class="btn btn-sm btn-secondary o_cai_reject" t-att-disabled="this.state.sending or this.props.busy"
                             t-on-click="() => this.decide(false)">Cancel</button>
@@ -206,40 +206,40 @@
         <div t-if="this.props.stagedFiles and this.props.stagedFiles.length" class="o_cai_staged border-top px-2 pt-2 d-flex flex-wrap gap-1">
             <t t-foreach="this.props.stagedFiles" t-as="file" t-key="file.id">
                 <span class="badge text-bg-light o_cai_file_chip">
-                    <i t-attf-class="fa {{ file.is_image ? 'fa-picture-o' : 'fa-file-text-o' }} me-1"/>
+                    <i class="oi me-1" t-att-data-icon="file.is_image ? 'image' : 'description'"/>
                     <t t-out="file.name"/>
-                    <i class="fa fa-times ms-1 o_cai_file_remove" role="button" title="Remove"
+                    <i class="oi ms-1 o_cai_file_remove" data-icon="close" role="button" title="Remove"
                        t-on-click="() => this.props.onRemoveFile(file)"/>
                 </span>
             </t>
         </div>
         <div class="o_cai_prompt_input border-top p-2 d-flex align-items-end gap-2">
             <t t-if="this.props.onAttach">
-                <input type="file" class="d-none o_cai_file_input" t-custom-ref="file" multiple="multiple"
+                <input type="file" class="d-none o_cai_file_input" t-ref="this.fileRef" multiple="multiple"
                        accept=".pdf,.txt,.md,.csv,.json,.html,.htm,.xml,image/png,image/jpeg,image/webp,image/gif"
                        t-on-change="this.onFilesPicked"/>
                 <button class="btn btn-light o_cai_attach" t-on-click="this.pickFiles" t-att-disabled="this.props.busy"
                         title="Attach files" aria-label="Attach files">
-                    <i t-attf-class="fa {{ this.props.uploading ? 'fa-circle-o-notch fa-spin' : 'fa-paperclip' }}"/>
+                    <i t-attf-class="oi {{ this.props.uploading ? 'oi-spin' : '' }}" t-att-data-icon="this.props.uploading ? 'progress_activity' : 'attach_file'"/>
                 </button>
             </t>
             <button t-if="this.canRecord" t-attf-class="btn {{ this.state.recording ? 'btn-danger' : 'btn-light' }} o_cai_dictate"
                     t-on-click="this.toggleDictation" t-att-disabled="this.props.busy or this.state.transcribing"
                     t-att-title="this.state.recording ? 'Stop and transcribe' : 'Dictate'" aria-label="Dictate">
-                <i t-attf-class="fa {{ this.state.transcribing ? 'fa-circle-o-notch fa-spin' : (this.state.recording ? 'fa-stop' : 'fa-microphone') }}"/>
+                <i t-attf-class="oi {{ this.state.transcribing ? 'oi-spin' : '' }}" t-att-data-icon="this.state.transcribing ? 'progress_activity' : (this.state.recording ? 'stop' : 'mic')"/>
             </button>
-            <textarea t-custom-ref="input" class="form-control o_cai_input" rows="1" t-att-placeholder="this.props.placeholder"
+            <textarea t-ref="this.inputRef" class="form-control o_cai_input" rows="1" t-att-placeholder="this.props.placeholder"
                       t-on-input="this.onInput" t-on-keydown="this.onKeydown" t-att-disabled="this.props.busy" aria-label="Message"/>
             <button class="btn btn-primary o_cai_send" t-on-click="this.submit" t-att-disabled="this.props.busy or !this.state.text.trim()"
                     title="Send" aria-label="Send">
-                <i t-attf-class="fa {{ this.props.busy ? 'fa-circle-o-notch fa-spin' : 'fa-paper-plane' }}"/>
+                <i t-attf-class="oi {{ this.props.busy ? 'oi-spin' : '' }}" t-att-data-icon="this.props.busy ? 'progress_activity' : 'send'"/>
             </button>
         </div>
     </t>
 
     <t t-name="ebshel_ai_suite.CaiContextBadge">
         <div class="o_cai_context px-3 py-1 border-bottom small d-flex align-items-center gap-2">
-            <i class="fa fa-file-text-o text-muted"/>
+            <i class="oi text-muted" data-icon="description"/>
             <span t-attf-class="text-truncate {{ this.props.enabled ? '' : 'text-decoration-line-through text-muted' }}">
                 <t t-out="this.props.context.label or this.props.context.model"/>
             </span>

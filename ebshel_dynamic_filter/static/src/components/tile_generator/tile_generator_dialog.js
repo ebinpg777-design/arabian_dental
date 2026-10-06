@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, t, useProps } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 import { AUTO_COLOR_CYCLE, TILE_COLORS } from "../../core/tile_colors";
@@ -15,17 +15,16 @@ import { AUTO_COLOR_CYCLE, TILE_COLORS } from "../../core/tile_colors";
 export class TileGeneratorDialog extends Component {
     static template = "ebshel_dynamic_filter.TileGeneratorDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        resModel: String,
-        fields: Array, // [{name, string, values: [{value, label}]}]
-        hasTiles: { type: Boolean, optional: true },
-        actionName: { type: String, optional: true }, // the menu we were opened from
-        rowCount: { type: Number, optional: true },  // rows the ribbon already has
-        maxRows: { type: Number, optional: true },
-        onGenerate: Function,
-    };
-    static defaultProps = { rowCount: 1, maxRows: 6 };
+    props = useProps({
+        close: t.function(),
+        resModel: t.string(),
+        fields: t.array(), // [{name, string, values: [{value, label}]}]
+        hasTiles: t.boolean().optional(),
+        actionName: t.string().optional(), // the menu we were opened from
+        rowCount: t.number().optional(1), // rows the ribbon already has
+        maxRows: t.number().optional(6),
+        onGenerate: t.function(),
+    });
 
     setup() {
         this.state = proxy({

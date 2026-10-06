@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="base.view_server_action_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header/button[@name='create_action']" position="before">
-                <button name="action_cai_offer_as_tool" type="object" string="Offer to AI" icon="fa-magic"
+                <button name="action_cai_offer_as_tool" type="object" string="Offer to AI" icon="wand_stars"
                         invisible="state not in ('code', 'object_write', 'object_create', 'multi')"
                         groups="ebshel_ai_suite.group_cai_manager"
                         help="Let AI assistants and AI decisions run this action as a tool."/>

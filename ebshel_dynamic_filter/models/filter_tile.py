@@ -19,6 +19,8 @@ from odoo.fields import Domain
 from odoo.tools import SQL
 from odoo.tools.safe_eval import safe_eval, datetime as safe_datetime, time as safe_time
 
+from .tile_icons import DEFAULT_ICON, normalize_icon
+
 _logger = logging.getLogger(__name__)
 
 # Palette keys. The matching hex values live in
@@ -43,20 +45,23 @@ AUTO_COLOR_CYCLE = [
     'sky', 'amber', 'emerald', 'violet', 'rose', 'cyan', 'orange', 'teal', 'indigo', 'lime',
 ]
 
-# Keyword -> FontAwesome icon, used to give auto-generated tiles a sensible face.
+# Keyword -> icon, used to give auto-generated tiles a sensible face. Odoo 20
+# names (Material Symbols): FontAwesome is gone, see tile_icons.py.
 AUTO_ICON_HINTS = [
-    (('draft', 'new', 'quotation'), 'fa-pencil'),
-    (('sent', 'send', 'mail', 'email'), 'fa-paper-plane'),
-    (('confirm', 'approved', 'validate', 'posted'), 'fa-check-circle'),
-    (('done', 'finish', 'complete', 'closed'), 'fa-flag-checkered'),
-    (('cancel', 'refus', 'reject'), 'fa-times-circle'),
-    (('wait', 'pending', 'progress', 'to approve', 'to_approve'), 'fa-hourglass-half'),
-    (('late', 'overdue', 'expire'), 'fa-exclamation-triangle'),
-    (('paid', 'payment', 'invoice'), 'fa-money'),
-    (('deliver', 'ship', 'transfer', 'receipt'), 'fa-truck'),
-    (('sale', 'order', 'purchase'), 'fa-shopping-cart'),
-    (('low', 'normal', 'high', 'urgent', 'priority'), 'fa-star'),
+    (('draft', 'new', 'quotation'), 'edit'),
+    (('sent', 'send', 'mail', 'email'), 'send'),
+    (('confirm', 'approved', 'validate', 'posted'), 'check_circle'),
+    (('done', 'finish', 'complete', 'closed'), 'sports_score'),
+    (('cancel', 'refus', 'reject'), 'cancel'),
+    (('wait', 'pending', 'progress', 'to approve', 'to_approve'), 'hourglass_top'),
+    (('late', 'overdue', 'expire'), 'warning'),
+    (('paid', 'payment', 'invoice'), 'payments'),
+    (('deliver', 'ship', 'transfer', 'receipt'), 'local_shipping'),
+    (('sale', 'order', 'purchase'), 'shopping_cart'),
+    (('low', 'normal', 'high', 'urgent', 'priority'), 'star'),
 ]
+# The face of a generated tile whose value says nothing about itself.
+AUTO_ICON_PLAIN = 'radio_button_unchecked'
 
 # User fields tried, in order, when "Only My Records" is ticked but no field named.
 USER_FIELD_CANDIDATES = (
@@ -96,6 +101,9 @@ EXPORT_FIELDS = (
 
 # How many daily history points a "recorded history" sparkline draws.
 HISTORY_POINTS = 12
+# The most monthly buckets a sparkline may ask for: the ribbon asks for 6, and
+# the number arrives from the browser.
+MAX_TREND_PERIODS = 36
 
 # Tile width, in pixels. 0 means "the standard width", which the stylesheet owns
 # (and which shrinks on its own in compact mode). The bounds are what stays
@@ -150,9 +158,8 @@ class FilterTile(models.Model):
     domain = fields.Char(
         default='[]', required=True,
         help="Records this tile counts, and the filter applied when it is clicked.\n"
-             "The domain understands uid (the id of whoever is looking), user, today, "
-             "now, context_today() and relativedelta - the same names a record rule "
-             "may use.")
+             "The domain understands uid (the id of whoever is looking), today, now, "
+             "context_today(), relativedelta, datetime and allowed_company_ids.")
     # "My records" as a first-class switch. The domain above HAS understood `uid`
     # all along, but the tree editor gives an ordinary user no way to type an
     # expression - a many2one condition offers a list of actual users and nothing
@@ -190,7 +197,11 @@ class FilterTile(models.Model):
     color = fields.Selection(TILE_COLORS, default='indigo', required=True)
     custom_color = fields.Char(
         string='Custom Colour', help="Any CSS colour (#1f8fff, teal, rgb(...)). Overrides the palette.")
-    icon = fields.Char(default='fa-bolt')
+    icon = fields.Char(
+        default=DEFAULT_ICON,
+        help="A Material Symbols name such as flash_on, local_shipping or warning (or an "
+             "oi_* name of Odoo's own icon font). A FontAwesome name from an older version "
+             "is translated on save.")
     tooltip = fields.Char(string='Hint', translate=True, help="Shown when hovering the tile.")
     width = fields.Integer(
         help="Width of the tile in pixels. Leave at 0 for the standard width - which also means "
@@ -272,19 +283,6 @@ class FilterTile(models.Model):
              "filtered on screen - for a headline figure such as \"Finished\" on a "
              "screen whose default filter hides finished work. Clicking the tile "
              "then clears the other filters, so the list matches the number.")
-    only_mine = fields.Boolean(
-        string='Only My Records',
-        help="Count only the records of whoever is looking at the ribbon: the same "
-             "tile reads 12 for one salesperson and 3 for another. The filter it "
-             "applies when clicked narrows to that person too.")
-    user_field_id = fields.Many2one(
-        'ir.model.fields', string='My Records Means', ondelete='set null',
-        domain="[('model_id', '=', model_id), ('ttype', '=', 'many2one'),"
-               " ('relation', '=', 'res.users'), ('store', '=', True)]",
-        help="Which field ties a record to its person - usually the salesperson or "
-             "assignee field. Picked automatically when the model has an obvious one.")
-    user_field_name = fields.Char(
-        related='user_field_id.name', string='My Records Field Name')
 
     alert_notify = fields.Boolean(
         string='Push a Notification',
@@ -374,6 +372,9 @@ class FilterTile(models.Model):
         if not self._is_tile_manager():
             for vals in vals_list:
                 vals['owner_id'] = self.env.uid
+        for vals in vals_list:
+            if vals.get('icon'):
+                vals['icon'] = normalize_icon(vals['icon'])
         return super().create(vals_list)
 
     @api.onchange('model_id')
@@ -439,6 +440,8 @@ class FilterTile(models.Model):
             if 'group_ids' in vals:
                 raise AccessError(self.env._(
                     'Only a Filter Tiles manager can restrict a tile to user groups.'))
+        if vals.get('icon'):
+            vals = dict(vals, icon=normalize_icon(vals['icon']))
         return super().write(vals)
 
     @api.constrains('row')
@@ -486,6 +489,14 @@ class FilterTile(models.Model):
     @api.constrains('domain')
     def _check_domain(self):
         for tile in self:
+            # The browser's vocabulary first: what it refuses is never evaluated
+            # here either, and the message says what to write instead.
+            problem = self._browser_domain_problem(tile.domain)
+            if problem:
+                raise ValidationError(self.env._(
+                    'The domain of tile "%(name)s" uses %(what)s, which the browser '
+                    'cannot work out.\n\n%(hint)s',
+                    name=tile.name, what=problem[0], hint=problem[1]))
             try:
                 parsed = tile._eval_domain(tile.domain)
             except Exception as err:  # noqa: BLE001 - surfaced to the user as-is
@@ -495,12 +506,6 @@ class FilterTile(models.Model):
             if not isinstance(parsed, (list, tuple)):
                 raise ValidationError(
                     self.env._('The domain of tile "%(name)s" must be a list.', name=tile.name))
-            problem = self._browser_domain_problem(tile.domain)
-            if problem:
-                raise ValidationError(self.env._(
-                    'The domain of tile "%(name)s" uses %(what)s, which the browser '
-                    'cannot work out.\n\n%(hint)s',
-                    name=tile.name, what=problem[0], hint=problem[1]))
 
     # ------------------------------------------------------------------
     # What the BROWSER can evaluate
@@ -588,14 +593,17 @@ class FilterTile(models.Model):
     # ------------------------------------------------------------------
     def _domain_eval_context(self):
         """Same helpers the web client offers in a domain, so stored tile
-        domains can use ``context_today()``, ``uid``, ``relativedelta`` ..."""
+        domains can use ``context_today()``, ``uid``, ``relativedelta`` ...
+
+        Values only - never a record. Every user evaluates domains here
+        (``compute_tiles`` takes them straight from the browser, and any user
+        may save a private tile), and a record in the context hands the
+        expression the ORM: ``user.sudo().write(...)`` made any internal user
+        an administrator. The browser has no ``user`` either, so a domain that
+        needed it could never be applied anyway.
+        """
         return {
             'uid': self.env.uid,
-            # An *empty* context, not the current one - the same thing
-            # `ir.rule._eval_context` does, so a stored domain evaluates the
-            # same way here as it would inside a record rule.
-            # pylint: disable=context-overridden
-            'user': self.env.user.with_context({}),
             'time': safe_time,
             'datetime': safe_datetime,
             'relativedelta': relativedelta,
@@ -681,7 +689,9 @@ class FilterTile(models.Model):
             'symbol': symbol,
             'color': self.color,
             'custom_color': self.custom_color or '',
-            'icon': self.icon or '',
+            # A FontAwesome name written behind the ORM's back (SQL, a data file
+            # loaded with noupdate) still reaches the browser as a drawable one.
+            'icon': normalize_icon(self.icon or ''),
             'tooltip': self.tooltip or '',
             'width': self.width or 0,
             'show_trend': self.show_trend,
@@ -717,6 +727,28 @@ class FilterTile(models.Model):
             'editable': bool(self.owner_id.id == self.env.uid or self._is_tile_manager()),
         }
 
+    def _is_visible_to_me(self, readable=None):
+        """Does this tile belong on the current user's ribbons?
+
+        Record rules already hide other people's private tiles; this adds what
+        they cannot express: the tile's groups and company, and the model
+        itself - a tile on records the user may not read is not theirs to see,
+        on a ribbon or on the Tile Wall. ``readable`` memoises the model check
+        across a batch of tiles.
+        """
+        self.ensure_one()
+        if self.group_ids and not (self.group_ids & self.env.user.all_group_ids):
+            return False
+        if self.company_id and self.company_id not in self.env.companies:
+            return False
+        model_name = self.model_name
+        if not model_name or model_name not in self.env:
+            return False
+        readable = {} if readable is None else readable
+        if model_name not in readable:
+            readable[model_name] = self.env[model_name].has_access('read')
+        return readable[model_name]
+
     @api.model
     def get_tile_registry(self):
         """Every tile the current user may see, grouped by model name.
@@ -732,15 +764,10 @@ class FilterTile(models.Model):
             tiles = self.search([])  # pylint: disable=no-search-all
         except AccessError:
             return empty
-        user_groups = self.env.user.all_group_ids
-        companies = set(self.env.companies.ids)
         registry = {}
+        readable = {}
         for tile in tiles:
-            if tile.group_ids and not (tile.group_ids & user_groups):
-                continue
-            if tile.company_id and tile.company_id.id not in companies:
-                continue
-            if not tile.model_name or tile.model_name not in self.env:
+            if not tile._is_visible_to_me(readable):
                 continue
             registry.setdefault(tile.model_name, []).append(tile._tile_payload())
         return {
@@ -809,14 +836,23 @@ class FilterTile(models.Model):
         # that scan is bounded by exactly the filters they are meant to ignore.
         headline = [row for row in prepared if row[1].get('ignore_filters')]
         prepared = [row for row in prepared if not row[1].get('ignore_filters')]
-        batched, manual = self._split_batchable(Model, prepared)
         try:
+            periods = max(0, min(int(periods or 0), MAX_TREND_PERIODS))
+        except (TypeError, ValueError):
+            periods = 6
+        try:
+            # Inside the guard: probing the model is the first thing that
+            # checks the reader may read it at all.
+            batched, manual = self._split_batchable(Model, prepared)
             if batched and self._gather_counts(Model, base, batched, result):
                 if manual:
                     self._gather_one_by_one(Model, base, manual, result, with_total=False)
-            else:
+            elif prepared or not headline:
                 batched, manual = [], prepared
                 self._gather_one_by_one(Model, base, prepared, result, with_total=True)
+            else:
+                # Only headline tiles: their own count below sets the total.
+                batched, manual = [], []
             if headline:
                 self._gather_one_by_one(Model, unfiltered, headline, result,
                                         with_total=not prepared)
@@ -854,8 +890,10 @@ class FilterTile(models.Model):
         """
         active_name = Model._active_name
         batched, manual = [], []
+        if not prepared:
+            return batched, manual
         probe = Model._search([])
-        shape = (len(probe._tables), len(probe._joins))
+        shape = self._query_shape(probe)
         for item in prepared:
             _key, _tile, domain = item
             try:
@@ -866,18 +904,27 @@ class FilterTile(models.Model):
                     continue
                 optimized = parsed.optimize_full(Model)
                 if not (optimized.is_true() or optimized.is_false()):
-                    optimized._to_sql(Model, probe.table, probe)
+                    optimized._to_sql(probe.table)
             except (ValueError, SyntaxError, KeyError, TypeError, NotImplementedError):
                 manual.append(item)
                 continue
-            if (len(probe._tables), len(probe._joins)) != shape:
+            if self._query_shape(probe) != shape:
                 manual.append(item)
                 # The probe now carries this tile's join; start a clean one.
                 probe = Model._search([])
-                shape = (len(probe._tables), len(probe._joins))
+                shape = self._query_shape(probe)
             else:
                 batched.append(item)
         return batched, manual
+
+    @staticmethod
+    def _query_shape(query):
+        """What a condition must leave unchanged to share ``query``: its FROM.
+
+        Odoo 20 keeps every table of a query - the main one first - in
+        ``Query._joins``; a condition that needed a join adds an entry there.
+        """
+        return len(query._joins)
 
     def _measure_spec(self, Model, tile):
         """``'field:agg'`` for a tile that aggregates a column, else ``None``."""
@@ -898,7 +945,7 @@ class FilterTile(models.Model):
         that, so this is a safety net, not the selection mechanism: if the real
         query disagrees with the probe, correctness wins over speed.
         """
-        shape = (len(query._tables), len(query._joins))
+        shape = self._query_shape(query)
         conditions = {}
         for key, _tile, domain in prepared:
             try:
@@ -908,10 +955,10 @@ class FilterTile(models.Model):
                 elif parsed.is_true():
                     conditions[key] = SQL("TRUE")
                 else:
-                    conditions[key] = parsed._to_sql(Model, query.table, query)
+                    conditions[key] = parsed._to_sql(query.table)
             except (ValueError, SyntaxError, KeyError, TypeError, NotImplementedError):
                 return None
-            if (len(query._tables), len(query._joins)) != shape:
+            if self._query_shape(query) != shape:
                 return None
         return conditions
 
@@ -927,7 +974,7 @@ class FilterTile(models.Model):
         if conditions is None:
             return False
 
-        shape = (len(query._tables), len(query._joins))
+        shape = self._query_shape(query)
         selects = [SQL("COUNT(*)")]
         columns = []
         for key, tile, _domain in prepared:
@@ -937,7 +984,7 @@ class FilterTile(models.Model):
             spec = self._measure_spec(Model, tile)
             if spec:
                 try:
-                    aggregate = Model._read_group_select(spec, query)
+                    aggregate = Model._read_group_select(query.table, spec)
                 except (ValueError, KeyError) as err:
                     _logger.info('Filter tile %s cannot aggregate %s: %s', key, spec, err)
                     result['tiles'][key]['error'] = True
@@ -945,7 +992,7 @@ class FilterTile(models.Model):
                 selects.append(SQL("%s FILTER (WHERE %s)", aggregate, condition))
                 columns.append((key, 'value'))
         # A measure may itself have needed a join (a related or monetary field).
-        if (len(query._tables), len(query._joins)) != shape:
+        if self._query_shape(query) != shape:
             return False
 
         rows = list(self.env.execute_query(query.select(*selects)))
@@ -972,7 +1019,12 @@ class FilterTile(models.Model):
         try:
             if with_total:
                 result['total'] = Model.search_count(base)
-        except (AccessError, UserError, ValueError, SyntaxError, KeyError):
+        except (AccessError, UserError, ValueError, SyntaxError, KeyError) as err:
+            # The screen itself cannot be counted, so neither can any tile on
+            # it: say so, rather than leave every tile reading a quiet 0.
+            _logger.info('Filter tiles on %s could not be counted: %s', Model._name, err)
+            for key, _tile, _domain in prepared:
+                result['tiles'][key]['error'] = True
             return
         for key, tile, tile_domain in prepared:
             entry = result['tiles'][key]
@@ -980,12 +1032,14 @@ class FilterTile(models.Model):
                 continue
             try:
                 domain = base + tile_domain
-                entry['count'] = Model.search_count(domain)
                 spec = self._measure_spec(Model, tile)
                 if spec:
-                    groups = Model._read_group(domain, [], [spec])
-                    entry['value'] = float(groups[0][0] or 0.0) if groups else 0.0
+                    # Count and measure in one grouped read, not two queries.
+                    [(count, value)] = Model._read_group(domain, [], ['__count', spec])
+                    entry['count'] = int(count or 0)
+                    entry['value'] = float(value or 0.0)
                 else:
+                    entry['count'] = Model.search_count(domain)
                     entry['value'] = float(entry['count'])
             except (AccessError, UserError, ValueError, SyntaxError, KeyError, TypeError) as err:
                 _logger.info('Filter tile %s on %s could not be computed: %s',
@@ -1012,7 +1066,7 @@ class FilterTile(models.Model):
         for key, tile, _domain in wanted:
             if tile.get('trend_source') == 'history':
                 entry = result['tiles'][key]
-                entry['trend'] = self._history_trend(tile)
+                entry['trend'] = self._history_trend(tile, Model._name)
                 entry['delta'] = self._compute_delta(entry['trend'])
 
         if periods < 2:
@@ -1063,9 +1117,9 @@ class FilterTile(models.Model):
         conditions = self._tile_conditions(Model, query, group)
         if conditions is None:
             return None
-        shape = (len(query._tables), len(query._joins))
+        shape = self._query_shape(query)
         try:
-            bucket = Model._read_group_groupby(query.table, f'{field_name}:month', query)
+            bucket = Model._read_group_groupby(query.table, f'{field_name}:month')
         except (ValueError, KeyError):
             return None
 
@@ -1074,13 +1128,13 @@ class FilterTile(models.Model):
         for key, tile, _domain in group:
             spec = self._measure_spec(Model, tile) or '__count'
             try:
-                aggregate = Model._read_group_select(spec, query)
+                aggregate = Model._read_group_select(query.table, spec)
             except (ValueError, KeyError):
                 return None
             selects.append(SQL("%s FILTER (WHERE %s)", aggregate, conditions[key]))
             keys.append(key)
         # The bucket or a measure may itself have needed a join.
-        if (len(query._tables), len(query._joins)) != shape:
+        if self._query_shape(query) != shape:
             return None
 
         query.groupby = bucket
@@ -1107,10 +1161,23 @@ class FilterTile(models.Model):
         threshold = float(tile.get('alert_value') or 0.0)
         return value > threshold if operator == 'gt' else value < threshold
 
-    def _history_trend(self, tile):
-        """Sparkline drawn from the daily points the cron recorded."""
-        tile_id = int(tile.get('id') or 0)
+    def _history_trend(self, tile, model_name=None):
+        """Sparkline drawn from the daily points the cron recorded.
+
+        Those points were measured as superuser for a shared tile, and the id
+        arrives from the browser - so they are only drawn for a tile the reader
+        may see, counted on the model being asked about (``model_name``):
+        anything else would hand out numbers from a model they cannot read.
+        """
+        try:
+            tile_id = int(tile.get('id') or 0)
+        except (TypeError, ValueError):
+            return []
         if not tile_id:
+            return []
+        record = self.with_context(active_test=False).search([('id', '=', tile_id)], limit=1)
+        if not record or not record._is_visible_to_me() \
+                or (model_name and record.model_name != model_name):
             return []
         points = self.env['filter.tile.snapshot'].search(
             [('tile_id', '=', tile_id)], order='captured_on desc', limit=HISTORY_POINTS)
@@ -1142,12 +1209,9 @@ class FilterTile(models.Model):
         first_month = fields.Date.context_today(self).replace(day=1)
         window_start = first_month - relativedelta(months=periods - 1)
 
-        measure = tile.get('measure') or ''
-        field = Model._fields.get(measure) if measure else None
-        if field is not None and field.type in NUMERIC_TYPES and field.store:
-            aggregate_spec = f"{measure}:{tile.get('aggregate') or 'sum'}"
-        else:
-            aggregate_spec = '__count'
+        # Validated like the batched path: the aggregate arrives from the
+        # browser, and `array_agg` & co. are not a number to draw.
+        aggregate_spec = self._measure_spec(Model, tile) or '__count'
 
         groups = Model._read_group(
             domain + [(field_name, '>=', window_start)],
@@ -1196,7 +1260,7 @@ class FilterTile(models.Model):
             'default_model_id': model.id,
             'default_domain': domain or '[]',
             'default_color': AUTO_COLOR_CYCLE[siblings % len(AUTO_COLOR_CYCLE)],
-            'default_icon': 'fa-filter',
+            'default_icon': 'filter_alt',
             'default_sequence': (siblings + 1) * 10,
             'default_row': max(1, min(MAX_TILE_ROWS, int(row or 1))),
             'default_owner_id': self.env.uid if (personal or not self._is_tile_manager()) else False,
@@ -1217,7 +1281,10 @@ class FilterTile(models.Model):
         """
         if not action_id:
             return False
-        action = self.env['ir.actions.act_window'].browse(int(action_id)).exists()
+        # Odoo 20 lets only administrators read act_window records, and this is
+        # the action the user is standing in: reading its model, domain and
+        # context to decide a default is not a data-access decision.
+        action = self.env['ir.actions.act_window'].sudo().browse(int(action_id)).exists()
         if not action or action.res_model != model_name:
             return False
         narrows = (action.domain or '').strip() not in ('', '[]')
@@ -1258,7 +1325,7 @@ class FilterTile(models.Model):
         for keywords, icon in AUTO_ICON_HINTS:
             if any(keyword in haystack for keyword in keywords):
                 return icon
-        return 'fa-circle-o'
+        return AUTO_ICON_PLAIN
 
     @api.model
     def autogenerate_tiles(self, model_name, field_name=None, replace=False, action_id=False,
@@ -1358,7 +1425,8 @@ class FilterTile(models.Model):
 
         action_id = int(action_id) if action_id else False
         if action_id:
-            action = self.env['ir.actions.act_window'].browse(action_id).exists()
+            # See _scoping_action: only administrators may read actions in 20.
+            action = self.env['ir.actions.act_window'].sudo().browse(action_id).exists()
             if not action or action.res_model != model_name:
                 action_id = False
         scope = [('model_name', '=', model_name), ('action_id', '=', action_id)]
@@ -1368,13 +1436,15 @@ class FilterTile(models.Model):
         start_sequence = max(existing.mapped('sequence') or [0]) + 10
         owner = self.env.uid if (personal or not self._is_tile_manager()) else False
         section = str(section_name or field.string or field_name)
-        fallback_icon = icon if icon and str(icon).startswith('fa-') else False
+        # The section's own icon, as the 20.0 search panel names it ("folder",
+        # "filter_alt"...) - or a 19.0 FontAwesome one, translated.
+        fallback_icon = normalize_icon(str(icon).strip()) if icon and str(icon).strip() else False
 
         def icon_for(label, value_id):
             # A value that says what it is ("Done", "Late") gets its own icon;
             # the rest wear the section's, so the set still reads as one.
             guessed = self._auto_icon(label, value_id)
-            return fallback_icon if guessed == 'fa-circle-o' and fallback_icon else guessed
+            return fallback_icon if guessed == AUTO_ICON_PLAIN and fallback_icon else guessed
 
         vals_list = []
         for index, (value_id, label) in enumerate(picked):
@@ -1695,9 +1765,9 @@ class FilterTile(models.Model):
     def _notify_alert(self, value):
         """Push the warning to its audience, live.
 
-        Sent on the user's own partner channel - the one the web client is
-        already subscribed to - so it lands as a notification wherever they are
-        in Odoo, not only on the view the tile lives above.
+        Sent on the user's own channel - the one the web client is already
+        subscribed to - so it lands as a notification wherever they are in
+        Odoo, not only on the view the tile lives above.
         """
         self.ensure_one()
         users = self._alert_audience()
@@ -1713,9 +1783,10 @@ class FilterTile(models.Model):
             'domain': self.domain or '[]',
             'value': value,
         }
+        # Odoo 20 delivers to the user's own channel: notifications sent to a
+        # partner are deprecated (and logged as such on every send).
         for user in users:
-            if user.partner_id:
-                self.env['bus.bus']._sendone(user.partner_id, 'filter_tiles.alert', payload)
+            user._bus_send('filter_tiles.alert', payload)
 
     def _check_alert(self):
         """Evaluate one tile's threshold and flip its alert state.
@@ -1809,6 +1880,7 @@ class FilterTile(models.Model):
         payload = []
         for tile in tiles:
             values = {field: tile[field] for field in EXPORT_FIELDS}
+            values['icon'] = normalize_icon(values['icon'])
             # See _tile_payload: field *names* are technical, not confidential.
             fields_sudo = tile.sudo()
             values.update({

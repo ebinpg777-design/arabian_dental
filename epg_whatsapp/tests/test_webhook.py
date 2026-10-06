@@ -157,6 +157,16 @@ class TestWhatsappWindow(TransactionCase):
         self.assertEqual(msg.error_code, '131026')
 
     # ------------------------------------------------------------------ signature
+    def test_metas_unix_timestamp_is_read_as_utc(self):
+        """Receipts and replies carry Meta's time as unix seconds. It used to go
+        through Datetime.to_datetime(), which takes no number, so every one was
+        stamped with the moment the callback arrived. (port to 20.0, 2026-10-01)"""
+        from datetime import datetime
+        from odoo.addons.epg_whatsapp.controllers.webhook import EpgWhatsappWebhook
+        self.assertEqual(EpgWhatsappWebhook._stamp('1700000000'), datetime(2023, 11, 14, 22, 13, 20))
+        self.assertIsNone(EpgWhatsappWebhook._stamp(''))
+        self.assertIsNone(EpgWhatsappWebhook._stamp('not-a-time'))
+
     def test_a_correctly_signed_payload_is_accepted(self):
         body = json.dumps({'hello': 'world'}).encode()
         sig = 'sha256=' + hmac.new(SECRET.encode(), body, hashlib.sha256).hexdigest()

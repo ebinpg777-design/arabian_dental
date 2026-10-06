@@ -193,6 +193,26 @@ class TestCapabilities(CommunityAICase):
                                      filters=[{'field': 'city', 'operator': '=', 'value': 'Countville'}]))
         self.assertEqual(grouped.payload['groups'], [{'group': 'Countville', 'count': 3}])
 
+    def test_count_by_date_and_boolean(self):
+        """Date and boolean fields are offered for grouping: they must not crash nor read as 'Undefined'."""
+        fields_ = self.env['ir.model.fields'].search([('model', '=', 'res.partner'),
+                                                     ('name', 'in', ['city', 'create_date', 'is_company'])])
+        count = self.env['community.ai.capability'].create({
+            'name': 'Count', 'technical_identifier': 't_count_dates', 'handler_key': 'count_records',
+            'description': 'c', 'model_id': self.env.ref('base.model_res_partner').id,
+            'field_ids': [Command.set(fields_.ids)]})
+        self.assistant.capability_ids = [Command.link(count.id)]
+        self.env['res.partner'].create([{'name': 'Dated', 'city': 'Dateville'},
+                                        {'name': 'Dated Co', 'city': 'Dateville', 'vat': 'BE0477472701'}])
+        runner = self.runner()
+        city = [{'field': 'city', 'operator': '=', 'value': 'Dateville'}]
+        by_date = runner.invoke(call('t_count_dates', group_by='create_date', filters=city))
+        self.assertEqual(by_date.status, 'executed', by_date.payload)
+        self.assertEqual([g['count'] for g in by_date.payload['groups']], [2], 'grouped by month')
+        by_flag = runner.invoke(call('t_count_dates', group_by='is_company', filters=city))
+        self.assertEqual(sorted((g['group'], g['count']) for g in by_flag.payload['groups']),
+                         [(False, 1), (True, 1)])
+
     def test_results_are_sanitized(self):
         self.env['res.partner'].create({'name': 'Leaky', 'email': 'token=sk-abcdefghijklmnopqrstuvwxyz@x.com'})
         outcome = self.runner().invoke(call('t_search_partners', query='Leaky'))

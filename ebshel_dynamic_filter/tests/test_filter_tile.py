@@ -22,8 +22,10 @@ class TestFilterTile(TransactionCase):
         cls.partner_model = cls.env['ir.model']._get('res.partner')
         cls.Tile = cls.env['filter.tile']
 
+        # Odoo 20 computes `is_company` - a partner that is its own commercial
+        # entity AND has a tax id - so a company is made by giving it one.
         cls.companies = cls.env['res.partner'].create([
-            {'name': 'Tile Test Company %s' % index, 'is_company': True}
+            {'name': 'Tile Test Company %s' % index, 'vat': 'TILETEST%s' % index}
             for index in range(3)
         ])
         cls.people = cls.env['res.partner'].create([
@@ -179,7 +181,8 @@ class TestFilterTile(TransactionCase):
     # Portability
     # ------------------------------------------------------------------
     def test_export_import_round_trip(self):
-        self.tile_companies.write({'alert_operator': 'gt', 'alert_value': 2, 'icon': 'fa-truck'})
+        self.tile_companies.write({'alert_operator': 'gt', 'alert_value': 2,
+                                   'icon': 'local_shipping'})
         payload = self.Tile.export_tiles('res.partner')
         self.assertTrue(payload['tiles'])
 
@@ -187,8 +190,43 @@ class TestFilterTile(TransactionCase):
         created = self.Tile.browse(result['created'])
         clone = created.filtered(lambda tile: tile.name == 'Test companies')
         self.assertTrue(clone)
-        self.assertEqual(clone[0].icon, 'fa-truck')
+        self.assertEqual(clone[0].icon, 'local_shipping')
         self.assertEqual(clone[0].alert_operator, 'gt')
+
+    # ------------------------------------------------------------------
+    # Icons: Odoo 20 has no FontAwesome
+    # ------------------------------------------------------------------
+    def test_a_fontawesome_icon_is_translated_on_save(self):
+        """A 19.0 icon name draws nothing in 20.0, so it never reaches the table."""
+        tile = self.Tile.create({
+            'name': 'Old icon', 'model_id': self.partner_model.id, 'icon': 'fa-truck'})
+        self.assertEqual(tile.icon, 'local_shipping')
+        tile.icon = 'fa fa-fw fa-bell'
+        self.assertEqual(tile.icon, 'notifications')
+        tile.icon = 'fa-no-such-icon'
+        self.assertEqual(tile.icon, 'filter_alt', "an unknown one still gets a face")
+        tile.icon = 'oi_whatsapp'
+        self.assertEqual(tile.icon, 'oi_whatsapp', "a 20.0 name is kept as it is")
+
+    def test_a_19_export_imports_with_drawable_icons(self):
+        payload = {'version': 1, 'tiles': [{
+            'name': 'From 19', 'model': 'res.partner', 'domain': '[]', 'icon': 'fa-money'}]}
+        result = self.Tile.import_tiles(payload)
+        self.assertEqual(self.Tile.browse(result['created']).icon, 'payments')
+
+    def test_the_browser_never_gets_a_fontawesome_name(self):
+        """A value written behind the ORM's back is translated on its way out."""
+        self.env.cr.execute("UPDATE filter_tile SET icon = 'fa-calendar' WHERE id = %s",
+                            [self.tile_people.id])
+        self.tile_people.invalidate_recordset(['icon'])
+        payload = self.tile_people._tile_payload()
+        self.assertEqual(payload['icon'], 'calendar_today')
+
+    def test_generated_tiles_get_drawable_icons(self):
+        created = self.Tile.autogenerate_tiles('ir.cron', 'interval_type', replace=True)
+        icons = self.Tile.browse(created).mapped('icon')
+        self.assertTrue(icons)
+        self.assertFalse([icon for icon in icons if icon.startswith('fa')])
 
     def test_group_by_travels_with_the_tile(self):
         self.tile_companies.write({
@@ -848,13 +886,13 @@ class TestFilterTile(TransactionCase):
     def test_the_batch_obeys_record_rules(self):
         """Every tile is a FILTER over the *base* query, which is where the
         rules live - a tile must not be able to count past them."""
-        self.env['ir.rule'].create({
+        # Odoo 20: record rules are ir.access rows. One without a group is a
+        # restriction - AND-ed onto every user's own rights.
+        self.env['ir.access'].create({
             'name': 'Tile test: companies only',
             'model_id': self.partner_model.id,
-            'domain_force': "[('is_company', '=', True)]",
-            'groups': [(6, 0, [self.env.ref('base.group_user').id])],
-            'perm_read': True,
-            'perm_write': False, 'perm_create': False, 'perm_unlink': False,
+            'operation': 'r',
+            'domain': "[('is_company', '=', True)]",
         })
         self.env.transaction.invalidate_ormcache()
         Tile = self.Tile.with_user(self.user)
@@ -1235,3 +1273,271 @@ class TestHeadlineTiles(TransactionCase):
     def test_the_flag_rides_the_payload(self):
         self.assertTrue(self.headline._tile_payload()['ignore_filters'])
         self.assertFalse(self.mine._tile_payload()['ignore_filters'])
+
+
+@tagged('post_install', '-at_install')
+class TestDomainIsDataNotCode(TransactionCase):
+    """A tile domain is evaluated server-side with the caller's rights, and the
+    caller is any internal user (a private tile) or the browser (compute_tiles).
+    It must stay data - never a handle on the ORM."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Tile = cls.env['filter.tile']
+        cls.model = cls.env['ir.model']._get('res.partner')
+        cls.user = cls.env['res.users'].create({
+            'name': 'Plain', 'login': 'tile_domain_plain',
+            'group_ids': [(6, 0, [cls.env.ref('base.group_user').id])],
+        })
+
+    def test_a_domain_cannot_reach_the_orm_through_user(self):
+        """`user.sudo().write(...)` in a tile domain made any user an admin."""
+        admin_group = self.env.ref('base.group_system')
+        escalate = ("[('id', '=', user.sudo().write("
+                    "{'group_ids': [(4, %d)]}) and 0)]" % admin_group.id)
+        # Through compute_tiles, the browser's own path.
+        self.Tile.with_user(self.user).compute_tiles(
+            'res.partner', [{'key': 'x', 'domain': escalate}], [])
+        self.user.invalidate_recordset()
+        self.assertNotIn(
+            admin_group, self.user.with_context(active_test=False).all_group_ids,
+            "a tile domain must not be able to grant a group")
+        # And as a stored tile domain evaluated on the server.
+        with self.assertRaises(ValidationError):
+            self.Tile.with_user(self.user).create({
+                'name': 'Evil', 'model_id': self.model.id, 'domain': escalate})
+        self.user.invalidate_recordset()
+        self.assertNotIn(admin_group,
+                         self.user.with_context(active_test=False).all_group_ids)
+
+
+@tagged('post_install', '-at_install')
+class TestTilesCannotLeakAModelYouCannotRead(TransactionCase):
+    """Every number a tile shows is counted with the reader's rights; a tile on
+    a model the reader cannot read must not reach their ribbon or wall at all."""
+
+    # Readable by settings users only - a plain internal user gets nothing.
+    SECRET = 'ir.config_parameter'
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Tile = cls.env['filter.tile']
+        cls.user = cls.env['res.users'].create({
+            'name': 'Plain reader', 'login': 'tile_leak_plain',
+            'group_ids': [(6, 0, [cls.env.ref('base.group_user').id])],
+        })
+        cls.Tile.create({
+            'name': 'Settings', 'model_id': cls.env['ir.model']._get(cls.SECRET).id,
+            'domain': '[]'})
+        cls.Tile.create({
+            'name': 'Contacts', 'model_id': cls.env['ir.model']._get('res.partner').id,
+            'domain': '[]'})
+
+    def test_the_premise(self):
+        self.assertFalse(self.env[self.SECRET].with_user(self.user).has_access('read'))
+
+    def test_registry_hides_a_tile_on_an_unreadable_model(self):
+        registry = self.Tile.with_user(self.user).get_tile_registry()
+        self.assertNotIn(self.SECRET, registry['tiles'],
+                         "a tile on a model the user cannot read must not be listed")
+        self.assertIn('res.partner', registry['tiles'], "readable models still are")
+        self.assertIn(self.SECRET, self.Tile.get_tile_registry()['tiles'],
+                      "an administrator still gets it")
+
+    def test_overview_hides_a_tile_on_an_unreadable_model(self):
+        overview = self.Tile.with_user(self.user).get_overview()
+        self.assertNotIn(self.SECRET, [s['model'] for s in overview['sections']])
+
+
+@tagged('post_install', '-at_install')
+class TestHistoryTrendIsScoped(TransactionCase):
+    """A history sparkline is drawn from points measured as superuser; it must
+    only be handed back for a tile the reader may see, on the model asked."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Tile = cls.env['filter.tile']
+        cls.model = cls.env['ir.model']._get('res.partner')
+        cls.user = cls.env['res.users'].create({
+            'name': 'Plain', 'login': 'tile_history_plain',
+            'group_ids': [(6, 0, [cls.env.ref('base.group_user').id])],
+        })
+        cls.other = cls.env['res.users'].create({
+            'name': 'Owner', 'login': 'tile_history_owner',
+            'group_ids': [(6, 0, [cls.env.ref('base.group_user').id])],
+        })
+        # Shared, but restricted to administrators: not on the plain user's
+        # ribbon, so its superuser-measured history is not theirs either.
+        cls.private = cls.Tile.create({
+            'name': 'Admins history', 'model_id': cls.model.id, 'domain': '[]',
+            'trend_source': 'history',
+            'group_ids': [(6, 0, [cls.env.ref('base.group_system').id])]})
+        Snapshot = cls.env['filter.tile.snapshot'].sudo()
+        for day in range(3):
+            Snapshot.create({
+                'tile_id': cls.private.id,
+                'captured_on': fields.Date.to_date('2026-01-0%d' % (day + 1)),
+                'value': 10 + day, 'record_count': 10 + day})
+
+    def test_history_of_a_hidden_tile_is_not_handed_to_a_stranger(self):
+        """A forged payload pointing at a tile restricted to other groups gets
+        no series - the points were measured without record rules."""
+        forged = {'key': 'f', 'id': self.private.id, 'show_trend': True,
+                  'trend_source': 'history'}
+        result = self.Tile.with_user(self.user).compute_tiles('res.partner', [forged], [])
+        self.assertEqual(result['tiles']['f']['trend'], [],
+                         "no history for a tile the user cannot see")
+        admin = self.Tile.compute_tiles('res.partner', [forged], [])
+        self.assertEqual(len(admin['tiles']['f']['trend']), 3, "its audience still gets it")
+
+    def test_history_is_not_served_for_another_model(self):
+        """The id is from the browser; a tile's history must not answer a
+        request about a different model."""
+        shared = self.Tile.create({
+            'name': 'Shared hist', 'model_id': self.model.id, 'domain': '[]',
+            'trend_source': 'history'})
+        Snapshot = self.env['filter.tile.snapshot'].sudo()
+        for day in range(3):
+            Snapshot.create({
+                'tile_id': shared.id,
+                'captured_on': fields.Date.to_date('2026-02-0%d' % (day + 1)),
+                'value': day, 'record_count': day})
+        forged = {'key': 'f', 'id': shared.id, 'show_trend': True, 'trend_source': 'history'}
+        right = self.Tile.compute_tiles('res.partner', [forged], [])
+        self.assertEqual(len(right['tiles']['f']['trend']), 3)
+        wrong = self.Tile.compute_tiles('res.users', [forged], [])
+        self.assertEqual(wrong['tiles']['f']['trend'], [],
+                         "a partner tile's history does not answer for res.users")
+
+
+@tagged('post_install', '-at_install')
+class TestComputeHardening(TransactionCase):
+    """Odoo-20 correctness and robustness of compute_tiles."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Tile = cls.env['filter.tile']
+        cls.model = cls.env['ir.model']._get('res.partner')
+
+    def test_periods_from_the_browser_are_bounded(self):
+        """`periods` arrives from the client; an absurd number must not turn a
+        sparkline into thousands of monthly buckets."""
+        tiles = [{'key': 'c', 'domain': '[]', 'show_trend': True}]
+        result = self.Tile.compute_tiles('res.partner', tiles, [], 100000)
+        self.assertLessEqual(len(result['tiles']['c']['trend']), 36)
+
+    def _queries(self, tiles, base=(), unfiltered=None):
+        self.Tile.compute_tiles('res.partner', tiles, list(base), 6, unfiltered)  # warm
+        self.env.flush_all()
+        before = self.cr.sql_log_count
+        result = self.Tile.compute_tiles('res.partner', tiles, list(base), 6, unfiltered)
+        return self.cr.sql_log_count - before, result
+
+    def test_a_measure_tile_counts_in_one_grouped_read(self):
+        """On the unbatched path a measure tile used to cost a count AND a
+        grouped read; one grouped read gives both, like a plain count."""
+        dotted = "[('country_id.code', '=', 'BE')]"  # a join: the slow path
+        plain_cost, _ = self._queries([{'key': 'c', 'domain': dotted}])
+        measure_cost, result = self._queries([{
+            'key': 'm', 'domain': dotted, 'measure': 'partner_latitude',
+            'aggregate': 'sum'}])
+        self.assertEqual(measure_cost, plain_cost)
+        expected = self.env['res.partner']._read_group(
+            [('country_id.code', '=', 'BE')], [], ['__count', 'partner_latitude:sum'])
+        self.assertEqual(result['tiles']['m']['count'], int(expected[0][0] or 0))
+        self.assertEqual(result['tiles']['m']['value'], float(expected[0][1] or 0.0))
+
+    def test_only_headline_tiles_still_report_a_total(self):
+        """A ribbon of nothing but headline tiles must still work (the
+        non-headline total is never computed)."""
+        headline = {'key': 'h', 'domain': '[]', 'ignore_filters': True}
+        cost, result = self._queries([headline], [('is_company', '=', True)], [])
+        entry = result['tiles']['h']
+        self.assertFalse(entry['error'])
+        self.assertEqual(entry['count'], self.env['res.partner'].search_count([]))
+        self.assertEqual(result['total'], self.env['res.partner'].search_count([]))
+        self.assertEqual(cost, 2, "the headline total and its count - not also "
+                                  "the filtered total nobody reads")
+
+
+@tagged('post_install', '-at_install')
+class TestPlainUserPaths(TransactionCase):
+    """What a non-administrator does from the ribbon, on Odoo 20 rights."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Tile = cls.env['filter.tile']
+        cls.Row = cls.env['filter.tile.row']
+        cls.model = cls.env['ir.model']._get('res.partner')
+        cls.user = cls.env['res.users'].create({
+            'name': 'Plain', 'login': 'tile_paths_plain',
+            'group_ids': [(6, 0, [cls.env.ref('base.group_user').id])],
+        })
+        cls.narrowing = cls.env['ir.actions.act_window'].create({
+            'name': 'Companies only', 'res_model': 'res.partner',
+            'domain': "[('is_company', '=', True)]",
+        })
+
+    def test_the_premise(self):
+        self.assertFalse(
+            self.env['ir.actions.act_window'].with_user(self.user).has_access('read'),
+            "Odoo 20: only administrators read act_window records")
+
+    def test_a_plain_user_can_open_the_editor_from_a_scoped_view(self):
+        """The "+" tile asked for defaults by reading the action the user stood
+        in - an AccessError for everybody but administrators."""
+        # The action was created as admin: drop it from the cache, or its
+        # fields are served to the plain user without any access check.
+        self.env.invalidate_all()
+        defaults = self.Tile.with_user(self.user).prepare_tile_defaults(
+            'res.partner', '[]', True, 1, self.narrowing.id)
+        self.assertEqual(defaults['default_action_id'], self.narrowing.id)
+
+    def test_a_plain_user_can_turn_a_panel_section_into_tiles_there(self):
+        self.env.invalidate_all()  # see above: no admin-filled cache
+        ids = self.Tile.with_user(self.user).create_tiles_from_panel(
+            'res.partner', 'country_id', 'in', [{'id': 1, 'label': 'X'}],
+            action_id=self.narrowing.id, personal=True)
+        self.assertEqual(self.Tile.browse(ids).action_id, self.narrowing)
+
+    def test_a_plain_user_cannot_rename_the_shared_rows_by_deleting_one(self):
+        """delete_row shifted row names as superuser: any user could drop or
+        shift the captions of everybody's ribbon over RPC."""
+        self.Row.set_row_name('res.partner', 1, 'First')
+        self.Row.set_row_name('res.partner', 2, 'Second')
+        with self.assertRaises(AccessError):
+            self.Tile.with_user(self.user).delete_row('res.partner', 1)
+        names = self.Row.get_row_names('res.partner')['res.partner']
+        self.assertEqual(names, {'1': 'First', '2': 'Second'})
+
+    def test_an_unreadable_model_reports_errors_instead_of_raising(self):
+        """The probe of the batch ran outside the error guard, so asking about a
+        model the reader cannot read crashed the call (and the ribbon)."""
+        result = self.Tile.with_user(self.user).compute_tiles(
+            'ir.config_parameter', [{'key': 'k', 'domain': '[]'}], [])
+        self.assertTrue(result['tiles']['k']['error'])
+        self.assertEqual(result['total'], 0)
+
+    def test_history_of_a_group_restricted_tile_follows_its_groups(self):
+        """A shared tile restricted to a group is invisible to everybody else -
+        and so must its recorded history be, which was measured as superuser."""
+        restricted = self.Tile.create({
+            'name': 'Admins only', 'model_id': self.model.id, 'domain': '[]',
+            'trend_source': 'history',
+            'group_ids': [(6, 0, [self.env.ref('base.group_system').id])]})
+        open_tile = self.Tile.create({
+            'name': 'Everybody', 'model_id': self.model.id, 'domain': '[]',
+            'trend_source': 'history'})
+        Snapshot = self.env['filter.tile.snapshot']
+        Snapshot.create([
+            {'tile_id': restricted.id, 'value': 1, 'record_count': 1},
+            {'tile_id': open_tile.id, 'value': 2, 'record_count': 2},
+        ])
+        seen = Snapshot.with_user(self.user).search(
+            [('tile_id', 'in', (restricted | open_tile).ids)])
+        self.assertEqual(seen.tile_id, open_tile)

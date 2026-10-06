@@ -14,8 +14,8 @@
                      t-foreach="this.props.fields" t-as="field" t-key="field.name"
                      t-on-click="() => this.select(field.name)">
                     <div class="o_dft_gen_field_head">
-                        <i class="fa fa-fw"
-                           t-att-class="field.name === this.state.selected ? 'fa-dot-circle-o' : 'fa-circle-o'"/>
+                        <i class="oi oi-fw"
+                           t-att-data-icon="field.name === this.state.selected ? 'radio_button_checked' : 'radio_button_unchecked'"/>
                         <span class="o_dft_gen_field_name" t-out="field.string"/>
                         <span class="o_dft_gen_field_tech" t-out="field.name"/>
                         <span class="o_dft_gen_field_count">
@@ -32,7 +32,7 @@
 
             <div t-if="this.props.hasTiles" class="form-check mt-3">
                 <input id="dft_gen_replace" class="form-check-input" type="checkbox"
-                       t-custom-model="this.state.replace"/>
+                       t-model.proxy="this.state.replace"/>
                 <label class="form-check-label" for="dft_gen_replace">
                     Delete the tiles this model already has
                 </label>
@@ -50,7 +50,7 @@
 
                 <div t-if="this.props.actionName" class="form-check mt-2">
                     <input id="dft_gen_action" class="form-check-input" type="checkbox"
-                           t-custom-model="this.state.thisActionOnly"/>
+                           t-model.proxy="this.state.thisActionOnly"/>
                     <label class="form-check-label" for="dft_gen_action">
                         Only on <b t-out="this.props.actionName"/> — leave unticked to put them on every
                         list and kanban view of this model
@@ -60,7 +60,7 @@
             <t t-set-slot="footer">
                 <button class="btn btn-primary" t-att-disabled="this.state.generating or !this.state.selected"
                         t-on-click="this.confirm">
-                    <i class="fa fa-magic me-1"/>
+                    <i class="oi me-1" data-icon="wand_stars"/>
                     Generate tiles
                 </button>
                 <button class="btn btn-secondary" t-on-click="() => this.props.close()">

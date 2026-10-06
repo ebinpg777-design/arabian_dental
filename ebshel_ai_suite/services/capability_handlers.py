@@ -230,11 +230,15 @@ class CountRecordsHandler(CapabilityHandler):
         if field is None or group_by not in self._field_names(capability) or \
                 field.type not in ('selection', 'many2one', 'boolean', 'date', 'datetime', 'char'):
             raise CapabilityFailure(f'Cannot group by "{group_by}".')
-        groups = Model._read_group(domain, groupby=[group_by], aggregates=['__count'], limit=50)
+        # date(time) groups need a granularity, the ORM refuses a bare date field
+        spec = f'{group_by}:month' if field.type in ('date', 'datetime') else group_by
+        groups = Model._read_group(domain, groupby=[spec], aggregates=['__count'], limit=50)
         result = []
         for key, count in groups:
             label = key.display_name if hasattr(key, 'display_name') else key
-            result.append({'group': label if label not in (None, False) else 'Undefined', 'count': count})
+            if field.type != 'boolean' and label in (None, False):
+                label = 'Undefined'
+            result.append({'group': label, 'count': count})
         return {'model': capability.model_name, 'groups': result}
 
 

@@ -8,7 +8,7 @@ rule_whatsapp_message_own,WhatsApp: messages that are yours to send,epg.whatsapp
                 ('sent_by_id', '=', user.id),
                 ('user_id', '=', False)]"
 rule_whatsapp_message_all,WhatsApp: every message,epg.whatsapp.message,epg_whatsapp.group_whatsapp_admin,crud,
-access_message_read_everyone,message read (everyone),epg.whatsapp.message,base.group_user,r,
+access_message_read_everyone,message read (everyone),epg.whatsapp.message,base.group_user,r,"[(0, '=', 1)] if user.has_group('epg_whatsapp.group_whatsapp_user') else []"
 access_composer_user,composer,epg.whatsapp.composer,epg_whatsapp.group_whatsapp_user,crud,
 access_conversation_user,conversation user,epg.whatsapp.conversation,epg_whatsapp.group_whatsapp_user,cru,
 access_conversation_admin,conversation admin,epg.whatsapp.conversation,epg_whatsapp.group_whatsapp_admin,crud,

@@ -14,20 +14,26 @@
         own. `$0` re-inserts the original node untouched, which keeps every
         prop of `props.Renderer` (and any patch another module made to it)
         exactly as the view defined them.
+
+        Odoo 20: the renderer carries `t-if="this.model.isReady()"` and is followed
+        by a `t-elif` (the offline helper). The wrapper takes over that `t-if`, or
+        the `t-elif` would follow a plain div and the controller template would no
+        longer compile; `$0` keeps its own copy of the condition, which is then
+        always true.
     -->
     <t t-inherit="web.ListView" t-inherit-mode="extension">
-        <xpath expr="//t[@t-component='props.Renderer']" position="replace">
-            <div class="o_dft_layout">
-                <t t-component="FilterTileBar" list="model.root" viewType="'list'"/>
+        <xpath expr="//t[@t-component='this.props.Renderer']" position="replace">
+            <div t-if="this.model.isReady()" class="o_dft_layout">
+                <t t-component="this.FilterTileBar" list="this.model.root" viewType="'list'"/>
                 <t>$0</t>
             </div>
         </xpath>
     </t>
 
     <t t-inherit="web.KanbanView" t-inherit-mode="extension">
-        <xpath expr="//t[@t-component='props.Renderer']" position="replace">
-            <div class="o_dft_layout">
-                <t t-component="FilterTileBar" list="model.root" viewType="'kanban'"/>
+        <xpath expr="//t[@t-component='this.props.Renderer']" position="replace">
+            <div t-if="this.model.isReady()" class="o_dft_layout">
+                <t t-component="this.FilterTileBar" list="this.model.root" viewType="'kanban'"/>
                 <t>$0</t>
             </div>
         </xpath>

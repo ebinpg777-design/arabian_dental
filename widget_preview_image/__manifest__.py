@@ -22,7 +22,7 @@
 ################################################################################
 {
     'name': 'Image Preview Widget',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Extra Tools',
     'summary': """Enables preview of the image""",
     'description': """This module enables to enlarge image while clicking on it 
@@ -31,12 +31,12 @@
     'company': 'Cybrosys Techno Solutions',
     'maintainer': 'Cybrosys Techno Solutions',
     'website': 'https://www.cybrosys.com',
-    'depends': ['web'],
+    'depends': ['web', 'html_editor'],
     'assets': {
-        'web.assets_backend': {
+        'web.assets_backend': [
             'widget_preview_image/static/src/js/image_preview_widget.js',
             'widget_preview_image/static/src/xml/widget_image_preview.xml',
-        }
+        ]
     },
     'images': ['static/description/banner.jpg'],
     'license': 'AGPL-3',

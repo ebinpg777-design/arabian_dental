@@ -689,7 +689,9 @@ patch(SearchPanel.prototype, {
     // Bridge to filter tiles
     // ------------------------------------------------------------------
     get dftTilesAvailable() {
-        return this.dftOn && !this.env.isSmall && Boolean(this.env.services.filter_tiles);
+        // Odoo 20: the screen size lives on the ui service - reading
+        // `env.isSmall` throws.
+        return this.dftOn && !this.uiService.isSmall && Boolean(this.env.services.filter_tiles);
     },
 
     /** The same condition the panel itself applies for this value. */
@@ -703,9 +705,10 @@ patch(SearchPanel.prototype, {
         return { operator: "in", domain: [[section.fieldName, "in", [value.id]]] };
     },
 
+    /** The section's own icon, as the 20.0 panel names it ("folder", "group"...). */
     dftTileIcon(section) {
         const icon = (section.icon || "").trim();
-        return icon.startsWith("fa-") ? icon : "fa-filter";
+        return icon || "filter_alt";
     },
 
     /** Pin one value as a tile: the editor opens, already filled in. */

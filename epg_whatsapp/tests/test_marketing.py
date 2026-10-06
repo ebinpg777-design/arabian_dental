@@ -14,8 +14,9 @@ from .test_link_channel import BROWSER
 from .test_smart_send import SmartSetup
 
 # A 1x1 PNG.
+# Odoo 20 binary fields take a base64 *str* (bytes are refused).
 PNG = base64.b64encode(base64.b64decode(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='))
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')).decode()
 
 
 class MarketingSetup(SmartSetup):
@@ -257,6 +258,16 @@ class TestMarketing(MarketingSetup, TransactionCase):
         self.assertEqual((campaign.replied_count, campaign.optout_count), (1, 1))
 
     # ------------------------------------------------------------------ automations
+    def test_a_new_automation_form_counts_nobody_due(self):
+        """The New form computes Due Now before an audience is picked; it used to
+        raise "Expected singleton" from the empty audience. (port to 20.0)"""
+        draft = self.env['epg.whatsapp.automation'].new({'name': 'Draft'})
+        self.assertEqual(draft.due_count, 0)
+        picked = self.env['epg.whatsapp.automation'].new(
+            {'name': 'Draft', 'audience_id': self.everyone.id})
+        self.assertEqual(picked.due_count, self.everyone.count,
+                         "an unsaved automation has sent nothing, so everyone is due")
+
     def test_an_automation_sends_once_and_waits_before_repeating(self):
         automation = self.env['epg.whatsapp.automation'].create({
             'name': 'Miss you', 'audience_id': self.everyone.id, 'account_id': self.account.id,

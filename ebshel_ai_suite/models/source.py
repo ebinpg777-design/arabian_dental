@@ -77,7 +77,7 @@ class CommunityAISource(models.Model):
         for source in self:
             size = len(source.content_text or '') if source.source_kind == 'text' else 0
             if source.source_kind in ('url', 'file') or size > INLINE_INDEX_LIMIT:
-                if source.source_kind == 'file' and source.file_data and len(source.file_data) < 400_000:
+                if source.source_kind == 'file' and source.file_data and source.file_data.size < 300_000:
                     source._cai_index_now()
                     continue
                 source._cai_enqueue_indexing()

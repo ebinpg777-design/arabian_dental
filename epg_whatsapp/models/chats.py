@@ -38,11 +38,15 @@ class EpgWhatsappDeskChats(models.AbstractModel):
                                    order='last_message_at desc, id desc', limit=CHAT_ROWS)
         if opened and opened not in rows:
             rows = opened | rows
-        Message = self.env['epg.whatsapp.message'].sudo()
+        # The messages under the reader's own rules - a sender reads their own and
+        # the shared queue, as everywhere else (client, 2026-09-19); the contact's
+        # name and standing through sudo, as on the Desk: a contact the reader
+        # cannot open must not take the whole list down. (review, 2026-10-04)
+        Message = self.env['epg.whatsapp.message']
         best = Message._best_times(rows.mapped('number'))
         # One pass over every contact, not one per row: the engagement compute reads
         # the messages of all the partners it is given at once.
-        rows.mapped('partner_id').mapped('whatsapp_engagement')
+        rows.sudo().partner_id.mapped('whatsapp_engagement')
         # The last message of every conversation in one query, not one each: the
         # newest id is the newest message.
         last_ids = {conv.id: last_id for conv, last_id in Message._read_group(
@@ -52,10 +56,11 @@ class EpgWhatsappDeskChats(models.AbstractModel):
         for conv in rows:
             # A conversation opened from a contact may hold nothing yet.
             last = lasts.get(conv.id) or Message.browse()
+            partner = conv.sudo().partner_id
             chats.append({
                 'id': conv.id,
-                'partner': conv.sudo().partner_id.display_name or '',
-                'partner_id': conv.sudo().partner_id.id or False,
+                'partner': partner.display_name or '',
+                'partner_id': partner.id or False,
                 'number': conv.number,
                 'last': (last.body or '')[:80],
                 'last_inbound': last.direction == 'inbound' if last else False,
@@ -63,7 +68,7 @@ class EpgWhatsappDeskChats(models.AbstractModel):
                 'awaiting': bool(last) and last.direction == 'inbound',
                 'opt_out': conv.opt_out,
                 'best_time': (best.get(conv.number) or {}).get('label', ''),
-                'engagement': conv.partner_id.whatsapp_engagement if conv.partner_id else '',
+                'engagement': partner.whatsapp_engagement if partner else '',
             })
         return {'chats': chats, 'open_id': opened.id if opened else False}
 
@@ -77,7 +82,9 @@ class EpgWhatsappDeskChats(models.AbstractModel):
                                    order='last_message_at desc', limit=1)
         if conv:
             return conv
-        number = self.env['epg.whatsapp.campaign']._number_of(partner)
+        # The number through sudo, like the name: a contact the reader cannot
+        # open is still one they may answer.
+        number = self.env['epg.whatsapp.campaign']._number_of(partner.sudo())
         account = self.env['epg.whatsapp.account']._default_account()
         if not (number and account):
             return Conversation
@@ -100,7 +107,9 @@ class EpgWhatsappDeskChats(models.AbstractModel):
         conv = self.env['epg.whatsapp.conversation'].browse(int(conversation_id)).exists()
         if not conv:
             raise UserError(_("This conversation no longer exists."))
-        Message = self.env['epg.whatsapp.message'].sudo()
+        # The reader's own rules decide which messages are in the thread, as in
+        # get_chats; names through sudo.
+        Message = self.env['epg.whatsapp.message']
         rows = Message.search([('conversation_id', '=', conv.id)],
                               order='create_date desc, id desc', limit=THREAD_ROWS)
         bubbles = []
@@ -115,7 +124,7 @@ class EpgWhatsappDeskChats(models.AbstractModel):
                                 'label': self._day_label(day)})
                 last_day = day
             bubbles.append(self._bubble(message, local, records.get(message.id)))
-        partner = conv.partner_id
+        partner = conv.sudo().partner_id
         best = Message._best_times([conv.number]).get(conv.number)
         return {
             'id': conv.id,
@@ -191,7 +200,10 @@ class EpgWhatsappDeskChats(models.AbstractModel):
                 'res.partner', conv.partner_id.id)
         if not text:
             raise UserError(_("Write the message first."))
-        message = self.env['epg.whatsapp.message'].create({
+        # Created through sudo, then handled as the writer: every value but the text
+        # is the conversation's own, and the contact may be one this person cannot
+        # open (record rules on contacts), which must not stop them answering.
+        message = self.env['epg.whatsapp.message'].sudo().create({
             'account_id': conv.account_id.id,
             'conversation_id': conv.id,
             'partner_id': conv.partner_id.id,
@@ -200,7 +212,7 @@ class EpgWhatsappDeskChats(models.AbstractModel):
             'res_model': 'res.partner' if conv.partner_id else False,
             'res_id': conv.partner_id.id or False,
             'user_id': self.env.user.id,
-        })
+        }).sudo(False)
         message.action_send()
         if message.state == 'cancel':
             raise UserError(message.error or _("This message may not be sent."))

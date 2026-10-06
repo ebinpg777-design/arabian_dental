@@ -58,8 +58,9 @@
             <field name="handler_key">create_record</field>
             <field name="model_id" ref="base.model_res_partner"/>
             <field name="description">Create a new contact or company. Only set the allowed fields.</field>
+            <!-- is_company is computed from the VAT number since 20.0: a company is created by giving it a VAT -->
             <field name="field_ids" eval="[Command.set([ref('base.field_res_partner__name'), ref('base.field_res_partner__email'),
-                ref('base.field_res_partner__phone'), ref('base.field_res_partner__is_company'), ref('base.field_res_partner__city'),
+                ref('base.field_res_partner__phone'), ref('base.field_res_partner__vat'), ref('base.field_res_partner__city'),
                 ref('base.field_res_partner__function')])]"/>
             <field name="requires_confirmation" eval="True"/>
         </record>

@@ -1,9 +1,8 @@
 /** @odoo-module **/
 
-import { Component, proxy, usePlugin } from "@odoo/owl";
+import { Component, proxy, t, useProps } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
-import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { useService } from "@web/core/utils/hooks";
 
 /**
@@ -17,15 +16,15 @@ import { useService } from "@web/core/utils/hooks";
 export class TileImportDialog extends Component {
     static template = "ebshel_dynamic_filter.TileImportDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        resModel: { type: String, optional: true },
-        onImported: Function,
-    };
+    props = useProps({
+        close: t.function(),
+        resModel: t.string().optional(),
+        onImported: t.function(),
+    });
 
     setup() {
         this.orm = useService("orm");
-        this.notification = usePlugin(NotificationPlugin);
+        this.notification = useService("notification");
         this.state = proxy({ payload: "", replace: false, busy: false, fileName: "" });
     }
 

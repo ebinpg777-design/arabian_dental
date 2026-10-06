@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2025-2026 Ebin P G
 # License OPL-1. See LICENSE file for full copyright and licensing details.
-import base64
 import json
 import logging
 import urllib.parse
@@ -275,7 +274,7 @@ class DynamicExportTemplate(models.Model):
         safe_name = _sanitize_filename(self.filename, f"report_{self.res_model}")
         attachment = self.env['ir.attachment'].sudo().create({
             'name': f"{safe_name}.xlsx",
-            'datas': base64.b64encode(data),
+            'raw': data,
             'type': 'binary',
             'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         })

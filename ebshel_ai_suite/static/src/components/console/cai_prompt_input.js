@@ -1,34 +1,33 @@
-import { Component, onMounted, proxy, usePlugin } from "@odoo/owl";
+import { Component, onMounted, proxy, signal, t, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { CaiVoiceRecorder } from "../../core/cai_voice";
-import { useRef } from "@web/owl2/utils";
 
 /** Prompt input: Enter sends, Shift+Enter inserts a new line. */
 export class CaiPromptInput extends Component {
     static template = "ebshel_ai_suite.CaiPromptInput";
-    static props = {
-        busy: Boolean,
-        onSubmit: Function,
-        placeholder: { type: String, optional: true },
-        autofocus: { type: Boolean, optional: true },
-        onAttach: { type: Function, optional: true },
-        onRemoveFile: { type: Function, optional: true },
-        stagedFiles: { type: Array, optional: true },
-        uploading: { type: Boolean, optional: true },
-    };
+    props = useProps({
+        busy: t.boolean(),
+        onSubmit: t.function(),
+        placeholder: t.string().optional(),
+        autofocus: t.boolean().optional(),
+        onAttach: t.function().optional(),
+        onRemoveFile: t.function().optional(),
+        stagedFiles: t.array().optional(),
+        uploading: t.boolean().optional(),
+    });
+    inputRef = signal.ref();
+    fileRef = signal.ref();
 
     setup() {
         this.state = proxy({ text: "", recording: false, transcribing: false });
         this.bridge = useService("communityAiBridge");
         this.notification = usePlugin(NotificationPlugin);
         this.canRecord = CaiVoiceRecorder.isSupported();
-        this.inputRef = useRef("input");
-        this.fileRef = useRef("file");
         onMounted(() => {
             if (this.props.autofocus) {
-                this.inputRef.el?.focus();
+                this.inputRef()?.focus();
             }
         });
     }
@@ -56,9 +55,9 @@ export class CaiPromptInput extends Component {
                 const result = await this.bridge.transcribe(blob);
                 const text = (this.state.text ? this.state.text + " " : "") + result.text.trim();
                 this.state.text = text;
-                if (this.inputRef.el) {
-                    this.inputRef.el.value = text;
-                    this.inputRef.el.focus();
+                if (this.inputRef()) {
+                    this.inputRef().value = text;
+                    this.inputRef().focus();
                 }
             } catch (error) {
                 this.notification.add(error?.data?.message || error?.message || _t("Transcription failed."), {
@@ -79,7 +78,7 @@ export class CaiPromptInput extends Component {
     }
 
     pickFiles() {
-        this.fileRef.el?.click();
+        this.fileRef()?.click();
     }
 
     onFilesPicked(ev) {
@@ -96,9 +95,9 @@ export class CaiPromptInput extends Component {
             return;
         }
         this.state.text = "";
-        if (this.inputRef.el) {
-            this.inputRef.el.value = "";
-            this.inputRef.el.style.height = "auto";
+        if (this.inputRef()) {
+            this.inputRef().value = "";
+            this.inputRef().style.height = "auto";
         }
         this.props.onSubmit(text);
     }

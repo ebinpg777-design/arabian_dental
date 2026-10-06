@@ -11,6 +11,8 @@ import base64
 import io
 import logging
 
+from odoo.tools.binary import BinaryValue
+
 from .label_units import ZPL_DENSITIES, pt_to_mm
 
 _logger = logging.getLogger(__name__)
@@ -318,12 +320,26 @@ class ZplBuilder:
 
 
 def encode_image_b64(image_b64):
-    """Decode an Odoo binary field into bytes, tolerating ``False`` and str/bytes."""
+    """Decode an Odoo binary field into bytes, tolerating ``False`` and str/bytes.
+
+    Odoo 20 reads a binary field as a ``BinaryValue`` holding the raw content
+    (no longer base64); a str/bytes value is still base64, as written."""
     if not image_b64:
         return None
+    if isinstance(image_b64, BinaryValue):
+        return image_b64.content or None
     if isinstance(image_b64, str):
         image_b64 = image_b64.encode()
     try:
         return base64.b64decode(image_b64)
     except Exception:
         return None
+
+
+def binary_to_base64(value):
+    """A binary field's value as the base64 text an export file carries."""
+    if not value:
+        return ''
+    if isinstance(value, BinaryValue):
+        return value.to_base64()
+    return value.decode() if isinstance(value, bytes) else value

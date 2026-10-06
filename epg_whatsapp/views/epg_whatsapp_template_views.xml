@@ -11,11 +11,11 @@
             <form>
                 <header>
                     <button name="action_send_test" type="object" class="btn-primary"
-                            string="Send me a test" icon="fa-paper-plane"
+                            string="Send me a test" icon="send"
                             invisible="not sample_res_id"
                             help="Renders the message against the record under Try it and sends it to your own phone."/>
                     <button name="action_sync_meta" type="object"
-                            string="Check with Meta" icon="fa-refresh"
+                            string="Check with Meta" icon="refresh"
                             invisible="not meta_template_name or channel == 'link'"/>
                     <field name="meta_status" widget="statusbar"
                            statusbar_visible="unknown,pending,approved"
@@ -24,11 +24,11 @@
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_messages" type="object"
-                                class="oe_stat_button" icon="fa-whatsapp">
+                                class="oe_stat_button" icon="oi_whatsapp">
                             <field name="message_count" widget="statinfo" string="Messages"/>
                         </button>
                         <button name="action_view_messages" type="object"
-                                class="oe_stat_button" icon="fa-check-circle"
+                                class="oe_stat_button" icon="check_circle"
                                 invisible="not message_count">
                             <div class="o_stat_info">
                                 <span class="o_stat_value"><field name="read_rate"/>%</span>
@@ -36,7 +36,7 @@
                             </div>
                         </button>
                         <button name="action_view_messages" type="object"
-                                class="oe_stat_button" icon="fa-exclamation-triangle"
+                                class="oe_stat_button" icon="warning"
                                 invisible="not failed_count">
                             <field name="failed_count" widget="statinfo" string="Failed"/>
                         </button>
@@ -74,7 +74,7 @@
                             <span class="o_wa_health_note"><field name="health_note"/></span>
                         </div>
                         <div class="o_wa_health_row text-muted" invisible="not answers_tapped">
-                            <i class="fa fa-reply me-1" title="Answers"/>Tapped: <field name="answers_tapped"/>
+                            <i class="oi me-1" data-icon="reply" title="Answers"/>Tapped: <field name="answers_tapped"/>
                         </div>
                     </div>
                     <field name="reply_count" invisible="1"/>
@@ -97,7 +97,7 @@
                                         <label for="hide_empty_lines" class="mb-0 fw-normal"/>
                                     </div>
                                     <div class="o_wa_tpl_more mt-3">
-                                        <div class="fw-bold"><i class="fa fa-repeat me-1" title="Again"/>When it goes to the same record again</div>
+                                        <div class="fw-bold"><i class="oi me-1" data-icon="repeat" title="Again"/>When it goes to the same record again</div>
                                         <div class="text-muted small mb-1">
                                             A reminder that firms up, a follow-up that changes tone. Empty: the message above, every time.
                                         </div>
@@ -250,9 +250,9 @@
                 <field name="name"/>
                 <field name="model_id"/>
                 <field name="placeholder_ok" string="Check" widget="boolean_icon"
-                       options="{'icon': 'fa-check'}"/>
-                <field name="has_replies" string="Answers" widget="boolean_icon" options="{'icon': 'fa-reply'}" optional="show"/>
-                <field name="has_buttons" string="Buttons" widget="boolean_icon" options="{'icon': 'fa-external-link'}" optional="show"/>
+                       options="{'icon': 'check'}"/>
+                <field name="has_replies" string="Answers" widget="boolean_icon" options="{'icon': 'reply'}" optional="show"/>
+                <field name="has_buttons" string="Buttons" widget="boolean_icon" options="{'icon': 'open_in_new'}" optional="show"/>
                 <field name="report_id" optional="hide"/>
                 <field name="delay_hours" optional="hide"/>
                 <field name="meta_status" widget="badge" optional="hide"
@@ -296,7 +296,7 @@
                             </div>
                             <div class="o_wa_tpl_bubble">
                                 <div t-if="record.report_id.value" class="o_wa_tpl_doc">
-                                    <i class="fa fa-file-pdf-o me-1" title="Document"/><t t-out="record.report_id.value"/>
+                                    <i class="oi me-1" data-icon="picture_as_pdf" title="Document"/><t t-out="record.report_id.value"/>
                                 </div>
                                 <div class="o_wa_tpl_text" t-out="record.body.value"/>
                                 <div t-if="record.quick_replies.value" class="o_wa_tpl_replies">
