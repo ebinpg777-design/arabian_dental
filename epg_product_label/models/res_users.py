@@ -7,7 +7,7 @@ class ResUsers(models.Model):
 
     epg_default_label_template_id = fields.Many2one(
         'epg.label.template', string='Default Label Template',
-        domain="[('active', '=', True)]",
+        domain="[('active', '=', True)]", user_writeable=True,
         help="Template the print wizard opens on for this user.")
     epg_allowed_label_template_ids = fields.Many2many(
         'epg.label.template', 'epg_label_template_users_rel', 'user_id', 'template_id',
@@ -15,14 +15,8 @@ class ResUsers(models.Model):
         help="Leave empty to let this user print with every template. "
              "Administrators are never restricted.")
 
-    @property
-    def SELF_READABLE_FIELDS(self):
-        return super().SELF_READABLE_FIELDS + [
-            'epg_default_label_template_id', 'epg_allowed_label_template_ids']
-
-    @property
-    def SELF_WRITEABLE_FIELDS(self):
-        return super().SELF_WRITEABLE_FIELDS + ['epg_default_label_template_id']
+    # Odoo 20 dropped SELF_READABLE_FIELDS / SELF_WRITEABLE_FIELDS: a user reads
+    # their own record anyway, and the default template is user_writeable above.
 
     @api.constrains('epg_default_label_template_id', 'epg_allowed_label_template_ids')
     def _check_default_label_template(self):
