@@ -17,7 +17,7 @@
                     class="o_fwd_lens"
                     t-att-class="this.state.lens === lens.key ? 'o_fwd_lens_on' : ''"
                     t-on-click="() => this.setLens(lens.key)">
-                <t t-esc="lens.label"/> <span class="o_fwd_lens_n" t-esc="lens.n"/>
+                <t t-out="lens.label"/> <span class="o_fwd_lens_n" t-out="lens.n"/>
             </button>
         </div>
         <div class="o_fwd_triage_right">
@@ -50,7 +50,7 @@
     </div>
 
     <div t-if="this.pickedIds.length" class="o_fwd_bulk">
-        <span><b t-esc="this.pickedIds.length"/> selected</span>
+        <span><b t-out="this.pickedIds.length"/> selected</span>
         <button class="o_fwd_btn o_fwd_btn_go" t-att-disabled="this.state.busy"
                 t-on-click="() => this.approvePicked()">
             <i class="fa fa-check me-1" title="Approve"/>Approve selected
@@ -61,7 +61,7 @@
 
     <div t-if="this.queue.length" class="o_fwd_pickall">
         <button class="o_fwd_btn o_fwd_btn_ghost" t-on-click="() => this.pickAllVisible()">
-            Select all <t t-esc="this.queue.length"/>
+            Select all <t t-out="this.queue.length"/>
         </button>
     </div>
 </t>
@@ -88,7 +88,7 @@
                 t-on-click="() => this.pickDate(null)">Back to today</button>
     </div>
     <span t-if="this.state.data" class="o_fwd_updated">
-        updated <t t-esc="this.state.updatedAt"/>
+        updated <t t-out="this.state.updatedAt"/>
         <i class="fa fa-refresh ms-1" title="Refresh now"
            t-on-click="() => this.load()"/>
     </span>
@@ -108,7 +108,7 @@
                     t-on-click="() => this.dismissIntro()">Got it</button>
         </div>
         <ol class="o_fwd_intro_steps">
-            <li t-foreach="steps" t-as="step" t-key="step_index" t-esc="step"/>
+            <li t-foreach="steps" t-as="step" t-key="step_index" t-out="step"/>
         </ol>
     </div>
 </t>
@@ -116,9 +116,9 @@
 <t t-name="lab_fieldwork.DeskCoverBanner">
     <div t-if="this.state.data.cover" class="o_fwd_cover">
         <i class="fa fa-user-secret me-2" title="Cover"/>
-        You are covering for <b t-esc="this.state.data.cover.manager"/> until
-        <b t-esc="this.state.data.cover.until"/><t t-if="this.state.data.cover.reason">
-        (<t t-esc="this.state.data.cover.reason"/>)</t>. Your approvals will show
+        You are covering for <b t-out="this.state.data.cover.manager"/> until
+        <b t-out="this.state.data.cover.until"/><t t-if="this.state.data.cover.reason">
+        (<t t-out="this.state.data.cover.reason"/>)</t>. Your approvals will show
         your own name.
     </div>
 </t>
@@ -129,7 +129,7 @@
     <div t-if="this.state.data.undelivered.total" class="o_fwd_panel">
         <div class="o_fwd_panel_head">
             <i class="fa fa-truck me-2" title="Undelivered"/>Not yet delivered
-            <span class="o_fwd_panel_sub"><t t-esc="this.state.data.undelivered.total"/>
+            <span class="o_fwd_panel_sub"><t t-out="this.state.data.undelivered.total"/>
                 dispatch(es) still open — oldest first</span>
             <button class="o_fwd_btn o_fwd_btn_ghost o_fwd_seeall float-end"
                     title="Every dispatch still riding, not only the oldest few"
@@ -140,12 +140,12 @@
         <div t-foreach="this.state.data.undelivered.rows" t-as="u" t-key="u.id"
              class="o_fwd_habit"
              t-on-click="() => this.openRecord('lab.delivery', u.id)">
-            <span><b t-esc="u.clinic"/>
-                <span class="o_fwd_muted"> · <t t-esc="u.who"/></span></span>
+            <span><b t-out="u.clinic"/>
+                <span class="o_fwd_muted"> · <t t-out="u.who"/></span></span>
             <span>
-                <span class="o_fwd_pill o_fwd_pill_warn" t-esc="u.state"/>
+                <span class="o_fwd_pill o_fwd_pill_warn" t-out="u.state"/>
                 <span t-att-class="u.age_d >= 2 ? 'o_fwd_bad' : 'o_fwd_muted'">
-                    <t t-esc="u.age_d"/> day(s)</span>
+                    <t t-out="u.age_d"/> day(s)</span>
             </span>
         </div>
     </div>
@@ -173,17 +173,17 @@
                         <tbody>
                             <t t-foreach="this.state.data.rescue" t-as="clinic" t-key="clinic.id">
                                 <tr t-on-click="() => this.openCoverage(clinic)">
-                                    <td><b t-esc="clinic.name"/>
-                                        <div class="o_fwd_muted" t-esc="clinic.route"/></td>
+                                    <td><b t-out="clinic.name"/>
+                                        <div class="o_fwd_muted" t-out="clinic.route"/></td>
                                     <td><span t-att-class="'o_fwd_pill ' + (clinic.state === 'stopped' ? 'o_fwd_pill_flag' : 'o_fwd_pill_warn')"
-                                              t-esc="clinic.state"/></td>
+                                              t-out="clinic.state"/></td>
                                     <td class="text-end">
                                         <b t-if="clinic.outstanding" class="o_fwd_bad"
-                                           t-esc="this.money(clinic.outstanding)"/>
+                                           t-out="this.money(clinic.outstanding)"/>
                                         <span t-else="" class="o_fwd_good">—</span>
                                     </td>
-                                    <td class="text-end o_fwd_muted" t-esc="clinic.last_so || '—'"/>
-                                    <td class="text-end o_fwd_muted" t-esc="clinic.last_pay || '—'"/>
+                                    <td class="text-end o_fwd_muted" t-out="clinic.last_so || '—'"/>
+                                    <td class="text-end o_fwd_muted" t-out="clinic.last_pay || '—'"/>
                                     <td><button class="o_fwd_btn o_fwd_btn_ghost o_fwd_rescue_go"
                                                 title="Plan a visit for tomorrow"
                                                 t-on-click.stop="() => this.startRescue(clinic)">
@@ -197,7 +197,7 @@
                                                 <option t-foreach="this.state.data.executives" t-as="ex" t-key="ex.id"
                                                         t-att-value="ex.id"
                                                         t-att-selected="+this.state.rescuing.user_id === ex.id ? 'selected' : undefined">
-                                                    <t t-esc="ex.name"/></option>
+                                                    <t t-out="ex.name"/></option>
                                             </select>
                                             tomorrow
                                             <button class="o_fwd_btn o_fwd_btn_go" t-att-disabled="this.state.busy"
@@ -212,7 +212,7 @@
                         <tfoot><tr class="o_fwd_totalrow">
                             <td colspan="2">Total open receivable, these clinics</td>
                             <td class="text-end"><b class="o_fwd_bad"
-                                t-esc="this.money(this.rescueOwedTotal)"/></td>
+                                t-out="this.money(this.rescueOwedTotal)"/></td>
                             <td colspan="3"/>
                         </tr></tfoot>
                     </table>
@@ -236,8 +236,8 @@
                                  t-on-click="() => this.openOutcome(slice)">
                                 <span class="o_fwd_dot"
                                       t-attf-style="background: {{ this.donutColor(slice_index) }}"/>
-                                <t t-esc="slice.label"/>
-                                <span class="o_fwd_muted"> <t t-esc="slice.pct"/>%</span>
+                                <t t-out="slice.label"/>
+                                <span class="o_fwd_muted"> <t t-out="slice.pct"/>%</span>
                             </div>
                         </div>
                     </div>
@@ -250,16 +250,16 @@
                 <div class="o_fwd_panel">
                     <div class="o_fwd_panel_head">
                         <i class="fa fa-key me-2" title="Conversion"/>Do new clinics order again?
-                        <span class="o_fwd_panel_sub">last <t t-esc="this.state.data.conversion.days"/> days</span>
+                        <span class="o_fwd_panel_sub">last <t t-out="this.state.data.conversion.days"/> days</span>
                     </div>
                     <div class="o_fwd_conv">
-                        <div><b t-esc="this.state.data.conversion.opened"/><span>opened</span></div>
+                        <div><b t-out="this.state.data.conversion.opened"/><span>opened</span></div>
                         <i class="fa fa-angle-right" title="then"/>
-                        <div><b t-esc="this.state.data.conversion.ordered"/><span>ordered</span></div>
+                        <div><b t-out="this.state.data.conversion.ordered"/><span>ordered</span></div>
                         <i class="fa fa-angle-right" title="then"/>
-                        <div><b class="o_fwd_good" t-esc="this.state.data.conversion.repeat"/><span>ordered again</span></div>
+                        <div><b class="o_fwd_good" t-out="this.state.data.conversion.repeat"/><span>ordered again</span></div>
                         <div class="o_fwd_conv_pct">
-                            <b t-esc="this.state.data.conversion.repeat_pct"/>%
+                            <b t-out="this.state.data.conversion.repeat_pct"/>%
                             <span>became regular clients</span></div>
                     </div>
                 </div>
@@ -283,7 +283,7 @@
                         </tr></thead>
                         <tbody>
                             <tr t-foreach="this.state.data.rows" t-as="row" t-key="row.id">
-                                <td><t t-esc="row.name"/>
+                                <td><t t-out="row.name"/>
                                     <a t-if="row.phone" t-attf-href="tel:{{row.phone}}"
                                        class="o_fwd_call" t-att-title="'Call ' + row.phone">
                                         <i class="fa fa-phone" title="Call"/></a>
@@ -291,15 +291,15 @@
                                           t-attf-title="{{row.far}} check-in(s) away from the clinic">
                                         &#9888;</span></td>
                                 <td><span t-att-class="'o_fwd_status o_fwd_status_' + row.status">
-                                    <t t-esc="this.statusLabel[row.status]"/></span>
+                                    <t t-out="this.statusLabel[row.status]"/></span>
                                     <span t-if="row.at_clinic" class="o_fwd_muted">
-                                        · <t t-esc="row.at_clinic"/></span></td>
-                                <td class="text-end"><t t-esc="row.done"/>/<t t-esc="row.planned"/></td>
-                                <td class="text-end" t-esc="this.money(row.value)"/>
-                                <td class="text-end" t-esc="this.money(row.collected)"/>
+                                        · <t t-out="row.at_clinic"/></span></td>
+                                <td class="text-end"><t t-out="row.done"/>/<t t-out="row.planned"/></td>
+                                <td class="text-end" t-out="this.money(row.value)"/>
+                                <td class="text-end" t-out="this.money(row.collected)"/>
                                 <td class="text-end" t-att-class="row.unbanked ? 'o_fwd_bad' : ''"
-                                    t-esc="this.money(row.unbanked)"/>
-                                <td class="text-end"><t t-esc="Math.round(row.distance)"/></td>
+                                    t-out="this.money(row.unbanked)"/>
+                                <td class="text-end"><t t-out="Math.round(row.distance)"/></td>
                             </tr>
                         </tbody>
                     </table>
@@ -314,7 +314,7 @@
                     </div>
                     <div t-foreach="this.state.data.heatmap.rows" t-as="hrow" t-key="hrow.user_id"
                          class="o_fwd_heat_row">
-                        <span class="o_fwd_heat_name" t-esc="hrow.user"/>
+                        <span class="o_fwd_heat_name" t-out="hrow.user"/>
                         <span class="o_fwd_heat_cells">
                             <span t-foreach="hrow.cells" t-as="cell" t-key="cell.day"
                                   t-att-class="'o_fwd_heat o_fwd_heat_' + cell.code
@@ -342,19 +342,19 @@
                    t-att-checked="this.state.picked[row.id]"
                    t-on-click="() => this.togglePick(row)"/>
             <div class="o_fwd_card_who" t-on-click="() => this.openSheet(row.id)">
-                <span class="o_fwd_avatar"><t t-esc="row.user[0]"/></span>
+                <span class="o_fwd_avatar"><t t-out="row.user[0]"/></span>
                 <span>
-                    <b t-esc="row.user"/>
-                    <span class="o_fwd_muted"> · <t t-esc="row.date_label"/></span>
+                    <b t-out="row.user"/>
+                    <span class="o_fwd_muted"> · <t t-out="row.date_label"/></span>
                 </span>
             </div>
             <span t-if="row.clean" class="o_fwd_pill o_fwd_pill_clean">
-                ✓ clean<t t-if="row.streak"> · <t t-esc="row.streak"/>🔥</t>
+                ✓ clean<t t-if="row.streak"> · <t t-out="row.streak"/>🔥</t>
             </span>
             <span t-else="" class="o_fwd_pill o_fwd_pill_flag"
                   t-on-click="() => this.toggleWhy(row)"
                   title="See what is wrong">
-                &#9888; <t t-esc="row.flags.length"/> issue<t t-if="row.flags.length > 1">s</t>
+                &#9888; <t t-out="row.flags.length"/> issue<t t-if="row.flags.length > 1">s</t>
             </span>
             <span t-if="row.ops_checked" class="o_fwd_pill o_fwd_pill_warn"
                   title="Operations read this day and noted the issues">
@@ -365,28 +365,28 @@
             <span t-if="row.nudges" class="o_fwd_pill o_fwd_pill_warn"
                   t-attf-title="You asked {{row.nudges}} time(s). No reply yet.">
                 <i class="fa fa-bell-o me-1" title="Asked"/>asked
-                <t t-if="row.nudges > 1"><t t-esc="row.nudges"/>×</t>
+                <t t-if="row.nudges > 1"><t t-out="row.nudges"/>×</t>
             </span>
         </div>
 
         <div class="o_fwd_facts">
-            <span><b t-esc="row.visits"/> visits</span>
-            <span t-if="row.cases"><b t-esc="row.cases"/> cases</span>
-            <span t-if="row.value"><b t-esc="this.money(row.value)"/></span>
+            <span><b t-out="row.visits"/> visits</span>
+            <span t-if="row.cases"><b t-out="row.cases"/> cases</span>
+            <span t-if="row.value"><b t-out="this.money(row.value)"/></span>
             <span t-if="row.collected" class="o_fwd_good">
-                <b t-esc="this.money(row.collected)"/> collected</span>
-            <span t-if="row.km"><b t-esc="row.km"/> km</span>
+                <b t-out="this.money(row.collected)"/> collected</span>
+            <span t-if="row.km"><b t-out="row.km"/> km</span>
             <span t-if="row.new_clinics" class="o_fwd_good">
-                <b t-esc="row.new_clinics"/> new clinic<t t-if="row.new_clinics > 1">s</t></span>
+                <b t-out="row.new_clinics"/> new clinic<t t-if="row.new_clinics > 1">s</t></span>
         </div>
 
         <div t-if="this.state.openWhy[row.id] and row.why" class="o_fwd_why">
-            <t t-esc="row.why"/>
+            <t t-out="row.why"/>
         </div>
-        <div t-if="row.note" class="o_fwd_note">&#8220;<t t-esc="row.note"/>&#8221;</div>
+        <div t-if="row.note" class="o_fwd_note">&#8220;<t t-out="row.note"/>&#8221;</div>
         <div t-if="row.ops_note" class="o_fwd_note">
             <i class="fa fa-check-square-o me-1" title="Checked by Operations"/>Operations checked<t
-                t-if="row.ops_by"> (<t t-esc="row.ops_by"/>)</t>: <t t-esc="row.ops_note"/>
+                t-if="row.ops_by"> (<t t-out="row.ops_by"/>)</t>: <t t-out="row.ops_note"/>
         </div>
 
         <!-- The SLA drawn onto every card: the one about to breach goes red. -->
@@ -395,7 +395,7 @@
                 <div class="o_fwd_age_fill" t-att-style="this.urgencyStyle(row)"/>
             </div>
             <span class="o_fwd_age_label" t-att-class="row.overdue ? 'o_fwd_bad' : ''">
-                waiting <t t-esc="row.age_h"/> h<t t-if="row.overdue"> — too long</t>
+                waiting <t t-out="row.age_h"/> h<t t-if="row.overdue"> — too long</t>
             </span>
         </div>
 
@@ -481,9 +481,9 @@
         <div t-foreach="this.state.data.ticker" t-as="ev" t-key="ev_index"
              class="o_fwd_tick" t-on-click="() => this.openSheet(ev.sheet_id)">
             <span t-att-class="'o_fwd_tick_dot o_fwd_tick_' + ev.kind"/>
-            <span><b t-esc="ev.who"/> <t t-esc="ev.what"/>
-                  <span class="o_fwd_muted"> (<t t-esc="ev.date_label"/>)</span></span>
-            <span class="o_fwd_tick_ago" t-esc="ev.ago"/>
+            <span><b t-out="ev.who"/> <t t-out="ev.what"/>
+                  <span class="o_fwd_muted"> (<t t-out="ev.date_label"/>)</span></span>
+            <span class="o_fwd_tick_ago" t-out="ev.ago"/>
         </div>
     </div>
 </t>
@@ -498,14 +498,14 @@
         </div>
         <div t-foreach="this.state.data.leaderboard" t-as="row" t-key="row.user_id"
              class="o_fwd_leader">
-            <span class="o_fwd_leader_rank" t-esc="row_index + 1"/>
-            <span class="o_fwd_leader_name" t-esc="row.user"/>
+            <span class="o_fwd_leader_rank" t-out="row_index + 1"/>
+            <span class="o_fwd_leader_name" t-out="row.user"/>
             <span t-if="row.streak" class="o_fwd_pill o_fwd_pill_clean"
                   title="Consecutive approved clean days">
-                <t t-esc="row.streak"/>🔥</span>
+                <t t-out="row.streak"/>🔥</span>
             <span class="o_fwd_muted">
-                <t t-esc="row.clean"/>/<t t-esc="row.total"/> clean<t
-                    t-if="row.score"> · ★<t t-esc="row.score"/></t>
+                <t t-out="row.clean"/>/<t t-out="row.total"/> clean<t
+                    t-if="row.score"> · ★<t t-out="row.score"/></t>
             </span>
         </div>
     </div>
@@ -525,18 +525,18 @@
                         <span t-elif="this.state.data and !this.state.data.is_today"
                               class="o_fwd_pastday">viewing a past day</span>
                     </div>
-                    <h2 class="o_fwd_title" t-esc="this.state.data and this.state.data.date_label"/>
+                    <h2 class="o_fwd_title" t-out="this.state.data and this.state.data.date_label"/>
                     <t t-call="lab_fieldwork.DeskDayPicker"/>
                 </div>
                 <div t-if="this.state.data" class="o_fwd_kpis">
                     <div class="o_fwd_kpi" t-att-class="this.state.data.queue.length ? 'o_fwd_kpi_hot' : ''">
-                        <span class="o_fwd_kpi_v" t-esc="this.state.data.queue.length"/>
+                        <span class="o_fwd_kpi_v" t-out="this.state.data.queue.length"/>
                         <span class="o_fwd_kpi_l">waiting on you</span>
                     </div>
                     <div class="o_fwd_kpi">
                         <span class="o_fwd_kpi_v">
-                            <t t-esc="Math.round(this.state.data.oldest_h)"/>h
-                            <span class="o_fwd_kpi_sub">/ <t t-esc="this.state.data.sla_h"/>h</span>
+                            <t t-out="Math.round(this.state.data.oldest_h)"/>h
+                            <span class="o_fwd_kpi_sub">/ <t t-out="this.state.data.sla_h"/>h</span>
                         </span>
                         <span class="o_fwd_kpi_l">oldest / time limit</span>
                     </div>
@@ -544,19 +544,19 @@
                          class="o_fwd_kpi o_fwd_kpi_click"
                          t-attf-title="These will become late within {{this.state.data.sla_forecast.horizon_h}} hours"
                          t-on-click="() => this.openList('lab.daily.update', 'Breach next', this.state.data.sla_forecast.ids)">
-                        <span class="o_fwd_kpi_v o_fwd_bad" t-esc="this.state.data.sla_forecast.soon"/>
-                        <span class="o_fwd_kpi_l">late in <t t-esc="this.state.data.sla_forecast.horizon_h"/> h</span>
+                        <span class="o_fwd_kpi_v o_fwd_bad" t-out="this.state.data.sla_forecast.soon"/>
+                        <span class="o_fwd_kpi_l">late in <t t-out="this.state.data.sla_forecast.horizon_h"/> h</span>
                     </div>
                     <div class="o_fwd_kpi o_fwd_kpi_click" t-on-click="() => this.openTrips()">
-                        <span class="o_fwd_kpi_v" t-esc="this.state.data.trips_pending"/>
+                        <span class="o_fwd_kpi_v" t-out="this.state.data.trips_pending"/>
                         <span class="o_fwd_kpi_l">travel claims</span>
                     </div>
                     <div class="o_fwd_kpi o_fwd_kpi_click" t-on-click="() => this.openSentBack()">
-                        <span class="o_fwd_kpi_v" t-esc="this.state.data.sent_back"/>
+                        <span class="o_fwd_kpi_v" t-out="this.state.data.sent_back"/>
                         <span class="o_fwd_kpi_l">being fixed</span>
                     </div>
                     <div class="o_fwd_kpi">
-                        <span class="o_fwd_kpi_v" t-esc="this.money(this.state.data.totals.unbanked)"/>
+                        <span class="o_fwd_kpi_v" t-out="this.money(this.state.data.totals.unbanked)"/>
                         <span class="o_fwd_kpi_l">cash not deposited</span>
                     </div>
                 </div>
@@ -565,7 +565,7 @@
                     t-att-disabled="this.state.busy"
                     t-on-click="() => this.approveAllClean()">
                 <i class="fa fa-check-circle me-2" title="Approve clean"/>
-                Approve all <t t-esc="this.state.data.clean_waiting"/> clean day<t t-if="this.state.data.clean_waiting > 1">s</t>
+                Approve all <t t-out="this.state.data.clean_waiting"/> clean day<t t-if="this.state.data.clean_waiting > 1">s</t>
             </button>
         </div>
 
@@ -594,7 +594,7 @@
                     <t t-else="">
                         <t t-call="lab_fieldwork.DeskTriage"/>
                         <div t-if="!this.queue.length" class="o_fwd_empty o_fwd_muted">
-                            No results. <t t-esc="this.state.data.queue.length"/> day sheets in total.
+                            No results. <t t-out="this.state.data.queue.length"/> day sheets in total.
                         </div>
                         <t t-foreach="this.queue" t-as="row" t-key="row.id">
                             <t t-call="lab_fieldwork.DeskQueueCard" mode="'ops'"/>
@@ -618,7 +618,7 @@
                              t-attf-title="{{d.label}}: {{d.visits}} visits">
                             <div class="o_fwd_strip_bar"
                                  t-attf-style="height: {{ Math.max(4, Math.min(46, d.visits * 4)) }}px"/>
-                            <span class="o_fwd_strip_label" t-esc="d.label"/>
+                            <span class="o_fwd_strip_label" t-out="d.label"/>
                         </div>
                     </div>
                 </div>
@@ -638,14 +638,14 @@
                     </div>
                     <div t-foreach="this.state.data.trip_rows" t-as="trip" t-key="trip.id"
                          class="o_fwd_triprow">
-                        <span class="o_fwd_avatar"><t t-esc="trip.user[0]"/></span>
+                        <span class="o_fwd_avatar"><t t-out="trip.user[0]"/></span>
                         <span class="o_fwd_trip_who">
-                            <b t-esc="trip.user"/>
-                            <span class="o_fwd_muted"> · <t t-esc="trip.date_label"/></span>
+                            <b t-out="trip.user"/>
+                            <span class="o_fwd_muted"> · <t t-out="trip.date_label"/></span>
                         </span>
-                        <span class="o_fwd_muted"><t t-esc="trip.km"/> km ·
-                            <t t-esc="trip.vehicle"/></span>
-                        <b t-esc="this.money(trip.amount)"/>
+                        <span class="o_fwd_muted"><t t-out="trip.km"/> km ·
+                            <t t-out="trip.vehicle"/></span>
+                        <b t-out="this.money(trip.amount)"/>
                         <span class="o_fwd_actions m-0">
                             <button class="o_fwd_btn o_fwd_btn_go" t-att-disabled="this.state.busy"
                                     t-on-click="() => this.approveTrip(trip)">
@@ -673,16 +673,16 @@
                     </div>
                     <div t-foreach="this.state.data.cash_held" t-as="held" t-key="held.user_id"
                          class="o_fwd_habit" t-on-click="() => this.openCashHeld(held)">
-                        <b t-esc="held.user"/>
+                        <b t-out="held.user"/>
                         <span>
                             <b t-att-class="held.overdue ? 'o_fwd_bad' : ''"
-                               t-esc="this.money(held.amount)"/>
+                               t-out="this.money(held.amount)"/>
                             <span t-if="held.pending" class="o_fwd_pill ms-2"
                                   t-on-click.stop="() => this.openPendingHandovers(held)">
-                                <t t-esc="this.money(held.pending)"/> on the desk — count it</span>
+                                <t t-out="this.money(held.pending)"/> on the desk — count it</span>
                             <span t-if="held.days" class="o_fwd_pill ms-2"
                                   t-att-class="held.overdue ? 'o_fwd_pill_warn' : ''">
-                                oldest: <t t-esc="held.days"/> day<t t-if="held.days > 1">s</t> ago</span>
+                                oldest: <t t-out="held.days"/> day<t t-if="held.days > 1">s</t> ago</span>
                         </span>
                     </div>
                 </div>
@@ -699,10 +699,10 @@
                          t-key="habit.user_id + '-' + habit.flag"
                          class="o_fwd_habit"
                          t-on-click="() => this.openList('lab.daily.update', habit.user + ': ' + habit.label, habit.sheet_ids)">
-                        <b t-esc="habit.user"/>
+                        <b t-out="habit.user"/>
                         <span class="o_fwd_pill o_fwd_pill_warn">
-                            <t t-esc="habit.label"/> · <t t-esc="habit.count"/> of
-                            last <t t-esc="habit.of"/> days</span>
+                            <t t-out="habit.label"/> · <t t-out="habit.count"/> of
+                            last <t t-out="habit.of"/> days</span>
                     </div>
                 </div>
             </div>
@@ -717,8 +717,8 @@
                          t-on-click="() => this.openAlert(alert)">
                         <i t-att-class="'fa ' + alert.icon" t-att-title="alert.title"/>
                         <div>
-                            <b t-esc="alert.title"/>
-                            <div class="o_fwd_muted" t-esc="alert.detail"/>
+                            <b t-out="alert.title"/>
+                            <div class="o_fwd_muted" t-out="alert.detail"/>
                         </div>
                     </div>
                 </div>
@@ -744,20 +744,20 @@
             <div class="o_fwd_hero_row">
                 <div>
                     <div class="o_fwd_eyebrow">Marketing desk</div>
-                    <h2 class="o_fwd_title" t-esc="this.state.data and this.state.data.date_label"/>
+                    <h2 class="o_fwd_title" t-out="this.state.data and this.state.data.date_label"/>
                     <t t-call="lab_fieldwork.DeskDayPicker"/>
                 </div>
                 <div t-if="this.state.data" class="o_fwd_kpis">
                     <div class="o_fwd_kpi" t-att-class="this.state.data.queue.length ? 'o_fwd_kpi_hot' : ''">
-                        <span class="o_fwd_kpi_v" t-esc="this.state.data.queue.length"/>
+                        <span class="o_fwd_kpi_v" t-out="this.state.data.queue.length"/>
                         <span class="o_fwd_kpi_l">days to review</span>
                     </div>
                     <div class="o_fwd_kpi o_fwd_kpi_click" t-on-click="() => this.openNewClinics()">
-                        <span class="o_fwd_kpi_v" t-esc="this.state.data.new_clinics"/>
+                        <span class="o_fwd_kpi_v" t-out="this.state.data.new_clinics"/>
                         <span class="o_fwd_kpi_l">new clinics this month</span>
                     </div>
                     <div class="o_fwd_kpi">
-                        <span class="o_fwd_kpi_v" t-esc="this.state.data.rescue.length"/>
+                        <span class="o_fwd_kpi_v" t-out="this.state.data.rescue.length"/>
                         <span class="o_fwd_kpi_l">clinics going quiet</span>
                     </div>
                 </div>
@@ -789,7 +789,7 @@
                     <t t-else="">
                         <t t-call="lab_fieldwork.DeskTriage"/>
                         <div t-if="!this.queue.length" class="o_fwd_empty o_fwd_muted">
-                            No results. <t t-esc="this.state.data.queue.length"/> day sheets in total.
+                            No results. <t t-out="this.state.data.queue.length"/> day sheets in total.
                         </div>
                         <t t-foreach="this.queue" t-as="row" t-key="row.id">
                             <t t-call="lab_fieldwork.DeskQueueCard" mode="'mkt'"/>
@@ -806,13 +806,13 @@
                     </div>
                     <div t-foreach="this.state.data.momentum" t-as="route" t-key="route.id"
                          class="o_fwd_route">
-                        <span class="o_fwd_route_name" t-esc="route.name"/>
+                        <span class="o_fwd_route_name" t-out="route.name"/>
                         <svg class="o_fwd_spark" viewBox="0 0 120 28" preserveAspectRatio="none">
                             <polyline t-att-points="this.spark(route.points)"/>
                         </svg>
-                        <span class="o_fwd_route_val" t-esc="this.money(route.current)"/>
+                        <span class="o_fwd_route_val" t-out="this.money(route.current)"/>
                         <span t-att-class="'o_fwd_delta ' + (route.delta_pct >= 0 ? 'o_fwd_good' : 'o_fwd_bad')">
-                            <t t-esc="(route.delta_pct >= 0 ? '▲' : '▼') + ' ' + Math.abs(route.delta_pct)"/>%
+                            <t t-out="(route.delta_pct >= 0 ? '▲' : '▼') + ' ' + Math.abs(route.delta_pct)"/>%
                         </span>
                     </div>
                     <div t-if="!this.state.data.momentum.length" class="o_fwd_muted p-2">
@@ -835,16 +835,16 @@
                     </div>
                     <div t-foreach="this.state.data.targets" t-as="tgt" t-key="tgt.id"
                          class="o_fwd_target" t-on-click="() => this.openTarget(tgt)">
-                        <span class="o_fwd_move_name" t-esc="tgt.user"/>
+                        <span class="o_fwd_move_name" t-out="tgt.user"/>
                         <div class="o_fwd_age_bar o_fwd_target_bar">
                             <div class="o_fwd_age_fill"
                                  t-attf-style="width: {{ Math.max(tgt.progress, 3) }}%; background: {{ tgt.progress >= 100 ? '#0f9d58' : '#7c3aed' }};"/>
                         </div>
                         <span class="o_fwd_muted">
-                            <t t-esc="this.money(tgt.done_value)"/> / <t t-esc="this.money(tgt.goal_value)"/>
+                            <t t-out="this.money(tgt.done_value)"/> / <t t-out="this.money(tgt.goal_value)"/>
                         </span>
                         <b t-att-class="tgt.progress >= 100 ? 'o_fwd_good' : ''">
-                            <t t-esc="tgt.progress_label"/>%</b>
+                            <t t-out="tgt.progress_label"/>%</b>
                     </div>
                 </div>
 
@@ -855,13 +855,13 @@
                     </div>
                     <div t-foreach="this.state.data.improving" t-as="mv" t-key="mv.user_id"
                          class="o_fwd_move">
-                        <span class="o_fwd_move_name" t-esc="mv.user"/>
+                        <span class="o_fwd_move_name" t-out="mv.user"/>
                         <span class="o_fwd_muted">
-                            <t t-if="mv.before !== null"><t t-esc="mv.before"/> →</t>
-                            <b class="o_fwd_ink" t-esc="mv.now"/>★</span>
+                            <t t-if="mv.before !== null"><t t-out="mv.before"/> →</t>
+                            <b class="o_fwd_ink" t-out="mv.now"/>★</span>
                         <span t-if="mv.delta !== null"
                               t-att-class="'o_fwd_pill ' + (mv.delta >= 0 ? 'o_fwd_pill_clean' : 'o_fwd_pill_flag')">
-                            <t t-esc="(mv.delta >= 0 ? '+' : '') + mv.delta"/></span>
+                            <t t-out="(mv.delta >= 0 ? '+' : '') + mv.delta"/></span>
                         <span t-else="" class="o_fwd_pill o_fwd_pill_warn">new</span>
                     </div>
                 </div>
@@ -884,18 +884,18 @@
             <div class="o_fwd_hero_row">
                 <div>
                     <div class="o_fwd_eyebrow">Command center</div>
-                    <h2 class="o_fwd_title" t-esc="this.state.data and this.state.data.date_label"/>
+                    <h2 class="o_fwd_title" t-out="this.state.data and this.state.data.date_label"/>
                     <t t-call="lab_fieldwork.DeskDayPicker"/>
                 </div>
                 <div t-if="this.state.data" class="o_fwd_kpis">
                     <div class="o_fwd_kpi"
                          t-att-class="this.state.data.funnel.overdue ? 'o_fwd_kpi_hot' : ''">
-                        <span class="o_fwd_kpi_v" t-esc="this.state.data.funnel.overdue"/>
-                        <span class="o_fwd_kpi_l">late (over <t t-esc="this.state.data.funnel.sla_h"/> h)</span>
+                        <span class="o_fwd_kpi_v" t-out="this.state.data.funnel.overdue"/>
+                        <span class="o_fwd_kpi_l">late (over <t t-out="this.state.data.funnel.sla_h"/> h)</span>
                     </div>
                     <div class="o_fwd_kpi">
                         <span class="o_fwd_kpi_v">
-                            <t t-esc="this.state.data.funnel.approved_week"/>/<t t-esc="this.state.data.funnel.week_total"/>
+                            <t t-out="this.state.data.funnel.approved_week"/>/<t t-out="this.state.data.funnel.week_total"/>
                         </span>
                         <span class="o_fwd_kpi_l">approved this week</span>
                     </div>
@@ -905,14 +905,14 @@
                     <div t-if="this.state.data.flags" class="o_fwd_kpi"
                          t-att-class="this.state.data.flags.open ? 'o_fwd_kpi_hot' : ''"
                          t-on-click="() => this.openFlags()">
-                        <span class="o_fwd_kpi_v" t-esc="this.state.data.flags.open"/>
+                        <span class="o_fwd_kpi_v" t-out="this.state.data.flags.open"/>
                         <span class="o_fwd_kpi_l">raised to you</span>
                     </div>
                     <!-- Only when there is data: a dash with a riddle under it
                          confused everyone it greeted. -->
                     <div t-if="this.state.data.roi.ratio" class="o_fwd_kpi"
                          title="Case value brought back for every rupee paid for travel">
-                        <span class="o_fwd_kpi_v"><t t-esc="this.state.data.roi.ratio"/>×</span>
+                        <span class="o_fwd_kpi_v"><t t-out="this.state.data.roi.ratio"/>×</span>
                         <span class="o_fwd_kpi_l">earned per rupee of travel</span>
                     </div>
                 </div>
@@ -950,7 +950,7 @@
                                 t-on-click="() => this.seeAll('pending')">
                             <i class="fa fa-list-ul me-1" title="All"/>See all
                         </button>
-                        <span class="o_fwd_panel_sub"><t t-esc="this.state.data.pending_matrix.total"/>
+                        <span class="o_fwd_panel_sub"><t t-out="this.state.data.pending_matrix.total"/>
                             waiting — worst wait on top</span>
                     </div>
                     <div t-if="!this.state.data.pending_matrix.rows.length" class="o_fwd_empty">
@@ -967,28 +967,28 @@
                         </tr></thead>
                         <tbody>
                             <tr t-foreach="this.state.data.pending_matrix.rows" t-as="pr" t-key="pr.user_id">
-                                <td><b t-esc="pr.user"/></td>
+                                <td><b t-out="pr.user"/></td>
                                 <td class="text-center">
                                     <button t-if="pr.ops.length" class="o_fwd_cell o_fwd_cell_ops"
                                             t-on-click="() => this.openList('lab.daily.update', pr.user + ' — waiting for Operations', pr.ops)">
-                                        <t t-esc="pr.ops.length"/></button>
+                                        <t t-out="pr.ops.length"/></button>
                                     <span t-else="" class="o_fwd_muted">—</span>
                                 </td>
                                 <td class="text-center">
                                     <button t-if="pr.mkt.length" class="o_fwd_cell o_fwd_cell_mkt"
                                             t-on-click="() => this.openList('lab.daily.update', pr.user + ' — waiting for Marketing', pr.mkt)">
-                                        <t t-esc="pr.mkt.length"/></button>
+                                        <t t-out="pr.mkt.length"/></button>
                                     <span t-else="" class="o_fwd_muted">—</span>
                                 </td>
                                 <td class="text-center">
                                     <button t-if="pr.back.length" class="o_fwd_cell o_fwd_cell_back"
                                             t-on-click="() => this.openList('lab.daily.update', pr.user + ' — sent back', pr.back)">
-                                        <t t-esc="pr.back.length"/></button>
+                                        <t t-out="pr.back.length"/></button>
                                     <span t-else="" class="o_fwd_muted">—</span>
                                 </td>
                                 <td class="text-end"
                                     t-att-class="pr.oldest_h > this.state.data.pending_matrix.sla_h ? 'o_fwd_bad' : 'o_fwd_muted'">
-                                    <t t-esc="Math.round(pr.oldest_h)"/> h
+                                    <t t-out="Math.round(pr.oldest_h)"/> h
                                 </td>
                             </tr>
                         </tbody>
@@ -1008,7 +1008,7 @@
                     <div class="o_fwd_panel_head">
                         <i class="fa fa-check-square-o me-2" title="Checked"/>Checked, issues noted
                         <span class="o_fwd_panel_sub">
-                            — <t t-esc="this.state.data.checked.total"/> in <t t-esc="this.state.data.checked.days"/> days</span>
+                            — <t t-out="this.state.data.checked.total"/> in <t t-out="this.state.data.checked.days"/> days</span>
                         <button class="o_fwd_btn o_fwd_btn_ghost o_fwd_seeall float-end"
                                 t-on-click="() => this.openList('lab.daily.update', 'Checked, issues noted', null, ['|', ['state', 'in', ['ops_checked', 'checked']], ['ops_check_note', '!=', false]])">
                             See all</button>
@@ -1021,11 +1021,11 @@
                         <tbody>
                             <tr t-foreach="this.state.data.checked.rows" t-as="c" t-key="c.id"
                                 class="o_fwd_click" t-on-click="() => this.openSheet(c.id)">
-                                <td><b t-esc="c.user"/></td>
-                                <td t-esc="c.date_label"/>
-                                <td t-esc="c.state_label"/>
-                                <td><t t-if="c.ops_by"><span class="o_fwd_muted" t-esc="c.ops_by"/><t t-if="c.ops_note">: <t t-esc="c.ops_note"/></t></t></td>
-                                <td><t t-if="c.mkt_by"><span class="o_fwd_muted" t-esc="c.mkt_by"/><t t-if="c.mkt_note">: <t t-esc="c.mkt_note"/></t></t></td>
+                                <td><b t-out="c.user"/></td>
+                                <td t-out="c.date_label"/>
+                                <td t-out="c.state_label"/>
+                                <td><t t-if="c.ops_by"><span class="o_fwd_muted" t-out="c.ops_by"/><t t-if="c.ops_note">: <t t-out="c.ops_note"/></t></t></td>
+                                <td><t t-if="c.mkt_by"><span class="o_fwd_muted" t-out="c.mkt_by"/><t t-if="c.mkt_note">: <t t-out="c.mkt_note"/></t></t></td>
                             </tr>
                         </tbody>
                     </table>
@@ -1035,9 +1035,9 @@
                     <div class="o_fwd_panel_h">
                         Raised to the administrator
                         <span class="o_fwd_dim">
-                            — <t t-esc="this.state.data.flags.open"/> waiting<t
+                            — <t t-out="this.state.data.flags.open"/> waiting<t
                                 t-if="this.state.data.flags.oldest_hours">, oldest
-                                <t t-esc="this.state.data.flags.oldest_hours"/> h</t>
+                                <t t-out="this.state.data.flags.oldest_hours"/> h</t>
                         </span>
                         <button class="o_fwd_btn o_fwd_btn_ghost o_fwd_panel_btn"
                                 t-on-click="() => this.openFlags()">Open all</button>
@@ -1059,14 +1059,14 @@
                                 <tr t-foreach="this.state.data.flags.rows" t-as="f" t-key="f.id"
                                     class="o_fwd_rowlink"
                                     t-on-click="() => this.openSheet(f.id)">
-                                    <td><t t-esc="f.who"/></td>
-                                    <td><t t-esc="f.date"/></td>
-                                    <td><t t-esc="f.kind_label"/></td>
-                                    <td><t t-esc="f.by"/></td>
-                                    <td><t t-esc="f.reason"/></td>
+                                    <td><t t-out="f.who"/></td>
+                                    <td><t t-out="f.date"/></td>
+                                    <td><t t-out="f.kind_label"/></td>
+                                    <td><t t-out="f.by"/></td>
+                                    <td><t t-out="f.reason"/></td>
                                     <td class="o_fwd_num"
                                         t-att-class="f.hours >= 24 ? 'o_fwd_bad' : ''">
-                                        <t t-esc="f.hours"/> h
+                                        <t t-out="f.hours"/> h
                                     </td>
                                 </tr>
                             </tbody>
@@ -1076,16 +1076,16 @@
                     <div t-if="this.state.data.flags.kinds.length" class="o_fwd_flagsplit">
                         <div class="o_fwd_sub">
                             What they are about
-                            <span class="o_fwd_dim">— last <t t-esc="this.state.data.flags.window_days"/> days</span>
+                            <span class="o_fwd_dim">— last <t t-out="this.state.data.flags.window_days"/> days</span>
                         </div>
                         <div t-foreach="this.state.data.flags.kinds" t-as="k" t-key="k.key"
                              class="o_fwd_row">
-                            <span class="o_fwd_row_n"><t t-esc="k.label"/></span>
+                            <span class="o_fwd_row_n"><t t-out="k.label"/></span>
                             <div class="o_fwd_row_bar">
                                 <div class="o_fwd_row_fill"
                                      t-attf-style="width: {{ k.share }}%"/>
                             </div>
-                            <span class="o_fwd_row_v"><t t-esc="k.count"/></span>
+                            <span class="o_fwd_row_v"><t t-out="k.count"/></span>
                         </div>
 
                         <div t-if="this.state.data.flags.people.length" class="o_fwd_sub mt-2">
@@ -1093,8 +1093,8 @@
                         </div>
                         <div t-foreach="this.state.data.flags.people" t-as="p" t-key="p.id"
                              class="o_fwd_row">
-                            <span class="o_fwd_row_n"><t t-esc="p.name"/></span>
-                            <span class="o_fwd_row_v"><t t-esc="p.count"/></span>
+                            <span class="o_fwd_row_n"><t t-out="p.name"/></span>
+                            <span class="o_fwd_row_v"><t t-out="p.count"/></span>
                         </div>
                     </div>
                 </div>
@@ -1105,7 +1105,7 @@
                 <div class="o_fwd_panel">
                     <div class="o_fwd_panel_head">
                         <i class="fa fa-map-marker me-2" title="Visits"/>Visits this week
-                        <span class="o_fwd_panel_sub"><t t-esc="this.state.data.route_week.total"/>
+                        <span class="o_fwd_panel_sub"><t t-out="this.state.data.route_week.total"/>
                             visits — by route and by person</span>
                     </div>
                     <div class="o_fwd_twocol">
@@ -1115,7 +1115,7 @@
                                  class="o_fwd_muted p-2">No visits yet.</div>
                             <div t-foreach="this.state.data.route_week.routes" t-as="rw" t-key="rw.name"
                                  class="o_fwd_desk_row">
-                                <span t-esc="rw.name"/><b t-esc="rw.visits"/>
+                                <span t-out="rw.name"/><b t-out="rw.visits"/>
                             </div>
                         </div>
                         <div>
@@ -1124,7 +1124,7 @@
                                  class="o_fwd_muted p-2">No visits yet.</div>
                             <div t-foreach="this.state.data.route_week.people" t-as="pw" t-key="pw.name"
                                  class="o_fwd_desk_row">
-                                <span t-esc="pw.name"/><b t-esc="pw.visits"/>
+                                <span t-out="pw.name"/><b t-out="pw.visits"/>
                             </div>
                         </div>
                     </div>
@@ -1134,8 +1134,8 @@
                 <div class="o_fwd_panel">
                     <div class="o_fwd_panel_head">
                         <i class="fa fa-user-md me-2" title="Unvisited"/>Doctors not visited
-                            in <t t-esc="this.state.data.unvisited.quiet_days"/> days
-                        <span class="o_fwd_panel_sub"><t t-esc="this.state.data.unvisited.total"/>
+                            in <t t-out="this.state.data.unvisited.quiet_days"/> days
+                        <span class="o_fwd_panel_sub"><t t-out="this.state.data.unvisited.total"/>
                             active clinic(s) — most valuable first</span>
                         <button t-if="this.state.data.unvisited.total"
                                 class="o_fwd_btn o_fwd_btn_ghost o_fwd_seeall float-end"
@@ -1156,23 +1156,23 @@
                         <tbody>
                             <tr t-foreach="this.state.data.unvisited.rows" t-as="uv" t-key="uv.id"
                                 t-on-click="() => this.openRecord('res.partner', uv.id)">
-                                <td><b t-esc="uv.name"/></td>
-                                <td class="o_fwd_muted" t-esc="uv.route"/>
+                                <td><b t-out="uv.name"/></td>
+                                <td class="o_fwd_muted" t-out="uv.route"/>
                                 <td class="text-end">
                                     <b t-if="uv.outstanding" class="o_fwd_bad"
-                                       t-esc="this.money(uv.outstanding)"/>
+                                       t-out="this.money(uv.outstanding)"/>
                                     <span t-else="" class="o_fwd_good">—</span>
                                 </td>
-                                <td class="text-end o_fwd_muted" t-esc="uv.last_so || '—'"/>
-                                <td class="text-end o_fwd_muted" t-esc="uv.last_pay || '—'"/>
+                                <td class="text-end o_fwd_muted" t-out="uv.last_so || '—'"/>
+                                <td class="text-end o_fwd_muted" t-out="uv.last_pay || '—'"/>
                             </tr>
                         </tbody>
                         <tfoot><tr class="o_fwd_totalrow">
                             <td colspan="2">Total open receivable,
-                                all <t t-esc="this.state.data.unvisited.total"/> unvisited</td>
+                                all <t t-out="this.state.data.unvisited.total"/> unvisited</td>
                             <td class="text-end">
                                 <b class="o_fwd_bad"
-                                   t-esc="this.money(this.state.data.unvisited.outstanding_total)"/></td>
+                                   t-out="this.money(this.state.data.unvisited.outstanding_total)"/></td>
                             <td colspan="2"/>
                         </tr></tfoot>
                     </table>
@@ -1192,8 +1192,8 @@
                             <i class="fa fa-list-ul me-1" title="All"/>See all
                         </button>
                         <span class="o_fwd_panel_sub">
-                            <t t-esc="this.money(this.state.data.receivables.overdue)"/> overdue
-                            (<t t-esc="this.state.data.receivables.overdue_pct"/>% of all open) ·
+                            <t t-out="this.money(this.state.data.receivables.overdue)"/> overdue
+                            (<t t-out="this.state.data.receivables.overdue_pct"/>% of all open) ·
                             <b>from accounting</b> — posted receipts against the
                             receivable, never field collections</span>
                     </div>
@@ -1207,16 +1207,16 @@
                         <tbody>
                             <tr t-foreach="this.state.data.receivables.debtors" t-as="dr" t-key="dr.id"
                                 t-on-click="() => this.openDebtor(dr)">
-                                <td><b t-esc="dr.name"/></td>
-                                <td class="text-end"><b class="o_fwd_bad" t-esc="this.money(dr.open)"/></td>
-                                <td class="text-end o_fwd_muted" t-esc="dr.last_so || '—'"/>
-                                <td class="text-end o_fwd_muted" t-esc="dr.last_pay || '—'"/>
+                                <td><b t-out="dr.name"/></td>
+                                <td class="text-end"><b class="o_fwd_bad" t-out="this.money(dr.open)"/></td>
+                                <td class="text-end o_fwd_muted" t-out="dr.last_so || '—'"/>
+                                <td class="text-end o_fwd_muted" t-out="dr.last_pay || '—'"/>
                             </tr>
                         </tbody>
                         <tfoot><tr class="o_fwd_totalrow">
-                            <td>Total overdue, across <t t-esc="this.state.data.receivables.count"/> open invoices</td>
+                            <td>Total overdue, across <t t-out="this.state.data.receivables.count"/> open invoices</td>
                             <td class="text-end"><b class="o_fwd_bad"
-                                t-esc="this.money(this.state.data.receivables.overdue)"/></td>
+                                t-out="this.money(this.state.data.receivables.overdue)"/></td>
                             <td colspan="2"/>
                         </tr></tfoot>
                     </table>
@@ -1239,7 +1239,7 @@
                                 <div class="o_fwd_flow_bar o_fwd_flow_ok"
                                      t-attf-style="height: {{ this.flowHeight(d.approved) }}px"/>
                             </div>
-                            <span class="o_fwd_strip_label" t-esc="d.label"/>
+                            <span class="o_fwd_strip_label" t-out="d.label"/>
                         </div>
                     </div>
                     <div class="o_fwd_heat_legend o_fwd_muted">
@@ -1263,11 +1263,11 @@
                                 ['sent_back', 'sent back, being fixed', funnel.sent_back]]"
                            t-as="stage" t-key="stage[0]">
                             <div class="o_fwd_funnel_row">
-                                <span class="o_fwd_funnel_label" t-esc="stage[1]"/>
+                                <span class="o_fwd_funnel_label" t-out="stage[1]"/>
                                 <div class="o_fwd_funnel_track">
                                     <div t-att-class="'o_fwd_funnel_bar o_fwd_funnel_' + stage[0]"
                                          t-attf-style="width: {{ this.funnelWidth(stage[2]) }}%">
-                                        <t t-esc="stage[2]"/>
+                                        <t t-out="stage[2]"/>
                                     </div>
                                 </div>
                             </div>
@@ -1281,10 +1281,10 @@
                     </div>
                     <div t-foreach="this.state.data.nudge_debt" t-as="debt" t-key="debt.id"
                          class="o_fwd_tick o_fwd_cron" t-on-click="() => this.openSheet(debt.id)">
-                        <span><b t-esc="debt.user"/> · <t t-esc="debt.date_label"/>
-                            <span class="o_fwd_muted"> on the <t t-esc="debt.desk"/> desk</span></span>
+                        <span><b t-out="debt.user"/> · <t t-out="debt.date_label"/>
+                            <span class="o_fwd_muted"> on the <t t-out="debt.desk"/> desk</span></span>
                         <span class="o_fwd_pill o_fwd_pill_warn"
-                              t-esc="debt.nudges + '× asked'"/>
+                              t-out="debt.nudges + '× asked'"/>
                     </div>
                 </div>
 
@@ -1300,7 +1300,7 @@
                     </div>
                     <div t-if="this.state.data.last_report" class="o_fwd_tick o_fwd_cron"
                          t-on-click="() => this.openWeekly()">
-                        <span t-esc="this.state.data.last_report.name"/>
+                        <span t-out="this.state.data.last_report.name"/>
                     </div>
                     <div t-else="" class="o_fwd_muted p-2">
                         No report yet. The first one comes on Monday.
@@ -1320,8 +1320,8 @@
                             <div t-foreach="this.state.data.exceptions" t-as="slice" t-key="slice.key">
                                 <span class="o_fwd_dot"
                                       t-attf-style="background: {{ this.donutColor(slice_index) }}"/>
-                                <t t-esc="slice.label"/>
-                                <span class="o_fwd_muted"> <t t-esc="slice.count"/> day(s)</span>
+                                <t t-out="slice.label"/>
+                                <span class="o_fwd_muted"> <t t-out="slice.count"/> day(s)</span>
                             </div>
                         </div>
                     </div>
@@ -1336,32 +1336,32 @@
                         <i class="fa fa-line-chart me-2" title="Sales"/>This week's sales
                     </div>
                     <div class="o_fwd_biz">
-                        <div><b t-esc="this.state.data.week_sales.orders"/><span>orders</span></div>
-                        <div><b t-esc="this.money(this.state.data.week_sales.value)"/><span>sold</span></div>
+                        <div><b t-out="this.state.data.week_sales.orders"/><span>orders</span></div>
+                        <div><b t-out="this.money(this.state.data.week_sales.value)"/><span>sold</span></div>
                         <div title="Posted receipts against the receivable this week">
-                            <b t-esc="this.money(this.state.data.week_sales.banked)"/>
+                            <b t-out="this.money(this.state.data.week_sales.banked)"/>
                             <span>received — accounting</span></div>
                         <div title="What the executives recorded collecting on their visits">
-                            <b t-esc="this.money(this.state.data.week_sales.collected)"/>
+                            <b t-out="this.money(this.state.data.week_sales.collected)"/>
                             <span>collected — field team</span></div>
                         <div class="o_fwd_span2"><b
                             t-att-class="this.state.data.week_sales.ratio &lt; 50 ? 'o_fwd_bad' : 'o_fwd_good'">
-                            <t t-esc="this.state.data.week_sales.ratio"/>%</b>
+                            <t t-out="this.state.data.week_sales.ratio"/>%</b>
                             <span>received / sold</span></div>
                     </div>
                     <div t-foreach="this.state.data.week_sales.top" t-as="sp" t-key="sp.name"
                          class="o_fwd_desk_row">
-                        <span t-esc="sp.name"/>
-                        <span><span class="o_fwd_muted"><t t-esc="sp.orders"/> ·</span>
-                            <b t-esc="this.money(sp.value)"/></span>
+                        <span t-out="sp.name"/>
+                        <span><span class="o_fwd_muted"><t t-out="sp.orders"/> ·</span>
+                            <b t-out="this.money(sp.value)"/></span>
                     </div>
                 </div>
 
                 <div t-if="this.state.data.targets_rollup.count" class="o_fwd_panel">
                     <div class="o_fwd_panel_head">
                         <i class="fa fa-flag-checkered me-2" title="Targets"/>Targets this month
-                        <span class="o_fwd_panel_sub">avg <t t-esc="this.state.data.targets_rollup.avg"/>%
-                            vs <t t-esc="this.state.data.targets_rollup.expected"/>% expected by today</span>
+                        <span class="o_fwd_panel_sub">avg <t t-out="this.state.data.targets_rollup.avg"/>%
+                            vs <t t-out="this.state.data.targets_rollup.expected"/>% expected by today</span>
                     </div>
                     <div t-if="!this.state.data.targets_rollup.behind.length" class="o_fwd_muted p-2">
                         Nobody is far behind their target.
@@ -1369,8 +1369,8 @@
                     <div t-foreach="this.state.data.targets_rollup.behind" t-as="tb" t-key="tb.id"
                          class="o_fwd_desk_row o_fwd_check_click"
                          t-on-click="() => this.openRecord('lab.target', tb.id)">
-                        <span t-esc="tb.user"/>
-                        <b class="o_fwd_bad"><t t-esc="tb.progress"/>%</b>
+                        <span t-out="tb.user"/>
+                        <b class="o_fwd_bad"><t t-out="tb.progress"/>%</b>
                     </div>
                 </div>
 
@@ -1405,8 +1405,8 @@
                                                ? this.openCovers() : this.openHealth(check)">
                             <i t-att-class="'fa ' + (check.ok ? 'fa-check' : 'fa-times')"
                                t-att-title="check.ok ? 'OK' : 'Needs you'"/>
-                            <span class="o_fwd_htile_label" t-esc="check.label"/>
-                            <b t-if="check.count" class="o_fwd_htile_n" t-esc="check.count"/>
+                            <span class="o_fwd_htile_label" t-out="check.label"/>
+                            <b t-if="check.count" class="o_fwd_htile_n" t-out="check.count"/>
                         </div>
                     </div>
                 </div>
@@ -1427,8 +1427,8 @@
                                       t-att-points="this.speedPoints('mkt')"/>
                         </svg>
                         <div class="o_fwd_speedlabels o_fwd_muted">
-                            <span t-esc="this.speedFirstLabel"/>
-                            <span class="ms-auto" t-esc="this.speedLastLabel"/>
+                            <span t-out="this.speedFirstLabel"/>
+                            <span class="ms-auto" t-out="this.speedLastLabel"/>
                         </div>
                         <div class="o_fwd_heat_legend o_fwd_muted">
                             <span class="o_fwd_heat" style="background:#0e7c86;"/> Operations
@@ -1440,15 +1440,15 @@
                     <div t-foreach="[['Operational desk', vel.ops_now, vel.ops_prev],
                                      ['Marketing desk', vel.mkt_now, vel.mkt_prev]]"
                          t-as="deskv" t-key="deskv[0]" class="o_fwd_desk_row">
-                        <span t-esc="deskv[0]"/>
+                        <span t-out="deskv[0]"/>
                         <span t-if="deskv[1] === null" class="o_fwd_muted">no approvals yet</span>
                         <span t-else="">
-                            <b t-esc="deskv[1]"/>h
+                            <b t-out="deskv[1]"/>h
                             <t t-if="deskv[2] !== null">
                                 <span t-att-class="deskv[1] &lt;= deskv[2] ? 'o_fwd_good' : 'o_fwd_bad'">
                                     <i t-att-class="'fa ' + (deskv[1] &lt;= deskv[2] ? 'fa-arrow-down' : 'fa-arrow-up')"
                                        t-att-title="deskv[1] &lt;= deskv[2] ? 'faster' : 'slower'"/>
-                                    <t t-esc="deskv[2]"/>h last week
+                                    <t t-out="deskv[2]"/>h last week
                                 </span>
                             </t>
                         </span>
@@ -1459,18 +1459,18 @@
                     <div class="o_fwd_panel_head">
                         <i class="fa fa-crosshairs me-2" title="Radius"/>Is the visit radius right?
                         <span class="o_fwd_panel_sub">
-                            <t t-esc="this.state.data.radius.total"/> check-ins measured</span>
+                            <t t-out="this.state.data.radius.total"/> check-ins measured</span>
                     </div>
                     <div t-att-class="'o_fwd_verdict o_fwd_verdict_' + this.state.data.radius.verdict">
                         <b>
                             <t t-if="this.state.data.radius.verdict === 'good'">The radius fits.</t>
                             <t t-elif="this.state.data.radius.verdict === 'tight'">Too tight
-                                — consider <t t-esc="this.state.data.radius.suggested"/> m.</t>
+                                — consider <t t-out="this.state.data.radius.suggested"/> m.</t>
                             <t t-elif="this.state.data.radius.verdict === 'loose'">Too loose
-                                — consider <t t-esc="this.state.data.radius.suggested"/> m.</t>
+                                — consider <t t-out="this.state.data.radius.suggested"/> m.</t>
                             <t t-else="">Not enough data yet.</t>
                         </b>
-                        <div class="o_fwd_muted" t-esc="this.state.data.radius.advice"/>
+                        <div class="o_fwd_muted" t-out="this.state.data.radius.advice"/>
                     </div>
                     <div class="o_fwd_buckets">
                         <div t-foreach="this.state.data.radius.buckets" t-as="bucket" t-key="bucket.low"
@@ -1479,7 +1479,7 @@
                             <div class="o_fwd_bucket_bar"
                                  t-att-class="bucket.inside ? 'o_fwd_bucket_in' : ''"
                                  t-attf-style="height: {{ Math.max(4, bucket.pct) }}px"/>
-                            <span class="o_fwd_bucket_label" t-esc="bucket.label"/>
+                            <span class="o_fwd_bucket_label" t-out="bucket.label"/>
                         </div>
                     </div>
                 </div>
@@ -1493,8 +1493,8 @@
                          t-on-click="() => this.openGap(gap)">
                         <i t-att-class="'fa ' + gap.icon" t-att-title="gap.title"/>
                         <div>
-                            <b><t t-esc="gap.count"/> — <t t-esc="gap.title"/></b>
-                            <div class="o_fwd_muted" t-esc="gap.detail"/>
+                            <b><t t-out="gap.count"/> — <t t-out="gap.title"/></b>
+                            <div class="o_fwd_muted" t-out="gap.detail"/>
                         </div>
                     </div>
                 </div>
@@ -1505,12 +1505,12 @@
                     </div>
                     <div t-foreach="this.state.data.desks" t-as="desk" t-key="desk.key"
                          class="o_fwd_desk_row">
-                        <span t-esc="desk.label"/>
+                        <span t-out="desk.label"/>
                         <span t-if="desk.warn" class="o_fwd_pill o_fwd_pill_flag">
                             no one has this role</span>
                         <span t-else="" class="o_fwd_muted"
                               t-attf-title="{{ desk.names.join(', ') }}">
-                            <t t-esc="desk.count"/> person<t t-if="desk.count > 1">s</t></span>
+                            <t t-out="desk.count"/> person<t t-if="desk.count > 1">s</t></span>
                     </div>
                 </div>
 
@@ -1535,19 +1535,19 @@
                             <tr t-foreach="this.state.data.covers.running" t-as="c" t-key="c.id"
                                 t-on-click="() => this.openRecord('lab.desk.cover', c.id)">
                                 <td><span class="o_fwd_pill o_fwd_pill_clean">
-                                    now – <t t-esc="c.to"/></span></td>
-                                <td><b t-esc="c.delegate"/></td>
-                                <td t-esc="c.desk"/>
-                                <td t-esc="c.manager"/>
-                                <td class="text-end" t-esc="c.signed"/>
+                                    now – <t t-out="c.to"/></span></td>
+                                <td><b t-out="c.delegate"/></td>
+                                <td t-out="c.desk"/>
+                                <td t-out="c.manager"/>
+                                <td class="text-end" t-out="c.signed"/>
                             </tr>
                             <tr t-foreach="this.state.data.covers.upcoming" t-as="c" t-key="c.id"
                                 t-on-click="() => this.openRecord('lab.desk.cover', c.id)">
                                 <td><span class="o_fwd_pill o_fwd_pill_warn">
-                                    from <t t-esc="c.from"/></span></td>
-                                <td><b t-esc="c.delegate"/></td>
-                                <td t-esc="c.desk"/>
-                                <td t-esc="c.manager"/>
+                                    from <t t-out="c.from"/></span></td>
+                                <td><b t-out="c.delegate"/></td>
+                                <td t-out="c.desk"/>
+                                <td t-out="c.manager"/>
                                 <td class="text-end o_fwd_muted">—</td>
                             </tr>
                         </tbody>
@@ -1561,7 +1561,7 @@
                     <div t-foreach="this.state.data.crons" t-as="cron" t-key="cron_index"
                          class="o_fwd_cron">
                         <span t-att-class="'o_fwd_tick_dot ' + (cron.stale or !cron.active ? 'o_fwd_tick_back' : 'o_fwd_tick_approved')"/>
-                        <span class="o_fwd_cron_name" t-esc="cron.name"/>
+                        <span class="o_fwd_cron_name" t-out="cron.name"/>
                         <span t-if="!cron.active" class="o_fwd_bad">off</span>
                         <span t-elif="cron.stale" class="o_fwd_bad">stalled</span>
                     </div>

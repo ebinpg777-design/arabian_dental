@@ -72,7 +72,7 @@ def chance(p):
 
 
 def param(key, value):
-    env['ir.config_parameter'].sudo().set_param(key, value)
+    env['ir.config_parameter'].sudo().set_str(key, value)
 
 
 def commit(label):

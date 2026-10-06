@@ -11,4 +11,4 @@ from odoo import SUPERUSER_ID, api
 
 def migrate(cr, version):
     env = api.Environment(cr, SUPERUSER_ID, {})
-    env['ir.config_parameter'].set_param('lab_workcenter_scan.close_mo_on_delivery', '0')
+    env['ir.config_parameter'].set_str('lab_workcenter_scan.close_mo_on_delivery', '0')

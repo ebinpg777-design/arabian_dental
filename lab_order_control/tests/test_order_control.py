@@ -34,10 +34,10 @@ class TestLabOrderControl(TransactionCase):
         })
 
     def _require_verification(self, value='True'):
-        self.params.set_param(
+        self.params.set_str(
             'lab_order_control.require_order_verification', value)
         self.addCleanup(
-            self.params.set_param,
+            self.params.set_str,
             'lab_order_control.require_order_verification', 'False')
 
     # ------------------------------------------------------------------ maker/checker
@@ -68,9 +68,9 @@ class TestLabOrderControl(TransactionCase):
             order.with_user(self.checker).action_verify()
 
     def test_self_verification_can_be_relaxed_for_a_one_person_counter(self):
-        self.params.set_param('lab_order_control.allow_self_verification', 'True')
+        self.params.set_str('lab_order_control.allow_self_verification', 'True')
         self.addCleanup(
-            self.params.set_param,
+            self.params.set_str,
             'lab_order_control.allow_self_verification', 'False')
         order = self._order()
         order.entered_by_id = self.checker

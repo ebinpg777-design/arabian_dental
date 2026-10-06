@@ -30,7 +30,7 @@ class LiveTrackCase(DailyFlowCase):
         cls.employee = cls.env['hr.employee'].sudo().create({
             'name': 'Flow Exec', 'user_id': cls.exec_user.id,
             'company_id': cls.env.company.id})
-        cls.env['ir.config_parameter'].sudo().set_param(
+        cls.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.track_live', 'True')
 
     # ------------------------------------------------------------- fixtures
@@ -161,7 +161,7 @@ class LiveTrackCase(DailyFlowCase):
         self.assertEqual(kept, 1, "one usable row out of four")
 
     def test_switching_tracking_off_records_nothing(self):
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.track_live', 'False')
         self._on_duty()
         self.assertEqual(self._post([(self._at(6, 0), LAT, LON, 10)]), 0)
@@ -214,7 +214,7 @@ class LiveTrackCase(DailyFlowCase):
 
     # ------------------------------------------------------------- housekeeping
     def test_the_cron_drops_old_trails_and_keeps_current_ones(self):
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.track_keep_days', '30')
         old = self.today - timedelta(days=40)
         self.pings.sudo().create([

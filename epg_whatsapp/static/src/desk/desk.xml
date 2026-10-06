@@ -35,7 +35,7 @@
                         <i class="fa fa-external-link me-1" title="Open in"/>
                         <select t-on-change="(ev) => this.setOpenWith(ev)">
                             <option t-foreach="this.d.open_with_options" t-as="o" t-key="o[0]"
-                                    t-att-value="o[0]" t-att-selected="this.d.open_with === o[0]" t-esc="o[1]"/>
+                                    t-att-value="o[0]" t-att-selected="this.d.open_with === o[0]" t-out="o[1]"/>
                         </select>
                     </label>
                 </div>
@@ -49,14 +49,14 @@
 
             <div t-if="this.d.link_problem" class="alert alert-danger d-flex align-items-center gap-2" role="alert">
                 <i class="fa fa-chain-broken" title="Links"/>
-                <span class="flex-grow-1"><t t-esc="this.d.link_problem"/></span>
+                <span class="flex-grow-1"><t t-out="this.d.link_problem"/></span>
                 <button t-if="this.d.can_configure" class="btn btn-sm btn-danger" t-on-click="() => this.openSenders()">Set the public address</button>
             </div>
 
             <!-- ================================================ numbers -->
             <div class="o_wa_stats">
                 <div class="o_wa_stat o_wa_stat_main">
-                    <div class="o_wa_stat_v" t-esc="this.d.counts.ready + this.d.counts.opened"/>
+                    <div class="o_wa_stat_v" t-out="this.d.counts.ready + this.d.counts.opened"/>
                     <div class="o_wa_stat_l">waiting to send</div>
                     <button class="btn btn-success o_wa_sendall" t-att-disabled="!this.d.groups.length or this.state.running"
                             t-on-click="() => this.sendAll()">
@@ -64,25 +64,25 @@
                     </button>
                 </div>
                 <div class="o_wa_stat o_wa_stat_click" t-on-click="() => this.openMessages([['state', 'in', ['sent', 'read']], ['channel', '=', 'link']], 'Sent')">
-                    <div class="o_wa_stat_v" t-esc="this.d.counts.sent_today"/>
+                    <div class="o_wa_stat_v" t-out="this.d.counts.sent_today"/>
                     <div class="o_wa_stat_l"><i class="fa fa-check me-1" title="Sent"/>sent today</div>
                 </div>
                 <div class="o_wa_stat o_wa_stat_click" t-on-click="() => this.openMessages([['seen_at', '!=', false]], 'Opened by the recipient')">
-                    <div class="o_wa_stat_v" t-esc="this.d.counts.seen_today"/>
+                    <div class="o_wa_stat_v" t-out="this.d.counts.seen_today"/>
                     <div class="o_wa_stat_l"><i class="fa fa-eye me-1" title="Opened"/>documents opened today</div>
                 </div>
                 <div class="o_wa_stat o_wa_stat_click" t-on-click="() => this.openMessages([['direction', '=', 'inbound']], 'Replies')">
-                    <div class="o_wa_stat_v" t-esc="this.d.counts.replies_today"/>
+                    <div class="o_wa_stat_v" t-out="this.d.counts.replies_today"/>
                     <div class="o_wa_stat_l"><i class="fa fa-reply me-1" title="Replies"/>replies today</div>
                 </div>
                 <div class="o_wa_stat o_wa_stat_save">
                     <div class="o_wa_stat_v">
-                        <t t-if="this.d.savings.priced" t-esc="this.d.savings.amount_label"/>
-                        <t t-else="" t-esc="this.d.savings.count"/>
+                        <t t-if="this.d.savings.priced" t-out="this.d.savings.amount_label"/>
+                        <t t-else="" t-out="this.d.savings.count"/>
                     </div>
                     <div class="o_wa_stat_l">
                         <i class="fa fa-leaf me-1" title="Saved"/>
-                        <t t-if="this.d.savings.priced">saved on <t t-esc="this.d.savings.count"/> messages this month</t>
+                        <t t-if="this.d.savings.priced">saved on <t t-out="this.d.savings.count"/> messages this month</t>
                         <t t-else="">messages free this month</t>
                     </div>
                 </div>
@@ -94,28 +94,28 @@
                 <div class="o_wa_meter_bar"><div class="o_wa_meter_fill" t-attf-style="width: {{ this.d.safety.pct }}%"/></div>
                 <span class="o_wa_meter_l">
                     <i class="fa fa-shield me-1" title="Number safety"/>
-                    <b t-esc="this.d.safety.sent"/> of <t t-esc="this.d.safety.limit"/> comfortable sends today
+                    <b t-out="this.d.safety.sent"/> of <t t-out="this.d.safety.limit"/> comfortable sends today
                     <t t-if="this.d.safety.level === 'high'"> — leave the rest for tomorrow</t>
                 </span>
             </div>
 
             <div class="o_wa_tabs" role="tablist">
                 <button role="tab" t-att-class="{ o_wa_tab_on: this.state.tab === 'queue' }" t-on-click="() => this.state.tab = 'queue'">
-                    To send <span class="o_wa_badge" t-esc="this.d.queue_count"/>
+                    To send <span class="o_wa_badge" t-out="this.d.queue_count"/>
                 </button>
                 <button role="tab" t-att-class="{ o_wa_tab_on: this.state.tab === 'inbox' }" t-on-click="() => this.state.tab = 'inbox'">
-                    To answer <span class="o_wa_badge" t-att-class="{ o_wa_badge_soft: !this.d.inbox.length }" t-esc="this.d.inbox.length"/>
+                    To answer <span class="o_wa_badge" t-att-class="{ o_wa_badge_soft: !this.d.inbox.length }" t-out="this.d.inbox.length"/>
                 </button>
                 <button role="tab" t-att-class="{ o_wa_tab_on: this.state.tab === 'later' }" t-on-click="() => this.state.tab = 'later'">
-                    Later <span class="o_wa_badge o_wa_badge_soft" t-esc="this.d.later.length"/>
+                    Later <span class="o_wa_badge o_wa_badge_soft" t-out="this.d.later.length"/>
                 </button>
                 <button role="tab" t-att-class="{ o_wa_tab_on: this.state.tab === 'recent' }" t-on-click="() => this.state.tab = 'recent'">
-                    Sent, last 48 h <span class="o_wa_badge o_wa_badge_soft" t-esc="this.d.recent.length"/>
+                    Sent, last 48 h <span class="o_wa_badge o_wa_badge_soft" t-out="this.d.recent.length"/>
                 </button>
                 <div class="o_wa_kind" role="radiogroup" title="What to show">
                     <button t-foreach="[['all', 'All'], ['notify', 'Notifications'], ['marketing', 'Marketing']]" t-as="k" t-key="k[0]"
                             role="radio" t-att-aria-checked="this.state.kind === k[0] ? 'true' : 'false'"
-                            t-att-class="{ o_wa_kind_on: this.state.kind === k[0] }" t-on-click="() => this.state.kind = k[0]" t-esc="k[1]"/>
+                            t-att-class="{ o_wa_kind_on: this.state.kind === k[0] }" t-on-click="() => this.state.kind = k[0]" t-out="k[1]"/>
                 </div>
                 <label class="o_wa_find">
                     <i class="fa fa-search" title="Find"/>
@@ -130,19 +130,19 @@
                     <div class="o_wa_empty_h">All caught up</div>
                     <div>New notifications appear here the moment they are raised.</div>
                 </div>
-                <div t-if="this.d.groups.length and !this.visibleGroups.length" class="o_mp_none">Nothing matches “<t t-esc="this.state.query"/>”.</div>
+                <div t-if="this.d.groups.length and !this.visibleGroups.length" class="o_mp_none">Nothing matches “<t t-out="this.state.query"/>”.</div>
                 <t t-foreach="this.visibleGroups" t-as="g" t-key="g.key">
                     <!-- Several for one doctor: one WhatsApp, one tap. -->
                     <div t-if="g.count > 1" class="o_wa_group">
                         <div class="o_wa_group_head">
-                            <div class="o_wa_card_av" t-esc="this.initials(g.partner or g.number)"/>
+                            <div class="o_wa_card_av" t-out="this.initials(g.partner or g.number)"/>
                             <div class="o_wa_card_main">
                                 <div class="o_wa_card_top">
-                                    <span class="o_wa_card_name" t-esc="g.partner or ('+' + g.number)"/>
-                                    <span class="o_wa_chip o_wa_chip_bundle"><i class="fa fa-object-group me-1" title="Bundle"/><t t-esc="g.count"/> messages</span>
-                                    <span t-if="g.best_time" class="o_wa_chip o_wa_chip_time"><i class="fa fa-clock-o me-1" title="Best time"/><t t-esc="g.best_time"/></span>
+                                    <span class="o_wa_card_name" t-out="g.partner or ('+' + g.number)"/>
+                                    <span class="o_wa_chip o_wa_chip_bundle"><i class="fa fa-object-group me-1" title="Bundle"/><t t-out="g.count"/> messages</span>
+                                    <span t-if="g.best_time" class="o_wa_chip o_wa_chip_time"><i class="fa fa-clock-o me-1" title="Best time"/><t t-out="g.best_time"/></span>
                                 </div>
-                                <div class="o_wa_card_meta">+<t t-esc="g.number"/> · they receive one WhatsApp instead of <t t-esc="g.count"/></div>
+                                <div class="o_wa_card_meta">+<t t-out="g.number"/> · they receive one WhatsApp instead of <t t-out="g.count"/></div>
                             </div>
                             <div class="o_wa_card_acts">
                                 <button class="btn btn-success" t-on-click="() => this.sendGroup(g)">
@@ -155,7 +155,7 @@
                         </div>
                         <div t-if="this.state.snooze[g.cards[0].id]" class="o_wa_snooze">
                             <span class="text-muted small me-1">Send later:</span>
-                            <button t-foreach="this.snoozeOptions(g.cards[0])" t-as="z" t-key="z[0]" class="btn btn-sm btn-outline-secondary" t-on-click="() => this.snooze(g.ids, z[0])" t-esc="z[1]"/>
+                            <button t-foreach="this.snoozeOptions(g.cards[0])" t-as="z" t-key="z[0]" class="btn btn-sm btn-outline-secondary" t-on-click="() => this.snooze(g.ids, z[0])" t-out="z[1]"/>
                         </div>
                         <t t-foreach="g.cards" t-as="c" t-key="c.id">
                             <t t-call="epg_whatsapp.DeskCard" inGroup="true"/>
@@ -178,15 +178,15 @@
                     <div class="o_wa_empty_p">A tapped answer or a message from a doctor appears here.</div>
                 </div>
                 <div t-foreach="this.d.inbox" t-as="r" t-key="r.id" class="o_wa_reply_row">
-                    <div class="o_wa_avatar o_wa_avatar_in"><t t-esc="this.initials(r.partner || r.number)"/></div>
+                    <div class="o_wa_avatar o_wa_avatar_in"><t t-out="this.initials(r.partner || r.number)"/></div>
                     <div class="o_wa_reply_main">
                         <div class="o_wa_reply_head">
-                            <b t-esc="r.partner || r.number"/>
-                            <span t-if="r.record" class="o_wa_reply_rec" t-esc="r.record"/>
-                            <span t-if="r.about" class="o_wa_reply_about">about <t t-esc="r.about"/></span>
-                            <span class="o_wa_reply_when" t-esc="r.when"/>
+                            <b t-out="r.partner || r.number"/>
+                            <span t-if="r.record" class="o_wa_reply_rec" t-out="r.record"/>
+                            <span t-if="r.about" class="o_wa_reply_about">about <t t-out="r.about"/></span>
+                            <span class="o_wa_reply_when" t-out="r.when"/>
                         </div>
-                        <div class="o_wa_reply_text" t-esc="r.text"/>
+                        <div class="o_wa_reply_text" t-out="r.text"/>
                     </div>
                     <div class="o_wa_reply_acts">
                         <button class="btn btn-sm btn-success" t-on-click="() => this.answer(r)" title="Open the chat and answer">
@@ -210,14 +210,14 @@
                     <div>Messages sent "later", and campaign messages for the coming days, wait here.</div>
                 </div>
                 <div t-foreach="this.visibleLater" t-as="c" t-key="c.id" class="o_wa_card o_wa_card_later">
-                    <div class="o_wa_card_av" t-esc="this.initials(c.partner or c.number)"/>
+                    <div class="o_wa_card_av" t-out="this.initials(c.partner or c.number)"/>
                     <div class="o_wa_card_main">
                         <div class="o_wa_card_top">
-                            <span class="o_wa_card_name" t-esc="c.partner or ('+' + c.number)"/>
-                            <span class="o_wa_chip" t-esc="c.template"/>
-                            <span class="o_wa_card_age"><i class="fa fa-calendar me-1" title="Scheduled"/><t t-esc="c.scheduled"/></span>
+                            <span class="o_wa_card_name" t-out="c.partner or ('+' + c.number)"/>
+                            <span class="o_wa_chip" t-out="c.template"/>
+                            <span class="o_wa_card_age"><i class="fa fa-calendar me-1" title="Scheduled"/><t t-out="c.scheduled"/></span>
                         </div>
-                        <div class="o_wa_card_meta">+<t t-esc="c.number"/><t t-if="c.best_time"> · <t t-esc="c.best_time"/></t></div>
+                        <div class="o_wa_card_meta">+<t t-out="c.number"/><t t-if="c.best_time"> · <t t-out="c.best_time"/></t></div>
                     </div>
                     <div class="o_wa_card_acts">
                         <button class="btn btn-sm btn-outline-success" t-on-click="() => this.unsnooze(c)">Send now</button>
@@ -232,22 +232,22 @@
                     <div class="o_wa_empty_h">Nothing sent in the last two days</div>
                 </div>
                 <div t-foreach="this.visibleRecent" t-as="c" t-key="c.id" class="o_wa_card o_wa_card_sent">
-                    <div class="o_wa_card_av" t-esc="this.initials(c.partner or c.number)"/>
+                    <div class="o_wa_card_av" t-out="this.initials(c.partner or c.number)"/>
                     <div class="o_wa_card_main">
                         <div class="o_wa_card_top">
-                            <span class="o_wa_card_name" t-esc="c.partner or ('+' + c.number)"/>
-                            <span class="o_wa_chip" t-esc="c.template"/>
+                            <span class="o_wa_card_name" t-out="c.partner or ('+' + c.number)"/>
+                            <span class="o_wa_chip" t-out="c.template"/>
                             <span class="o_wa_ticks" t-att-class="{ o_wa_ticks_seen: c.read }"
                                   t-att-title="c.read ? 'Opened ' + c.seen_count + ' time(s)' : 'Sent'">
                                 <i class="fa fa-check" title="Sent"/><i t-if="c.read" class="fa fa-check" title="Opened"/>
                             </span>
-                            <span class="o_wa_card_age"><t t-esc="c.sent_at"/><t t-if="c.sent_by"> · <t t-esc="c.sent_by"/></t></span>
+                            <span class="o_wa_card_age"><t t-out="c.sent_at"/><t t-if="c.sent_by"> · <t t-out="c.sent_by"/></t></span>
                         </div>
                         <div class="o_wa_card_meta">
-                            <t t-if="c.record"><a href="#" t-on-click.prevent="() => this.openRecord(c)" t-esc="c.record"/></t>
+                            <t t-if="c.record"><a href="#" t-on-click.prevent="() => this.openRecord(c)" t-out="c.record"/></t>
                             <t t-if="c.seen"> · <i class="fa fa-eye text-success" title="Opened"/> opened the document</t>
                         </div>
-                        <div t-if="c.reply" class="o_wa_card_answer"><i class="fa fa-reply me-1" title="Reply"/><t t-esc="c.reply"/></div>
+                        <div t-if="c.reply" class="o_wa_card_answer"><i class="fa fa-reply me-1" title="Reply"/><t t-out="c.reply"/></div>
                         <div t-if="c.paid" class="o_wa_card_answer"><i class="fa fa-credit-card me-1" title="Paid"/>says paid</div>
                         <div t-if="c.clicked or c.opted_out" class="o_wa_card_meta">
                             <span t-if="c.clicked" class="text-success"><i class="fa fa-hand-pointer-o me-1" title="Clicked"/>opened the link</span>
@@ -268,7 +268,7 @@
 
             <!-- On a phone the one button that matters stays under the thumb. -->
             <div class="o_wa_mobilebar" t-if="this.visibleGroups.length">
-                <span><b t-esc="this.d.counts.ready + this.d.counts.opened"/> to send</span>
+                <span><b t-out="this.d.counts.ready + this.d.counts.opened"/> to send</span>
                 <button class="btn btn-success" t-att-disabled="this.state.running" t-on-click="() => this.sendAll()">
                     <i class="fa fa-play me-1" title="Send all"/>Send all
                 </button>
@@ -282,23 +282,23 @@
      big button: the group sends them together. -->
 <t t-name="epg_whatsapp.DeskCard">
     <div class="o_wa_card" t-att-class="{ o_wa_card_opened: c.state === 'opened', o_wa_card_late: c.overdue, o_wa_card_sub: inGroup }">
-        <div t-if="!inGroup" class="o_wa_card_av" t-esc="this.initials(c.partner or c.number)"/>
+        <div t-if="!inGroup" class="o_wa_card_av" t-out="this.initials(c.partner or c.number)"/>
         <div class="o_wa_card_main">
             <div class="o_wa_card_top">
-                <span t-if="!inGroup" class="o_wa_card_name" t-esc="c.partner or ('+' + c.number)"/>
-                <span class="o_wa_chip" t-esc="c.template"/>
+                <span t-if="!inGroup" class="o_wa_card_name" t-out="c.partner or ('+' + c.number)"/>
+                <span class="o_wa_chip" t-out="c.template"/>
                 <span t-if="c.nudge" class="o_wa_chip o_wa_chip_nudge"><i class="fa fa-bell-o me-1" title="Reminder"/>Reminder · not opened</span>
                 <span t-if="c.campaign" class="o_wa_chip o_wa_chip_camp"><i class="fa fa-bullhorn me-1" title="Campaign"/>Campaign</span>
-                <span t-if="c.automation" class="o_wa_chip o_wa_chip_camp"><i class="fa fa-magic me-1" title="Automation"/><t t-esc="c.automation"/></span>
+                <span t-if="c.automation" class="o_wa_chip o_wa_chip_camp"><i class="fa fa-magic me-1" title="Automation"/><t t-out="c.automation"/></span>
                 <span t-if="c.state === 'opened'" class="o_wa_chip o_wa_chip_warn">Opened — not confirmed</span>
-                <span t-if="c.document" class="o_wa_chip o_wa_chip_doc"><i class="fa fa-file-pdf-o me-1" title="Document"/><t t-esc="c.document"/></span>
-                <span t-if="c.best_time and !inGroup" class="o_wa_chip o_wa_chip_time"><i class="fa fa-clock-o me-1" title="Best time"/><t t-esc="c.best_time"/></span>
-                <span class="o_wa_card_age" t-att-class="{ 'text-danger': c.overdue }"><i class="fa fa-clock-o me-1" title="Waiting"/><t t-esc="c.waited"/></span>
+                <span t-if="c.document" class="o_wa_chip o_wa_chip_doc"><i class="fa fa-file-pdf-o me-1" title="Document"/><t t-out="c.document"/></span>
+                <span t-if="c.best_time and !inGroup" class="o_wa_chip o_wa_chip_time"><i class="fa fa-clock-o me-1" title="Best time"/><t t-out="c.best_time"/></span>
+                <span class="o_wa_card_age" t-att-class="{ 'text-danger': c.overdue }"><i class="fa fa-clock-o me-1" title="Waiting"/><t t-out="c.waited"/></span>
             </div>
             <div class="o_wa_card_meta">
-                <t t-if="!inGroup">+<t t-esc="c.number"/></t>
-                <t t-if="c.record"><t t-if="!inGroup"> · </t><a href="#" t-on-click.prevent="() => this.openRecord(c)" t-esc="c.record"/></t>
-                <t t-if="c.user and this.state.scope === 'all'"> · for <t t-esc="c.user"/></t>
+                <t t-if="!inGroup">+<t t-out="c.number"/></t>
+                <t t-if="c.record"><t t-if="!inGroup"> · </t><a href="#" t-on-click.prevent="() => this.openRecord(c)" t-out="c.record"/></t>
+                <t t-if="c.user and this.state.scope === 'all'"> · for <t t-out="c.user"/></t>
             </div>
             <t t-if="this.state.editing[c.id] !== undefined">
                 <textarea class="form-control o_wa_edit" rows="6" t-custom-model="this.state.editing[c.id]"/>
@@ -307,13 +307,13 @@
                     <button class="btn btn-sm btn-light" t-on-click="() => this.cancelEdit(c)">Discard</button>
                 </div>
             </t>
-            <div t-else="" class="o_wa_card_body" t-esc="c.body"/>
+            <div t-else="" class="o_wa_card_body" t-out="c.body"/>
             <div t-if="c.replies.length" class="o_wa_card_replies">
-                <span t-foreach="c.replies" t-as="r" t-key="r_index" class="o_wa_reply_chip" t-esc="r"/>
+                <span t-foreach="c.replies" t-as="r" t-key="r_index" class="o_wa_reply_chip" t-out="r"/>
             </div>
             <div t-if="this.state.snooze[c.id] and !inGroup" class="o_wa_snooze">
                 <span class="text-muted small me-1">Send later:</span>
-                <button t-foreach="this.snoozeOptions(c)" t-as="z" t-key="z[0]" class="btn btn-sm btn-outline-secondary" t-on-click="() => this.snooze([c.id], z[0])" t-esc="z[1]"/>
+                <button t-foreach="this.snoozeOptions(c)" t-as="z" t-key="z[0]" class="btn btn-sm btn-outline-secondary" t-on-click="() => this.snooze([c.id], z[0])" t-out="z[1]"/>
             </div>
         </div>
         <div class="o_wa_card_acts">

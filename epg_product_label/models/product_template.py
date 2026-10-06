@@ -33,7 +33,7 @@ class ProductLabelMixin(models.AbstractModel):
 
     @api.model
     def _epg_replaces_standard_wizard(self):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'epg_product_label.replace_standard') in ('True', 'true', '1', True)
 
 

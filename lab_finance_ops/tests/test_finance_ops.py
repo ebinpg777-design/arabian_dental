@@ -157,10 +157,10 @@ class TestLabFinanceOps(TransactionCase):
 
     # ------------------------------------------------------------------ approval
     def _require_approval(self, threshold='1000'):
-        self.params.set_param('lab_finance_ops.require_payment_approval', 'True')
-        self.params.set_param('lab_finance_ops.payment_approval_threshold', threshold)
+        self.params.set_str('lab_finance_ops.require_payment_approval', 'True')
+        self.params.set_str('lab_finance_ops.payment_approval_threshold', threshold)
         self.addCleanup(
-            self.params.set_param,
+            self.params.set_str,
             'lab_finance_ops.require_payment_approval', 'False')
 
     def _payment(self, amount):

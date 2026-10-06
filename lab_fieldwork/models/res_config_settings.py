@@ -100,7 +100,7 @@ class ResConfigSettings(models.TransientModel):
         res = super().set_values()
         params = self.env['ir.config_parameter'].sudo()
         for field_name, key in self._FW_TRUE_BY_DEFAULT:
-            params.set_param(key, 'True' if self[field_name] else 'False')
+            params.set_str(key, 'True' if self[field_name] else 'False')
         if self._fw_coverage_bands() != before:
             # The coverage bands are baked into a SQL view's CASE expression, so the
             # view has to be rebuilt for a changed band to mean anything. Doing it here
@@ -114,7 +114,7 @@ class ResConfigSettings(models.TransientModel):
 
     @api.model
     def _fw_coverage_bands(self):
-        get = self.env['ir.config_parameter'].sudo().get_param
+        get = self.env['ir.config_parameter'].sudo().get_str
         return (get('lab_fieldwork.due_days'),
                 get('lab_fieldwork.overdue_days'),
                 get('lab_fieldwork.at_risk_days'))

@@ -387,7 +387,7 @@ class PartnerStatement(models.AbstractModel):
         to give the footer bar - the suite's own layout, whose page-top band the
         template switches off. Odoo's standard frame printed the company address (with
         the country) in a 52 mm band, over the letterhead below it. (client, 2026-09-30)"""
-        xmlid = self.env['ir.config_parameter'].sudo().get_param('epg_partner_statement.layout')
+        xmlid = self.env['ir.config_parameter'].sudo().get_str('epg_partner_statement.layout')
         if xmlid and self.env.ref(xmlid, raise_if_not_found=False):
             return xmlid
         for candidate in ('sale_custom.external_layout_lab', 'sale_custom.external_layout_ortho'):
@@ -525,7 +525,7 @@ class PartnerStatement(models.AbstractModel):
     def _cron_auto_send(self):
         """Monthly: e-mail last month's statement to every partner that opted in."""
         params = self.env['ir.config_parameter'].sudo()
-        day = int(params.get_param('epg_partner_statement.auto_send_day', '1') or 1)
+        day = int(params.get_str('epg_partner_statement.auto_send_day', '1') or 1)
         today = fields.Date.context_today(self)
         if today.day != day:
             return 0

@@ -24,8 +24,8 @@ class TestDoctorDesk(TransactionCase):
         G = cls.env.ref
         cls.company = cls.env.company
         params = cls.env['ir.config_parameter'].sudo()
-        params.set_param('lab_order_control.require_order_verification', 'False')
-        params.set_param('lab_order_control.doctor_call_attempts_before_hold', '0')
+        params.set_str('lab_order_control.require_order_verification', 'False')
+        params.set_str('lab_order_control.doctor_call_attempts_before_hold', '0')
         Users = cls.env['res.users'].with_context(no_reset_password=True)
 
         def user(name, login, *groups):
@@ -354,7 +354,7 @@ class TestDoctorDesk(TransactionCase):
 
     # ------------------------------------------------------------------ the order moves on
     def test_an_order_held_for_the_doctor_comes_back_to_the_queue(self):
-        self.env['ir.config_parameter'].sudo().set_param('lab_order_control.require_order_verification', 'True')
+        self.env['ir.config_parameter'].sudo().set_str('lab_order_control.require_order_verification', 'True')
         order, ticket = self._ticket()
         order.write({'verification_state': 'to_verify'})
         order._put_on_hold(reason='awaiting_doctor_response', note='cannot reach')
@@ -380,7 +380,7 @@ class TestDoctorDesk(TransactionCase):
 
     def test_an_order_that_is_owed_a_check_is_not_confirmed_by_itself(self):
         self.company.doctor_ticket_confirm = True
-        self.env['ir.config_parameter'].sudo().set_param('lab_order_control.require_order_verification', 'True')
+        self.env['ir.config_parameter'].sudo().set_str('lab_order_control.require_order_verification', 'True')
         order, ticket = self._ticket()
         if not order._verification_required():
             order.verification_needed = True

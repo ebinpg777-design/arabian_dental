@@ -19,7 +19,7 @@
                         <span class="o_dft_gen_field_name" t-out="field.string"/>
                         <span class="o_dft_gen_field_tech" t-out="field.name"/>
                         <span class="o_dft_gen_field_count">
-                            <t t-esc="field.values.length"/> tiles
+                            <t t-out="field.values.length"/> tiles
                         </span>
                     </div>
                     <div class="o_dft_gen_chips">
@@ -44,7 +44,7 @@
                             t-att-class="{ o_dft_gen_row_active: this.state.row === row }"
                             t-foreach="this.rowChoices" t-as="row" t-key="row"
                             t-on-click="() => this.pickRow(row)">
-                        <t t-esc="this.rowLabel(row)"/>
+                        <t t-out="this.rowLabel(row)"/>
                     </button>
                 </div>
 

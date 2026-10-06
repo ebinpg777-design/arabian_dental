@@ -8,7 +8,7 @@
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <meta name="robots" content="noindex"/>
-                <title>Pay <t t-esc="amount"/> · <t t-esc="company_name"/></title>
+                <title>Pay <t t-out="amount"/> · <t t-out="company_name"/></title>
                 <style>
                     body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
                            background: #efeae2; color: #111b21; }
@@ -35,26 +35,26 @@
             <body>
                 <div class="wrap">
                     <div class="card">
-                        <div class="co"><t t-esc="company_name"/></div>
-                        <div class="amt"><t t-esc="amount"/></div>
-                        <div class="ref" t-if="reference">for <t t-esc="reference"/></div>
+                        <div class="co"><t t-out="company_name"/></div>
+                        <div class="amt"><t t-out="amount"/></div>
+                        <div class="ref" t-if="reference">for <t t-out="reference"/></div>
                         <div class="apps">
                             <t t-foreach="apps" t-as="app">
-                                <a t-att-href="app['url']" t-attf-class="app #{app['key']}"><t t-esc="app['label']"/></a>
+                                <a t-att-href="app['url']" t-attf-class="app #{app['key']}"><t t-out="app['label']"/></a>
                             </t>
                         </div>
-                        <p class="hint">Opens your UPI app with the amount filled in. Check the payee is <b><t t-esc="payee"/></b> before you confirm.</p>
+                        <p class="hint">Opens your UPI app with the amount filled in. Check the payee is <b><t t-out="payee"/></b> before you confirm.</p>
                     </div>
                     <div class="card qr" t-if="qr">
                         <h2>Or scan from another phone</h2>
                         <t t-out="qr"/>
-                        <div class="id"><t t-esc="upi_id"/></div>
+                        <div class="id"><t t-out="upi_id"/></div>
                     </div>
                     <div class="card">
                         <div t-if="claimed" class="done">✅ Thank you — you told us this is paid.</div>
                         <form t-else="" method="post" t-att-action="form_action">
                             <h2>Paid? Let us know</h2>
-                            <button type="submit" class="paid">I've paid <t t-esc="amount"/></button>
+                            <button type="submit" class="paid">I've paid <t t-out="amount"/></button>
                             <p class="hint">Tells the lab to look for your payment. Your invoice is marked paid once the receipt is matched.</p>
                         </form>
                     </div>

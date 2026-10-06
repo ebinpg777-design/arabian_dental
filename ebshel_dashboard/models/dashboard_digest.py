@@ -252,7 +252,7 @@ class DashboardBoardDigest(models.Model):
         table = ('<table style="border-collapse:collapse;margin:12px 0;">%s</table>'
                  % ''.join(rows)) if rows else ''
         link = '%s/odoo/action-ebshel_dashboard.action_dashboard_open' % (
-            self.env['ir.config_parameter'].sudo().get_param('web.base.url') or '')
+            self.env['ir.config_parameter'].sudo().get_str('web.base.url') or '')
         counts = self.env._('%(cards)s cards · %(period)s',
                             cards=len(data['items']),
                             period=dict(PERIODS).get(self.digest_period, ''))

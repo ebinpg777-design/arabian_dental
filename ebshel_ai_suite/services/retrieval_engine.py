@@ -195,7 +195,7 @@ def fetch_url_text(env, url: str) -> str:
     parsed = urlparse(url or '')
     if parsed.scheme not in ('http', 'https') or not parsed.hostname:
         raise ExtractionError(env._('Only http(s) URLs can be imported.'))
-    allow_private = env['ir.config_parameter'].sudo().get_param('ebshel_ai_suite.allow_private_urls') == 'True'
+    allow_private = env['ir.config_parameter'].sudo().get_str('ebshel_ai_suite.allow_private_urls') == 'True'
     if not allow_private and not _is_public_host(parsed.hostname):
         raise ExtractionError(env._('This URL points to a private or local network address and was blocked.'))
     try:

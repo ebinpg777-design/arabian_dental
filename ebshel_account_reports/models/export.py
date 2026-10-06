@@ -81,7 +81,7 @@ class FinReportExport(models.Model):
     @api.model
     def _pdf_cap(self):
         try:
-            cap = int(self.env['ir.config_parameter'].sudo().get_param('ebshel_account_reports.pdf_max_lines') or PDF_LINES)
+            cap = int(self.env['ir.config_parameter'].sudo().get_str('ebshel_account_reports.pdf_max_lines') or PDF_LINES)
         except ValueError:
             cap = PDF_LINES
         return max(200, cap)

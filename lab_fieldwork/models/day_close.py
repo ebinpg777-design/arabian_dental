@@ -43,14 +43,14 @@ class LabDayCloser(models.AbstractModel):
     # ------------------------------------------------------------------ policy
     @api.model
     def _enabled(self):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.auto_close_day', 'True') in ('True', 'true', '1')
 
     @api.model
     def _cutoff_hour(self):
         try:
             return min(23, max(0, int(float(self.env['ir.config_parameter'].sudo()
-                                            .get_param('lab_fieldwork.auto_close_hour',
+                                            .get_str('lab_fieldwork.auto_close_hour',
                                                        DEFAULT_HOUR)))))
         except (TypeError, ValueError):
             return DEFAULT_HOUR

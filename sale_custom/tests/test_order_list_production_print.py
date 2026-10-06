@@ -82,7 +82,7 @@ class TestOrderListProductionPrint(TransactionCase):
 
     def test_a_huge_filter_is_refused_not_ground_through(self):
         wiz = self._wizard(partner_ids=[(6, 0, self.clinic.ids)])
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'sale_custom.production_slip_print_limit', '1')
         self._order(state='sale')
         self._order(state='sale')

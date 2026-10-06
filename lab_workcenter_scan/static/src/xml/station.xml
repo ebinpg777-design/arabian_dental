@@ -14,23 +14,23 @@
                         t-on-click="() => this.openStationPicker()"
                         title="Change station">
                     <span t-if="this.state.data and this.state.data.workcenter" class="o_st_id_chip"
-                          t-esc="this.stationInitials(this.state.data.workcenter.name)"/>
+                          t-out="this.stationInitials(this.state.data.workcenter.name)"/>
                     <span t-else="" class="o_st_id_chip o_st_id_chip_none">
                         <i class="fa fa-question" title="No station"/>
                     </span>
                     <span class="o_st_id_body">
                         <span class="o_st_eyebrow">
                             Station
-                            <span t-if="this.state.seen" class="o_st_seen">· updated <t t-esc="this.state.seen"/></span>
+                            <span t-if="this.state.seen" class="o_st_seen">· updated <t t-out="this.state.seen"/></span>
                         </span>
                         <span class="o_st_name">
                             <t t-if="this.state.data and this.state.data.workcenter">
-                                <t t-esc="this.state.data.workcenter.name"/>
+                                <t t-out="this.state.data.workcenter.name"/>
                             </t>
                             <t t-else="">Choose your station</t>
                         </span>
                         <span t-if="this.state.data and this.state.data.workcenter and this.state.data.workcenter.code"
-                              class="o_st_id_code" t-esc="this.state.data.workcenter.code"/>
+                              class="o_st_id_code" t-out="this.state.data.workcenter.code"/>
                     </span>
                     <i class="fa fa-exchange o_st_id_swap" title="Change station"/>
                 </button>
@@ -119,7 +119,7 @@
                 <i class="fa fa-exchange me-1" title="Change station"/>
                 <t t-if="this.state.data.workcenter">Change station</t>
                 <t t-else="">Choose a station</t>
-                <span class="o_st_pick_n"><t t-esc="this.state.data.stations.length"/></span>
+                <span class="o_st_pick_n"><t t-out="this.state.data.stations.length"/></span>
             </button>
         </div>
 
@@ -154,13 +154,13 @@
                                  the row beneath, so a long name never has to fight a number for
                                  the same line. (client, 2026-09-10) -->
                             <span class="o_st_pick_head">
-                                <span class="o_st_pick_chip" t-esc="this.stationInitials(s.name)"/>
-                                <span class="o_st_pick_name" t-esc="s.name"/>
+                                <span class="o_st_pick_chip" t-out="this.stationInitials(s.name)"/>
+                                <span class="o_st_pick_name" t-out="s.name"/>
                                 <i t-if="false" class="fa fa-check o_st_pick_tick"
                                    title="You are here"/>
                             </span>
                             <span class="o_st_pick_foot">
-                                <span t-if="s.code" class="o_st_pick_code" t-esc="s.code"/>
+                                <span t-if="s.code" class="o_st_pick_code" t-out="s.code"/>
                                 <span t-if="s.is_lead" class="o_st_pick_lead">
                                     <i class="fa fa-star" title="You lead this bench"/>
                                 </span>
@@ -168,15 +168,15 @@
                                      read: waiting to be taken, on the bench, passed on. -->
                                 <span class="o_st_pick_counts">
                                     <span class="o_st_pick_c o_st_pick_c_wait" title="Waiting to be taken">
-                                        <span class="o_st_pick_qn" t-esc="s.waiting"/>
+                                        <span class="o_st_pick_qn" t-out="s.waiting"/>
                                         <span class="o_st_pick_ql">waiting</span>
                                     </span>
                                     <span class="o_st_pick_c o_st_pick_c_bench" title="On the bench: accepted, not passed on">
-                                        <span class="o_st_pick_qn" t-esc="s.bench"/>
+                                        <span class="o_st_pick_qn" t-out="s.bench"/>
                                         <span class="o_st_pick_ql">on bench</span>
                                     </span>
                                     <span class="o_st_pick_c o_st_pick_c_done" t-att-title="'Passed on today'">
-                                        <span class="o_st_pick_qn" t-esc="s.finished"/>
+                                        <span class="o_st_pick_qn" t-out="s.finished"/>
                                         <span class="o_st_pick_ql">finished</span>
                                     </span>
                                 </span>
@@ -235,7 +235,7 @@
                  is still on without adding up the chips. (client, 2026-09-09) -->
             <t t-set="bd" t-value="this.state.data.bench_day"/>
             <div t-if="bd and bd.people" class="o_st_bench">
-                <span class="o_st_bench_l"><i class="fa fa-bullseye me-1"/>Bench <t t-esc="this.doneLabel"/></span>
+                <span class="o_st_bench_l"><i class="fa fa-bullseye me-1"/>Bench <t t-out="this.doneLabel"/></span>
                 <t t-if="bd.target">
                     <span class="o_st_bench_bar"
                           t-att-title="bd.shift === null ? 'No working hours on this day' : bd.shift + '% of the working day gone'">
@@ -246,24 +246,24 @@
                         <span t-if="bd.shift !== null and bd.shift &lt; 100" class="o_st_bench_now"
                               t-attf-style="left: {{ bd.shift }}%"/>
                     </span>
-                    <span class="o_st_bench_n"><b t-esc="bd.done_against"/> / <t t-esc="bd.target"/></span>
+                    <span class="o_st_bench_n"><b t-out="bd.done_against"/> / <t t-out="bd.target"/></span>
                     <span class="o_st_bench_m">
-                        <t t-esc="bd.met"/> of <t t-esc="bd.with_target"/> on target
+                        <t t-out="bd.met"/> of <t t-out="bd.with_target"/> on target
                         <t t-if="bd.shift === 0">
                             · <span class="text-muted">the bench's day has not started</span>
                         </t>
                         <t t-elif="bd.ahead !== null and bd.shift !== null and bd.shift &lt; 100 and bd.pct &lt; 100">
-                            · <span t-if="bd.ahead > 0" class="o_st_bench_ahead">ahead by <t t-esc="bd.ahead"/> for the hour</span>
-                            <span t-elif="bd.ahead &lt; 0" class="o_st_bench_behind">behind by <t t-esc="-bd.ahead"/> for the hour</span>
+                            · <span t-if="bd.ahead > 0" class="o_st_bench_ahead">ahead by <t t-out="bd.ahead"/> for the hour</span>
+                            <span t-elif="bd.ahead &lt; 0" class="o_st_bench_behind">behind by <t t-out="-bd.ahead"/> for the hour</span>
                             <span t-else="" class="o_st_bench_ahead">on pace</span>
                         </t>
                         <t t-if="bd.done > bd.done_against">
-                            · <t t-esc="bd.done - bd.done_against"/> more by people with no target
+                            · <t t-out="bd.done - bd.done_against"/> more by people with no target
                         </t>
                     </span>
                 </t>
                 <span t-else="" class="o_st_bench_m">
-                    <b t-esc="bd.done"/> taken or finished · no target set for this day
+                    <b t-out="bd.done"/> taken or finished · no target set for this day
                 </span>
                 <!-- Set where the day is read. Only for whoever may write targets. -->
                 <button t-if="this.state.data.can_set_targets" class="o_st_bench_set"
@@ -291,7 +291,7 @@
                             'o_st_person_lead': p.is_lead }"
                         t-on-click="() => this.showPerson(p)">
                     <i class="fa fa-check o_st_person_check"/>
-                    <span class="o_st_person_n" t-esc="p.name"/>
+                    <span class="o_st_person_n" t-out="p.name"/>
                     <!-- The day's work, not the pile: what this person took or
                          finished on the day being looked at. The pile is still
                          what the who-did-it popup spreads by. (client, 2026-09-09) -->
@@ -313,12 +313,12 @@
                              Before the number, so it is read first. (client, 2026-09-14) -->
                         <i t-if="p.all_benches" class="fa fa-globe o_st_person_floor"
                            title="Counted across every bench"/>
-                        <t t-esc="p.id === 'none' ? p.load : p.day_count"/>
+                        <t t-out="p.id === 'none' ? p.load : p.day_count"/>
                         <!-- The target only appears where somebody set one, so a
                              bench that does not work this way sees the count it
                              always saw. (client, 2026-09-09) -->
                         <t t-if="p.id !== 'none' and p.target">
-                            <span class="o_st_person_t">/<t t-esc="p.target"/></span>
+                            <span class="o_st_person_t">/<t t-out="p.target"/></span>
                         </t>
                     </span>
                     <!-- The day's progress drawn along the chip's foot, so a row
@@ -362,11 +362,11 @@
                             class="o_st_sort"
                             t-att-class="{ o_st_sort_on: this.state.data.sort === s.key }"
                             t-on-click="() => this.sortQueue(s.key)">
-                        <t t-esc="s.label"/>
+                        <t t-out="s.label"/>
                     </button>
                 </span>
                 <span t-if="this.state.data.query" class="o_st_find_note">
-                    <t t-esc="this.matchTotal"/> job(s) match “<t t-esc="this.state.data.query"/>”
+                    <t t-out="this.matchTotal"/> job(s) match “<t t-out="this.state.data.query"/>”
                     across the whole bench
                 </span>
             </div>
@@ -377,7 +377,7 @@
                 <section class="o_st_col o_st_col_in">
                     <header class="o_st_col_h">
                         <span>Arrived</span>
-                        <span class="o_st_count" t-esc="this.state.data.totals.incoming"/>
+                        <span class="o_st_count" t-out="this.state.data.totals.incoming"/>
                     </header>
                     <div t-if="!this.state.data.incoming.length" class="o_st_none">
                         Nothing waiting.
@@ -411,8 +411,8 @@
                     </div>
                     <div t-if="this.state.data.totals.incoming > this.state.data.incoming.length"
                          class="o_st_more">
-                        Showing <t t-esc="this.state.data.incoming.length"/> of
-                        <t t-esc="this.state.data.totals.incoming"/> — <t t-esc="this.sortLabel"/>.
+                        Showing <t t-out="this.state.data.incoming.length"/> of
+                        <t t-out="this.state.data.totals.incoming"/> — <t t-out="this.sortLabel"/>.
                         <span class="o_st_more_hint">Use Find above to reach the rest.</span>
                     </div>
                 </section>
@@ -421,7 +421,7 @@
                 <section class="o_st_col o_st_col_work">
                     <header class="o_st_col_h">
                         <span>On the bench</span>
-                        <span class="o_st_count" t-esc="this.state.data.totals.working"/>
+                        <span class="o_st_count" t-out="this.state.data.totals.working"/>
                     </header>
                     <div t-if="!this.state.data.working.length" class="o_st_none">
                         Nothing accepted yet.
@@ -448,7 +448,7 @@
                                      (client, 2026-09-12) -->
                                 <span>
                                     Hand on<span class="o_st_go_dest">
-                                        to <t t-esc="c.next_station or 'finish'"/></span>
+                                        to <t t-out="c.next_station or 'finish'"/></span>
                                 </span>
                                 <span t-if="!c.bench_user_id" class="o_st_go_dot" title="Who did it?"/>
                             </button>
@@ -479,24 +479,24 @@
                     <header class="o_st_col_h">
                         <span>Waiting to be taken</span>
                         <span class="o_st_count o_st_count_warn"
-                              t-esc="this.state.data.awaiting.length"/>
+                              t-out="this.state.data.awaiting.length"/>
                     </header>
                     <div t-foreach="this.state.data.awaiting" t-as="c" t-key="c.id"
                          class="o_st_card o_st_card_wait"
                          t-on-click="() => this.openWorkorder(c)">
                         <div class="o_st_title">
-            <span class="o_st_mo" t-esc="c.production or c.name"/>
-            <span t-if="c.order" class="o_st_ref" t-esc="c.order"/>
+            <span class="o_st_mo" t-out="c.production or c.name"/>
+            <span t-if="c.order" class="o_st_ref" t-out="c.order"/>
         </div>
         <div t-if="c.patient or c.clinic" class="o_st_case">
-            <span t-if="c.patient" class="o_st_patient" t-esc="c.patient"/>
+            <span t-if="c.patient" class="o_st_patient" t-out="c.patient"/>
             <span t-if="c.patient and c.clinic"> · </span>
-            <span t-if="c.clinic" class="o_st_clinic" t-esc="c.clinic"/>
+            <span t-if="c.clinic" class="o_st_clinic" t-out="c.clinic"/>
         </div>
-                        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-esc="c.product_name"/></div>
+                        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-out="c.product_name"/></div>
                         <div class="o_st_meta">
-                            <t t-esc="c.operation"/> · sent to
-                            <strong t-esc="c.at_station"/>
+                            <t t-out="c.operation"/> · sent to
+                            <strong t-out="c.at_station"/>
                         </div>
                         <div class="o_st_sub">
                             Nobody there has accepted it yet — it is still yours.
@@ -508,8 +508,8 @@
                      day being looked at. Today unless they step back. -->
                 <section class="o_st_col o_st_col_done">
                     <header class="o_st_col_h">
-                        <span>Passed on <t t-esc="this.doneLabel"/></span>
-                        <span class="o_st_count" t-esc="this.state.data.done_total"/>
+                        <span>Passed on <t t-out="this.doneLabel"/></span>
+                        <span class="o_st_count" t-out="this.state.data.done_total"/>
                     </header>
                     <div t-if="this.state.doneBusy" class="o_st_none">Reading that day…</div>
                     <div t-elif="!this.state.data.done_today.length" class="o_st_none">
@@ -529,19 +529,19 @@
                             <i class="fa fa-undo" title="Undo the scan"/>
                         </button>
                         <div class="o_st_title">
-            <span class="o_st_mo" t-esc="c.production or c.name"/>
-            <span t-if="c.order" class="o_st_ref" t-esc="c.order"/>
+            <span class="o_st_mo" t-out="c.production or c.name"/>
+            <span t-if="c.order" class="o_st_ref" t-out="c.order"/>
         </div>
         <div t-if="c.patient or c.clinic" class="o_st_case">
-            <span t-if="c.patient" class="o_st_patient" t-esc="c.patient"/>
+            <span t-if="c.patient" class="o_st_patient" t-out="c.patient"/>
             <span t-if="c.patient and c.clinic"> · </span>
-            <span t-if="c.clinic" class="o_st_clinic" t-esc="c.clinic"/>
+            <span t-if="c.clinic" class="o_st_clinic" t-out="c.clinic"/>
         </div>
-                        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-esc="c.product_name"/></div>
+                        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-out="c.product_name"/></div>
                         <div class="o_st_meta">
-                            <t t-esc="c.operation"/>
-                            <span t-if="c.handed_over_at"> · <t t-esc="c.handed_over_at"/></span>
-                            <span t-if="c.next_station"> → <t t-esc="c.next_station"/></span>
+                            <t t-out="c.operation"/>
+                            <span t-if="c.handed_over_at"> · <t t-out="c.handed_over_at"/></span>
+                            <span t-if="c.next_station"> → <t t-out="c.next_station"/></span>
                         </div>
                     </div>
                 </section>
@@ -551,14 +551,14 @@
                  control that hands them out. -->
             <div t-if="this.state.picked.length" class="o_st_bulk">
                 <span class="o_st_bulk_n">
-                    <t t-esc="this.state.picked.length"/> picked
+                    <t t-out="this.state.picked.length"/> picked
                 </span>
                 <select class="form-select form-select-sm o_st_bulk_pick"
                         t-on-change="this.assignPicked">
                     <option value="">give all of them to…</option>
                     <option t-foreach="this.benchPeople" t-as="p" t-key="p.id"
                             t-att-value="p.id">
-                        <t t-esc="p.name"/> (<t t-esc="p.load"/>)
+                        <t t-out="p.name"/> (<t t-out="p.load"/>)
                     </option>
                 </select>
                 <button class="o_st_bulk_x" t-on-click="() => (this.state.picked = [])">
@@ -593,49 +593,49 @@
             <span t-if="c.due_label" class="o_st_flag o_st_flag_due"
                   t-attf-class="o_st_due_{{ c.due_state }}"
                   t-attf-title="Due out {{ c.due }}">
-                <i class="fa fa-flag-checkered me-1" title="Due"/><t t-esc="c.due_label"/>
+                <i class="fa fa-flag-checkered me-1" title="Due"/><t t-out="c.due_label"/>
             </span>
             <!-- How long it has stood at this bench. A queue this deep is not read
                  by date; it is read by what is going stale. (client, 2026-09-10) -->
             <span t-if="c.here_days !== null" class="o_st_flag o_st_flag_age"
                   t-att-class="{ o_st_flag_stale: c.stale }"
                   t-attf-title="Here {{ c.here_days }} day(s){{ c.case_days !== null ? '; in the lab ' + c.case_days + ' day(s)' : '' }}">
-                <i class="fa fa-clock-o me-1" title="Standing"/><t t-esc="c.here_days"/>d here
+                <i class="fa fa-clock-o me-1" title="Standing"/><t t-out="c.here_days"/>d here
             </span>
             <span t-elif="c.case_days !== null" class="o_st_flag o_st_flag_age"
                   t-att-class="{ o_st_flag_stale: c.stale }"
                   t-attf-title="In the lab {{ c.case_days }} day(s)">
-                <i class="fa fa-clock-o me-1" title="In the lab"/><t t-esc="c.case_days"/>d in lab
+                <i class="fa fa-clock-o me-1" title="In the lab"/><t t-out="c.case_days"/>d in lab
             </span>
             <span t-if="c.redo_count" class="o_st_flag o_st_flag_redo"
                   t-att-title="c.redo_reason">
-                <i class="fa fa-refresh me-1" title="Done again"/>AGAIN ×<t t-esc="c.redo_count"/>
+                <i class="fa fa-refresh me-1" title="Done again"/>AGAIN ×<t t-out="c.redo_count"/>
             </span>
             <span t-if="c.call_doctor" class="o_st_flag o_st_flag_call">
                 <i class="fa fa-phone me-1" title="Call the doctor"/>CALL DOCTOR
             </span>
         </div>
         <div class="o_st_title">
-            <span class="o_st_mo" t-esc="c.production or c.name"/>
-            <span t-if="c.order" class="o_st_ref" t-esc="c.order"/>
+            <span class="o_st_mo" t-out="c.production or c.name"/>
+            <span t-if="c.order" class="o_st_ref" t-out="c.order"/>
         </div>
         <div t-if="c.patient or c.clinic" class="o_st_case">
-            <span t-if="c.patient" class="o_st_patient" t-esc="c.patient"/>
+            <span t-if="c.patient" class="o_st_patient" t-out="c.patient"/>
             <span t-if="c.patient and c.clinic"> · </span>
-            <span t-if="c.clinic" class="o_st_clinic" t-esc="c.clinic"/>
+            <span t-if="c.clinic" class="o_st_clinic" t-out="c.clinic"/>
         </div>
         <!-- What the appliance is. A bench recognises a job by the patient and
              by the thing in the tray, and the tile named only the first.
              (client, 2026-09-14) -->
-        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-esc="c.product_name"/></div>
+        <div t-if="c.product_name" class="o_st_product" t-att-title="c.product_name"><i class="fa fa-cube me-1" title="Appliance"/><t t-out="c.product_name"/></div>
         <div class="o_st_meta">
-            <t t-esc="c.operation"/>
-            <span t-if="c.ul"> · <t t-esc="c.ul"/></span>
-            <span t-if="c.colour"> · <t t-esc="c.colour"/></span>
+            <t t-out="c.operation"/>
+            <span t-if="c.ul"> · <t t-out="c.ul"/></span>
+            <span t-if="c.colour"> · <t t-out="c.colour"/></span>
         </div>
         <div class="o_st_sub">
             <span t-if="c.bench_user" class="o_st_with">
-                <i class="fa fa-user me-1" title="Technician"/><t t-esc="c.bench_user"/>
+                <i class="fa fa-user me-1" title="Technician"/><t t-out="c.bench_user"/>
             </span>
             <!-- The second name, where the bench records one. It lives on the
                  line that already carries the first rather than in a block of
@@ -643,10 +643,10 @@
                  a whole row. (client, 2026-09-12) -->
             <span t-if="c.finisher" class="o_st_with o_st_with_fin">
                 <t t-if="c.bench_user"> · </t>
-                <i class="fa fa-check-square-o me-1" title="Finished by"/><t t-esc="c.finisher"/>
+                <i class="fa fa-check-square-o me-1" title="Finished by"/><t t-out="c.finisher"/>
             </span>
-            <span t-if="c.accepted_by"><t t-if="c.bench_user or c.finisher"> · </t>taken by <t t-esc="c.accepted_by"/>
-                <t t-if="c.accepted_at"> at <t t-esc="c.accepted_at"/></t>
+            <span t-if="c.accepted_by"><t t-if="c.bench_user or c.finisher"> · </t>taken by <t t-out="c.accepted_by"/>
+                <t t-if="c.accepted_at"> at <t t-out="c.accepted_at"/></t>
             </span>
         </div>
     </div>

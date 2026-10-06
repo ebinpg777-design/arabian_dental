@@ -11,7 +11,7 @@
                 t-att-disabled="this.props.readonly"
                 t-on-click="() => this.onPick(c[0])">
             <i t-if="this.value === c[0]" class="fa fa-check me-1" title="Chosen"/>
-            <t t-esc="c[1]"/>
+            <t t-out="c[1]"/>
         </button>
     </div>
 </t>
@@ -27,7 +27,7 @@
                 t-att-disabled="this.props.readonly"
                 t-on-click="() => this.onPick(c.id)">
             <i t-if="this.isOn(c.id)" class="fa fa-check me-1" title="Selected"/>
-            <t t-esc="c.display_name"/>
+            <t t-out="c.display_name"/>
         </button>
     </div>
 </t>
@@ -36,12 +36,12 @@
      amount; the keyboard is the fallback, not the first move. -->
 <t t-name="lab_fieldwork.FwAmount">
     <div class="o_fw_amount">
-        <div class="o_fw_amount_now" t-esc="this.display"/>
+        <div class="o_fw_amount_now" t-out="this.display"/>
         <t t-if="!this.props.readonly">
             <div class="o_fw_amount_steps">
                 <button t-foreach="this.steps" t-as="s" t-key="s" type="button"
                         class="o_fw_amount_step" t-on-click="() => this.add(s)">
-                    +<t t-esc="s"/>
+                    +<t t-out="s"/>
                 </button>
                 <button type="button" class="o_fw_amount_step o_fw_amount_clear"
                         t-on-click="() => this.clear()">
@@ -138,7 +138,7 @@
             <span>Lower</span>
         </button>
         <!-- The shape is not the only carrier: the selection is also written out. -->
-        <span class="o_fw_arch_label" t-esc="this.label"/>
+        <span class="o_fw_arch_label" t-out="this.label"/>
     </div>
 </t>
 
@@ -150,7 +150,7 @@
                 t-att-disabled="this.props.readonly" t-on-click="() => this.step(-1)">
             <i class="fa fa-minus" title="One less"/>
         </button>
-        <span t-if="this.props.readonly" class="o_fw_step_v" t-esc="this.display"/>
+        <span t-if="this.props.readonly" class="o_fw_step_v" t-out="this.display"/>
         <input t-else="" type="text" inputmode="numeric" class="o_fw_step_v o_fw_step_in"
                t-att-value="this.display" t-on-change="this.onInput"
                t-att-aria-label="this.props.record.fields[this.props.name].string"/>
@@ -171,7 +171,7 @@
                 t-att-disabled="this.props.readonly"
                 t-on-click="() => this.toggle(item)">
             <i t-if="item.on" class="fa fa-check me-1" title="Included"/>
-            <t t-esc="item.label"/>
+            <t t-out="item.label"/>
         </button>
     </div>
 </t>
@@ -190,13 +190,13 @@
         <i t-att-class="'fa ' + (this.props.icon or 'fa-phone') + ' o_fw_flag_icon'"
            t-att-title="this.field.string"/>
         <div class="o_fw_flag_body">
-            <div class="o_fw_flag_title" t-esc="this.field.string"/>
+            <div class="o_fw_flag_title" t-out="this.field.string"/>
             <div class="o_fw_flag_help">
                 <t t-if="this.on">The lab will not start until the doctor has been called.</t>
-                <t t-else="" t-esc="this.field.help or 'Tap if the lab must call the doctor first.'"/>
+                <t t-else="" t-out="this.field.help or 'Tap if the lab must call the doctor first.'"/>
             </div>
         </div>
-        <span class="o_fw_flag_state"><t t-esc="this.on ? 'ON' : 'OFF'"/></span>
+        <span class="o_fw_flag_state"><t t-out="this.on ? 'ON' : 'OFF'"/></span>
     </div>
 </t>
 

@@ -150,9 +150,9 @@
                 <templates>
                     <t t-name="card">
                         <div class="o_wa_idea">
-                            <div class="fw-bold"><t t-esc="record.name.value"/></div>
-                            <div class="text-muted small"><t t-esc="record.note.value"/></div>
-                            <div class="o_wa_idea_body"><t t-esc="record.body.value"/></div>
+                            <div class="fw-bold"><t t-out="record.name.value"/></div>
+                            <div class="text-muted small"><t t-out="record.note.value"/></div>
+                            <div class="o_wa_idea_body"><t t-out="record.body.value"/></div>
                             <button name="action_use" type="object" class="btn btn-sm btn-primary mt-2">
                                 <i class="fa fa-bullhorn me-1"/>Use it
                             </button>

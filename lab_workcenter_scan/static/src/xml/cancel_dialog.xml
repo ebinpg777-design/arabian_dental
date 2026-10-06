@@ -14,19 +14,19 @@
 
         <!-- Which job. A wrong card must be obvious before anything changes. -->
         <div class="o_st_doing_job">
-            <span class="o_st_mo" t-esc="this.props.job.production or this.props.job.name"/>
-            <span t-if="this.props.job.order" class="o_st_ref" t-esc="this.props.job.order"/>
+            <span class="o_st_mo" t-out="this.props.job.production or this.props.job.name"/>
+            <span t-if="this.props.job.order" class="o_st_ref" t-out="this.props.job.order"/>
             <div t-if="this.props.job.product_name" class="o_st_product">
-                <i class="fa fa-cube me-1" title="Appliance"/><t t-esc="this.props.job.product_name"/>
+                <i class="fa fa-cube me-1" title="Appliance"/><t t-out="this.props.job.product_name"/>
             </div>
             <div t-if="this.props.job.patient or this.props.job.clinic" class="o_st_case">
-                <span t-if="this.props.job.patient" class="o_st_patient" t-esc="this.props.job.patient"/>
+                <span t-if="this.props.job.patient" class="o_st_patient" t-out="this.props.job.patient"/>
                 <span t-if="this.props.job.patient and this.props.job.clinic"> · </span>
-                <span t-if="this.props.job.clinic" class="o_st_clinic" t-esc="this.props.job.clinic"/>
+                <span t-if="this.props.job.clinic" class="o_st_clinic" t-out="this.props.job.clinic"/>
             </div>
             <div class="o_st_doing_next">
                 <i class="fa fa-industry me-1" title="Step"/>
-                Step <strong t-esc="this.props.job.operation"/>
+                Step <strong t-out="this.props.job.operation"/>
             </div>
         </div>
 
@@ -37,7 +37,7 @@
 
         <div t-if="this.state.error" class="o_st_change_err" role="alert">
             <i class="fa fa-exclamation-triangle me-1" title="Refused"/>
-            <t t-esc="this.state.error"/>
+            <t t-out="this.state.error"/>
         </div>
 
         <button class="o_st_change_go o_st_cancel_go" t-att-disabled="!this.ready"

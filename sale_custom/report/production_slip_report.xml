@@ -40,7 +40,7 @@
                         font-size:9pt; font-weight:bold; color:#fff; letter-spacing:0.3px;
                         padding:1mm 2.5mm; border-radius:0 1.7mm 0 2mm;
                         background:{{ '#dc3545' if slip['priority'] == 'emergency' else '#d99b00' }};">
-                <t t-esc="'EMERGENCY' if slip['priority'] == 'emergency' else 'URGENT'"/>
+                <t t-out="'EMERGENCY' if slip['priority'] == 'emergency' else 'URGENT'"/>
             </div>
 
             <!-- Line 1: the two numbers, side by side. Everything on the bench is
@@ -51,13 +51,13 @@
             <div t-attf-style="font-size:16.5pt; font-weight:bold; line-height:1.2;
                         white-space:nowrap; overflow:hidden;
                         padding-right:{{ '19mm' if slip['priority'] else '0' }};">
-                <span t-esc="slip['mo'] or slip['so']"/>
+                <span t-out="slip['mo'] or slip['so']"/>
                 <!-- The sales order is BOLD too, and only a little smaller: the office
                      and the doctor both quote it, so a bench reading it off the slip
                      was reading the one grey thing on the card. (client, 2026-08-29) -->
                 <span t-if="slip['mo'] and slip['so']"
                       style="font-weight:bold; font-size:14pt; color:#333;">
-                    &#160;·&#160;<t t-esc="slip['so']"/>
+                    &#160;·&#160;<t t-out="slip['so']"/>
                 </span>
             </div>
 
@@ -77,15 +77,15 @@
 
             <div style="font-size:12.5pt; line-height:1.55;">
                 <div style="font-weight:bold; overflow:hidden; max-height:12mm;">
-                    <t t-esc="slip['product']"/>
+                    <t t-out="slip['product']"/>
                 </div>
                 <div style="overflow:hidden; max-height:12mm;">
                     <span style="color:#666;">Dr</span>
-                    <t t-esc="slip['partner']"/>
+                    <t t-out="slip['partner']"/>
                 </div>
                 <div t-if="slip['patient']" style="white-space:nowrap; overflow:hidden;">
                     <span style="color:#666;">Pt</span>
-                    <t t-esc="slip['patient']"/>
+                    <t t-out="slip['patient']"/>
                 </div>
                 <!-- A remake says which case it is remaking. The number is what the
                      office and the doctor quote, and the date says whether this is a
@@ -96,10 +96,10 @@
                             font-size:11pt; line-height:1.35;">
                     <t t-if="slip['rework_of']">
                         <span style="color:#666;">Rework of</span>
-                        <span style="font-weight:bold;" t-esc="slip['rework_of']"/>
+                        <span style="font-weight:bold;" t-out="slip['rework_of']"/>
                         <t t-if="slip['rework_date']">
                             &#160;<span style="color:#666;">ordered</span>
-                            <span style="font-weight:bold;" t-esc="slip['rework_date']"/>
+                            <span style="font-weight:bold;" t-out="slip['rework_date']"/>
                         </t>
                     </t>
                     <span t-else="" style="color:#666;">Rework · no original order recorded</span>
@@ -114,15 +114,15 @@
                     </t>
                     <t t-if="slip['ul']">
                         &#160;<span style="color:#666;">Jaw</span>
-                        <span style="font-weight:bold;" t-esc="slip['ul']"/>
+                        <span style="font-weight:bold;" t-out="slip['ul']"/>
                     </t>
                     <t t-if="slip['colour']">
                         &#160;<span style="color:#666;">Col</span>
-                        <span style="font-weight:bold;" t-esc="slip['colour']"/>
+                        <span style="font-weight:bold;" t-out="slip['colour']"/>
                     </t>
                     <t t-if="slip['route']">
                         &#160;<span style="color:#666;">Rt</span>
-                        <t t-esc="slip['route']"/>
+                        <t t-out="slip['route']"/>
                     </t>
                 </div>
             </div>

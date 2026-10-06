@@ -13,12 +13,12 @@
                 </button>
                 <div class="epg_designer_palette" t-if="this.state.showPalette">
                     <t t-foreach="this.paletteGroups" t-as="group" t-key="group.key">
-                        <div class="epg_designer_palette_group" t-esc="group.label"/>
+                        <div class="epg_designer_palette_group" t-out="group.label"/>
                         <t t-foreach="this.paletteFor(group)" t-as="entry" t-key="entry.type">
                             <button type="button" class="epg_designer_palette_item"
                                     t-on-click.stop="() => this.addElement(entry)">
                                 <i t-att-class="'fa fa-fw me-2 ' + entry.icon"/>
-                                <t t-esc="entry.label"/>
+                                <t t-out="entry.label"/>
                             </button>
                         </t>
                     </t>
@@ -151,11 +151,11 @@
             <span class="ms-auto text-muted small epg_designer_status">
                 <i class="fa fa-circle-o-notch fa-spin me-1" t-if="this.state.rendering"/>
                 <span t-if="this.state.previewName" class="me-2">
-                    <i class="fa fa-eye me-1"/><t t-esc="this.state.previewName"/>
+                    <i class="fa fa-eye me-1"/><t t-out="this.state.previewName"/>
                 </span>
-                <t t-esc="this.formatNumber(this.labelWidth)"/> ×
-                <t t-esc="this.formatNumber(this.labelHeight)"/>
-                <t t-esc="this.unit"/>
+                <t t-out="this.formatNumber(this.labelWidth)"/> ×
+                <t t-out="this.formatNumber(this.labelHeight)"/>
+                <t t-out="this.unit"/>
             </span>
         </div>
 
@@ -197,7 +197,7 @@
                             <span class="epg_designer_element_body">
                                 <i t-att-class="'fa fa-fw ' + this.icon(element)"/>
                                 <span class="epg_designer_element_label"
-                                      t-esc="this.labelFor(element)"/>
+                                      t-out="this.labelFor(element)"/>
                             </span>
                             <t t-if="this.isSelected(element) and !this.props.readonly and !this.isMultiSelection">
                                 <t t-foreach="this.handles" t-as="handle" t-key="handle">
@@ -223,7 +223,7 @@
             <div class="epg_designer_layers" t-if="this.state.showLayers">
                 <div class="epg_designer_layers_head">
                     <i class="fa fa-clone me-1"/>Layers
-                    <span class="badge text-bg-secondary ms-auto" t-esc="this.elements.length"/>
+                    <span class="badge text-bg-secondary ms-auto" t-out="this.elements.length"/>
                 </div>
                 <div class="epg_designer_layers_body">
                     <t t-foreach="this.layers" t-as="layer" t-key="this.key(layer)">
@@ -236,8 +236,8 @@
                                 <i t-att-class="'fa ' + (layer.data.active ? 'fa-eye' : 'fa-eye-slash text-muted')"/>
                             </button>
                             <i t-att-class="'fa fa-fw me-1 ' + this.icon(layer)"/>
-                            <span class="epg_designer_layer_name" t-esc="this.labelFor(layer)"/>
-                            <span class="epg_designer_layer_z" t-esc="layer.data.z_index"/>
+                            <span class="epg_designer_layer_name" t-out="this.labelFor(layer)"/>
+                            <span class="epg_designer_layer_z" t-out="layer.data.z_index"/>
                             <span class="epg_designer_layer_order" t-if="!this.props.readonly">
                                 <button type="button" title="Bring forward"
                                         t-on-click.stop="() => this.changeLayer(layer, 1)">
@@ -262,7 +262,7 @@
         <div class="epg_designer_props" t-if="this.selected and !this.props.readonly">
             <span class="epg_designer_props_title">
                 <i t-att-class="'fa fa-fw me-1 ' + this.icon(this.selected)"/>
-                <t t-esc="this.labelFor(this.selected)"/>
+                <t t-out="this.labelFor(this.selected)"/>
             </span>
             <label>Name
                 <input type="text" class="o_input"
@@ -318,7 +318,7 @@
              t-if="this.isMultiSelection and !this.props.readonly">
             <span class="epg_designer_props_title">
                 <i class="fa fa-object-group me-1"/>
-                <t t-esc="this.state.selectedIds.length"/> elements selected
+                <t t-out="this.state.selectedIds.length"/> elements selected
             </span>
             <span class="text-muted small">
                 Align and distribute act on the selection. Drag any one of them to
@@ -328,7 +328,7 @@
 
         <div class="alert alert-warning py-1 px-2 mb-0 mt-2 small" t-if="this.outOfBoundsCount">
             <i class="fa fa-exclamation-triangle me-1"/>
-            <t t-esc="this.outOfBoundsCount"/> element(s) reach outside the label and will be
+            <t t-out="this.outOfBoundsCount"/> element(s) reach outside the label and will be
             clipped when printed.
         </div>
 

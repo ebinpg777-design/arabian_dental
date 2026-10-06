@@ -256,7 +256,7 @@ class EpgWhatsappMessage(models.Model):
         several runs instead of one run holding a worker for minutes.
         """
         started = time.monotonic()
-        budget = int(self.env['ir.config_parameter'].sudo().get_param(
+        budget = int(self.env['ir.config_parameter'].sudo().get_str(
             'epg_whatsapp.queue_seconds', QUEUE_BUDGET_SECONDS))
         now = fields.Datetime.now()
         # Unsent WhatsApp app / Web messages past their sender's limit are dropped

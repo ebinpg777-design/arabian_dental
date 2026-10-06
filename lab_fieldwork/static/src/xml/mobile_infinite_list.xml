@@ -14,7 +14,7 @@
         <div class="o_fw_more_sentinel" aria-hidden="true"/>
         <div t-if="fwCanAutoLoad" class="o_fw_more_note">
             <i class="fa fa-circle-o-notch fa-spin me-1" aria-hidden="true"/>
-            Loading <t t-esc="fwRemaining"/> more…
+            Loading <t t-out="fwRemaining"/> more…
         </div>
     </xpath>
 </t>
@@ -26,7 +26,7 @@
              aria-hidden="true"/>
         <div t-if="fwCanAutoLoad" class="o_fw_more_note w-100">
             <i class="fa fa-circle-o-notch fa-spin me-1" aria-hidden="true"/>
-            Loading <t t-esc="fwRemaining"/> more…
+            Loading <t t-out="fwRemaining"/> more…
         </div>
     </xpath>
 </t>

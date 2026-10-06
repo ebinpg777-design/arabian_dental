@@ -7,11 +7,11 @@
                 <i class="fa fa-circle-o-notch fa-spin me-2"/>Drawing the day…
             </div>
             <div t-elif="this.state.error" class="o_fw_daymap_msg text-danger">
-                <i class="fa fa-exclamation-triangle me-2"/><t t-esc="this.state.error"/>
+                <i class="fa fa-exclamation-triangle me-2"/><t t-out="this.state.error"/>
             </div>
             <t t-elif="this.hasPoints">
                 <div class="o_fw_daymap_cap">
-                    <t t-esc="this.caption"/>
+                    <t t-out="this.caption"/>
                     <a t-if="this.state.track.route_state === 'failed'" href="#"
                        class="ms-2" t-on-click.prevent="this.redraw">try the routing again</a>
                 </div>

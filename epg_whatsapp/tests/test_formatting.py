@@ -86,7 +86,7 @@ class TestLinksOpen(LinkSetup, TransactionCase):
 
     def test_links_start_with_the_senders_public_address(self):
         params = self.env['ir.config_parameter'].sudo()
-        params.set_param('web.base.url', 'http://192.168.0.27:8069')
+        params.set_str('web.base.url', 'http://192.168.0.27:8069')
         self.assertIn('private network address', self.account._link_problem())
         message = self.template.send(self.partner)
         self.assertIn('http://192.168.0.27:8069/wa/r/', message._link_text())
@@ -103,7 +103,7 @@ class TestLinksOpen(LinkSetup, TransactionCase):
         self.account.link_base_url = 'http://localhost:8069'
         self.assertIn('only this computer', self.account._link_problem())
         self.account.link_base_url = False
-        params.set_param('web.base.url', 'https://arabiandentallab.com')
+        params.set_str('web.base.url', 'https://arabiandentallab.com')
         self.assertFalse(self.account._link_problem(), "a public system address is fine")
 
     def test_a_link_fits_on_one_line(self):

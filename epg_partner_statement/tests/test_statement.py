@@ -136,7 +136,7 @@ class TestPartnerStatement(TransactionCase):
     def test_cron_sends_only_opted_in(self):
         self._invoice(55, self.today.replace(day=1) - timedelta(days=3))
         self.partner.write({'statement_auto_send': True})
-        self.env['ir.config_parameter'].sudo().set_param('epg_partner_statement.auto_send_day', str(self.today.day))
+        self.env['ir.config_parameter'].sudo().set_str('epg_partner_statement.auto_send_day', str(self.today.day))
         sent = self.Engine._cron_auto_send()
         self.assertEqual(sent, 1)
         self.assertEqual(self.Engine._cron_auto_send(), 0, "not sent twice in the same month")

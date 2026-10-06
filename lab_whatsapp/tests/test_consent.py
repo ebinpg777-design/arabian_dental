@@ -29,7 +29,7 @@ class TestWhatsappConsent(TransactionCase):
             'name': 'Consent Event', 'account_id': cls.account.id,
             'model_id': cls.partner_model, 'event': 'payment',
             'phone_field': 'whatsapp_number', 'body': 'Dear {{name}}'})
-        cls.env['ir.config_parameter'].sudo().set_param(
+        cls.env['ir.config_parameter'].sudo().set_str(
             'lab_whatsapp.notify_payment', 'True')
         cls.doctor = cls.env['res.partner'].create({
             'name': 'Dr Consent', 'whatsapp_number': '+91 98470 11111'})

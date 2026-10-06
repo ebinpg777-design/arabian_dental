@@ -41,7 +41,7 @@ class ResUsers(models.Model):
 
     @api.model
     def _fw_attendance_required(self):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.require_attendance', 'True') in ('True', 'true', '1')
 
     def _fw_check_on_duty(self, what):

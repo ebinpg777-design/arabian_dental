@@ -15,23 +15,23 @@
                 recorded as having been done again.
                 <t t-if="this.props.job.redo_count">
                     This case has already been started again
-                    <t t-esc="this.props.job.redo_count"/> time(s).
+                    <t t-out="this.props.job.redo_count"/> time(s).
                 </t>
             </div>
         </div>
 
         <!-- Which case. A wrong card must be obvious BEFORE anything happens. -->
         <div class="o_st_doing_job">
-            <span class="o_st_mo" t-esc="this.props.job.production or this.props.job.name"/>
-            <span t-if="this.props.job.order" class="o_st_ref" t-esc="this.props.job.order"/>
+            <span class="o_st_mo" t-out="this.props.job.production or this.props.job.name"/>
+            <span t-if="this.props.job.order" class="o_st_ref" t-out="this.props.job.order"/>
             <div t-if="this.props.job.patient or this.props.job.clinic" class="o_st_case">
-                <span t-if="this.props.job.patient" class="o_st_patient" t-esc="this.props.job.patient"/>
+                <span t-if="this.props.job.patient" class="o_st_patient" t-out="this.props.job.patient"/>
                 <span t-if="this.props.job.patient and this.props.job.clinic"> · </span>
-                <span t-if="this.props.job.clinic" class="o_st_clinic" t-esc="this.props.job.clinic"/>
+                <span t-if="this.props.job.clinic" class="o_st_clinic" t-out="this.props.job.clinic"/>
             </div>
             <div class="o_st_doing_next">
                 <i class="fa fa-industry me-1" title="Now at"/>
-                Now at <strong t-esc="this.props.job.operation"/>
+                Now at <strong t-out="this.props.job.operation"/>
             </div>
         </div>
 
@@ -42,8 +42,8 @@
                     t-att-class="this.state.reasonId === r.id ? 'o_st_tile_on' : ''"
                     t-att-disabled="this.state.busy"
                     t-on-click="() => this.pickReason(r)">
-                <span class="o_st_tile_name" t-esc="r.name"/>
-                <span t-if="r.station" class="o_st_tile_load" t-esc="r.station"/>
+                <span class="o_st_tile_name" t-out="r.name"/>
+                <span t-if="r.station" class="o_st_tile_load" t-out="r.station"/>
             </button>
         </div>
 
@@ -74,7 +74,7 @@
                 <span class="o_st_hold_label">
                     <i t-if="this.state.busy" class="fa fa-circle-o-notch fa-spin me-2"/>
                     <i t-else="" class="fa fa-refresh me-2"/>
-                    <t t-esc="this.holdLabel"/>
+                    <t t-out="this.holdLabel"/>
                 </span>
             </button>
             <div t-if="this.state.slipped" class="o_st_holdhint o_st_holdhint_warn">

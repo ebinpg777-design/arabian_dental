@@ -177,7 +177,7 @@ class TestRoadRoute(DailyFlowCase):
 
     def setUp(self):
         super().setUp()
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.routing_url', 'https://routing.test/route/v1/driving/')
 
     def _sheet_with_two_doors(self):
@@ -280,7 +280,7 @@ class TestRoadRoute(DailyFlowCase):
                          "every form open must not re-ask a service that is down")
 
     def test_emptying_the_parameter_turns_road_routing_off(self):
-        self.env['ir.config_parameter'].sudo().set_param('lab_fieldwork.routing_url', '')
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.routing_url', '')
         sheet = self._sheet_with_two_doors()
         with self._answer(boom=AssertionError('must not be called')):
             track = sheet.get_day_track()

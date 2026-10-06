@@ -22,12 +22,12 @@ def post_init_hook(env):
     env['crm.team']._lab_remove_route_tiles()
     env['crm.team']._lab_pin_invoice_tiles()
     params = env['ir.config_parameter'].sudo()
-    if params.get_param(PARAM):
+    if params.get_str(PARAM):
         return
     group = env.ref(DEFAULT_GROUP, raise_if_not_found=False)
     if not group:
         _logger.info("lab_order_control: %s not installed — verification will apply "
                      "to every order until roles are chosen in Settings", DEFAULT_GROUP)
         return
-    params.set_param(PARAM, str(group.id))
+    params.set_str(PARAM, str(group.id))
     _logger.info("lab_order_control: verification scoped to %r", group.name)

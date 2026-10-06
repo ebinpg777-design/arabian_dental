@@ -330,14 +330,14 @@ class EpgWhatsappTemplate(models.Model):
         for template in self:
             template.auto_send = bool(
                 template.event and template.event != 'manual'
-                and params.get_param('lab_whatsapp.notify_%s' % template.event, 'True')
+                and params.get_str('lab_whatsapp.notify_%s' % template.event, 'True')
                 in ('True', 'true', '1'))
 
     def _inverse_auto_send(self):
         params = self.env['ir.config_parameter'].sudo()
         for template in self:
             if template.event and template.event != 'manual':
-                params.set_param('lab_whatsapp.notify_%s' % template.event,
+                params.set_str('lab_whatsapp.notify_%s' % template.event,
                                  'True' if template.auto_send else 'False')
 
     # ------------------------------------------------------------------ the seed

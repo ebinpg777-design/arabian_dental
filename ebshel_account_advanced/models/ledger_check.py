@@ -266,7 +266,7 @@ class LedgerScanner(models.AbstractModel):
                 created += 1
         gone = existing.filtered(lambda f: f.state == 'open' and f.fingerprint not in seen)
         gone.write({'state': 'resolved', 'resolved_on': fields.Datetime.now()})
-        self.env['ir.config_parameter'].sudo().set_param('ebshel_account_advanced.last_scan.%d' % company.id, fields.Datetime.to_string(fields.Datetime.now()))
+        self.env['ir.config_parameter'].sudo().set_str('ebshel_account_advanced.last_scan.%d' % company.id, fields.Datetime.to_string(fields.Datetime.now()))
         return {'created': created, 'updated': updated, 'resolved': len(gone)}
 
     @api.model
@@ -285,7 +285,7 @@ class LedgerScanner(models.AbstractModel):
                  'count': f.count, 'amount': f.amount, 'model': f.model, 'found_on': fields.Datetime.to_string(f.found_on),
                  'state': f.state} for f in findings]
         recent = self.env['ebshel.ledger.finding'].search([('company_id', '=', company.id), ('state', '!=', 'open')], limit=20)
-        last = self.env['ir.config_parameter'].sudo().get_param('ebshel_account_advanced.last_scan.%d' % company.id)
+        last = self.env['ir.config_parameter'].sudo().get_str('ebshel_account_advanced.last_scan.%d' % company.id)
         return {
             'score': max(100 - penalty, 0), 'last_scan': last,
             'counts': {s: sum(1 for f in findings if f.severity == s) for s in ('error', 'warn', 'info')},

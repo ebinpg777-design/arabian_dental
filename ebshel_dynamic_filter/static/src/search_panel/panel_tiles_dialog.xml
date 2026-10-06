@@ -6,12 +6,12 @@
             <p class="text-muted">
                 One tile per value you tick, in the order you tick them - each one a live
                 count and a one-click filter above the list. Up to
-                <t t-esc="this.props.maxTiles"/> at a time.
+                <t t-out="this.props.maxTiles"/> at a time.
             </p>
 
             <div class="o_dft_pt_toolbar">
                 <span class="o_dft_pt_counter">
-                    <t t-esc="this.state.picked.length"/> / <t t-esc="this.props.maxTiles"/> selected
+                    <t t-out="this.state.picked.length"/> / <t t-out="this.props.maxTiles"/> selected
                 </span>
                 <button class="btn btn-link btn-sm" t-on-click="this.pickTop">
                     <t t-if="this.props.values[0] and this.props.values[0].count !== null">Pick the busiest</t>
@@ -29,8 +29,8 @@
                         t-on-click="() => this.toggle(value)">
                     <i class="fa fa-fw" role="img" aria-hidden="true"
                        t-att-class="this.isPicked(value) ? 'fa-check-square' : 'fa-square-o'"/>
-                    <span class="o_dft_pt_label" t-esc="value.label"/>
-                    <span t-if="value.count !== null" class="o_dft_pt_count" t-esc="value.count"/>
+                    <span class="o_dft_pt_label" t-out="value.label"/>
+                    <span t-if="value.count !== null" class="o_dft_pt_count" t-out="value.count"/>
                 </button>
             </div>
 
@@ -59,7 +59,7 @@
                 <button class="btn btn-primary" t-att-disabled="this.state.saving or !this.state.picked.length"
                         t-on-click="this.confirm">
                     <i class="fa fa-th-large me-1" role="img" aria-hidden="true"/>
-                    Create <t t-esc="this.state.picked.length"/> tiles
+                    Create <t t-out="this.state.picked.length"/> tiles
                 </button>
                 <button class="btn btn-secondary" t-on-click="() => this.props.close()">
                     Cancel

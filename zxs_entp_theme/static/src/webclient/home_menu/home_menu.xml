@@ -32,7 +32,7 @@
                         >
                             <i t-attf-class="{{app.webIcon.iconClass}} position-relative w-auto h-auto" t-attf-style="color: {{app.webIcon.color}};"/>
                         </div>
-                        <div class="o_caption w-100 text-center text-truncate mt-2" t-esc="app.label or app.name"/>
+                        <div class="o_caption w-100 text-center text-truncate mt-2" t-out="app.label or app.name"/>
                     </a>
                 </div>
             </div>
@@ -45,7 +45,7 @@
 
 <t t-name="zxs_entp_theme.HomeMenu.CommandPalette.Footer">
     <span>
-        <span class='fw-bolder text-primary'>TIP</span> — open me anywhere with <span t-esc="this.controlKey" class='fw-bolder text-primary'/> + <span class='fw-bolder text-primary'>K</span>
+        <span class='fw-bolder text-primary'>TIP</span> — open me anywhere with <span t-out="this.controlKey" class='fw-bolder text-primary'/> + <span class='fw-bolder text-primary'>K</span>
     </span>
 </t>
 

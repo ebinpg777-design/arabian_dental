@@ -13,7 +13,7 @@
                 <i class="fa fa-user-o me-1" title="Field"/>{{ field }}
             </button>
             <span class="o_wa_editor_count" t-att-class="{ 'text-danger': this.value.length > 1024 }">
-                <t t-esc="this.value.length"/> / 1024
+                <t t-out="this.value.length"/> / 1024
             </span>
         </div>
         <div t-if="this.state.showFields and !this.props.readonly" class="o_wa_editor_fields">
@@ -22,8 +22,8 @@
             <div class="o_wa_editor_fieldlist">
                 <button t-foreach="this.shownFields" t-as="f" t-key="f.path" type="button" class="o_wa_editor_field"
                         t-att-title="'{{' + f.path + '}}'" t-on-click="() => this.insertField(f.path)">
-                    <span t-esc="f.label"/>
-                    <code t-esc="f.path"/>
+                    <span t-out="f.label"/>
+                    <code t-out="f.path"/>
                 </button>
             </div>
             <div class="o_wa_editor_hint text-muted small mt-1">

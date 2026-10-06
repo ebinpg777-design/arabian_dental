@@ -86,7 +86,7 @@ class TestWallpaper(TransactionCase):
         if value is None:
             self.param.search([('key', '=', 'lab_home.wallpaper')]).unlink()
         else:
-            self.param.set_param('lab_home.wallpaper', value)
+            self.param.set_str('lab_home.wallpaper', value)
         return self.IrHttp._home_wallpaper()
 
     def test_nothing_set_gives_the_default(self):

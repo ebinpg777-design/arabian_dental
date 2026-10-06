@@ -127,7 +127,7 @@ class LabFieldworkSettings(models.TransientModel):
         res = super().default_get(fields_list)
         # sudo: reading a parameter is not the same privilege as being a system
         # administrator, and this page exposes exactly nine of them.
-        get = self.env['ir.config_parameter'].sudo().get_param
+        get = self.env['ir.config_parameter'].sudo().get_str
         for name, key, default, kind in PARAMS:
             raw = get('lab_fieldwork.%s' % key)
             res[name] = default if raw in (None, False, '') else _cast(raw, kind, default)
@@ -145,7 +145,7 @@ class LabFieldworkSettings(models.TransientModel):
             # Written as an explicit string, "off" is a value rather than an absence.
             if kind == 'bool':
                 value = 'True' if value else 'False'
-            params.set_param('lab_fieldwork.%s' % key, value)
+            params.set_str('lab_fieldwork.%s' % key, value)
         if self._bands() != before:
             # The coverage bands are compiled into a SQL view's CASE expression, so a
             # saved band that does not rebuild the view is a setting that silently does
@@ -165,7 +165,7 @@ class LabFieldworkSettings(models.TransientModel):
         }
 
     def _bands(self):
-        get = self.env['ir.config_parameter'].sudo().get_param
+        get = self.env['ir.config_parameter'].sudo().get_str
         return tuple(get('lab_fieldwork.%s' % key)
                      for name, key, _d, _k in PARAMS if name in BANDS)
 

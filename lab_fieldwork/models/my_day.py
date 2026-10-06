@@ -40,7 +40,7 @@ class LabMyDay(models.AbstractModel):
         """
         if self._may_open_any_day():
             return None
-        raw = self.env['ir.config_parameter'].sudo().get_param(
+        raw = self.env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.backdate_days', 3)
         try:
             return max(int(raw), 0)

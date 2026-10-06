@@ -20,13 +20,13 @@ class TestEpicCDoctorCalls(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.params = cls.env['ir.config_parameter'].sudo()
-        cls.params.set_param('lab_order_control.require_order_verification', 'True')
-        cls.params.set_param('lab_order_control.doctor_call_attempts_before_hold', '3')
-        cls.params.set_param('lab_order_control.hold_warning_days', '5')
+        cls.params.set_str('lab_order_control.require_order_verification', 'True')
+        cls.params.set_str('lab_order_control.doctor_call_attempts_before_hold', '3')
+        cls.params.set_str('lab_order_control.hold_warning_days', '5')
         # These tests are about the doctor-call gate, not the maker-checker rule — which
         # has its own tests in test_maker_scope.py. Without this the acting user trips
         # the self-verification ban and every case here fails for the wrong reason.
-        cls.params.set_param('lab_order_control.allow_self_verification', 'True')
+        cls.params.set_str('lab_order_control.allow_self_verification', 'True')
         cls.env.user.group_ids = [
             (4, cls.env.ref('lab_order_control.group_lab_order_checker').id)]
         cls.clinic = cls.env['res.partner'].create({
@@ -173,8 +173,8 @@ class TestEpicCDoctorCalls(TransactionCase):
         # invalidates the cache, and an unsaved value would be lost with it.
         zeros = settings._zero_param_names()
         # What core's set_values does with an integer 0, then this module's answer.
-        self.params.set_param(key, False)
-        self.params.set_param('lab_order_control.hold_warning_days', False)
+        self.params.set_str(key, False)
+        self.params.set_str('lab_order_control.hold_warning_days', False)
         settings._keep_zero_params(zeros)
 
         Order = self.env['sale.order']
@@ -197,11 +197,11 @@ class TestEpicCDoctorCalls(TransactionCase):
 
     def test_a_non_zero_setting_is_left_to_core(self):
         key = 'lab_order_control.doctor_call_attempts_before_hold'
-        self.params.set_param(key, '4')
+        self.params.set_str(key, '4')
         self.env['res.config.settings'].new(
             {'lab_doctor_call_attempts_before_hold': 4,
              'lab_hold_warning_days': 5})._keep_zero_params()
-        self.assertEqual(self.params.get_param(key), '4')
+        self.assertEqual(self.params.get_str(key), '4')
 
     # ------------------------------------------------------ R14: on hold, findable
     def test_a_verified_order_can_still_be_put_on_hold(self):

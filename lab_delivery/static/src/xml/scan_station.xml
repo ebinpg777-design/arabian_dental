@@ -10,10 +10,10 @@
             <div class="o_fws_top">
                 <div class="o_fws_head">
                     <div class="o_fws_title">Hand over cases</div>
-                    <div class="o_fws_sub" t-esc="this.emptyHint"/>
+                    <div class="o_fws_sub" t-out="this.emptyHint"/>
                 </div>
                 <div class="o_fws_tally" t-att-class="this.state.moved ? 'o_fws_tally_live' : ''">
-                    <div class="o_fws_tally_n" t-esc="this.state.moved"/>
+                    <div class="o_fws_tally_n" t-out="this.state.moved"/>
                     <div class="o_fws_tally_l">this visit</div>
                 </div>
                 <button class="o_fws_close" t-on-click="() => this.props.close()"
@@ -83,11 +83,11 @@
                             t-on-click="() => this.readNow()">
                         <i class="fa fa-crosshairs me-2" t-if="!this.state.busy"/>
                         <i class="fa fa-circle-o-notch fa-spin me-2" t-else=""/>
-                        <t t-if="this.state.busy and this.state.stage" t-esc="this.state.stage"/>
+                        <t t-if="this.state.busy and this.state.stage" t-out="this.state.stage"/>
                         <t t-else="">Read this frame</t>
                     </button>
                     <div class="o_fws_camhint" t-att-class="this.state.cameraStatus ? 'o_fws_camhint_warn' : ''">
-                        <t t-if="this.state.cameraStatus" t-esc="this.state.cameraStatus"/>
+                        <t t-if="this.state.cameraStatus" t-out="this.state.cameraStatus"/>
                         <t t-else="">Hold the barcode inside the frame. Blurry up close? Move
                         the sheet back a little — the lab's server reads what the camera
                         cannot.</t>
@@ -103,7 +103,7 @@
                             <i class="fa fa-circle-o-notch fa-spin" t-else=""/>
                         </span>
                         <span class="o_fws_shutter_label">
-                            <t t-if="this.state.busy" t-esc="this.state.stage"/>
+                            <t t-if="this.state.busy" t-out="this.state.stage"/>
                             <t t-else="">Photograph the barcode</t>
                         </span>
                     </button>
@@ -129,7 +129,7 @@
                     </div>
                 </t>
                 <div class="o_fws_busyline" t-if="this.state.busy and this.state.mode !== 'photo'">
-                    <i class="fa fa-circle-o-notch fa-spin me-2"/><t t-esc="this.state.stage"/>
+                    <i class="fa fa-circle-o-notch fa-spin me-2"/><t t-out="this.state.stage"/>
                 </div>
             </div>
 
@@ -162,8 +162,8 @@
                 <div t-foreach="this.state.run" t-as="entry" t-key="entry.key"
                      class="o_fws_card" t-att-class="'o_fws_card_' + entry.tone">
                     <div class="o_fws_card_main">
-                        <div class="o_fws_card_title" t-esc="entry.title"/>
-                        <div class="o_fws_card_detail" t-if="entry.detail" t-esc="entry.detail"/>
+                        <div class="o_fws_card_title" t-out="entry.title"/>
+                        <div class="o_fws_card_detail" t-if="entry.detail" t-out="entry.detail"/>
                         <div class="o_fws_card_choice" t-if="entry.choice">
                             <button class="o_fws_btn o_fws_btn_load"
                                     t-att-disabled="entry.resolved"
@@ -180,12 +180,12 @@
                             <button t-foreach="entry.codes" t-as="code" t-key="code"
                                     class="o_fws_chip"
                                     t-on-click="() => this.pickCode(entry, code)">
-                                <t t-esc="code"/>
+                                <t t-out="code"/>
                             </button>
                         </div>
                     </div>
                     <div class="o_fws_card_side">
-                        <span class="o_fws_card_at" t-esc="entry.at"/>
+                        <span class="o_fws_card_at" t-out="entry.at"/>
                         <button t-if="entry.action" class="o_fws_card_open"
                                 t-on-click="() => this.openCard(entry)">Open</button>
                     </div>

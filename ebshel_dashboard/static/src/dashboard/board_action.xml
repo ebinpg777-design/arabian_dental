@@ -37,7 +37,7 @@
                            href="#" t-att-title="board.name" t-on-click.prevent="() => this.switchBoard(board.id)">
                             <i t-attf-class="fa #{board.icon} o_dbb_side_icon" role="img" aria-label="Dashboard"
                                t-att-style="'color: ' + this.boardColor(board)"/>
-                            <span class="o_dbb_side_label o_dbb_side_name" t-esc="board.name"/>
+                            <span class="o_dbb_side_label o_dbb_side_name" t-out="board.name"/>
                             <i t-if="board.is_default" class="fa fa-star o_dbb_side_star" role="img" aria-label="Favourite"/>
                             <span t-if="board.personal" class="o_dbb_side_dot" title="Personal"/>
                         </a>
@@ -56,7 +56,7 @@
                        t-on-click.prevent="this.toggleWatchlist" title="KPI watchlist">
                         <i class="fa fa-thumb-tack o_dbb_side_icon" role="img" aria-label="Watchlist"/>
                         <span class="o_dbb_side_label o_dbb_side_name">Watchlist</span>
-                        <span t-if="this.state.watchlist.length" class="o_dbb_side_count o_dbb_side_label" t-esc="this.state.watchlist.length"/>
+                        <span t-if="this.state.watchlist.length" class="o_dbb_side_count o_dbb_side_label" t-out="this.state.watchlist.length"/>
                     </a>
                     <a href="#" t-attf-class="o_dbb_side_item {{ this.state.notesOpen ? 'o_dbb_side_on' : '' }}"
                        t-on-click.prevent="this.toggleNotes" title="My notes on this dashboard">
@@ -86,10 +86,10 @@
                 <div class="o_dbb_tour_card">
                     <div class="o_dbb_tour_step">
                         <i t-attf-class="fa #{this.tourSteps[this.state.tourStep].icon}" role="img" aria-label="Step"/>
-                        <span t-esc="(this.state.tourStep + 1) + ' / ' + this.tourSteps.length"/>
+                        <span t-out="(this.state.tourStep + 1) + ' / ' + this.tourSteps.length"/>
                     </div>
-                    <h3 t-esc="this.tourSteps[this.state.tourStep].title"/>
-                    <p t-esc="this.tourSteps[this.state.tourStep].text"/>
+                    <h3 t-out="this.tourSteps[this.state.tourStep].title"/>
+                    <p t-out="this.tourSteps[this.state.tourStep].text"/>
                     <div class="o_dbb_tour_actions">
                         <button class="btn btn-secondary btn-sm" t-on-click="this.tourDone">Skip</button>
                         <button class="btn btn-primary btn-sm" t-on-click="this.tourNext">
@@ -124,7 +124,7 @@
                                 <span t-else="" t-attf-class="o_dbb_title_name {{ this.canEdit and !this.state.presenting ? 'o_dbb_title_edit' : '' }}"
                                       t-on-click="this.startRenaming"
                                       t-att-title="this.canEdit and !this.state.presenting ? 'Click to rename' : ''"
-                                      t-esc="this.state.board.name"/>
+                                      t-out="this.state.board.name"/>
                                 <button t-if="!this.state.presenting"
                                         t-attf-class="o_dbb_star {{ this.state.board.is_default ? 'o_dbb_star_on' : '' }}"
                                         t-on-click="this.toggleDefault"
@@ -140,7 +140,7 @@
                                 <span t-if="this.state.board.companies and this.state.board.companies.length" class="o_dbb_tag o_dbb_tag_company"
                                       t-att-title="this.state.board.companies.join(', ')">
                                     <i class="fa fa-building-o" role="img" aria-label="Companies"/>
-                                    <t t-esc="this.state.board.companies.length === 1 ? this.state.board.companies[0] : this.state.board.companies.length + ' companies'"/>
+                                    <t t-out="this.state.board.companies.length === 1 ? this.state.board.companies[0] : this.state.board.companies.length + ' companies'"/>
                                 </span>
                             </h1>
                         </t>
@@ -168,7 +168,7 @@
                                     t-on-click="this.togglePeriod" aria-haspopup="true" t-att-aria-expanded="this.state.periodOpen"
                                     title="The period every card is read over">
                                 <i class="fa fa-calendar" role="img" aria-label="Period"/>
-                                <span class="o_dbb_period_label" t-esc="this.periodLabel"/>
+                                <span class="o_dbb_period_label" t-out="this.periodLabel"/>
                                 <i class="fa fa-caret-down o_dbb_caret" role="img" aria-label="Open"/>
                             </button>
                             <div t-if="this.state.periodOpen" class="dropdown-menu show o_dbb_period_menu" role="menu">
@@ -176,17 +176,17 @@
                                         t-attf-class="o_dbb_period_item o_dbb_period_all {{ this.periodKey === 'all' ? 'o_dbb_period_on' : '' }}"
                                         role="menuitem" t-on-click="() => this.pickPeriod('all')">
                                     <i class="fa fa-clock-o" role="img" aria-label="All time"/>
-                                    <span t-esc="this.allTimePeriod.label"/>
+                                    <span t-out="this.allTimePeriod.label"/>
                                     <i t-if="this.periodKey === 'all'" class="fa fa-check ms-auto" role="img" aria-label="Current"/>
                                 </button>
                                 <div class="o_dbb_period_grid">
                                     <t t-foreach="this.periodGroups" t-as="group" t-key="group.key">
                                         <div class="o_dbb_period_col">
-                                            <div class="o_dbb_period_head" t-esc="group.label"/>
+                                            <div class="o_dbb_period_head" t-out="group.label"/>
                                             <t t-foreach="group.periods" t-as="period" t-key="period.key">
                                                 <button t-attf-class="o_dbb_period_item {{ period.key === this.periodKey ? 'o_dbb_period_on' : '' }}"
                                                         role="menuitem" t-on-click="() => this.pickPeriod(period.key)">
-                                                    <span t-esc="period.label"/>
+                                                    <span t-out="period.label"/>
                                                     <i t-if="period.key === this.periodKey" class="fa fa-check ms-auto" role="img" aria-label="Current"/>
                                                 </button>
                                             </t>
@@ -196,7 +196,7 @@
                                 <div t-if="this.state.board.allow_range" class="o_dbb_period_range">
                                     <div class="o_dbb_period_head">
                                         Any two dates
-                                        <span t-if="this.periodKey === 'custom'" class="o_dbb_period_current" t-esc="this.periodLabel"/>
+                                        <span t-if="this.periodKey === 'custom'" class="o_dbb_period_current" t-out="this.periodLabel"/>
                                     </div>
                                     <div class="o_dbb_period_range_row">
                                         <input type="date" class="o_dbb_range_input" aria-label="From" t-att-value="this.state.range.start"
@@ -230,7 +230,7 @@
                                 </t>
                                 <i t-attf-class="fa fa-refresh {{ this.state.loading ? 'fa-spin' : '' }}" role="img" aria-label="Refresh"/>
                             </span>
-                            <span class="o_dbb_updated_label" t-esc="this.agoLabel"/>
+                            <span class="o_dbb_updated_label" t-out="this.agoLabel"/>
                         </button>
                         <t t-if="this.canEdit and !this.state.presenting">
                             <t t-if="this.state.editing">
@@ -299,14 +299,14 @@
                     <i class="fa fa-sliders o_dbb_bar_icon" role="img" aria-label="Filters"/>
                     <t t-foreach="this.state.board.filters" t-as="filter" t-key="filter.id">
                         <label t-attf-class="o_dbb_bar_filter {{ this.state.filters[filter.id] ? 'o_dbb_bar_on' : '' }}">
-                            <span class="o_dbb_bar_label" t-esc="filter.label"/>
+                            <span class="o_dbb_bar_label" t-out="filter.label"/>
                             <select class="o_dbb_bar_select" t-att-aria-label="filter.label"
                                     t-on-change="(ev) => this.onFilterPicked(filter, ev)">
                                 <option value="">Any</option>
                                 <t t-foreach="filter.options" t-as="option" t-key="option.key">
                                     <option t-att-value="option.key"
                                             t-att-selected="this.isFilterValue(filter, option)"
-                                            t-esc="option.label"/>
+                                            t-out="option.label"/>
                                 </t>
                             </select>
                         </label>
@@ -342,8 +342,8 @@
                         <button t-attf-class="o_dbb_tab {{ (page.id || null) === (this.state.tab || null) ? 'o_dbb_tab_on' : '' }}"
                                 t-on-click="() => this.pickTab(page.id)">
                             <i t-attf-class="fa #{page.icon}" role="img" aria-label="Tab"/>
-                            <span t-esc="page.name"/>
-                            <span class="o_dbb_tab_count" t-esc="page.count"/>
+                            <span t-out="page.name"/>
+                            <span class="o_dbb_tab_count" t-out="page.count"/>
                         </button>
                     </t>
                     <t t-if="this.canEdit and this.state.editing">
@@ -362,7 +362,7 @@
                     <t t-foreach="this.filterChips" t-as="chip" t-key="chip.id">
                         <span class="o_dbb_chip o_dbb_chip_filter">
                             <i class="fa fa-filter" role="img" aria-label="Filter"/>
-                            <b t-esc="chip.label"/>: <span t-esc="chip.value"/>
+                            <b t-out="chip.label"/>: <span t-out="chip.value"/>
                             <button class="o_dbb_chip_x" t-on-click="() => this.clearFilter(chip.id)" title="Clear">
                                 <i class="fa fa-times" role="img" aria-label="Clear"/>
                             </button>
@@ -372,7 +372,7 @@
                 <div class="o_dbb_chips" t-if="this.state.focus or this.state.mine">
                     <span t-if="this.state.focus" class="o_dbb_chip" title="Every card of the same model is narrowed to this">
                         <i class="fa fa-filter" role="img" aria-label="Focus"/>
-                        <span t-esc="this.focusLabel"/>
+                        <span t-out="this.focusLabel"/>
                         <button class="o_dbb_chip_btn" t-on-click="this.openFocusRecords" title="Open these records">
                             <i class="fa fa-external-link" role="img" aria-label="Open"/>
                         </button>
@@ -394,7 +394,7 @@
                     <t t-foreach="this.state.views" t-as="view" t-key="view.id">
                         <span class="o_dbb_view" role="button" t-on-click="() => this.applyView(view)"
                               t-att-title="'Period: ' + (view.period or 'as is') + (view.mine ? ' · only mine' : '') + (view.focus ? ' · ' + view.focus.label : '')">
-                            <span t-esc="view.name"/>
+                            <span t-out="view.name"/>
                             <button class="o_dbb_chip_btn" t-on-click.stop="() => this.removeView(view)" title="Forget this view">
                                 <i class="fa fa-times" role="img" aria-label="Remove"/>
                             </button>
@@ -421,17 +421,17 @@
                             <div t-attf-class="o_dbb_watch_item {{ watch.alert ? 'o_dbb_watch_' + watch.alert : '' }}"
                                  t-att-style="'--dbc-color: ' + this.cardColor(watch)"
                                  role="button" t-on-click="() => this.goToCard(watch.board_id, watch.id)">
-                                <div class="o_dbb_watch_board" t-esc="watch.board_name"/>
+                                <div class="o_dbb_watch_board" t-out="watch.board_name"/>
                                 <div class="o_dbb_watch_name">
                                     <i t-attf-class="fa #{watch.icon}" role="img" aria-label="Card"/>
-                                    <span t-esc="watch.name"/>
+                                    <span t-out="watch.name"/>
                                 </div>
                                 <div class="o_dbb_watch_value">
-                                    <span t-esc="this.watchValue(watch)"/>
-                                    <span t-if="watch.symbol" class="o_dbb_watch_unit" t-esc="watch.symbol"/>
+                                    <span t-out="this.watchValue(watch)"/>
+                                    <span t-if="watch.symbol" class="o_dbb_watch_unit" t-out="watch.symbol"/>
                                     <span t-if="watch.delta !== undefined and watch.delta !== null"
                                           t-attf-class="o_dbb_watch_delta {{ watch.delta &gt;= 0 ? 'up' : 'down' }}"
-                                          t-esc="(watch.delta &gt; 0 ? '+' : '') + this.watchValue(watch, watch.delta)"/>
+                                          t-out="(watch.delta &gt; 0 ? '+' : '') + this.watchValue(watch, watch.delta)"/>
                                 </div>
                                 <button class="o_dbb_watch_unpin" t-on-click.stop="() => this.togglePin(watch)" title="Unpin">
                                     <i class="fa fa-times" role="img" aria-label="Unpin"/>
@@ -483,7 +483,7 @@
                             <t t-elif="!this.visibleItems.length">
                                 <div class="o_dbb_nocontent">
                                     <i class="fa fa-search fa-2x mb-3" role="img" aria-label="Search"/>
-                                    <h3>No tile matches "<t t-esc="this.state.filter"/>"</h3>
+                                    <h3>No tile matches "<t t-out="this.state.filter"/>"</h3>
                                 </div>
                             </t>
 
@@ -522,7 +522,7 @@
                                                 <button class="o_dbb_mini" title="Narrower" t-on-click="() => this.widen(item, -1)">
                                                     <i class="fa fa-minus" role="img" aria-label="Narrower"/>
                                                 </button>
-                                                <span class="o_dbb_resize_label" t-esc="item.width + '/12'"/>
+                                                <span class="o_dbb_resize_label" t-out="item.width + '/12'"/>
                                                 <button class="o_dbb_mini" title="Wider" t-on-click="() => this.widen(item, 1)">
                                                     <i class="fa fa-plus" role="img" aria-label="Wider"/>
                                                 </button>
@@ -539,7 +539,7 @@
                                                     <option value="">Tab…</option>
                                                     <option value="none">Overview</option>
                                                     <t t-foreach="this.state.board.tabs" t-as="tab" t-key="tab.id">
-                                                        <option t-att-value="tab.id" t-esc="tab.name"/>
+                                                        <option t-att-value="tab.id" t-out="tab.name"/>
                                                     </t>
                                                 </select>
                                                 <select class="o_dbb_mini_select" title="Move to another dashboard"
@@ -547,7 +547,7 @@
                                                         t-on-change="(ev) => this.moveCard(item, ev)">
                                                     <option value="">Move to…</option>
                                                     <t t-foreach="this.state.boards" t-as="board" t-key="board.id">
-                                                        <option t-if="board.id !== this.state.board.id and board.can_edit" t-att-value="board.id" t-esc="board.name"/>
+                                                        <option t-if="board.id !== this.state.board.id and board.can_edit" t-att-value="board.id" t-out="board.name"/>
                                                     </t>
                                                 </select>
                                             </div>
@@ -561,14 +561,14 @@
                             </div>
 
                             <div class="o_dbb_foot text-muted">
-                                <t t-if="!this.state.presenting"><span t-esc="this.greeting"/> · </t>
-                                <t t-if="this.state.board.description and !this.state.presenting"><span class="o_dbb_foot_desc" t-esc="this.state.board.description"/> · </t>
-                                <t t-if="this.periodLabel"><span t-esc="this.periodLabel"/> · </t>
-                                <span t-esc="this.visibleItems.length"/><t t-if="this.state.filter"> of <t t-esc="this.state.items.length"/></t> cards
-                                <t t-if="this.state.board.auto_refresh"> · refreshing every <t t-esc="this.state.board.auto_refresh"/>s</t>
-                                <t t-if="this.hiddenCount and !this.state.editing"> · <span t-esc="this.hiddenCount"/> hidden until their rule fires</t>
-                                <t t-if="this.state.presenting and this.state.board.slide_seconds and this.state.boards.length &gt; 1"> · next dashboard in <t t-esc="this.state.board.slide_seconds"/>s</t>
-                                <t t-if="this.state.resizeLabel"> · <span class="o_dbb_resize_live" t-esc="this.state.resizeLabel"/></t>
+                                <t t-if="!this.state.presenting"><span t-out="this.greeting"/> · </t>
+                                <t t-if="this.state.board.description and !this.state.presenting"><span class="o_dbb_foot_desc" t-out="this.state.board.description"/> · </t>
+                                <t t-if="this.periodLabel"><span t-out="this.periodLabel"/> · </t>
+                                <span t-out="this.visibleItems.length"/><t t-if="this.state.filter"> of <t t-out="this.state.items.length"/></t> cards
+                                <t t-if="this.state.board.auto_refresh"> · refreshing every <t t-out="this.state.board.auto_refresh"/>s</t>
+                                <t t-if="this.hiddenCount and !this.state.editing"> · <span t-out="this.hiddenCount"/> hidden until their rule fires</t>
+                                <t t-if="this.state.presenting and this.state.board.slide_seconds and this.state.boards.length &gt; 1"> · next dashboard in <t t-out="this.state.board.slide_seconds"/>s</t>
+                                <t t-if="this.state.resizeLabel"> · <span class="o_dbb_resize_live" t-out="this.state.resizeLabel"/></t>
                             </div>
                         </t>
                     </div>
@@ -578,7 +578,7 @@
                         <div class="o_dbb_notes_head">
                             <i class="fa fa-sticky-note-o" role="img" aria-label="Notes"/>
                             <span>My notes</span>
-                            <span class="o_dbb_notes_state" t-esc="this.state.noteState"/>
+                            <span class="o_dbb_notes_state" t-out="this.state.noteState"/>
                             <button class="o_dbb_chip_btn ms-auto" t-on-click="this.toggleNotes" title="Close">
                                 <i class="fa fa-times" role="img" aria-label="Close"/>
                             </button>

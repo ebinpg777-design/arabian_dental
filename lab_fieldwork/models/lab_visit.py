@@ -351,7 +351,7 @@ class LabVisit(models.Model):
                  'partner_id.partner_longitude', 'partner_id.visit_radius_m',
                  'user_id.fw_location_exception')
     def _compute_gps(self):
-        default_radius = float(self.env['ir.config_parameter'].sudo().get_param(
+        default_radius = float(self.env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.visit_radius_m', 300))
         for v in self:
             clinic = v.partner_id

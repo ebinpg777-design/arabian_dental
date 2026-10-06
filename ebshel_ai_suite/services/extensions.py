@@ -56,7 +56,7 @@ def register_web_backend(key: str):
 
 
 def get_web_backend(env) -> WebSearchBackend | None:
-    key = env['ir.config_parameter'].sudo().get_param('ebshel_ai_suite.web_backend')
+    key = env['ir.config_parameter'].sudo().get_str('ebshel_ai_suite.web_backend')
     backend_class = _WEB_BACKENDS.get(key or '')
     return backend_class(env) if backend_class else None
 
@@ -78,7 +78,7 @@ def _get_json(url: str, *, params: dict, headers: dict | None = None) -> dict:
 
 
 def _param(env, key: str) -> str:
-    return env['ir.config_parameter'].sudo().get_param(f'ebshel_ai_suite.{key}') or ''
+    return env['ir.config_parameter'].sudo().get_str(f'ebshel_ai_suite.{key}') or ''
 
 
 @register_web_backend('brave')

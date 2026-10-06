@@ -11,7 +11,7 @@
 
                 <label class="o_dft_import_drop btn btn-secondary w-100">
                     <i class="fa fa-upload me-2"/>
-                    <t t-esc="this.state.fileName or 'Choose a .json file'"/>
+                    <t t-out="this.state.fileName or 'Choose a .json file'"/>
                     <input class="d-none" type="file" accept="application/json,.json"
                            t-on-change="this.onFileSelected"/>
                 </label>

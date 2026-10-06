@@ -34,7 +34,7 @@
                                   t-att-data-row="rowInfo.row"
                                   t-attf-placeholder="Row {{ rowInfo.row }}"
                                   t-on-change="(ev) => this.renameRow(rowInfo.row, ev.target.value)"
-                                  t-on-keydown="this.onRowNameKeydown"><t t-esc="rowInfo.name"/></textarea>
+                                  t-on-keydown="this.onRowNameKeydown"><t t-out="rowInfo.name"/></textarea>
                         <span t-else="" t-out="rowInfo.name"/>
 
                         <button t-if="this.canDeleteRow" class="o_dft_row_delete"
@@ -112,25 +112,25 @@
                             t-att-title="this.state.combineAll
                                 ? 'Records must match every selected tile - click for any'
                                 : 'Records may match any selected tile - click for all'">
-                        <t t-esc="this.state.combineAll ? 'match all' : 'match any'"/>
+                        <t t-out="this.state.combineAll ? 'match all' : 'match any'"/>
                     </button>
                     <button t-if="this.activeKeys.length" class="o_dft_multi"
                             t-on-click="() => this.clearTileFacets()"
                             title="Unselect every tile (Alt + 0)">
-                        <i class="fa fa-times me-1"/><t t-esc="this.activeKeys.length"/> selected
+                        <i class="fa fa-times me-1"/><t t-out="this.activeKeys.length"/> selected
                     </button>
                 </div>
             </div>
 
             <div t-else="" class="o_dft_summary">
                 <span class="o_dft_summary_count">
-                    <t t-esc="this.state.defs.length"/> tiles
+                    <t t-out="this.state.defs.length"/> tiles
                 </span>
                 <span t-if="this.rows.length > 1" class="o_dft_summary_rows">
-                    · <t t-esc="this.rows.length"/> rows
+                    · <t t-out="this.rows.length"/> rows
                 </span>
                 <span t-if="this.activeKeys.length" class="o_dft_summary_active">
-                    · <t t-esc="this.activeKeys.length"/> applied
+                    · <t t-out="this.activeKeys.length"/> applied
                 </span>
             </div>
 
@@ -157,26 +157,26 @@
                                   onSelected="() => this.toggleCombineMode()">
                         <i class="fa fa-fw me-2"
                            t-att-class="this.state.combineAll ? 'fa-compress' : 'fa-code-fork'"/>
-                        <t t-esc="this.combineLabel"/>
+                        <t t-out="this.combineLabel"/>
                     </DropdownItem>
                     <div class="dropdown-divider" role="separator"/>
                     <DropdownItem onSelected="() => this.toggleCompact()">
                         <i class="fa fa-fw me-2"
                            t-att-class="this.state.compact ? 'fa-expand' : 'fa-compress'"/>
-                        <t t-esc="this.state.compact ? 'Comfortable tiles' : 'Compact tiles'"/>
+                        <t t-out="this.state.compact ? 'Comfortable tiles' : 'Compact tiles'"/>
                     </DropdownItem>
                     <div class="dropdown-divider" role="separator"/>
                     <div class="dropdown-header">Tile style</div>
                     <DropdownItem t-foreach="this.tileLooks" t-as="look" t-key="look.key"
                                   onSelected="() => this.setLook(look.key)">
                         <i class="fa fa-fw me-2" t-att-class="this.state.look === look.key ? 'fa-check' : look.icon"/>
-                        <t t-esc="look.label"/>
+                        <t t-out="look.label"/>
                     </DropdownItem>
                     <div class="dropdown-divider" role="separator"/>
                     <DropdownItem onSelected="() => this.cycleRefresh()">
                         <i class="fa fa-refresh fa-fw me-2"
                            t-att-class="{ 'fa-spin': this.state.refreshEvery }"/>
-                        <t t-esc="this.refreshLabel"/>
+                        <t t-out="this.refreshLabel"/>
                     </DropdownItem>
                     <DropdownItem t-if="this.hasCustomHeights" onSelected="() => this.resetAllRowHeights()">
                         <i class="fa fa-arrows-v fa-fw me-2"/>Reset the row heights

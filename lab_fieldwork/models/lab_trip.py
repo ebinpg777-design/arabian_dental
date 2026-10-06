@@ -74,9 +74,9 @@ class LabTrip(models.Model):
     def _compute_rate(self):
         params = self.env['ir.config_parameter'].sudo()
         rates = {
-            'bike': float(params.get_param('lab_fieldwork.rate_bike', 4.0)),
-            'car': float(params.get_param('lab_fieldwork.rate_car', 9.0)),
-            'public': float(params.get_param('lab_fieldwork.rate_public', 0.0)),
+            'bike': float(params.get_str('lab_fieldwork.rate_bike', 4.0)),
+            'car': float(params.get_str('lab_fieldwork.rate_car', 9.0)),
+            'public': float(params.get_str('lab_fieldwork.rate_public', 0.0)),
         }
         for trip in self:
             trip.rate = rates.get(trip.vehicle, 0.0)
@@ -244,7 +244,7 @@ class LabTrip(models.Model):
         }
 
     def _photo_required(self):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.require_odo_photo', 'True') in ('True', 'true', '1')
 
     def _compute_can_edit_rate(self):

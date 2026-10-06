@@ -701,7 +701,7 @@ class EpgLabelTemplate(models.Model):
         if self.label_type == 'partner':
             partner = self.preview_partner_id
             if not partner:
-                partner_id = parameters.get_param('epg_product_label.preview_partner_id')
+                partner_id = parameters.get_str('epg_product_label.preview_partner_id')
                 partner = self.env['res.partner'].browse(
                     int(partner_id)).exists() if partner_id else None
             return partner or self.env.company.partner_id
@@ -709,7 +709,7 @@ class EpgLabelTemplate(models.Model):
             return self.env['stock.lot'].search([], limit=1)
         product = self.preview_product_id
         if not product:
-            product_id = parameters.get_param('epg_product_label.preview_product_id')
+            product_id = parameters.get_str('epg_product_label.preview_product_id')
             product = self.env['product.product'].browse(
                 int(product_id)).exists() if product_id else None
         return product or self.env['product.product'].search(
@@ -833,15 +833,15 @@ class EpgLabelTemplate(models.Model):
             }
         parameters = self.env['ir.config_parameter'].sudo()
         return {
-            'density': parameters.get_param(
+            'density': parameters.get_str(
                 'epg_product_label.zpl_density', '8'),
-            'rotation': int(parameters.get_param(
+            'rotation': int(parameters.get_str(
                 'epg_product_label.zpl_rotation', '0') or 0),
-            'encoding': parameters.get_param(
+            'encoding': parameters.get_str(
                 'epg_product_label.zpl_encoding', 'utf8'),
-            'darkness': int(parameters.get_param(
+            'darkness': int(parameters.get_str(
                 'epg_product_label.zpl_darkness', '0') or 0) or None,
-            'speed': int(parameters.get_param(
+            'speed': int(parameters.get_str(
                 'epg_product_label.zpl_speed', '0') or 0) or None,
         }
 

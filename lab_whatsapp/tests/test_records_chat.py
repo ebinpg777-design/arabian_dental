@@ -318,11 +318,11 @@ class TestRecordsChat(TransactionCase):
     def test_the_auto_send_switch_is_the_settings_switch(self):
         template = self.env.ref('lab_whatsapp.tmpl_invoice')
         params = self.env['ir.config_parameter'].sudo()
-        params.set_param('lab_whatsapp.notify_invoice', 'True')
+        params.set_str('lab_whatsapp.notify_invoice', 'True')
         template.invalidate_recordset(['auto_send'])
         self.assertTrue(template.auto_send)
         template.auto_send = False
-        self.assertEqual(params.get_param('lab_whatsapp.notify_invoice'), 'False')
+        self.assertEqual(params.get_str('lab_whatsapp.notify_invoice'), 'False')
         self.assertFalse(self.env['account.move']._whatsapp_enabled('invoice'))
         self.assertFalse(self.env.ref('lab_whatsapp.tmpl_account_move_manual').auto_send,
                          "a manual template never sends on its own")

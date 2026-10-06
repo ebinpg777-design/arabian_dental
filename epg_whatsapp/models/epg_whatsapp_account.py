@@ -128,7 +128,7 @@ class EpgWhatsappAccount(models.Model):
             account.conversation_count = convs.get(account, 0)
 
     def _compute_webhook_url(self):
-        base = self.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+        base = self.env['ir.config_parameter'].sudo().get_str('web.base.url', '')
         reachable, detail = self._webhook_reachable()
         for account in self:
             account.webhook_url = '%s/whatsapp/webhook' % base.rstrip('/')
@@ -223,7 +223,7 @@ class EpgWhatsappAccount(models.Model):
         """The address links start with: the sender's public address, or the system's."""
         self.ensure_one()
         base = (self.link_base_url or '').strip() or \
-            self.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+            self.env['ir.config_parameter'].sudo().get_str('web.base.url', '')
         return base.rstrip('/')
 
     @api.model

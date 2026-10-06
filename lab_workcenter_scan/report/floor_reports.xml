@@ -66,19 +66,19 @@
 
                 <div class="fl-head">
                     <div class="fl-l" style="width:74%;">
-                        <h1><t t-esc="d['patient']"/></h1>
+                        <h1><t t-out="d['patient']"/></h1>
                         <div class="fl-muted" style="font-size:12px;">
-                            <span class="mono" t-esc="o.name"/>
+                            <span class="mono" t-out="o.name"/>
                             <t t-if="o.sale_id">
-                                · <span class="mono" t-esc="o.sale_id.name"/>
+                                · <span class="mono" t-out="o.sale_id.name"/>
                             </t>
-                            <t t-if="d['route']"> · <t t-esc="d['route']"/></t>
+                            <t t-if="d['route']"> · <t t-out="d['route']"/></t>
                         </div>
                         <div style="margin-top:6px;">
                             <span t-if="o.sale_id.is_rework"
                                   class="chip chip-rework">REWORK</span>
                             <span t-if="d['days'] &gt; 90" class="chip chip-old">
-                                IN THE LAB <t t-esc="d['days']"/> DAYS
+                                IN THE LAB <t t-out="d['days']"/> DAYS
                             </span>
                         </div>
                     </div>
@@ -92,7 +92,7 @@
                     <tr>
                         <td style="width:50%;">
                             <div class="kv"><b>Appliance</b>
-                                <t t-esc="o.product_id.display_name"/></div>
+                                <t t-out="o.product_id.display_name"/></div>
                             <div class="kv"><b>Quantity</b>
                                 <span t-field="o.product_qty"/>
                                 <span t-field="o.product_uom_id.name"/></div>
@@ -100,11 +100,11 @@
                                 <span t-field="o.ul"/></div>
                         </td>
                         <td style="width:50%;">
-                            <div class="kv"><b>Clinic</b><t t-esc="d['clinic']"/></div>
+                            <div class="kv"><b>Clinic</b><t t-out="d['clinic']"/></div>
                             <div class="kv"><b>Ordered</b>
                                 <span t-field="o.date_start" t-options="{'widget': 'date'}"/>
-                                (<t t-esc="d['days']"/> days ago)</div>
-                            <div class="kv"><b>Route</b><t t-esc="d['route']"/></div>
+                                (<t t-out="d['days']"/> days ago)</div>
+                            <div class="kv"><b>Route</b><t t-out="d['route']"/></div>
                         </td>
                     </tr>
                 </table>
@@ -124,12 +124,12 @@
                     </thead>
                     <tbody>
                         <tr t-foreach="d['steps']" t-as="step">
-                            <td class="num" t-esc="step_index + 1"/>
+                            <td class="num" t-out="step_index + 1"/>
                             <td>
-                                <t t-esc="step.workcenter_id.name"/>
+                                <t t-out="step.workcenter_id.name"/>
                                 <div t-if="step.state == 'done'" class="fl-muted">done</div>
                             </td>
-                            <td t-esc="step.name"/>
+                            <td t-out="step.name"/>
                             <td style="height:26px;"/>
                             <td/>
                             <td/>
@@ -158,7 +158,7 @@
                 <div class="fl-note">
                     Writing on this sheet does not move the job. Scan the code above at a
                     station board to accept it or hand it on.
-                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                    Printed <t t-out="d['stamp']['at']"/> by <t t-out="d['stamp']['by']"/>.
                 </div>
             </div>
         </t>
@@ -202,15 +202,15 @@
                     <div style="overflow:hidden;margin-bottom:8px;">
                         <div style="float:left;width:64%;">
                             <div style="font-size:20px;font-weight:bold;"
-                                 t-esc="d['patient']"/>
+                                 t-out="d['patient']"/>
                             <div class="mono" style="font-size:16px;font-weight:bold;"
-                                 t-esc="o.name"/>
+                                 t-out="o.name"/>
                             <div class="fl-muted" style="font-size:11px;">
-                                <t t-esc="o.product_id.display_name"/>
-                                <t t-if="o.sale_id"> · <t t-esc="o.sale_id.name"/></t>
+                                <t t-out="o.product_id.display_name"/>
+                                <t t-if="o.sale_id"> · <t t-out="o.sale_id.name"/></t>
                             </div>
                             <div class="fl-muted" style="font-size:11px;"
-                                 t-esc="d['clinic']"/>
+                                 t-out="d['clinic']"/>
                         </div>
                         <div style="float:right;width:34%;text-align:right;">
                             <div t-out="o.name"
@@ -250,8 +250,8 @@
                     <div class="fl-note">
                         Tie this to the work. Do not remove it until the reason above is
                         cleared and signed.
-                        Printed <t t-esc="d['stamp']['at']"/> by
-                        <t t-esc="d['stamp']['by']"/>.
+                        Printed <t t-out="d['stamp']['at']"/> by
+                        <t t-out="d['stamp']['by']"/>.
                     </div>
                 </div>
             </div>
@@ -282,16 +282,16 @@
                 <t t-call="lab_workcenter_scan.floor_css"/>
                 <div class="fl-head">
                     <div class="fl-l">
-                        <h1><t t-esc="o.name"/></h1>
+                        <h1><t t-out="o.name"/></h1>
                         <div class="fl-muted">
                             Cases whose next step is this bench
                             <t t-if="o.scan_code"> · station code
-                                <span class="mono" t-esc="o.scan_code"/></t>
+                                <span class="mono" t-out="o.scan_code"/></t>
                         </div>
                     </div>
                     <div class="fl-r">
                         <div style="font-size:22px;font-weight:bold;"
-                             t-esc="d['total']"/>
+                             t-out="d['total']"/>
                         <div class="fl-muted">cases due to start here</div>
                     </div>
                 </div>
@@ -312,22 +312,22 @@
                     <tbody>
                         <tr t-foreach="d['rows']" t-as="r">
                             <td class="num">
-                                <b t-esc="r['days']"/>
+                                <b t-out="r['days']"/>
                             </td>
                             <td class="mono" style="font-size:10px;">
-                                <t t-esc="r['mo'].name"/>
+                                <t t-out="r['mo'].name"/>
                                 <div t-if="r['rework']" class="chip chip-rework">REWORK</div>
                             </td>
                             <td>
-                                <t t-esc="r['patient']"/>
-                                <div class="fl-muted" t-esc="r['order']"/>
+                                <t t-out="r['patient']"/>
+                                <div class="fl-muted" t-out="r['order']"/>
                             </td>
                             <td style="font-size:11px;">
-                                <t t-esc="r['clinic']"/>
-                                <div class="fl-muted" t-esc="r['route']"/>
+                                <t t-out="r['clinic']"/>
+                                <div class="fl-muted" t-out="r['route']"/>
                             </td>
-                            <td style="font-size:11px;" t-esc="r['appliance']"/>
-                            <td t-esc="r['arch']"/>
+                            <td style="font-size:11px;" t-out="r['appliance']"/>
+                            <td t-out="r['arch']"/>
                             <td/>
                             <td/>
                         </tr>
@@ -343,10 +343,10 @@
 
                 <div class="fl-note">
                     <t t-if="d['total'] &gt; 40">
-                        Showing the 40 oldest cases, of <t t-esc="d['total']"/>.
+                        Showing the 40 oldest cases, of <t t-out="d['total']"/>.
                     </t>
                     <t t-if="d['oldest']">
-                        Oldest: <t t-esc="d['oldest']"/> days in the lab.
+                        Oldest: <t t-out="d['oldest']"/> days in the lab.
                     </t>
                     <!-- Until the floor accepts and hands over on the board, the order
                          of steps is the ROUTING's, not a record of where a case has
@@ -358,11 +358,11 @@
                         of where each case has physically reached.
                     </t>
                     <t t-if="d['rework']">
-                        <t t-esc="d['rework']"/> of the <t t-esc="len(d['rows'])"/>
+                        <t t-out="d['rework']"/> of the <t t-out="len(d['rows'])"/>
                         listed are remakes.
                     </t>
                     Cases already delivered to the doctor are excluded.
-                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                    Printed <t t-out="d['stamp']['at']"/> by <t t-out="d['stamp']['by']"/>.
                 </div>
             </div>
         </t>
@@ -386,18 +386,18 @@
                     <div class="fl-l">
                         <h1>Aged Case Callover</h1>
                         <div class="fl-muted">
-                            Still in the lab, ordered <t t-esc="doc.older_than"/> or
+                            Still in the lab, ordered <t t-out="doc.older_than"/> or
                             more days ago
                             <t t-if="doc.team_ids">
-                                · <t t-esc="', '.join(doc.team_ids.mapped('name'))"/>
+                                · <t t-out="', '.join(doc.team_ids.mapped('name'))"/>
                             </t>
                         </div>
                     </div>
                     <div class="fl-r">
-                        <div style="font-size:22px;font-weight:bold;" t-esc="d['total']"/>
+                        <div style="font-size:22px;font-weight:bold;" t-out="d['total']"/>
                         <div class="fl-muted">
                             cases this old<t t-if="d['routes']"> on
-                            <t t-esc="d['routes']"/></t>
+                            <t t-out="d['routes']"/></t>
                         </div>
                     </div>
                 </div>
@@ -416,22 +416,22 @@
                     </thead>
                     <tbody>
                         <tr t-foreach="d['rows']" t-as="r">
-                            <td class="num"><b t-esc="r['days']"/></td>
+                            <td class="num"><b t-out="r['days']"/></td>
                             <td class="mono" style="font-size:10px;">
-                                <t t-esc="r['mo'].name"/>
+                                <t t-out="r['mo'].name"/>
                                 <div t-if="r['rework']" class="chip chip-rework">REWORK</div>
                             </td>
                             <td>
-                                <t t-esc="r['patient']"/>
-                                <div class="fl-muted" t-esc="r['order']"/>
+                                <t t-out="r['patient']"/>
+                                <div class="fl-muted" t-out="r['order']"/>
                             </td>
-                            <td style="font-size:11px;" t-esc="r['clinic']"/>
-                            <td style="font-size:11px;" t-esc="r['route']"/>
+                            <td style="font-size:11px;" t-out="r['clinic']"/>
+                            <td style="font-size:11px;" t-out="r['route']"/>
                             <td style="font-size:11px;">
-                                <t t-esc="r['station']"/>
+                                <t t-out="r['station']"/>
                                 <!-- Blank unless the operation adds something the
                                      station name does not — see Floor._step_note. -->
-                                <div t-if="r['step']" class="fl-muted" t-esc="r['step']"/>
+                                <div t-if="r['step']" class="fl-muted" t-out="r['step']"/>
                             </td>
                             <td/>
                         </tr>
@@ -447,11 +447,11 @@
                     Age is counted from the order date. This lab records no promised date,
                     so nothing here is called late — only old.
                     Cases already delivered are excluded.
-                    Showing <t t-esc="d['shown']"/> of <t t-esc="d['total']"/>.
+                    Showing <t t-out="d['shown']"/> of <t t-out="d['total']"/>.
                     <t t-if="d['rework']">
-                        <t t-esc="d['rework']"/> of them are remakes.
+                        <t t-out="d['rework']"/> of them are remakes.
                     </t>
-                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                    Printed <t t-out="d['stamp']['at']"/> by <t t-out="d['stamp']['by']"/>.
                 </div>
             </div>
         </t>
@@ -478,21 +478,21 @@
                 <div class="fl-head">
                     <div class="fl-l">
                         <h1>Packing Manifest</h1>
-                        <div class="fl-muted"><t t-esc="d['scope']"/></div>
+                        <div class="fl-muted"><t t-out="d['scope']"/></div>
                     </div>
                     <div class="fl-r">
-                        <div style="font-size:22px;font-weight:bold;" t-esc="d['total']"/>
+                        <div style="font-size:22px;font-weight:bold;" t-out="d['total']"/>
                         <div class="fl-muted">boxes</div>
                     </div>
                 </div>
 
                 <t t-foreach="d['routes']" t-as="route">
                     <h3 t-att-class="route_index &gt; 0 and 'brk' or ''">
-                        <t t-esc="route['name']"/>
+                        <t t-out="route['name']"/>
                         <span class="fl-muted">
-                            — <t t-esc="route['total']"/> boxes
+                            — <t t-out="route['total']"/> boxes
                             <t t-if="route['partial']">
-                                (<t t-esc="route['count']"/> listed here — this block is
+                                (<t t-out="route['count']"/> listed here — this block is
                                 INCOMPLETE, do not sign it as a full handover)
                             </t>
                         </span>
@@ -515,13 +515,13 @@
                                                  height:11px;border:1px solid #999;"/>
                                 </td>
                                 <td class="mono" style="font-size:10px;">
-                                    <t t-esc="r['order']"/>
+                                    <t t-out="r['order']"/>
                                     <span t-if="r['ready'] and d['show_ready']"
                                           class="chip chip-ready">READY</span>
                                 </td>
-                                <td style="font-size:11px;" t-esc="r['clinic']"/>
-                                <td style="font-size:11px;" t-esc="r['patient']"/>
-                                <td class="num" t-esc="r['items']"/>
+                                <td style="font-size:11px;" t-out="r['clinic']"/>
+                                <td style="font-size:11px;" t-out="r['patient']"/>
+                                <td class="num" t-out="r['items']"/>
                                 <td/>
                             </tr>
                         </tbody>
@@ -548,8 +548,8 @@
                 </div>
 
                 <div class="fl-note">
-                    Showing <t t-esc="d['shown']"/> of <t t-esc="d['total']"/> boxes.
-                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                    Showing <t t-out="d['shown']"/> of <t t-out="d['total']"/> boxes.
+                    Printed <t t-out="d['stamp']['at']"/> by <t t-out="d['stamp']['by']"/>.
                 </div>
             </div>
         </t>
@@ -586,11 +586,11 @@
                         </div>
                     </div>
                     <div class="fl-r">
-                        <div style="font-size:22px;font-weight:bold;" t-esc="d['total']"/>
+                        <div style="font-size:22px;font-weight:bold;" t-out="d['total']"/>
                         <div class="fl-muted">
-                            of <t t-esc="d['open_total']"/> open orders in the whole lab
+                            of <t t-out="d['open_total']"/> open orders in the whole lab
                             <t t-if="d['routes']"><br/>route:
-                                <t t-esc="d['routes']"/></t>
+                                <t t-out="d['routes']"/></t>
                         </div>
                     </div>
                 </div>
@@ -613,22 +613,22 @@
                                 <span style="display:inline-block;width:11px;height:11px;
                                              border:1px solid #999;"/>
                             </td>
-                            <td class="mono" style="font-size:10px;" t-esc="r['mo'].name"/>
-                            <td class="mono" style="font-size:10px;" t-esc="r['order']"/>
-                            <td style="font-size:11px;" t-esc="r['clinic']"/>
-                            <td style="font-size:11px;" t-esc="r['patient']"/>
-                            <td class="num" t-esc="r['delivered']"/>
-                            <td class="num" t-esc="r['days']"/>
+                            <td class="mono" style="font-size:10px;" t-out="r['mo'].name"/>
+                            <td class="mono" style="font-size:10px;" t-out="r['order']"/>
+                            <td style="font-size:11px;" t-out="r['clinic']"/>
+                            <td style="font-size:11px;" t-out="r['patient']"/>
+                            <td class="num" t-out="r['delivered']"/>
+                            <td class="num" t-out="r['days']"/>
                         </tr>
                     </tbody>
                 </table>
 
                 <div class="fl-note">
-                    Showing <t t-esc="d['shown']"/> of <t t-esc="d['total']"/>.
+                    Showing <t t-out="d['shown']"/> of <t t-out="d['total']"/>.
                     <t t-if="d['capped']">
                         Work through these and print the sheet again for the next batch.
                     </t>
-                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                    Printed <t t-out="d['stamp']['at']"/> by <t t-out="d['stamp']['by']"/>.
                 </div>
             </div>
         </t>
@@ -658,19 +658,19 @@
                     <div t-att-class="c_index &gt; 0 and 'brk' or ''">
                         <div class="fl-head">
                             <div class="fl-l">
-                                <h2 t-esc="c['partner'].display_name"/>
+                                <h2 t-out="c['partner'].display_name"/>
                                 <div class="fl-muted">
                                     Work with us right now
                                     <t t-if="c['route']"> · route
-                                        <t t-esc="c['route']"/></t>
+                                        <t t-out="c['route']"/></t>
                                 </div>
                             </div>
                             <div class="fl-r">
                                 <div style="font-size:22px;font-weight:bold;"
-                                     t-esc="c['count']"/>
+                                     t-out="c['count']"/>
                                 <div class="fl-muted">
                                     cases<t t-if="c['packed']">,
-                                    <t t-esc="c['packed']"/> ready to send</t>
+                                    <t t-out="c['packed']"/> ready to send</t>
                                 </div>
                             </div>
                         </div>
@@ -688,19 +688,19 @@
                             <tbody>
                                 <tr t-foreach="c['rows']" t-as="r">
                                     <td class="mono" style="font-size:10px;"
-                                        t-esc="r['order']"/>
-                                    <td t-esc="r['patient']"/>
-                                    <td style="font-size:11px;" t-esc="r['appliance']"/>
+                                        t-out="r['order']"/>
+                                    <td t-out="r['patient']"/>
+                                    <td style="font-size:11px;" t-out="r['appliance']"/>
                                     <td style="font-size:11px;">
                                         <t t-if="r['packed']">
                                             <span class="chip chip-ready">READY</span>
                                             reserved to send
                                         </t>
                                         <t t-else="">
-                                            <t t-esc="r['station'] or 'in the lab'"/>
+                                            <t t-out="r['station'] or 'in the lab'"/>
                                         </t>
                                     </td>
-                                    <td class="num" t-esc="r['days']"/>
+                                    <td class="num" t-out="r['days']"/>
                                 </tr>
                             </tbody>
                         </table>
@@ -711,11 +711,11 @@
                     Cases we have already delivered are not listed. A case appears here
                     when the lab has no record of it going out.
                     <t t-if="d['shown_clinics'] &lt; d['total_clinics']">
-                        Showing <t t-esc="d['shown_clinics']"/> of
-                        <t t-esc="d['total_clinics']"/> clinics — narrow the selection
+                        Showing <t t-out="d['shown_clinics']"/> of
+                        <t t-out="d['total_clinics']"/> clinics — narrow the selection
                         for the rest.
                     </t>
-                    Printed <t t-esc="d['stamp']['at']"/> by <t t-esc="d['stamp']['by']"/>.
+                    Printed <t t-out="d['stamp']['at']"/> by <t t-out="d['stamp']['by']"/>.
                 </div>
             </div>
         </t>
@@ -745,14 +745,14 @@
                     <div class="fl-l">
                         <h1>Store Requisition</h1>
                         <div class="fl-muted">
-                            For <t t-esc="cases"/> cases
-                            <t t-if="no_bom"> · <t t-esc="no_bom"/> of them have no
+                            For <t t-out="cases"/> cases
+                            <t t-if="no_bom"> · <t t-out="no_bom"/> of them have no
                                 component list</t>
                         </div>
                     </div>
                     <div class="fl-r fl-muted">
-                        <t t-esc="stamp['at']"/><br/>
-                        <t t-esc="stamp['by']"/>
+                        <t t-out="stamp['at']"/><br/>
+                        <t t-out="stamp['by']"/>
                     </div>
                 </div>
 
@@ -772,13 +772,13 @@
                                              border:1px solid #999;"/>
                             </td>
                             <td>
-                                <t t-esc="line['name']"/>
+                                <t t-out="line['name']"/>
                                 <div t-if="line['aka']" class="fl-muted">
-                                    also spelt <t t-esc="', '.join(line['aka'])"/>
+                                    also spelt <t t-out="', '.join(line['aka'])"/>
                                 </div>
                             </td>
                             <td class="num">
-                                <b t-esc="line['qty']"/> <t t-esc="line['uom']"/>
+                                <b t-out="line['qty']"/> <t t-out="line['uom']"/>
                             </td>
                             <td/>
                         </tr>
@@ -804,7 +804,7 @@
                 <h3>Cases in this batch</h3>
                 <div class="mono" style="font-size:10px;line-height:1.5;">
                     <t t-foreach="docs" t-as="o">
-                        <t t-esc="o.name"/><t t-if="not o_last"> · </t>
+                        <t t-out="o.name"/><t t-if="not o_last"> · </t>
                     </t>
                 </div>
             </div>

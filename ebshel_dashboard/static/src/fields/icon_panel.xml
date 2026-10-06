@@ -8,13 +8,13 @@
                 <input type="text" t-custom-ref="search" class="o_input"
                        placeholder="Search by name or meaning: late, revenue, team..."
                        t-att-value="this.state.query" t-on-input="this.onQueryInput" t-on-keydown="this.onQueryKeydown"/>
-                <span class="o_dbf_icon_count"><t t-esc="this.matches.length"/> icons</span>
+                <span class="o_dbf_icon_count"><t t-out="this.matches.length"/> icons</span>
             </div>
             <div class="o_dbf_icon_groups">
                 <t t-foreach="this.groups" t-as="group" t-key="group.key">
                     <button type="button"
                             t-attf-class="o_dbf_icon_group {{ group.key === this.state.group ? 'o_dbf_icon_group_on' : '' }}"
-                            t-on-click="() => this.pickGroup(group.key)" t-esc="group.label"/>
+                            t-on-click="() => this.pickGroup(group.key)" t-out="group.label"/>
                 </t>
             </div>
             <t t-if="this.recent.length">

@@ -17,7 +17,7 @@ class TestVerificationScope(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.params = cls.env['ir.config_parameter'].sudo()
-        cls.params.set_param('lab_order_control.require_order_verification', 'True')
+        cls.params.set_str('lab_order_control.require_order_verification', 'True')
         cls.executive_group = cls.env.ref(
             'lab_fieldwork.group_fieldwork_executive', raise_if_not_found=False)
         cls.clinic = cls.env['res.partner'].create({'name': 'Scope Clinic'})
@@ -43,7 +43,7 @@ class TestVerificationScope(TransactionCase):
         })
 
     def _scope_to_executives(self):
-        self.params.set_param(
+        self.params.set_str(
             'lab_order_control.verification_maker_groups',
             str(self.executive_group.id) if self.executive_group else '')
 
@@ -81,13 +81,13 @@ class TestVerificationScope(TransactionCase):
         goes through untouched. It is `test_an_executives_order_is_held_for_checking`
         in this file that proves the control has not gone away: field-origin orders are
         still checked regardless of this setting."""
-        self.params.set_param('lab_order_control.verification_maker_groups', '')
+        self.params.set_str('lab_order_control.verification_maker_groups', '')
         order = self._order_as(self.office)
         self.assertFalse(order.verification_needed)
 
     def test_the_master_switch_still_turns_everything_off(self):
-        self.params.set_param('lab_order_control.require_order_verification', 'False')
+        self.params.set_str('lab_order_control.require_order_verification', 'False')
         self._scope_to_executives()
         order = self._order_as(self.executive if self.executive_group else self.office)
         self.assertFalse(order.verification_needed)
-        self.params.set_param('lab_order_control.require_order_verification', 'True')
+        self.params.set_str('lab_order_control.require_order_verification', 'True')

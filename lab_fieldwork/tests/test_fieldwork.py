@@ -558,7 +558,7 @@ class TestFieldwork(TransactionCase):
         Since 2026-09-18 a float opens itself on first use; this is the lab
         that has switched that off and left floats to accounts.
         """
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.auto_float', 'False')
         other = self.env['res.users'].create(
             {'name': 'Floatless', 'login': 'no_float_exec',
@@ -943,7 +943,7 @@ class TestFieldwork(TransactionCase):
             return any(self.exec_user.name in a['detail'] for a in tower['alerts']
                        if a['key'] == 'cash_overdue')
         self.assertFalse(named(tower))
-        self.env['ir.config_parameter'].sudo().set_param('lab_fieldwork.cash_ceiling', '500')
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.cash_ceiling', '500')
         self.assertTrue(named(self.env['lab.desk'].with_user(self.manager).get_ops_desk()))
 
     def test_control_tower_only_lists_people_who_can_work_a_beat(self):
@@ -1041,7 +1041,7 @@ class TestFieldwork(TransactionCase):
         cfg.fw_visit_radius_m = 450.0
         cfg.action_save()
         self.assertEqual(
-            self.env['ir.config_parameter'].sudo().get_param(
+            self.env['ir.config_parameter'].sudo().get_str(
                 'lab_fieldwork.visit_radius_m'), '450.0')
 
     def test_the_administrator_cannot_reach_every_other_apps_settings(self):
@@ -1083,7 +1083,7 @@ class TestFieldwork(TransactionCase):
 
         # The cash is in their float by itself (2026-09-18); the alert about it
         # is the policy one, and it must still name a person on the screen.
-        self.env['ir.config_parameter'].sudo().set_param('lab_fieldwork.cash_ceiling', '100')
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.cash_ceiling', '100')
         tower = self.env['lab.desk'].with_user(self.manager).get_ops_desk()
         ids = [r['id'] for r in tower['rows']]
         self.assertIn(self.exec_user.id, ids,
@@ -1155,7 +1155,7 @@ class TestFieldwork(TransactionCase):
         """The screen's whole point: everywhere else a distant check-in reads as a
         person's failure. Here the same data is read as evidence about the rule."""
         self.clinic.visit_radius_m = 0.0     # fall back to the configured default
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.visit_radius_m', 100)
         self._far_visits(18, 0.0045)          # ~500 m out
         self._far_visits(4, 0.0002)           # ~22 m, comfortably inside
@@ -1822,7 +1822,7 @@ class TestFieldwork(TransactionCase):
         self.assertEqual(v.state, 'open')
 
     def test_switching_a_true_by_default_setting_off_actually_sticks(self):
-        """`ir.config_parameter.set_param` DELETES the key when handed False, and a
+        """`ir.config_parameter.set_str` DELETES the key when handed False, and a
         missing key reads as the default — so unticking anything defaulted to True did
         nothing at all, on either settings page."""
         Param = self.env['ir.config_parameter'].sudo()
@@ -1843,7 +1843,7 @@ class TestFieldwork(TransactionCase):
             cfg[field] = False
             getattr(cfg, save)()
             self.assertEqual(
-                Param.get_param('lab_fieldwork.require_attendance'), 'False',
+                Param.get_str('lab_fieldwork.require_attendance'), 'False',
                 "%s must store 'off' as a value, not an absence" % model)
             self.assertFalse(self.env.user._fw_attendance_required(), model)
 
@@ -1967,7 +1967,7 @@ class TestFieldwork(TransactionCase):
 
     def test_a_visit_with_an_outcome_is_closed_when_the_day_ends(self):
         """They told us what happened and forgot the last tap. Nothing is invented."""
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.auto_close_hour', 0)
         v = self._visit(user=self.exec_user)
         v.do_check_in(LAT, LON)
@@ -1980,7 +1980,7 @@ class TestFieldwork(TransactionCase):
 
     def test_a_visit_with_no_outcome_is_left_open_on_purpose(self):
         """Closing it would mean writing down an outcome nobody gave."""
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.auto_close_hour', 0)
         v = self._visit(user=self.exec_user)
         v.do_check_in(LAT, LON)
@@ -1991,10 +1991,10 @@ class TestFieldwork(TransactionCase):
 
     def test_a_trip_with_a_closing_reading_is_submitted(self):
         Param = self.env['ir.config_parameter'].sudo()
-        Param.set_param('lab_fieldwork.auto_close_hour', 0)
+        Param.set_str('lab_fieldwork.auto_close_hour', 0)
         # The odometer-photo rule is a different feature; it would block action_start
         # here and the test is not about it.
-        Param.set_param('lab_fieldwork.require_odo_photo', 'False')
+        Param.set_str('lab_fieldwork.require_odo_photo', 'False')
         self._employee_for(self.exec_user)
         self.env['lab.my.day'].with_user(self.exec_user).attendance_toggle()
         trip = self.env['lab.trip'].create({
@@ -2010,10 +2010,10 @@ class TestFieldwork(TransactionCase):
         """A distance nobody drove would go straight into a travel claim. An open claim
         gets chased; an invented one gets paid."""
         Param = self.env['ir.config_parameter'].sudo()
-        Param.set_param('lab_fieldwork.auto_close_hour', 0)
+        Param.set_str('lab_fieldwork.auto_close_hour', 0)
         # The odometer-photo rule is a different feature; it would block action_start
         # here and the test is not about it.
-        Param.set_param('lab_fieldwork.require_odo_photo', 'False')
+        Param.set_str('lab_fieldwork.require_odo_photo', 'False')
         self._employee_for(self.exec_user)
         self.env['lab.my.day'].with_user(self.exec_user).attendance_toggle()
         trip = self.env['lab.trip'].create({
@@ -2026,7 +2026,7 @@ class TestFieldwork(TransactionCase):
         self.assertTrue(trip.auto_close_failed)
 
     def test_anyone_still_on_duty_is_signed_out(self):
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.auto_close_hour', 0)
         emp = self._employee_for(self.exec_user)
         self.env['lab.my.day'].with_user(self.exec_user).attendance_toggle()
@@ -2043,7 +2043,7 @@ class TestFieldwork(TransactionCase):
     def test_nothing_happens_before_the_cutoff(self):
         """The hour is read in the executive's own timezone, so a single scheduled hour
         would close one region's day in the middle of their afternoon."""
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.auto_close_hour', 23)
         v = self._visit(user=self.exec_user)
         v.do_check_in(LAT, LON)
@@ -2053,9 +2053,9 @@ class TestFieldwork(TransactionCase):
         self.assertEqual(v.state, 'open')
 
     def test_the_whole_thing_can_be_switched_off(self):
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.auto_close_day', 'False')
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.auto_close_hour', 0)
         v = self._visit(user=self.exec_user)
         v.do_check_in(LAT, LON)
@@ -2066,7 +2066,7 @@ class TestFieldwork(TransactionCase):
 
     def test_running_twice_changes_nothing_the_second_time(self):
         """Hourly means it runs again ten minutes later."""
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.auto_close_hour', 0)
         v = self._visit(user=self.exec_user)
         v.do_check_in(LAT, LON)

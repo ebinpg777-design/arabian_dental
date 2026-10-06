@@ -9,7 +9,7 @@
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <meta name="robots" content="noindex"/>
-                <title><t t-esc="headline"/> · <t t-esc="company_name"/></title>
+                <title><t t-out="headline"/> · <t t-out="company_name"/></title>
                 <!-- What WhatsApp shows as the card under the message: a title and a
                      line, so one link reads as something worth tapping rather than a
                      bare address. (client, 2026-09-18) -->
@@ -49,25 +49,25 @@
                     <div class="card">
                         <img t-if="image" t-att-src="image" alt=""/>
                         <div class="body">
-                            <div class="co"><t t-esc="company_name"/></div>
-                            <h1><t t-esc="headline"/></h1>
+                            <div class="co"><t t-out="company_name"/></div>
+                            <h1><t t-out="headline"/></h1>
                             <p class="txt"><t t-out="lines"/></p>
                         </div>
                         <div t-if="facts" class="facts">
                         <t t-foreach="facts" t-as="fact">
                             <div class="fact">
-                                <span class="fact-k"><t t-esc="fact[0]"/></span>
-                                <span class="fact-v"><t t-esc="fact[1]"/></span>
+                                <span class="fact-k"><t t-out="fact[0]"/></span>
+                                <span class="fact-v"><t t-out="fact[1]"/></span>
                             </div>
                         </t>
                     </div>
                     <div class="btns">
                             <t t-foreach="replies" t-as="reply">
-                                <a class="btn" t-att-href="reply['url']"><t t-esc="reply['label']"/></a>
+                                <a class="btn" t-att-href="reply['url']"><t t-out="reply['label']"/></a>
                             </t>
-                            <a t-if="link" class="btn link" t-att-href="link['url']"><t t-esc="link['label']"/></a>
+                            <a t-if="link" class="btn link" t-att-href="link['url']"><t t-out="link['label']"/></a>
                             <t t-foreach="buttons or []" t-as="button">
-                                <a t-attf-class="btn #{button.get('kind') == 'pay' and 'pay' or 'link'}" t-att-href="button['url']"><t t-esc="button['label']"/></a>
+                                <a t-attf-class="btn #{button.get('kind') == 'pay' and 'pay' or 'link'}" t-att-href="button['url']"><t t-out="button['label']"/></a>
                             </t>
                             <a t-if="chat" class="btn chat" t-att-href="chat">💬 Chat with us on WhatsApp</a>
                         </div>

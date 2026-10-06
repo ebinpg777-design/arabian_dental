@@ -37,7 +37,7 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center fw-bold text-dark"
                                          style="width:34px;height:34px;font-size:12px;flex-shrink:0;">
-                                        <t t-esc="record.partner_id.value ? record.partner_id.value.substring(0,2).toUpperCase() : '--'"/>
+                                        <t t-out="record.partner_id.value ? record.partner_id.value.substring(0,2).toUpperCase() : '--'"/>
                                     </div>
                                     <span class="fw-semibold text-white text-truncate" style="max-width:140px;">
                                         <field name="partner_id"/>
@@ -63,7 +63,7 @@
                                         <span t-attf-class="fw-semibold
                                                 #{record.health_status.raw_value === 'critical' ? 'text-danger' :
                                                   record.health_status.raw_value === 'warning'  ? 'text-warning' : 'text-success'}">
-                                            <t t-esc="Math.round(record.utilization_pct.raw_value)"/>%
+                                            <t t-out="Math.round(record.utilization_pct.raw_value)"/>%
                                         </span>
                                     </div>
                                     <div class="progress" style="height:6px;border-radius:3px;">

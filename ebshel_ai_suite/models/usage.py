@@ -65,7 +65,7 @@ class CommunityAIUsage(models.Model):
 
     @api.model
     def _cai_cron_purge(self):
-        days = int(self.env['ir.config_parameter'].sudo().get_param('ebshel_ai_suite.usage_retention_days', 0) or 0)
+        days = int(self.env['ir.config_parameter'].sudo().get_str('ebshel_ai_suite.usage_retention_days', 0) or 0)
         if days > 0:
             self.sudo().search([('requested_at', '<', fields.Datetime.now() - timedelta(days=days))],
                                limit=50000).unlink()

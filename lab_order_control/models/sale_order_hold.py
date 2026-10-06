@@ -109,7 +109,7 @@ class SaleOrder(models.Model):
     @api.model
     def _doctor_call_attempts_before_hold(self):
         try:
-            return int(self.env['ir.config_parameter'].sudo().get_param(
+            return int(self.env['ir.config_parameter'].sudo().get_str(
                 'lab_order_control.doctor_call_attempts_before_hold', 3))
         except (TypeError, ValueError):
             return 3
@@ -117,7 +117,7 @@ class SaleOrder(models.Model):
     @api.model
     def _hold_warning_days(self):
         try:
-            return int(self.env['ir.config_parameter'].sudo().get_param(
+            return int(self.env['ir.config_parameter'].sudo().get_str(
                 'lab_order_control.hold_warning_days', 5))
         except (TypeError, ValueError):
             return 5

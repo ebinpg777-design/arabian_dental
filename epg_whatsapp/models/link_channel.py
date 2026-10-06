@@ -129,7 +129,7 @@ class EpgWhatsappMessage(models.Model):
                 [('channel', '=', 'link')], limit=1)
         if account:
             return account._link_base()
-        return self.env['ir.config_parameter'].sudo().get_param('web.base.url', '').rstrip('/')
+        return self.env['ir.config_parameter'].sudo().get_str('web.base.url', '').rstrip('/')
 
     def _reply_labels(self):
         self.ensure_one()

@@ -1556,7 +1556,7 @@ class TestFloorPrints(TransactionCase):
         Report = self.env['ir.actions.report']
         if Report._renderpm_works():
             self.skipTest("reportlab draws barcodes natively on this server")
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'epg_barcode_fallback.strict_symbology', '0')
         self.assertTrue(
             Report.barcode('ECC200DataMatrix', '12345', width=100, height=100))
@@ -1800,7 +1800,7 @@ class TestCloseOnDelivery(TransactionCase):
         # These tests describe the rule when it is ON. The database carries its
         # own setting - switched off on staging on 2026-09-14 at the client's
         # request - and a test that inherits it tests the database, not the code.
-        cls.env['ir.config_parameter'].sudo().set_param(
+        cls.env['ir.config_parameter'].sudo().set_str(
             'lab_workcenter_scan.close_mo_on_delivery', '1')
 
     def _order(self, products):
@@ -1949,9 +1949,9 @@ class TestCloseOnDelivery(TransactionCase):
         """Off unless someone switches it on: a job is finished when the bench
         finishes it, not when the box leaves or the invoice is raised - and the
         scheduled catch-up follows the same switch. (client, 2026-09-17)"""
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_workcenter_scan.close_mo_on_delivery', False)
-        self.assertFalse(self.env['ir.config_parameter'].sudo().get_param(
+        self.assertFalse(self.env['ir.config_parameter'].sudo().get_str(
             'lab_workcenter_scan.close_mo_on_delivery'), "no setting at all")
         order = self._order([self.appliance])
         mo = self._job(order, self.appliance)
@@ -1961,7 +1961,7 @@ class TestCloseOnDelivery(TransactionCase):
                          "and the catch-up closes nothing either")
 
     def test_the_behaviour_can_be_switched_off(self):
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'lab_workcenter_scan.close_mo_on_delivery', '0')
         order = self._order([self.appliance])
         mo = self._job(order, self.appliance)

@@ -35,7 +35,7 @@
                         <button class="btn btn-sm btn-light o_dft_sp_tool" title="Saved selections">
                             <i class="fa fa-bookmark-o" role="img" aria-label="Saved selections"/>
                             <span t-if="dft.presets.length" class="o_dft_sp_tool_count"
-                                  t-esc="dft.presets.length"/>
+                                  t-out="dft.presets.length"/>
                         </button>
                         <t t-set-slot="content">
                             <div class="dropdown-header">Saved selections</div>
@@ -47,8 +47,8 @@
                                 <t t-component="DftDropdownItem" class="'o_dft_sp_preset'"
                                    onSelected="() => this.dftApplyPreset(preset)">
                                     <i class="fa fa-bookmark o_dft_sp_preset_icon" role="img" aria-hidden="true"/>
-                                    <span class="o_dft_sp_preset_name" t-esc="preset.name"/>
-                                    <span class="o_dft_sp_preset_size" t-esc="dftPresetSize(preset)"/>
+                                    <span class="o_dft_sp_preset_name" t-out="preset.name"/>
+                                    <span class="o_dft_sp_preset_size" t-out="dftPresetSize(preset)"/>
                                     <button class="btn btn-link o_dft_sp_preset_delete" title="Delete this selection"
                                             t-on-click.stop="() => this.dftDeletePreset(preset)">
                                         <i class="fa fa-trash-o" role="img" aria-label="Delete"/>
@@ -83,7 +83,7 @@
                                        onSelected="() => this.dftSetOption('sort', choice.key)">
                                         <i class="fa fa-fw o_dft_sp_check" role="img" aria-hidden="true"
                                            t-att-class="dft.options.sort === choice.key ? 'fa-check' : ''"/>
-                                        <t t-esc="choice.label"/>
+                                        <t t-out="choice.label"/>
                                     </t>
                                 </t>
                                 <div class="dropdown-divider"/>
@@ -150,7 +150,7 @@
                       t-att-title="chip.section.description + ': ' + chip.label">
                     <i t-if="chip.section.icon" t-attf-class="fa {{ chip.section.icon }} o_dft_sp_chip_icon"
                        role="img" aria-hidden="true"/>
-                    <span class="o_dft_sp_chip_label" t-esc="chip.label"/>
+                    <span class="o_dft_sp_chip_label" t-out="chip.label"/>
                     <button class="btn btn-link o_dft_sp_chip_remove" title="Remove"
                             t-on-click="() => this.dftRemoveChip(chip)">
                         <i class="fa fa-times" role="img" aria-label="Remove"/>
@@ -174,9 +174,9 @@
         <xpath expr="//header[hasclass('o_search_panel_section_header')]/b" position="after">
             <t t-if="dftOn">
                 <span t-if="dftQuery" class="o_dft_sp_badge o_dft_sp_badge_match"
-                      title="Values matching the search" t-esc="dftMatchCount(section)"/>
+                      title="Values matching the search" t-out="dftMatchCount(section)"/>
                 <span t-elif="dftSelectedCount(section)" class="o_dft_sp_badge"
-                      title="Selected in this section" t-esc="dftSelectedCount(section)"/>
+                      title="Selected in this section" t-out="dftSelectedCount(section)"/>
                 <span class="o_dft_sp_head_tools">
                     <button t-if="dftSelectedCount(section)" class="btn btn-link o_dft_sp_head_btn o_dft_sp_head_clear"
                             title="Clear this section"
@@ -216,7 +216,7 @@
         <xpath expr="//section[@t-as='section']" position="after">
             <div t-if="dftQuery and !dftVisibleSections().length" class="o_dft_sp_nomatch">
                 <i class="fa fa-search" role="img" aria-hidden="true"/>
-                <div>Nothing in the panel matches “<t t-esc="dft.query"/>”.</div>
+                <div>Nothing in the panel matches “<t t-out="dft.query"/>”.</div>
                 <button class="btn btn-link" t-on-click="dftClearQuery">Clear the search</button>
             </div>
         </xpath>
@@ -243,8 +243,8 @@
         <xpath expr="//span[hasclass('o_search_panel_label_title')]" position="replace">
             <span class="o_search_panel_label_title text-truncate" t-att-class="{'fw-bold' : value.bold}">
                 <t t-foreach="dftParts(value.display_name)" t-as="part" t-key="part_index">
-                    <mark t-if="part.hit" class="o_dft_sp_hit" t-esc="part.text"/>
-                    <t t-else="" t-esc="part.text"/>
+                    <mark t-if="part.hit" class="o_dft_sp_hit" t-out="part.text"/>
+                    <t t-else="" t-out="part.text"/>
                 </t>
             </span>
         </xpath>
@@ -278,8 +278,8 @@
         <xpath expr="//span[hasclass('o_search_panel_label_title')]" position="replace">
             <span class="o_search_panel_label_title text-truncate">
                 <t t-foreach="dftParts(value.display_name)" t-as="part" t-key="part_index">
-                    <mark t-if="part.hit" class="o_dft_sp_hit" t-esc="part.text"/>
-                    <t t-else="" t-esc="part.text"/>
+                    <mark t-if="part.hit" class="o_dft_sp_hit" t-out="part.text"/>
+                    <t t-else="" t-out="part.text"/>
                 </t>
             </span>
         </xpath>

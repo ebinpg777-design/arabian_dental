@@ -268,7 +268,7 @@ class SaleOrder(models.Model):
 
     def _lab_duplicate_window(self):
         try:
-            days = int(self.env['ir.config_parameter'].sudo().get_param(
+            days = int(self.env['ir.config_parameter'].sudo().get_str(
                 self.DUPLICATE_WINDOW_PARAM, self.DUPLICATE_WINDOW_DAYS))
         except (TypeError, ValueError):
             days = self.DUPLICATE_WINDOW_DAYS

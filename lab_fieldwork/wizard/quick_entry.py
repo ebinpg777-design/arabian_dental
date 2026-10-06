@@ -43,7 +43,7 @@ class LabCaseQuickEntry(models.TransientModel):
     @api.model
     def _backdate_days(self):
         try:
-            return max(0, int(self.env['ir.config_parameter'].sudo().get_param(
+            return max(0, int(self.env['ir.config_parameter'].sudo().get_str(
                 'lab_fieldwork.case_backdate_days', 0)))
         except (TypeError, ValueError):
             return 0

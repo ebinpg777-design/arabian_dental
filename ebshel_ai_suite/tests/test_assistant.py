@@ -156,7 +156,7 @@ class TestConversation(CommunityAICase):
         self.assertIn('language of the question', MockEngine.received[-1].turns[0].content)
 
     def test_usage_limits(self):
-        self.env['ir.config_parameter'].set_param('ebshel_ai_suite.limit_user_daily_requests', '1')
+        self.env['ir.config_parameter'].set_str('ebshel_ai_suite.limit_user_daily_requests', '1')
         session = self.start()
         session.cai_send('first')
         result = session.cai_send('second')
@@ -165,7 +165,7 @@ class TestConversation(CommunityAICase):
         # other users are not affected
         self.start(self.user_manager).cai_send('manager question')
         self.assistant.daily_request_limit = 2
-        self.env['ir.config_parameter'].set_param('ebshel_ai_suite.limit_user_daily_requests', '0')
+        self.env['ir.config_parameter'].set_str('ebshel_ai_suite.limit_user_daily_requests', '0')
         result = self.start(self.user_manager).cai_send('third for the assistant')
         self.assertIn('daily request limit', result['events'][-1]['message'])
 

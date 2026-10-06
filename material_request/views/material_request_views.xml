@@ -58,7 +58,7 @@
                         <div class="mt-2 small">
                             <span class="me-2"><i class="fa fa-list-ul me-1" title="Items"/><field name="line_count"/> items</span>
                             <span t-if="record.has_shortage.raw_value" class="badge rounded-pill text-bg-warning">
-                                <i class="fa fa-exclamation-triangle me-1"/><t t-esc="record.shortage_count.raw_value"/> short
+                                <i class="fa fa-exclamation-triangle me-1"/><t t-out="record.shortage_count.raw_value"/> short
                             </span>
                         </div>
                         <div t-if="['approved','done'].includes(record.state.raw_value)" class="mt-2">

@@ -235,7 +235,7 @@ class LabCloseoutWizard(models.TransientModel):
         # would promise a small job and start a large one.
         total = self.env['mrp.production'].search_count(
             self.env['report.lab.floor']._closeout_domain())
-        batch = int(self.env['ir.config_parameter'].sudo().get_param(
+        batch = int(self.env['ir.config_parameter'].sudo().get_str(
             'lab_workcenter_scan.close_batch', 200))
         try:
             cron.sudo().write({'active': True, 'nextcall': fields.Datetime.now()})

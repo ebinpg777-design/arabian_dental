@@ -74,12 +74,12 @@
                     <div class="row g-4 g-lg-5">
                         <div class="col-lg-4">
                             <img src="/lab_website/static/src/img/logo-white.png" alt="Arabian Dental Lab" class="o_lab_footer_logo" loading="lazy"/>
-                            <p class="o_lab_footer_tag"><t t-esc="lab['tagline']"/></p>
+                            <p class="o_lab_footer_tag"><t t-out="lab['tagline']"/></p>
                             <p class="o_lab_footer_text">
                                 A full-service dental laboratory in Manjeri, Kerala — crowns,
                                 bridges, implants, veneers, dentures and appliances, collected
                                 from your clinic and delivered back on the promised date. Home
-                                of the <t t-esc="lab['academy']"/>.
+                                of the <t t-out="lab['academy']"/>.
                             </p>
                             <div class="o_lab_footer_social">
                                 <a t-att-href="lab['instagram']" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa fa-instagram"/></a>
@@ -91,7 +91,7 @@
                         <div class="col-6 col-lg-2">
                             <h5>What we make</h5>
                             <ul class="list-unstyled">
-                                <li t-foreach="footer_services" t-as="s"><a t-attf-href="/services/#{s['slug']}" t-esc="s['title']"/></li>
+                                <li t-foreach="footer_services" t-as="s"><a t-attf-href="/services/#{s['slug']}" t-out="s['title']"/></li>
                                 <li><a href="/technology">Technology</a></li>
                             </ul>
                         </div>
@@ -110,11 +110,11 @@
                         <div class="col-lg-4">
                             <h5>Find us</h5>
                             <ul class="list-unstyled o_lab_footer_contact">
-                                <li><i class="fa fa-map-marker fa-fw"/><span><t t-esc="lab['street']"/>, <t t-esc="lab['street2']"/>, <t t-esc="lab['city']"/>, <t t-esc="lab['state']"/> <t t-esc="lab['zip']"/></span></li>
-                                <li><i class="fa fa-phone fa-fw"/><a t-attf-href="tel:#{lab['phones'][0][1]}"><span class="o_force_ltr" t-esc="lab['phones'][0][0]"/></a></li>
+                                <li><i class="fa fa-map-marker fa-fw"/><span><t t-out="lab['street']"/>, <t t-out="lab['street2']"/>, <t t-out="lab['city']"/>, <t t-out="lab['state']"/> <t t-out="lab['zip']"/></span></li>
+                                <li><i class="fa fa-phone fa-fw"/><a t-attf-href="tel:#{lab['phones'][0][1]}"><span class="o_force_ltr" t-out="lab['phones'][0][0]"/></a></li>
                                 <li><i class="fa fa-whatsapp fa-fw"/><a t-attf-href="https://wa.me/#{lab['whatsapp']}" target="_blank" rel="noopener">WhatsApp the lab</a></li>
-                                <li><i class="fa fa-envelope-o fa-fw"/><a t-attf-href="mailto:#{lab['email']}" t-esc="lab['email']"/></li>
-                                <li><i class="fa fa-clock-o fa-fw"/><span><t t-esc="lab['hours']"/> · <t t-esc="lab['closed']"/></span></li>
+                                <li><i class="fa fa-envelope-o fa-fw"/><a t-attf-href="mailto:#{lab['email']}" t-out="lab['email']"/></li>
+                                <li><i class="fa fa-clock-o fa-fw"/><span><t t-out="lab['hours']"/> · <t t-out="lab['closed']"/></span></li>
                             </ul>
                         </div>
                     </div>

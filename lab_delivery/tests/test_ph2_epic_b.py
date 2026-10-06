@@ -21,9 +21,9 @@ class TestEpicBDelivery(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.params = cls.env['ir.config_parameter'].sudo()
-        cls.params.set_param('lab_delivery.grace_minutes', '120')
-        cls.params.set_param('lab_delivery.emergency_grace_minutes', '30')
-        cls.params.set_param('lab_delivery.escalation_after_hours', '4')
+        cls.params.set_str('lab_delivery.grace_minutes', '120')
+        cls.params.set_str('lab_delivery.emergency_grace_minutes', '30')
+        cls.params.set_str('lab_delivery.escalation_after_hours', '4')
         cls.clinic = cls.env['res.partner'].create({'name': 'Epic B Clinic'})
         cls.product = cls.env['product.product'].create({
             'name': 'Epic B Appliance', 'type': 'consu', 'list_price': 200.0})

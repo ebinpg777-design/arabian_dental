@@ -43,7 +43,7 @@ class CommunityAIMcpController(http.Controller):
         request.update_env(user=uid)
         env = request.env
         params = env['ir.config_parameter'].sudo()
-        if params.get_param('ebshel_ai_suite.mcp_enabled') != 'True':
+        if params.get_str('ebshel_ai_suite.mcp_enabled') != 'True':
             return _json_response({'error': 'The MCP server is disabled.'}, 403)
         if not env.user.has_group('ebshel_ai_suite.group_cai_user'):
             return _json_response({'error': 'This user is not allowed to use AI features.'}, 403)

@@ -20,14 +20,14 @@
             <t t-foreach="docs" t-as="wc">
                 <div class="page" style="text-align:center; padding-top:18mm;">
                     <h1 style="margin-bottom:2mm; font-size:34px;"
-                        t-esc="wc.name"/>
+                        t-out="wc.name"/>
                     <div t-if="wc.code" style="font-size:16px; color:#666;"
-                         t-esc="wc.code"/>
+                         t-out="wc.code"/>
                     <img t-if="wc.qr_image"
                          t-att-src="'data:image/png;base64,%s' % wc.qr_image.decode()"
                          style="width:78mm; height:78mm; margin:8mm auto;"/>
                     <div style="font-size:26px; letter-spacing:.12em; font-weight:bold;"
-                         t-esc="wc.scan_code"/>
+                         t-out="wc.scan_code"/>
                     <div style="font-size:13px; color:#666; margin-top:4mm;">
                         Scan this label to move a job to this station.
                     </div>

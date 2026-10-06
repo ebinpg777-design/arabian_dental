@@ -25,7 +25,7 @@ class IrActionsReport(models.Model):
 
     def _pre_render_qweb_pdf(self, report_ref, res_ids=None, data=None):
         if res_ids:
-            limit = int(self.env['ir.config_parameter'].sudo().get_param(
+            limit = int(self.env['ir.config_parameter'].sudo().get_str(
                 'sale_custom.max_print_batch', DEFAULT_MAX_PRINT_BATCH))
             if limit and len(res_ids) > limit:
                 report = self._get_report(report_ref)

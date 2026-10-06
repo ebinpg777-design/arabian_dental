@@ -122,7 +122,7 @@ class LabCourierReceipt(models.AbstractModel):
     # ------------------------------------------------------------ configuration
     @api.model
     def vision_enabled(self):
-        return bool(self.env['ir.config_parameter'].sudo().get_param(PARAM_KEY))
+        return bool(self.env['ir.config_parameter'].sudo().get_str(PARAM_KEY))
 
     # ------------------------------------------------------------ the ranking
     @api.model
@@ -254,10 +254,10 @@ class LabCourierReceipt(models.AbstractModel):
         {'error': <message>} — never raises: a failed reading must not stop the
         person typing the number by hand."""
         params = self.env['ir.config_parameter'].sudo()
-        api_key = params.get_param(PARAM_KEY)
+        api_key = params.get_str(PARAM_KEY)
         if not api_key:
             return None
-        model = params.get_param(PARAM_MODEL) or DEFAULT_MODEL
+        model = params.get_str(PARAM_MODEL) or DEFAULT_MODEL
         try:
             import anthropic
         except ImportError:

@@ -1327,7 +1327,7 @@ class MigrationBackend(models.Model):
                     continue
                 try:
                     with self.env.cr.savepoint():
-                        ICP.set_param(key, r.get('value'))
+                        ICP.set_str(key, r.get('value'))
                     n_p += 1
                 except Exception as e:
                     _logger.warning("config param %s: %s", key, e)

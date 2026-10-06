@@ -6,11 +6,11 @@
              t-custom-ref="root" t-on-click="this.openChart" t-on-focusin="this.onFocusIn">
             <t t-if="this.props.readonly">
                 <span t-if="!this.chips.length" class="text-muted">—</span>
-                <span t-foreach="this.chips" t-as="chip" t-key="chip" class="o_fdi_chip"><t t-esc="chip"/></span>
+                <span t-foreach="this.chips" t-as="chip" t-key="chip" class="o_fdi_chip"><t t-out="chip"/></span>
             </t>
             <t t-else="">
                 <span t-foreach="this.chips" t-as="chip" t-key="chip" class="o_fdi_chip">
-                    <t t-esc="chip"/>
+                    <t t-out="chip"/>
                     <!-- not a tab stop: the cell's focus belongs to the box, and Enter on a
                          focused "×" would quietly delete a tooth -->
                     <button type="button" class="o_fdi_chip_x" tabindex="-1" t-on-click.stop="() => this.removeChip(chip)" title="Remove">×</button>
@@ -36,7 +36,7 @@
                         <div class="o_fdi_subtitle">FDI notation · tap a tooth</div>
                     </div>
                 </div>
-                <span class="o_fdi_count" t-att-class="{ o_fdi_count_on: this.state.teeth.length }" t-esc="this.summary"/>
+                <span class="o_fdi_count" t-att-class="{ o_fdi_count_on: this.state.teeth.length }" t-out="this.summary"/>
             </div>
 
             <div class="o_fdi_tools">
@@ -57,17 +57,17 @@
                      t-attf-class="o_fdi_arch o_fdi_arch_#{arch.key}">
                     <button type="button" class="o_fdi_archname" t-on-click="() => this.toggleArch(arch)"
                             t-att-title="'Select or clear the whole ' + arch.label + ' arch'" t-att-disabled="this.props.readonly">
-                        <t t-esc="arch.label"/>
+                        <t t-out="arch.label"/>
                         <small>all</small>
                     </button>
                     <div class="o_fdi_row">
                         <button t-foreach="arch.right" t-as="tooth" t-key="tooth" type="button"
                                 t-attf-class="o_fdi_tooth #{this.isSelected(tooth) ? 'o_fdi_on' : ''} #{arch.primary ? 'o_fdi_primary' : ''}"
-                                t-on-click="() => this.toggle(tooth)" t-att-disabled="this.props.readonly"><t t-esc="tooth"/></button>
+                                t-on-click="() => this.toggle(tooth)" t-att-disabled="this.props.readonly"><t t-out="tooth"/></button>
                         <span class="o_fdi_midline"/>
                         <button t-foreach="arch.left" t-as="tooth" t-key="tooth" type="button"
                                 t-attf-class="o_fdi_tooth #{this.isSelected(tooth) ? 'o_fdi_on' : ''} #{arch.primary ? 'o_fdi_primary' : ''}"
-                                t-on-click="() => this.toggle(tooth)" t-att-disabled="this.props.readonly"><t t-esc="tooth"/></button>
+                                t-on-click="() => this.toggle(tooth)" t-att-disabled="this.props.readonly"><t t-out="tooth"/></button>
                     </div>
                 </div>
             </div>

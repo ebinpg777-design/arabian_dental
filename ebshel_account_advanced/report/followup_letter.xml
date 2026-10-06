@@ -36,12 +36,12 @@
                                 <div t-field="partner.commercial_partner_id" t-options='{"widget": "contact", "fields": ["address", "name"], "no_marker": True}'/>
                             </div>
                             <div class="col-5 text-end">
-                                <div><span t-esc="today" t-options='{"widget": "date"}'/></div>
-                                <div class="text-muted" t-if="level"><t t-esc="level.name"/></div>
+                                <div><span t-out="today" t-options='{"widget": "date"}'/></div>
+                                <div class="text-muted" t-if="level"><t t-out="level.name"/></div>
                             </div>
                         </div>
-                        <h4 class="mb-3"><t t-esc="level.name if level else 'Payment reminder'"/></h4>
-                        <p>Dear <t t-esc="partner.name"/>,</p>
+                        <h4 class="mb-3"><t t-out="level.name if level else 'Payment reminder'"/></h4>
+                        <p>Dear <t t-out="partner.name"/>,</p>
                         <div t-if="level and level.text" t-out="level.text"/>
                         <p t-else="">Our records show the invoices below are past their due date. Please arrange payment or let us know if something is wrong.</p>
                         <table class="table table-sm mt-3" style="font-size:12px">
@@ -49,19 +49,19 @@
                             <tbody>
                                 <t t-foreach="items" t-as="line">
                                     <tr>
-                                        <td t-esc="line.move_id.name"/>
-                                        <td t-esc="line.move_id.ref or ''"/>
-                                        <td t-esc="line.date" t-options='{"widget": "date"}'/>
-                                        <td t-esc="line.date_maturity or line.date" t-options='{"widget": "date"}'/>
-                                        <td class="text-end" t-esc="max((today - (line.date_maturity or line.date)).days, 0)"/>
-                                        <td class="text-end" t-esc="line.amount_residual" t-options='{"widget": "monetary", "display_currency": line.company_currency_id}'/>
+                                        <td t-out="line.move_id.name"/>
+                                        <td t-out="line.move_id.ref or ''"/>
+                                        <td t-out="line.date" t-options='{"widget": "date"}'/>
+                                        <td t-out="line.date_maturity or line.date" t-options='{"widget": "date"}'/>
+                                        <td class="text-end" t-out="max((today - (line.date_maturity or line.date)).days, 0)"/>
+                                        <td class="text-end" t-out="line.amount_residual" t-options='{"widget": "monetary", "display_currency": line.company_currency_id}'/>
                                     </tr>
                                 </t>
                             </tbody>
                             <tfoot><tr><th colspan="5" class="text-end">Total due</th>
-                                <th class="text-end" t-esc="sum(items.mapped('amount_residual'))" t-options='{"widget": "monetary", "display_currency": partner.company_id.currency_id or user.company_id.currency_id}'/></tr></tfoot>
+                                <th class="text-end" t-out="sum(items.mapped('amount_residual'))" t-options='{"widget": "monetary", "display_currency": partner.company_id.currency_id or user.company_id.currency_id}'/></tr></tfoot>
                         </table>
-                        <p class="mt-4">Kind regards,<br/><t t-esc="user.company_id.name"/></p>
+                        <p class="mt-4">Kind regards,<br/><t t-out="user.company_id.name"/></p>
                     </div>
                 </t>
             </t>

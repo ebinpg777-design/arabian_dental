@@ -8,18 +8,18 @@
                     <button class="o_efr_titlebtn o_efr_popbtn" t-on-click="() => this.openMenu('reports')" t-att-disabled="!this.state.report" title="Another report">
                         <span class="o_efr_titleicon"><i class="fa fa-bar-chart"/></span>
                         <span class="o_efr_titletext">
-                            <span class="o_efr_h" t-esc="this.state.report ? this.state.report.name : ''"/>
+                            <span class="o_efr_h" t-out="this.state.report ? this.state.report.name : ''"/>
                             <span class="o_efr_sub" t-if="this.state.report">
-                                <t t-esc="this.periodLabel"/><t t-if="this.state.unitLabel"> · in <t t-esc="this.state.unitLabel"/></t>
+                                <t t-out="this.periodLabel"/><t t-if="this.state.unitLabel"> · in <t t-out="this.state.unitLabel"/></t>
                             </span>
                         </span>
                         <i class="fa fa-angle-down o_efr_titlecaret"/>
                     </button>
                     <div class="o_efr_pop o_efr_pop_reports" t-if="this.state.menu === 'reports'">
                         <t t-foreach="this.reportGroups" t-as="g" t-key="g.label">
-                            <div class="o_efr_pop_title" t-esc="g.label"/>
+                            <div class="o_efr_pop_title" t-out="g.label"/>
                             <a href="#" t-foreach="g.items" t-as="r" t-key="r.key" t-att-class="'o_efr_replink' + (this.state.report and r.key === this.state.report.key ? ' on' : '')"
-                               t-on-click.prevent="() => this.switchReport(r)" t-esc="r.name"/>
+                               t-on-click.prevent="() => this.switchReport(r)" t-out="r.name"/>
                         </t>
                     </div>
                 </div>
@@ -36,7 +36,7 @@
                             <div class="o_efr_pop_title">Figures in</div>
                             <div class="o_efr_segs">
                                 <button t-foreach="this.state.choices.units || []" t-as="u" t-key="u[0]" t-att-class="'o_efr_seg' + (this.state.options.unit === u[0] ? ' on' : '')"
-                                        t-on-click="() => this.setUnit(u[0])" t-esc="u[1]"/>
+                                        t-on-click="() => this.setUnit(u[0])" t-out="u[1]"/>
                             </div>
                             <div class="o_efr_pop_title mt-2">Name column</div>
                             <div class="o_efr_segs">
@@ -52,7 +52,7 @@
                             <label class="o_efr_check"><input type="checkbox" t-att-checked="this.state.display.zebra" t-on-change="(ev) => this.setDisplay('zebra', ev.target.checked)"/> Shade every other row</label>
                             <label class="o_efr_check"><input type="checkbox" t-att-checked="this.state.display.signs" t-on-change="(ev) => this.setDisplay('signs', ev.target.checked)"/> Negative figures in red</label>
                             <label class="o_efr_check" t-if="this.state.report.share_code">
-                                <input type="checkbox" t-att-checked="this.state.options.share" t-on-change="() => this.toggleFlag('share')"/> Each figure as a share of <t t-esc="this.shareBase ? this.shareBase.name : this.state.report.share_code"/>
+                                <input type="checkbox" t-att-checked="this.state.options.share" t-on-change="() => this.toggleFlag('share')"/> Each figure as a share of <t t-out="this.shareBase ? this.shareBase.name : this.state.report.share_code"/>
                             </label>
                             <label class="o_efr_check"><input type="checkbox" t-att-checked="this.state.options.trend" t-on-change="() => this.toggleFlag('trend')"/> Twelve-month trend on each line</label>
                             <label class="o_efr_check"><input type="checkbox" t-att-checked="this.state.options.show_zero" t-on-change="() => this.toggleFlag('show_zero')"/> Show accounts at zero</label>
@@ -62,13 +62,13 @@
                     <!-- saved views -->
                     <div class="o_efr_group">
                         <button class="o_efr_tool o_efr_popbtn" t-on-click="() => this.openMenu('views')" title="Saved views">
-                            <i class="fa fa-bookmark"/><span>Views</span><b t-if="this.state.savedViews.length" class="o_efr_count" t-esc="this.state.savedViews.length"/>
+                            <i class="fa fa-bookmark"/><span>Views</span><b t-if="this.state.savedViews.length" class="o_efr_count" t-out="this.state.savedViews.length"/>
                         </button>
                         <div class="o_efr_pop o_efr_pop_right" t-if="this.state.menu === 'views'">
                             <div class="o_efr_pop_title">Saved views</div>
                             <div t-if="!this.state.savedViews.length" class="small text-muted">None yet. Set the filters the way you like them, then save.</div>
                             <div t-foreach="this.state.savedViews" t-as="v" t-key="v.id" class="o_efr_view">
-                                <a href="#" t-on-click.prevent="() => this.applyView(v)"><i class="fa fa-star me-1" t-if="v.is_default"/><t t-esc="v.name"/></a>
+                                <a href="#" t-on-click.prevent="() => this.applyView(v)"><i class="fa fa-star me-1" t-if="v.is_default"/><t t-out="v.name"/></a>
                                 <span class="text-muted small" t-if="v.shared">shared</span>
                                 <i class="fa fa-trash text-muted ms-2" t-if="v.mine" t-on-click="(ev) => this.deleteView(v, ev)"/>
                             </div>
@@ -90,7 +90,7 @@
                     <!-- every filter, on a phone -->
                     <div class="o_efr_group o_efr_hubgroup">
                         <button class="o_efr_f o_efr_f_hub o_efr_popbtn" t-on-click="() => this.openMenu('hub')" title="Every filter">
-                            <i class="fa fa-sliders"/>Filters<b t-if="this.hubCount" class="o_efr_count" t-esc="this.hubCount"/>
+                            <i class="fa fa-sliders"/>Filters<b t-if="this.hubCount" class="o_efr_count" t-out="this.hubCount"/>
                         </button>
                         <div class="o_efr_pop o_efr_pnl o_efr_pnl_hub" t-if="this.state.menu === 'hub'">
                             <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-sliders"/></span>
@@ -98,8 +98,8 @@
                             <div class="o_efr_pnl_b">
                                 <button t-foreach="this.hubRows" t-as="row" t-key="row.key" t-att-class="'o_efr_hubrow o_efr_ht_' + row.tone" t-on-click="() => this.openFromHub(row.key)">
                                     <span class="o_efr_hubrow_i"><i t-att-class="'fa ' + row.icon"/></span>
-                                    <span class="o_efr_hubrow_t"><b t-esc="row.name"/><em t-if="row.value" t-esc="row.value"/><em t-elif="row.count"><t t-esc="row.count"/> chosen</em></span>
-                                    <b t-if="row.count" class="o_efr_hubrow_n" t-esc="row.count"/>
+                                    <span class="o_efr_hubrow_t"><b t-out="row.name"/><em t-if="row.value" t-out="row.value"/><em t-elif="row.count"><t t-out="row.count"/> chosen</em></span>
+                                    <b t-if="row.count" class="o_efr_hubrow_n" t-out="row.count"/>
                                     <i class="fa fa-angle-right"/>
                                 </button>
                             </div>
@@ -111,7 +111,7 @@
                     <!-- period -->
                     <div class="o_efr_group">
                         <button class="o_efr_f o_efr_f_period o_efr_popbtn" t-on-click="() => this.openMenu('period')" title="Period">
-                            <i class="fa fa-calendar"/><t t-esc="this.periodLabel"/>
+                            <i class="fa fa-calendar"/><t t-out="this.periodLabel"/>
                         </button>
                         <button class="o_efr_f o_efr_f_step" t-on-click="() => this.shift(-1)" title="Previous period"><i class="fa fa-chevron-left"/></button>
                         <button class="o_efr_f o_efr_f_step" t-on-click="() => this.shift(1)" title="Next period"><i class="fa fa-chevron-right"/></button>
@@ -119,31 +119,31 @@
                             <t t-set="sc" t-value="this.periodShortcuts"/>
                             <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-calendar"/></span>
                                 <div class="o_efr_pnl_t"><b><t t-if="this.isSingle">As of</t><t t-else="">Period</t></b>
-                                    <span><t t-esc="this.periodLabel"/><t t-if="!this.isSingle"> · <t t-esc="this.periodDays"/> day<t t-if="this.periodDays !== 1">s</t></t></span></div></div>
+                                    <span><t t-out="this.periodLabel"/><t t-if="!this.isSingle"> · <t t-out="this.periodDays"/> day<t t-if="this.periodDays !== 1">s</t></t></span></div></div>
                             <div class="o_efr_pnl_b">
                                 <t t-if="this.isSingle">
                                     <div class="o_efr_pnl_sec">The balance at</div>
                                     <div class="o_efr_tiles">
                                         <button t-foreach="sc.ends" t-as="e" t-key="e.key" t-att-class="'o_efr_tile' + (this.isAsOf(e.to) ? ' on' : '')"
-                                                t-on-click="() => this.setRange(e.to, e.to)"><b t-esc="e.label"/><span t-esc="e.sub || e.to"/></button>
+                                                t-on-click="() => this.setRange(e.to, e.to)"><b t-out="e.label"/><span t-out="e.sub || e.to"/></button>
                                     </div>
                                 </t>
                                 <t t-else="">
                                     <div class="o_efr_pnl_sec">Months</div>
                                     <div class="o_efr_months">
                                         <button t-foreach="sc.months" t-as="m" t-key="m.key" t-att-class="'o_efr_month' + (this.isRange(m.from, m.to) ? ' on' : '')"
-                                                t-on-click="() => this.setRange(m.from, m.to)"><b t-esc="m.label"/><span t-esc="m.year"/></button>
+                                                t-on-click="() => this.setRange(m.from, m.to)"><b t-out="m.label"/><span t-out="m.year"/></button>
                                     </div>
                                     <t t-if="sc.quarters.length">
                                         <div class="o_efr_pnl_sec">Quarters of the year</div>
                                         <div class="o_efr_quarters">
                                             <button t-foreach="sc.quarters" t-as="q" t-key="q.key" t-att-class="'o_efr_tile' + (this.isRange(q.from, q.to) ? ' on' : '') + (q.later ? ' later' : '')"
-                                                    t-on-click="() => this.setRange(q.from, q.to)"><b t-esc="q.label"/><span t-esc="q.sub"/></button>
+                                                    t-on-click="() => this.setRange(q.from, q.to)"><b t-out="q.label"/><span t-out="q.sub"/></button>
                                         </div>
                                         <div class="o_efr_pnl_sec">Years</div>
                                         <div class="o_efr_quarters o_efr_years">
                                             <button t-foreach="sc.years" t-as="y" t-key="y.key" t-att-class="'o_efr_tile' + (this.isRange(y.from, y.to) ? ' on' : '')"
-                                                    t-on-click="() => this.setRange(y.from, y.to)"><b t-esc="y.label"/><span t-esc="y.sub"/></button>
+                                                    t-on-click="() => this.setRange(y.from, y.to)"><b t-out="y.label"/><span t-out="y.sub"/></button>
                                         </div>
                                     </t>
                                 </t>
@@ -157,7 +157,7 @@
                                 <t t-if="this.state.report.allow_comparison and !this.isSingle">
                                     <div class="o_efr_pnl_sec">Month by month, side by side</div>
                                     <div class="o_efr_segs">
-                                        <button t-foreach="[3, 6, 12]" t-as="n" t-key="n" class="o_efr_seg" t-on-click="() => this.byMonth(n)"><t t-esc="n"/> months</button>
+                                        <button t-foreach="[3, 6, 12]" t-as="n" t-key="n" class="o_efr_seg" t-on-click="() => this.byMonth(n)"><t t-out="n"/> months</button>
                                     </div>
                                 </t>
                             </div>
@@ -167,13 +167,13 @@
                     <div class="o_efr_group" t-if="this.state.report.allow_comparison">
                         <button class="o_efr_f o_efr_f_compare o_efr_popbtn" t-att-class="this.state.options.comparison.mode !== 'none' ? 'on' : ''"
                                 t-on-click="() => this.openMenu('compare')">
-                            <i class="fa fa-columns"/><t t-esc="this.comparisonLabel()"/>
+                            <i class="fa fa-columns"/><t t-out="this.comparisonLabel()"/>
                         </button>
                         <div class="o_efr_pop" t-if="this.state.menu === 'compare'">
                             <div class="o_efr_pop_title">Compare with</div>
                             <button t-foreach="this.state.choices.comparison_modes" t-as="m" t-key="m[0]" class="o_efr_seg d-block w-100 text-start mb-1"
                                     t-att-class="this.state.options.comparison.mode === m[0] ? 'on' : ''"
-                                    t-on-click="() => this.setComparison(m[0])" t-esc="m[1]"/>
+                                    t-on-click="() => this.setComparison(m[0])" t-out="m[1]"/>
                             <div class="mt-2 d-flex align-items-center gap-2" t-if="this.state.options.comparison.mode === 'previous' or this.state.options.comparison.mode === 'last_year'">
                                 <span class="small text-muted">Periods</span>
                                 <input type="number" min="1" max="12" class="form-control form-control-sm o_efr_num"
@@ -195,12 +195,12 @@
                     <div class="o_efr_group" t-if="this.state.report.allow_journals">
                         <button class="o_efr_f o_efr_f_journals o_efr_popbtn" t-att-class="this.state.options.journals.length ? 'on' : ''"
                                 t-on-click="() => this.openPick('journals')">
-                            <i class="fa fa-book"/>Journals<b t-if="this.state.options.journals.length" class="o_efr_count" t-esc="this.state.options.journals.length"/>
+                            <i class="fa fa-book"/>Journals<b t-if="this.state.options.journals.length" class="o_efr_count" t-out="this.state.options.journals.length"/>
                         </button>
                         <div class="o_efr_pop o_efr_pnl o_efr_pnl_journals" t-if="this.state.menu === 'journals' and this.state.pick">
                             <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-book"/></span>
                                 <div class="o_efr_pnl_t"><b>Journals</b>
-                                    <span><t t-if="this.state.pick.ids.length"><t t-esc="this.state.pick.ids.length"/> chosen</t><t t-else="">Every journal</t></span></div>
+                                    <span><t t-if="this.state.pick.ids.length"><t t-out="this.state.pick.ids.length"/> chosen</t><t t-else="">Every journal</t></span></div>
                                 <button t-if="this.state.pick.ids.length" class="o_efr_pnl_clear" t-on-click="this.pickClear">Clear</button></div>
                             <div class="o_efr_pnl_s"><i class="fa fa-search"/>
                                 <input type="text" t-att-value="this.state.pick.query" t-on-input="this.onPickQuery" placeholder="Code or name"/></div>
@@ -208,19 +208,19 @@
                                 <div t-foreach="this.journalGroups" t-as="g" t-key="g.key" class="o_efr_pgroup">
                                     <button t-att-class="'o_efr_pgroup_h ' + g.state" t-on-click="() => this.pickGroup(g.items)">
                                         <span class="o_efr_box"><i t-if="g.state === 'all'" class="fa fa-check"/><i t-elif="g.state === 'some'" class="fa fa-minus"/></span>
-                                        <b t-esc="g.label"/><em><t t-esc="g.items.length"/></em>
+                                        <b t-out="g.label"/><em><t t-out="g.items.length"/></em>
                                     </button>
                                     <button t-foreach="g.items" t-as="it" t-key="it.id" t-att-class="'o_efr_prow' + (this.pickHas(it.id) ? ' on' : '')" t-on-click="() => this.pickToggle(it.id)">
                                         <span class="o_efr_box"><i t-if="this.pickHas(it.id)" class="fa fa-check"/></span>
-                                        <span class="o_efr_code" t-esc="it.code"/><span class="o_efr_prow_n" t-esc="it.name"/>
+                                        <span class="o_efr_code" t-out="it.code"/><span class="o_efr_prow_n" t-out="it.name"/>
                                     </button>
                                 </div>
-                                <div t-if="!this.journalGroups.length" class="o_efr_pnl_none">Nothing matches "<t t-esc="this.state.pick.query"/>".</div>
+                                <div t-if="!this.journalGroups.length" class="o_efr_pnl_none">Nothing matches "<t t-out="this.state.pick.query"/>".</div>
                             </div>
                             <div class="o_efr_pnl_f">
                                 <button class="btn btn-light" t-on-click="this.cancelPick">Cancel</button>
                                 <button class="o_efr_pnl_go" t-on-click="this.applyPick" t-att-disabled="!this.pickChanges">
-                                    <i class="fa fa-check me-1"/><t t-if="!this.pickChanges">No change</t><t t-elif="this.state.pick.ids.length">Show <t t-esc="this.state.pick.ids.length"/> journals</t><t t-else="">Show all journals</t></button>
+                                    <i class="fa fa-check me-1"/><t t-if="!this.pickChanges">No change</t><t t-elif="this.state.pick.ids.length">Show <t t-out="this.state.pick.ids.length"/> journals</t><t t-else="">Show all journals</t></button>
                             </div>
                         </div>
                     </div>
@@ -228,12 +228,12 @@
                     <div class="o_efr_group" t-if="this.state.report.allow_analytic and this.state.choices.analytic.length">
                         <button class="o_efr_f o_efr_f_analytic o_efr_popbtn" t-att-class="this.state.options.analytic.length ? 'on' : ''"
                                 t-on-click="() => this.openPick('analytic')">
-                            <i class="fa fa-sitemap"/>Analytic<b t-if="this.state.options.analytic.length" class="o_efr_count" t-esc="this.state.options.analytic.length"/>
+                            <i class="fa fa-sitemap"/>Analytic<b t-if="this.state.options.analytic.length" class="o_efr_count" t-out="this.state.options.analytic.length"/>
                         </button>
                         <div class="o_efr_pop o_efr_pnl o_efr_pnl_analytic" t-if="this.state.menu === 'analytic' and this.state.pick">
                             <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-sitemap"/></span>
                                 <div class="o_efr_pnl_t"><b>Analytic</b>
-                                    <span><t t-if="this.state.pick.ids.length"><t t-esc="this.state.pick.ids.length"/> chosen</t><t t-else="">No analytic filter</t></span></div>
+                                    <span><t t-if="this.state.pick.ids.length"><t t-out="this.state.pick.ids.length"/> chosen</t><t t-else="">No analytic filter</t></span></div>
                                 <button t-if="this.state.pick.ids.length" class="o_efr_pnl_clear" t-on-click="this.pickClear">Clear</button></div>
                             <div class="o_efr_pnl_s"><i class="fa fa-search"/>
                                 <input type="text" t-att-value="this.state.pick.query" t-on-input="this.onPickQuery" placeholder="Account or plan"/></div>
@@ -241,20 +241,20 @@
                                 <div t-foreach="this.analyticGroups" t-as="g" t-key="g.key" class="o_efr_pgroup">
                                     <button t-att-class="'o_efr_pgroup_h ' + g.state" t-on-click="() => this.pickGroup(g.items)">
                                         <span class="o_efr_box"><i t-if="g.state === 'all'" class="fa fa-check"/><i t-elif="g.state === 'some'" class="fa fa-minus"/></span>
-                                        <b t-esc="g.label"/><em><t t-esc="g.items.length"/></em>
+                                        <b t-out="g.label"/><em><t t-out="g.items.length"/></em>
                                     </button>
                                     <button t-foreach="g.items" t-as="it" t-key="it.id" t-att-class="'o_efr_prow' + (this.pickHas(it.id) ? ' on' : '')" t-on-click="() => this.pickToggle(it.id)">
                                         <span class="o_efr_box"><i t-if="this.pickHas(it.id)" class="fa fa-check"/></span>
-                                        <span class="o_efr_prow_n" t-esc="it.name"/>
+                                        <span class="o_efr_prow_n" t-out="it.name"/>
                                     </button>
                                 </div>
-                                <div t-if="!this.analyticGroups.length" class="o_efr_pnl_none">Nothing matches "<t t-esc="this.state.pick.query"/>".</div>
+                                <div t-if="!this.analyticGroups.length" class="o_efr_pnl_none">Nothing matches "<t t-out="this.state.pick.query"/>".</div>
                             </div>
                             <div class="o_efr_pnl_note"><i class="fa fa-info-circle me-1"/>Amounts are weighted by each entry's share in the chosen accounts.</div>
                             <div class="o_efr_pnl_f">
                                 <button class="btn btn-light" t-on-click="this.cancelPick">Cancel</button>
                                 <button class="o_efr_pnl_go" t-on-click="this.applyPick" t-att-disabled="!this.pickChanges">
-                                    <i class="fa fa-check me-1"/><t t-if="!this.pickChanges">No change</t><t t-elif="this.state.pick.ids.length">Show <t t-esc="this.state.pick.ids.length"/> analytic accounts</t><t t-else="">Show all analytic accounts</t></button>
+                                    <i class="fa fa-check me-1"/><t t-if="!this.pickChanges">No change</t><t t-elif="this.state.pick.ids.length">Show <t t-out="this.state.pick.ids.length"/> analytic accounts</t><t t-else="">Show all analytic accounts</t></button>
                             </div>
                         </div>
                     </div>
@@ -262,12 +262,12 @@
                     <div class="o_efr_group" t-if="this.state.report.allow_partners">
                         <button class="o_efr_f o_efr_f_partners o_efr_popbtn" t-att-class="this.state.options.partners.length ? 'on' : ''"
                                 t-on-click="() => this.openPick('partners')">
-                            <i class="fa fa-user"/>Partners<b t-if="this.state.options.partners.length" class="o_efr_count" t-esc="this.state.options.partners.length"/>
+                            <i class="fa fa-user"/>Partners<b t-if="this.state.options.partners.length" class="o_efr_count" t-out="this.state.options.partners.length"/>
                         </button>
                         <div class="o_efr_pop o_efr_pnl o_efr_pnl_partners" t-if="this.state.menu === 'partners' and this.state.pick">
                             <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-user"/></span>
                                 <div class="o_efr_pnl_t"><b>Partners</b>
-                                    <span><t t-if="this.state.pick.ids.length"><t t-esc="this.state.pick.ids.length"/> chosen</t><t t-else="">Every partner</t></span></div>
+                                    <span><t t-if="this.state.pick.ids.length"><t t-out="this.state.pick.ids.length"/> chosen</t><t t-else="">Every partner</t></span></div>
                                 <button t-if="this.state.pick.ids.length" class="o_efr_pnl_clear" t-on-click="this.pickClear">Clear</button></div>
                             <div class="o_efr_pnl_s"><i class="fa fa-search"/>
                                 <input type="text" t-att-value="this.state.pick.query" t-on-input="this.onPickQuery" placeholder="Type a name"/></div>
@@ -276,7 +276,7 @@
                                 <div t-if="pr.chosen.length" class="o_efr_pnl_sec">Chosen</div>
                                 <button t-foreach="pr.chosen" t-as="it" t-key="'c' + it.id" class="o_efr_prow on" t-on-click="() => this.pickToggle(it.id)">
                                     <span class="o_efr_box"><i class="fa fa-check"/></span>
-                                    <span class="o_efr_prow_n" t-esc="it.name"/><span class="o_efr_prow_a" t-esc="it.amount_text"/>
+                                    <span class="o_efr_prow_n" t-out="it.name"/><span class="o_efr_prow_a" t-out="it.amount_text"/>
                                 </button>
                                 <div class="o_efr_pnl_sec">
                                     <t t-if="this.state.pick.query">Found</t><t t-else="">Most active in this period</t>
@@ -284,8 +284,8 @@
                                 </div>
                                 <button t-foreach="pr.others" t-as="it" t-key="'o' + it.id" class="o_efr_prow" t-on-click="() => this.pickToggle(it.id)">
                                     <span class="o_efr_box"/>
-                                    <span class="o_efr_prow_n"><t t-esc="it.name"/><em t-if="it.count"><t t-esc="it.count"/> entries</em><em t-elif="!it.active">nothing in this period</em></span>
-                                    <span class="o_efr_prow_a" t-esc="it.amount_text"/>
+                                    <span class="o_efr_prow_n"><t t-out="it.name"/><em t-if="it.count"><t t-out="it.count"/> entries</em><em t-elif="!it.active">nothing in this period</em></span>
+                                    <span class="o_efr_prow_a" t-out="it.amount_text"/>
                                 </button>
                                 <div t-if="this.state.pick.hits and !pr.others.length and !this.state.pick.loading" class="o_efr_pnl_none">
                                     <t t-if="this.state.pick.query">Nobody by that name.</t><t t-else="">Nobody has entries in this period.</t></div>
@@ -293,14 +293,14 @@
                             <div class="o_efr_pnl_f">
                                 <button class="btn btn-light" t-on-click="this.cancelPick">Cancel</button>
                                 <button class="o_efr_pnl_go" t-on-click="this.applyPick" t-att-disabled="!this.pickChanges">
-                                    <i class="fa fa-check me-1"/><t t-if="!this.pickChanges">No change</t><t t-elif="this.state.pick.ids.length">Show <t t-esc="this.state.pick.ids.length"/> partners</t><t t-else="">Show all partners</t></button>
+                                    <i class="fa fa-check me-1"/><t t-if="!this.pickChanges">No change</t><t t-elif="this.state.pick.ids.length">Show <t t-out="this.state.pick.ids.length"/> partners</t><t t-else="">Show all partners</t></button>
                             </div>
                         </div>
                     </div>
                     <!-- the wider filters -->
                     <div class="o_efr_group o_efr_group_wide" t-if="this.state.report.wide_filters">
                         <button class="o_efr_f o_efr_f_more o_efr_popbtn" t-att-class="this.moreCount ? 'on' : ''" t-on-click="() => this.openMore()">
-                            <i class="fa fa-filter"/>More filters<b t-if="this.moreCount" class="o_efr_count" t-esc="this.moreCount"/>
+                            <i class="fa fa-filter"/>More filters<b t-if="this.moreCount" class="o_efr_count" t-out="this.moreCount"/>
                         </button>
                         <!-- One card per question, and nothing takes effect until Apply: the two
                              switches and the bucket sizes used to reload the report the moment
@@ -309,7 +309,7 @@
                             <div class="o_efr_pnl_h">
                                 <span class="o_efr_pnl_i"><i class="fa fa-filter"/></span>
                                 <span class="o_efr_pnl_t"><b>More filters</b>
-                                    <span><t t-if="this.draftActive"><t t-esc="this.draftActive"/> in use — every figure on this report is narrowed by them</t><t t-else="">Narrow every figure on this report</t></span></span>
+                                    <span><t t-if="this.draftActive"><t t-out="this.draftActive"/> in use — every figure on this report is narrowed by them</t><t t-else="">Narrow every figure on this report</t></span></span>
                                 <button class="o_efr_pnl_clear" t-if="this.draftActive" t-on-click="this.resetDraft"><i class="fa fa-eraser me-1"/>Clear all</button>
                                 <button class="o_efr_mf_x" t-on-click="() => this.state.menu = null" title="Close without applying"><i class="fa fa-times"/></button>
                             </div>
@@ -322,7 +322,7 @@
                                         <button type="button" t-foreach="this.state.choices.journal_types || []" t-as="t" t-key="t[0]"
                                                 t-att-class="'o_efr_tagpick' + (this.state.draft.journal_types.includes(t[0]) ? ' on' : '')"
                                                 t-on-click="() => this.draftToggle('journal_types', t[0])">
-                                            <i t-if="this.state.draft.journal_types.includes(t[0])" class="fa fa-check"/><t t-esc="t[1]"/>
+                                            <i t-if="this.state.draft.journal_types.includes(t[0])" class="fa fa-check"/><t t-out="t[1]"/>
                                         </button>
                                     </div>
                                     <div class="o_efr_mf_l">Label, reference or entry contains</div>
@@ -345,12 +345,12 @@
                                 </div>
                                 <!-- one card per list: who sold it, on which route, which kind of partner, which kind of product -->
                                 <div t-foreach="this.wideCards" t-as="c" t-key="c.key" class="o_efr_mf_card">
-                                    <div class="o_efr_mf_h"><i t-att-class="'fa ' + c.icon"/><b t-esc="c.title"/>
+                                    <div class="o_efr_mf_h"><i t-att-class="'fa ' + c.icon"/><b t-out="c.title"/>
                                         <t t-if="c.chosen">
-                                            <span class="o_efr_mf_n"><t t-esc="c.chosen"/> selected</span>
+                                            <span class="o_efr_mf_n"><t t-out="c.chosen"/> selected</span>
                                             <button type="button" class="o_efr_mf_clr" t-on-click="() => this.clearWide(c.key)">Clear</button>
                                         </t>
-                                        <span t-else="" class="o_efr_mf_all">all <t t-esc="c.total"/></span>
+                                        <span t-else="" class="o_efr_mf_all">all <t t-out="c.total"/></span>
                                     </div>
                                     <div class="o_efr_mini_s" t-if="c.total &gt; 7"><i class="fa fa-search"/>
                                         <input type="text" t-att-value="this.state.wideQ[c.key] || ''" t-att-placeholder="'Find among ' + c.total + '…'"
@@ -359,7 +359,7 @@
                                         <button type="button" t-foreach="c.items" t-as="u" t-key="u.id" t-att-title="u.name"
                                                 t-att-class="'o_efr_pk' + (u.on ? ' on' : '') + (u.sep ? ' sep' : '')" t-on-click="() => this.draftToggle(c.key, u.id)">
                                             <span class="o_efr_pk_box"/>
-                                            <span class="o_efr_pk_n"><span t-esc="u.leaf"/><em t-if="u.path" t-esc="u.path"/></span>
+                                            <span class="o_efr_pk_n"><span t-out="u.leaf"/><em t-if="u.path" t-out="u.path"/></span>
                                         </button>
                                         <div t-if="!c.items.length" class="o_efr_pnl_none">Nothing by that name.</div>
                                     </div>
@@ -369,10 +369,10 @@
                                     <div class="o_efr_mf_h"><i class="fa fa-sliders"/><b>This report</b></div>
                                     <t t-foreach="this.state.report.extra_filters" t-as="f" t-key="f.key">
                                         <label class="o_efr_switch" t-if="f.type === 'toggle'">
-                                            <input type="checkbox" t-att-checked="this.state.draft.extra[f.key]" t-on-change="(ev) => this.state.draft.extra[f.key] = ev.target.checked"/><span/><t t-esc="f.label"/>
+                                            <input type="checkbox" t-att-checked="this.state.draft.extra[f.key]" t-on-change="(ev) => this.state.draft.extra[f.key] = ev.target.checked"/><span/><t t-out="f.label"/>
                                         </label>
                                         <div class="o_efr_mf_step" t-if="f.type === 'int'">
-                                            <span t-esc="f.label"/>
+                                            <span t-out="f.label"/>
                                             <div>
                                                 <button type="button" t-on-click="() => this.bumpExtra(f.key, -1)" title="One less">−</button>
                                                 <input type="number" min="1" t-att-value="this.state.draft.extra[f.key]" t-on-change="(ev) => this.setDraftExtra(f.key, ev.target.value)"/>
@@ -380,12 +380,12 @@
                                             </div>
                                         </div>
                                         <t t-if="f.type === 'multi'">
-                                            <div class="o_efr_mf_l" t-esc="f.label"/>
+                                            <div class="o_efr_mf_l" t-out="f.label"/>
                                             <div class="o_efr_tags">
                                                 <button type="button" t-foreach="f.choices" t-as="ch" t-key="ch[0]"
                                                         t-att-class="'o_efr_tagpick' + ((this.state.draft.extra[f.key] || []).includes(ch[0]) ? ' on' : '')"
                                                         t-on-click="() => this.draftExtraMulti(f.key, ch[0])">
-                                                    <i t-if="(this.state.draft.extra[f.key] || []).includes(ch[0])" class="fa fa-check"/><t t-esc="ch[1]"/>
+                                                    <i t-if="(this.state.draft.extra[f.key] || []).includes(ch[0])" class="fa fa-check"/><t t-out="ch[1]"/>
                                                 </button>
                                             </div>
                                         </t>
@@ -396,20 +396,20 @@
                             <div class="o_efr_mf_sum" t-if="this.draftSummary.length">
                                 <span class="o_efr_mf_suml">Showing only</span>
                                 <span t-foreach="this.draftSummary" t-as="sm" t-key="sm.key" class="o_efr_achip o_efr_ac_more">
-                                    <b t-esc="sm.label"/> <t t-esc="sm.text"/><i class="fa fa-times o_efr_achip_x" t-on-click="() => this.clearWide(sm.key)" title="Remove"/>
+                                    <b t-out="sm.label"/> <t t-out="sm.text"/><i class="fa fa-times o_efr_achip_x" t-on-click="() => this.clearWide(sm.key)" title="Remove"/>
                                 </span>
                             </div>
                             <div class="o_efr_pnl_f">
                                 <button class="btn btn-light" t-on-click="() => this.state.menu = null">Cancel</button>
                                 <button class="o_efr_pnl_go" t-on-click="this.applyMore" t-att-disabled="!this.draftChanges">
-                                    <i class="fa fa-check me-1"/><t t-if="this.draftChanges">Apply <t t-esc="this.draftChanges"/> change<t t-if="this.draftChanges !== 1">s</t></t><t t-else="">No change</t></button>
+                                    <i class="fa fa-check me-1"/><t t-if="this.draftChanges">Apply <t t-out="this.draftChanges"/> change<t t-if="this.draftChanges !== 1">s</t></t><t t-else="">No change</t></button>
                             </div>
                         </div>
                     </div>
                     <!-- accounts -->
                     <div class="o_efr_group" t-if="this.state.report.allow_accounts">
                         <button class="o_efr_f o_efr_f_accounts o_efr_popbtn" t-att-class="this.state.options.accounts_query ? 'on' : ''" t-on-click="this.openAccounts">
-                            <i class="fa fa-list-ol"/><t t-if="this.state.options.accounts_query">Accounts: <t t-esc="this.state.options.accounts_query"/></t><t t-else="">Accounts</t>
+                            <i class="fa fa-list-ol"/><t t-if="this.state.options.accounts_query">Accounts: <t t-out="this.state.options.accounts_query"/></t><t t-else="">Accounts</t>
                         </button>
                         <div class="o_efr_pop o_efr_pnl o_efr_pnl_accounts" t-if="this.state.menu === 'accounts' and this.state.acct">
                             <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-list-ol"/></span>
@@ -420,12 +420,12 @@
                             <div class="o_efr_pnl_b">
                                 <button t-if="this.state.acct.query" class="o_efr_prow o_efr_prow_use" t-on-click="this.useAccountQuery">
                                     <span class="o_efr_box"><i class="fa fa-filter"/></span>
-                                    <span class="o_efr_prow_n">Every account matching "<b t-esc="this.state.acct.query"/>"<em>codes that start with it, names that contain it</em></span>
+                                    <span class="o_efr_prow_n">Every account matching "<b t-out="this.state.acct.query"/>"<em>codes that start with it, names that contain it</em></span>
                                 </button>
                                 <div class="o_efr_pnl_sec"><t t-if="this.state.acct.query">Accounts</t><t t-else="">Busiest in this period</t></div>
                                 <button t-foreach="this.state.acct.hits || []" t-as="acc" t-key="acc.id" class="o_efr_prow" t-on-click="() => this.chooseAccount(acc)">
-                                    <span class="o_efr_code" t-esc="acc.code"/>
-                                    <span class="o_efr_prow_n"><t t-esc="acc.name"/><em><t t-esc="acc.type"/><t t-if="acc.count"> · <t t-esc="acc.count"/> entries</t></em></span>
+                                    <span class="o_efr_code" t-out="acc.code"/>
+                                    <span class="o_efr_prow_n"><t t-out="acc.name"/><em><t t-out="acc.type"/><t t-if="acc.count"> · <t t-out="acc.count"/> entries</t></em></span>
                                 </button>
                                 <div t-if="this.state.acct.hits and !this.state.acct.hits.length" class="o_efr_pnl_none">No account matches.</div>
                             </div>
@@ -435,7 +435,7 @@
                 <!-- what is narrowing the report, each taken off with one click -->
                 <div class="o_efr_active" t-if="this.activeChips.length">
                     <span t-foreach="this.activeChips" t-as="chip" t-key="chip.key" t-att-class="'o_efr_achip o_efr_ac_' + chip.tone">
-                        <i t-att-class="'fa ' + chip.icon"/><t t-esc="chip.text"/>
+                        <i t-att-class="'fa ' + chip.icon"/><t t-out="chip.text"/>
                         <i class="fa fa-times o_efr_achip_x" title="Remove this filter" t-on-click="() => this.clearChip(chip)"/>
                     </span>
                     <a href="#" class="o_efr_clearall" t-on-click.prevent="this.clearAll">clear all</a>
@@ -444,7 +444,7 @@
 
             <!-- ═══════════════════════════ the body ═══════════════════════════ -->
             <div class="o_content o_efr_body">
-                <div t-if="this.state.error" class="alert alert-danger m-3" t-esc="this.state.error"/>
+                <div t-if="this.state.error" class="alert alert-danger m-3" t-out="this.state.error"/>
                 <div t-if="this.state.refreshing" class="o_efr_progress"><span/></div>
                 <div t-if="this.state.loading" class="o_efr_skeleton">
                     <div class="o_efr_sk_head"/>
@@ -458,44 +458,44 @@
                         <!-- the chart -->
                         <div class="o_efr_chart" t-if="this.state.chart and this.chartData">
                             <div class="o_efr_chart_legend">
-                                <span t-foreach="this.chartData.cols" t-as="c" t-key="c_index"><i t-attf-style="background: {{ c.tone }}"/><t t-esc="c.label"/></span>
+                                <span t-foreach="this.chartData.cols" t-as="c" t-key="c_index"><i t-attf-style="background: {{ c.tone }}"/><t t-out="c.label"/></span>
                             </div>
                             <div t-foreach="this.chartData.rows" t-as="r" t-key="r.id" t-att-class="'o_efr_chart_row' + (r.bold ? ' bold' : '')">
-                                <div class="o_efr_chart_name" t-esc="r.name" t-att-title="r.name"/>
+                                <div class="o_efr_chart_name" t-out="r.name" t-att-title="r.name"/>
                                 <div class="o_efr_chart_bars">
                                     <div t-foreach="r.bars" t-as="b" t-key="b_index" class="o_efr_chart_bar">
-                                        <span t-attf-style="width: {{ b.width }}%; background: {{ b.tone }}"/><em t-esc="b.text"/>
+                                        <span t-attf-style="width: {{ b.width }}%; background: {{ b.tone }}"/><em t-out="b.text"/>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="o_efr_pins" t-if="this.pinned.length">
                             <div t-foreach="this.pinned" t-as="pin" t-key="pin.id" class="o_efr_pin" t-on-click="() => this.goToLine(pin.id)" title="Go to the line">
-                                <div class="o_efr_pin_n"><i class="fa fa-thumb-tack"/><span t-esc="pin.name"/>
+                                <div class="o_efr_pin_n"><i class="fa fa-thumb-tack"/><span t-out="pin.name"/>
                                     <i class="fa fa-times o_efr_pin_x" title="Unpin" t-on-click="(ev) => this.togglePin(pin.line, ev)"/></div>
-                                <div class="o_efr_pin_v"><t t-esc="pin.main.text"/>
-                                    <span t-if="pin.change" t-att-class="'o_efr_delta ' + (pin.change.up ? 'up' : 'down')" t-esc="pin.change.text"/></div>
+                                <div class="o_efr_pin_v"><t t-out="pin.main.text"/>
+                                    <span t-if="pin.change" t-att-class="'o_efr_delta ' + (pin.change.up ? 'up' : 'down')" t-out="pin.change.text"/></div>
                                 <div class="o_efr_pin_r" t-if="pin.rest.length">
-                                    <span t-foreach="pin.rest" t-as="c" t-key="c.index"><em t-esc="c.label"/> <t t-esc="c.text"/></span>
+                                    <span t-foreach="pin.rest" t-as="c" t-key="c.index"><em t-out="c.label"/> <t t-out="c.text"/></span>
                                 </div>
                             </div>
                         </div>
                         <div class="o_efr_since" t-if="this.state.since">
                             <i class="fa fa-history"/>
-                            <span><b t-esc="this.state.since.count"/> figure<t t-if="this.state.since.count !== 1">s</t> changed since you last looked, <t t-esc="this.sinceWhen"/>.</span>
+                            <span><b t-out="this.state.since.count"/> figure<t t-if="this.state.since.count !== 1">s</t> changed since you last looked, <t t-out="this.sinceWhen"/>.</span>
                             <button class="o_efr_seg" t-on-click="this.markSeen" title="Make the figures of now the ones to compare with"><i class="fa fa-check me-1"/>Seen</button>
                         </div>
                         <div class="o_efr_table_wrap" t-on-scroll="this.onTableScroll">
                             <table class="o_efr_table" t-ref="table">
                                 <thead>
                                     <tr>
-                                        <th class="o_efr_th_name"><span t-if="this.state.unitLabel" class="o_efr_unitnote">figures in <t t-esc="this.state.unitLabel"/></span>
+                                        <th class="o_efr_th_name"><span t-if="this.state.unitLabel" class="o_efr_unitnote">figures in <t t-out="this.state.unitLabel"/></span>
                                             <span class="o_efr_split" t-on-pointerdown="this.startSplit" t-on-dblclick="this.fitNames" t-on-click.stop=""
                                                   title="Drag to widen or narrow the names · double-click to fit the longest"><i/></span>
                                             <span class="o_efr_took" t-if="this.state.took" t-att-title="'This reading took ' + this.state.took.toFixed(2) + ' seconds'">
-                                                <i class="fa fa-bolt"/> <t t-esc="this.state.took.toFixed(2)"/>s</span></th>
+                                                <i class="fa fa-bolt"/> <t t-out="this.state.took.toFixed(2)"/>s</span></th>
                                         <th t-if="this.state.options.trend" class="o_efr_th_trend">12 months</th>
-                                        <th t-foreach="this.state.columns" t-as="col" t-key="col.key" t-att-class="'o_efr_th_' + col.type" t-esc="col.label"/>
+                                        <th t-foreach="this.state.columns" t-as="col" t-key="col.key" t-att-class="'o_efr_th_' + col.type" t-out="col.label"/>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -507,16 +507,16 @@
                                                 <span t-else="" class="o_efr_caret o_efr_caret_none"/>
                                                 <t t-if="line.parts">
                                                     <span class="o_efr_parts">
-                                                        <span class="o_efr_p_date" t-esc="line.parts.date_text || line.parts.date"/>
-                                                        <a href="#" class="o_efr_p_move" t-on-click.prevent="(ev) => this.openRecord(line, ev)" t-esc="line.parts.move"/>
-                                                        <span class="o_efr_p_partner" t-if="line.parts.partner" t-esc="line.parts.partner"/>
-                                                        <span class="o_efr_p_label" t-if="line.parts.label" t-esc="line.parts.label"/>
-                                                        <span class="o_efr_p_acc" t-if="line.parts.account" t-esc="line.parts.account"/>
+                                                        <span class="o_efr_p_date" t-out="line.parts.date_text || line.parts.date"/>
+                                                        <a href="#" class="o_efr_p_move" t-on-click.prevent="(ev) => this.openRecord(line, ev)" t-out="line.parts.move"/>
+                                                        <span class="o_efr_p_partner" t-if="line.parts.partner" t-out="line.parts.partner"/>
+                                                        <span class="o_efr_p_label" t-if="line.parts.label" t-out="line.parts.label"/>
+                                                        <span class="o_efr_p_acc" t-if="line.parts.account" t-out="line.parts.account"/>
                                                         <span class="o_efr_p_due" t-if="line.parts.days !== undefined" t-att-class="line.parts.days > 0 ? 'text-danger' : ''">
-                                                            <t t-if="line.parts.days > 0"><t t-esc="line.parts.days"/> days late</t>
-                                                            <t t-elif="line.parts.due">due <t t-esc="line.parts.due_text || line.parts.due"/></t>
+                                                            <t t-if="line.parts.days > 0"><t t-out="line.parts.days"/> days late</t>
+                                                            <t t-elif="line.parts.due">due <t t-out="line.parts.due_text || line.parts.due"/></t>
                                                         </span>
-                                                        <span class="o_efr_p_match" t-if="line.parts.matching" t-esc="line.parts.matching"/>
+                                                        <span class="o_efr_p_match" t-if="line.parts.matching" t-out="line.parts.matching"/>
                                                     </span>
                                                 </t>
                                                 <!-- The name is ellipsised when the row also
@@ -524,7 +524,7 @@
                                                      clipped one be read without widening the
                                                      column for everybody. (client, 2026-09-29) -->
                                                 <span t-else="" class="o_efr_label"
-                                                      t-att-title="line.name" t-esc="line.name"/>
+                                                      t-att-title="line.name" t-out="line.name"/>
                                                 <span t-if="line.kind === 'more'" class="text-muted small ms-1"><i class="fa fa-angle-double-down"/></span>
                                                 <!-- what is ON the line stays in sight; what can be DONE with it floats over
                                                      the end of the name when the line is pointed at, so it takes none of the
@@ -534,7 +534,7 @@
                                                        t-on-click="(ev) => this.togglePin(line, ev)"/>
                                                     <span class="o_efr_notes" t-if="this.notesFor(line).length" t-att-title="this.notesFor(line).map(n => n.text).join('\n')"
                                                           t-on-click="(ev) => this.openNote(line, ev)">
-                                                        <i class="fa fa-comment"/><t t-esc="this.notesFor(line).length"/>
+                                                        <i class="fa fa-comment"/><t t-out="this.notesFor(line).length"/>
                                                     </span>
                                                 </span>
                                                 <span class="o_efr_rowacts" t-if="line.kind !== 'more' and line.kind !== 'move_line' and line.kind !== 'open_item'">
@@ -548,7 +548,7 @@
                                             <td t-if="this.state.options.trend" class="o_efr_trend">
                                                 <svg t-if="this.state.trends[line.id]" width="72" height="18" class="o_efr_spark">
                                                     <t t-foreach="this.spark(this.state.trends[line.id])" t-as="b" t-key="b_index">
-                                                        <rect t-att-x="b.x" t-att-y="b.y" t-att-width="b.w" t-att-height="b.h" t-att-class="b.neg ? 'neg' : 'pos'"><title t-esc="b.title"/></rect>
+                                                        <rect t-att-x="b.x" t-att-y="b.y" t-att-width="b.w" t-att-height="b.h" t-att-class="b.neg ? 'neg' : 'pos'"><title t-out="b.title"/></rect>
                                                     </t>
                                                 </svg>
                                             </td>
@@ -558,10 +558,10 @@
                                                     t-on-click="(ev) => this.drill(line, cell, ev)"
                                                     t-on-mousedown="(ev) => this.keepText(ev)"
                                                     t-att-title="cell.drill ? 'Click: the journal items · Shift+click: add up · Ctrl+click: open as a list' : ''">
-                                                    <span t-esc="cell.text"/>
+                                                    <span t-out="cell.text"/>
                                                     <t t-set="moved" t-value="this.changeOf(line, cell_index)"/>
-                                                    <span t-if="moved" t-att-class="'o_efr_delta ' + (moved.up ? 'up' : 'down')" t-att-title="'Since you last looked, ' + this.sinceWhen" t-esc="moved.text"/>
-                                                    <span class="o_efr_share" t-if="this.shareText(line, cell, cell_index)" t-esc="this.shareText(line, cell, cell_index)"/>
+                                                    <span t-if="moved" t-att-class="'o_efr_delta ' + (moved.up ? 'up' : 'down')" t-att-title="'Since you last looked, ' + this.sinceWhen" t-out="moved.text"/>
+                                                    <span class="o_efr_share" t-if="this.shareText(line, cell, cell_index)" t-out="this.shareText(line, cell, cell_index)"/>
                                                     <i t-if="cell.drill and cell.display === 'amount'" class="fa fa-search-plus o_efr_explain" title="Explain this figure  (e)"
                                                        t-on-click="(ev) => this.explain(line, cell, ev)"/>
                                                 </td>
@@ -573,12 +573,12 @@
                                                 <t t-set="it" t-value="this.state.items[line.id]"/>
                                                 <div class="o_efr_items" t-on-click.stop="">
                                                     <div class="o_efr_items_h">
-                                                        <span class="o_efr_items_t"><i class="fa fa-list-ul me-1"/><t t-esc="it.title"/></span>
+                                                        <span class="o_efr_items_t"><i class="fa fa-list-ul me-1"/><t t-out="it.title"/></span>
                                                         <span class="o_efr_segs" t-if="this.itemColumns(line).length > 1">
                                                             <button t-foreach="this.itemColumns(line)" t-as="c" t-key="c.key" t-att-class="'o_efr_seg' + (it.colKey === c.key ? ' on' : '')"
-                                                                    t-on-click="() => this.setItemsColumn(line, c.key)" t-esc="c.label"/>
+                                                                    t-on-click="() => this.setItemsColumn(line, c.key)" t-out="c.label"/>
                                                         </span>
-                                                        <span class="o_efr_items_n"><b t-esc="it.total"/> item<t t-if="it.total !== 1">s</t></span>
+                                                        <span class="o_efr_items_n"><b t-out="it.total"/> item<t t-if="it.total !== 1">s</t></span>
                                                         <div class="o_efr_search o_efr_items_search"><i class="fa fa-search"/>
                                                             <input type="text" placeholder="Entry, label, partner or amount ⏎" t-att-value="it.search" t-on-keydown="(ev) => this.onItemsSearch(line, ev)"/></div>
                                                         <select class="o_efr_items_order" t-on-change="(ev) => this.setItemsOrder(line, ev)">
@@ -600,24 +600,24 @@
                                                         <thead><tr><th>Date</th><th>Entry</th><th>Jrnl</th><th>Account</th><th>Partner</th><th>Label</th><th class="num">Debit</th><th class="num">Credit</th><th>Match</th></tr></thead>
                                                         <tbody>
                                                             <tr t-foreach="it.rows" t-as="r" t-key="r.id" t-att-class="r.state === 'draft' ? 'draft' : ''" t-on-click="(ev) => this.openEntry(r, ev)">
-                                                                <td class="nowrap" t-esc="r.date_text || r.date"/>
-                                                                <td class="nowrap"><a href="#" t-on-click.prevent="(ev) => this.openEntry(r, ev)" t-esc="r.move"/><span t-if="r.state === 'draft'" class="o_efr_drafttag">draft</span></td>
-                                                                <td class="nowrap muted" t-esc="r.journal"/>
-                                                                <td class="trunc" t-esc="r.account" t-att-title="r.account"/>
-                                                                <td class="trunc" t-esc="r.partner" t-att-title="r.partner"/>
-                                                                <td class="trunc"><t t-esc="r.label"/><span t-if="r.analytic" class="o_efr_antag" t-esc="r.analytic"/></td>
-                                                                <td class="num" t-esc="r.debit_text"/>
-                                                                <td class="num" t-esc="r.credit_text"/>
-                                                                <td class="muted nowrap" t-esc="r.matching"/>
+                                                                <td class="nowrap" t-out="r.date_text || r.date"/>
+                                                                <td class="nowrap"><a href="#" t-on-click.prevent="(ev) => this.openEntry(r, ev)" t-out="r.move"/><span t-if="r.state === 'draft'" class="o_efr_drafttag">draft</span></td>
+                                                                <td class="nowrap muted" t-out="r.journal"/>
+                                                                <td class="trunc" t-out="r.account" t-att-title="r.account"/>
+                                                                <td class="trunc" t-out="r.partner" t-att-title="r.partner"/>
+                                                                <td class="trunc"><t t-out="r.label"/><span t-if="r.analytic" class="o_efr_antag" t-out="r.analytic"/></td>
+                                                                <td class="num" t-out="r.debit_text"/>
+                                                                <td class="num" t-out="r.credit_text"/>
+                                                                <td class="muted nowrap" t-out="r.matching"/>
                                                             </tr>
                                                         </tbody>
                                                         <tfoot>
-                                                            <tr><td colspan="6"><t t-if="it.rows.length &lt; it.total">All <t t-esc="it.total"/> items</t><t t-else="">Total</t> · net <b t-esc="it.sums.net"/> <t t-esc="it.sums.side"/></td>
-                                                                <td class="num" t-esc="it.sums.debit"/><td class="num" t-esc="it.sums.credit"/><td/></tr>
+                                                            <tr><td colspan="6"><t t-if="it.rows.length &lt; it.total">All <t t-out="it.total"/> items</t><t t-else="">Total</t> · net <b t-out="it.sums.net"/> <t t-out="it.sums.side"/></td>
+                                                                <td class="num" t-out="it.sums.debit"/><td class="num" t-out="it.sums.credit"/><td/></tr>
                                                         </tfoot>
                                                     </table>
                                                     <button t-if="it.has_more" class="o_efr_items_more" t-on-click="() => this.fetchItems(line, true)" t-att-disabled="it.loading">
-                                                        <i t-att-class="'fa me-1 ' + (it.loading ? 'fa-circle-o-notch fa-spin' : 'fa-angle-double-down')"/>Show 40 more (<t t-esc="it.total - it.rows.length"/> left)
+                                                        <i t-att-class="'fa me-1 ' + (it.loading ? 'fa-circle-o-notch fa-spin' : 'fa-angle-double-down')"/>Show 40 more (<t t-out="it.total - it.rows.length"/> left)
                                                     </button>
                                                 </div>
                                             </td>
@@ -625,13 +625,13 @@
                                     </t>
                                     <tr t-if="this.linesLeft" class="o_efr_morelines" t-on-click="this.showMoreLines">
                                         <td t-att-colspan="this.state.columns.length + 1 + (this.state.options.trend ? 1 : 0)">
-                                            <i class="fa fa-angle-double-down me-1"/>Show more lines · <t t-esc="this.linesLeft"/> left</td>
+                                            <i class="fa fa-angle-double-down me-1"/>Show more lines · <t t-out="this.linesLeft"/> left</td>
                                     </tr>
                                     <tr t-if="this.isEmpty" class="o_efr_empty_row">
                                         <td t-att-colspan="this.state.columns.length + 1 + (this.state.options.trend ? 1 : 0)">
                                             <div class="o_efr_empty">
                                                 <i class="fa fa-inbox"/>
-                                                <b t-if="this.state.search">No line matches "<t t-esc="this.state.search"/>"</b>
+                                                <b t-if="this.state.search">No line matches "<t t-out="this.state.search"/>"</b>
                                                 <b t-else="">Nothing in this period<t t-if="this.activeChips.length"> with these filters</t></b>
                                                 <span t-if="this.state.search">Lines that are still folded are not searched; unfold them first.</span>
                                                 <span t-elif="this.activeChips.length">Take a filter off, or widen the period.</span>
@@ -651,22 +651,22 @@
                     <!-- explain panel -->
                     <div class="o_efr_explain_panel" t-if="this.state.explain">
                         <div class="d-flex justify-content-between align-items-start">
-                            <div class="o_efr_ex_title"><i class="fa fa-search-plus me-1"/><t t-esc="this.state.explain.title"/></div>
+                            <div class="o_efr_ex_title"><i class="fa fa-search-plus me-1"/><t t-out="this.state.explain.title"/></div>
                             <i class="fa fa-times o_efr_ex_close" t-on-click="() => this.state.explain = null"/>
                         </div>
                         <div t-if="this.state.explain.loading" class="text-muted small mt-2"><i class="fa fa-circle-o-notch fa-spin me-1"/>Breaking it down…</div>
                         <div t-elif="this.state.explain.failed" class="o_efr_failed">
-                            <i class="fa fa-exclamation-circle"/><span>This figure could not be broken down.<em t-esc="this.state.explain.failed"/></span>
+                            <i class="fa fa-exclamation-circle"/><span>This figure could not be broken down.<em t-out="this.state.explain.failed"/></span>
                             <button class="o_efr_seg" t-on-click="this.retryExplain"><i class="fa fa-refresh me-1"/>Try again</button>
                         </div>
                         <t t-else="">
                             <t t-foreach="[['accounts', 'By account'], ['partners', 'By partner'], ['months', 'By month']]" t-as="sec" t-key="sec[0]">
                                 <div class="o_efr_ex_sec" t-if="(this.state.explain[sec[0]] || []).length">
-                                    <div class="o_efr_ex_h" t-esc="sec[1]"/>
+                                    <div class="o_efr_ex_h" t-out="sec[1]"/>
                                     <div t-foreach="this.state.explain[sec[0]]" t-as="it" t-key="it_index" class="o_efr_ex_row">
-                                        <div class="o_efr_ex_name" t-esc="it.name"/>
+                                        <div class="o_efr_ex_name" t-out="it.name"/>
                                         <div class="o_efr_ex_bar"><div t-att-class="'o_efr_ex_fill ' + (it.value &lt; 0 ? 'neg' : '')" t-attf-style="width: {{ this.barWidth(it, this.state.explain[sec[0]]) }}%"/></div>
-                                        <div class="o_efr_ex_val" t-esc="it.text"/>
+                                        <div class="o_efr_ex_val" t-out="it.text"/>
                                     </div>
                                 </div>
                             </t>
@@ -680,21 +680,21 @@
                         </div>
                         <div t-if="this.state.movers.loading" class="text-muted small mt-2"><i class="fa fa-circle-o-notch fa-spin me-1"/>Comparing the two periods…</div>
                         <div t-elif="this.state.movers.failed" class="o_efr_failed">
-                            <i class="fa fa-exclamation-circle"/><span>The two periods could not be compared.<em t-esc="this.state.movers.failed"/></span>
+                            <i class="fa fa-exclamation-circle"/><span>The two periods could not be compared.<em t-out="this.state.movers.failed"/></span>
                             <button class="o_efr_seg" t-on-click="this.retryMovers"><i class="fa fa-refresh me-1"/>Try again</button>
                         </div>
                         <t t-else="">
-                            <div class="small text-muted mb-2"><b t-esc="this.state.movers.now"/> against <b t-esc="this.state.movers.before"/> · the <t t-esc="this.state.movers.rows.length"/> accounts that moved most, of <t t-esc="this.state.movers.count"/></div>
+                            <div class="small text-muted mb-2"><b t-out="this.state.movers.now"/> against <b t-out="this.state.movers.before"/> · the <t t-out="this.state.movers.rows.length"/> accounts that moved most, of <t t-out="this.state.movers.count"/></div>
                             <div t-if="!this.state.movers.rows.length" class="small text-muted">Nothing moved between the two periods.</div>
                             <div t-foreach="this.state.movers.rows" t-as="m" t-key="m.account_id" class="o_efr_mover" t-on-click="() => this.openMover(m)">
                                 <div class="o_efr_mover_top">
-                                    <span class="o_efr_mover_name" t-esc="m.name" t-att-title="m.name"/>
+                                    <span class="o_efr_mover_name" t-out="m.name" t-att-title="m.name"/>
                                     <span t-att-class="'o_efr_mover_delta ' + (m.good ? 'up' : 'down')">
-                                        <i t-att-class="'fa ' + (m.change > 0 ? 'fa-arrow-up' : 'fa-arrow-down')"/> <t t-esc="m.change_text"/><t t-if="m.pct !== null"> (<t t-esc="m.pct"/>%)</t>
+                                        <i t-att-class="'fa ' + (m.change > 0 ? 'fa-arrow-up' : 'fa-arrow-down')"/> <t t-out="m.change_text"/><t t-if="m.pct !== null"> (<t t-out="m.pct"/>%)</t>
                                     </span>
                                 </div>
                                 <div class="o_efr_ex_bar"><div t-att-class="'o_efr_ex_fill ' + (m.good ? 'good' : 'neg')" t-attf-style="width: {{ this.moverWidth(m) }}%"/></div>
-                                <div class="o_efr_mover_sub"><t t-esc="m.before_text"/> → <t t-esc="m.now_text"/></div>
+                                <div class="o_efr_mover_sub"><t t-out="m.before_text"/> → <t t-out="m.now_text"/></div>
                             </div>
                         </t>
                     </div>
@@ -703,11 +703,11 @@
 
             <!-- the figures picked with Shift+click, added up -->
             <div class="o_efr_selbar" t-if="this.selection">
-                <span><b t-esc="this.selection.count"/> figure<t t-if="this.selection.count !== 1">s</t></span>
-                <span>Sum <b t-esc="this.selection.sum"/></span>
-                <span>Average <b t-esc="this.selection.avg"/></span>
-                <span>Smallest <b t-esc="this.selection.min"/></span>
-                <span>Largest <b t-esc="this.selection.max"/></span>
+                <span><b t-out="this.selection.count"/> figure<t t-if="this.selection.count !== 1">s</t></span>
+                <span>Sum <b t-out="this.selection.sum"/></span>
+                <span>Average <b t-out="this.selection.avg"/></span>
+                <span>Smallest <b t-out="this.selection.min"/></span>
+                <span>Largest <b t-out="this.selection.max"/></span>
                 <button t-on-click="this.clearSelection"><i class="fa fa-times"/></button>
             </div>
 
@@ -736,8 +736,8 @@
                     <div class="o_efr_x_head">
                         <span class="o_efr_x_icon"><i class="fa fa-download"/></span>
                         <div>
-                            <div class="o_efr_x_title">Export · <t t-esc="this.state.report.name"/></div>
-                            <div class="o_efr_x_sub"><t t-esc="this.periodLabel"/><t t-if="this.activeChips.length"> · <t t-esc="this.activeChips.length"/> filter<t t-if="this.activeChips.length !== 1">s</t></t></div>
+                            <div class="o_efr_x_title">Export · <t t-out="this.state.report.name"/></div>
+                            <div class="o_efr_x_sub"><t t-out="this.periodLabel"/><t t-if="this.activeChips.length"> · <t t-out="this.activeChips.length"/> filter<t t-if="this.activeChips.length !== 1">s</t></t></div>
                         </div>
                         <button class="o_efr_x_close" t-on-click="this.closeExport" title="Close"><i class="fa fa-times"/></button>
                     </div>
@@ -747,8 +747,8 @@
                             <button t-foreach="this.exportFormats" t-as="f" t-key="f.key" t-att-class="'o_efr_x_format o_efr_x_' + f.tone + (x.format === f.key ? ' on' : '')"
                                     t-on-click="() => this.setExport('format', f.key)">
                                 <i t-att-class="'fa ' + f.icon"/>
-                                <b t-esc="f.name"/>
-                                <span t-esc="f.text"/>
+                                <b t-out="f.name"/>
+                                <span t-out="f.text"/>
                             </button>
                         </div>
                         <div class="o_efr_pop_title mt-3">What goes in</div>
@@ -756,7 +756,7 @@
                             <button t-foreach="this.exportScopes" t-as="sc" t-key="sc.key" t-att-class="'o_efr_x_scope' + (x.scope === sc.key ? ' on' : '')"
                                     t-on-click="() => this.setExport('scope', sc.key)">
                                 <i t-att-class="'fa ' + sc.icon"/>
-                                <span><b t-esc="sc.name"/><em t-esc="sc.text"/></span>
+                                <span><b t-out="sc.name"/><em t-out="sc.text"/></span>
                             </button>
                         </div>
                         <div class="o_efr_x_opts">
@@ -777,9 +777,9 @@
                         <div t-att-class="'o_efr_x_size' + (x.preview and x.preview.cut and x.format === 'pdf' ? ' warn' : '')">
                             <t t-if="x.counting"><i class="fa fa-circle-o-notch fa-spin me-1"/>Counting the lines…</t>
                             <t t-elif="x.preview">
-                                <i class="fa fa-info-circle me-1"/><t t-esc="this.exportSize"/>
+                                <i class="fa fa-info-circle me-1"/><t t-out="this.exportSize"/>
                                 <div t-if="x.preview.cut and x.format === 'pdf'" class="o_efr_x_warn">
-                                    The report has <b t-esc="x.preview.lines.toLocaleString()"/> lines; paper stops at <b t-esc="x.preview.cap.toLocaleString()"/> and says so.
+                                    The report has <b t-out="x.preview.lines.toLocaleString()"/> lines; paper stops at <b t-out="x.preview.cap.toLocaleString()"/> and says so.
                                     <a href="#" t-on-click.prevent="() => this.setExport('format', 'xlsx')">Take the workbook for all of them.</a>
                                 </div>
                                 <div t-elif="x.preview.empty" class="o_efr_x_warn">Nothing was posted in this period with these filters: the export will be empty.</div>
@@ -794,7 +794,7 @@
                         <button class="btn btn-light" t-on-click="this.closeExport" t-att-disabled="x.busy">Cancel</button>
                         <button t-att-class="'btn o_efr_x_go o_efr_x_' + this.exportTone" t-on-click="this.runExport"
                                 t-att-disabled="x.busy or x.counting">
-                            <i t-att-class="'fa me-1 ' + (x.busy ? 'fa-circle-o-notch fa-spin' : 'fa-download')"/><t t-esc="this.exportButton"/>
+                            <i t-att-class="'fa me-1 ' + (x.busy ? 'fa-circle-o-notch fa-spin' : 'fa-download')"/><t t-out="this.exportButton"/>
                         </button>
                     </div>
                 </div>
@@ -803,11 +803,11 @@
             <!-- ═══════════════════════════ modals ═══════════════════════════ -->
             <div t-if="this.state.modal" class="o_efr_modal_backdrop" t-on-click="() => this.state.modal = null"/>
             <div t-if="this.state.modal and this.state.modal.kind === 'note'" class="o_efr_modal">
-                <div class="o_efr_modal_title">Note on <b t-esc="this.state.modal.line.name"/></div>
+                <div class="o_efr_modal_title">Note on <b t-out="this.state.modal.line.name"/></div>
                 <div t-if="this.notesFor(this.state.modal.line).length" class="o_efr_modal_notes">
                     <div t-foreach="this.notesFor(this.state.modal.line)" t-as="n" t-key="n.id" class="o_efr_modal_note">
-                        <div><t t-esc="n.text"/></div>
-                        <div class="small text-muted"><t t-esc="n.user"/> · <t t-esc="n.date"/>
+                        <div><t t-out="n.text"/></div>
+                        <div class="small text-muted"><t t-out="n.user"/> · <t t-out="n.date"/>
                             <a href="#" t-if="n.mine" class="ms-2" t-on-click.prevent="(ev) => this.deleteNote(n, ev)">remove</a></div>
                     </div>
                 </div>

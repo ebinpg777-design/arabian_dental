@@ -71,7 +71,7 @@ class LabCoverage(models.Model):
     def _bands(self):
         """The coverage bands, from settings. int() is not cosmetic — these values are
         interpolated into SQL, and a string from ir.config_parameter is user input."""
-        get = self.env['ir.config_parameter'].sudo().get_param
+        get = self.env['ir.config_parameter'].sudo().get_str
         def band(key, fallback):
             try:
                 return max(1, int(float(get('lab_fieldwork.%s' % key) or fallback)))

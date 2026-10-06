@@ -19,7 +19,7 @@
                     <div class="o_lab_hero_strip">
                         <div><i class="fa fa-users"/><div><strong>Small batches</strong><span>Taught at the bench</span></div></div>
                         <div><i class="fa fa-flask"/><div><strong>A working lab</strong><span>Real cases, real deadlines</span></div></div>
-                        <div><i class="fa fa-building-o"/><div><strong><t t-esc="lab['hall']"/></strong><span>Lectures &amp; study clubs</span></div></div>
+                        <div><i class="fa fa-building-o"/><div><strong><t t-out="lab['hall']"/></strong><span>Lectures &amp; study clubs</span></div></div>
                         <div><i class="fa fa-user-md"/><div><strong>Clinicians welcome</strong><span>CDE programmes</span></div></div>
                     </div>
                 </div>
@@ -34,11 +34,11 @@
                         <div class="row g-4">
                             <div t-foreach="content['courses']" t-as="c" class="col-md-6 col-lg-4 o_lab_reveal" t-attf-style="--d: #{c_index * 60}ms">
                                 <div class="o_lab_course">
-                                    <span class="o_lab_course_n" t-esc="'%02d' % (c_index + 1)"/>
+                                    <span class="o_lab_course_n" t-out="'%02d' % (c_index + 1)"/>
                                     <i t-attf-class="fa #{c[0]}"/>
-                                    <h3 t-esc="c[1]"/>
-                                    <p t-esc="c[2]"/>
-                                    <small t-esc="c[3]"/>
+                                    <h3 t-out="c[1]"/>
+                                    <p t-out="c[2]"/>
+                                    <small t-out="c[3]"/>
                                 </div>
                             </div>
                         </div>
@@ -49,13 +49,13 @@
                     <div class="container">
                         <div class="row g-5 align-items-center">
                             <div class="col-lg-6 o_lab_reveal">
-                                <span class="o_lab_kicker o_lab_kicker_light"><t t-esc="lab['hall']"/></span>
+                                <span class="o_lab_kicker o_lab_kicker_light"><t t-out="lab['hall']"/></span>
                                 <h2 class="o_lab_h2">A hall for the clinicians</h2>
                                 <p class="o_lab_lead">Continuing dental education programmes, study clubs and product evenings, on site at the laboratory — so a lecture on a material can be followed by seeing it layered at the bench.</p>
                                 <ul class="o_lab_facts o_lab_facts_light">
                                     <li><span>For</span><strong>Practising dentists &amp; postgraduates</strong></li>
                                     <li><span>Format</span><strong>Lectures, hands-on, study clubs</strong></li>
-                                    <li><span>Where</span><strong><t t-esc="lab['city']"/>, <t t-esc="lab['district']"/></strong></li>
+                                    <li><span>Where</span><strong><t t-out="lab['city']"/>, <t t-out="lab['district']"/></strong></li>
                                 </ul>
                             </div>
                             <div class="col-lg-6">
@@ -63,7 +63,7 @@
                                     <h4>Who it is for</h4>
                                     <div t-foreach="content['audience']" t-as="a" class="o_lab_who_i">
                                         <i t-attf-class="fa #{a[0]}"/>
-                                        <div><strong t-esc="a[1]"/><span t-esc="a[2]"/></div>
+                                        <div><strong t-out="a[1]"/><span t-out="a[2]"/></div>
                                     </div>
                                 </div>
                             </div>

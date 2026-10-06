@@ -27,7 +27,7 @@ class UsageGuard:
         self.env = env
 
     def _param(self, key: str) -> int:
-        value = self.env['ir.config_parameter'].sudo().get_param(PARAM_PREFIX + key, '0')
+        value = self.env['ir.config_parameter'].sudo().get_str(PARAM_PREFIX + key, '0')
         try:
             return max(0, int(value or 0))
         except ValueError:

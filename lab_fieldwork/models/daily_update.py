@@ -1327,7 +1327,7 @@ class LabDailyUpdate(models.Model):
         Policy permitting, a freshly assembled sheet goes straight onto the
         operational desk - nobody's evening ends with paperwork."""
         icp = self.env['ir.config_parameter'].sudo()
-        auto_submit = icp.get_param(
+        auto_submit = icp.get_str(
             'lab_fieldwork.auto_submit_day_sheet', 'True') in (
             'True', 'true', '1')
         closer = self.env['lab.day.closer']
@@ -1379,7 +1379,7 @@ class LabDailyUpdate(models.Model):
     def _sla_days(self):
         try:
             return max(1, int(float(self.env['ir.config_parameter'].sudo()
-                                    .get_param('lab_fieldwork.approval_sla_days',
+                                    .get_str('lab_fieldwork.approval_sla_days',
                                                2))))
         except (TypeError, ValueError):
             return 2

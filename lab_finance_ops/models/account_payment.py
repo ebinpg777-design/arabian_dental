@@ -32,9 +32,9 @@ class AccountPayment(models.Model):
     # ------------------------------------------------------------------ policy
     def _approval_settings(self):
         params = self.env['ir.config_parameter'].sudo()
-        enabled = params.get_param('lab_finance_ops.require_payment_approval', 'False') == 'True'
+        enabled = params.get_str('lab_finance_ops.require_payment_approval', 'False') == 'True'
         try:
-            threshold = float(params.get_param('lab_finance_ops.payment_approval_threshold', 0))
+            threshold = float(params.get_str('lab_finance_ops.payment_approval_threshold', 0))
         except (TypeError, ValueError):
             threshold = 0.0
         return enabled, threshold

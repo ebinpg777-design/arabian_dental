@@ -42,7 +42,7 @@ class ResConfigSettings(models.TransientModel):
     cai_mcp_url = fields.Char('MCP Endpoint', compute='_compute_cai_mcp_url')
 
     def _compute_cai_mcp_url(self):
-        base = self.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+        base = self.env['ir.config_parameter'].sudo().get_str('web.base.url', '')
         for settings in self:
             settings.cai_mcp_url = f'{base.rstrip("/")}/ebshel_ai/mcp'
 

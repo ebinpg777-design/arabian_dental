@@ -16,8 +16,8 @@ def _adopt_branded_layout(env):
     """
     params = env['ir.config_parameter'].sudo()
     template = 'sale_custom.external_layout_lab'
-    if not params.get_param('epg_partner_statement.layout') and env.ref(template, raise_if_not_found=False):
-        params.set_param('epg_partner_statement.layout', template)
+    if not params.get_str('epg_partner_statement.layout') and env.ref(template, raise_if_not_found=False):
+        params.set_str('epg_partner_statement.layout', template)
     report = env.ref('epg_partner_statement.action_report_partner_statement', raise_if_not_found=False)
     # The letterhead is drawn in the statement body, so the page needs no header band:
     # this format starts 8 mm from the top instead of reserving 40 mm for a header.

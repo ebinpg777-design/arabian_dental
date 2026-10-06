@@ -26,7 +26,7 @@ class DailyFlowCase(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.env['ir.config_parameter'].sudo().set_param(
+        cls.env['ir.config_parameter'].sudo().set_str(
             'lab_fieldwork.require_attendance', 'False')
         ref = cls.env.ref
         cls.g_exec = ref('lab_fieldwork.group_fieldwork_executive')
@@ -101,7 +101,7 @@ class TestDailyFlow(DailyFlowCase):
 
     def test_old_managers_land_on_the_operational_desk_once(self):
         icp = self.env['ir.config_parameter'].sudo()
-        icp.set_param('lab_fieldwork.manager_split_done', '')
+        icp.set_str('lab_fieldwork.manager_split_done', '')
         legacy = self.env['res.users'].create({
             'name': 'Legacy Manager', 'login': 'flow.legacy@test',
             'group_ids': [(4, self.g_base.id),

@@ -6,7 +6,7 @@
                 <h2><i class="fa fa-pencil-square-o me-2"/>Entry studio</h2>
                 <span class="o_eaa_sub">a journal entry, typed like a sheet</span>
                 <div class="ms-auto d-flex gap-1" t-if="this.state.setup and this.state.saved">
-                    <span class="o_eaa_badge good">saved <a href="#" t-on-click.prevent="() => this.openMove(this.state.saved.id)" t-esc="this.state.saved.name"/></span>
+                    <span class="o_eaa_badge good">saved <a href="#" t-on-click.prevent="() => this.openMove(this.state.saved.id)" t-out="this.state.saved.name"/></span>
                 </div>
             </div>
             <div t-if="!this.state.setup" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Loading…</div>
@@ -17,16 +17,16 @@
                         <div class="o_eaa_panel mb-2">
                             <div class="o_eaa_toolbar">
                                 <label class="small text-muted">Journal</label>
-                                <select class="form-select" t-custom-model="this.state.journal_id"><option t-foreach="s.journals" t-as="j" t-key="j.id" t-att-value="j.id" t-esc="j.name"/></select>
+                                <select class="form-select" t-custom-model="this.state.journal_id"><option t-foreach="s.journals" t-as="j" t-key="j.id" t-att-value="j.id" t-out="j.name"/></select>
                                 <label class="small text-muted">Date</label>
                                 <input type="date" class="form-control" t-custom-model="this.state.date"/>
                                 <label class="small text-muted">Reference</label>
                                 <input class="form-control" style="min-width: 220px" placeholder="What this entry is" t-custom-model="this.state.ref"/>
-                                <span t-if="s.lock_date" class="small text-muted ms-auto">books locked up to <b t-esc="s.lock_date"/></span>
+                                <span t-if="s.lock_date" class="small text-muted ms-auto">books locked up to <b t-out="s.lock_date"/></span>
                             </div>
                             <div class="o_eaa_toolbar" t-if="s.templates.length">
                                 <label class="small text-muted"><i class="fa fa-magic me-1"/>Template</label>
-                                <select class="form-select" t-custom-model="this.state.template_id"><option value="">–</option><option t-foreach="s.templates" t-as="t" t-key="t.id" t-att-value="t.id" t-esc="t.name"/></select>
+                                <select class="form-select" t-custom-model="this.state.template_id"><option value="">–</option><option t-foreach="s.templates" t-as="t" t-key="t.id" t-att-value="t.id" t-out="t.name"/></select>
                                 <input type="number" step="0.01" class="form-control" style="width: 130px" placeholder="amount" t-custom-model="this.state.template_amount"/>
                                 <button class="btn btn-sm btn-outline-primary" t-on-click="this.loadTemplate" t-att-disabled="!this.state.template_id">Fill from the template</button>
                             </div>
@@ -40,7 +40,7 @@
                                             <input class="form-control form-control-sm" t-att-class="l.account and !l.account_id ? 'is-invalid' : ''" t-att-value="l.account" placeholder="code or name"
                                                    t-on-input="(ev) => this.lookup('account.account', l, 'account', ev.target.value)" t-on-focus="(ev) => this.lookup('account.account', l, 'account', ev.target.value)" t-on-blur="this.closeAc" t-on-keydown="(ev) => this.onKey(ev, l_index)"/>
                                             <div class="o_eaa_ac" t-if="this.state.ac and this.state.ac.line === l and this.state.ac.field === 'account'">
-                                                <div t-foreach="this.state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-esc="r.name"/>
+                                                <div t-foreach="this.state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-out="r.name"/>
                                                 <div t-if="!this.state.ac.results.length" class="o_eaa_acitem text-muted">no account</div>
                                             </div>
                                         </td>
@@ -48,7 +48,7 @@
                                             <input class="form-control form-control-sm" t-att-value="l.partner" placeholder="–"
                                                    t-on-input="(ev) => this.lookup('res.partner', l, 'partner', ev.target.value)" t-on-blur="this.closeAc" t-on-keydown="(ev) => this.onKey(ev, l_index)"/>
                                             <div class="o_eaa_ac" t-if="this.state.ac and this.state.ac.line === l and this.state.ac.field === 'partner'">
-                                                <div t-foreach="this.state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-esc="r.name"/>
+                                                <div t-foreach="this.state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-out="r.name"/>
                                             </div>
                                         </td>
                                         <td><input class="form-control form-control-sm" t-custom-model="l.label" t-on-keydown="(ev) => this.onKey(ev, l_index)"/></td>
@@ -56,7 +56,7 @@
                                             <input class="form-control form-control-sm" t-att-value="l.analytic" placeholder="–"
                                                    t-on-input="(ev) => this.lookup('account.analytic.account', l, 'analytic', ev.target.value)" t-on-blur="this.closeAc" t-on-keydown="(ev) => this.onKey(ev, l_index)"/>
                                             <div class="o_eaa_ac" t-if="this.state.ac and this.state.ac.line === l and this.state.ac.field === 'analytic'">
-                                                <div t-foreach="this.state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-esc="r.name"/>
+                                                <div t-foreach="this.state.ac.results" t-as="r" t-key="r.id" class="o_eaa_acitem" t-on-mousedown.prevent="() => this.pick(r)" t-out="r.name"/>
                                             </div>
                                         </td>
                                         <td><input type="number" step="0.01" min="0" class="form-control form-control-sm num" t-custom-model="l.debit" t-on-change="() => this.sideEntered(l, 'debit')" t-on-keydown="(ev) => this.onKey(ev, l_index)"/></td>
@@ -71,18 +71,18 @@
                                             <button class="btn btn-sm btn-outline-secondary ms-1" t-on-click="this.balance" t-att-disabled="Math.abs(this.totals.diff) &lt; 0.005"><i class="fa fa-balance-scale me-1"/>Balance</button>
                                             <span class="small text-muted ms-2">Paste rows from Excel: account code, label, debit, credit.</span>
                                         </td>
-                                        <td class="num"><b t-esc="this.money(this.totals.debit)"/></td>
-                                        <td class="num"><b t-esc="this.money(this.totals.credit)"/></td>
+                                        <td class="num"><b t-out="this.money(this.totals.debit)"/></td>
+                                        <td class="num"><b t-out="this.money(this.totals.credit)"/></td>
                                         <td/>
                                     </tr>
                                     <tr t-if="Math.abs(this.totals.diff) &gt;= 0.005">
                                         <td t-att-colspan="s.analytic ? 4 : 3" class="text-end text-danger small">out of balance by</td>
-                                        <td colspan="2" class="num text-danger"><b t-esc="this.money(this.totals.diff)"/></td><td/>
+                                        <td colspan="2" class="num text-danger"><b t-out="this.money(this.totals.diff)"/></td><td/>
                                     </tr>
                                 </tfoot>
                             </table>
                             <div t-if="this.state.problems.length" class="alert alert-warning py-1 px-2 mt-2 small mb-1">
-                                <div t-foreach="this.state.problems" t-as="p" t-key="p_index"><i class="fa fa-exclamation-triangle me-1"/><t t-esc="p"/></div>
+                                <div t-foreach="this.state.problems" t-as="p" t-key="p_index"><i class="fa fa-exclamation-triangle me-1"/><t t-out="p"/></div>
                             </div>
                             <div class="d-flex gap-2 align-items-center mt-2" t-if="s.can_write">
                                 <button class="btn btn-primary" t-on-click="() => this.save(true)" t-att-disabled="this.state.busy or !this.canPost"><i class="fa fa-check me-1"/>Post</button>
@@ -100,9 +100,9 @@
                             <div class="o_eaa_ph">Your recent entries</div>
                             <div t-if="!s.recent.length" class="o_eaa_empty">None yet.</div>
                             <div t-foreach="s.recent" t-as="r" t-key="r.id" class="o_eaa_todo" t-on-click="() => this.openMove(r.id)">
-                                <span t-att-class="'o_eaa_badge ' + (r.state === 'posted' ? 'good' : 'muted')" t-esc="r.state"/>
-                                <div class="flex-grow-1" style="min-width:0"><b t-esc="r.name"/><div class="small text-muted o_eaa_trunc"><t t-esc="r.date"/> · <t t-esc="r.ref"/></div></div>
-                                <span class="num small" t-esc="this.money(r.amount)"/>
+                                <span t-att-class="'o_eaa_badge ' + (r.state === 'posted' ? 'good' : 'muted')" t-out="r.state"/>
+                                <div class="flex-grow-1" style="min-width:0"><b t-out="r.name"/><div class="small text-muted o_eaa_trunc"><t t-out="r.date"/> · <t t-out="r.ref"/></div></div>
+                                <span class="num small" t-out="this.money(r.amount)"/>
                             </div>
                         </div>
                         <div class="o_eaa_panel">

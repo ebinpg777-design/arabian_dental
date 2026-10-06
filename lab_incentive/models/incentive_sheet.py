@@ -148,7 +148,7 @@ class LabIncentiveSheet(models.Model):
     # ------------------------------------------------------------------ basis
     @api.model
     def _incentive_basis(self):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_incentive.basis', 'delivered')
 
     @api.model
@@ -302,7 +302,7 @@ class LabIncentiveSheet(models.Model):
     def _cron_generate_last_month(self):
         """The scheduled path (opt-in, off by default) for the same generation the
         month-end wizard runs by hand."""
-        if self.env['ir.config_parameter'].sudo().get_param(
+        if self.env['ir.config_parameter'].sudo().get_str(
                 'lab_incentive.auto_generate') != 'True':
             return
         today = fields.Date.context_today(self)

@@ -361,7 +361,7 @@ class CashHandover(models.Model):
 
     def _deep_link(self):
         self.ensure_one()
-        base = self.env['ir.config_parameter'].sudo().get_param('web.base.url') or ''
+        base = self.env['ir.config_parameter'].sudo().get_str('web.base.url') or ''
         return '%s/odoo/action-lab_fieldwork.action_cash_handover_all/%d' % (
             base.rstrip('/'), self.id)
 
@@ -483,7 +483,7 @@ class CashHandover(models.Model):
         """(max days, ceiling) after which held cash is a thing to chase."""
         # The same defaults the settings pages show; an unset key is the
         # default, and only an explicit 0 switches a rule off.
-        get = self.env['ir.config_parameter'].sudo().get_param
+        get = self.env['ir.config_parameter'].sudo().get_str
         raw_days, raw_ceiling = get('lab_fieldwork.cash_max_days'), get('lab_fieldwork.cash_ceiling')
         try:
             days = 2 if raw_days in (None, False, '') else int(float(raw_days))

@@ -71,8 +71,8 @@ class LabTechDay(models.AbstractModel):
         """The axis the grid opens on, widened to whatever the day really used."""
         ICP = self.env['ir.config_parameter'].sudo()
         try:
-            start = int(ICP.get_param('lab_workcenter_scan.day_start_hour', 8))
-            end = int(ICP.get_param('lab_workcenter_scan.day_end_hour', 20))
+            start = int(ICP.get_str('lab_workcenter_scan.day_start_hour', 8))
+            end = int(ICP.get_str('lab_workcenter_scan.day_end_hour', 20))
         except (TypeError, ValueError):
             start, end = 8, 20
         start = min(max(start, 0), 23)

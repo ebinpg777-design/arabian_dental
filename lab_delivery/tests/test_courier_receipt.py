@@ -116,7 +116,7 @@ class TestReceiptReader(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Reader = cls.env['lab.courier.receipt']
-        cls.env['ir.config_parameter'].sudo().set_param(PARAM_KEY, False)
+        cls.env['ir.config_parameter'].sudo().set_str(PARAM_KEY, False)
         cls.bluedart = cls.env['lab.courier'].create({
             'name': 'Blue Dart R', 'code': 'BDR', 'awb_pattern': '^[0-9]{8,11}$',
             'tracking_url': 'https://example.com/bd?no={awb}'})
@@ -203,7 +203,7 @@ class TestReceiptReader(TransactionCase):
             messages=SimpleNamespace(create=create)))
 
     def test_with_a_key_the_receipt_is_read_and_agreement_scores_highest(self):
-        self.env['ir.config_parameter'].sudo().set_param(PARAM_KEY, 'test-key')
+        self.env['ir.config_parameter'].sudo().set_str(PARAM_KEY, 'test-key')
         answer = {'consignment_number': '1234 5678 901', 'courier_name': 'BLUE DART R',
                   'booking_date': '2026-08-27', 'receiver': 'Dr X', 'destination': 'Kochi',
                   'other_numbers': ['9876543210', '682001'], 'legible': True}
@@ -223,7 +223,7 @@ class TestReceiptReader(TransactionCase):
         self.assertTrue(all(c['score'] == 0 for c in tail))
 
     def test_the_courier_printed_on_the_receipt_is_matched_by_name(self):
-        self.env['ir.config_parameter'].sudo().set_param(PARAM_KEY, 'test-key')
+        self.env['ir.config_parameter'].sudo().set_str(PARAM_KEY, 'test-key')
         answer = {'consignment_number': 'XYZ99', 'courier_name': 'post r speed',
                   'booking_date': '', 'receiver': '', 'destination': '',
                   'other_numbers': [], 'legible': True}
@@ -234,7 +234,7 @@ class TestReceiptReader(TransactionCase):
         self.assertEqual(result['courier']['why'], 'printed on the receipt')
 
     def test_a_refusal_or_bad_answer_degrades_to_barcode_only(self):
-        self.env['ir.config_parameter'].sudo().set_param(PARAM_KEY, 'test-key')
+        self.env['ir.config_parameter'].sudo().set_str(PARAM_KEY, 'test-key')
         with patch.object(LabCourierReceipt, '_vision_client',
                           return_value=self._fake_client('{}', stop_reason='refusal')):
             result = self.Reader.read_receipt(_png_b64(), ['12345678901'])

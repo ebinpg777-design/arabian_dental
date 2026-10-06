@@ -35,7 +35,7 @@ class IrHttp(models.AbstractModel):
         and it should look the same to everybody who walks through it.
         """
         chosen = (self.env['ir.config_parameter'].sudo()
-                  .get_param('lab_home.wallpaper') or '').strip().lower()
+                  .get_str('lab_home.wallpaper') or '').strip().lower()
         if chosen not in self.WALLPAPERS:
             chosen = self.DEFAULT_WALLPAPER
         return {'name': chosen, 'dark': chosen in self.DARK_WALLPAPERS}

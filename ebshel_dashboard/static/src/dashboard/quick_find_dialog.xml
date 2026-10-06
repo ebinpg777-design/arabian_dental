@@ -14,7 +14,7 @@
                 </div>
                 <div class="o_dbq_list">
                     <t t-if="!this.hits.length">
-                        <div class="o_dbq_empty" t-esc="this.emptyLabel"/>
+                        <div class="o_dbq_empty" t-out="this.emptyLabel"/>
                     </t>
                     <t t-foreach="this.hits" t-as="hit" t-key="hit.key">
                         <div t-attf-class="o_dbq_hit {{ hit_index === this.state.cursor ? 'o_dbq_hit_on' : '' }}"
@@ -23,18 +23,18 @@
                              t-on-click="() => this.pick(hit)">
                             <t t-if="hit.type === 'board'">
                                 <i t-attf-class="fa #{hit.board.icon} o_dbq_icon" role="img" aria-label="Dashboard"/>
-                                <span class="o_dbq_name" t-esc="hit.board.name"/>
+                                <span class="o_dbq_name" t-out="hit.board.name"/>
                                 <span class="o_dbq_kind">Dashboard</span>
                             </t>
                             <t t-elif="hit.type === 'action'">
                                 <i t-attf-class="fa #{hit.action.icon} o_dbq_icon" role="img" aria-label="Action"/>
-                                <span class="o_dbq_name" t-esc="hit.action.label"/>
+                                <span class="o_dbq_name" t-out="hit.action.label"/>
                                 <span class="o_dbq_kind">Action</span>
                             </t>
                             <t t-else="">
                                 <i t-attf-class="fa #{hit.card.icon} o_dbq_icon" role="img" aria-label="Card"/>
-                                <span class="o_dbq_name" t-esc="hit.card.name"/>
-                                <span class="o_dbq_kind"><t t-esc="hit.card.board_name"/> · <t t-esc="hit.card.kind"/></span>
+                                <span class="o_dbq_name" t-out="hit.card.name"/>
+                                <span class="o_dbq_kind"><t t-out="hit.card.board_name"/> · <t t-out="hit.card.kind"/></span>
                             </t>
                         </div>
                     </t>

@@ -2001,7 +2001,7 @@ class DashboardItem(models.Model):
         url = (self.alert_webhook or '').strip()
         if not url.startswith(('http://', 'https://')):
             return False
-        base = self.env['ir.config_parameter'].sudo().get_param('web.base.url') or ''
+        base = self.env['ir.config_parameter'].sudo().get_str('web.base.url') or ''
         message = self.alert_message or self.env._(
             '%(card)s is now %(value)s', card=self.name, value=value)
         body = json.dumps({

@@ -280,10 +280,10 @@ class LabDailyUpdate(models.Model):
             'visits': len(visits),
             'user': self.user_id.display_name,
             'date_label': self.date_label or '',
-            'tiles': self.env['ir.config_parameter'].sudo().get_param(
+            'tiles': self.env['ir.config_parameter'].sudo().get_str(
                 'lab_fieldwork.map_tiles',
                 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
-            'attribution': self.env['ir.config_parameter'].sudo().get_param(
+            'attribution': self.env['ir.config_parameter'].sudo().get_str(
                 'lab_fieldwork.map_attribution',
                 '&copy; OpenStreetMap contributors'),
         }

@@ -169,7 +169,7 @@ class SaleOrderListWizard(models.TransientModel):
                 "No confirmed orders match this filter. Production slips print "
                 "only confirmed sales orders — quotations have nothing to make "
                 "yet."))
-        limit = int(self.env['ir.config_parameter'].sudo().get_param(
+        limit = int(self.env['ir.config_parameter'].sudo().get_str(
             'sale_custom.production_slip_print_limit', PRODUCTION_PRINT_LIMIT))
         if len(orders) > limit:
             raise UserError(_(

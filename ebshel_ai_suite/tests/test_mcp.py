@@ -25,7 +25,7 @@ class TestMcpServer(HttpCase):
             API_KEY_SCOPE, 'outsider', False)
         cls.partner = cls.env['res.partner'].create({'name': 'MCP Partner', 'email': 'mcp@example.com',
                                                      'city': 'Ghent'})
-        cls.env['ir.config_parameter'].sudo().set_param('ebshel_ai_suite.mcp_enabled', 'True')
+        cls.env['ir.config_parameter'].sudo().set_str('ebshel_ai_suite.mcp_enabled', 'True')
 
     def post(self, payload, key=None, content_type='application/json'):
         headers = {'Authorization': f'Bearer {self.key if key is None else key}', 'Content-Type': content_type}
@@ -49,7 +49,7 @@ class TestMcpServer(HttpCase):
         notification = self.post({'jsonrpc': '2.0', 'method': 'notifications/initialized'})
         self.assertEqual(notification.status_code, 202)
         self.assertEqual(self.rpc('unknown/method')['error']['code'], -32601)
-        self.env['ir.config_parameter'].sudo().set_param('ebshel_ai_suite.mcp_enabled', False)
+        self.env['ir.config_parameter'].sudo().set_str('ebshel_ai_suite.mcp_enabled', False)
         self.assertEqual(self.post({'jsonrpc': '2.0', 'id': 1, 'method': 'ping'}).status_code, 403)
 
     def test_handshake_and_catalogue(self):
@@ -96,7 +96,7 @@ class TestMcpServer(HttpCase):
         self.assertFalse(self.env['res.partner'].search([('name', '=', 'X')]))
 
     def test_write_tools_when_enabled(self):
-        self.env['ir.config_parameter'].sudo().set_param('ebshel_ai_suite.mcp_allow_write', 'True')
+        self.env['ir.config_parameter'].sudo().set_str('ebshel_ai_suite.mcp_allow_write', 'True')
         created = self.call('create_records', model='res.partner', values=[{'name': 'Made by MCP', 'city': 'Lyon'}])
         self.assertFalse(created['isError'], created)
         partner = self.env['res.partner'].browse(created['structuredContent']['created'][0]['id'])

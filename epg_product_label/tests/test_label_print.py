@@ -126,11 +126,11 @@ class TestLabelPrint(LabelCase):
 
     def test_standard_wizard_is_replaced_only_when_configured(self):
         parameters = self.env['ir.config_parameter'].sudo()
-        parameters.set_param('epg_product_label.replace_standard', 'False')
+        parameters.set_str('epg_product_label.replace_standard', 'False')
         self.assertEqual(
             self.product.action_open_label_layout()['res_model'],
             'product.label.layout')
-        parameters.set_param('epg_product_label.replace_standard', 'True')
+        parameters.set_str('epg_product_label.replace_standard', 'True')
         self.assertEqual(
             self.product.action_open_label_layout()['res_model'], 'epg.label.print')
 
@@ -186,7 +186,7 @@ class TestLabelPrint(LabelCase):
                       action['url'])
 
     def test_direct_print_without_an_endpoint_is_refused(self):
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'epg_product_label.zpl_printer_url', '')
         wizard = self.wizard(quantity=1, output_format='zpl', printer_url=False)
         with self.assertRaises(UserError):

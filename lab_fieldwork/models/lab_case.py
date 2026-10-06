@@ -232,7 +232,7 @@ class LabCase(models.Model):
     @api.model
     def _duplicate_window(self):
         try:
-            return max(0, int(self.env['ir.config_parameter'].sudo().get_param(
+            return max(0, int(self.env['ir.config_parameter'].sudo().get_str(
                 'lab_fieldwork.duplicate_days', 7)))
         except (TypeError, ValueError):
             return 7

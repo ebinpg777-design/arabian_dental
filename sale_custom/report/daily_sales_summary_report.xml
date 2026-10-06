@@ -6,7 +6,7 @@
                 <div class="page">
                     <h3>Daily Sales Summary</h3>
                     <p t-if="docs">
-                        <span t-esc="min(docs.mapped('date'))"/> to <span t-esc="max(docs.mapped('date'))"/>
+                        <span t-out="min(docs.mapped('date'))"/> to <span t-out="max(docs.mapped('date'))"/>
                     </p>
                     <table class="table table-sm" style="font-size:12px">
                         <thead>
@@ -22,20 +22,20 @@
                             <t t-set="officers" t-value="docs.mapped('sales_person_id')"/>
                             <tr t-foreach="officers" t-as="officer">
                                 <t t-set="lines" t-value="docs.filtered(lambda d: d.sales_person_id == officer)"/>
-                                <td><span t-esc="officer.name"/></td>
-                                <td class="text-end"><span t-esc="sum(lines.mapped('work_collected'))"/></td>
-                                <td class="text-end"><span t-esc="sum(lines.mapped('work_delivered'))"/></td>
-                                <td class="text-end"><span t-esc="'%.2f' % sum(lines.mapped('payment_amount'))"/></td>
-                                <td class="text-end"><span t-esc="len(lines)"/></td>
+                                <td><span t-out="officer.name"/></td>
+                                <td class="text-end"><span t-out="sum(lines.mapped('work_collected'))"/></td>
+                                <td class="text-end"><span t-out="sum(lines.mapped('work_delivered'))"/></td>
+                                <td class="text-end"><span t-out="'%.2f' % sum(lines.mapped('payment_amount'))"/></td>
+                                <td class="text-end"><span t-out="len(lines)"/></td>
                             </tr>
                         </tbody>
                         <tfoot>
                             <tr class="fw-bold">
                                 <td>Total</td>
-                                <td class="text-end"><span t-esc="sum(docs.mapped('work_collected'))"/></td>
-                                <td class="text-end"><span t-esc="sum(docs.mapped('work_delivered'))"/></td>
-                                <td class="text-end"><span t-esc="'%.2f' % sum(docs.mapped('payment_amount'))"/></td>
-                                <td class="text-end"><span t-esc="len(docs)"/></td>
+                                <td class="text-end"><span t-out="sum(docs.mapped('work_collected'))"/></td>
+                                <td class="text-end"><span t-out="sum(docs.mapped('work_delivered'))"/></td>
+                                <td class="text-end"><span t-out="'%.2f' % sum(docs.mapped('payment_amount'))"/></td>
+                                <td class="text-end"><span t-out="len(docs)"/></td>
                             </tr>
                         </tfoot>
                     </table>

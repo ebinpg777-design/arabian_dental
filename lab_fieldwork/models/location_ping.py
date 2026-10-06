@@ -71,13 +71,13 @@ class LabLocationPing(models.Model):
     # ---------------------------------------------------------------- settings
     @api.model
     def _tracking_enabled(self):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.track_live', 'True') in ('True', 'true', '1')
 
     @api.model
     def _keep_days(self):
         try:
-            return max(1, int(self.env['ir.config_parameter'].sudo().get_param(
+            return max(1, int(self.env['ir.config_parameter'].sudo().get_str(
                 'lab_fieldwork.track_keep_days', '90')))
         except (TypeError, ValueError):
             return 90
@@ -251,7 +251,7 @@ class LabMyDay(models.AbstractModel):
         enabled = pings._tracking_enabled() and \
             not self.env.user._fw_phone_exceptions()['location']
         try:
-            interval = max(30, int(self.env['ir.config_parameter'].sudo().get_param(
+            interval = max(30, int(self.env['ir.config_parameter'].sudo().get_str(
                 'lab_fieldwork.track_interval', '90')))
         except (TypeError, ValueError):
             interval = 90

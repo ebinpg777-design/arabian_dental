@@ -5,7 +5,7 @@
     <Dialog title="this.title" size="'md'" contentClass="'o_st_targets_dlg'">
         <div class="o_st_targets_lead">
             <i class="fa fa-bullseye me-1" title="Targets"/>
-            Jobs each person is to take or finish at <b t-esc="this.props.station"/>.
+            Jobs each person is to take or finish at <b t-out="this.props.station"/>.
             A zero takes the target away.
         </div>
 
@@ -19,13 +19,13 @@
 
         <div class="o_st_targets_rows">
             <div t-foreach="this.props.people" t-as="p" t-key="p.id" class="o_st_targets_row">
-                <span class="o_st_avatar" t-esc="this.initials(p.name)"/>
+                <span class="o_st_avatar" t-out="this.initials(p.name)"/>
                 <span class="o_st_targets_who">
                     <span class="o_st_targets_name">
-                        <t t-esc="p.name"/><t t-if="p.is_lead"> ★</t>
+                        <t t-out="p.name"/><t t-if="p.is_lead"> ★</t>
                     </span>
                     <span class="o_st_targets_done">
-                        <t t-esc="p.day_count or 0"/> taken or finished <t t-esc="this.props.dayLabel"/>
+                        <t t-out="p.day_count or 0"/> taken or finished <t t-out="this.props.dayLabel"/>
                     </span>
                 </span>
                 <span class="o_st_targets_ctl">
@@ -39,7 +39,7 @@
         </div>
 
         <div class="o_st_targets_total">
-            Bench total <b t-esc="this.total"/>
+            Bench total <b t-out="this.total"/>
         </div>
 
         <t t-set-slot="footer">

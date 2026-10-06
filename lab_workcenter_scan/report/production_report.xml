@@ -12,14 +12,14 @@
             <div class="page" style="font-size:12px;">
                 <h2 style="margin-bottom:0;">Production Summary</h2>
                 <div style="color:#555;margin-bottom:14px;">
-                    <span t-esc="doc.date_from" t-options="{'widget': 'date'}"/>
+                    <span t-out="doc.date_from" t-options="{'widget': 'date'}"/>
                     to
-                    <span t-esc="doc.date_to" t-options="{'widget': 'date'}"/>
+                    <span t-out="doc.date_to" t-options="{'widget': 'date'}"/>
                     <t t-if="doc.workcenter_ids">
-                        · <t t-esc="', '.join(doc.workcenter_ids.mapped('display_name'))"/>
+                        · <t t-out="', '.join(doc.workcenter_ids.mapped('display_name'))"/>
                     </t>
                     <t t-if="doc.user_ids">
-                        · <t t-esc="', '.join(doc.user_ids.mapped('name'))"/>
+                        · <t t-out="', '.join(doc.user_ids.mapped('name'))"/>
                     </t>
                 </div>
 
@@ -31,24 +31,24 @@
                         <td style="border:1px solid #ddd;padding:8px;width:25%;">
                             <div style="color:#666;font-size:10px;text-transform:uppercase;">Jobs handed on</div>
                             <div style="font-size:20px;font-weight:bold;"
-                                 t-esc="data['totals']['jobs']"/>
+                                 t-out="data['totals']['jobs']"/>
                         </td>
                         <td style="border:1px solid #ddd;padding:8px;width:25%;">
                             <div style="color:#666;font-size:10px;text-transform:uppercase;">Average waiting</div>
                             <div style="font-size:20px;font-weight:bold;">
-                                <t t-esc="data['totals']['waiting_hours']"/> h
+                                <t t-out="data['totals']['waiting_hours']"/> h
                             </div>
                         </td>
                         <td style="border:1px solid #ddd;padding:8px;width:25%;">
                             <div style="color:#666;font-size:10px;text-transform:uppercase;">Average on the bench</div>
                             <div style="font-size:20px;font-weight:bold;">
-                                <t t-esc="data['totals']['working_hours']"/> h
+                                <t t-out="data['totals']['working_hours']"/> h
                             </div>
                         </td>
                         <td style="border:1px solid #ddd;padding:8px;width:25%;">
                             <div style="color:#666;font-size:10px;text-transform:uppercase;">Average hands-on</div>
                             <div style="font-size:20px;font-weight:bold;">
-                                <t t-esc="data['totals']['clocked_minutes']"/> min
+                                <t t-out="data['totals']['clocked_minutes']"/> min
                             </div>
                         </td>
                     </tr>
@@ -57,10 +57,10 @@
                 <t t-if="data['slowest']">
                     <div style="border-left:3px solid #b45309;background:#fdf6ec;padding:8px 10px;margin-bottom:16px;">
                         <b>Slowest step:</b>
-                        &#160;<t t-esc="data['slowest']['name']"/> —
-                        <t t-esc="data['slowest']['total_hours']"/> h from arriving at the
+                        &#160;<t t-out="data['slowest']['name']"/> —
+                        <t t-out="data['slowest']['total_hours']"/> h from arriving at the
                         bench to being handed on, of which
-                        <t t-esc="data['slowest']['waiting_hours']"/> h was spent waiting
+                        <t t-out="data['slowest']['waiting_hours']"/> h was spent waiting
                         to be picked up.
                     </div>
                 </t>
@@ -79,12 +79,12 @@
                     </thead>
                     <tbody>
                         <tr t-foreach="data['stations']" t-as="row">
-                            <td style="border:1px solid #ddd;padding:5px;" t-esc="row['name']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['jobs']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['waiting_hours']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['working_hours']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['total_hours']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['clocked_minutes']"/>
+                            <td style="border:1px solid #ddd;padding:5px;" t-out="row['name']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['jobs']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['waiting_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['working_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['total_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['clocked_minutes']"/>
                         </tr>
                         <tr t-if="not data['stations']">
                             <td colspan="6" style="border:1px solid #ddd;padding:8px;color:#777;">
@@ -108,11 +108,11 @@
                     </thead>
                     <tbody>
                         <tr t-foreach="data['people']" t-as="row">
-                            <td style="border:1px solid #ddd;padding:5px;" t-esc="row['name']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['jobs']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['clocked_minutes']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['working_hours']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['waiting_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;" t-out="row['name']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['jobs']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['clocked_minutes']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['working_hours']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['waiting_hours']"/>
                         </tr>
                         <tr t-if="not data['people']">
                             <td colspan="5" style="border:1px solid #ddd;padding:8px;color:#777;">
@@ -133,7 +133,7 @@
                 <h4 style="margin-bottom:4px;">
                     Still open right now
                     <span style="font-weight:normal;color:#666;">
-                        — <t t-esc="data['open_total']"/> jobs on the floor as this was printed
+                        — <t t-out="data['open_total']"/> jobs on the floor as this was printed
                     </span>
                 </h4>
                 <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
@@ -147,10 +147,10 @@
                     </thead>
                     <tbody>
                         <tr t-foreach="data['open_rows']" t-as="row">
-                            <td style="border:1px solid #ddd;padding:5px;" t-esc="row['name']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['jobs']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['avg_waiting']"/>
-                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-esc="row['worst_waiting']"/>
+                            <td style="border:1px solid #ddd;padding:5px;" t-out="row['name']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['jobs']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['avg_waiting']"/>
+                            <td style="border:1px solid #ddd;padding:5px;text-align:right;" t-out="row['worst_waiting']"/>
                         </tr>
                         <tr t-if="not data['open_rows']">
                             <td colspan="4" style="border:1px solid #ddd;padding:8px;color:#777;">
@@ -176,17 +176,17 @@
                         <tbody>
                             <tr t-foreach="data['oldest']" t-as="row">
                                 <td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:bold;"
-                                    t-esc="int(row.waiting_hours or 0)"/>
+                                    t-out="int(row.waiting_hours or 0)"/>
                                 <td style="border:1px solid #ddd;padding:5px;"
-                                    t-esc="row.patient or row.production_id.name"/>
+                                    t-out="row.patient or row.production_id.name"/>
                                 <td style="border:1px solid #ddd;padding:5px;"
-                                    t-esc="row.sale_id.name or ''"/>
+                                    t-out="row.sale_id.name or ''"/>
                                 <td style="border:1px solid #ddd;padding:5px;"
-                                    t-esc="row.workcenter_id.display_name"/>
+                                    t-out="row.workcenter_id.display_name"/>
                                 <td style="border:1px solid #ddd;padding:5px;"
-                                    t-esc="row.workorder_name"/>
+                                    t-out="row.workorder_name"/>
                                 <td style="border:1px solid #ddd;padding:5px;"
-                                    t-esc="row.bench_user_id.name or 'no technician yet'"/>
+                                    t-out="row.bench_user_id.name or 'no technician yet'"/>
                             </tr>
                         </tbody>
                     </table>
@@ -225,16 +225,16 @@
                      around the technician's name that reads as a printing fault. -->
                 <div style="overflow:hidden;margin-bottom:10px;">
                     <div style="float:left;">
-                        <h2 style="margin:0;" t-esc="block['user'].name"/>
+                        <h2 style="margin:0;" t-out="block['user'].name"/>
                         <div style="color:#555;">
                             Work in hand ·
-                            <t t-esc="len(block['jobs'])"/> of
-                            <t t-esc="block['total']"/> jobs
+                            <t t-out="len(block['jobs'])"/> of
+                            <t t-out="block['total']"/> jobs
                         </div>
                     </div>
                     <div style="float:right;text-align:right;color:#555;">
                         Printed
-                        <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                        <span t-out="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
                     </div>
                 </div>
 
@@ -258,20 +258,20 @@
                                 <span style="display:inline-block;width:11px;height:11px;border:1px solid #999;"/>
                             </td>
                             <td style="border:1px solid #ddd;padding:5px;font-family:monospace;"
-                                t-esc="job.production_id.name"/>
+                                t-out="job.production_id.name"/>
                             <td style="border:1px solid #ddd;padding:5px;"
-                                t-esc="job.sale_id.patient or ''"/>
+                                t-out="job.sale_id.patient or ''"/>
                             <td style="border:1px solid #ddd;padding:5px;font-family:monospace;"
-                                t-esc="job.sale_id.name or ''"/>
+                                t-out="job.sale_id.name or ''"/>
                             <td style="border:1px solid #ddd;padding:5px;">
-                                <t t-esc="job.production_id.product_id.display_name"/>
-                                <t t-if="job.color_scheme"> · <t t-esc="job.color_scheme"/></t>
-                                <t t-if="job.ul"> · <t t-esc="job.ul"/></t>
+                                <t t-out="job.production_id.product_id.display_name"/>
+                                <t t-if="job.color_scheme"> · <t t-out="job.color_scheme"/></t>
+                                <t t-if="job.ul"> · <t t-out="job.ul"/></t>
                             </td>
-                            <td style="border:1px solid #ddd;padding:5px;" t-esc="job.name"/>
+                            <td style="border:1px solid #ddd;padding:5px;" t-out="job.name"/>
                             <td style="border:1px solid #ddd;padding:5px;text-align:right;">
                                 <t t-if="job.create_date">
-                                    <t t-esc="int((datetime.datetime.now() - job.create_date).total_seconds() // 3600)"/> h
+                                    <t t-out="int((datetime.datetime.now() - job.create_date).total_seconds() // 3600)"/> h
                                 </t>
                             </td>
                         </tr>

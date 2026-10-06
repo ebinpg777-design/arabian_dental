@@ -47,7 +47,7 @@ class ResConfigSettings(models.TransientModel):
     @api.model
     def get_values(self):
         res = super().get_values()
-        raw = self.env['ir.config_parameter'].sudo().get_param(PARAM, '')
+        raw = self.env['ir.config_parameter'].sudo().get_str(PARAM, '')
         ids = [int(x) for x in raw.split(',') if x.strip().isdigit()]
         res['lab_verification_maker_group_ids'] = [
             (6, 0, self.env['res.groups'].browse(ids).exists().ids)]
@@ -59,7 +59,7 @@ class ResConfigSettings(models.TransientModel):
         zeros = self._zero_param_names()
         res = super().set_values()
         self._keep_zero_params(zeros)
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             PARAM, ','.join(str(i) for i in self.lab_verification_maker_group_ids.ids))
         # The flag is stored on every order, so changing who is checked has to restate
         # it — otherwise the rule changes and the existing queue still reflects the old
@@ -76,4 +76,4 @@ class ResConfigSettings(models.TransientModel):
         """Write back the explicit 0 core has just removed."""
         params = self.env['ir.config_parameter'].sudo()
         for name in (self._zero_param_names() if names is None else names):
-            params.set_param(self._fields[name].config_parameter, '0')
+            params.set_str(self._fields[name].config_parameter, '0')

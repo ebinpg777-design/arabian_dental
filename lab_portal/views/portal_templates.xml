@@ -28,19 +28,19 @@
                  to "show me what is ready" is to tap the number that says how many. -->
             <div t-if="summary and summary.get('total')" class="o_case_tiles">
                 <a class="o_case_tile o_tile_lab" href="#" data-stage="in_lab">
-                    <span class="o_tile_n" t-esc="summary['in_lab']"/>
+                    <span class="o_tile_n" t-out="summary['in_lab']"/>
                     <span class="o_tile_l">In the lab</span>
                 </a>
                 <a class="o_case_tile o_tile_ready" href="#" data-stage="ready">
-                    <span class="o_tile_n" t-esc="summary['ready']"/>
+                    <span class="o_tile_n" t-out="summary['ready']"/>
                     <span class="o_tile_l">Ready</span>
                 </a>
                 <a class="o_case_tile o_tile_sent" href="#" data-stage="sent">
-                    <span class="o_tile_n" t-esc="summary['sent']"/>
+                    <span class="o_tile_n" t-out="summary['sent']"/>
                     <span class="o_tile_l">On its way</span>
                 </a>
                 <a class="o_case_tile o_tile_done" href="#" data-stage="delivered">
-                    <span class="o_tile_n" t-esc="summary['delivered']"/>
+                    <span class="o_tile_n" t-out="summary['delivered']"/>
                     <span class="o_tile_l">Delivered</span>
                 </a>
             </div>
@@ -55,7 +55,7 @@
             </div>
 
             <div t-if="not cases and search" class="alert alert-warning" role="status">
-                Nothing matches <strong t-esc="search"/>.
+                Nothing matches <strong t-out="search"/>.
             </div>
 
             <!-- Cards, not a table. A doctor reads this on a phone between patients, and
@@ -68,32 +68,32 @@
                     <div t-attf-class="o_case_ring o_ring_#{case.portal_stage}"
                          t-attf-style="--pct: #{case.portal_progress}"
                          t-attf-aria-label="#{case.portal_progress}% complete">
-                        <span t-esc="case.portal_progress"/><small>%</small>
+                        <span t-out="case.portal_progress"/><small>%</small>
                     </div>
                     <div class="o_case_body">
                         <div class="o_case_top">
                             <span class="o_case_patient">
-                                <t t-esc="case.patient or case.name"/>
+                                <t t-out="case.patient or case.name"/>
                             </span>
                             <span t-attf-class="o_case_chip o_case_chip_#{case.portal_stage}">
-                                <t t-esc="dict(case._fields['portal_stage'].selection).get(case.portal_stage)"/>
+                                <t t-out="dict(case._fields['portal_stage'].selection).get(case.portal_stage)"/>
                             </span>
                         </div>
                         <div class="o_case_meta">
-                            <t t-esc="case.name"/>
-                            <span t-if="case.date_order"> · <t t-esc="case.date_order.strftime('%d %b %Y')"/></span>
+                            <t t-out="case.name"/>
+                            <span t-if="case.date_order"> · <t t-out="case.date_order.strftime('%d %b %Y')"/></span>
                         </div>
                         <div t-if="case.portal_operation" class="o_case_now">
                             <i class="fa fa-cog me-1" title="Currently"/>
-                            <t t-esc="case.portal_operation"/>
+                            <t t-out="case.portal_operation"/>
                         </div>
                         <t t-set="promise" t-value="case.portal_promise()"/>
                         <div t-if="promise and promise.get('date') and not promise.get('delivered')"
                              t-attf-class="o_case_due #{'o_due_late' if promise.get('late') else ('o_due_soon' if promise.get('soon') else '')}">
                             <i class="fa fa-calendar-o me-1"/>
-                            <t t-if="promise.get('late')">Was due <t t-esc="promise['date'].strftime('%d %b')"/></t>
+                            <t t-if="promise.get('late')">Was due <t t-out="promise['date'].strftime('%d %b')"/></t>
                             <t t-elif="promise.get('days') == 0">Due today</t>
-                            <t t-else="">Due <t t-esc="promise['date'].strftime('%d %b')"/></t>
+                            <t t-else="">Due <t t-out="promise['date'].strftime('%d %b')"/></t>
                         </div>
                     </div>
                     <i class="fa fa-angle-right o_case_go" aria-hidden="true"/>
@@ -111,14 +111,14 @@
 
             <div class="o_case_head">
                 <div>
-                    <h3 class="mb-0"><t t-esc="case.patient or case.name"/></h3>
+                    <h3 class="mb-0"><t t-out="case.patient or case.name"/></h3>
                     <div class="text-muted">
-                        <t t-esc="case.name"/>
-                        <span t-if="case.date_order"> · sent <t t-esc="case.date_order.strftime('%d %b %Y')"/></span>
+                        <t t-out="case.name"/>
+                        <span t-if="case.date_order"> · sent <t t-out="case.date_order.strftime('%d %b %Y')"/></span>
                     </div>
                 </div>
                 <span t-attf-class="o_case_chip o_case_chip_#{case.portal_stage}">
-                    <t t-esc="dict(case._fields['portal_stage'].selection).get(case.portal_stage)"/>
+                    <t t-out="dict(case._fields['portal_stage'].selection).get(case.portal_stage)"/>
                 </span>
             </div>
 
@@ -129,38 +129,38 @@
                    t-as="stage">
                     <div t-attf-class="o_case_stage #{case.portal_progress >= (stage_index + 1) * 20 and 'o_case_stage_on' or ''}">
                         <span class="o_case_dot"/>
-                        <span class="o_case_stage_l"><t t-esc="stage[1]"/></span>
+                        <span class="o_case_stage_l"><t t-out="stage[1]"/></span>
                     </div>
                 </t>
             </div>
 
             <div t-if="case.portal_operation" class="o_case_now_big">
                 <i class="fa fa-cog me-2" title="Currently"/>
-                <t t-esc="case.portal_operation"/>
+                <t t-out="case.portal_operation"/>
             </div>
 
             <div t-if="promise and promise.get('date')"
                  t-attf-class="o_case_promise #{'o_due_late' if promise.get('late') else ('o_due_soon' if promise.get('soon') else '')}">
                 <i class="fa fa-calendar-check-o me-2"/>
                 <t t-if="promise.get('delivered')">Delivered — was promised for
-                    <strong t-esc="promise['date'].strftime('%d %b %Y')"/>.</t>
+                    <strong t-out="promise['date'].strftime('%d %b %Y')"/>.</t>
                 <t t-elif="promise.get('late')">This was promised for
-                    <strong t-esc="promise['date'].strftime('%d %b %Y')"/>. It is late —
+                    <strong t-out="promise['date'].strftime('%d %b %Y')"/>. It is late —
                     please tell us if that is a problem for the appointment.</t>
                 <t t-elif="promise.get('days') == 0">Promised for <strong>today</strong>.</t>
                 <t t-else="">Promised for
-                    <strong t-esc="promise['date'].strftime('%d %b %Y')"/>
-                    (<t t-esc="promise['days']"/> days).</t>
+                    <strong t-out="promise['date'].strftime('%d %b %Y')"/>
+                    (<t t-out="promise['days']"/> days).</t>
             </div>
 
             <div class="o_case_panel">
                 <h5>What we are making</h5>
                 <div t-foreach="lines" t-as="line" class="o_case_line">
-                    <div class="o_case_line_n"><t t-esc="line['name']"/></div>
+                    <div class="o_case_line_n"><t t-out="line['name']"/></div>
                     <div class="o_case_line_m">
-                        <span t-if="line['ul']" class="o_case_pill"><t t-esc="line['ul']"/></span>
-                        <span t-if="line['colour']" class="o_case_pill"><t t-esc="line['colour']"/></span>
-                        <span class="text-muted">× <t t-esc="int(line['qty'])"/></span>
+                        <span t-if="line['ul']" class="o_case_pill"><t t-out="line['ul']"/></span>
+                        <span t-if="line['colour']" class="o_case_pill"><t t-out="line['colour']"/></span>
+                        <span class="text-muted">× <t t-out="int(line['qty'])"/></span>
                     </div>
                 </div>
                 <div t-if="not lines" class="text-muted">Nothing recorded on this case.</div>
@@ -174,12 +174,12 @@
                 <div t-foreach="productions" t-as="mo" class="o_case_job">
                     <div class="o_case_job_head">
                         <div>
-                            <span class="o_case_job_n"><t t-esc="mo['product']"/></span>
-                            <span class="text-muted small"> · <t t-esc="mo['name']"/></span>
+                            <span class="o_case_job_n"><t t-out="mo['product']"/></span>
+                            <span class="text-muted small"> · <t t-out="mo['name']"/></span>
                         </div>
                         <span t-if="mo['done']" class="o_case_chip o_case_chip_ready">Finished</span>
                         <span t-elif="mo['current']" class="o_case_chip o_case_chip_in_lab">
-                            <t t-esc="mo['current']"/>
+                            <t t-out="mo['current']"/>
                         </span>
                         <span t-else="" class="o_case_chip o_case_chip_registered">Queued</span>
                     </div>
@@ -187,7 +187,7 @@
                         <div class="o_case_track_fill" t-attf-style="width: #{mo['progress']}%"/>
                     </div>
                     <div class="o_case_job_meta text-muted small">
-                        <t t-esc="mo['steps_done']"/> of <t t-esc="mo['step_count']"/> steps
+                        <t t-out="mo['steps_done']"/> of <t t-out="mo['step_count']"/> steps
                     </div>
                     <!-- Horizontally scrollable on a phone rather than wrapped into a
                          column: the ORDER of the stations is the information. -->
@@ -195,7 +195,7 @@
                         <div t-foreach="mo['steps']" t-as="step"
                              t-attf-class="o_case_railstep o_case_step_#{step['state']}">
                             <i t-attf-class="fa #{step['state'] == 'done' and 'fa-check-circle' or step['state'] == 'progress' and 'fa-dot-circle-o' or 'fa-circle-o'}"/>
-                            <span t-esc="step['name']"/>
+                            <span t-out="step['name']"/>
                             <span t-if="step['state'] == 'progress'" class="o_case_step_tag">now</span>
                         </div>
                     </div>
@@ -208,7 +208,7 @@
                      t-attf-class="o_case_step o_case_step_#{step['state']}">
                     <i t-attf-class="fa #{step['state'] == 'done' and 'fa-check-circle' or step['state'] == 'progress' and 'fa-dot-circle-o' or 'fa-circle-o'}"
                        t-att-title="step['state']"/>
-                    <span><t t-esc="step['name']"/></span>
+                    <span><t t-out="step['name']"/></span>
                     <span t-if="step['state'] == 'progress'" class="o_case_step_tag">
                         happening now
                     </span>
@@ -242,22 +242,22 @@
                 <div t-foreach="rx_requests" t-as="rx" class="o_case_card">
                     <div class="o_case_body">
                         <div class="o_case_top">
-                            <span class="o_case_patient"><t t-esc="rx.patient"/></span>
+                            <span class="o_case_patient"><t t-out="rx.patient"/></span>
                             <span t-attf-class="o_case_chip o_case_chip_#{rx.state == 'converted' and 'ready' or (rx.state == 'rejected' and 'cancel' or 'registered')}">
-                                <t t-esc="dict(rx._fields['state'].selection).get(rx.state)"/>
+                                <t t-out="dict(rx._fields['state'].selection).get(rx.state)"/>
                             </span>
                         </div>
                         <div class="o_case_meta">
-                            <t t-esc="rx.name"/> ·
-                            <t t-esc="rx.create_date.strftime('%d %b %Y')"/> ·
-                            <t t-esc="rx.line_count"/> item(s)
+                            <t t-out="rx.name"/> ·
+                            <t t-out="rx.create_date.strftime('%d %b %Y')"/> ·
+                            <t t-out="rx.line_count"/> item(s)
                         </div>
                         <div t-if="rx.sale_order_id" class="o_case_now">
                             <i class="fa fa-check-circle me-1"/>
-                            Accepted as <t t-esc="rx.sale_order_id.name"/>
+                            Accepted as <t t-out="rx.sale_order_id.name"/>
                         </div>
                         <div t-if="rx.state == 'rejected' and rx.staff_note" class="o_case_due o_due_late">
-                            <i class="fa fa-info-circle me-1"/><t t-esc="rx.staff_note"/>
+                            <i class="fa fa-info-circle me-1"/><t t-out="rx.staff_note"/>
                         </div>
                     </div>
                 </div>
@@ -312,7 +312,7 @@
                             <select name="product_id" class="form-select">
                                 <option value="">—</option>
                                 <option t-foreach="products" t-as="p" t-att-value="p.id">
-                                    <t t-esc="p.display_name"/>
+                                    <t t-out="p.display_name"/>
                                 </option>
                             </select>
                         </div>

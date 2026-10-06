@@ -384,8 +384,8 @@ class TestTemplatesFieldsVoice(CommunityAICase):
         session.cai_send('[[call:web_search {"query": "odoo"}]]')
         self.assertEqual(session.exchange_ids.filtered(lambda e: e.speaker_type == 'tool')[-1].tool_status, 'failed')
         params = self.env['ir.config_parameter']
-        params.set_param('ebshel_ai_suite.web_backend', 'brave')
-        params.set_param('ebshel_ai_suite.brave_api_key', 'brave-key')
+        params.set_str('ebshel_ai_suite.web_backend', 'brave')
+        params.set_str('ebshel_ai_suite.brave_api_key', 'brave-key')
 
         class Response:
             @staticmethod

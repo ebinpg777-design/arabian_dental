@@ -64,7 +64,7 @@ class TestPhoneExceptions(TransactionCase):
         self.assertFalse(sheet.flag_gps)
 
     def test_the_trail_stays_off_for_an_excused_phone(self):
-        self.env['ir.config_parameter'].sudo().set_param('lab_fieldwork.track_live', 'True')
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.track_live', 'True')
         MyDay = self.env['lab.my.day']
         self.assertFalse(MyDay.with_user(self.excused).tracking_state()['enabled'])
         self.assertTrue(MyDay.with_user(self.plain).tracking_state()['enabled'])

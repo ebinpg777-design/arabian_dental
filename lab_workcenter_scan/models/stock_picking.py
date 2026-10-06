@@ -67,7 +67,7 @@ class StockPicking(models.Model):
         # finishes it, not when the box leaves the building or the invoice is
         # raised: validating a delivery was marking MOs completed that the floor
         # had never closed. (client, 2026-09-17)
-        param = self.env['ir.config_parameter'].sudo().get_param(AUTO_CLOSE_PARAM, '0')
+        param = self.env['ir.config_parameter'].sudo().get_str(AUTO_CLOSE_PARAM, '0')
         return str(param).strip().lower() not in ('0', 'false', 'no', 'off')
 
 
@@ -274,7 +274,7 @@ class MrpProduction(models.Model):
             # One switch, both paths: turning the rule off must stop the scheduled
             # catch-up too, or "off" only means "off for new deliveries".
             return 0
-        limit = limit or int(self.env['ir.config_parameter'].sudo().get_param(
+        limit = limit or int(self.env['ir.config_parameter'].sudo().get_str(
             'lab_workcenter_scan.close_batch', 200))
         Floor = self.env['report.lab.floor']
         batch = self.sudo().search(

@@ -56,7 +56,7 @@ class CommunityAIConsoleController(http.Controller):
             'enabled': True,
             'assistants': [assistant._cai_card() for assistant in assistants],
             'default_assistant_id': default.id if default in assistants else (assistants[:1].id or False),
-            'streaming': params.get_param('ebshel_ai_suite.streaming', 'True') != 'False',
+            'streaming': params.get_str('ebshel_ai_suite.streaming', 'True') != 'False',
             'recent': env['community.ai.session'].cai_recent(),
             'can_configure': user.has_group('ebshel_ai_suite.group_cai_manager'),
         }

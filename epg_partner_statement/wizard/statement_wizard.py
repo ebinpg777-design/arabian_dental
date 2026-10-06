@@ -40,7 +40,7 @@ class PartnerStatementWizard(models.TransientModel):
              "something on the chosen date - the month-end mailing run.")
     statement_type = fields.Selection(
         STATEMENT_TYPES, string='Statement', required=True,
-        default=lambda self: self.env['ir.config_parameter'].sudo().get_param(
+        default=lambda self: self.env['ir.config_parameter'].sudo().get_str(
             'epg_partner_statement.default_type', 'receivable'))
     period = fields.Selection(PERIOD_PRESETS, string='Period', required=True, default='this_month')
     date_from = fields.Date(string='From', required=True,

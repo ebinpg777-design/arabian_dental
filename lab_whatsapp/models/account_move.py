@@ -38,7 +38,7 @@ class AccountMove(models.Model):
 
     def _reminder_setting(self, key, default):
         try:
-            return int(self.env['ir.config_parameter'].sudo().get_param(
+            return int(self.env['ir.config_parameter'].sudo().get_str(
                 'lab_whatsapp.%s' % key, default))
         except (TypeError, ValueError):
             return default
@@ -60,7 +60,7 @@ class AccountMove(models.Model):
         across successive runs.
         """
         params = self.env['ir.config_parameter'].sudo()
-        if params.get_param('lab_whatsapp.notify_reminder', 'True') not in ('True', 'true', '1'):
+        if params.get_str('lab_whatsapp.notify_reminder', 'True') not in ('True', 'true', '1'):
             return
 
         grace = self._reminder_setting('reminder_days', 3)

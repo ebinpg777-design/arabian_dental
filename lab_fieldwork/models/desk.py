@@ -1721,7 +1721,7 @@ class LabDesk(models.AbstractModel):
         visits = self.env['lab.visit'].sudo().search([
             ('date', '>=', since), ('check_in', '!=', False),
             ('gps_state', 'in', ('ok', 'far'))])
-        radius = float(self.env['ir.config_parameter'].sudo().get_param(
+        radius = float(self.env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.visit_radius_m', 300))
         distances = sorted(v.distance_m for v in visits)
         total = len(distances)

@@ -106,24 +106,24 @@
                 <t t-set="cur" t-value="company.currency_id"/>
                 <div class="page" style="font-size:12px">
                     <h4>Bank reconciliation statement</h4>
-                    <div class="mb-3"><b t-esc="brs['journal']['name']"/> · <t t-esc="brs['journal']['account']"/> · as at <b t-esc="brs['date']"/></div>
+                    <div class="mb-3"><b t-out="brs['journal']['name']"/> · <t t-out="brs['journal']['account']"/> · as at <b t-out="brs['date']"/></div>
                     <table class="table table-sm" style="max-width:520px">
-                        <tr><td>Balance per books</td><td class="text-end" t-esc="n['book']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
-                        <tr><td>Less: deposits not yet credited by the bank</td><td class="text-end" t-esc="-n['deposits']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
-                        <tr><td>Add: payments not yet presented</td><td class="text-end" t-esc="n['payments']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
-                        <tr><th>Balance the bank should show</th><th class="text-end" t-esc="n['bank_expected']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
-                        <tr t-if="brs['checkpoint'] and brs['checkpoint']['difference'] is not None"><td>Balance per bank statement</td><td class="text-end" t-esc="brs['checkpoint']['balance']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
-                        <tr t-if="brs['checkpoint'] and brs['checkpoint']['difference'] is not None"><th>Difference</th><th class="text-end" t-esc="brs['checkpoint']['difference']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr><td>Balance per books</td><td class="text-end" t-out="n['book']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr><td>Less: deposits not yet credited by the bank</td><td class="text-end" t-out="-n['deposits']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr><td>Add: payments not yet presented</td><td class="text-end" t-out="n['payments']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr><th>Balance the bank should show</th><th class="text-end" t-out="n['bank_expected']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr t-if="brs['checkpoint'] and brs['checkpoint']['difference'] is not None"><td>Balance per bank statement</td><td class="text-end" t-out="brs['checkpoint']['balance']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
+                        <tr t-if="brs['checkpoint'] and brs['checkpoint']['difference'] is not None"><th>Difference</th><th class="text-end" t-out="brs['checkpoint']['difference']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
                     </table>
                     <t t-foreach="[('Deposits not yet credited', deposits), ('Payments not yet presented', payments)]" t-as="block">
-                        <h6 class="mt-4" t-esc="block[0]"/>
+                        <h6 class="mt-4" t-out="block[0]"/>
                         <table class="table table-sm">
                             <thead><tr><th>Date</th><th>Entry</th><th>Label</th><th>Partner</th><th class="text-end">Days</th><th class="text-end">Amount</th></tr></thead>
                             <tbody>
                                 <tr t-foreach="block[1]" t-as="i">
-                                    <td t-esc="i['date']"/><td t-esc="i['name']"/><td t-esc="i['label']"/><td t-esc="i['partner']"/>
-                                    <td class="text-end" t-esc="i['age']"/>
-                                    <td class="text-end" t-esc="abs(i['amount'])" t-options="{'widget': 'monetary', 'display_currency': cur}"/>
+                                    <td t-out="i['date']"/><td t-out="i['name']"/><td t-out="i['label']"/><td t-out="i['partner']"/>
+                                    <td class="text-end" t-out="i['age']"/>
+                                    <td class="text-end" t-out="abs(i['amount'])" t-options="{'widget': 'monetary', 'display_currency': cur}"/>
                                 </tr>
                                 <tr t-if="not block[1]"><td colspan="6" class="text-muted">None.</td></tr>
                             </tbody>

@@ -30,7 +30,7 @@ class IrActionsReport(models.Model):
 
     def _epg_statement_batch_size(self):
         try:
-            size = int(self.env['ir.config_parameter'].sudo().get_param(PARAM, BATCH_SIZE))
+            size = int(self.env['ir.config_parameter'].sudo().get_str(PARAM, BATCH_SIZE))
         except (TypeError, ValueError):
             size = BATCH_SIZE
         return max(size, 1)

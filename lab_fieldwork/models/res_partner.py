@@ -348,7 +348,7 @@ class ResUsers(models.Model):
         quietly re-grant a role the client had deliberately taken away.
         """
         icp = self.env['ir.config_parameter'].sudo()
-        if icp.get_param('lab_fieldwork.manager_split_done'):
+        if icp.get_str('lab_fieldwork.manager_split_done'):
             return False
         base = self.env.ref('lab_fieldwork.group_fieldwork_manager',
                             raise_if_not_found=False)
@@ -365,7 +365,7 @@ class ResUsers(models.Model):
                 continue
             user.sudo().write({'group_ids': [(4, ops.id)]})
             moved |= user
-        icp.set_param('lab_fieldwork.manager_split_done', '1')
+        icp.set_str('lab_fieldwork.manager_split_done', '1')
         if moved:
             _logger.info("manager split: %s moved to Operational Manager",
                          moved.mapped('login'))

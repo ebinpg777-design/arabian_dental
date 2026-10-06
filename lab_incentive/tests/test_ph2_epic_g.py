@@ -23,7 +23,7 @@ class TestEpicGIncentive(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.params = cls.env['ir.config_parameter'].sudo()
-        cls.params.set_param('lab_incentive.basis', 'confirmed')
+        cls.params.set_str('lab_incentive.basis', 'confirmed')
         cls.manager = cls.env['res.users'].create({
             'name': 'Incentive Manager', 'login': 'epicg_mgr',
             'group_ids': [(6, 0, [
@@ -206,7 +206,7 @@ class TestEpicGIncentive(TransactionCase):
 
     # ------------------------------------------------------------------ basis
     def test_delivered_basis_waits_for_the_outgoing_transfer(self):
-        self.params.set_param('lab_incentive.basis', 'delivered')
+        self.params.set_str('lab_incentive.basis', 'delivered')
         order = self._visit_order(self.plain)
         pickings = order.picking_ids.filtered(
             lambda p: p.picking_type_code == 'outgoing')
@@ -224,7 +224,7 @@ class TestEpicGIncentive(TransactionCase):
         self.assertEqual(sheet.line_ids.sale_order_id, order)
 
     def test_paid_basis_follows_the_countback_not_payment_state(self):
-        self.params.set_param('lab_incentive.basis', 'paid')
+        self.params.set_str('lab_incentive.basis', 'paid')
         product = self.env['product.product'].create({
             'name': 'Paid Basis Appliance', 'type': 'service',
             'list_price': 700.0, 'invoice_policy': 'order'})

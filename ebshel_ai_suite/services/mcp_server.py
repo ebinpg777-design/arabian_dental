@@ -56,7 +56,7 @@ class JsonRpcError(Exception):
 
 
 def _param(env, key: str) -> str:
-    return env['ir.config_parameter'].sudo().get_param(f'ebshel_ai_suite.{key}') or ''
+    return env['ir.config_parameter'].sudo().get_str(f'ebshel_ai_suite.{key}') or ''
 
 
 class McpServer:

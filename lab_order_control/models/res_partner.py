@@ -60,5 +60,5 @@ class ResPartner(models.Model):
         policy = self.credit_limit_policy
         if policy and policy != 'company':
             return policy
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_order_control.credit_limit_policy', 'warn')

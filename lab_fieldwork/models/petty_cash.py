@@ -93,7 +93,7 @@ class PettyCashAllocation(models.Model):
         # get_param hands back Python False for a key nobody has ever saved,
         # and str(False) is 'False': read naively, an untouched setting meant
         # OFF. Only an explicit 'False'/'0' switches this off. (2026-09-18)
-        raw = self.env['ir.config_parameter'].sudo().get_param('lab_fieldwork.auto_float')
+        raw = self.env['ir.config_parameter'].sudo().get_str('lab_fieldwork.auto_float')
         if raw not in (None, False, '') and str(raw).strip().lower() in ('false', '0'):
             return self.browse()
         Allocation = self.sudo()

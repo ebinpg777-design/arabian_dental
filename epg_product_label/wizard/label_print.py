@@ -123,7 +123,7 @@ class EpgLabelPrint(models.TransientModel):
 
     @api.model
     def _default_pricelist(self, key):
-        value = self.env['ir.config_parameter'].sudo().get_param(
+        value = self.env['ir.config_parameter'].sudo().get_str(
             'epg_product_label.%s' % key)
         if value:
             return self.env['product.pricelist'].browse(int(value)).exists()
@@ -131,7 +131,7 @@ class EpgLabelPrint(models.TransientModel):
 
     @api.model
     def _default_printer_url(self):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'epg_product_label.zpl_printer_url') or False
 
     @api.model

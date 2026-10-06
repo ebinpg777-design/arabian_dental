@@ -158,7 +158,7 @@ class CapabilityRunner:
         return self._execute(capability, handler, args, exchange=exchange, confirmation=confirmation)
 
     def _needs_confirmation(self, capability) -> bool:
-        policy = self.env['ir.config_parameter'].sudo().get_param(
+        policy = self.env['ir.config_parameter'].sudo().get_str(
             'ebshel_ai_suite.confirmation_policy', 'capability')
         return bool(
             capability.requires_confirmation
@@ -221,7 +221,7 @@ class CapabilityRunner:
 
     # ------------------------------------------------------------------
     def _audit_reads(self) -> bool:
-        return self.env['ir.config_parameter'].sudo().get_param('ebshel_ai_suite.audit_read_operations') == 'True'
+        return self.env['ir.config_parameter'].sudo().get_str('ebshel_ai_suite.audit_read_operations') == 'True'
 
     def _audit(self, capability, args, status, confirmation, summary, *, exchange=None, operation=None):
         self.env['community.ai.audit'].sudo()._cai_log(

@@ -268,9 +268,9 @@ class TestFinReportExports(TransactionCase):
 
     def test_a_ledger_too_long_for_paper_says_so(self):
         full = self.ledger.get_export_preview(self.year, {'scope': 'full'})['lines']
-        self.env['ir.config_parameter'].sudo().set_param('ebshel_account_reports.pdf_max_lines', '200')
+        self.env['ir.config_parameter'].sudo().set_str('ebshel_account_reports.pdf_max_lines', '200')
         self.assertEqual(self.Report._pdf_cap(), 200)
-        self.env['ir.config_parameter'].sudo().set_param('ebshel_account_reports.pdf_max_lines', 'many')
+        self.env['ir.config_parameter'].sudo().set_str('ebshel_account_reports.pdf_max_lines', 'many')
         self.assertEqual(self.Report._pdf_cap(), 4000, "a setting that is not a number is not obeyed")
         with patch.object(type(self.ledger), '_pdf_cap', lambda self: 3):
             values = self._values(self.ledger, self.year, {'scope': 'full'})

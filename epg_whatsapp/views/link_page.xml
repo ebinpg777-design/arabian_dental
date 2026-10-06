@@ -8,7 +8,7 @@
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <meta name="robots" content="noindex"/>
-                <title><t t-esc="title"/> · <t t-esc="company_name"/></title>
+                <title><t t-out="title"/> · <t t-out="company_name"/></title>
                 <style>
                     body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
                            background: #efeae2; color: #111b21; display: flex; min-height: 100vh;
@@ -29,18 +29,18 @@
             </head>
             <body>
                 <div class="card">
-                    <div class="icon"><t t-esc="icon"/></div>
-                    <h1><t t-esc="title"/></h1>
-                    <p><t t-esc="text"/></p>
+                    <div class="icon"><t t-out="icon"/></div>
+                    <h1><t t-out="title"/></h1>
+                    <p><t t-out="text"/></p>
                     <form t-if="form_action" method="post" t-att-action="form_action">
                         <input t-if="ask_number" type="tel" name="number" class="num" required="required"
                                placeholder="Your WhatsApp number" autocomplete="tel"/>
                         <t t-foreach="buttons" t-as="button">
                             <button type="submit" class="btn" t-att-name="button['name']"
-                                    t-att-value="button['value']"><t t-esc="button['label']"/></button>
+                                    t-att-value="button['value']"><t t-out="button['label']"/></button>
                         </t>
                     </form>
-                    <div class="co"><t t-esc="company_name"/></div>
+                    <div class="co"><t t-out="company_name"/></div>
                 </div>
             </body>
         </html>

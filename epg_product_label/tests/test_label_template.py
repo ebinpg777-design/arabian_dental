@@ -186,7 +186,7 @@ class TestLabelTemplate(LabelCase):
         self.assertIn('^PQ2', zpl)
 
     def test_zpl_falls_back_to_the_global_settings(self):
-        self.env['ir.config_parameter'].sudo().set_param(
+        self.env['ir.config_parameter'].sudo().set_str(
             'epg_product_label.zpl_density', '24')
         template = self.make_template(zpl_use_global=True)
         self.assertEqual(template._zpl_settings()['density'], '24')

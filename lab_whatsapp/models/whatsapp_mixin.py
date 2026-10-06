@@ -202,7 +202,7 @@ class LabWhatsappMixin(models.AbstractModel):
 
     # ------------------------------------------------------------------ events
     def _whatsapp_enabled(self, event):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_whatsapp.notify_%s' % event, 'True') in ('True', 'true', '1')
 
     def _whatsapp_send_event(self, event):

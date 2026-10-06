@@ -64,7 +64,7 @@ class SaleOrder(models.Model):
         group, because this module does not depend on `lab_fieldwork` — and a lab that
         wants a different role checked should not need a code change to say so.
         """
-        raw = self.env['ir.config_parameter'].sudo().get_param(
+        raw = self.env['ir.config_parameter'].sudo().get_str(
             'lab_order_control.verification_maker_groups', '')
         return [int(x) for x in raw.split(',') if x.strip().isdigit()]
 
@@ -119,7 +119,7 @@ class SaleOrder(models.Model):
     @api.model
     def _verification_enabled(self):
         """The master switch, independent of who entered any given order."""
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_order_control.require_order_verification', 'False') == 'True'
 
     def _verification_required(self):
@@ -127,7 +127,7 @@ class SaleOrder(models.Model):
         return self._verification_enabled() and self.verification_needed
 
     def _allow_self_verification(self):
-        return self.env['ir.config_parameter'].sudo().get_param(
+        return self.env['ir.config_parameter'].sudo().get_str(
             'lab_order_control.allow_self_verification', 'False') == 'True'
 
     def _credit_limit_message(self):

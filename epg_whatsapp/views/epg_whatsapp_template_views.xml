@@ -288,20 +288,20 @@
                     <t t-name="card">
                         <div class="o_wa_tpl_card">
                             <div class="o_wa_tpl_head">
-                                <span class="fw-bold" t-esc="record.name.value"/>
+                                <span class="fw-bold" t-out="record.name.value"/>
                                 <span class="o_wa_tpl_stats" t-if="record.message_count.raw_value">
-                                    <t t-esc="record.message_count.value"/> sent · <t t-esc="Math.round(record.read_rate.raw_value)"/>% read
-                                    <t t-if="record.reply_rate.raw_value"> · <t t-esc="Math.round(record.reply_rate.raw_value)"/>% answered</t>
+                                    <t t-out="record.message_count.value"/> sent · <t t-out="Math.round(record.read_rate.raw_value)"/>% read
+                                    <t t-if="record.reply_rate.raw_value"> · <t t-out="Math.round(record.reply_rate.raw_value)"/>% answered</t>
                                 </span>
                             </div>
                             <div class="o_wa_tpl_bubble">
                                 <div t-if="record.report_id.value" class="o_wa_tpl_doc">
-                                    <i class="fa fa-file-pdf-o me-1" title="Document"/><t t-esc="record.report_id.value"/>
+                                    <i class="fa fa-file-pdf-o me-1" title="Document"/><t t-out="record.report_id.value"/>
                                 </div>
-                                <div class="o_wa_tpl_text" t-esc="record.body.value"/>
+                                <div class="o_wa_tpl_text" t-out="record.body.value"/>
                                 <div t-if="record.quick_replies.value" class="o_wa_tpl_replies">
                                     <t t-foreach="record.quick_replies.value.split('\n')" t-as="r" t-key="r_index">
-                                        <span t-if="r.trim()" class="o_wa_reply_chip" t-esc="r"/>
+                                        <span t-if="r.trim()" class="o_wa_reply_chip" t-out="r"/>
                                     </t>
                                 </div>
                             </div>

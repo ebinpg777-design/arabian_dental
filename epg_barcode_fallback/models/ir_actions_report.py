@@ -145,7 +145,7 @@ class IrActionsReport(models.Model):
         # returns False, and `str(False).lower()` is 'false' — so without the default
         # the rail would be off on every database that had never set it, which is all
         # of them.
-        param = self.env['ir.config_parameter'].sudo().get_param(STRICT_PARAM, '1')
+        param = self.env['ir.config_parameter'].sudo().get_str(STRICT_PARAM, '1')
         return str(param).strip().lower() not in ('0', 'false', 'no', 'off')
 
     @staticmethod

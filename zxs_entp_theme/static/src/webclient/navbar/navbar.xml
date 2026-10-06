@@ -23,7 +23,7 @@
                         class="o_menu_brand_icon d-inline position-absolute start-0 h-100 ps-1 ms-2"
                         t-att-alt="currentApp.name"
                         t-custom-ref="appIcon"/>
-                    <span t-esc="currentApp.name" class="o_menu_brand d-flex ms-3 pe-0"/>
+                    <span t-out="currentApp.name" class="o_menu_brand d-flex ms-3 pe-0"/>
                 </t>
             </t>
         </a>
@@ -37,7 +37,7 @@
 
             <span
                 t-if="currentApp"
-                t-esc="currentApp.name"
+                t-out="currentApp.name"
                 class="o_menu_brand d-none d-md-flex ps-4 pe-0"/>
         </a>
     </xpath>

@@ -38,7 +38,7 @@ class TestCashHandover(TransactionCase):
             'name': 'Cash Clinic', 'is_clinic': True,
             'partner_latitude': LAT, 'partner_longitude': LON, 'visit_radius_m': 200.0})
         cls.Handover = cls.env['lab.cash.handover']
-        cls.env['ir.config_parameter'].sudo().set_param('lab_fieldwork.auto_float', 'True')
+        cls.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.auto_float', 'True')
 
     def _cash_visit(self, amount, user=None):
         v = self.env['lab.visit'].create({
@@ -87,12 +87,12 @@ class TestCashHandover(TransactionCase):
         walk caught it; the unit tests had all set the key. (2026-09-18)"""
         params = self.env['ir.config_parameter'].sudo()
         params.search([('key', '=', 'lab_fieldwork.auto_float')]).unlink()
-        self.assertIs(params.get_param('lab_fieldwork.auto_float'), False)
+        self.assertIs(params.get_str('lab_fieldwork.auto_float'), False)
         v = self._cash_visit(300.0)
         self.assertTrue(v.cash_banked, "the default is on")
 
     def test_the_setting_can_leave_floats_to_accounts(self):
-        self.env['ir.config_parameter'].sudo().set_param('lab_fieldwork.auto_float', 'False')
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.auto_float', 'False')
         v = self._cash_visit(900.0)
         self.exec_user.invalidate_recordset()
         self.assertFalse(self.exec_user.petty_cash_allocation_id)
@@ -107,7 +107,7 @@ class TestCashHandover(TransactionCase):
         negative, BOTH filters returned every visit, so banked cash still read
         as in the pocket and the figure could never go down. (2026-09-18)"""
         banked = self._cash_visit(1500.0)
-        self.env['ir.config_parameter'].sudo().set_param('lab_fieldwork.auto_float', 'False')
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.auto_float', 'False')
         pocket = self._cash_visit(700.0, user=self.other_exec)
         Visit = self.env['lab.visit']
         both = Visit.search([('id', 'in', (banked | pocket).ids)])
@@ -250,8 +250,8 @@ class TestCashHandover(TransactionCase):
     def test_cash_past_the_policy_is_chased_once(self):
         self._cash_visit(1500.0)
         params = self.env['ir.config_parameter'].sudo()
-        params.set_param('lab_fieldwork.cash_max_days', '0')
-        params.set_param('lab_fieldwork.cash_ceiling', '1000')
+        params.set_str('lab_fieldwork.cash_max_days', '0')
+        params.set_str('lab_fieldwork.cash_ceiling', '1000')
         self.assertTrue(self.Handover._is_overdue(self._position()))
         # Other people on this database may be carrying cash too; the claim
         # is about THIS person: chased, and chased once.
@@ -263,7 +263,7 @@ class TestCashHandover(TransactionCase):
         self.assertIn('Hand over', todo.summary)
         day = self.env['lab.my.day'].with_user(self.exec_user).get_day()
         self.assertTrue(day['cash']['overdue'])
-        params.set_param('lab_fieldwork.cash_ceiling', '0')
+        params.set_str('lab_fieldwork.cash_ceiling', '0')
         self.assertFalse(self.Handover._is_overdue(self._position()))
 
     def test_the_receipt_prints_with_the_code(self):

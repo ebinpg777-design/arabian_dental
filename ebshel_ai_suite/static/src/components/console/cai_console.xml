@@ -10,11 +10,11 @@
                             t-on-change="this.onAssistantChange" aria-label="Assistant">
                         <t t-foreach="this.state.assistants" t-as="assistant" t-key="assistant.id">
                             <option t-att-value="assistant.id" t-att-selected="assistant.id === this.state.assistantId"
-                                    t-esc="assistant.title"/>
+                                    t-out="assistant.title"/>
                         </t>
                     </select>
                 </t>
-                <span t-else="" class="fw-bold flex-grow-1 text-truncate" t-esc="this.currentAssistant?.title or 'AI'"/>
+                <span t-else="" class="fw-bold flex-grow-1 text-truncate" t-out="this.currentAssistant?.title or 'AI'"/>
                 <button class="btn btn-sm btn-link text-reset o_cai_history_btn" t-on-click="this.toggleHistory"
                         title="Conversation history" aria-label="Conversation history">
                     <i class="fa fa-history"/>
@@ -54,8 +54,8 @@
                         <t t-foreach="this.state.recent" t-as="item" t-key="item.id">
                             <button t-attf-class="o_cai_history_item btn btn-link text-start text-reset w-100 px-3 py-2 {{ this.state.session and this.state.session.id === item.id ? 'active' : '' }}"
                                     t-on-click="() => this.openSession(item.id)">
-                                <div class="text-truncate" t-esc="item.subject"/>
-                                <div class="small text-muted text-truncate" t-esc="item.assistant.title"/>
+                                <div class="text-truncate" t-out="item.subject"/>
+                                <div class="small text-muted text-truncate" t-out="item.assistant.title"/>
                             </button>
                         </t>
                     </div>
@@ -69,7 +69,7 @@
                                         onSuggestion.bind="this.send" suggestions="this.suggestions"
                                         onPost.bind="this.postAnswer"/>
                         <div t-if="this.state.error" class="alert alert-danger mx-3 my-2 py-2 small o_cai_error" role="alert">
-                            <t t-esc="this.state.error"/>
+                            <t t-out="this.state.error"/>
                         </div>
                         <CaiPromptInput busy="this.state.busy or this.state.uploading" onSubmit.bind="this.send" autofocus="true"
                                      onAttach.bind="this.attachFiles" onRemoveFile.bind="this.removeFile"
@@ -91,27 +91,27 @@
                         <t t-foreach="this.props.suggestions or []" t-as="suggestion" t-key="suggestion_index">
                             <button class="btn btn-sm btn-outline-secondary o_cai_suggestion"
                                     t-att-title="suggestion.prompt"
-                                    t-on-click="() => this.props.onSuggestion(suggestion.prompt)" t-esc="suggestion.title"/>
+                                    t-on-click="() => this.props.onSuggestion(suggestion.prompt)" t-out="suggestion.title"/>
                         </t>
                     </div>
                 </div>
             </t>
             <t t-foreach="this.visibleExchanges" t-as="ex" t-key="ex.id">
                 <div t-if="ex.speaker === 'user'" class="o_cai_message o_cai_message_user ms-auto mb-3">
-                    <div class="o_cai_bubble" t-esc="ex.body"/>
+                    <div class="o_cai_bubble" t-out="ex.body"/>
                     <div t-if="ex.files and ex.files.length" class="o_cai_files d-flex flex-wrap justify-content-end gap-1 mt-1">
                         <t t-foreach="ex.files" t-as="file" t-key="file.id">
                             <img t-if="file.is_image and file.url" t-att-src="file.url" t-att-alt="file.name"
                                  class="o_cai_file_thumb rounded border"/>
                             <span t-else="" class="badge text-bg-light o_cai_file_chip">
-                                <i class="fa fa-file-text-o me-1"/><t t-esc="file.name"/>
+                                <i class="fa fa-file-text-o me-1"/><t t-out="file.name"/>
                             </span>
                         </t>
                     </div>
                 </div>
                 <div t-elif="ex.speaker === 'tool'" class="o_cai_tool_step small text-muted mb-2">
                     <i t-attf-class="fa {{ this.toolIcon(ex) }} me-1"/>
-                    <span t-esc="ex.tool_label"/>
+                    <span t-out="ex.tool_label"/>
                     <CaiActionDialogCard t-if="ex.operation" operation="ex.operation" busy="this.props.busy"
                                          onDecide="this.props.onDecide"/>
                 </div>
@@ -119,7 +119,7 @@
                     <div class="o_cai_bubble">
                         <t t-if="ex.state === 'failed'">
                             <i class="fa fa-exclamation-triangle text-danger me-1"/>
-                            <span t-esc="ex.error"/>
+                            <span t-out="ex.error"/>
                             <div t-if="ex.id === this.lastFailedId" class="mt-2">
                                 <button class="btn btn-sm btn-secondary o_cai_retry" t-on-click="() => this.props.onRetry()"
                                         t-att-disabled="this.props.busy">
@@ -130,7 +130,7 @@
                         <t t-elif="ex.state === 'running' and !ex.body">
                             <span class="o_cai_typing"><span/><span/><span/></span>
                             <span t-if="this.props.statusText" class="o_cai_status_text small text-muted ms-1"
-                                  t-esc="this.props.statusText"/>
+                                  t-out="this.props.statusText"/>
                         </t>
                         <t t-else="">
                             <div class="o_cai_markdown" t-out="this.render(ex.body)"/>
@@ -144,7 +144,7 @@
                         </div>
                         <div t-if="ex.navigation" class="mt-2">
                             <button class="btn btn-sm btn-primary o_cai_navigate" t-on-click="() => this.props.onNavigate(ex.navigation)">
-                                <i class="fa fa-external-link me-1"/><t t-esc="ex.navigation.name"/>
+                                <i class="fa fa-external-link me-1"/><t t-out="ex.navigation.name"/>
                             </button>
                         </div>
                         <div t-if="ex.state === 'done' and ex.body" class="o_cai_answer_actions mt-1">
@@ -165,7 +165,7 @@
                             <span class="text-muted me-1">Sources:</span>
                             <t t-foreach="ex.citations" t-as="cite" t-key="cite_index">
                                 <span class="badge text-bg-light me-1" t-att-title="cite.excerpt">
-                                    <t t-if="cite.ref"><t t-esc="cite.ref"/> · </t><t t-esc="cite.title"/>
+                                    <t t-if="cite.ref"><t t-out="cite.ref"/> · </t><t t-out="cite.title"/>
                                 </span>
                             </t>
                         </div>
@@ -180,9 +180,9 @@
         <div t-attf-class="o_cai_operation card mt-2 text-body o_cai_operation_{{ this.props.operation.state }}">
             <div class="card-body p-2">
                 <div class="fw-bold mb-1">
-                    <i class="fa fa-shield me-1"/><t t-esc="this.props.operation.title"/>
+                    <i class="fa fa-shield me-1"/><t t-out="this.props.operation.title"/>
                 </div>
-                <div class="o_cai_operation_preview small mb-2" t-esc="this.props.operation.preview"/>
+                <div class="o_cai_operation_preview small mb-2" t-out="this.props.operation.preview"/>
                 <div t-if="this.props.operation.forced" class="small text-muted mb-2">
                     Confirmation required because this request used record data, documents or tool results.
                 </div>
@@ -196,7 +196,7 @@
                 </t>
                 <t t-else="">
                     <span t-attf-class="badge {{ this.props.operation.state === 'executed' ? 'text-bg-success' : 'text-bg-secondary' }} o_cai_operation_state"
-                          t-esc="this.props.operation.state"/>
+                          t-out="this.props.operation.state"/>
                 </t>
             </div>
         </div>
@@ -207,7 +207,7 @@
             <t t-foreach="this.props.stagedFiles" t-as="file" t-key="file.id">
                 <span class="badge text-bg-light o_cai_file_chip">
                     <i t-attf-class="fa {{ file.is_image ? 'fa-picture-o' : 'fa-file-text-o' }} me-1"/>
-                    <t t-esc="file.name"/>
+                    <t t-out="file.name"/>
                     <i class="fa fa-times ms-1 o_cai_file_remove" role="button" title="Remove"
                        t-on-click="() => this.props.onRemoveFile(file)"/>
                 </span>
@@ -241,7 +241,7 @@
         <div class="o_cai_context px-3 py-1 border-bottom small d-flex align-items-center gap-2">
             <i class="fa fa-file-text-o text-muted"/>
             <span t-attf-class="text-truncate {{ this.props.enabled ? '' : 'text-decoration-line-through text-muted' }}">
-                <t t-esc="this.props.context.label or this.props.context.model"/>
+                <t t-out="this.props.context.label or this.props.context.model"/>
             </span>
             <button t-if="!this.props.locked" class="btn btn-link btn-sm p-0 ms-auto o_cai_context_toggle"
                     t-on-click="this.props.onToggle">

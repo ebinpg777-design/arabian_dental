@@ -57,7 +57,7 @@ class RecordContextBuilder:
     def __init__(self, env, *, payload_limit: int | None = None, include_binary: bool = False):
         self.env = env
         if payload_limit is None:
-            param = env['ir.config_parameter'].sudo().get_param('ebshel_ai_suite.context_max_chars')
+            param = env['ir.config_parameter'].sudo().get_str('ebshel_ai_suite.context_max_chars')
             payload_limit = int(param) if param and str(param).isdigit() else DEFAULT_PAYLOAD_LIMIT
         self.payload_limit = payload_limit
         self.include_binary = include_binary

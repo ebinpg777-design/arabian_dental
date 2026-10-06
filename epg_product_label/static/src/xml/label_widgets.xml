@@ -14,7 +14,7 @@
                               t-att-style="this.blockStyle(shape)"/>
                     </t>
                 </span>
-                <span class="epg_layout_name" t-esc="option.label"/>
+                <span class="epg_layout_name" t-out="option.label"/>
                 <span class="epg_layout_tick" t-if="this.isSelected(option)">
                     <i class="fa fa-check"/>
                 </span>
@@ -44,10 +44,10 @@
         <small t-if="this.pickerState.status" t-att-class="'d-block mt-1 ' + this.statusClass">
             <i t-att-class="'fa me-1 ' + (this.pickerState.status.valid ? 'fa-check' : 'fa-times')"/>
             <t t-if="this.pickerState.status.valid">
-                <t t-esc="this.pickerState.status.label"/>
-                <span class="text-muted">(<t t-esc="this.pickerState.status.type"/>)</span>
+                <t t-out="this.pickerState.status.label"/>
+                <span class="text-muted">(<t t-out="this.pickerState.status.type"/>)</span>
             </t>
-            <t t-else="" t-esc="this.pickerState.status.error"/>
+            <t t-else="" t-out="this.pickerState.status.error"/>
         </small>
 
         <div class="epg_field_path_popover" t-if="this.pickerState.open">
@@ -58,10 +58,10 @@
                     <i class="fa fa-level-up"/>
                 </button>
                 <span class="epg_field_path_crumbs">
-                    <span class="epg_field_path_model" t-esc="this.pickerState.model"/>
+                    <span class="epg_field_path_model" t-out="this.pickerState.model"/>
                     <t t-foreach="this.breadcrumbs" t-as="crumb" t-key="crumb_index">
                         <i class="fa fa-angle-right mx-1 text-muted"/>
-                        <span t-esc="crumb"/>
+                        <span t-out="crumb"/>
                     </t>
                 </span>
                 <button type="button" class="btn btn-sm btn-link px-1 ms-auto"
@@ -86,9 +86,9 @@
                         <div class="epg_field_path_row">
                             <button type="button" class="epg_field_path_pick"
                                     t-on-click.stop="() => this.choose(suggestion)">
-                                <span class="epg_field_path_label" t-esc="suggestion.label"/>
-                                <span class="epg_field_path_tech" t-esc="suggestion.name"/>
-                                <span class="epg_field_path_type" t-esc="suggestion.type"/>
+                                <span class="epg_field_path_label" t-out="suggestion.label"/>
+                                <span class="epg_field_path_tech" t-out="suggestion.name"/>
+                                <span class="epg_field_path_type" t-out="suggestion.type"/>
                             </button>
                             <button type="button" class="epg_field_path_into"
                                     t-if="suggestion.relational"
@@ -108,11 +108,11 @@
     <div class="epg_barcode_status">
         <span t-att-class="'badge ' + this.look.css">
             <i t-att-class="'fa me-1 ' + this.look.icon"/>
-            <t t-esc="this.message"/>
+            <t t-out="this.message"/>
         </span>
         <div class="epg_barcode_sample" t-if="this.sample">
             <span class="text-muted me-1">Encodes:</span>
-            <code t-esc="this.sample"/>
+            <code t-out="this.sample"/>
         </div>
     </div>
 </t>

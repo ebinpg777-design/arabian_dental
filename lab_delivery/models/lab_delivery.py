@@ -236,7 +236,7 @@ class LabDelivery(models.Model):
         """
         # The same radius a visit is judged against, from the same setting: one
         # definition of "at the clinic" across the app.
-        default_radius = float(self.env['ir.config_parameter'].sudo().get_param(
+        default_radius = float(self.env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.visit_radius_m', 300))
         for delivery in self:
             clinic = delivery.partner_id
@@ -887,7 +887,7 @@ class LabDelivery(models.Model):
         (client, 2026-08-28)
         """
         import os
-        if self.env['ir.config_parameter'].sudo().get_param(
+        if self.env['ir.config_parameter'].sudo().get_str(
                 'lab_delivery.keep_failed_scans', '1') != '1':
             return
         try:
@@ -1068,7 +1068,7 @@ class LabDelivery(models.Model):
     # ------------------------------------------------------------------ delay engine
     @api.model
     def _grace_minutes(self, emergency=False):
-        get = self.env['ir.config_parameter'].sudo().get_param
+        get = self.env['ir.config_parameter'].sudo().get_str
         key = ('lab_delivery.emergency_grace_minutes' if emergency
                else 'lab_delivery.grace_minutes')
         default = 30 if emergency else 120
@@ -1088,7 +1088,7 @@ class LabDelivery(models.Model):
         """Hourly: find what is late, tell the right person, escalate — exactly once
         per window. A delay engine that double-notifies gets muted within a week."""
         now = fields.Datetime.now()
-        get = self.env['ir.config_parameter'].sudo().get_param
+        get = self.env['ir.config_parameter'].sudo().get_str
         try:
             escalate_hours = max(1, int(get('lab_delivery.escalation_after_hours', 4)))
         except (TypeError, ValueError):
@@ -1435,7 +1435,7 @@ class LabDelivery(models.Model):
 
     @api.model
     def _courier_stale_days(self):
-        get = self.env['ir.config_parameter'].sudo().get_param
+        get = self.env['ir.config_parameter'].sudo().get_str
         try:
             return max(1, int(get('lab_delivery.courier_stale_days', 3)))
         except (TypeError, ValueError):

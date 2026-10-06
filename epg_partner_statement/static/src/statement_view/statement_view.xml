@@ -4,23 +4,23 @@
 <t t-name="epg_partner_statement.StatementView">
     <div class="o_esv o_action" t-att-class="this.state.mobileDetail ? 'o_esv_detailmode' : ''">
         <div t-if="this.state.loading and !this.state.summary" class="o_esv_wait"><i class="fa fa-circle-o-notch fa-spin me-2"/>Preparing the statements…</div>
-        <div t-elif="this.state.failed" class="alert alert-danger m-3" t-esc="this.state.failed"/>
+        <div t-elif="this.state.failed" class="alert alert-danger m-3" t-out="this.state.failed"/>
         <t t-elif="this.state.summary">
             <t t-set="s" t-value="this.state.summary"/>
             <t t-set="tot" t-value="s.totals[0]"/>
             <!-- ═══════ what this run is ═══════ -->
             <div class="o_esv_head">
                 <div class="o_esv_titles">
-                    <div class="o_esv_eyebrow"><t t-esc="s.type_label"/></div>
-                    <h2>Statements <span class="o_esv_period" t-esc="this.periodText"/></h2>
+                    <div class="o_esv_eyebrow"><t t-out="s.type_label"/></div>
+                    <h2>Statements <span class="o_esv_period" t-out="this.periodText"/></h2>
                     <div class="o_esv_sub">
-                        <b t-esc="this.counts.all"/> partner<t t-if="this.counts.all !== 1">s</t>
-                        <t t-if="this.filterText"> · <t t-esc="this.filterText"/></t>
+                        <b t-out="this.counts.all"/> partner<t t-if="this.counts.all !== 1">s</t>
+                        <t t-if="this.filterText"> · <t t-out="this.filterText"/></t>
                     </div>
                 </div>
                 <div class="o_esv_acts">
                     <button class="o_esv_btn" t-on-click="() => this.print('all')" t-att-disabled="!this.visible.length or this.state.busy">
-                        <i t-att-class="'fa ' + (this.state.busy === 'print-all' ? 'fa-circle-o-notch fa-spin' : 'fa-print')"/> Print <t t-esc="this.visible.length"/></button>
+                        <i t-att-class="'fa ' + (this.state.busy === 'print-all' ? 'fa-circle-o-notch fa-spin' : 'fa-print')"/> Print <t t-out="this.visible.length"/></button>
                     <button class="o_esv_btn" t-on-click="() => this.excel('all')" t-att-disabled="!this.visible.length or this.state.busy">
                         <i t-att-class="'fa ' + (this.state.busy === 'xlsx-all' ? 'fa-circle-o-notch fa-spin' : 'fa-file-excel-o')"/> Excel</button>
                     <button class="o_esv_btn" t-on-click="() => this.email('all')" t-att-disabled="!this.visible.length or this.state.busy">
@@ -29,12 +29,12 @@
             </div>
 
             <div class="o_esv_kpis" t-if="tot">
-                <div t-if="!s.open_items_only" class="o_esv_kpi k_open"><span>Opening</span><b t-esc="this.money(tot.opening, tot.currency)"/></div>
-                <div class="o_esv_kpi k_debit"><span t-esc="s.labels.debit_total"/><b t-esc="this.money(tot.debit, tot.currency)"/></div>
-                <div class="o_esv_kpi good k_credit"><span t-esc="s.labels.credit_total"/><b t-esc="this.money(tot.credit, tot.currency)"/></div>
-                <div class="o_esv_kpi main k_due"><span t-esc="s.labels.due"/><b t-esc="this.money(tot.closing, tot.currency)"/></div>
-                <div t-att-class="'o_esv_kpi k_late ' + (tot.overdue &gt; 0.005 ? 'bad' : '')"><span>Overdue</span><b t-esc="this.money(tot.overdue, tot.currency)"/>
-                    <em><t t-esc="tot.overdue_partners"/> partner<t t-if="tot.overdue_partners !== 1">s</t></em></div>
+                <div t-if="!s.open_items_only" class="o_esv_kpi k_open"><span>Opening</span><b t-out="this.money(tot.opening, tot.currency)"/></div>
+                <div class="o_esv_kpi k_debit"><span t-out="s.labels.debit_total"/><b t-out="this.money(tot.debit, tot.currency)"/></div>
+                <div class="o_esv_kpi good k_credit"><span t-out="s.labels.credit_total"/><b t-out="this.money(tot.credit, tot.currency)"/></div>
+                <div class="o_esv_kpi main k_due"><span t-out="s.labels.due"/><b t-out="this.money(tot.closing, tot.currency)"/></div>
+                <div t-att-class="'o_esv_kpi k_late ' + (tot.overdue &gt; 0.005 ? 'bad' : '')"><span>Overdue</span><b t-out="this.money(tot.overdue, tot.currency)"/>
+                    <em><t t-out="tot.overdue_partners"/> partner<t t-if="tot.overdue_partners !== 1">s</t></em></div>
             </div>
 
             <div t-att-class="'o_esv_body' + (this.state.mobileDetail ? ' o_esv_showdetail' : '')">
@@ -47,7 +47,7 @@
                                 t-if="f[0] === 'all' or this.counts[f[0]]"
                                 t-att-class="'o_esv_chip' + (this.state.show === f[0] ? ' on' : '') + (f[0] === 'overdue' ? ' warn' : '')"
                                 t-on-click="() => this.state.show = f[0]">
-                            <t t-esc="f[1]"/> <b t-esc="this.counts[f[0]]"/>
+                            <t t-out="f[1]"/> <b t-out="this.counts[f[0]]"/>
                         </button>
                     </div>
                     <div class="o_esv_sortrow">
@@ -61,16 +61,16 @@
                     </div>
                     <div class="o_esv_rows">
                         <t t-foreach="this.visible" t-as="p" t-key="p.id">
-                            <div t-if="this.routeHead(p, p_index)" class="o_esv_route"><i class="fa fa-map-marker me-1"/><t t-esc="this.routeHead(p, p_index)"/></div>
+                            <div t-if="this.routeHead(p, p_index)" class="o_esv_route"><i class="fa fa-map-marker me-1"/><t t-out="this.routeHead(p, p_index)"/></div>
                             <button t-att-data-id="p.id" t-att-class="'o_esv_prow' + (this.state.current === p.id ? ' on' : '') + (p.has_data ? '' : ' quiet')"
                                     t-on-click="() => this.select(p)">
                                 <span class="o_esv_pn">
-                                    <b t-esc="p.name"/>
-                                    <em><t t-if="p.city" t-esc="p.city"/><t t-if="!p.has_data"> · no activity</t><t t-if="!p.email"> · <i class="fa fa-envelope-o"/> none</t></em>
+                                    <b t-out="p.name"/>
+                                    <em><t t-if="p.city" t-out="p.city"/><t t-if="!p.has_data"> · no activity</t><t t-if="!p.email"> · <i class="fa fa-envelope-o"/> none</t></em>
                                 </span>
                                 <span class="o_esv_pa">
-                                    <b t-att-class="this.due(p) &lt; -0.005 ? 'credit' : ''" t-esc="this.money(this.due(p), this.main(p) and this.main(p).currency)"/>
-                                    <em t-if="this.overdue(p) &gt; 0.005" class="late"><t t-esc="this.money(this.overdue(p), this.main(p).currency)"/> overdue</em>
+                                    <b t-att-class="this.due(p) &lt; -0.005 ? 'credit' : ''" t-out="this.money(this.due(p), this.main(p) and this.main(p).currency)"/>
+                                    <em t-if="this.overdue(p) &gt; 0.005" class="late"><t t-out="this.money(this.overdue(p), this.main(p).currency)"/> overdue</em>
                                 </span>
                             </button>
                         </t>
@@ -86,13 +86,13 @@
                         <div class="o_esv_dochead">
                             <button class="o_esv_back" t-on-click="this.backToList"><i class="fa fa-arrow-left"/></button>
                             <div class="o_esv_who">
-                                <h3 t-esc="st.name"/>
+                                <h3 t-out="st.name"/>
                                 <div class="o_esv_meta">
-                                    <span t-if="st.route"><i class="fa fa-map-marker"/> <t t-esc="st.route"/></span>
-                                    <span t-if="st.email"><i class="fa fa-envelope-o"/> <t t-esc="st.email"/></span>
-                                    <span t-if="st.phone"><i class="fa fa-phone"/> <t t-esc="st.phone"/></span>
+                                    <span t-if="st.route"><i class="fa fa-map-marker"/> <t t-out="st.route"/></span>
+                                    <span t-if="st.email"><i class="fa fa-envelope-o"/> <t t-out="st.email"/></span>
+                                    <span t-if="st.phone"><i class="fa fa-phone"/> <t t-out="st.phone"/></span>
                                 </div>
-                                <div class="o_esv_addr" t-if="st.address and st.address.length"><t t-esc="st.address.join(', ')"/></div>
+                                <div class="o_esv_addr" t-if="st.address and st.address.length"><t t-out="st.address.join(', ')"/></div>
                             </div>
                             <div class="o_esv_docacts">
                                 <button class="o_esv_btn" t-on-click="() => this.print('one')" t-att-disabled="this.state.busy" title="Print this statement">
@@ -110,11 +110,11 @@
                         <div t-if="!st.has_data" class="o_esv_none">No entries for this period.</div>
                         <div t-foreach="st.blocks" t-as="b" t-key="b_index" class="o_esv_block">
                             <div class="o_esv_mini">
-                                <div t-if="!s.open_items_only" class="k_open"><span>Opening</span><b t-esc="this.money(b.opening, b.currency)"/></div>
-                                <div class="k_debit"><span t-esc="s.labels.debit_total"/><b t-esc="this.money(b.total_debit, b.currency)"/></div>
-                                <div class="k_credit"><span t-esc="s.labels.credit_total"/><b t-esc="this.money(b.total_credit, b.currency)"/></div>
-                                <div class="main k_due"><span t-esc="s.labels.due"/><b t-esc="this.money(b.closing, b.currency)"/></div>
-                                <div t-att-class="'k_late ' + (b.overdue &gt; 0.005 ? 'bad' : '')"><span>Overdue</span><b t-esc="this.money(b.overdue, b.currency)"/></div>
+                                <div t-if="!s.open_items_only" class="k_open"><span>Opening</span><b t-out="this.money(b.opening, b.currency)"/></div>
+                                <div class="k_debit"><span t-out="s.labels.debit_total"/><b t-out="this.money(b.total_debit, b.currency)"/></div>
+                                <div class="k_credit"><span t-out="s.labels.credit_total"/><b t-out="this.money(b.total_credit, b.currency)"/></div>
+                                <div class="main k_due"><span t-out="s.labels.due"/><b t-out="this.money(b.closing, b.currency)"/></div>
+                                <div t-att-class="'k_late ' + (b.overdue &gt; 0.005 ? 'bad' : '')"><span>Overdue</span><b t-out="this.money(b.overdue, b.currency)"/></div>
                             </div>
                             <!-- where the open money sits, by how late it is -->
                             <div class="o_esv_age" t-if="b.ageing_total">
@@ -124,68 +124,68 @@
                                 </div>
                                 <div class="o_esv_agelegend">
                                     <span t-foreach="this.ageingBar(b)" t-as="a" t-key="a.i" t-att-class="a.amount ? '' : 'nil'">
-                                        <i t-att-class="'a' + a.i"/><t t-esc="a.label"/> <b t-esc="this.money(a.amount, b.currency)"/>
+                                        <i t-att-class="'a' + a.i"/><t t-out="a.label"/> <b t-out="this.money(a.amount, b.currency)"/>
                                     </span>
-                                    <span t-if="b.credits_open" class="text-muted">less unallocated <b t-esc="this.money(b.credits_open, b.currency)"/></span>
+                                    <span t-if="b.credits_open" class="text-muted">less unallocated <b t-out="this.money(b.credits_open, b.currency)"/></span>
                                 </div>
                             </div>
                             <!-- a phone: each line a two-line card, nothing to scroll sideways -->
                             <div class="o_esv_cards">
                                 <div t-if="!s.open_items_only" class="o_esv_card open">
-                                    <div class="o_esv_card_t"><span>Opening balance · <t t-esc="this.date(s.date_from)"/></span><b t-esc="this.money(b.opening, b.currency)"/></div>
+                                    <div class="o_esv_card_t"><span>Opening balance · <t t-out="this.date(s.date_from)"/></span><b t-out="this.money(b.opening, b.currency)"/></div>
                                 </div>
                                 <div t-foreach="b.lines" t-as="l" t-key="l_index" t-on-click="() => this.openMove(l)"
                                      t-att-class="'o_esv_card' + (l.days_overdue ? ' late' : '')">
                                     <div class="o_esv_card_t">
-                                        <span><t t-esc="this.date(l.date)"/> · <b t-esc="l.move"/> <em t-esc="l.kind"/></span>
-                                        <b t-if="l.debit" t-esc="this.money(l.debit, b.currency)"/>
-                                        <b t-else="" class="good" t-esc="'− ' + this.money(l.credit, b.currency)"/>
+                                        <span><t t-out="this.date(l.date)"/> · <b t-out="l.move"/> <em t-out="l.kind"/></span>
+                                        <b t-if="l.debit" t-out="this.money(l.debit, b.currency)"/>
+                                        <b t-else="" class="good" t-out="'− ' + this.money(l.credit, b.currency)"/>
                                     </div>
                                     <div class="o_esv_card_b">
-                                        <span class="o_esv_card_d"><t t-esc="l.name"/><t t-if="l.patient"> · <t t-esc="l.patient"/></t>
-                                            <em t-if="l.days_overdue" class="o_esv_late"> · <t t-esc="l.days_overdue"/> days late</em>
+                                        <span class="o_esv_card_d"><t t-out="l.name"/><t t-if="l.patient"> · <t t-out="l.patient"/></t>
+                                            <em t-if="l.days_overdue" class="o_esv_late"> · <t t-out="l.days_overdue"/> days late</em>
                                             <em t-elif="l.debit and l.paid" class="o_esv_paid"> · paid</em></span>
-                                        <span class="o_esv_card_bal" t-esc="this.money(l.balance, b.currency)"/>
+                                        <span class="o_esv_card_bal" t-out="this.money(l.balance, b.currency)"/>
                                     </div>
                                 </div>
                                 <div class="o_esv_card total">
-                                    <div class="o_esv_card_t"><span t-esc="s.labels.due"/><b t-esc="this.money(b.closing, b.currency)"/></div>
+                                    <div class="o_esv_card_t"><span t-out="s.labels.due"/><b t-out="this.money(b.closing, b.currency)"/></div>
                                 </div>
                             </div>
                             <div class="o_esv_tablewrap">
                                 <table class="o_esv_table">
                                     <thead><tr>
                                         <th>Date</th><th>Document</th><th>Description</th><th>Due</th>
-                                        <th class="num" t-esc="s.labels.debit"/><th class="num" t-esc="s.labels.credit"/><th class="num">Balance</th>
+                                        <th class="num" t-out="s.labels.debit"/><th class="num" t-out="s.labels.credit"/><th class="num">Balance</th>
                                     </tr></thead>
                                     <tbody>
                                         <tr t-if="!s.open_items_only" class="o_esv_open">
-                                            <td t-esc="this.date(s.date_from)"/><td colspan="5">Opening balance</td>
-                                            <td class="num" t-esc="this.money(b.opening, b.currency)"/>
+                                            <td t-out="this.date(s.date_from)"/><td colspan="5">Opening balance</td>
+                                            <td class="num" t-out="this.money(b.opening, b.currency)"/>
                                         </tr>
                                         <tr t-foreach="b.lines" t-as="l" t-key="l_index" t-on-click="() => this.openMove(l)"
                                             t-att-class="(l.move_id ? 'link' : '') + (l.days_overdue ? ' late' : '')">
-                                            <td class="nowrap" t-esc="this.date(l.date)"/>
-                                            <td class="nowrap"><b t-esc="l.move"/><div class="o_esv_kind" t-esc="l.kind"/></td>
+                                            <td class="nowrap" t-out="this.date(l.date)"/>
+                                            <td class="nowrap"><b t-out="l.move"/><div class="o_esv_kind" t-out="l.kind"/></td>
                                             <td class="o_esv_desc">
-                                                <span t-esc="l.name"/><span t-if="l.patient" class="o_esv_pat"> · <t t-esc="l.patient"/></span>
-                                                <div t-if="l.ref and l.ref !== l.move" class="o_esv_ref" t-esc="l.ref"/>
+                                                <span t-out="l.name"/><span t-if="l.patient" class="o_esv_pat"> · <t t-out="l.patient"/></span>
+                                                <div t-if="l.ref and l.ref !== l.move" class="o_esv_ref" t-out="l.ref"/>
                                             </td>
                                             <td class="nowrap">
-                                                <t t-esc="this.date(l.due)"/>
-                                                <div t-if="l.days_overdue" class="o_esv_late"><t t-esc="l.days_overdue"/> days late</div>
+                                                <t t-out="this.date(l.due)"/>
+                                                <div t-if="l.days_overdue" class="o_esv_late"><t t-out="l.days_overdue"/> days late</div>
                                                 <div t-elif="l.debit and l.paid" class="o_esv_paid"><i class="fa fa-check"/> paid</div>
                                             </td>
-                                            <td class="num" t-esc="l.debit ? this.money(l.debit, b.currency) : ''"/>
-                                            <td class="num good" t-esc="l.credit ? this.money(l.credit, b.currency) : ''"/>
-                                            <td class="num strong" t-esc="this.money(l.balance, b.currency)"/>
+                                            <td class="num" t-out="l.debit ? this.money(l.debit, b.currency) : ''"/>
+                                            <td class="num good" t-out="l.credit ? this.money(l.credit, b.currency) : ''"/>
+                                            <td class="num strong" t-out="this.money(l.balance, b.currency)"/>
                                         </tr>
                                     </tbody>
                                     <tfoot><tr>
-                                        <td colspan="4" t-esc="s.labels.due"/>
-                                        <td class="num" t-esc="this.money(b.total_debit, b.currency)"/>
-                                        <td class="num good" t-esc="this.money(b.total_credit, b.currency)"/>
-                                        <td class="num strong" t-esc="this.money(b.closing, b.currency)"/>
+                                        <td colspan="4" t-out="s.labels.due"/>
+                                        <td class="num" t-out="this.money(b.total_debit, b.currency)"/>
+                                        <td class="num good" t-out="this.money(b.total_credit, b.currency)"/>
+                                        <td class="num strong" t-out="this.money(b.closing, b.currency)"/>
                                     </tr></tfoot>
                                 </table>
                             </div>

@@ -3,31 +3,31 @@
     <t t-name="lab_doctor_desk.Card">
         <div t-att-class="this.cardClass(card)" t-on-click="() => this.open(card)">
             <div class="o_ddk_card_top">
-                <span class="o_ddk_clinic" t-esc="card.clinic" t-att-title="card.clinic"/>
-                <span t-if="card.priority !== '0'" t-att-class="'o_ddk_chip o_ddk_chip_p' + card.priority" t-esc="card.priority_label"/>
+                <span class="o_ddk_clinic" t-out="card.clinic" t-att-title="card.clinic"/>
+                <span t-if="card.priority !== '0'" t-att-class="'o_ddk_chip o_ddk_chip_p' + card.priority" t-out="card.priority_label"/>
                 <span t-if="card.escalated" class="o_ddk_chip o_ddk_chip_esc" t-att-title="card.escalation_note"><i class="fa fa-exclamation-triangle"/></span>
             </div>
             <div class="o_ddk_who">
-                <t t-if="card.patient"><i class="fa fa-user-o"/> <t t-esc="card.patient"/> · </t><t t-esc="card.order"/>
+                <t t-if="card.patient"><i class="fa fa-user-o"/> <t t-out="card.patient"/> · </t><t t-out="card.order"/>
             </div>
-            <div t-att-class="'o_ddk_reason o_ddk_r_' + card.reason"><t t-esc="card.reason_label"/></div>
-            <div class="o_ddk_q" t-if="card.state !== 'closed' and card.question" t-esc="card.question"/>
+            <div t-att-class="'o_ddk_reason o_ddk_r_' + card.reason"><t t-out="card.reason_label"/></div>
+            <div class="o_ddk_q" t-if="card.state !== 'closed' and card.question" t-out="card.question"/>
             <div class="o_ddk_said" t-if="card.state === 'closed'">
-                <b t-esc="card.outcome_label"/><span t-if="card.answer"> — <t t-esc="card.answer"/></span>
+                <b t-out="card.outcome_label"/><span t-if="card.answer"> — <t t-out="card.answer"/></span>
             </div>
             <div class="o_ddk_card_foot">
                 <span class="o_ddk_dots" t-if="card.attempts.length" t-att-title="card.attempts.length + ' attempt(s)'">
                     <i t-foreach="card.attempts.slice(-6)" t-as="a" t-key="a_index" t-att-class="'o_ddk_dot o_ddk_dot_' + a"/>
                 </span>
                 <span t-if="card.state === 'waiting'" t-att-class="'o_ddk_back' + (card.callback_due ? ' now' : '')">
-                    <i class="fa fa-bell-o"/> <t t-if="card.callback_due">Call now</t><t t-else="" t-esc="card.callback"/>
+                    <i class="fa fa-bell-o"/> <t t-if="card.callback_due">Call now</t><t t-else="" t-out="card.callback"/>
                 </span>
-                <span t-if="card.state === 'field'" class="o_ddk_back"><i class="fa fa-map-marker"/> <t t-esc="card.field_user"/></span>
-                <span t-if="card.state === 'closed'" class="o_ddk_back"><i class="fa fa-check"/> <t t-esc="card.closed_on"/></span>
-                <span t-if="this.clock(card)" t-att-class="'o_ddk_clock o_ddk_clock_' + card.due_state"><i class="fa fa-hourglass-half"/> <t t-esc="this.clock(card)"/></span>
+                <span t-if="card.state === 'field'" class="o_ddk_back"><i class="fa fa-map-marker"/> <t t-out="card.field_user"/></span>
+                <span t-if="card.state === 'closed'" class="o_ddk_back"><i class="fa fa-check"/> <t t-out="card.closed_on"/></span>
+                <span t-if="this.clock(card)" t-att-class="'o_ddk_clock o_ddk_clock_' + card.due_state"><i class="fa fa-hourglass-half"/> <t t-out="this.clock(card)"/></span>
                 <span class="o_ddk_gap"/>
-                <span t-if="card.siblings" class="o_ddk_sib" t-att-title="card.siblings + ' more open question(s) for this practice: one call can settle them'">+<t t-esc="card.siblings"/></span>
-                <span t-if="card.agent" t-att-class="'o_ddk_avatar' + (card.mine ? ' mine' : '')" t-att-title="card.agent" t-esc="this.initials(card.agent)"/>
+                <span t-if="card.siblings" class="o_ddk_sib" t-att-title="card.siblings + ' more open question(s) for this practice: one call can settle them'">+<t t-out="card.siblings"/></span>
+                <span t-if="card.agent" t-att-class="'o_ddk_avatar' + (card.mine ? ' mine' : '')" t-att-title="card.agent" t-out="this.initials(card.agent)"/>
                 <button t-if="card.state === 'new'" class="o_ddk_take" t-on-click="(ev) => this.take(card, ev)" t-att-disabled="this.state.busy">Take</button>
             </div>
         </div>
@@ -41,7 +41,7 @@
                     <span class="o_ddk_title_i"><i class="fa fa-phone"/></span>
                     <div>
                         <div class="o_ddk_h">Doctor Call Desk</div>
-                        <div class="o_ddk_sub" t-if="this.state.data"><t t-esc="this.state.data.me.name"/> · <t t-esc="this.state.data.now"/></div>
+                        <div class="o_ddk_sub" t-if="this.state.data"><t t-out="this.state.data.me.name"/> · <t t-out="this.state.data.now"/></div>
                     </div>
                 </div>
                 <t t-if="this.state.data">
@@ -56,31 +56,31 @@
                 </t>
             </div>
 
-            <div t-if="this.state.error" class="alert alert-danger m-3" t-esc="this.state.error"/>
+            <div t-if="this.state.error" class="alert alert-danger m-3" t-out="this.state.error"/>
             <div t-if="this.state.loading" class="o_ddk_wait"><i class="fa fa-circle-o-notch fa-spin me-2"/>Opening the desk…</div>
 
             <t t-if="this.state.data and !this.state.loading">
                 <div t-if="!this.state.data.on.length" class="o_ddk_off">
                     <i class="fa fa-power-off"/>
-                    <b>The Doctor Call Desk is switched off for <t t-esc="this.state.data.off.join(', ')"/></b>
+                    <b>The Doctor Call Desk is switched off for <t t-out="this.state.data.off.join(', ')"/></b>
                     <span>No ticket is raised and no order waits. It is switched on in Settings &gt; General Settings &gt; Doctor Call Desk.</span>
                 </div>
                 <!-- ═════════════ the figures ═════════════ -->
                 <div class="o_ddk_kpis">
                     <div class="o_ddk_kpi o_ddk_t_blue" t-on-click="() => { this.state.filter = 'all'; this.state.tab = 'new'; }">
-                        <i class="fa fa-inbox"/><b t-esc="this.state.data.kpis.pool"/><span>to take</span></div>
+                        <i class="fa fa-inbox"/><b t-out="this.state.data.kpis.pool"/><span>to take</span></div>
                     <div class="o_ddk_kpi o_ddk_t_violet" t-on-click="() => { this.state.filter = 'mine'; this.state.tab = 'taken'; }">
-                        <i class="fa fa-hand-paper-o"/><b t-esc="this.state.data.kpis.mine"/><span>with me</span></div>
+                        <i class="fa fa-hand-paper-o"/><b t-out="this.state.data.kpis.mine"/><span>with me</span></div>
                     <div t-att-class="'o_ddk_kpi o_ddk_t_amber' + (this.state.data.kpis.due ? ' ring' : '')" t-on-click="() => { this.state.filter = 'due'; this.state.tab = 'waiting'; }">
-                        <i class="fa fa-bell-o"/><b t-esc="this.state.data.kpis.due"/><span>to call now</span></div>
+                        <i class="fa fa-bell-o"/><b t-out="this.state.data.kpis.due"/><span>to call now</span></div>
                     <div class="o_ddk_kpi o_ddk_t_red" t-on-click="() => this.state.filter = 'late'">
-                        <i class="fa fa-hourglass-end"/><b t-esc="this.state.data.kpis.late"/><span>late</span></div>
+                        <i class="fa fa-hourglass-end"/><b t-out="this.state.data.kpis.late"/><span>late</span></div>
                     <div class="o_ddk_kpi o_ddk_t_green" t-on-click="() => { this.state.filter = 'all'; this.state.tab = 'closed'; }">
-                        <i class="fa fa-check"/><b t-esc="this.state.data.kpis.closed_today"/><span>closed today</span></div>
+                        <i class="fa fa-check"/><b t-out="this.state.data.kpis.closed_today"/><span>closed today</span></div>
                     <div class="o_ddk_kpi o_ddk_t_slate o_ddk_kpi_wide" title="Over the last 30 days">
                         <i class="fa fa-tachometer"/>
-                        <b><t t-if="this.state.data.kpis.closed_month" t-esc="this.state.data.kpis.avg_hours"/><t t-else="">–</t><small> h</small></b>
-                        <span>to an answer<t t-if="this.state.data.kpis.first_call !== null"> · <t t-esc="this.state.data.kpis.first_call"/>% at the first call</t></span>
+                        <b><t t-if="this.state.data.kpis.closed_month" t-out="this.state.data.kpis.avg_hours"/><t t-else="">–</t><small> h</small></b>
+                        <span>to an answer<t t-if="this.state.data.kpis.first_call !== null"> · <t t-out="this.state.data.kpis.first_call"/>% at the first call</t></span>
                     </div>
                 </div>
                 <!-- ═════════════ what is shown ═════════════ -->
@@ -88,13 +88,13 @@
                     <button t-foreach="this.filters" t-as="f" t-key="f.key"
                             t-att-class="'o_ddk_f' + (this.state.filter === f.key ? ' on' : '') + (f.tone ? ' o_ddk_f_' + f.tone : '')"
                             t-on-click="() => this.state.filter = f.key">
-                        <t t-esc="f.name"/><b t-if="f.count" t-esc="f.count"/>
+                        <t t-out="f.name"/><b t-if="f.count" t-out="f.count"/>
                     </button>
                 </div>
                 <div class="o_ddk_tabs">
                     <button t-foreach="this.columns" t-as="col" t-key="col.key" t-att-class="'o_ddk_tab o_ddk_t_' + col.tone + (this.state.tab === col.key ? ' on' : '')"
                             t-on-click="() => this.state.tab = col.key">
-                        <i t-att-class="'fa ' + col.icon"/><span t-esc="col.name"/><b t-esc="this.cardsOf(col).length"/>
+                        <i t-att-class="'fa ' + col.icon"/><span t-out="col.name"/><b t-out="this.cardsOf(col).length"/>
                     </button>
                 </div>
 
@@ -102,12 +102,12 @@
                 <div t-att-class="'o_ddk_stage' + (this.state.ticket ? ' o_ddk_with' : '')">
                     <div class="o_ddk_board">
                         <div t-foreach="this.columns" t-as="col" t-key="col.key" t-att-class="'o_ddk_col o_ddk_t_' + col.tone + (this.state.tab === col.key ? ' on' : '')">
-                            <div class="o_ddk_col_h"><i t-att-class="'fa ' + col.icon"/><span t-esc="col.name"/><b t-esc="this.cardsOf(col).length"/></div>
+                            <div class="o_ddk_col_h"><i t-att-class="'fa ' + col.icon"/><span t-out="col.name"/><b t-out="this.cardsOf(col).length"/></div>
                             <div class="o_ddk_col_b">
                                 <t t-foreach="this.cardsOf(col)" t-as="card" t-key="card.id">
                                     <t t-call="lab_doctor_desk.Card"/>
                                 </t>
-                                <div t-if="!this.cardsOf(col).length" class="o_ddk_none"><i t-att-class="'fa ' + col.icon"/><span t-esc="col.empty"/></div>
+                                <div t-if="!this.cardsOf(col).length" class="o_ddk_none"><i t-att-class="'fa ' + col.icon"/><span t-out="col.empty"/></div>
                             </div>
                         </div>
                     </div>
@@ -116,33 +116,33 @@
                         <t t-set="t" t-value="this.state.ticket"/>
                         <div t-att-class="'o_ddk_panel_h o_ddk_s_' + t.state">
                             <div>
-                                <div class="o_ddk_panel_n"><t t-esc="t.name"/> <span class="o_ddk_state" t-esc="t.state_label"/>
-                                    <span t-if="t.priority !== '0'" t-att-class="'o_ddk_chip o_ddk_chip_p' + t.priority" t-esc="t.priority_label"/></div>
-                                <div class="o_ddk_panel_c" t-esc="t.clinic"/>
+                                <div class="o_ddk_panel_n"><t t-out="t.name"/> <span class="o_ddk_state" t-out="t.state_label"/>
+                                    <span t-if="t.priority !== '0'" t-att-class="'o_ddk_chip o_ddk_chip_p' + t.priority" t-out="t.priority_label"/></div>
+                                <div class="o_ddk_panel_c" t-out="t.clinic"/>
                             </div>
                             <button class="o_ddk_x" t-on-click="this.close" title="Close  Esc"><i class="fa fa-times"/></button>
                         </div>
                         <div class="o_ddk_panel_b">
                             <div t-if="t.escalated" class="o_ddk_note o_ddk_note_red">
-                                <i class="fa fa-exclamation-triangle"/><span><b>Escalated.</b> <t t-esc="t.escalation_note"/></span>
+                                <i class="fa fa-exclamation-triangle"/><span><b>Escalated.</b> <t t-out="t.escalation_note"/></span>
                                 <button t-if="this.state.data.me.lead" class="o_ddk_mini" t-on-click="this.settleEscalation">Dealt with</button>
                             </div>
-                            <div t-if="t.callback_due" class="o_ddk_note o_ddk_note_amber"><i class="fa fa-bell"/><span><b>It is time to call again.</b> Set for <t t-esc="t.callback"/>.</span></div>
-                            <div t-elif="t.state === 'waiting' and t.callback" class="o_ddk_note o_ddk_note_soft"><i class="fa fa-bell-o"/><span>To be called again <b t-esc="t.callback"/> (<t t-esc="t.callback_in"/>).</span></div>
-                            <div t-if="t.state === 'field'" class="o_ddk_note o_ddk_note_teal"><i class="fa fa-map-marker"/><span>With <b t-esc="t.field_user"/>, to be asked at the clinic.</span></div>
+                            <div t-if="t.callback_due" class="o_ddk_note o_ddk_note_amber"><i class="fa fa-bell"/><span><b>It is time to call again.</b> Set for <t t-out="t.callback"/>.</span></div>
+                            <div t-elif="t.state === 'waiting' and t.callback" class="o_ddk_note o_ddk_note_soft"><i class="fa fa-bell-o"/><span>To be called again <b t-out="t.callback"/> (<t t-out="t.callback_in"/>).</span></div>
+                            <div t-if="t.state === 'field'" class="o_ddk_note o_ddk_note_teal"><i class="fa fa-map-marker"/><span>With <b t-out="t.field_user"/>, to be asked at the clinic.</span></div>
 
                             <!-- the question -->
                             <div class="o_ddk_ask">
-                                <div t-att-class="'o_ddk_reason o_ddk_r_' + t.reason" t-esc="t.reason_label"/>
-                                <div class="o_ddk_ask_q" t-if="t.question" t-esc="t.question"/>
+                                <div t-att-class="'o_ddk_reason o_ddk_r_' + t.reason" t-out="t.reason_label"/>
+                                <div class="o_ddk_ask_q" t-if="t.question" t-out="t.question"/>
                                 <div class="o_ddk_ask_q o_ddk_ask_none" t-else="">No question was written. The order's notes are below.</div>
-                                <div class="o_ddk_ask_by">Raised by <t t-esc="t.raised_by"/>, <t t-esc="t.raised_on"/>
-                                    <t t-if="this.isOpen and t.deadline"> · answer needed by <b t-att-class="'o_ddk_clock_' + t.due_state" t-esc="t.deadline"/></t></div>
+                                <div class="o_ddk_ask_by">Raised by <t t-out="t.raised_by"/>, <t t-out="t.raised_on"/>
+                                    <t t-if="this.isOpen and t.deadline"> · answer needed by <b t-att-class="'o_ddk_clock_' + t.due_state" t-out="t.deadline"/></t></div>
                             </div>
 
                             <!-- reaching the doctor -->
                             <div class="o_ddk_reach" t-if="this.isOpen">
-                                <a t-if="t.tel" t-att-href="t.tel" class="o_ddk_call"><i class="fa fa-phone"/><span><b>Call</b><em t-esc="t.phone"/></span></a>
+                                <a t-if="t.tel" t-att-href="t.tel" class="o_ddk_call"><i class="fa fa-phone"/><span><b>Call</b><em t-out="t.phone"/></span></a>
                                 <div t-else="" class="o_ddk_call o_ddk_call_none"><i class="fa fa-phone"/><span><b>No number</b><em>on this clinic</em></span></div>
                                 <a t-if="t.wa" t-att-href="t.wa" target="_blank" rel="noopener" class="o_ddk_wa"><i class="fa fa-whatsapp"/><span><b>WhatsApp</b><em>the question</em></span></a>
                                 <button t-if="t.phone" class="o_ddk_copy" t-on-click="this.copyNumber" title="Copy the number"><i class="fa fa-clone"/></button>
@@ -150,24 +150,24 @@
                             <div class="o_ddk_habit" t-if="this.isOpen and t.habits.calls">
                                 <div class="o_ddk_habit_t">
                                     <i class="fa fa-lightbulb-o"/>
-                                    <span t-if="t.habits.best" t-esc="t.habits.best"/>
-                                    <span t-else="">Picks up <b t-esc="t.habits.rate"/>% of the time (<t t-esc="t.habits.answered"/> of <t t-esc="t.habits.calls"/> calls)</span>
+                                    <span t-if="t.habits.best" t-out="t.habits.best"/>
+                                    <span t-else="">Picks up <b t-out="t.habits.rate"/>% of the time (<t t-out="t.habits.answered"/> of <t t-out="t.habits.calls"/> calls)</span>
                                 </div>
                                 <div class="o_ddk_hours" title="Calls to this practice by hour: the darker part was answered">
                                     <div t-foreach="t.habits.hours" t-as="h" t-key="h.hour" class="o_ddk_hour" t-att-title="h.label + ': ' + h.answered + ' of ' + h.tried + ' answered'">
                                         <span class="o_ddk_hour_bar" t-attf-style="height: {{ this.hourHeight(h) }}%">
                                             <i t-attf-style="height: {{ this.hourAnswered(h) }}%"/></span>
-                                        <em t-if="h.hour % 3 === 0" t-esc="h.label"/>
+                                        <em t-if="h.hour % 3 === 0" t-out="h.label"/>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- one call, every question for this practice -->
                             <div class="o_ddk_others" t-if="this.isOpen and t.others.length">
-                                <div class="o_ddk_sec"><i class="fa fa-clone"/> <t t-esc="t.others.length"/> more open question<t t-if="t.others.length !== 1">s</t> for this practice</div>
+                                <div class="o_ddk_sec"><i class="fa fa-clone"/> <t t-out="t.others.length"/> more open question<t t-if="t.others.length !== 1">s</t> for this practice</div>
                                 <label t-foreach="t.others" t-as="o" t-key="o.id" class="o_ddk_other_row">
                                     <input type="checkbox" t-att-checked="this.state.also[o.id]" t-on-change="(ev) => this.state.also[o.id] = ev.target.checked"/>
-                                    <span><b t-esc="o.patient || o.order"/> <em t-esc="o.reason_label"/><t t-if="o.question"> — <t t-esc="o.question"/></t></span>
+                                    <span><b t-out="o.patient || o.order"/> <em t-out="o.reason_label"/><t t-if="o.question"> — <t t-out="o.question"/></t></span>
                                     <a href="#" t-on-click.prevent="() => this.open(o)" title="Open this ticket"><i class="fa fa-external-link"/></a>
                                 </label>
                                 <div class="o_ddk_hint">Tick the ones the same call is about: what is saved below is saved on them too.</div>
@@ -201,18 +201,18 @@
                                 <div class="o_ddk_picks">
                                     <button t-foreach="this.state.data.outcomes.filter((o) => o[0] !== 'unreached')" t-as="o" t-key="o[0]"
                                             t-att-class="'o_ddk_pick o_ddk_pick_' + o[0] + (this.state.form.outcome === o[0] ? ' on' : '')"
-                                            t-on-click="() => this.state.form.outcome = o[0]" t-esc="o[1]"/>
+                                            t-on-click="() => this.state.form.outcome = o[0]" t-out="o[1]"/>
                                 </div>
                                 <div class="o_ddk_sec">What the doctor said</div>
                                 <textarea rows="3" t-custom-model="this.state.form.answer" placeholder="In the doctor's words: shade A2 on 21, keep the clasp on 16…"/>
                                 <div class="o_ddk_sec">Answered by</div>
                                 <div class="o_ddk_picks">
                                     <button t-foreach="this.state.data.channels" t-as="c" t-key="c[0]" t-att-class="'o_ddk_pick' + (this.state.form.channel === c[0] ? ' on' : '')"
-                                            t-on-click="() => this.state.form.channel = c[0]" t-esc="c[1]"/>
+                                            t-on-click="() => this.state.form.channel = c[0]" t-out="c[1]"/>
                                 </div>
                                 <label class="o_ddk_tick" t-if="this.state.form.outcome !== 'cancel'"><input type="checkbox" t-custom-model="this.state.form.tell"/> Put the answer on the job card</label>
                                 <div class="o_ddk_form_f">
-                                    <span t-if="this.alsoIds.length" class="o_ddk_hint">Closes <t t-esc="this.alsoIds.length + 1"/> tickets.</span>
+                                    <span t-if="this.alsoIds.length" class="o_ddk_hint">Closes <t t-out="this.alsoIds.length + 1"/> tickets.</span>
                                     <button class="o_ddk_go o_ddk_a_green" t-on-click="this.saveAnswer" t-att-disabled="this.state.busy">
                                         <i t-att-class="'fa ' + (this.state.busy ? 'fa-circle-o-notch fa-spin' : 'fa-check')"/> Close the ticket</button>
                                 </div>
@@ -221,12 +221,12 @@
                                 <div class="o_ddk_sec">What happened</div>
                                 <div class="o_ddk_picks">
                                     <button t-foreach="this.state.data.responses" t-as="r" t-key="r[0]" t-att-class="'o_ddk_pick' + (this.state.form.response === r[0] ? ' on' : '')"
-                                            t-on-click="() => this.state.form.response = r[0]" t-esc="r[1]"/>
+                                            t-on-click="() => this.state.form.response = r[0]" t-out="r[1]"/>
                                 </div>
                                 <div class="o_ddk_sec">Call again</div>
                                 <div class="o_ddk_picks">
                                     <button t-foreach="this.waits" t-as="w" t-key="w.minutes" t-att-class="'o_ddk_pick' + (this.state.form.wait === w.minutes ? ' on' : '')"
-                                            t-on-click="() => this.state.form.wait = w.minutes" t-esc="w.name"/>
+                                            t-on-click="() => this.state.form.wait = w.minutes" t-out="w.name"/>
                                 </div>
                                 <input t-if="this.state.form.wait === 'custom'" type="datetime-local" t-custom-model="this.state.form.custom"/>
                                 <input type="text" t-custom-model="this.state.form.remarks" placeholder="Who picked up, what they said (optional)"/>
@@ -236,7 +236,7 @@
                                 </div>
                             </div>
                             <div class="o_ddk_form o_ddk_form_teal" t-if="this.state.form and this.state.form.kind === 'field'">
-                                <div class="o_ddk_sec">To be asked at the clinic<t t-if="t.field_candidate"> by <t t-esc="t.field_candidate"/></t></div>
+                                <div class="o_ddk_sec">To be asked at the clinic<t t-if="t.field_candidate"> by <t t-out="t.field_candidate"/></t></div>
                                 <input type="text" t-custom-model="this.state.form.note" placeholder="Anything the executive should know (optional)"/>
                                 <div class="o_ddk_hint">The executive is told, sees the question on their case, and answers from the clinic.</div>
                                 <div class="o_ddk_form_f"><button class="o_ddk_go o_ddk_a_teal" t-on-click="this.saveField" t-att-disabled="this.state.busy"><i class="fa fa-share"/> Hand over</button></div>
@@ -251,7 +251,7 @@
                                 <select t-custom-model="this.state.form.user">
                                     <option value="">Choose…</option>
                                     <option t-foreach="this.state.data.agents" t-as="a" t-key="a.id" t-att-value="a.id">
-                                        <t t-esc="a.name"/> · <t t-esc="a.open"/> open<t t-if="!a.at_desk"> · away</t></option>
+                                        <t t-out="a.name"/> · <t t-out="a.open"/> open<t t-if="!a.at_desk"> · away</t></option>
                                 </select>
                                 <div class="o_ddk_form_f"><button class="o_ddk_go o_ddk_a_slate" t-on-click="this.saveAssign" t-att-disabled="this.state.busy or !this.state.form.user"><i class="fa fa-user-plus"/> Give</button></div>
                             </div>
@@ -269,22 +269,22 @@
 
                             <!-- the answer, once there is one -->
                             <div class="o_ddk_answer" t-if="t.state === 'closed'">
-                                <div class="o_ddk_sec"><i class="fa fa-check-circle"/> <t t-esc="t.outcome_label"/></div>
-                                <div class="o_ddk_answer_t" t-esc="t.answer"/>
-                                <div class="o_ddk_ask_by">Closed by <t t-esc="t.closed_by"/>, <t t-esc="t.closed_on"/> · <t t-esc="t.hours_to_close"/> h after it was raised</div>
+                                <div class="o_ddk_sec"><i class="fa fa-check-circle"/> <t t-out="t.outcome_label"/></div>
+                                <div class="o_ddk_answer_t" t-out="t.answer"/>
+                                <div class="o_ddk_ask_by">Closed by <t t-out="t.closed_by"/>, <t t-out="t.closed_on"/> · <t t-out="t.hours_to_close"/> h after it was raised</div>
                                 <button t-if="this.state.data.me.lead" class="o_ddk_mini mt-2" t-on-click="this.reopen" t-att-disabled="this.state.busy"><i class="fa fa-undo"/> Reopen</button>
                             </div>
 
                             <!-- the order -->
                             <div class="o_ddk_order">
-                                <div class="o_ddk_sec"><i class="fa fa-file-text-o"/> <t t-esc="t.order"/>
-                                    <span class="o_ddk_tag" t-esc="t.order_state"/><span class="o_ddk_tag" t-esc="t.verification"/>
+                                <div class="o_ddk_sec"><i class="fa fa-file-text-o"/> <t t-out="t.order"/>
+                                    <span class="o_ddk_tag" t-out="t.order_state"/><span class="o_ddk_tag" t-out="t.verification"/>
                                     <a t-if="t.can_open_order" href="#" class="o_ddk_link" t-on-click.prevent="this.openOrder">open</a></div>
-                                <div class="o_ddk_order_w"><t t-if="t.patient"><b t-esc="t.patient"/> · </t>registered <t t-esc="t.order_date"/><t t-if="t.order_due"> · due <t t-esc="t.order_due"/></t></div>
+                                <div class="o_ddk_order_w"><t t-if="t.patient"><b t-out="t.patient"/> · </t>registered <t t-out="t.order_date"/><t t-if="t.order_due"> · due <t t-out="t.order_due"/></t></div>
                                 <div class="o_ddk_line" t-foreach="t.lines" t-as="l" t-key="l_index">
-                                    <span t-esc="l.name"/><em t-if="l.detail" t-esc="l.detail"/><b>× <t t-esc="l.qty"/></b>
+                                    <span t-out="l.name"/><em t-if="l.detail" t-out="l.detail"/><b>× <t t-out="l.qty"/></b>
                                 </div>
-                                <div class="o_ddk_instr" t-if="t.instruction"><i class="fa fa-sticky-note-o"/> <t t-esc="t.instruction"/></div>
+                                <div class="o_ddk_instr" t-if="t.instruction"><i class="fa fa-sticky-note-o"/> <t t-out="t.instruction"/></div>
                             </div>
 
                             <!-- what has happened -->
@@ -292,7 +292,7 @@
                                 <div class="o_ddk_sec"><i class="fa fa-history"/> What has happened</div>
                                 <div t-foreach="t.events" t-as="e" t-key="e_index" t-att-class="'o_ddk_ev o_ddk_ev_' + e.tone">
                                     <span class="o_ddk_ev_i"><i t-att-class="'fa ' + e.icon"/></span>
-                                    <div><b t-esc="e.text"/><em t-esc="e.when"/><span t-if="e.note" t-esc="e.note"/></div>
+                                    <div><b t-out="e.text"/><em t-out="e.when"/><span t-if="e.note" t-out="e.note"/></div>
                                 </div>
                             </div>
 
@@ -300,9 +300,9 @@
                             <div class="o_ddk_past" t-if="t.past.length">
                                 <div class="o_ddk_sec"><i class="fa fa-comments-o"/> What this practice answered before</div>
                                 <div t-foreach="t.past" t-as="p" t-key="p.name" class="o_ddk_past_r">
-                                    <em><t t-esc="p.reason_label"/> · <t t-esc="p.when"/></em>
-                                    <span t-if="p.question">Asked: <t t-esc="p.question"/></span>
-                                    <b t-esc="p.answer"/>
+                                    <em><t t-out="p.reason_label"/> · <t t-out="p.when"/></em>
+                                    <span t-if="p.question">Asked: <t t-out="p.question"/></span>
+                                    <b t-out="p.answer"/>
                                 </div>
                             </div>
                             <a href="#" class="o_ddk_link o_ddk_full" t-on-click.prevent="this.openTicketForm">Open the ticket's own page</a>

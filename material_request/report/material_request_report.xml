@@ -44,7 +44,7 @@
                             </thead>
                             <tbody>
                                 <tr t-foreach="o.line_ids" t-as="l">
-                                    <td><t t-esc="l_index + 1"/></td>
+                                    <td><t t-out="l_index + 1"/></td>
                                     <td><span t-field="l.product_id.display_name"/></td>
                                     <td><span t-field="l.note"/></td>
                                     <td class="text-end"><span t-field="l.quantity"/></td>
