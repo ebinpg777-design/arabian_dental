@@ -2,10 +2,11 @@
 from datetime import date, datetime, timedelta
 
 import json
+import re
 from urllib.parse import unquote
 
 from odoo import fields, http
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
 from odoo.tests.common import HttpCase, TransactionCase
 
@@ -558,3 +559,89 @@ class TestStatementOnScreen(TestPartnerStatement):
         from odoo.exceptions import AccessError
         with self.assertRaises(AccessError):
             self.Engine.with_user(portal).view_summary(self.partner.ids, data)
+
+
+@tagged('post_install', '-at_install')
+class TestStatementViewIsAccountingOnly(TestPartnerStatement):
+    """'View statements' is for the accounting team. (client, 2026-10-06)
+
+    Everyone internal can open this wizard -- an executive reaches it from a debtor
+    row to print a clinic's statement -- so the restriction has to be on the one
+    button, in the view and in the method behind it.
+    """
+
+    def _wizard(self, **vals):
+        return self.env['epg.partner.statement.wizard'].create(dict({
+            'partner_ids': [(6, 0, self.partner.ids)], 'statement_type': 'receivable', 'period': 'custom',
+            'date_from': self.today, 'date_to': self.today, 'company_id': self.company.id}, **vals))
+
+    def _user(self, login, *group_xmlids):
+        return self.env['res.users'].create({
+            'name': login, 'login': login,
+            'group_ids': [(6, 0, [self.env.ref(g).id for g in
+                                  ('base.group_user',) + group_xmlids])]})
+
+    def _footer_buttons(self, user):
+        """The button names the given user is actually served in the wizard form."""
+        arch = self.env['epg.partner.statement.wizard'].with_user(user).get_view(
+            self.env.ref('epg_partner_statement.view_partner_statement_wizard').id, 'form')['arch']
+        return set(re.findall(r'<button[^>]*name="(\w+)"', arch))
+
+    # ------------------------------------------------------------------ the view
+    def test_the_button_is_not_served_to_a_user_outside_accounting(self):
+        buttons = self._footer_buttons(self._user('stmt_plain'))
+        self.assertNotIn('action_view', buttons,
+                         "'View statements' must not reach a user with no accounting rights")
+        self.assertIn('action_print', buttons,
+                      "printing a statement is not what is being restricted")
+
+    def test_the_button_is_served_to_invoicing_and_to_readonly(self):
+        for login, group in (('stmt_inv', 'account.group_account_invoice'),
+                             ('stmt_ro', 'account.group_account_readonly')):
+            with self.subTest(group=group):
+                self.assertIn('action_view', self._footer_buttons(self._user(login, group)),
+                              "the accounting team must still get the button")
+
+    # ------------------------------------------------------------------ the method
+    def test_calling_it_anyway_is_refused(self):
+        """Hiding a button does not stop an RPC call.
+
+        The message is asserted, not just the exception type: a user outside
+        accounting cannot read account.move.line either, so this raises AccessError
+        with or without the guard, and a bare assertRaises passes vacuously.
+        """
+        self._invoice(120, self.today)
+        wizard = self._wizard()
+        plain = self._user('stmt_plain_rpc')
+        with self.assertRaises(AccessError) as caught:
+            wizard.with_user(plain).action_view()
+        self.assertIn('accounting team', str(caught.exception),
+                      "must be refused by the guard, before it ever reads the ledger")
+
+    def test_the_accounting_team_can_call_it(self):
+        self._invoice(120, self.today)
+        for login, group in (('stmt_inv_rpc', 'account.group_account_invoice'),
+                             ('stmt_ro_rpc', 'account.group_account_readonly')):
+            with self.subTest(group=group):
+                action = self._wizard().with_user(self._user(login, group)).action_view()
+                self.assertEqual(action['tag'], 'epg_statement_view')
+
+    def test_the_guard_is_on_this_button_only(self):
+        """Print is untouched: for a user outside accounting it fails where it always
+        did, on reading account.move.line, and not with the new refusal.
+
+        (77 of the active internal users on the 2026-08-28 copy hold no accounting
+        group at all, so the wizard was already unusable for them -- this change only
+        stops offering them the button.)
+        """
+        self._invoice(120, self.today)
+        plain = self._user('stmt_plain_print')
+        with self.assertRaises(AccessError) as caught:
+            self._wizard().with_user(plain).action_print()
+        self.assertNotIn('accounting team', str(caught.exception),
+                         "print must not start refusing people for the new reason")
+
+    def test_the_accounting_team_can_still_print(self):
+        self._invoice(120, self.today)
+        inv = self._user('stmt_inv_print', 'account.group_account_invoice')
+        self.assertTrue(self._wizard().with_user(inv).action_print())

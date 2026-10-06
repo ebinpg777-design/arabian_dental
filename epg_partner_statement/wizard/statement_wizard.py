@@ -2,9 +2,13 @@
 import base64
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 
 from ..models.statement_engine import PERIOD_PRESETS, STATEMENT_TYPES
+
+# statements follow the accounting rights; keep in step with the button's
+# groups= in statement_wizard_views.xml and the smart button on the partner
+VIEW_GROUPS = 'account.group_account_invoice,account.group_account_readonly'
 
 
 class PartnerStatementWizard(models.TransientModel):
@@ -225,7 +229,14 @@ class PartnerStatementWizard(models.TransientModel):
 
         Everything the screen needs rides in its params (not the wizard id), so it
         still works after the transient wizard is cleaned away or the page reloads.
+
+        Accounting only. Everyone else reaches this wizard too -- an executive opens
+        it from a debtor row to print a clinic's statement -- so the button is hidden
+        from them in the view, and hiding a button does not stop anyone calling it.
         """
+        if not (self.env.su or self.env.user.has_groups(VIEW_GROUPS)):
+            raise AccessError(_("The statement screen is for the accounting team. "
+                                "You can still print or e-mail the statement."))
         partners = self._checked_partners()
         options = self._options()
         return {
