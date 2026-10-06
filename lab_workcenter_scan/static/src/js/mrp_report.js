@@ -1,10 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { ActionPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Production reports, in two halves.
@@ -21,11 +21,11 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class LabMrpReport extends Component {
     static template = "lab_workcenter_scan.MrpReport";
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = usePlugin(ActionPlugin);
         this.notification = usePlugin(NotificationPlugin);
         this.state = proxy({
             weeks: 8, data: null, loading: true, half: "now",

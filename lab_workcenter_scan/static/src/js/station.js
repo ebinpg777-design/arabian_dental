@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, proxy, usePlugin, signal, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
@@ -16,8 +16,7 @@ import { ChangeDialog } from "@lab_workcenter_scan/js/change_dialog";
 import { RestartDialog } from "@lab_workcenter_scan/js/restart_dialog";
 import { TargetsDialog } from "@lab_workcenter_scan/js/targets_dialog";
 import { StationPickDialog } from "@lab_workcenter_scan/js/station_pick_dialog";
-import { useRef } from "@web/owl2/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { ActionPlugin } from "@web/webclient/actions/action_plugin";
 
 const REFRESH_MS = 60000;
 
@@ -35,11 +34,11 @@ const REFRESH_MS = 60000;
  */
 export class LabStation extends Component {
     static template = "lab_workcenter_scan.Station";
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = usePlugin(ActionPlugin);
         this.notification = usePlugin(NotificationPlugin);
         this.dialog = useService("dialog");
         this.state = proxy({
@@ -64,8 +63,8 @@ export class LabStation extends Component {
             query: "",
             sort: "oldest",
         });
-        this.typedRef = useRef("typed");
-        this.findRef = useRef("find");
+        this.typedRef = signal.ref();
+        this.findRef = signal.ref();
         this.findTimer = null;
         onWillStart(() => this.load());
         // Polling only while the screen is actually being looked at. This board lives on
@@ -156,7 +155,7 @@ export class LabStation extends Component {
                 // No camera (plain http on the phone, a laptop without one): the typed
                 // field is the way in. Never window.prompt — Android in-app browsers
                 // and installed PWAs suppress it, so the person sees nothing at all.
-                this.typedRef.el?.focus();
+                this.typedRef()?.focus();
                 return;
             }
             if (!(await this.submitCode(code, keepGoing))) {
@@ -368,7 +367,7 @@ export class LabStation extends Component {
             }
         }
         if (!code) {
-            this.typedRef.el?.focus();
+            this.typedRef()?.focus();
             return;
         }
         this.state.busy = -1;
@@ -412,7 +411,7 @@ export class LabStation extends Component {
             }
         }
         if (!code) {
-            this.typedRef.el?.focus();
+            this.typedRef()?.focus();
             return;
         }
         this.state.busy = -1;
@@ -475,7 +474,7 @@ export class LabStation extends Component {
             }
         }
         if (!code) {
-            this.typedRef.el?.focus();
+            this.typedRef()?.focus();
             return;
         }
         this.state.busy = -1;

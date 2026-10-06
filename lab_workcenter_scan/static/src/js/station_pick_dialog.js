@@ -1,9 +1,8 @@
 /** @odoo-module **/
 
-import { Component, proxy, onMounted } from "@odoo/owl";
+import { Component, proxy, onMounted, signal, useProps, t } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
-import { useRef } from "@web/owl2/utils";
 
 /**
  * Which bench am I standing at?
@@ -19,20 +18,20 @@ import { useRef } from "@web/owl2/utils";
 export class StationPickDialog extends Component {
     static template = "lab_workcenter_scan.StationPickDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        stations: Array,        // [{id, name, code, queue, is_lead, people}]
-        currentId: { type: [Number, Boolean], optional: true },
+    props = useProps({
+        close: t.function(),
+        stations: t.array(),        // [{id, name, code, queue, is_lead, people}]
+        currentId: t.or([t.number(), t.boolean()]).optional(),
         // "today", or the day the board is being read for: the finished count
         // on each card belongs to it. (client, 2026-09-10)
-        dayLabel: { type: String, optional: true },
-        onPick: Function,       // async (stationId) => void
-    };
+        dayLabel: t.string().optional(),
+        onPick: t.function(),       // async (stationId) => void
+    });
 
     setup() {
         this.state = proxy({ query: "", busy: false });
-        this.searchRef = useRef("search");
-        onMounted(() => this.searchRef.el && this.searchRef.el.focus());
+        this.searchRef = signal.ref();
+        onMounted(() => this.searchRef() && this.searchRef().focus());
     }
 
     get title() {

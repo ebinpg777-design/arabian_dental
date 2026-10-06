@@ -4,7 +4,7 @@ from datetime import datetime, time, timedelta
 import pytz
 
 from odoo import fields
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests import Form, TransactionCase, tagged
 
 
@@ -23,7 +23,7 @@ class TestWorkcenterScan(TransactionCase):
             'product_id': product.id, 'product_qty': 1.0})
         cls.wo = cls.env['mrp.workorder'].create({
             'name': 'Finishing', 'production_id': cls.production.id,
-            'workcenter_id': cls.wc_a.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc_a.id})
 
     def test_every_station_gets_a_code_and_a_readable_label(self):
         self.assertTrue(self.wc_a.scan_code)
@@ -153,10 +153,10 @@ class TestStationRestart(TransactionCase):
             'product_id': product.id, 'product_qty': 1.0})
         cls.wo_a = cls.env['mrp.workorder'].create({
             'name': 'Bending', 'sequence': 10, 'production_id': cls.mo.id,
-            'workcenter_id': cls.wc_a.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc_a.id})
         cls.wo_b = cls.env['mrp.workorder'].create({
             'name': 'Finishing', 'sequence': 20, 'production_id': cls.mo.id,
-            'workcenter_id': cls.wc_b.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc_b.id})
         cls.reason = cls.env['lab.redo.reason'].search([], limit=1) \
             or cls.env['lab.redo.reason'].create({'name': 'Broken'})
 
@@ -273,7 +273,7 @@ class TestStationRestart(TransactionCase):
         for name, wc, seq in (('Bend', self.wc_a, 10), ('Finish', self.wc_b, 20)):
             self.env['mrp.workorder'].create({
                 'name': name, 'sequence': seq, 'production_id': mo.id,
-                'workcenter_id': wc.id, 'product_uom_id': product.uom_id.id})
+                'workcenter_id': wc.id})
         with self.assertRaises(UserError):
             self.env['lab.station'].with_user(self.head).scan_to_cancel(mo.name, elsewhere.id)
 
@@ -315,7 +315,7 @@ class TestStationRestart(TransactionCase):
             {'product_id': product.id, 'product_qty': 1.0})
         self.env['mrp.workorder'].create({
             'name': 'Bending', 'sequence': 10, 'production_id': mo.id,
-            'workcenter_id': self.wc_a.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': self.wc_a.id})
         station = self.env['lab.station'].with_user(self.head)
         with self.assertRaises(UserError) as caught:
             station.scan_to_restart(mo.name, elsewhere.id)
@@ -431,10 +431,13 @@ class TestBenchUserMenus(TransactionCase):
     def test_an_app_they_were_actually_granted_survives(self):
         """The rule is about grants, not about hiding: give them the group and the app
         comes back. Otherwise this would be a lock rather than a tidy-up."""
+        # Odoo 20: the Contacts app is its own module, not installed with this
+        # one, so the granted app here is Invoicing (account.group_account_invoice).
+        self.assertNotIn('Invoicing', self._apps(self.bench))
         self.bench.write({'group_ids': [
-            (4, self.env.ref('base.group_partner_manager').id)]})
+            (4, self.env.ref('account.group_account_invoice').id)]})
         self.env.transaction.invalidate_ormcache()
-        self.assertIn('Contacts', self._apps(self.bench))
+        self.assertIn('Invoicing', self._apps(self.bench))
 
     def test_an_administrator_keeps_the_whole_switcher(self):
         boss = self.env['res.users'].create({
@@ -446,7 +449,9 @@ class TestBenchUserMenus(TransactionCase):
                 self.env.ref('lab_workcenter_scan.group_workcenter_bound').id])]})
         apps = self._apps(boss)
         self.assertIn('Settings', apps)
-        self.assertIn('Contacts', apps,
+        # Discuss rather than Contacts: Contacts is not installed with this module
+        # on Odoo 20. Discuss is one of the apps a bench user does NOT get.
+        self.assertIn('Discuss', apps,
                       "the person who fixes access must still be able to reach it")
 
 
@@ -469,10 +474,10 @@ class TestStationBoard(TransactionCase):
             'product_id': product.id, 'product_qty': 1.0})
         cls.wo_a = cls.env['mrp.workorder'].create({
             'name': 'Trimming', 'sequence': 10, 'production_id': cls.mo.id,
-            'workcenter_id': cls.wc_a.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc_a.id})
         cls.wo_b = cls.env['mrp.workorder'].create({
             'name': 'Polishing', 'sequence': 20, 'production_id': cls.mo.id,
-            'workcenter_id': cls.wc_b.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc_b.id})
 
     def test_the_board_opens_on_the_station_you_run(self):
         """A shared terminal that asks "which station are you?" every morning is
@@ -759,6 +764,45 @@ class TestStationBoard(TransactionCase):
         self.assertIn(self.wc_a, stations)
         self.assertNotIn(self.wc_b, stations)
 
+    def test_the_bench_restriction_holds_over_manufacturing_manager(self):
+        """Odoo 20: an access row with a group is a PERMISSION, OR-ed with mrp's own
+        "work orders: all" permission - so the old group rule stopped restricting
+        anybody. It is now a restriction that only bites for the bench group, and it
+        must hold even for a bench user who also carries Manufacturing/Administrator
+        (every manufacturing user on the lab's database does)."""
+        tech = self._bench_user('bench_mgr', self.wc_a)
+        tech.write({'group_ids': [(4, self.env.ref('mrp.group_mrp_manager').id)]})
+        Workorder = self.env['mrp.workorder'].with_user(tech)
+        visible = Workorder.search([])
+        self.assertIn(self.wo_a, visible)
+        self.assertNotIn(self.wo_b, visible)
+        with self.assertRaises(AccessError):
+            self.wo_b.with_user(tech).read(['name'])
+        with self.assertRaises(AccessError):
+            self.wo_b.with_user(tech).write({'name': 'not mine'})
+        stations = self.env['mrp.workcenter'].with_user(tech).search([])
+        self.assertIn(self.wc_a, stations)
+        self.assertNotIn(self.wc_b, stations)
+        with self.assertRaises(AccessError):
+            self.wc_b.with_user(tech).read(['name'])
+        # Read-only, as in 19: a bench user is not stopped from WRITING a station by
+        # this row (their mrp role decides that), only from seeing other stations.
+        self.wc_a.with_user(tech).write({'note': 'own bench'})
+
+    def test_a_manufacturing_manager_sees_the_whole_floor(self):
+        """Without the bench group nothing is narrowed, manager or not."""
+        boss = self.env['res.users'].create({
+            'name': 'Whole Floor', 'login': 'bench_whole_floor',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id,
+                                  self.env.ref('mrp.group_mrp_manager').id])]})
+        visible = self.env['mrp.workorder'].with_user(boss).search([])
+        self.assertIn(self.wo_a, visible)
+        self.assertIn(self.wo_b, visible)
+        stations = self.env['mrp.workcenter'].with_user(boss).search([])
+        self.assertIn(self.wc_a, stations)
+        self.assertIn(self.wc_b, stations)
+        self.wo_b.with_user(boss).read(['name'])
+
     def test_the_restriction_is_opt_in(self):
         """Planners and schedulers hold mrp.group_mrp_user too and have every reason to
         see the whole floor. Narrowing it for all of them would break their work."""
@@ -908,7 +952,7 @@ class TestStationBoard(TransactionCase):
         is actually at. (review, 2026-09-15)"""
         later = self.env['mrp.workorder'].create({
             'name': 'Trimming again', 'sequence': 30, 'production_id': self.mo.id,
-            'workcenter_id': self.wc_a.id, 'product_uom_id': self.wo_a.product_uom_id.id})
+            'workcenter_id': self.wc_a.id})
         Station = self.env['lab.station']
         chip = next(p for p in Station._bench_load(self.wc_a) if p['id'] == 'none')
         board = Station.get_station(self.wc_a.id, person_id='none')
@@ -1028,7 +1072,7 @@ class TestScannedCodes(TransactionCase):
             'product_id': product.id, 'product_qty': 1.0})
         cls.wo = cls.env['mrp.workorder'].create({
             'name': 'Scanned Step', 'production_id': cls.mo.id,
-            'workcenter_id': cls.wc.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc.id})
 
     def _link_sale_order(self):
         """`sale_id` is a stored related through sale_line_id, so it is written by SQL
@@ -1155,7 +1199,7 @@ class TestProductionPerformance(TransactionCase):
             'product_id': product.id, 'product_qty': 1.0})
         cls.wo = cls.env['mrp.workorder'].create({
             'name': 'Timed Step', 'production_id': cls.mo.id,
-            'workcenter_id': cls.wc.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc.id})
 
     def _stamp(self, arrived_h, accepted_h, handed_h, duration=90.0):
         # Anchored inside the report's own day rather than to the wall clock:
@@ -1318,8 +1362,7 @@ class TestFloorPrints(TransactionCase):
         for seq, wc in ((10, self.wc_one), (20, self.wc_two)):
             self.env['mrp.workorder'].create({
                 'name': '%s step %s' % (name, seq), 'sequence': seq,
-                'production_id': mo.id, 'workcenter_id': wc.id,
-                'product_uom_id': self.product.uom_id.id})
+                'production_id': mo.id, 'workcenter_id': wc.id})
         if delivered:
             self._deliver(order)
         self.env.invalidate_all()
@@ -1441,7 +1484,7 @@ class TestFloorPrints(TransactionCase):
         for product, qty in ((one, 3.0), (two, 2.0)):
             self.env['stock.move'].create({
                 'product_id': product.id,
-                'product_uom_qty': qty, 'product_uom': product.uom_id.id,
+                'product_uom_qty': qty, 'uom_id': product.uom_id.id,
                 'location_id': self.env.ref('stock.stock_location_stock').id,
                 'location_dest_id': self.env.ref('stock.stock_location_stock').id,
                 'raw_material_production_id': mo.id})
@@ -1596,7 +1639,7 @@ class TestFloorPrintReviewFixes(TransactionCase):
                             (order.id, mo.id))
         self.env['mrp.workorder'].create({
             'name': 'Review step', 'sequence': 10, 'production_id': mo.id,
-            'workcenter_id': self.wc.id, 'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.wc.id})
         self.env.invalidate_all()
         return mo
 
@@ -1832,7 +1875,7 @@ class TestCloseOnDelivery(TransactionCase):
             line = order.order_line.filtered(lambda l: l.product_id == product)[:1]
             self.env['stock.move'].create({
                 'product_id': product.id, 'product_uom_qty': 1,
-                'product_uom': product.uom_id.id, 'picking_id': picking.id,
+                'uom_id': product.uom_id.id, 'picking_id': picking.id,
                 'sale_line_id': line.id,
                 'location_id': self.stock.id, 'location_dest_id': self.customers.id})
         picking.action_confirm()
@@ -1924,7 +1967,7 @@ class TestCloseOnDelivery(TransactionCase):
             'location_id': self.customers.id, 'location_dest_id': self.stock.id})
         self.env['stock.move'].create({
             'product_id': self.appliance.id, 'product_uom_qty': 1,
-            'product_uom': self.appliance.uom_id.id, 'picking_id': picking.id,
+            'uom_id': self.appliance.uom_id.id, 'picking_id': picking.id,
             'location_id': self.customers.id, 'location_dest_id': self.stock.id})
         picking.action_confirm()
         picking.move_ids.write({'quantity': 1, 'picked': True})
@@ -1983,7 +2026,7 @@ class TestCloseOnDelivery(TransactionCase):
             'tracking': 'serial'})
         self.env['stock.move'].create({
             'product_id': tracked_part.id, 'product_uom_qty': 1,
-            'product_uom': tracked_part.uom_id.id,
+            'uom_id': tracked_part.uom_id.id,
             'raw_material_production_id': awkward.id,
             'location_id': self.stock.id, 'location_dest_id': self.stock.id})
         self.env.invalidate_all()
@@ -2021,7 +2064,7 @@ class TestCloseOnDelivery(TransactionCase):
             'location_id': self.customers.id, 'location_dest_id': self.stock.id})
         self.env['stock.move'].create({
             'product_id': self.appliance.id, 'product_uom_qty': 1,
-            'product_uom': self.appliance.uom_id.id, 'picking_id': picking.id,
+            'uom_id': self.appliance.uom_id.id, 'picking_id': picking.id,
             'sale_line_id': order.order_line[0].id,
             'location_id': self.customers.id, 'location_dest_id': self.stock.id})
         picking.action_confirm()
@@ -2085,7 +2128,7 @@ class TestCloseOnDelivery(TransactionCase):
             'tracking': 'serial'})
         self.env['stock.move'].create({
             'product_id': tracked_part.id, 'product_uom_qty': 1,
-            'product_uom': tracked_part.uom_id.id,
+            'uom_id': tracked_part.uom_id.id,
             'raw_material_production_id': awkward.id,
             'location_id': self.stock.id, 'location_dest_id': self.stock.id})
         self.env.invalidate_all()
@@ -2156,8 +2199,7 @@ class TestFlowBoardIsLive(TransactionCase):
             'product_id': self.product.id, 'product_qty': 1.0})
         self.env['mrp.workorder'].create({
             'name': name, 'production_id': mo.id,
-            'workcenter_id': self.wc.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.wc.id})
         return mo
 
     def test_the_board_stands_on_the_live_set(self):
@@ -2191,8 +2233,7 @@ class TestFlowBoardIsLive(TransactionCase):
         for name in ('Upper', 'Lower'):
             wo = self.env['mrp.workorder'].create({
                 'name': name, 'production_id': mo.id,
-                'workcenter_id': self.wc.id,
-                'product_uom_id': self.product.uom_id.id})
+                'workcenter_id': self.wc.id})
             self.env.cr.execute(
                 "UPDATE mrp_workorder SET create_date = %s WHERE id = %s",
                 (old, wo.id))
@@ -2295,9 +2336,9 @@ class TestFinisherAndUndo(TransactionCase):
         cls.production.action_confirm()
         cls.first, cls.second = cls.env['mrp.workorder'].create([
             {'name': 'Polish', 'production_id': cls.production.id, 'sequence': 10,
-             'workcenter_id': cls.polish.id, 'product_uom_id': product.uom_id.id},
+             'workcenter_id': cls.polish.id},
             {'name': 'Pack', 'production_id': cls.production.id, 'sequence': 20,
-             'workcenter_id': cls.plain.id, 'product_uom_id': product.uom_id.id},
+             'workcenter_id': cls.plain.id},
         ])
 
     def _accepted(self, wo=None, with_tech=True):
@@ -2469,9 +2510,9 @@ class TestScanConfirmation(TransactionCase):
         cls.production.action_confirm()
         cls.first, cls.second = cls.env['mrp.workorder'].create([
             {'name': 'Step one', 'production_id': cls.production.id, 'sequence': 10,
-             'workcenter_id': cls.bench.id, 'product_uom_id': product.uom_id.id},
+             'workcenter_id': cls.bench.id},
             {'name': 'Step two', 'production_id': cls.production.id, 'sequence': 20,
-             'workcenter_id': cls.next_bench.id, 'product_uom_id': product.uom_id.id},
+             'workcenter_id': cls.next_bench.id},
         ])
         cls.Station = cls.env['lab.station']
 
@@ -2512,8 +2553,7 @@ class TestScanConfirmation(TransactionCase):
     def test_a_bulk_bench_keeps_the_one_tap_scan(self):
         wo = self.env['mrp.workorder'].create({
             'name': 'Bulk step', 'production_id': self.production.id, 'sequence': 5,
-            'workcenter_id': self.quick.id,
-            'product_uom_id': self.production.product_uom_id.id})
+            'workcenter_id': self.quick.id})
         answer = self.Station.scan(self.production.name, workcenter_id=self.quick.id)
         self.assertNotEqual(answer['action'], 'confirm', "this bench does not ask")
         self.assertTrue(wo.accepted_at, "it acted on the one tap")
@@ -2555,8 +2595,7 @@ class TestFinishedByDate(TransactionCase):
         """A job handed on at `hour` local time on `day`."""
         wo = self.env['mrp.workorder'].create({
             'name': 'Step %s %s' % (day, hour), 'production_id': self.production.id,
-            'workcenter_id': self.bench.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.bench.id})
         local = datetime.combine(day, time(hour, 0))
         stamp = pytz.timezone('Asia/Kolkata').localize(local).astimezone(
             pytz.utc).replace(tzinfo=None)
@@ -2612,7 +2651,7 @@ class TestFinishedByDate(TransactionCase):
         """A job given to `user` at this bench, stamped on `day`."""
         wo = self.env['mrp.workorder'].create({
             'name': 'Day job %s %s' % (user.id, day), 'production_id': self.production.id,
-            'workcenter_id': self.bench.id, 'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.bench.id})
         stamp = pytz.timezone('Asia/Kolkata').localize(
             datetime.combine(day, time(10, 0))).astimezone(pytz.utc).replace(tzinfo=None)
         vals = {'bench_user_id': user.id, 'bench_assigned_at': stamp}
@@ -2675,8 +2714,7 @@ class TestFinishedByDate(TransactionCase):
         for who in (mine, other):
             wo = self.env['mrp.workorder'].create({
                 'name': 'Sent by %s' % who.name, 'production_id': self.production.id,
-                'workcenter_id': next_bench.id,
-                'product_uom_id': self.product.uom_id.id})
+                'workcenter_id': next_bench.id})
             wo.write({'handed_from_workcenter_id': self.bench.id,
                       'handed_from_user_id': who.id})
             sent.append(wo)
@@ -2708,11 +2746,11 @@ class TestFinishedByDate(TransactionCase):
         next_bench = self.env['mrp.workcenter'].create({'name': 'Anon Bench'})
         anon = self.env['mrp.workorder'].create({
             'name': 'Sent by nobody', 'production_id': self.production.id,
-            'workcenter_id': next_bench.id, 'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': next_bench.id})
         anon.write({'handed_from_workcenter_id': self.bench.id})
         named = self.env['mrp.workorder'].create({
             'name': 'Sent by somebody', 'production_id': self.production.id,
-            'workcenter_id': next_bench.id, 'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': next_bench.id})
         named.write({'handed_from_workcenter_id': self.bench.id,
                      'handed_from_user_id': someone.id})
         board = self.Station.get_station(self.bench.id, person_id='none')
@@ -2739,9 +2777,9 @@ class TestLocateAJob(TransactionCase):
         cls.production.action_confirm()
         cls.wo, cls.next_wo = cls.env['mrp.workorder'].create([
             {'name': 'Bending', 'production_id': cls.production.id, 'sequence': 10,
-             'workcenter_id': cls.there.id, 'product_uom_id': product.uom_id.id},
+             'workcenter_id': cls.there.id},
             {'name': 'Polishing', 'production_id': cls.production.id, 'sequence': 20,
-             'workcenter_id': cls.here.id, 'product_uom_id': product.uom_id.id},
+             'workcenter_id': cls.here.id},
         ])
         cls.Station = cls.env['lab.station']
 
@@ -2829,8 +2867,7 @@ class TestFlowDay(TransactionCase):
         day = day or self.today
         wo = self.env['mrp.workorder'].create({
             'name': 'Step %s' % sequence, 'production_id': self.mo.id,
-            'workcenter_id': bench.id, 'sequence': sequence,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': bench.id, 'sequence': sequence})
         vals = {}
         if taken_h is not None:
             vals.update({'bench_user_id': self.tech.id,
@@ -2997,12 +3034,10 @@ class TestStationProcess(TransactionCase):
         B waited 30 minutes to start and took 45."""
         a = self.env['mrp.workorder'].create({
             'name': 'A step', 'production_id': self.mo.id, 'sequence': 10,
-            'workcenter_id': self.first_bench.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.first_bench.id})
         b = self.env['mrp.workorder'].create({
             'name': 'B step', 'production_id': self.mo.id, 'sequence': 20,
-            'workcenter_id': self.second_bench.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.second_bench.id})
         a.write({'bench_user_id': self.tech.id, 'accepted_at': self._at(8),
                  'handed_over_at': self._at(9)})
         b.write({'bench_user_id': self.tech.id, 'accepted_at': self._at(9, 30),
@@ -3021,8 +3056,7 @@ class TestStationProcess(TransactionCase):
         for n in range(3):
             wo = self.env['mrp.workorder'].create({
                 'name': 'Taken %s' % n, 'production_id': self.mo.id, 'sequence': 10 + n,
-                'workcenter_id': self.first_bench.id,
-                'product_uom_id': self.product.uom_id.id})
+                'workcenter_id': self.first_bench.id})
             wo.write({'bench_user_id': self.tech.id, 'accepted_at': self._at(9 + n)})
         rows = self._stations()
         me = rows[self.first_bench.id]
@@ -3033,12 +3067,10 @@ class TestStationProcess(TransactionCase):
     def test_the_flow_says_where_the_work_went(self):
         a = self.env['mrp.workorder'].create({
             'name': 'A step', 'production_id': self.mo.id, 'sequence': 10,
-            'workcenter_id': self.first_bench.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.first_bench.id})
         self.env['mrp.workorder'].create({
             'name': 'B step', 'production_id': self.mo.id, 'sequence': 20,
-            'workcenter_id': self.second_bench.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.second_bench.id})
         a.write({'bench_user_id': self.tech.id, 'accepted_at': self._at(8),
                  'handed_over_at': self._at(9)})
         flows = self.Flow.get_flow()['flows']
@@ -3051,8 +3083,7 @@ class TestStationProcess(TransactionCase):
     def test_the_last_step_flows_to_finished(self):
         only = self.env['mrp.workorder'].create({
             'name': 'Only step', 'production_id': self.mo.id, 'sequence': 10,
-            'workcenter_id': self.first_bench.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.first_bench.id})
         only.write({'bench_user_id': self.tech.id, 'accepted_at': self._at(8),
                     'handed_over_at': self._at(9)})
         flows = self.Flow.get_flow()['flows']
@@ -3062,8 +3093,7 @@ class TestStationProcess(TransactionCase):
     def test_a_case_untaken_past_the_line_is_stuck_at_its_bench(self):
         wo = self.env['mrp.workorder'].create({
             'name': 'Stuck step', 'production_id': self.mo.id, 'sequence': 10,
-            'workcenter_id': self.first_bench.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.first_bench.id})
         self.env.flush_all()
         self.env.cr.execute(
             "UPDATE mrp_workorder SET create_date = %s WHERE id = %s",
@@ -3107,7 +3137,7 @@ class TestCaseShapedWorkorderList(TransactionCase):
             cls.mo.sale_id = cls.order.id
         cls.wo = cls.env['mrp.workorder'].create({
             'name': 'Case step', 'production_id': cls.mo.id,
-            'workcenter_id': cls.bench.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.bench.id})
 
     def test_the_work_order_carries_its_case_doctor_and_patient(self):
         if not self.wo.production_id.sale_id:

@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUnmount, proxy } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy, useProps, t } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 
@@ -17,19 +17,19 @@ import { _t } from "@web/core/l10n/translation";
 export class DoingItDialog extends Component {
     static template = "lab_workcenter_scan.DoingItDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        job: Object,            // the card (name, production, patient, clinic, next_station)
-        people: Array,          // [{id, name, load, is_lead}] — this bench only
-        canAssign: Boolean,     // a lead or manager; a technician only gets the label
-        message: { type: String, optional: true },
+    props = useProps({
+        close: t.function(),
+        job: t.object(),            // the card (name, production, patient, clinic, next_station)
+        people: t.array(),          // [{id, name, load, is_lead}] — this bench only
+        canAssign: t.boolean(),     // a lead or manager; a technician only gets the label
+        message: t.string().optional(),
         // 'accepted': the answer only names who is doing it (job stays on the bench);
         // 'handover': the answer names who did it and hands it on;
         // 'finisher': the answer names who FINISHED it and hands it on - asked at a
         // bench whose work centre records the two separately.
-        stage: { type: String, optional: true },
-        onPick: Function,       // async (userId) => void
-    };
+        stage: t.string().optional(),
+        onPick: t.function(),       // async (userId) => void
+    });
 
     setup() {
         this.state = proxy({ busy: false, picked: false });

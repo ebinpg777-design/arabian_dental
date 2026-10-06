@@ -14,3 +14,5 @@ access_work_target_user,lab.work.target user,lab.work.target,mrp.group_mrp_user,
 access_work_target_manager,lab.work.target manager,lab.work.target,lab_workcenter_scan.group_production_manager,crud,
 access_work_target_wizard,lab.work.target.wizard,lab.work.target.wizard,lab_workcenter_scan.group_production_manager,crud,
 access_work_target_wizard_line,lab.work.target.wizard.line,lab.work.target.wizard.line,lab_workcenter_scan.group_production_manager,crud,
+rule_workorder_own_bench,Work order: bench users see only their own work centres,mrp.workorder,,crud,"[(1, '=', 1)] if not user.has_group('lab_workcenter_scan.group_workcenter_bound') else ['|', ('workcenter_id.head_user_ids', 'in', user.id), ('workcenter_id.users', 'in', user.id)]"
+rule_workcenter_own_bench,Work centre: bench users see only their own,mrp.workcenter,,r,"[(1, '=', 1)] if not user.has_group('lab_workcenter_scan.group_workcenter_bound') else ['|', ('head_user_ids', 'in', user.id), ('users', 'in', user.id)]"

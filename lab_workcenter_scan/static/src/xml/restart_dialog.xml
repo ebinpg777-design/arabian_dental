@@ -50,8 +50,8 @@
         <label class="o_st_redo_notel" for="o_st_redo_note">
             What happened? <span class="o_st_optional">(optional)</span>
         </label>
-        <input id="o_st_redo_note" class="form-control o_st_redo_note" t-ref="note"
-               type="text" t-custom-model="this.state.note" maxlength="120"
+        <input id="o_st_redo_note" class="form-control o_st_redo_note" t-ref="this.noteRef"
+               type="text" t-model.proxy="this.state.note" maxlength="120"
                placeholder="e.g. clasp snapped while fitting"
                t-att-disabled="this.state.busy"/>
 

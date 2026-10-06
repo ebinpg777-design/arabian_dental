@@ -1,10 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, proxy, usePlugin, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { ActionPlugin } from "@web/webclient/actions/action_plugin";
 
 const REFRESH_MS = 90000;
 
@@ -20,11 +20,11 @@ const REFRESH_MS = 90000;
  */
 export class LabFlow extends Component {
     static template = "lab_workcenter_scan.Flow";
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = usePlugin(ActionPlugin);
         this.state = proxy({
             data: null,
             loading: true,

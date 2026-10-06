@@ -574,10 +574,12 @@ class LabStation(models.AbstractModel):
         calendar = workcenter.resource_calendar_id
         if not calendar:
             return None
-        tz = pytz.timezone(calendar.tz) if calendar.tz else self._lab_tz()
+        # Odoo 20 moved the timezone off the calendar onto the resource: the
+        # work centre's own `tz` is what the calendar's used to be.
+        tz = pytz.timezone(workcenter.tz) if workcenter.tz else self._lab_tz()
         start = tz.localize(datetime.combine(day, time.min))
         intervals = calendar._work_intervals_batch(
-            start, start + timedelta(days=1), tz=tz)[False]
+            start, start + timedelta(days=1))[False]
         total = sum((stop - begin).total_seconds() for begin, stop, _r in intervals)
         if not total:
             return None

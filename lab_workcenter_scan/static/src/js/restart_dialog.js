@@ -1,9 +1,8 @@
 /** @odoo-module **/
 
-import { Component, onWillUnmount, proxy } from "@odoo/owl";
+import { Component, onWillUnmount, proxy, signal, useProps, t } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
-import { useRef } from "@web/owl2/utils";
 
 // How long the confirm button must be held. Long enough that no tap, double-tap or
 // sleeve can reach it; short enough that somebody who means it does not wonder
@@ -32,12 +31,12 @@ const HOLD_MS = 1200;
 export class RestartDialog extends Component {
     static template = "lab_workcenter_scan.RestartDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        job: Object,            // the card
-        reasons: Array,         // [{id, name, station}]
-        onConfirm: Function,    // async (reasonId, note) => void
-    };
+    props = useProps({
+        close: t.function(),
+        job: t.object(),            // the card
+        reasons: t.array(),         // [{id, name, station}]
+        onConfirm: t.function(),    // async (reasonId, note) => void
+    });
 
     setup() {
         this.state = proxy({
@@ -48,7 +47,7 @@ export class RestartDialog extends Component {
             busy: false,
             slipped: false,     // they let go early — say so rather than doing nothing
         });
-        this.noteRef = useRef("note");
+        this.noteRef = signal.ref();
         this.timer = null;
         this.tick = null;
         onWillUnmount(() => this.stopHold(false));

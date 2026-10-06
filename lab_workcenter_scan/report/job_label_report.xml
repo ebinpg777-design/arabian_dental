@@ -5,7 +5,6 @@
         <field name="model">mrp.production</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_job_label</field>
-        <field name="report_file">lab_workcenter_scan.report_job_label</field>
         <field name="print_report_name">'Job Labels'</field>
         <field name="binding_model_id" ref="mrp.model_mrp_production"/>
         <field name="binding_type">report</field>
@@ -35,7 +34,7 @@
                     <!-- 55mm rather than 70: it still scans across a bench, and the
                          15mm it gives back is what the arch and the clinic sit in. -->
                     <img t-if="mo.qr_image"
-                         t-att-src="'data:image/png;base64,%s' % mo.qr_image.decode()"
+                         t-att-src="'data:image/png;base64,%s' % mo.qr_image.to_base64()"
                          style="width:55mm; height:55mm; margin:4mm auto;"/>
                     <div style="font-size:24px; letter-spacing:.1em; font-weight:bold;"
                          t-out="mo.name"/>

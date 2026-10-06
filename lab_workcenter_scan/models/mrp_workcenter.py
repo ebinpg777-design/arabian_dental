@@ -71,7 +71,8 @@ class MrpWorkcenter(models.Model):
     @api.depends('scan_code')
     def _compute_qr_image(self):
         for wc in self:
-            wc.qr_image = wc._qr_png(wc.scan_code) if wc.scan_code else False
+            # Odoo 20: a Binary takes a base64 str (or BinaryValue), never bytes.
+            wc.qr_image = wc._qr_png(wc.scan_code).decode() if wc.scan_code else False
 
     @api.model
     def _qr_png(self, value, box_size=6):

@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, usePlugin } from "@odoo/owl";
+import { Component, usePlugin, useProps, t } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
@@ -24,7 +24,7 @@ import { isBarcodeScannerSupported } from "@web/core/barcode/barcode_video_scann
  */
 export class WcScanButton extends Component {
     static template = "lab_workcenter_scan.ScanButton";
-    static props = { ...standardWidgetProps };
+    props = useProps(standardWidgetProps);
 
     setup() {
         this.orm = useService("orm");
@@ -84,7 +84,7 @@ export class WcScanButton extends Component {
 export class WcScanPrompt extends Component {
     static template = "lab_workcenter_scan.ScanPrompt";
     static components = { Dialog };
-    static props = { close: Function, confirm: Function };
+    props = useProps({ close: t.function(), confirm: t.function() });
 
     setup() {
         this.value = "";

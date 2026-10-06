@@ -13,7 +13,7 @@
         <div class="o_st_targets_all">
             <label>Same for everyone</label>
             <input type="number" min="0" inputmode="numeric" class="o_st_targets_in"
-                   t-custom-model="this.state.all" placeholder="e.g. 8"/>
+                   t-model.proxy="this.state.all" placeholder="e.g. 8"/>
             <button class="btn btn-secondary" t-on-click="() => this.setAll()">Apply</button>
         </div>
 

@@ -33,7 +33,7 @@
         <label class="o_st_doing_lead" for="o_st_cancel_reason">Why does it not belong here?</label>
         <textarea id="o_st_cancel_reason" class="form-control o_st_cancel_reason" rows="2"
                   placeholder="e.g. sent to the wrong bench; this appliance does not need this step"
-                  t-custom-model="this.state.reason" t-att-disabled="this.state.busy"/>
+                  t-model.proxy="this.state.reason" t-att-disabled="this.state.busy"/>
 
         <div t-if="this.state.error" class="o_st_change_err" role="alert">
             <i class="fa fa-exclamation-triangle me-1" title="Refused"/>

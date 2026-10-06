@@ -5,7 +5,6 @@
         <field name="model">mrp.workcenter</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_workcenter_label</field>
-        <field name="report_file">lab_workcenter_scan.report_workcenter_label</field>
         <field name="print_report_name">'Station Labels'</field>
     </record>
 
@@ -24,7 +23,7 @@
                     <div t-if="wc.code" style="font-size:16px; color:#666;"
                          t-out="wc.code"/>
                     <img t-if="wc.qr_image"
-                         t-att-src="'data:image/png;base64,%s' % wc.qr_image.decode()"
+                         t-att-src="'data:image/png;base64,%s' % wc.qr_image.to_base64()"
                          style="width:78mm; height:78mm; margin:8mm auto;"/>
                     <div style="font-size:26px; letter-spacing:.12em; font-weight:bold;"
                          t-out="wc.scan_code"/>

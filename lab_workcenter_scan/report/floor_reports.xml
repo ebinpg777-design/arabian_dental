@@ -95,7 +95,7 @@
                                 <t t-out="o.product_id.display_name"/></div>
                             <div class="kv"><b>Quantity</b>
                                 <span t-field="o.product_qty"/>
-                                <span t-field="o.product_uom_id.name"/></div>
+                                <span t-field="o.uom_id.name"/></div>
                             <div class="kv"><b>Arch</b>
                                 <span t-field="o.ul"/></div>
                         </td>
@@ -842,7 +842,6 @@
         <field name="model">mrp.production</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_traveller</field>
-        <field name="report_file">lab_workcenter_scan.report_traveller</field>
         <field name="binding_model_id" ref="mrp.model_mrp_production"/>
         <field name="binding_type">report</field>
         <field name="binding_view_types">list,form</field>
@@ -854,7 +853,6 @@
         <field name="model">mrp.production</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_hold_tag</field>
-        <field name="report_file">lab_workcenter_scan.report_hold_tag</field>
         <field name="binding_model_id" ref="mrp.model_mrp_production"/>
         <field name="binding_type">report</field>
         <!-- Form only: stopping a job is a deliberate act, not a bulk operation. -->
@@ -868,7 +866,6 @@
         <field name="model">mrp.production</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_requisition</field>
-        <field name="report_file">lab_workcenter_scan.report_requisition</field>
         <field name="binding_model_id" ref="mrp.model_mrp_production"/>
         <field name="binding_type">report</field>
         <!-- List only: a requisition for one case is a walk to the store, not a form. -->
@@ -881,7 +878,6 @@
         <field name="model">mrp.workcenter</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_station_queue</field>
-        <field name="report_file">lab_workcenter_scan.report_station_queue</field>
         <field name="binding_model_id" ref="mrp.model_mrp_workcenter"/>
         <field name="binding_type">report</field>
         <field name="binding_view_types">list,form</field>
@@ -893,7 +889,6 @@
         <field name="model">lab.callover.wizard</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_callover</field>
-        <field name="report_file">lab_workcenter_scan.report_callover</field>
         <field name="print_report_name">'Aged Case Callover'</field>
     </record>
 
@@ -902,7 +897,6 @@
         <field name="model">lab.packing.manifest.wizard</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_manifest</field>
-        <field name="report_file">lab_workcenter_scan.report_manifest</field>
         <field name="print_report_name">'Packing Manifest'</field>
     </record>
 
@@ -911,7 +905,6 @@
         <field name="model">lab.closeout.wizard</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_closeout</field>
-        <field name="report_file">lab_workcenter_scan.report_closeout</field>
         <field name="print_report_name">'Close-out Worklist'</field>
     </record>
 
@@ -920,7 +913,6 @@
         <field name="model">lab.clinic.work.wizard</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_workcenter_scan.report_clinic_work</field>
-        <field name="report_file">lab_workcenter_scan.report_clinic_work</field>
         <field name="print_report_name">'Work in Hand'</field>
     </record>
 

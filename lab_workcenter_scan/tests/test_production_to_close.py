@@ -69,7 +69,13 @@ class TestProductionToClose(TransactionCase):
         self.assertNotEqual(mo.state, 'to_close')
 
     def test_a_job_that_is_only_a_quantity_is_left_to_core(self):
-        """No steps, no rule of ours: core closes it when the quantity is made."""
+        """No steps, no rule of ours: whatever core decided for it stands.
+
+        Odoo 20 no longer moves a step-less job to To Close when the quantity is
+        set (that branch of core's compute is gone), so the row is put there by
+        hand - the way an Odoo 19 database carries it - and our guard, which only
+        speaks for jobs WITH steps, must leave it alone.
+        """
         plain = self.env['product.product'].create({
             'name': 'Test Bracket', 'is_storable': True})    # no bill of materials
         mo = self.env['mrp.production'].create({
@@ -77,7 +83,8 @@ class TestProductionToClose(TransactionCase):
         mo.action_confirm()
         self.assertFalse(mo.workorder_ids)
         mo.qty_producing = mo.product_qty
-        mo.invalidate_recordset(['state'])
+        self._strand(mo)
+        mo._compute_state()
         self.assertEqual(mo.state, 'to_close')
 
     def test_the_repair_pass_empties_to_close(self):
@@ -142,13 +149,16 @@ class TestProductionToClose(TransactionCase):
         steps[0].button_start(raise_on_invalid_state=False)
         steps[0].button_finish()
         self.assertEqual(steps[0].state, 'done')
-        self.assertTrue(mo.is_planned, "starting a step is what plans the job")
+        # Odoo 20: an order `is_planned` only when ALL its steps are; a started
+        # step is planned on its own, so the plan is checked per step.
+        self.assertTrue(steps[0].is_planned, "starting a step is what plans it")
         self._strand(mo)
 
         # No raise. Before the fix this was the UserError above.
         steps[1].button_start(raise_on_invalid_state=False)
         self.assertEqual(steps[1].state, 'progress')
-        self.assertTrue(mo.is_planned, "the job must keep its plan, not lose it")
+        self.assertTrue(steps[0].is_planned and steps[1].is_planned,
+                        "the job must keep its plan, not lose it")
 
     def test_the_repair_pass_releases_a_stranded_job(self):
         """A row already stored wrong is put right, because no recompute is coming."""

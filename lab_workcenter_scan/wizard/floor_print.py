@@ -509,10 +509,10 @@ class ReportRequisition(models.AbstractModel):
             for move in mo.move_raw_ids:
                 product = move.product_id
                 key = (' '.join((product.name or '').split()).lower(),
-                       move.product_uom.id)
+                       move.uom_id.id)
                 bucket = totals[key]
                 bucket['qty'] += move.product_uom_qty
-                bucket['uom'] = move.product_uom.name or ''
+                bucket['uom'] = move.uom_id.name or ''
                 bucket['names'].add(product.display_name)
         lines = [{
             'name': sorted(v['names'])[0] if v['names'] else k[0],

@@ -55,8 +55,8 @@
                      laptop with no camera. Same server rule as a scan. (client, 2026-08-29) -->
                 <div class="o_st_type" role="search">
                     <i class="fa fa-keyboard-o" title="Type a job number"/>
-                    <input type="text" class="o_st_type_in" t-ref="typed"
-                           t-custom-model="this.state.typed"
+                    <input type="text" class="o_st_type_in" t-ref="this.typedRef"
+                           t-model.proxy="this.state.typed"
                            t-on-keydown="this.onTypedKeydown"
                            placeholder="MO or SO number"
                            autocomplete="off" autocapitalize="characters"
@@ -347,7 +347,7 @@
             <div class="o_st_findbar">
                 <span class="o_st_find">
                     <i class="fa fa-search" title="Find"/>
-                    <input type="text" class="o_st_find_in" t-ref="find"
+                    <input type="text" class="o_st_find_in" t-ref="this.findRef"
                            t-att-value="this.state.data.query"
                            t-on-input="(ev) => this.findJobs(ev.target.value)"
                            placeholder="Find at this bench: patient, doctor, MO or SO"

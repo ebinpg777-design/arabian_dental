@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, useProps, t } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 
 /**
@@ -22,17 +22,17 @@ import { Dialog } from "@web/core/dialog/dialog";
 export class ChangeDialog extends Component {
     static template = "lab_workcenter_scan.ChangeDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        job: Object,             // the card
-        people: Array,           // [{id, name, is_lead}]
-        status: String,          // 'waiting' | 'bench' | 'passed'
-        wantsFinisher: Boolean,
-        benchUserId: [Number, Boolean],
-        finisherUserId: [Number, Boolean],
-        canAssign: Boolean,      // giving work out is the lead's call
-        onConfirm: Function,     // async ({benchUserId, finisherUserId, status}) => void
-    };
+    props = useProps({
+        close: t.function(),
+        job: t.object(),             // the card
+        people: t.array(),           // [{id, name, is_lead}]
+        status: t.string(),          // 'waiting' | 'bench' | 'passed'
+        wantsFinisher: t.boolean(),
+        benchUserId: t.or([t.number(), t.boolean()]),
+        finisherUserId: t.or([t.number(), t.boolean()]),
+        canAssign: t.boolean(),      // giving work out is the lead's call
+        onConfirm: t.function(),     // async ({benchUserId, finisherUserId, status}) => void
+    });
 
     setup() {
         this.state = proxy({

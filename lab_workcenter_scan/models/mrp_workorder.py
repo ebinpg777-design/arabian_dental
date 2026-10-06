@@ -45,6 +45,10 @@ class MrpWorkorder(models.Model):
         It is NOT applied to a finished or cancelled order, because the same flag also
         waves through core's "You cannot move a manufacturing order once it is cancelled
         or done" — a real guard, and not one this is meant to lift.
+
+        Odoo 20: core's `button_start` now writes that date with `force_date` itself,
+        so the unplan cannot happen any more; this stays as a belt for the step's own
+        writes and costs nothing.
         """
         steps = self.filtered(
             lambda wo: wo.production_id.state not in ('done', 'cancel'))

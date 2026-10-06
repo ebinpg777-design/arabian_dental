@@ -5,7 +5,7 @@
     <Dialog title="this.title" size="'lg'" contentClass="'o_st_pickdlg'">
         <div t-if="this.props.stations.length > 6" class="o_st_pick_search">
             <i class="fa fa-search" title="Search"/>
-            <input type="text" t-ref="search" t-custom-model="this.state.query"
+            <input type="text" t-ref="this.searchRef" t-model.proxy="this.state.query"
                    t-on-keydown="this.onKeydown" placeholder="Name or code…"
                    autocomplete="off" spellcheck="false"/>
         </div>

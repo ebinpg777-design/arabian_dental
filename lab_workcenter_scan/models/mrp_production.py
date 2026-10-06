@@ -29,7 +29,8 @@ class MrpProduction(models.Model):
     @api.depends('name')
     def _compute_qr_image(self):
         for mo in self:
-            mo.qr_image = self.env['mrp.workcenter']._qr_png(mo.name) if mo.name else False
+            # Odoo 20: a Binary takes a base64 str (or BinaryValue), never bytes.
+            mo.qr_image = self.env['mrp.workcenter']._qr_png(mo.name).decode() if mo.name else False
 
     def action_confirm(self):
         """Confirm, then give a two-arch case its second chain.
@@ -69,7 +70,6 @@ class MrpProduction(models.Model):
                     'name': step.name,
                     'production_id': production.id,
                     'workcenter_id': step.workcenter_id.id,
-                    'product_uom_id': step.product_uom_id.id,
                     'operation_id': step.operation_id.id or False,
                     'duration_expected': step.duration_expected,
                     'sequence': step.sequence + self.ARCH_BAND,
@@ -166,9 +166,9 @@ class MrpProduction(models.Model):
         would have had if the branch had never misfired.
         """
         self.ensure_one()
-        uom = self.product_uom_id
+        # Odoo 20 dropped `qty_producing` from this test (it no longer means work
+        # began), so it is dropped here too.
         if (any(s in ('progress', 'done') for s in states)
-                or (uom and not uom.is_zero(self.qty_producing))
                 or any(self.move_raw_ids.mapped('picked'))):
             return 'progress'
         return 'confirmed'

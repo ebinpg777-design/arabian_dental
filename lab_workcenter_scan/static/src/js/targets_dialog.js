@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, useProps, t } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 
@@ -16,13 +16,13 @@ import { _t } from "@web/core/l10n/translation";
 export class TargetsDialog extends Component {
     static template = "lab_workcenter_scan.TargetsDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        people: Array,        // [{id, name, day_count, target, is_lead}] - this bench only
-        dayLabel: String,     // "today" or "Tue, Sep 8"
-        station: String,
-        onSave: Function,     // async ({userId: target}) => void
-    };
+    props = useProps({
+        close: t.function(),
+        people: t.array(),        // [{id, name, day_count, target, is_lead}] - this bench only
+        dayLabel: t.string(),     // "today" or "Tue, Sep 8"
+        station: t.string(),
+        onSave: t.function(),     // async ({userId: target}) => void
+    });
 
     setup() {
         this.state = proxy({

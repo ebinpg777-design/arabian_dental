@@ -21,10 +21,10 @@ class RedoCase(TransactionCase):
             'product_id': product.id, 'product_qty': 1.0})
         cls.wo_a = cls.env['mrp.workorder'].create({
             'name': 'Wire Bending', 'production_id': cls.mo.id, 'sequence': 1,
-            'workcenter_id': cls.wc_a.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc_a.id})
         cls.wo_b = cls.env['mrp.workorder'].create({
             'name': 'Polishing', 'production_id': cls.mo.id, 'sequence': 2,
-            'workcenter_id': cls.wc_b.id, 'product_uom_id': product.uom_id.id})
+            'workcenter_id': cls.wc_b.id})
         cls.mo.action_confirm()
         cls.reason = cls.env['lab.redo.reason'].search(
             [('name', '=', 'Broken')], limit=1) or \
@@ -164,16 +164,14 @@ class TestMrpReportBacklog(RedoCase):
                 'product_id': product.id, 'product_qty': 1.0})
             self.env['mrp.workorder'].create({
                 'name': 'Quick', 'production_id': mo.id, 'sequence': 1,
-                'workcenter_id': self.wc_a.id, 'duration_expected': 10.0,
-                'product_uom_id': product.uom_id.id})
+                'workcenter_id': self.wc_a.id, 'duration_expected': 10.0})
             mo.action_confirm()
         self.wo_a.duration_expected = 10.0
         long_mo = self.env['mrp.production'].create({
             'product_id': product.id, 'product_qty': 1.0})
         self.env['mrp.workorder'].create({
             'name': 'Slow', 'production_id': long_mo.id, 'sequence': 1,
-            'workcenter_id': self.wc_b.id, 'duration_expected': 600.0,
-            'product_uom_id': product.uom_id.id})
+            'workcenter_id': self.wc_b.id, 'duration_expected': 600.0})
         long_mo.action_confirm()
         # Relative to each other, not to the top of the list: this database carries
         # 2,558 real live cases and one of its own benches is far busier than any
@@ -324,8 +322,7 @@ class TestRightNowDecisions(TransactionCase):
             'product_id': self.product.id, 'product_qty': 1.0})
         self.env['mrp.workorder'].create({
             'name': 'Step', 'production_id': mo.id, 'sequence': 1,
-            'workcenter_id': bench.id, 'duration_expected': minutes,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': bench.id, 'duration_expected': minutes})
         mo.action_confirm()
         return mo
 

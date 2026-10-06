@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, useProps, t } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 
 /**
@@ -15,11 +15,11 @@ import { Dialog } from "@web/core/dialog/dialog";
 export class CancelDialog extends Component {
     static template = "lab_workcenter_scan.CancelDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        job: Object,            // the card
-        onConfirm: Function,    // async (reason) => void
-    };
+    props = useProps({
+        close: t.function(),
+        job: t.object(),            // the card
+        onConfirm: t.function(),    // async (reason) => void
+    });
 
     setup() {
         this.state = proxy({ reason: "", busy: false, error: "" });

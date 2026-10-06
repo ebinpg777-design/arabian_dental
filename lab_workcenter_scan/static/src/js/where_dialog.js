@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component } from "@odoo/owl";
+import { Component, useProps, t } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 
@@ -17,11 +17,11 @@ import { _t } from "@web/core/l10n/translation";
 export class WhereDialog extends Component {
     static template = "lab_workcenter_scan.WhereDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        job: Object,        // what lab.station.locate returned
-        open: Function,     // () => open the work order
-    };
+    props = useProps({
+        close: t.function(),
+        job: t.object(),        // what lab.station.locate returned
+        open: t.function(),     // () => open the work order
+    });
 
     get title() {
         return _t("Where is it?");

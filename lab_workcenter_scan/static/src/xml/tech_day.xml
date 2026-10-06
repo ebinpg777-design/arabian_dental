@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <label class="o_td_check"><input type="checkbox" t-att-checked="this.state.rostered" t-on-change="this.toggleRostered"/> everyone on the roster</label>
-                <input class="o_td_search" placeholder="Find a technician…" t-custom-model="this.state.search"/>
+                <input class="o_td_search" placeholder="Find a technician…" t-model.proxy="this.state.search"/>
                 <button class="o_td_btn" t-on-click="this.exportCsv" title="Download the grid as CSV"><i class="fa fa-download"/></button>
                 <button class="o_td_btn" t-on-click="() => this.load()" title="Refresh"><i t-att-class="'fa fa-refresh' + (this.state.loading ? ' fa-spin' : '')"/></button>
             </div>
@@ -95,7 +95,7 @@
                     <thead>
                         <tr>
                             <th class="o_td_person_h">
-                                <select class="o_td_sort" t-custom-model="this.state.sort">
+                                <select class="o_td_sort" t-model.proxy="this.state.sort">
                                     <option value="activity">Most active first</option>
                                     <option value="handed">Most handed on</option>
                                     <option value="util">Highest utilisation</option>
@@ -166,7 +166,7 @@
                 <div class="o_td_line">
                     <div class="o_td_lrow o_td_lhead">
                         <div class="o_td_lname">
-                            <select class="o_td_sort" t-custom-model="this.state.sort">
+                            <select class="o_td_sort" t-model.proxy="this.state.sort">
                                 <option value="activity">Most active first</option>
                                 <option value="handed">Most handed on</option>
                                 <option value="util">Highest utilisation</option>

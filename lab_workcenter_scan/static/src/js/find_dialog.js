@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUnmount, proxy } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, proxy, useProps, t } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { useService } from "@web/core/utils/hooks";
 
@@ -15,12 +15,12 @@ import { useService } from "@web/core/utils/hooks";
 export class FindDialog extends Component {
     static template = "lab_workcenter_scan.FindDialog";
     static components = { Dialog };
-    static props = {
-        close: Function,
-        term: { type: String, optional: true },
-        workcenterId: { type: [Number, Boolean], optional: true },
-        open: Function,          // (workorderId) => open the work order
-    };
+    props = useProps({
+        close: t.function(),
+        term: t.string().optional(),
+        workcenterId: t.or([t.number(), t.boolean()]).optional(),
+        open: t.function(),          // (workorderId) => open the work order
+    });
 
     setup() {
         this.orm = useService("orm");

@@ -1,9 +1,9 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { ActionPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The technician day: every person a row, every slot a cell.
@@ -23,11 +23,11 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class LabTechDay extends Component {
     static template = "lab_workcenter_scan.TechDay";
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = usePlugin(ActionPlugin);
         const params = (this.props.action && this.props.action.params) || {};
         this.state = proxy({
             day: params.day || null, slot: 60, view: "heat", stations: [], rostered: false, search: "",
