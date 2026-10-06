@@ -24,8 +24,8 @@ No new application — it lives under Management.
     # lab_workcenter_scan for the read-only Track Order on the Station Board.
     'depends': ['lab_rework', 'lab_workcenter_scan'],
     'data': [
-        'security/ir.model.access.csv',
         'views/track_views.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

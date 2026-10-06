@@ -36,8 +36,8 @@ Create a single customer receipt or vendor payment and split the counterpart acc
     'currency': 'USD',
     'depends': ['account'],
     'data': [
-        'security/ir.model.access.csv',
         'views/account_payment_views.xml',
+        'security/ir.access.csv',
     ],
     'images': [
         'static/description/banner.png',

@@ -1,0 +1,3 @@
+id,name,model_id,group_id/id,operation,domain
+access_rework_reason_user,reason read,lab.rework.reason,base.group_user,r,
+access_rework_reason_mgr,reason manage,lab.rework.reason,lab_fieldwork.group_fieldwork_manager,crud,

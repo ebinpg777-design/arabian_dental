@@ -1,0 +1,5 @@
+id,name,model_id,group_id/id,operation,domain
+access_doctor_call_entry,doctor call entry,lab.doctor.call.log,lab_order_control.group_lab_order_entry,cru,
+access_doctor_call_checker,doctor call checker,lab.doctor.call.log,lab_order_control.group_lab_order_checker,crud,
+access_doctor_call_user,doctor call read,lab.doctor.call.log,base.group_user,r,
+access_hold_wizard,hold wizard,lab.hold.wizard,lab_order_control.group_lab_order_checker,crud,

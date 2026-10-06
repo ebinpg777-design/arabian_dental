@@ -1,0 +1,9 @@
+id,name,model_id,group_id/id,operation,domain
+rule_filter_tile_read,Filter tiles: shared ones and my own,filter.tile,base.group_user,r,"['|', ('owner_id', '=', False), ('owner_id', '=', user.id)]"
+rule_filter_tile_own,Filter tiles: only my own are editable,filter.tile,base.group_user,cud,"[('owner_id', '=', user.id)]"
+rule_filter_tile_manager,Filter tiles: managers own the shared ribbon,filter.tile,ebshel_dynamic_filter.group_tile_manager,crud,"['|', ('owner_id', '=', False), ('owner_id', '=', user.id)]"
+rule_filter_tile_company,Filter tiles: multi-company,filter.tile,,crud,"['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]"
+rule_filter_tile_snapshot,Tile history: follows the tile,filter.tile.snapshot,base.group_user,r,"['|', ('tile_id.owner_id', '=', False), ('tile_id.owner_id', '=', user.id)]"
+access_filter_tile_snapshot_manager,filter.tile.snapshot.manager,filter.tile.snapshot,ebshel_dynamic_filter.group_tile_manager,crud,
+access_filter_tile_row_user,filter.tile.row.user,filter.tile.row,base.group_user,r,
+access_filter_tile_row_manager,filter.tile.row.manager,filter.tile.row,ebshel_dynamic_filter.group_tile_manager,crud,

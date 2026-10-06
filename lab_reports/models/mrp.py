@@ -13,7 +13,7 @@ class MrpProduction(models.Model):
     _inherit = 'mrp.production'
 
     # Append the source Sale Order to the MO display name, and let it be searched.
-    _rec_names_search = ['name', 'sale_id']
+    _rec_names_search = ('name', 'sale_id')
 
     @api.depends('name', 'sale_id')
     def _compute_display_name(self):

@@ -31,11 +31,10 @@
     'depends': ['base_setup', 'mail'],
     "data": [
         "security/security_groups.xml",
-        "security/ir.model.access.csv",
-        "security/record_rules.xml",
         "data/scheduled_cron.xml",
         "views/dynamic_export_template_views.xml",
         "views/excel_report_config_views.xml",
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

@@ -230,7 +230,7 @@ class DashboardBoard(models.Model):
         if self.menu_id:
             self.sudo().menu_id.name = name
             self.sudo().menu_action_id.name = name
-            self.env.registry.clear_cache()
+            self.env.transaction.invalidate_ormcache()
         return {'name': self.name, 'menu': bool(self.menu_id)}
 
     def set_icon(self, icon):
@@ -345,7 +345,7 @@ class DashboardBoard(models.Model):
         menus.unlink()
         actions.unlink()
         if menus:
-            self.env.registry.clear_cache()
+            self.env.transaction.invalidate_ormcache()
         return result
 
     @api.model
@@ -668,7 +668,7 @@ class DashboardBoard(models.Model):
         self.sudo().write({'menu_id': menu.id, 'menu_action_id': action.id})
         # Menus are cached per session; without this the entry exists but is
         # not served until the next restart.
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return menu
 
     def action_remove_menu(self):
@@ -677,7 +677,7 @@ class DashboardBoard(models.Model):
             raise UserError(self.env._('Only a dashboard manager can remove a menu.'))
         self.sudo().menu_id.unlink()
         self.sudo().menu_action_id.unlink()
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return True
 
     def action_view_items(self):

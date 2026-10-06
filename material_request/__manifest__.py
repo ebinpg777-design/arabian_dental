@@ -24,12 +24,12 @@ is created and followed through to delivery.
     'depends': ['stock', 'mail'],
     'data': [
         'security/security.xml',
-        'security/ir.model.access.csv',
         'data/data.xml',
         'wizard/reject_wizard_views.xml',
         'views/material_request_views.xml',
         'views/res_config_settings_views.xml',
         'report/material_request_report.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

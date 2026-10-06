@@ -88,7 +88,6 @@ Compatibility
     'depends': ['web', 'bus'],
     'data': [
         'security/dashboard_groups.xml',
-        'security/ir.model.access.csv',
         'data/dashboard_cron.xml',
         'views/dashboard_item_views.xml',
         'views/dashboard_board_views.xml',
@@ -97,6 +96,7 @@ Compatibility
         'wizard/dashboard_build_views.xml',
         'wizard/dashboard_menu_views.xml',
         'views/dashboard_menus.xml',
+        'security/ir.access.csv',
     ],
     'demo': [
         'demo/dashboard_demo.xml',

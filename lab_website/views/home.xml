@@ -6,8 +6,8 @@
         <t t-set="content" t-value="env['website'].sudo().lab_content()"/>
         <t t-set="services" t-value="env['website'].sudo().lab_services()"/>
         <t t-set="stats" t-value="env['website'].sudo().lab_stats()"/>
-        <t t-call="website.layout">
-            <t t-set="website_meta_description" t-value="'Arabian Dental Lab, Manjeri: crowns, bridges, implants, veneers, dentures and appliances, collected from your clinic and delivered on the promised date.'"/>
+        <t t-call="website.layout"
+            website_meta_description.f="Arabian Dental Lab, Manjeri: crowns, bridges, implants, veneers, dentures and appliances, collected from your clinic and delivered on the promised date.">
             <div id="wrap" class="oe_structure o_lab o_lab_home">
 
                 <!-- ============================================== HERO SLIDER -->

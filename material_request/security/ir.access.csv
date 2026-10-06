@@ -1,0 +1,7 @@
+id,name,model_id,group_id/id,operation,domain
+rule_material_request_own,Material Request: own,material.request,material_request.material_request_user,crud,"[('user_id', '=', user.id)]"
+rule_material_request_all,Material Request: all,material.request,material_request.material_request_manager,crud,
+rule_material_request_company,Material Request: company,material.request,,crud,"[('company_id', 'in', company_ids)]"
+rule_material_request_line_own,Material Request Line: own,material.request.lines,material_request.material_request_user,crud,"[('material_request_id.user_id', '=', user.id)]"
+rule_material_request_line_all,Material Request Line: all,material.request.lines,material_request.material_request_manager,crud,
+access_material_request_reject,material.request.reject,material.request.reject,material_request.material_request_manager,cru,

@@ -1,0 +1,3 @@
+id,name,model_id,group_id/id,operation,domain
+access_lab_collection_open_item,lab.collection.open.item,lab.collection.open.item,account.group_account_readonly,crud,
+access_lab_collection_open_item_exec,lab.collection.open.item.exec,lab.collection.open.item,lab_fieldwork.group_fieldwork_executive,r,

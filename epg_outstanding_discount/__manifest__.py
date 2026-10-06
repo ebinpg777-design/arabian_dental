@@ -21,10 +21,10 @@ as the starting point the moment they are picked.
     'depends': ['account'],
     'data': [
         'security/discount_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_sequence_data.xml',
         'views/discount_views.xml',
         'views/res_partner_views.xml',
+        'security/ir.access.csv',
     ],
     'installable': True,
     'application': False,

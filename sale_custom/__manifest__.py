@@ -29,8 +29,6 @@ Re-implemented for Odoo 19. Provides:
         'l10n_in',
     ],
     'data': [
-        'security/ir.model.access.csv',
-        'security/sale_security.xml',
         'data/ir_sequence_data.xml',
         'report/paperformat.xml',
         'report/report_layout.xml',
@@ -64,6 +62,7 @@ Re-implemented for Odoo 19. Provides:
         'views/order_list_views.xml',
         'views/order_count_views.xml',
         'views/confirm_wizard_views.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

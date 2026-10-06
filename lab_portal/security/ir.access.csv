@@ -1,0 +1,7 @@
+id,name,model_id,group_id/id,operation,domain
+access_case_request_checker,case request office,lab.case.request,lab_order_control.group_lab_order_checker,cru,
+access_case_request_mgr,case request manager,lab.case.request,lab_fieldwork.group_fieldwork_manager,crud,
+rule_case_request_portal_own,Portal: own case requests only,lab.case.request,base.group_portal,r,"[('partner_id','child_of',user.partner_id.commercial_partner_id.id)]"
+access_case_request_line_checker,case request line office,lab.case.request.line,lab_order_control.group_lab_order_checker,crud,
+access_case_request_line_mgr,case request line manager,lab.case.request.line,lab_fieldwork.group_fieldwork_manager,crud,
+rule_case_request_line_portal_own,Portal: own case request lines only,lab.case.request.line,base.group_portal,r,"[('request_id.partner_id','child_of',user.partner_id.commercial_partner_id.id)]"

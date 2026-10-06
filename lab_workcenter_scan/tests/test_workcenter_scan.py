@@ -433,7 +433,7 @@ class TestBenchUserMenus(TransactionCase):
         comes back. Otherwise this would be a lock rather than a tidy-up."""
         self.bench.write({'group_ids': [
             (4, self.env.ref('base.group_partner_manager').id)]})
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         self.assertIn('Contacts', self._apps(self.bench))
 
     def test_an_administrator_keeps_the_whole_switcher(self):

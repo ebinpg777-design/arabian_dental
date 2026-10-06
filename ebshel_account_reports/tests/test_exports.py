@@ -331,7 +331,7 @@ class TestFinReportExports(TransactionCase):
             with self.subTest(pattern=pattern):
                 lang.date_format = pattern
                 self.env['res.lang'].invalidate_model()
-                self.env.registry.clear_cache()
+                self.env.transaction.invalidate_ormcache()
                 self.assertEqual(self.Report.with_context(lang='en_US')._excel_date_format(), excel)
         options = dict(self.year, accounts_query=self.income.code)
         book, sheet = self._sheet(self.ledger.with_context(lang='en_US').export_xlsx(options, {'scope': 'full'}))

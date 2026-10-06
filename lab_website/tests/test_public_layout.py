@@ -29,7 +29,7 @@ class TestPublicLayoutSurvivesHiddenRootMenu(HttpCase):
     def test_the_pages_that_went_down_come_back_200(self):
         """The cache is cleared first: the crash only appeared once something
         asked for the force_action variant on a cold ormcache."""
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         for url in ('/', '/contactus', '/web/login'):
             self.assertEqual(self.url_open(url).status_code, 200, url)
 
@@ -37,7 +37,7 @@ class TestPublicLayoutSurvivesHiddenRootMenu(HttpCase):
         """The forced pass copies the tree before touching it. Editing the
         ormcache's own dict would leave later readers with an action that was
         never theirs, so ask twice and expect the same answer."""
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         first = [self.url_open(u).status_code for u in ('/', '/web/login')]
         second = [self.url_open(u).status_code for u in ('/', '/web/login')]
         self.assertEqual(first, [200, 200])

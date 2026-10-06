@@ -1,0 +1,7 @@
+id,name,model_id,group_id/id,operation,domain
+rule_dynamic_export_template_read,Report templates: my own and shared ones,dynamic.export.template,base.group_user,r,"['|', ('user_id', '=', user.id), ('is_shared', '=', True)]"
+rule_dynamic_export_template_own,Report templates: only my own are editable,dynamic.export.template,base.group_user,cud,"[('user_id', '=', user.id)]"
+rule_dynamic_export_template_admin,Report templates: administrators manage all,dynamic.export.template,base.group_system,crud,
+access_excel_report_builder_config_all,excel report builder config read all,excel.report.builder.config,base.group_user,r,
+access_excel_report_builder_config_manager,excel report builder config manager,excel.report.builder.config,excel_report_builder.group_excel_report_builder_user,crud,
+access_excel_report_builder_config_admin,excel report builder config admin,excel.report.builder.config,base.group_system,crud,

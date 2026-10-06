@@ -24,12 +24,11 @@ can tell at a glance where each one is without ringing the lab.
     'depends': ['portal', 'sale_custom', 'mrp', 'lab_order_control',
                 'ebshel_dynamic_filter', 'lab_fieldwork'],
     'data': [
-        'security/ir.model.access.csv',
-        'security/case_request_security.xml',
         'data/ir_sequence.xml',
         'views/case_request_views.xml',
         'views/portal_templates.xml',
         'data/filter_tiles.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_frontend': [

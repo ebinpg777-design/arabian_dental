@@ -3,9 +3,7 @@
     <!-- The dashboard's figures, on paper for the route meeting. Same design language
          as the invoice and the order list: letterhead in the body, navy on light cards. -->
     <template id="report_collection">
-        <t t-call="web.html_container">
-            <t t-set="hide_letterhead" t-value="True"/>
-            <t t-set="footer_note">Collections</t>
+        <t t-call="web.html_container" hide_letterhead="True" footer_note.translate="Collections">
             <t t-call="sale_custom.external_layout_lab">
                 <div class="page lab-invoice ocl">
                     <t t-call="sale_custom.letterhead_block"/>

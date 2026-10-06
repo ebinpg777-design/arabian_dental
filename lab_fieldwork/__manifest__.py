@@ -59,7 +59,6 @@ in the server, not merely in the form.
     'data': [
         'data/visit_tag_data.xml',
         'security/lab_fieldwork_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_sequence_data.xml',
         'data/ir_cron_data.xml',
         'views/my_day_views.xml',
@@ -92,6 +91,7 @@ in the server, not merely in the form.
         'views/desk_cover_views.xml',
         # After the menus too: it hangs off menu_fw_ops and the Petty Cash app.
         'views/cash_handover_views.xml',
+        'security/ir.access.csv',
     ],
     'demo': ['data/lab_fieldwork_demo.xml'],
     'assets': {

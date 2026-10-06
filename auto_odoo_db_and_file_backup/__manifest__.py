@@ -23,11 +23,11 @@
     },
     # always loaded
     'data': [
-        'security/ir.model.access.csv',
         'views/views.xml',
         'views/auto_backup_mail_templates.xml',
         'data/data.xml',
         'wizard/wiz.xml',
+        'security/ir.access.csv',
     ],
     'installable': True,
     'application': True,

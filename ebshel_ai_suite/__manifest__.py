@@ -23,8 +23,6 @@ An independently engineered AI framework for Odoo Community:
     'external_dependencies': {'python': ['requests']},
     'data': [
         'security/security.xml',
-        'security/ir.model.access.csv',
-        'security/record_rules.xml',
         'data/capability_data.xml',
         'data/default_data.xml',
         'data/skillset_data.xml',
@@ -56,6 +54,7 @@ An independently engineered AI framework for Odoo Community:
         'wizard/image_wizard_views.xml',
         'wizard/mail_compose_views.xml',
         'views/menus.xml',
+        'security/ir.access.csv',
     ],
     'demo': [
         'demo/demo_data.xml',

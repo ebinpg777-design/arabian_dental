@@ -62,7 +62,6 @@ Print wizard
     'external_dependencies': {'python': ['Pillow']},
     'data': [
         'security/label_security.xml',
-        'security/ir.model.access.csv',
         'data/paperformat_data.xml',
         'report/label_reports.xml',
         'report/label_report_templates.xml',
@@ -79,6 +78,7 @@ Print wizard
         'data/label_stock_data.xml',
         'data/label_template_product_data.xml',
         'data/label_template_partner_data.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

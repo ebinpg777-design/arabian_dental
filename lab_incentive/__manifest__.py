@@ -12,8 +12,6 @@
     'depends': ['lab_fieldwork', 'lab_delivery', 'ebshel_dynamic_filter',
                 'lab_collections'],
     'data': [
-        'security/incentive_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
         'views/product_views.xml',
@@ -24,6 +22,7 @@
         'report/incentive_report.xml',
         'report/incentive_report_templates.xml',
         'data/filter_tiles.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

@@ -1,0 +1,57 @@
+id,name,model_id,group_id/id,operation,domain
+access_cai_connection_manager,community.ai.connection manager,community.ai.connection,ebshel_ai_suite.group_cai_manager,r,
+access_cai_connection_admin,community.ai.connection admin,community.ai.connection,ebshel_ai_suite.group_cai_admin,crud,
+rule_cai_connection_company,AI connection: multi-company,community.ai.connection,,crud,"[('company_id', 'in', company_ids + [False])]"
+access_cai_privacy_rule_manager,community.ai.privacy.rule manager,community.ai.privacy.rule,ebshel_ai_suite.group_cai_manager,r,
+access_cai_privacy_rule_admin,community.ai.privacy.rule admin,community.ai.privacy.rule,ebshel_ai_suite.group_cai_admin,crud,
+access_cai_prompt_user,community.ai.prompt user,community.ai.prompt,ebshel_ai_suite.group_cai_user,r,
+access_cai_prompt_manager,community.ai.prompt manager,community.ai.prompt,ebshel_ai_suite.group_cai_manager,crud,
+rule_cai_prompt_company,AI prompt: multi-company,community.ai.prompt,,crud,"[('company_id', 'in', company_ids + [False])]"
+access_cai_capability_user,community.ai.capability user,community.ai.capability,ebshel_ai_suite.group_cai_user,r,
+access_cai_capability_manager,community.ai.capability manager,community.ai.capability,ebshel_ai_suite.group_cai_manager,crud,
+access_cai_source_manager,community.ai.source manager,community.ai.source,ebshel_ai_suite.group_cai_manager,crud,
+rule_cai_source_company,AI source: multi-company,community.ai.source,,crud,"[('company_id', 'in', company_ids + [False])]"
+access_cai_source_chunk_manager,community.ai.source.chunk manager,community.ai.source.chunk,ebshel_ai_suite.group_cai_manager,rd,
+access_cai_assistant_user,community.ai.assistant user,community.ai.assistant,ebshel_ai_suite.group_cai_user,r,
+access_cai_assistant_manager,community.ai.assistant manager,community.ai.assistant,ebshel_ai_suite.group_cai_manager,crud,
+rule_cai_assistant_company,AI assistant: multi-company,community.ai.assistant,,crud,"[('company_id', 'in', company_ids + [False])]"
+rule_cai_session_own,AI session: own records,community.ai.session,ebshel_ai_suite.group_cai_user,cru,"[('user_id', '=', user.id)]"
+rule_cai_session_manager,AI session: managers see all,community.ai.session,ebshel_ai_suite.group_cai_manager,crud,
+rule_cai_session_company,AI session: multi-company,community.ai.session,,crud,"[('company_id', 'in', company_ids)]"
+rule_cai_exchange_own,AI exchange: own records,community.ai.exchange,ebshel_ai_suite.group_cai_user,r,"[('user_id', '=', user.id)]"
+rule_cai_exchange_manager,AI exchange: managers see all,community.ai.exchange,ebshel_ai_suite.group_cai_manager,rd,
+rule_cai_exchange_company,AI exchange: multi-company,community.ai.exchange,,crud,"[('company_id', 'in', company_ids)]"
+rule_cai_operation_own,AI operation: own records,community.ai.operation,ebshel_ai_suite.group_cai_user,r,"[('user_id', '=', user.id)]"
+rule_cai_operation_manager,AI operation: managers see all,community.ai.operation,ebshel_ai_suite.group_cai_manager,r,
+rule_cai_operation_company,AI operation: multi-company,community.ai.operation,,crud,"[('company_id', 'in', company_ids)]"
+access_cai_search_target_user,community.ai.search.target user,community.ai.search.target,ebshel_ai_suite.group_cai_user,r,
+access_cai_search_target_manager,community.ai.search.target manager,community.ai.search.target,ebshel_ai_suite.group_cai_manager,crud,
+access_cai_field_rule_user,community.ai.field.rule user,community.ai.field.rule,ebshel_ai_suite.group_cai_user,r,
+access_cai_field_rule_manager,community.ai.field.rule manager,community.ai.field.rule,ebshel_ai_suite.group_cai_manager,crud,
+rule_cai_field_rule_company,AI field rule: multi-company,community.ai.field.rule,,crud,"[('company_id', 'in', company_ids + [False])]"
+access_cai_automation_user,community.ai.automation user,community.ai.automation,ebshel_ai_suite.group_cai_user,r,
+access_cai_automation_manager,community.ai.automation manager,community.ai.automation,ebshel_ai_suite.group_cai_manager,crud,
+rule_cai_automation_company,AI automation: multi-company,community.ai.automation,,crud,"[('company_id', 'in', company_ids + [False])]"
+rule_cai_job_own,AI job: own records,community.ai.job,ebshel_ai_suite.group_cai_user,r,"[('user_id', '=', user.id)]"
+rule_cai_job_manager,AI job: managers see all,community.ai.job,ebshel_ai_suite.group_cai_manager,rd,
+rule_cai_job_company,AI job: multi-company,community.ai.job,,crud,"[('company_id', 'in', company_ids)]"
+rule_cai_usage_own,AI usage: own records,community.ai.usage,ebshel_ai_suite.group_cai_user,r,"[('user_id', '=', user.id)]"
+rule_cai_usage_manager,AI usage: managers see all,community.ai.usage,ebshel_ai_suite.group_cai_manager,r,
+rule_cai_usage_manager_1,AI usage: managers see all,community.ai.usage,ebshel_ai_suite.group_cai_admin,rd,
+rule_cai_usage_company,AI usage: multi-company,community.ai.usage,,crud,"[('company_id', 'in', company_ids)]"
+rule_cai_audit_own,AI audit: own records,community.ai.audit,ebshel_ai_suite.group_cai_user,r,"[('user_id', '=', user.id)]"
+rule_cai_audit_manager,AI audit: managers see all,community.ai.audit,ebshel_ai_suite.group_cai_manager,r,
+rule_cai_audit_company,AI audit: multi-company,community.ai.audit,,crud,"[('company_id', 'in', company_ids)]"
+access_cai_text_wizard_user,community.ai.text.wizard user,community.ai.text.wizard,ebshel_ai_suite.group_cai_user,crud,
+access_cai_image_wizard_user,community.ai.image.wizard user,community.ai.image.wizard,ebshel_ai_suite.group_cai_user,crud,
+access_cai_skillset_user,community.ai.skillset user,community.ai.skillset,ebshel_ai_suite.group_cai_user,r,
+access_cai_skillset_manager,community.ai.skillset manager,community.ai.skillset,ebshel_ai_suite.group_cai_manager,crud,
+access_cai_source_link_wizard_manager,community.ai.source.link.wizard manager,community.ai.source.link.wizard,ebshel_ai_suite.group_cai_manager,crud,
+access_cai_context_preset_user,community.ai.context.preset user,community.ai.context.preset,ebshel_ai_suite.group_cai_user,r,
+access_cai_context_preset_manager,community.ai.context.preset manager,community.ai.context.preset,ebshel_ai_suite.group_cai_manager,crud,
+rule_cai_context_preset_company,AI context preset: multi-company,community.ai.context.preset,,crud,"[('company_id', 'in', company_ids + [False])]"
+access_cai_quick_prompt_user,community.ai.quick.prompt user,community.ai.quick.prompt,ebshel_ai_suite.group_cai_user,r,
+access_cai_quick_prompt_manager,community.ai.quick.prompt manager,community.ai.quick.prompt,ebshel_ai_suite.group_cai_manager,crud,
+rule_cai_session_file_own,AI conversation file: own records,community.ai.session.file,ebshel_ai_suite.group_cai_user,r,"[('user_id', '=', user.id)]"
+rule_cai_session_file_manager,AI conversation file: managers see all,community.ai.session.file,ebshel_ai_suite.group_cai_manager,rd,
+rule_cai_session_file_company,AI conversation file: multi-company,community.ai.session.file,,crud,"[('company_id', 'in', company_ids)]"

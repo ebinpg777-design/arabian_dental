@@ -1,0 +1,4 @@
+id,name,model_id,group_id/id,operation,domain
+access_discount_user,epg.outstanding.discount.user,epg.outstanding.discount,epg_outstanding_discount.group_discount_user,crud,
+access_discount_readonly,epg.outstanding.discount.readonly,epg.outstanding.discount,account.group_account_readonly,r,
+rule_discount_company,Outstanding discount: own companies,epg.outstanding.discount,,crud,"[('company_id', 'in', company_ids)]"

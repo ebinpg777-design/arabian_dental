@@ -34,8 +34,8 @@ technicians, districts → tags, doctors → contacts).
     ],
     'data': [
         'security/lab_migration_security.xml',
-        'security/ir.model.access.csv',
         'views/migration_views.xml',
+        'security/ir.access.csv',
     ],
     'installable': True,
     'application': True,

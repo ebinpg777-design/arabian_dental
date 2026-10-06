@@ -35,7 +35,6 @@ GSTIN / PAN / DCI numbers, company payment QR and authorised-signatory signature
     'depends': ['account', 'mail', 'portal'],
     'data': [
         'security/statement_security.xml',
-        'security/ir.model.access.csv',
         'data/mail_template_data.xml',
         'data/ir_cron_data.xml',
         'report/statement_report_templates.xml',
@@ -45,6 +44,7 @@ GSTIN / PAN / DCI numbers, company payment QR and authorised-signatory signature
         'views/res_config_settings_views.xml',
         'views/portal_templates.xml',
         'views/menus.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.report_assets_common': [

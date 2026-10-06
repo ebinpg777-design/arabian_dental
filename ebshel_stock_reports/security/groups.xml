@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
 
     <!--
@@ -42,42 +41,4 @@
         <field name="implied_ids" eval="[(4, ref('ebshel_stock_reports.group_manager'))]"/>
     </record>
 
-    <!-- Multi-company: every stored table carries a company and is only visible inside it. -->
-    <record id="rule_stock_move_daily_company" model="ir.rule">
-        <field name="name">Stock movement summary: multi-company</field>
-        <field name="model_id" ref="model_asr_stock_move_daily"/>
-        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        <field name="global" eval="True"/>
-    </record>
-    <record id="rule_stock_value_daily_company" model="ir.rule">
-        <field name="name">Stock valuation summary: multi-company</field>
-        <field name="model_id" ref="model_asr_stock_value_daily"/>
-        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        <field name="global" eval="True"/>
-    </record>
-    <record id="rule_stock_dirty_company" model="ir.rule">
-        <field name="name">Stock recompute queue: multi-company</field>
-        <field name="model_id" ref="model_asr_stock_dirty"/>
-        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        <field name="global" eval="True"/>
-    </record>
-    <record id="rule_product_class_company" model="ir.rule">
-        <field name="name">Product classes: multi-company</field>
-        <field name="model_id" ref="model_asr_product_class"/>
-        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        <field name="global" eval="True"/>
-    </record>
-    <record id="rule_wip_snapshot_company" model="ir.rule">
-        <field name="name">WIP snapshots: multi-company</field>
-        <field name="model_id" ref="model_asr_wip_snapshot"/>
-        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        <field name="global" eval="True"/>
-    </record>
-    <record id="rule_wip_snapshot_line_company" model="ir.rule">
-        <field name="name">WIP snapshot lines: multi-company</field>
-        <field name="model_id" ref="model_asr_wip_snapshot_line"/>
-        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        <field name="global" eval="True"/>
-    </record>
-
-</odoo>
+    </odoo>

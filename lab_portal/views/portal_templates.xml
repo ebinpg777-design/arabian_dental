@@ -4,23 +4,19 @@
     <template id="portal_my_home_cases" name="Portal: My Cases"
               inherit_id="portal.portal_my_home" priority="30">
         <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
-            <t t-call="portal.portal_docs_entry">
-                <t t-set="icon" t-value="'/lab_portal/static/description/icon.png'"/>
-                <t t-set="title">Cases</t>
-                <t t-set="text">Where every case you sent us has got to</t>
-                <t t-set="url" t-value="'/my/cases'"/>
-                <t t-set="placeholder_count" t-value="'case_count'"/>
-            </t>
+            <t t-call="portal.portal_docs_entry"
+                icon.f="/lab_portal/static/description/icon.png"
+                title.translate="Cases"
+                text.translate="Where every case you sent us has got to"
+                url.f="/my/cases"
+                placeholder_count.f="case_count"/>
         </xpath>
     </template>
 
     <template id="portal_my_cases" name="My Cases">
-        <t t-call="portal.portal_layout">
-            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+        <t t-call="portal.portal_layout" breadcrumbs_searchbar="True">
 
-            <t t-call="portal.portal_searchbar">
-                <t t-set="title">Cases</t>
-            </t>
+            <t t-call="portal.portal_searchbar" title.translate="Cases"/>
 
             <t t-if="not cases and not search">
                 <div class="alert alert-info" role="status">
@@ -111,8 +107,7 @@
     </template>
 
     <template id="portal_case_page" name="Case">
-        <t t-call="portal.portal_layout">
-            <t t-set="title" t-value="case.patient or case.name"/>
+        <t t-call="portal.portal_layout" title="case.patient or case.name">
 
             <div class="o_case_head">
                 <div>
@@ -229,8 +224,7 @@
 
     <!-- ============================================================ DIGITAL Rx ==== -->
     <template id="portal_my_rx" name="My Case Requests">
-        <t t-call="portal.portal_layout">
-            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+        <t t-call="portal.portal_layout" breadcrumbs_searchbar="True">
             <div class="o_lab_rx_head d-flex justify-content-between align-items-center mb-3">
                 <h3 class="mb-0">Case Requests</h3>
                 <a href="/my/rx/new" class="btn o_lab_btn">

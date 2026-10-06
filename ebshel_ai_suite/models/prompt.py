@@ -85,11 +85,11 @@ class CommunityAIPrompt(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return records
 
     def write(self, vals):
         result = super().write(vals)
         if {'code', 'active'} & set(vals):
-            self.env.registry.clear_cache()
+            self.env.transaction.invalidate_ormcache()
         return result

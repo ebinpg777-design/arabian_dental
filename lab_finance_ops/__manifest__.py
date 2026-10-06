@@ -36,7 +36,6 @@ the client expects to find them.
     'depends': ['lab_access_control', 'sale_custom', 'account'],
     'data': [
         'security/lab_finance_ops_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_sequence_data.xml',
         'views/lab_cheque_views.xml',
         'views/lab_finance_lockdown_views.xml',
@@ -48,6 +47,7 @@ the client expects to find them.
         'report/report_actions.xml',
         'views/res_config_settings_views.xml',
         'views/lab_finance_ops_menus.xml',
+        'security/ir.access.csv',
     ],
     'installable': True,
     'application': False,

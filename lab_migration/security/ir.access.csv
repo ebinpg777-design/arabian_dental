@@ -1,0 +1,5 @@
+id,name,model_id,group_id/id,operation,domain
+access_migration_backend_user,migration.backend.user,migration.backend,lab_migration.group_lab_migration_user,r,
+access_migration_backend_mgr,migration.backend.manager,migration.backend,lab_migration.group_lab_migration_manager,crud,
+access_migration_map_user,migration.map.user,migration.map,lab_migration.group_lab_migration_user,r,
+access_migration_map_mgr,migration.map.manager,migration.map,lab_migration.group_lab_migration_manager,crud,

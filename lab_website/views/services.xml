@@ -3,16 +3,15 @@
 
     <!-- ================================================================ OVERVIEW -->
     <template id="page_services" name="Services">
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="'What we make'"/>
-            <t t-set="website_meta_description" t-value="'Crown and bridge, implant prosthetics, veneers, dentures, digital dentistry and orthodontic appliances from Arabian Dental Lab, Manjeri.'"/>
+        <t t-call="website.layout"
+            additional_title.f="What we make"
+            website_meta_description.f="Crown and bridge, implant prosthetics, veneers, dentures, digital dentistry and orthodontic appliances from Arabian Dental Lab, Manjeri.">
             <div id="wrap" class="oe_structure o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/zirconia-bridge.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'Our services'"/>
-                    <t t-set="hero_title" t-value="'Everything a clinic sends, under one roof'"/>
-                    <t t-set="hero_text" t-value="'Six service lines, one quality gate. Where a count is shown it is live from our own catalogue, not a brochure figure.'"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/zirconia-bridge.jpg"
+                    hero_kicker.f="Our services"
+                    hero_title.f="Everything a clinic sends, under one roof"
+                    hero_text.f="Six service lines, one quality gate. Where a count is shown it is live from our own catalogue, not a brochure figure."/>
 
                 <!-- Jump nav: six services is too many to scroll past on a phone looking
                      for one. Sticks under the header. -->
@@ -49,10 +48,9 @@
                     </div>
                 </section>
 
-                <t t-call="lab_website.cta_band">
-                    <t t-set="cta_title" t-value="'Not sure which material fits?'"/>
-                    <t t-set="cta_text" t-value="'Send us the case. We will recommend a design and tell you what it costs before we start.'"/>
-                </t>
+                <t t-call="lab_website.cta_band"
+                    cta_title.f="Not sure which material fits?"
+                    cta_text.f="Send us the case. We will recommend a design and tell you what it costs before we start."/>
             </div>
         </t>
     </template>
@@ -60,18 +58,17 @@
     <!-- ================================================================== DETAIL -->
     <template id="page_service" name="Service">
         <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="service['title']"/>
-            <t t-set="website_meta_description" t-value="service['summary']"/>
+        <t t-call="website.layout"
+            additional_title="service['title']"
+            website_meta_description="service['summary']">
             <div id="wrap" class="oe_structure o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="service['img']"/>
-                    <t t-set="hero_kicker" t-value="service['kicker']"/>
-                    <t t-set="hero_title" t-value="service['title']"/>
-                    <t t-set="hero_text" t-value="service['summary']"/>
-                    <t t-set="hero_cta" t-value="('Send a case', '/send-a-case')"/>
-                    <t t-set="hero_cta2" t-value="('Ask a question', '/contactus')"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img="service['img']"
+                    hero_kicker="service['kicker']"
+                    hero_title="service['title']"
+                    hero_text="service['summary']"
+                    hero_cta="('Send a case', '/send-a-case')"
+                    hero_cta2="('Ask a question', '/contactus')"/>
 
                 <section class="o_lab_sec">
                     <div class="container">
@@ -133,9 +130,7 @@
                     </div>
                 </section>
 
-                <t t-call="lab_website.services_rail">
-                    <t t-set="skip_slug" t-value="service['slug']"/>
-                </t>
+                <t t-call="lab_website.services_rail" skip_slug="service['slug']"/>
                 <t t-call="lab_website.cta_band"/>
             </div>
         </t>

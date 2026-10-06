@@ -218,8 +218,8 @@ class TestMyDayDelivery(TransactionCase):
                                 raise_if_not_found=False)
         if personal and not personal.active:
             personal.sudo().active = True
-            self.env.registry.clear_cache()
-            self.addCleanup(self.env.registry.clear_cache)
+            self.env.transaction.invalidate_ormcache()
+            self.addCleanup(self.env.transaction.invalidate_ormcache)
 
         order = self._order()
         order.user_id = self.env.ref('base.user_admin')

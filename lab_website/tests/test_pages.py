@@ -49,7 +49,7 @@ class TestPublicPages(HttpCase):
 
         The cache is cleared first: in an upgrade-then-test run the template cache can
         still hold the header as it was before this module's override existed."""
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         for url in PAGES:
             html = self.url_open(url).text
             for demo in ('555-555-5556', 'yourcompany.example.com', 'Fake Buena Vista', 'My Company',

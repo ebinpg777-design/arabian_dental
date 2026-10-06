@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="0">
         <record id="privilege_doctor_desk" model="res.groups.privilege">
@@ -25,26 +24,4 @@
         </record>
     </data>
 
-    <data noupdate="1">
-        <record id="rule_doctor_ticket_company" model="ir.rule">
-            <field name="name">Doctor ticket: own companies</field>
-            <field name="model_id" ref="model_lab_doctor_ticket"/>
-            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        </record>
-
-        <!-- Everybody sees where their own question stands; the desk and whoever checks
-             orders see them all. -->
-        <record id="rule_doctor_ticket_own" model="ir.rule">
-            <field name="name">Doctor ticket: the ones I raised, sold or was asked to ask</field>
-            <field name="model_id" ref="model_lab_doctor_ticket"/>
-            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
-            <field name="domain_force">['|', '|', ('raised_by_id', '=', user.id), ('salesperson_id', '=', user.id), ('field_user_id', '=', user.id)]</field>
-        </record>
-        <record id="rule_doctor_ticket_desk" model="ir.rule">
-            <field name="name">Doctor ticket: the desk sees all</field>
-            <field name="model_id" ref="model_lab_doctor_ticket"/>
-            <field name="groups" eval="[(4, ref('group_doctor_desk_agent')), (4, ref('lab_order_control.group_lab_order_checker'))]"/>
-            <field name="domain_force">[(1, '=', 1)]</field>
-        </record>
-    </data>
-</odoo>
+    </odoo>

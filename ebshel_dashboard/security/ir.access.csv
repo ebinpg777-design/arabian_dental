@@ -1,0 +1,21 @@
+id,name,model_id,group_id/id,operation,domain
+rule_dashboard_board_read,Dashboards: shared ones and my own,dashboard.board,base.group_user,r,"['|', ('owner_id', '=', False), ('owner_id', '=', user.id)]"
+rule_dashboard_board_own,Dashboards: only my own are editable,dashboard.board,base.group_user,cud,"[('owner_id', '=', user.id)]"
+rule_dashboard_board_manager,Dashboards: managers own the shared boards,dashboard.board,ebshel_dashboard.group_dashboard_manager,crud,"['|', ('owner_id', '=', False), ('owner_id', '=', user.id)]"
+rule_dashboard_board_company,Dashboards: multi-company,dashboard.board,,crud,"['|', ('company_ids', '=', False), ('company_ids', 'in', company_ids)]"
+rule_dashboard_item_read,Dashboard cards: follow the board,dashboard.item,base.group_user,r,"['|', ('board_id.owner_id', '=', False), ('board_id.owner_id', '=', user.id)]"
+rule_dashboard_item_own,Dashboard cards: only those of my own boards are editable,dashboard.item,base.group_user,cud,"[('board_id.owner_id', '=', user.id)]"
+rule_dashboard_item_manager,Dashboard cards: managers own the shared boards,dashboard.item,ebshel_dashboard.group_dashboard_manager,crud,"['|', ('board_id.owner_id', '=', False), ('board_id.owner_id', '=', user.id)]"
+rule_dashboard_item_company,Dashboard cards: multi-company,dashboard.item,,crud,"['|', ('company_ids', '=', False), ('company_ids', 'in', company_ids)]"
+access_dashboard_import_user,dashboard.import.user,dashboard.import,base.group_user,crud,
+access_dashboard_snapshot_user,dashboard.snapshot.user,dashboard.snapshot,base.group_user,r,
+access_dashboard_snapshot_manager,dashboard.snapshot.manager,dashboard.snapshot,ebshel_dashboard.group_dashboard_manager,crud,
+rule_dashboard_preference_own,Dashboard preferences: my own only,dashboard.preference,base.group_user,crud,"[('user_id', '=', user.id)]"
+access_dashboard_build_user,dashboard.build.user,dashboard.build,base.group_user,crud,
+rule_dashboard_note_own,Dashboard notes: my own only,dashboard.note,base.group_user,crud,"[('user_id', '=', user.id)]"
+rule_dashboard_variable_follow,Formula variables: follow the card,dashboard.item.variable,base.group_user,crud,"['|', ('item_id.board_id.owner_id', '=', False), ('item_id.board_id.owner_id', '=', user.id)]"
+rule_dashboard_view_own,Saved dashboard views: my own only,dashboard.view,base.group_user,crud,"[('user_id', '=', user.id)]"
+rule_dashboard_tab_follow,Dashboard tabs: follow the board,dashboard.tab,base.group_user,crud,"['|', ('board_id.owner_id', '=', False), ('board_id.owner_id', '=', user.id)]"
+rule_dashboard_filter_follow,Dashboard filters: follow the board,dashboard.filter,base.group_user,crud,"['|', ('board_id.owner_id', '=', False), ('board_id.owner_id', '=', user.id)]"
+access_dashboard_menu_wizard,dashboard.menu.wizard,dashboard.menu.wizard,base.group_user,crud,
+rule_dashboard_subvalue_follow,Sub-values: follow the card,dashboard.item.subvalue,base.group_user,crud,"['|', ('item_id.board_id.owner_id', '=', False), ('item_id.board_id.owner_id', '=', user.id)]"

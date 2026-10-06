@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="0">
 
@@ -29,16 +28,5 @@
             <field name="implied_ids" eval="[(4, ref('group_lab_payment_approver'))]"/>
         </record>
 
-        <record id="rule_lab_cheque_company" model="ir.rule">
-            <field name="name">Cheque: multi-company</field>
-            <field name="model_id" ref="model_lab_cheque"/>
-            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
-        </record>
-        <record id="rule_lab_outstanding_company" model="ir.rule">
-            <field name="name">Outstanding: multi-company</field>
-            <field name="model_id" ref="model_lab_outstanding_report"/>
-            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        </record>
-
-    </data>
+        </data>
 </odoo>

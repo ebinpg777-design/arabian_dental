@@ -1,0 +1,10 @@
+id,name,model_id,group_id/id,operation,domain
+access_lab_cheque_user,lab.cheque.user,lab.cheque,lab_finance_ops.group_lab_cheque_user,cru,
+access_lab_cheque_approver,lab.cheque.approver,lab.cheque,lab_finance_ops.group_lab_payment_approver,crud,
+rule_lab_cheque_company,Cheque: multi-company,lab.cheque,,crud,"['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]"
+access_lab_cheque_alloc_user,lab.cheque.allocation.user,lab.cheque.allocation,lab_finance_ops.group_lab_cheque_user,crud,
+access_lab_outstanding_user,lab.outstanding.report.user,lab.outstanding.report,lab_finance_ops.group_lab_cheque_user,r,
+access_lab_outstanding_sales,lab.outstanding.report.sales,lab.outstanding.report,sales_team.group_sale_manager,r,
+rule_lab_outstanding_company,Outstanding: multi-company,lab.outstanding.report,,crud,"[('company_id', 'in', company_ids)]"
+access_lab_daybook_wizard,lab.daybook.wizard,lab.daybook.wizard,account.group_account_invoice,crud,
+access_lab_eod_report,lab.eod.report,lab.eod.report,base.group_user,crud,

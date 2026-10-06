@@ -73,7 +73,6 @@ Compatibility
     'external_dependencies': {'python': ['xlsxwriter']},
     'data': [
         'security/groups.xml',
-        'security/ir.model.access.csv',
         'data/paperformat_data.xml',
         'data/reason_tag_data.xml',
         'data/cron_data.xml',
@@ -110,6 +109,7 @@ Compatibility
         'wizard/report_gst_register_views.xml',
         'wizard/report_production_account_views.xml',
         'views/menus.xml',
+        'security/ir.access.csv',
     ],
     'post_init_hook': 'post_init_hook',
     'images': [

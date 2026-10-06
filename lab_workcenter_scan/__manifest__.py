@@ -27,7 +27,6 @@ typing on a shared terminal.
     'depends': ['mrp', 'web', 'sale_custom'],
     'data': [
         'security/workcenter_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_sequence_data.xml',
         'data/close_delivered_cron.xml',
         'data/redo_reason_data.xml',
@@ -48,6 +47,7 @@ typing on a shared terminal.
         'views/mrp_redo_views.xml',
         'wizard/production_report_views.xml',
         'wizard/floor_print_views.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

@@ -2,18 +2,17 @@
 <odoo>
 
     <template id="page_academy" name="Academy">
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="lab['academy']"/>
-            <t t-set="website_meta_description" t-value="'ADL Dental Academy: hands-on dental technology training in a working laboratory in Manjeri, and the Crown Conference Hall for clinicians.'"/>
+        <t t-call="website.layout"
+            additional_title="lab['academy']"
+            website_meta_description.f="ADL Dental Academy: hands-on dental technology training in a working laboratory in Manjeri, and the Crown Conference Hall for clinicians.">
             <div id="wrap" class="oe_structure o_lab o_lab_academy">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/technician-bench.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'Training · Manjeri'"/>
-                    <t t-set="hero_title" t-value="lab['academy']"/>
-                    <t t-set="hero_text" t-value="'Hands-on dental technology training in a working laboratory, and a conference hall for the clinicians who send it work.'"/>
-                    <t t-set="hero_cta" t-value="('Enquire about a batch', '#enquire')"/>
-                    <t t-set="hero_cta2" t-value="('The programmes', '#programmes')"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/technician-bench.jpg"
+                    hero_kicker.f="Training · Manjeri"
+                    hero_title="lab['academy']"
+                    hero_text.f="Hands-on dental technology training in a working laboratory, and a conference hall for the clinicians who send it work."
+                    hero_cta="('Enquire about a batch', '#enquire')"
+                    hero_cta2="('The programmes', '#programmes')"/>
 
                 <!-- Three numbers the academy stands on, over the hero edge. -->
                 <div class="container o_lab_hero_strip_wrap o_lab_hero_strip_wrap_inner">
@@ -106,26 +105,24 @@
                             </div>
                             <div class="col-lg-7 o_lab_reveal">
                                 <div class="o_lab_formcard">
-                                    <t t-call="lab_website.enquiry_form">
-                                        <t t-set="form_id" t-value="'lab_academy_form'"/>
-                                        <t t-set="subject" t-value="'Academy enquiry'"/>
-                                        <t t-set="company_label" t-value="'College / clinic / lab'"/>
-                                        <t t-set="choices_label" t-value="'Programme'"/>
-                                        <t t-set="choices" t-value="[c[1] for c in content['courses']] + ['Crown Conference Hall (CDE)', 'Not sure yet']"/>
-                                        <t t-set="message_label" t-value="'About you'"/>
-                                        <t t-set="message_placeholder" t-value="'Student, technician or clinician — and what you want to learn.'"/>
-                                        <t t-set="submit_label" t-value="'Send my enquiry'"/>
-                                    </t>
+                                    <t t-call="lab_website.enquiry_form"
+                                        form_id.f="lab_academy_form"
+                                        subject.f="Academy enquiry"
+                                        company_label.f="College / clinic / lab"
+                                        choices_label.f="Programme"
+                                        choices="[c[1] for c in content['courses']] + ['Crown Conference Hall (CDE)', 'Not sure yet']"
+                                        message_label.f="About you"
+                                        message_placeholder.f="Student, technician or clinician — and what you want to learn."
+                                        submit_label.f="Send my enquiry"/>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <t t-call="lab_website.cta_band">
-                    <t t-set="cta_title" t-value="'Sending cases, not students?'"/>
-                    <t t-set="cta_text" t-value="'The same benches make your work. Here is how to send a case.'"/>
-                </t>
+                <t t-call="lab_website.cta_band"
+                    cta_title.f="Sending cases, not students?"
+                    cta_text.f="The same benches make your work. Here is how to send a case."/>
             </div>
         </t>
     </template>

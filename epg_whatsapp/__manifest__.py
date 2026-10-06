@@ -57,7 +57,6 @@ them.
     'depends': ['base', 'mail'],
     'data': [
         'security/epg_whatsapp_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_cron.xml',
         'views/epg_whatsapp_account_views.xml',
         'views/epg_whatsapp_template_views.xml',
@@ -75,6 +74,7 @@ them.
         'views/snippet_views.xml',
         'views/chats_views.xml',
         'wizard/chat_import_views.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

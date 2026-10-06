@@ -9,8 +9,6 @@
     'license': 'LGPL-3',
     'depends': ['lab_fieldwork', 'ebshel_dynamic_filter', 'mrp'],
     'data': [
-        'security/delivery_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
         'data/courier_data.xml',
@@ -24,6 +22,7 @@
         'wizard/delivery_receive_views.xml',
         'views/menus.xml',
         'data/filter_tiles.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

@@ -2160,7 +2160,7 @@ class TestNewClinics(TransactionCase):
     def test_an_executive_sees_their_own_routes_only(self):
         mine = self._clinic('NC Mine Clinic', self.mine)
         theirs = self._clinic('NC Their Clinic', self.other)
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         data = self.NC.with_user(self.exec_user).get_new_clinics()
         ids = [r['id'] for r in data['rows']]
         self.assertTrue(data['scoped'])
@@ -2174,7 +2174,7 @@ class TestNewClinics(TransactionCase):
             'group_ids': [(6, 0, [
                 self.env.ref('base.group_user').id,
                 self.env.ref('lab_fieldwork.group_fieldwork_manager').id])]})
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         data = self.NC.with_user(manager).get_new_clinics()
         self.assertFalse(data['scoped'])
         self.assertIn(theirs.id, [r['id'] for r in data['rows']])
@@ -2414,7 +2414,7 @@ class TestDoctorsOnMyRound(TransactionCase):
             'city': 'Kollam'})
 
     def _rows(self, **kw):
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return self.Day.with_user(self.exec_user).get_clinics(**kw)
 
     # ----------------------------------------------------------------- scope
@@ -2506,7 +2506,7 @@ class TestDoctorsOnMyRound(TransactionCase):
         self.mine.write({'member_ids': [(4, mate.id)]})
         self.env['lab.clinic.favourite'].with_user(
             self.exec_user).toggle(self.here.id)
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         self.assertEqual(
             self.env['lab.clinic.favourite'].with_user(
                 mate).my_partner_ids(), [],

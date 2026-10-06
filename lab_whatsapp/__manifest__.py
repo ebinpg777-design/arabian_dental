@@ -45,7 +45,6 @@ This module adds only the dental-lab-specific glue on top:
     'depends': ['epg_whatsapp', 'sale_custom', 'account', 'stock', 'mail',
                 'phone_validation'],
     'data': [
-        'security/ir.model.access.csv',
         'data/whatsapp_data.xml',
         'data/whatsapp_template_data.xml',
         'data/ir_cron_data.xml',
@@ -55,6 +54,7 @@ This module adds only the dental-lab-specific glue on top:
         'views/record_views.xml',
         'wizard/number_wizard_views.xml',
         'wizard/enquiry_wizard_views.xml',
+        'security/ir.access.csv',
     ],
     'installable': True,
     'application': True,

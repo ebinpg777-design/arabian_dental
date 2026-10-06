@@ -215,7 +215,7 @@ class TestFinReportSpeed(TransactionCase):
                 with self.subTest(grouping=grouping, comma=comma, position=position):
                     lang.write({'grouping': grouping, 'thousands_sep': comma, 'decimal_point': point})
                     currency.position = position
-                    self.env.registry.clear_cache()
+                    self.env.transaction.invalidate_ormcache()
                     engine = self.engine.with_context(fin_memo=Memo())
                     money, plain = engine._writer(currency.decimal_places, currency), engine._writer(1)
                     self.assertEqual(money.__name__, 'write', "the short way round, not formatLang again")

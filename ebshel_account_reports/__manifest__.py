@@ -35,8 +35,6 @@ tags or formulas over other lines - no code.
     'currency': 'USD',
     'depends': ['account'],
     'data': [
-        'security/security.xml',
-        'security/ir.model.access.csv',
         'data/paperformat.xml',
         'data/reports.xml',
         'data/report_lines.xml',
@@ -48,6 +46,7 @@ tags or formulas over other lines - no code.
         'views/report_pdf.xml',
         'views/settings_views.xml',
         'views/menus.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

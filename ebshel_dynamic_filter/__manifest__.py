@@ -113,10 +113,10 @@ Compatibility
     'depends': ['web', 'bus'],
     'data': [
         'security/filter_tiles_groups.xml',
-        'security/ir.model.access.csv',
         'data/filter_tile_cron.xml',
         'views/filter_tile_views.xml',
         'views/tile_overview_views.xml',
+        'security/ir.access.csv',
     ],
     'demo': [
         'demo/filter_tile_demo.xml',

@@ -28,7 +28,6 @@ Switched on per company. Off, nothing changes: no ticket is raised and no order 
     'depends': ['lab_order_control', 'lab_fieldwork', 'mail'],
     'data': [
         'security/security.xml',
-        'security/ir.model.access.csv',
         'data/sequence.xml',
         'data/cron.xml',
         'views/ticket_views.xml',
@@ -36,6 +35,7 @@ Switched on per company. Off, nothing changes: no ticket is raised and no order 
         'views/case_views.xml',
         'views/res_config_settings_views.xml',
         'views/menus.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

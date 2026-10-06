@@ -32,7 +32,7 @@ class TestSiblingModulesAreOptional(TransactionCase):
                                   G('lab_fieldwork.group_fieldwork_executive').id])]})
         # The route rules confine an executive through the teams they lead.
         cls.route.user_id = cls.exec_user
-        cls.env.registry.clear_cache()
+        cls.env.transaction.invalidate_ormcache()
         cls.clinic = cls.env['res.partner'].create({
             'name': 'Sibling Clinic', 'is_clinic': True, 'team_id': cls.route.id,
             'phone': '9847011223', 'city': 'Kochi',

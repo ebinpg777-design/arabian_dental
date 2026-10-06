@@ -10,7 +10,6 @@
     'depends': ['account', 'mail', 'product'],
     'data': [
         'security/petty_cash_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_sequence_data.xml',
         'data/petty_cash_automation.xml',
         'data/petty_cash_server_actions.xml',
@@ -26,6 +25,7 @@
         'views/petty_cash_report_views.xml',
         'views/res_config_settings_views.xml',
         'views/petty_cash_menu.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

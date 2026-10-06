@@ -34,8 +34,6 @@ Assets and Depreciation
     'currency': 'USD',
     'depends': ['account', 'ebshel_account_reports'],
     'data': [
-        'security/security.xml',
-        'security/ir.model.access.csv',
         'data/sequence.xml',
         'data/cron.xml',
         'data/reports.xml',
@@ -47,6 +45,7 @@ Assets and Depreciation
         'views/account_move_views.xml',
         'report/asset_reports.xml',
         'views/menus.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

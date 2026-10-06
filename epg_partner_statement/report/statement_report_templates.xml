@@ -6,11 +6,10 @@
                 <t t-set="st" t-value="statements.get(o.id)"/>
                 <t t-set="blocks" t-value="st and st['blocks'] or []"/>
                 <t t-set="open_mode" t-value="options['open_items_only']"/>
-                <t t-call="{{layout}}">
+                <t t-call="{{layout}}" hide_letterhead="True">
                     <!-- The letterhead is drawn here, not in the page header band: it is
                          too tall for the band and used to overlap the first lines of the
                          statement (2026-08-18). -->
-                    <t t-set="hide_letterhead" t-value="True"/>
                     <div class="page epg-statement">
                         <!-- ONE compact band for the letterhead, drawn in the body. The page
                              used to carry Odoo's standard header (with the country) AND the
@@ -29,8 +28,8 @@
                                     </div>
                                     <div class="epg-lh-ids">
                                         <t t-if="'pan_number' in company._fields and company.pan_number">PAN <b t-out="company.pan_number"/></t>
-                                        <t t-if="'gst_number' in company._fields and company.gst_number">&#160;&#160;GSTIN <b t-out="company.gst_number"/></t>
-                                        <t t-if="not ('gst_number' in company._fields and company.gst_number) and company.vat">&#160;&#160;GSTIN <b t-out="company.vat"/></t>
+                                        <t t-if="'gst_number' in company._fields and company.gst_number">  GSTIN <b t-out="company.gst_number"/></t>
+                                        <t t-if="not ('gst_number' in company._fields and company.gst_number) and company.vat">  GSTIN <b t-out="company.vat"/></t>
                                     </div>
                                 </td>
                                 <td class="epg-lh-cert"><img t-if="lh_cert" t-att-src="image_data_uri(lh_cert)"/></td>
@@ -164,7 +163,7 @@
 
                             <!-- ageing -->
                             <t t-if="options.get('show_ageing') and (block['ageing_gross'] or block['credits_open'])">
-                                <div class="epg-ageing-title">Ageing of open items by due date — as of&#160;<span t-out="date_to" t-options="{'widget': 'date'}"/></div>
+                                <div class="epg-ageing-title">Ageing of open items by due date — as of <span t-out="date_to" t-options="{'widget': 'date'}"/></div>
                                 <div class="epg-ageing">
                                     <t t-foreach="block['ageing_rows']" t-as="a">
                                         <div t-attf-class="epg-bucket #{'epg-bucket-hot' if a[2] and a[1] else ''}">

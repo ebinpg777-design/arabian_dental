@@ -20,8 +20,8 @@ valuation use the native Inventory reports + list XLSX export.
     'author': 'Migrated to Odoo 19',
     'depends': ['stock', 'mrp'],
     'data': [
-        'security/ir.model.access.csv',
         'wizard/stock_movement_report_views.xml',
+        'security/ir.access.csv',
     ],
     'installable': True,
     'application': False,

@@ -22,7 +22,7 @@ class CrmTeam(models.Model):
     _inherit = 'crm.team'
 
     def _fw_clear_rule_cache(self):
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
 
     def write(self, vals):
         res = super().write(vals)

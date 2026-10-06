@@ -26,11 +26,11 @@
     </template>
 
     <template id="report_dispatch_register">
-        <t t-call="web.html_container">
-            <t t-set="o" t-value="wizard"/>
-            <t t-set="hide_letterhead" t-value="True"/>
-            <t t-set="footer_note">Dispatch register</t>
-            <t t-set="route_count" t-value="None"/>
+        <t t-call="web.html_container"
+            o="wizard"
+            hide_letterhead="True"
+            footer_note.translate="Dispatch register"
+            route_count="None">
             <t t-call="sale_custom.external_layout_lab">
                 <div class="page lab-invoice odr">
                     <t t-call="sale_custom.letterhead_block"/>
@@ -44,22 +44,20 @@
                         <!-- one route per page, and the title block repeats on each: the
                              sheet is handed to that route's runner as a document of its own -->
                         <div t-attf-class="odr-route {{'' if g_first else 'odr-newpage'}}">
-                            <t t-call="sale_custom.dispatch_register_title">
-                                <t t-set="route_count" t-value="len(g['moves'])"/>
-                            </t>
+                            <t t-call="sale_custom.dispatch_register_title" route_count="len(g['moves'])"/>
                             <table class="odr-route-head">
                                 <tr>
                                     <td><i class="fa fa-map-marker"/> <t t-out="g['name']"/></td>
                                     <td style="text-align:right;">
                                         <t t-out="len(g['moves'])"/> invoice<t t-if="len(g['moves']) != 1">s</t>
-                                        &#160;·&#160; <t t-out="money(g['total'])"/>
+                                         ·  <t t-out="money(g['total'])"/>
                                     </td>
                                 </tr>
                             </table>
                             <table class="odr-lines">
                                 <thead>
                                     <tr>
-                                        <th class="tick">&#160;</th>
+                                        <th class="tick"> </th>
                                         <th style="width:11%">Invoice</th>
                                         <th style="width:22%">Clinic</th>
                                         <th style="width:15%">Patient(s)</th>

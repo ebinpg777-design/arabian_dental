@@ -1,0 +1,47 @@
+id,name,model_id,group_id/id,operation,domain
+petty_cash_allocation_user_rule,Petty Cash Allocation: own records + own company,petty.cash.allocation,petty_cash.group_petty_cash_user,cru,"[
+            ('partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_allocation_officer_rule,Petty Cash Allocation: officers all records in own company,petty.cash.allocation,petty_cash.group_petty_cash_officer,cru,"[('company_id', 'in', user.company_ids.ids)]"
+petty_cash_allocation_user_rule_1,Petty Cash Allocation: own records + own company,petty.cash.allocation,petty_cash.group_petty_cash_manager,crud,"[
+            ('partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_allocation_officer_rule_1,Petty Cash Allocation: officers all records in own company,petty.cash.allocation,petty_cash.group_petty_cash_manager,crud,"[('company_id', 'in', user.company_ids.ids)]"
+petty_cash_transaction_user_rule,Petty Cash Transaction: own records + own company,petty.cash.transaction,petty_cash.group_petty_cash_user,cru,"[
+            ('petty_cash_partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_transaction_officer_rule,Petty Cash Transaction: officers all records in own company,petty.cash.transaction,petty_cash.group_petty_cash_officer,cru,"[('company_id', 'in', user.company_ids.ids)]"
+petty_cash_transaction_user_rule_1,Petty Cash Transaction: own records + own company,petty.cash.transaction,petty_cash.group_petty_cash_manager,crud,"[
+            ('petty_cash_partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_transaction_officer_rule_1,Petty Cash Transaction: officers all records in own company,petty.cash.transaction,petty_cash.group_petty_cash_manager,crud,"[('company_id', 'in', user.company_ids.ids)]"
+petty_cash_expense_user_rule,Petty Cash Expense: own records + own company,petty.cash.expense,petty_cash.group_petty_cash_user,cru,"[
+            ('petty_cash_partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_expense_officer_rule,Petty Cash Expense: officers all records in own company,petty.cash.expense,petty_cash.group_petty_cash_officer,cru,"[('company_id', 'in', user.company_ids.ids)]"
+petty_cash_expense_user_rule_1,Petty Cash Expense: own records + own company,petty.cash.expense,petty_cash.group_petty_cash_manager,crud,"[
+            ('petty_cash_partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_expense_officer_rule_1,Petty Cash Expense: officers all records in own company,petty.cash.expense,petty_cash.group_petty_cash_manager,crud,"[('company_id', 'in', user.company_ids.ids)]"
+petty_cash_expense_line_user_rule,Petty Cash Expense Line: own records + own company,petty.cash.expense.line,petty_cash.group_petty_cash_user,cru,"[
+            ('expense_id.petty_cash_partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_expense_line_officer_rule,Petty Cash Expense Line: officers all records in own company,petty.cash.expense.line,petty_cash.group_petty_cash_officer,cru,"[('company_id', 'in', user.company_ids.ids)]"
+petty_cash_expense_line_user_rule_1,Petty Cash Expense Line: own records + own company,petty.cash.expense.line,petty_cash.group_petty_cash_manager,crud,"[
+            ('expense_id.petty_cash_partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_expense_line_officer_rule_1,Petty Cash Expense Line: officers all records in own company,petty.cash.expense.line,petty_cash.group_petty_cash_manager,crud,"[('company_id', 'in', user.company_ids.ids)]"
+access_petty_cash_close_wizard_user,petty.cash.close.wizard.user,petty.cash.close.wizard,petty_cash.group_petty_cash_user,crud,
+petty_cash_category_budget_user_rule,Petty Cash Category Budget: own records + own company,petty.cash.category.budget,petty_cash.group_petty_cash_officer,crud,"[
+            ('allocation_id.partner_id', '=', user.partner_id.id),
+            ('company_id', 'in', user.company_ids.ids)
+        ]"
+petty_cash_category_budget_officer_rule,Petty Cash Category Budget: officers all records in own company,petty.cash.category.budget,petty_cash.group_petty_cash_officer,crud,"[('company_id', 'in', user.company_ids.ids)]"

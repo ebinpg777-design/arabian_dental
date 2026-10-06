@@ -3,16 +3,15 @@
 
     <!-- ================================================================== ABOUT -->
     <template id="page_about" name="About">
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="'About'"/>
-            <t t-set="website_meta_description" t-value="'Arabian Dental Lab is a full-service dental laboratory in Manjeri, Kerala, home of the ADL Dental Academy and the Crown Conference Hall.'"/>
+        <t t-call="website.layout"
+            additional_title.f="About"
+            website_meta_description.f="Arabian Dental Lab is a full-service dental laboratory in Manjeri, Kerala, home of the ADL Dental Academy and the Crown Conference Hall.">
             <div id="wrap" class="oe_structure o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/technician-bench.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'About the lab'"/>
-                    <t t-set="hero_title" t-value="'Your clear choice for a beautiful smile'"/>
-                    <t t-set="hero_text" t-value="'A dental laboratory in Manjeri, Kerala, making crowns, bridges, dentures, implant and orthodontic work for clinics across the state — and training the technicians who will make the next ones.'"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/technician-bench.jpg"
+                    hero_kicker.f="About the lab"
+                    hero_title.f="Your clear choice for a beautiful smile"
+                    hero_text.f="A dental laboratory in Manjeri, Kerala, making crowns, bridges, dentures, implant and orthodontic work for clinics across the state — and training the technicians who will make the next ones."/>
 
                 <section class="o_lab_sec">
                     <div class="container">
@@ -124,17 +123,16 @@
 
     <!-- ============================================================= TECHNOLOGY -->
     <template id="page_technology" name="Technology">
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="'Technology'"/>
-            <t t-set="website_meta_description" t-value='"Intra-oral scan intake, CAD design, milling, 3D printing and hand-layered ceramics: how Arabian Dental Lab makes a case."'/>
+        <t t-call="website.layout"
+            additional_title.f="Technology"
+            website_meta_description='"Intra-oral scan intake, CAD design, milling, 3D printing and hand-layered ceramics: how Arabian Dental Lab makes a case."'>
             <div id="wrap" class="oe_structure o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/posterior-bridge.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'Technology'"/>
-                    <t t-set="hero_title" t-value="'Digital where it helps, hand where it matters'"/>
-                    <t t-set="hero_text" t-value="'Send a scan instead of an impression and the case is on the design screen the same day. Frameworks are milled, models and guides are printed — and the ceramist still does the layering and the glaze.'"/>
-                    <t t-set="hero_cta" t-value="('Send a scan', '/send-a-case')"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/posterior-bridge.jpg"
+                    hero_kicker.f="Technology"
+                    hero_title.f="Digital where it helps, hand where it matters"
+                    hero_text.f="Send a scan instead of an impression and the case is on the design screen the same day. Frameworks are milled, models and guides are printed — and the ceramist still does the layering and the glaze."
+                    hero_cta="('Send a scan', '/send-a-case')"/>
 
                 <section class="o_lab_sec">
                     <div class="container">
@@ -201,17 +199,16 @@
 
     <!-- ================================================================ GALLERY -->
     <template id="page_gallery" name="Gallery">
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="'Gallery'"/>
-            <t t-set="website_meta_description" t-value="'Crowns, bridges, veneers and implant work from the bench at Arabian Dental Lab, Manjeri.'"/>
+        <t t-call="website.layout"
+            additional_title.f="Gallery"
+            website_meta_description.f="Crowns, bridges, veneers and implant work from the bench at Arabian Dental Lab, Manjeri.">
             <div id="wrap" class="oe_structure o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/anterior-veneers.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'Gallery'"/>
-                    <t t-set="hero_title" t-value="'Work that leaves here'"/>
-                    <t t-set="hero_text" t-value="'Photographed on the bench before it ships. Follow the lab on Instagram for the latest.'"/>
-                    <t t-set="hero_cta" t-value="('Follow on Instagram', lab['instagram'])"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/anterior-veneers.jpg"
+                    hero_kicker.f="Gallery"
+                    hero_title.f="Work that leaves here"
+                    hero_text.f="Photographed on the bench before it ships. Follow the lab on Instagram for the latest."
+                    hero_cta="('Follow on Instagram', lab['instagram'])"/>
 
                 <section class="o_lab_sec">
                     <div class="container">
@@ -248,16 +245,15 @@
 
     <!-- ============================================================ SEND A CASE -->
     <template id="page_send_case" name="Send a case">
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="'Send a case'"/>
-            <t t-set="website_meta_description" t-value="'Three ways to send a case to Arabian Dental Lab: our own collection routes, courier, or a digital scan.'"/>
+        <t t-call="website.layout"
+            additional_title.f="Send a case"
+            website_meta_description.f="Three ways to send a case to Arabian Dental Lab: our own collection routes, courier, or a digital scan.">
             <div id="wrap" class="oe_structure o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/model-in-hand.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'Send a case'"/>
-                    <t t-set="hero_title" t-value="'Three ways to get a case to us'"/>
-                    <t t-set="hero_text" t-value="'Our executive collects it from your clinic, a courier brings it, or a scan arrives before the patient has left the chair.'"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/model-in-hand.jpg"
+                    hero_kicker.f="Send a case"
+                    hero_title.f="Three ways to get a case to us"
+                    hero_text.f="Our executive collects it from your clinic, a courier brings it, or a scan arrives before the patient has left the chair."/>
 
                 <section class="o_lab_sec">
                     <div class="container">
@@ -317,39 +313,36 @@
                                     <span class="o_lab_kicker">New to the lab?</span>
                                     <h2 class="o_lab_h2">Tell us about your practice</h2>
                                     <p class="text-muted">We will ring you back, put your clinic on a route and set up your doctor login.</p>
-                                    <t t-call="lab_website.enquiry_form">
-                                        <t t-set="form_id" t-value="'lab_case_form'"/>
-                                        <t t-set="subject" t-value="'New clinic — send a case'"/>
-                                        <t t-set="message_label" t-value="'What do you send most?'"/>
-                                        <t t-set="message_placeholder" t-value="'Crowns and bridges, dentures, implant work… and roughly how many cases a month.'"/>
-                                        <t t-set="submit_label" t-value="'Request a call back'"/>
-                                    </t>
+                                    <t t-call="lab_website.enquiry_form"
+                                        form_id.f="lab_case_form"
+                                        subject.f="New clinic — send a case"
+                                        message_label.f="What do you send most?"
+                                        message_placeholder.f="Crowns and bridges, dentures, implant work… and roughly how many cases a month."
+                                        submit_label.f="Request a call back"/>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <t t-call="lab_website.cta_band">
-                    <t t-set="cta_title" t-value="'Already sending us cases?'"/>
-                    <t t-set="cta_text" t-value="'Every case you have sent, which bench it is on and when it ships — from your own login.'"/>
-                </t>
+                <t t-call="lab_website.cta_band"
+                    cta_title.f="Already sending us cases?"
+                    cta_text.f="Every case you have sent, which bench it is on and when it ships — from your own login."/>
             </div>
         </t>
     </template>
 
     <!-- ================================================================ CAREERS -->
     <template id="page_careers" name="Careers">
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="'Careers'"/>
-            <t t-set="website_meta_description" t-value="'Ceramists, CAD designers, denture and model technicians, field executives: the roles Arabian Dental Lab hires for in Manjeri.'"/>
+        <t t-call="website.layout"
+            additional_title.f="Careers"
+            website_meta_description.f="Ceramists, CAD designers, denture and model technicians, field executives: the roles Arabian Dental Lab hires for in Manjeri.">
             <div id="wrap" class="oe_structure o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/technician-bench.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'Careers'"/>
-                    <t t-set="hero_title" t-value="'Work at the bench'"/>
-                    <t t-set="hero_text" t-value="'A laboratory that trains its own people, keeps them, and gives them the work that is worth being good at.'"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/technician-bench.jpg"
+                    hero_kicker.f="Careers"
+                    hero_title.f="Work at the bench"
+                    hero_text.f="A laboratory that trains its own people, keeps them, and gives them the work that is worth being good at."/>
 
                 <section class="o_lab_sec">
                     <div class="container">
@@ -388,41 +381,38 @@
                                 <div class="o_lab_formcard">
                                     <span class="o_lab_kicker">Apply</span>
                                     <h2 class="o_lab_h2">Tell us about yourself</h2>
-                                    <t t-call="lab_website.enquiry_form">
-                                        <t t-set="form_id" t-value="'lab_career_form'"/>
-                                        <t t-set="subject" t-value="'Career enquiry'"/>
-                                        <t t-set="company_label" t-value="'Current lab / college'"/>
-                                        <t t-set="choices_label" t-value="'Role'"/>
-                                        <t t-set="choices" t-value="[r[1] for r in content['roles']] + ['Something else']"/>
-                                        <t t-set="message_label" t-value="'Your experience'"/>
-                                        <t t-set="message_placeholder" t-value="'Where you trained, what you have made, what you want to do next.'"/>
-                                        <t t-set="submit_label" t-value="'Send my details'"/>
-                                    </t>
+                                    <t t-call="lab_website.enquiry_form"
+                                        form_id.f="lab_career_form"
+                                        subject.f="Career enquiry"
+                                        company_label.f="Current lab / college"
+                                        choices_label.f="Role"
+                                        choices="[r[1] for r in content['roles']] + ['Something else']"
+                                        message_label.f="Your experience"
+                                        message_placeholder.f="Where you trained, what you have made, what you want to do next."
+                                        submit_label.f="Send my details"/>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <t t-call="lab_website.cta_band">
-                    <t t-set="cta_title" t-value="'Or start at the academy'"/>
-                    <t t-set="cta_text" t-value="'Hands-on programmes for technicians and clinicians, taught in the laboratory itself.'"/>
-                </t>
+                <t t-call="lab_website.cta_band"
+                    cta_title.f="Or start at the academy"
+                    cta_text.f="Hands-on programmes for technicians and clinicians, taught in the laboratory itself."/>
             </div>
         </t>
     </template>
 
     <!-- ==================================================================== FAQ -->
     <template id="page_faq" name="FAQ">
-        <t t-call="website.layout">
-            <t t-set="additional_title" t-value="'FAQ'"/>
-            <t t-set="website_meta_description" t-value="'How to send a case, scans, shade, turnaround, remakes and doctor login: questions clinics ask Arabian Dental Lab.'"/>
+        <t t-call="website.layout"
+            additional_title.f="FAQ"
+            website_meta_description.f="How to send a case, scans, shade, turnaround, remakes and doctor login: questions clinics ask Arabian Dental Lab.">
             <div id="wrap" class="oe_structure o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/single-crown.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'Questions'"/>
-                    <t t-set="hero_title" t-value="'What clinics ask before their first case'"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/single-crown.jpg"
+                    hero_kicker.f="Questions"
+                    hero_title.f="What clinics ask before their first case"/>
                 <section class="o_lab_sec">
                     <div class="container">
                         <div class="row g-5">

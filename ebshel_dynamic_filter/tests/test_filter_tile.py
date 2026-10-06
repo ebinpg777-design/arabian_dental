@@ -856,7 +856,7 @@ class TestFilterTile(TransactionCase):
             'perm_read': True,
             'perm_write': False, 'perm_create': False, 'perm_unlink': False,
         })
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         Tile = self.Tile.with_user(self.user)
         visible = self.env['res.partner'].with_user(self.user).search_count([])
         tiles = [

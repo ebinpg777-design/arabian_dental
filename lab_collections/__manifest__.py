@@ -26,7 +26,6 @@ Money coming in, read the way the lab is organised.
     'depends': ['account', 'sale_custom', 'lab_finance_ops', 'lab_fieldwork',
                'epg_partner_statement'],
     'data': [
-        'security/ir.model.access.csv',
         'report/collection_report.xml',
         'views/account_payment_views.xml',
         'views/collection_settings_views.xml',
@@ -36,6 +35,7 @@ Money coming in, read the way the lab is organised.
         'views/collection_dashboard_views.xml',
         'views/collection_menus.xml',
         'views/lab_visit_views.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

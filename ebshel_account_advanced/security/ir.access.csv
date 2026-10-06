@@ -1,0 +1,55 @@
+id,name,model_id,group_id/id,operation,domain
+access_followup_level_read,followup level read,ebshel.followup.level,account.group_account_readonly,r,
+access_followup_level_manager,followup level manager,ebshel.followup.level,account.group_account_manager,crud,
+rule_followup_level_company,Follow-up levels: own companies,ebshel.followup.level,,crud,"[('company_id', 'in', company_ids)]"
+access_followup_action_read,followup action read,ebshel.followup.action,account.group_account_readonly,r,
+access_followup_action_user,followup action user,ebshel.followup.action,account.group_account_invoice,crud,
+access_followup_remind_user,followup remind wizard,ebshel.followup.remind,account.group_account_invoice,crud,
+access_budget_read,budget read,ebshel.budget,account.group_account_readonly,r,
+access_budget_user,budget user,ebshel.budget,account.group_account_user,crud,
+access_ebshel_budget_billing_read,ebshel_budget billing read,ebshel.budget,account.group_account_invoice,r,
+rule_budget_company,Budgets: own companies,ebshel.budget,,crud,"[('company_id', 'in', company_ids)]"
+access_budget_line_read,budget line read,ebshel.budget.line,account.group_account_readonly,r,
+access_budget_line_user,budget line user,ebshel.budget.line,account.group_account_user,crud,
+access_ebshel_budget_line_billing_read,ebshel_budget_line billing read,ebshel.budget.line,account.group_account_invoice,r,
+access_budget_phase_read,budget phase read,ebshel.budget.phase,account.group_account_readonly,r,
+access_budget_phase_user,budget phase user,ebshel.budget.phase,account.group_account_user,crud,
+access_ebshel_budget_phase_billing_read,ebshel_budget_phase billing read,ebshel.budget.phase,account.group_account_invoice,r,
+access_deferral_read,deferral read,ebshel.deferral,account.group_account_readonly,r,
+access_deferral_user,deferral user,ebshel.deferral,account.group_account_invoice,crud,
+rule_deferral_company,Deferrals: own companies,ebshel.deferral,,crud,"[('company_id', 'in', company_ids)]"
+access_deferral_line_read,deferral line read,ebshel.deferral.line,account.group_account_readonly,r,
+access_deferral_line_user,deferral line user,ebshel.deferral.line,account.group_account_invoice,crud,
+access_close_period_read,close period read,ebshel.close.period,account.group_account_readonly,r,
+access_close_period_user,close period user,ebshel.close.period,account.group_account_user,crud,
+access_ebshel_close_period_billing_read,ebshel_close_period billing read,ebshel.close.period,account.group_account_invoice,r,
+rule_close_period_company,Close periods: own companies,ebshel.close.period,,crud,"[('company_id', 'in', company_ids)]"
+access_close_task_read,close task read,ebshel.close.task,account.group_account_readonly,r,
+access_close_task_user,close task user,ebshel.close.task,account.group_account_user,crud,
+access_ebshel_close_task_billing_read,ebshel_close_task billing read,ebshel.close.task,account.group_account_invoice,r,
+access_close_task_template_read,close task template read,ebshel.close.task.template,account.group_account_readonly,r,
+access_close_task_template_manager,close task template manager,ebshel.close.task.template,account.group_account_manager,crud,
+access_cash_item_read,cash item read,ebshel.cash.item,account.group_account_readonly,r,
+access_cash_item_user,cash item user,ebshel.cash.item,account.group_account_user,crud,
+access_ebshel_cash_item_billing_read,ebshel_cash_item billing read,ebshel.cash.item,account.group_account_invoice,r,
+rule_cash_item_company,Cash forecast items: own companies,ebshel.cash.item,,crud,"[('company_id', 'in', company_ids)]"
+access_ledger_finding_read,ledger finding read,ebshel.ledger.finding,account.group_account_readonly,r,
+access_ledger_finding_user,ledger finding user,ebshel.ledger.finding,account.group_account_user,crud,
+access_ebshel_ledger_finding_billing_read,ebshel_ledger_finding billing read,ebshel.ledger.finding,account.group_account_invoice,r,
+rule_finding_company,Ledger findings: own companies,ebshel.ledger.finding,,crud,"[('company_id', 'in', company_ids)]"
+access_bank_rule_read,bank rule read,ebshel.bank.rule,account.group_account_readonly,r,
+access_bank_rule_billing_read,bank rule billing read,ebshel.bank.rule,account.group_account_invoice,r,
+access_bank_rule_user,bank rule user,ebshel.bank.rule,account.group_account_user,crud,
+rule_bank_rule_company,Bank rules: own companies,ebshel.bank.rule,,crud,"[('company_id', 'in', company_ids)]"
+access_bank_checkpoint_read,bank checkpoint read,ebshel.bank.checkpoint,account.group_account_readonly,r,
+access_bank_checkpoint_billing_read,bank checkpoint billing read,ebshel.bank.checkpoint,account.group_account_invoice,r,
+access_bank_checkpoint_user,bank checkpoint user,ebshel.bank.checkpoint,account.group_account_user,crud,
+rule_bank_checkpoint_company,Bank balances: own companies,ebshel.bank.checkpoint,,crud,"[('company_id', 'in', company_ids)]"
+access_entry_template_read,entry template read,ebshel.entry.template,account.group_account_readonly,r,
+access_entry_template_billing_read,entry template billing read,ebshel.entry.template,account.group_account_invoice,r,
+access_entry_template_user,entry template user,ebshel.entry.template,account.group_account_user,crud,
+rule_entry_template_company,Entry templates: own companies,ebshel.entry.template,,crud,"[('company_id', 'in', company_ids)]"
+access_entry_template_line_read,entry template line read,ebshel.entry.template.line,account.group_account_readonly,r,
+access_entry_template_line_billing_read,entry template line billing read,ebshel.entry.template.line,account.group_account_invoice,r,
+access_entry_template_line_user,entry template line user,ebshel.entry.template.line,account.group_account_user,crud,
+access_analytic_redistribute_user,analytic redistribute user,ebshel.analytic.redistribute,account.group_account_user,crud,

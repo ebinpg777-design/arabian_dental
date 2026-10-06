@@ -1,0 +1,84 @@
+id,name,model_id,group_id/id,operation,domain
+rule_visit_own,Visit: own,lab.visit,lab_fieldwork.group_fieldwork_executive,cru,"[('user_id', '=', user.id)]"
+rule_visit_all,Visit: all,lab.visit,lab_fieldwork.group_fieldwork_manager,crud,
+rule_visit_company,Visit: company,lab.visit,,crud,"[('company_id', 'in', company_ids)]"
+rule_trip_own,Trip: own,lab.trip,lab_fieldwork.group_fieldwork_executive,cru,"[('user_id', '=', user.id)]"
+rule_trip_all,Trip: all,lab.trip,lab_fieldwork.group_fieldwork_manager,crud,
+rule_trip_company,Trip: company,lab.trip,,crud,"[('company_id', 'in', company_ids)]"
+rule_beat_own,Beat: own,lab.beat,lab_fieldwork.group_fieldwork_executive,r,"[('user_id', '=', user.id)]"
+rule_beat_all,Beat: all,lab.beat,lab_fieldwork.group_fieldwork_manager,crud,
+rule_beat_company,Beat: company,lab.beat,,crud,"[('company_id', 'in', company_ids)]"
+rule_target_own,Target: own,lab.target,lab_fieldwork.group_fieldwork_executive,r,"[('user_id', '=', user.id)]"
+rule_target_all,Target: all,lab.target,lab_fieldwork.group_fieldwork_manager,crud,
+rule_target_company,Target: company,lab.target,,crud,"[('company_id', 'in', company_ids)]"
+rule_coverage_own,Coverage: own round,lab.coverage,lab_fieldwork.group_fieldwork_executive,r,"[('partner_id', 'in', user.fw_clinic_ids.ids)]"
+rule_coverage_all,Coverage: all,lab.coverage,lab_fieldwork.group_fieldwork_manager,r,
+rule_perf_all,Performance: all,lab.performance,lab_fieldwork.group_fieldwork_manager,r,
+rule_perf_own,Performance: own,lab.performance,lab_fieldwork.group_fieldwork_executive,r,"[('user_id', '=', user.id)]"
+rule_pc_alloc_fw_own,Petty cash float: own (field work),petty.cash.allocation,lab_fieldwork.group_fieldwork_executive,r,"[('partner_id', '=', user.partner_id.id)]"
+rule_pc_alloc_fw_all,Petty cash float: team (field work),petty.cash.allocation,lab_fieldwork.group_fieldwork_manager,r,"[('company_id', 'in', company_ids)]"
+rule_pc_txn_fw_own,Petty cash movement: own (field work),petty.cash.transaction,lab_fieldwork.group_fieldwork_executive,r,"[('petty_cash_partner_id', '=', user.partner_id.id)]"
+rule_pc_txn_fw_all,Petty cash movement: team (field work),petty.cash.transaction,lab_fieldwork.group_fieldwork_manager,r,"[('company_id', 'in', company_ids)]"
+access_fw_settings,field work settings,lab.fieldwork.settings,lab_fieldwork.group_fieldwork_admin,cru,
+rule_case_own,Case: own,lab.case,lab_fieldwork.group_fieldwork_executive,crud,"[('user_id', '=', user.id)]"
+rule_case_all,Case: all,lab.case,lab_fieldwork.group_fieldwork_manager,crud,
+rule_case_company,Case: company,lab.case,,crud,"[('company_id', 'in', company_ids)]"
+access_case_line_exec,case line executive,lab.case.line,lab_fieldwork.group_fieldwork_executive,crud,
+access_case_line_mgr,case line manager,lab.case.line,lab_fieldwork.group_fieldwork_manager,crud,
+access_visit_purpose_all,visit purpose read,lab.visit.purpose,base.group_user,r,
+access_visit_purpose_mgr,visit purpose manage,lab.visit.purpose,lab_fieldwork.group_fieldwork_admin,crud,
+access_visit_outcome_all,visit outcome read,lab.visit.outcome,base.group_user,r,
+access_visit_outcome_mgr,visit outcome manage,lab.visit.outcome,lab_fieldwork.group_fieldwork_admin,crud,
+access_quick_entry,quick entry,lab.case.quick.entry,lab_fieldwork.group_fieldwork_executive,crud,
+access_quick_entry_mgr,quick entry mgr,lab.case.quick.entry,lab_fieldwork.group_fieldwork_manager,crud,
+access_quick_entry_line,quick entry line,lab.case.quick.entry.line,lab_fieldwork.group_fieldwork_executive,crud,
+access_quick_entry_line_mgr,quick entry line mgr,lab.case.quick.entry.line,lab_fieldwork.group_fieldwork_manager,crud,
+access_res_partner_fw_executive,res.partner field executive create,base.model_res_partner,lab_fieldwork.group_fieldwork_executive,c,
+rule_partner_executive_route,Executives: clinics on their own route,base.model_res_partner,lab_fieldwork.group_fieldwork_executive,r,"['|','|','|','|',
+                ('team_id', 'in', user.fw_route_ids.ids),
+                ('commercial_partner_id.team_id', 'in', user.fw_route_ids.ids),
+                ('id', '=', user.partner_id.id),
+                ('partner_share', '=', False),
+                ('id', 'in', user.company_ids.partner_id.ids)]"
+rule_partner_executive_visited,Executives: clinics they have visited,base.model_res_partner,lab_fieldwork.group_fieldwork_executive,r,"['|',
+                ('visit_ids.user_id', '=', user.id),
+                ('parent_id.visit_ids.user_id', '=', user.id)]"
+rule_daily_update_own,Day sheet: own,lab.daily.update,lab_fieldwork.group_fieldwork_executive,cru,"[('user_id', '=', user.id)]"
+rule_daily_update_all,Day sheet: all,lab.daily.update,lab_fieldwork.group_fieldwork_manager,crud,
+rule_daily_update_company,Day sheet: company,lab.daily.update,,crud,"[('company_id', 'in', company_ids)]"
+access_weekly_report_admin,weekly report admin,lab.weekly.report,lab_fieldwork.group_fieldwork_admin,rd,
+rule_weekly_report_company,Weekly report: company,lab.weekly.report,,crud,"[('company_id', 'in', company_ids)]"
+rule_desk_cover_own,Desk cover: mine,lab.desk.cover,lab_fieldwork.group_fieldwork_manager,cru,"['|', ('manager_id', '=', user.id),
+                                             ('delegate_id', '=', user.id)]"
+rule_desk_cover_all,Desk cover: all,lab.desk.cover,lab_fieldwork.group_fieldwork_admin,crud,
+rule_desk_cover_company,Desk cover: company,lab.desk.cover,,crud,"[('company_id', 'in', company_ids)]"
+rule_hr_attendance_fw_manager,Attendance: field work managers read all,hr_attendance.model_hr_attendance,lab_fieldwork.group_fieldwork_manager,r,
+rule_clinic_fav_own,Favourite clinics: your own,lab.clinic.favourite,lab_fieldwork.group_fieldwork_executive,crud,"[('user_id', '=', user.id)]"
+rule_clinic_fav_own_1,Favourite clinics: your own,lab.clinic.favourite,lab_fieldwork.group_fieldwork_manager,crud,"[('user_id', '=', user.id)]"
+rule_sale_order_executive_read,Field executives read confirmed orders,sale.model_sale_order,lab_fieldwork.group_fieldwork_executive,r,"['|',
+                ('create_uid', '=', user.id),
+                '&', ('state','in',('sale','done')),
+                    '|', ('partner_id.team_id', 'in', user.fw_route_ids.ids),
+                         ('partner_id.commercial_partner_id.team_id', 'in', user.fw_route_ids.ids)]"
+rule_sale_order_executive_visited,Field executives read confirmed orders of clinics they visited,sale.model_sale_order,lab_fieldwork.group_fieldwork_executive,r,"['&', ('state', 'in', ('sale', 'done')),
+                '|', ('partner_id.visit_ids.user_id', '=', user.id),
+                     ('partner_id.commercial_partner_id.visit_ids.user_id', '=', user.id)]"
+rule_sale_order_manager_all,Field managers read every order,sale.model_sale_order,lab_fieldwork.group_fieldwork_manager,r,
+access_collect_cash_exec,record cash collected executive,lab.collect.cash,lab_fieldwork.group_fieldwork_executive,cru,
+access_collect_cash_mgr,record cash collected manager,lab.collect.cash,lab_fieldwork.group_fieldwork_manager,cru,
+rule_cash_collection_own,Cash collection: own,lab.cash.collection,lab_fieldwork.group_fieldwork_executive,cru,"[('user_id', '=', user.id)]"
+rule_cash_collection_all,Cash collection: all,lab.cash.collection,lab_fieldwork.group_fieldwork_manager,crud,
+rule_cash_collection_company,Cash collection: company,lab.cash.collection,,crud,"[('company_id', 'in', company_ids)]"
+rule_cash_handover_own,Cash handover: own,lab.cash.handover,lab_fieldwork.group_fieldwork_executive,cru,"[('user_id', '=', user.id)]"
+rule_cash_handover_all,Cash handover: all,lab.cash.handover,lab_fieldwork.group_fieldwork_manager,crud,
+rule_cash_handover_all_1,Cash handover: all,lab.cash.handover,petty_cash.group_petty_cash_officer,cru,
+rule_cash_handover_company,Cash handover: company,lab.cash.handover,,crud,"[('company_id', 'in', company_ids)]"
+rule_cash_handover_line_own,Cash handover line: own,lab.cash.handover.line,lab_fieldwork.group_fieldwork_executive,crud,"[('handover_id.user_id', '=', user.id)]"
+rule_cash_handover_line_all,Cash handover line: all,lab.cash.handover.line,lab_fieldwork.group_fieldwork_manager,crud,
+rule_cash_handover_line_all_1,Cash handover line: all,lab.cash.handover.line,petty_cash.group_petty_cash_officer,crud,
+access_cash_receive_mgr,receive field cash manager,lab.cash.receive,lab_fieldwork.group_fieldwork_manager,cru,
+access_cash_receive_pc,receive field cash petty cash officer,lab.cash.receive,petty_cash.group_petty_cash_officer,cru,
+rule_location_ping_own,Location trail: own,lab.location.ping,lab_fieldwork.group_fieldwork_executive,cr,"[('user_id', '=', user.id)]"
+rule_location_ping_all,Location trail: all,lab.location.ping,lab_fieldwork.group_fieldwork_manager,r,
+rule_location_ping_all_1,Location trail: all,lab.location.ping,base.group_system,crud,
+rule_location_ping_company,Location trail: company,lab.location.ping,,crud,"[('company_id', 'in', company_ids)]"

@@ -7,10 +7,12 @@
         stylesheet (static/src/scss/invoice_report.scss).
     -->
     <template id="report_dental_invoice_document">
-        <t t-call="sale_custom.external_layout_lab">
+        <t t-call="sale_custom.external_layout_lab"
+            mo="{'widget': 'monetary', 'display_currency': cur}"
+            footer_note.translate="Thank you for your business."
+            hide_letterhead="True">
             <t t-set="o" t-value="o.with_context(lang=o.partner_id.lang)"/>
             <t t-set="cur" t-value="o.currency_id"/>
-            <t t-set="mo" t-value="{'widget': 'monetary', 'display_currency': cur}"/>
             <t t-set="stamp" t-value="o._dental_payment_state_label()"/>
             <t t-set="stamp" t-value="stamp if stamp[1] in ('draft', 'cancel') else ('', '')"/>
             <t t-set="lines" t-value="o.invoice_line_ids.filtered(lambda l: l.display_type == 'product')"/>
@@ -24,8 +26,6 @@
             <t t-set="show_teeth" t-value="any(l.teeth for l in lines)"/>
             <t t-set="show_tax" t-value="bool(o.amount_tax) or any(l.tax_ids for l in lines)"/>
             <t t-set="paid" t-value="o.amount_total - o.amount_residual"/>
-            <t t-set="footer_note">Thank you for your business.</t>
-            <t t-set="hide_letterhead" t-value="True"/>
             <div class="page lab-invoice">
 
                 <!-- letterhead, in the body: the design puts it in a card at the top of
@@ -55,7 +55,7 @@
                     </div>
                     <div class="oi-ids">
                         <span t-if="o.company_id.pan_number">PAN: <span t-field="o.company_id.pan_number"/></span>
-                        <span t-if="o.company_id.pan_number and o.company_id.gst_number">&#160;&#160;&#160;</span>
+                        <span t-if="o.company_id.pan_number and o.company_id.gst_number">   </span>
                         <span t-if="o.company_id.gst_number">GSTIN: <span t-field="o.company_id.gst_number"/></span>
                     </div>
                 </div>
@@ -94,9 +94,9 @@
                     <div class="oi-partysub">
                         <t t-set="gstin" t-value="o.partner_id.gst_number or (o.partner_id.parent_id and o.partner_id.parent_id.gst_number)"/>
                         <span t-if="gstin">GSTIN: <t t-out="gstin"/></span>
-                        <span t-if="gstin and o.partner_id.pan_number"> &#160;·&#160; </span>
+                        <span t-if="gstin and o.partner_id.pan_number">  ·  </span>
                         <span t-if="o.partner_id.pan_number">PAN: <span t-field="o.partner_id.pan_number"/></span>
-                        <span t-if="(gstin or o.partner_id.pan_number) and o.partner_id.dci_number"> &#160;·&#160; </span>
+                        <span t-if="(gstin or o.partner_id.pan_number) and o.partner_id.dci_number">  ·  </span>
                         <span t-if="o.partner_id.dci_number">DCI No: <span t-field="o.partner_id.dci_number"/></span>
                     </div>
 

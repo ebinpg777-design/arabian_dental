@@ -38,9 +38,9 @@ The board a lab owner opens, as opposed to the one a field manager opens.
         # Management reads the countback's open items behind every money drill.
         # The row lives HERE, not in lab_collections: the consumer grants its
         # own group access to the provider's model, never the other way round.
-        'security/ir.model.access.csv',
         'views/lab_ceo_dashboard_views.xml',
         'views/management_dashboards.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

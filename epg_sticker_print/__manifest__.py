@@ -29,7 +29,6 @@ not the way a report happens to come out.
     'license': 'LGPL-3',
     'depends': ['sale_stock', 'sales_team'],
     'data': [
-        'security/ir.model.access.csv',
         'data/sticker_format_data.xml',
         'report/sticker_report_templates.xml',
         'report/report_actions.xml',
@@ -38,6 +37,7 @@ not the way a report happens to come out.
         'views/sale_order_views.xml',
         'views/stock_picking_views.xml',
         'views/crm_team_views.xml',
+        'security/ir.access.csv',
     ],
     'installable': True,
     'application': False,

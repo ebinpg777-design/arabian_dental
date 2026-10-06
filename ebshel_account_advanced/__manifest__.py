@@ -39,7 +39,6 @@ Configuration) - there is no separate top-level menu.
     'depends': ['account', 'mail', 'analytic', 'ebshel_account_reports', 'ebshel_account_assets'],
     'data': [
         'security/security.xml',
-        'security/ir.model.access.csv',
         'data/sequence.xml',
         'data/followup_data.xml',
         'data/close_tasks.xml',
@@ -60,6 +59,7 @@ Configuration) - there is no separate top-level menu.
         'views/entry_views.xml',
         'report/followup_letter.xml',
         'views/menus.xml',
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

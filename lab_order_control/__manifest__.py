@@ -31,7 +31,6 @@ This module only surfaces it on the verification screens.
                 'ebshel_dynamic_filter'],
     'data': [
         'security/lab_order_control_security.xml',
-        'security/ir.model.access.csv',
         'data/ir_cron.xml',
         'views/doctor_call_views.xml',
         'views/hold_views.xml',
@@ -41,6 +40,7 @@ This module only surfaces it on the verification screens.
         'views/res_partner_views.xml',
         'views/res_config_settings_views.xml',
         'views/lab_order_control_menus.xml',
+        'security/ir.access.csv',
     ],
     'post_init_hook': 'post_init_hook',
     'installable': True,

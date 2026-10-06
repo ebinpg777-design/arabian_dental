@@ -7,12 +7,11 @@
         <xpath expr="//section[hasclass('s_title')]" position="replace">
             <t t-set="lab" t-value="env['website'].sudo().lab_info()"/>
             <div class="o_lab">
-                <t t-call="lab_website.page_hero">
-                    <t t-set="hero_img" t-value="'/lab_website/static/src/img/crowns-on-model.jpg'"/>
-                    <t t-set="hero_kicker" t-value="'Contact'"/>
-                    <t t-set="hero_title" t-value="'Talk to the lab'"/>
-                    <t t-set="hero_text" t-value="'A question about a case, a material or a course — write here, ring, or message us on WhatsApp.'"/>
-                </t>
+                <t t-call="lab_website.page_hero"
+                    hero_img.f="/lab_website/static/src/img/crowns-on-model.jpg"
+                    hero_kicker.f="Contact"
+                    hero_title.f="Talk to the lab"
+                    hero_text.f="A question about a case, a material or a course — write here, ring, or message us on WhatsApp."/>
             </div>
         </xpath>
         <xpath expr="//section[hasclass('s_text_block')]" position="attributes">

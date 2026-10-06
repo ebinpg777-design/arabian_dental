@@ -415,7 +415,7 @@ class TestDashboardAccess(TestDashboardCommon):
         listed = self.env['dashboard.board'].with_user(self.user).get_boards()
         self.assertNotIn(board.id, [entry['id'] for entry in listed])
         self.user.write({'group_ids': [(4, group.id)]})
-        self.user.env.registry.clear_cache()
+        self.user.env.transaction.invalidate_ormcache()
         listed = self.env['dashboard.board'].with_user(self.user).get_boards()
         self.assertIn(board.id, [entry['id'] for entry in listed])
 

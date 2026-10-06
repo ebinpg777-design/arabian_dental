@@ -23,7 +23,7 @@ upgrading will not overwrite edits — the seed only creates what is missing.
         'security/groups.xml',
     ],
     'post_init_hook': 'post_init_hook',
-    'installable': True,
+    'installable': False,
     'application': False,
     'auto_install': False,
 }

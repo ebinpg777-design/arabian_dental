@@ -3,22 +3,18 @@
     <!-- Card on My Account -->
     <template id="portal_my_home_statement" name="Portal My Home: Statement" inherit_id="portal.portal_my_home" priority="45">
         <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
-            <t t-call="portal.portal_docs_entry">
-                <t t-set="icon" t-value="'/epg_partner_statement/static/description/icon.svg'"/>
-                <t t-set="title">Statement of Account</t>
-                <t t-set="text">Your ledger, what is still open, and a PDF to download</t>
-                <t t-set="url" t-value="'/my/statement'"/>
-                <t t-set="config_card" t-value="True"/>
-            </t>
+            <t t-call="portal.portal_docs_entry"
+                icon.f="/epg_partner_statement/static/description/icon.svg"
+                title.translate="Statement of Account"
+                text.translate="Your ledger, what is still open, and a PDF to download"
+                url.f="/my/statement"
+                config_card="True"/>
         </xpath>
     </template>
 
     <template id="portal_statement_page" name="Portal: Statement of Account">
-        <t t-call="portal.portal_layout">
-            <t t-set="breadcrumbs_searchbar" t-value="False"/>
-            <t t-call="portal.portal_searchbar">
-                <t t-set="title">Statement of Account</t>
-            </t>
+        <t t-call="portal.portal_layout" breadcrumbs_searchbar="False">
+            <t t-call="portal.portal_searchbar" title.translate="Statement of Account"/>
             <div class="o_portal_statement">
                 <form method="get" action="/my/statement" class="row g-2 align-items-end mb-3">
                     <div class="col-md-3">

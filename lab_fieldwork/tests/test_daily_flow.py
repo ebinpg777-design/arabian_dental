@@ -79,7 +79,7 @@ class DailyFlowCase(TransactionCase):
 
     def _visible_menu_ids(self, user):
         # ormcached per group set - stale between users without this.
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         menus = self.env['ir.ui.menu'].search([])
         return menus.with_user(user)._filter_visible_menus().ids
 

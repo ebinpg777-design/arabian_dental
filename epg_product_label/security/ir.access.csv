@@ -1,0 +1,16 @@
+id,name,model_id,group_id/id,operation,domain
+rule_label_template_user,Label template: allowed users,epg.label.template,epg_product_label.group_label_user,r,"['|', ('user_ids', '=', False), ('user_ids', 'in', [user.id])]"
+rule_label_template_designer,Label template: designers see all,epg.label.template,epg_product_label.group_label_designer,r,
+access_epg_label_template_designer,epg.label.template.designer,epg.label.template,epg_product_label.group_label_designer,cud,
+rule_label_template_company,Label template: multi-company,epg.label.template,,crud,"['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]"
+access_epg_label_element_user,epg.label.element.user,epg.label.element,epg_product_label.group_label_user,r,
+access_epg_label_element_designer,epg.label.element.designer,epg.label.element,epg_product_label.group_label_designer,crud,
+rule_label_element_company,Label element: multi-company,epg.label.element,,crud,"['|', ('template_id.company_id', '=', False), ('template_id.company_id', 'in', company_ids)]"
+access_epg_label_stock_user,epg.label.stock.user,epg.label.stock,epg_product_label.group_label_user,r,
+access_epg_label_stock_designer,epg.label.stock.designer,epg.label.stock,epg_product_label.group_label_designer,crud,
+access_epg_label_print_log_user,epg.label.print.log.user,epg.label.print.log,epg_product_label.group_label_user,r,
+access_epg_label_print_log_designer,epg.label.print.log.designer,epg.label.print.log,epg_product_label.group_label_designer,rud,
+access_epg_label_print_user,epg.label.print.user,epg.label.print,epg_product_label.group_label_user,crud,
+access_epg_label_print_line_user,epg.label.print.line.user,epg.label.print.line,epg_product_label.group_label_user,crud,
+access_epg_label_import_designer,epg.label.import.designer,epg.label.import,epg_product_label.group_label_designer,crud,
+access_epg_label_assistant_designer,epg.label.assistant.designer,epg.label.assistant,epg_product_label.group_label_designer,crud,

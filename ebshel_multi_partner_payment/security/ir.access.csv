@@ -1,0 +1,2 @@
+id,name,model_id,group_id/id,operation,domain
+access_account_payment_multi_partner_line_user,account.multi.partner.payment.line user,account.multi.partner.payment.line,account.group_account_user,crud,
