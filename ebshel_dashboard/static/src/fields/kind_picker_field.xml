@@ -43,7 +43,7 @@
                 </t>
             </div>
             <div t-if="this.missing" class="o_dbf_kind_missing">
-                <i class="fa fa-info-circle" role="img" aria-label="Needs"/>
+                <i class="oi" data-icon="info" role="img" aria-label="Needs"/>
                 <span t-out="this.missing"/>
             </div>
         </div>

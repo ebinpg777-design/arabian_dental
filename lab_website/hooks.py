@@ -120,21 +120,28 @@ def _set_logos(env, website):
     a 95 pixel navbar box clips "Arabian Dental Lab" to "Arabian Dental La".
     Repairing it is the same write as setting it the first time.
     """
-    import base64
     from odoo.tools import file_open
+    from odoo.tools.binary import BinaryBytes
+    # Odoo 20: binary fields take raw bytes as a BinaryBytes (plain bytes are
+    # refused) and read back as a BinaryValue, which has no equality of its
+    # own - so the placeholder check compares the bytes.
     with file_open('lab_website/static/src/img/logo-h.png', 'rb') as fh:
-        lockup = base64.b64encode(fh.read())
+        lockup = BinaryBytes(fh.read(), 'logo-h.png')
     with file_open('lab_website/static/src/img/logo.png', 'rb') as fh:
-        stacked = base64.b64encode(fh.read())
+        stacked = BinaryBytes(fh.read(), 'logo.png')
     with file_open('lab_website/static/src/img/icon-512.png', 'rb') as fh:
-        app_icon = base64.b64encode(fh.read())
+        app_icon = BinaryBytes(fh.read(), 'icon-512.png')
+
+    def _bytes(value):
+        return bytes(value) if value else b''
+
     company = env.company
-    stock = company._get_logo() if hasattr(company, '_get_logo') else None
-    if not company.logo or (stock and company.logo == stock):
+    stock = _bytes(company._get_logo()) if hasattr(company, '_get_logo') else b''
+    if not company.logo or (stock and _bytes(company.logo) == stock):
         company.write({'logo': stacked})
         _logger.info("lab_website: set the company logo")
-    site_stock = website._default_logo() if hasattr(website, '_default_logo') else None
-    if not website.logo or website.logo in (stock, site_stock):
+    site_stock = _bytes(website._default_logo()) if hasattr(website, '_default_logo') else b''
+    if not website.logo or _bytes(website.logo) in {stock, site_stock} - {b''}:
         website.write({'logo': lockup})
         _logger.info("lab_website: set the website logo")
     # The icon a doctor sees once they have added the site to a phone's home

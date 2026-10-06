@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Dynamic Dashboards',
-    'version': '19.0.1.2.0',
+    'version': '20.0.1.2.0',
     'summary': 'Build dashboards from the UI on any model - seventeen kinds of card, live '
                'numbers and charts, every one of them clickable down to the records behind it.',
     'description': """
@@ -73,7 +73,7 @@ Governance
 
 Compatibility
 -------------
-* Odoo 19.0, **Community and Enterprise**.
+* Odoo 20.0, **Community and Enterprise**.
 * Depends on ``web`` and ``bus`` only: no Enterprise-only module, no external
   Python package, no external JavaScript library.
     """,
@@ -88,6 +88,7 @@ Compatibility
     'depends': ['web', 'bus'],
     'data': [
         'security/dashboard_groups.xml',
+        'security/ir.access.csv',
         'data/dashboard_cron.xml',
         'views/dashboard_item_views.xml',
         'views/dashboard_board_views.xml',
@@ -96,7 +97,6 @@ Compatibility
         'wizard/dashboard_build_views.xml',
         'wizard/dashboard_menu_views.xml',
         'views/dashboard_menus.xml',
-        'security/ir.access.csv',
     ],
     'demo': [
         'demo/dashboard_demo.xml',
@@ -105,6 +105,7 @@ Compatibility
         'web.assets_backend': [
             'ebshel_dashboard/static/src/core/board_colors.js',
             'ebshel_dashboard/static/src/core/number_format.js',
+            'ebshel_dashboard/static/src/core/icons.js',
             'ebshel_dashboard/static/src/dashboard/**/*.js',
             'ebshel_dashboard/static/src/dashboard/**/*.xml',
             'ebshel_dashboard/static/src/fields/**/*.js',

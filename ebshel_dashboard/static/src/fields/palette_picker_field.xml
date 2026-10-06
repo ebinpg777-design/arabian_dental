@@ -11,7 +11,7 @@
                         t-on-click="() => this.select(option.key)">
                     <span class="o_dbf_pal_dots">
                         <t t-if="option.inherited">
-                            <i class="fa fa-link o_dbf_pal_link" role="img" aria-label="Inherited"/>
+                            <i class="oi o_dbf_pal_link" data-icon="link" role="img" aria-label="Inherited"/>
                         </t>
                         <t t-else="">
                             <t t-foreach="option.dots" t-as="dot" t-key="dot_index">

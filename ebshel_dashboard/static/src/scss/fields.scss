@@ -711,20 +711,26 @@
         line-height: 1.3;
         transition: color 0.12s ease-in-out, border-color 0.12s ease-in-out;
 
-        // Each tab wears the icon of what it holds.
+        // Each tab wears the icon of what it holds. Odoo 20 draws icons with
+        // the Material Symbols font, reached by ligature: the content is the
+        // icon's name.
         &::before {
-            font-family: FontAwesome;
+            font-family: 'Material Symbols Outlined';
             font-weight: 400;
-            font-size: 0.85rem;
+            font-size: 1rem;
+            line-height: 1;
+            text-rendering: geometricPrecision;
+            word-break: keep-all;
+            -webkit-font-smoothing: antialiased;
         }
 
-        &[name="subvalues"]::before { content: "\f0cb"; }
-        &[name="shape"]::before { content: "\f009"; }
-        &[name="numbers"]::before { content: "\f292"; }
-        &[name="chart"]::before { content: "\f1fc"; }
-        &[name="threshold"]::before { content: "\f0a2"; }
-        &[name="visibility"]::before { content: "\f06e"; }
-        &[name="drill"]::before { content: "\f25a"; }
+        &[name="subvalues"]::before { content: "format_list_numbered"; }
+        &[name="shape"]::before { content: "grid_view"; }
+        &[name="numbers"]::before { content: "tag"; }
+        &[name="chart"]::before { content: "brush"; }
+        &[name="threshold"]::before { content: "notifications"; }
+        &[name="visibility"]::before { content: "visibility"; }
+        &[name="drill"]::before { content: "pan_tool_alt"; }
 
         &:hover {
             color: var(--primary);

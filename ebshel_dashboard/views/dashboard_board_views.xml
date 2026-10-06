@@ -36,7 +36,7 @@
                             invisible="not owner_id"/>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_items" type="object" class="oe_stat_button"
-                                icon="fa-th-large">
+                                icon="grid_view">
                             <field name="item_count" widget="statinfo" string="Cards"/>
                         </button>
                     </div>
@@ -129,7 +129,7 @@
                             </group>
                             <div class="mt-2" invisible="not digest_active">
                                 <button name="action_send_digest" type="object"
-                                        class="btn btn-primary" icon="fa-paper-plane"
+                                        class="btn btn-primary" icon="send"
                                         string="Send now"/>
                             </div>
                         </page>
@@ -211,7 +211,7 @@
                     <t t-name="card">
                         <a type="object" name="action_open_board" class="o_dbb_card text-reset text-decoration-none">
                             <div class="d-flex align-items-center gap-2">
-                                <i t-attf-class="fa fa-lg #{record.icon.raw_value or 'fa-tachometer'}"
+                                <i class="oi oi-lg" t-att-data-icon="record.icon.raw_value or 'speed'"
                                    role="img" aria-label="Dashboard"/>
                                 <span class="fw-bold" t-out="record.name.value"/>
                             </div>

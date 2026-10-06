@@ -35,12 +35,14 @@ class TestDashboardCommon(TransactionCase):
         # nothing the database happens to contain can move a number.
         cls.tag = cls.env['res.partner.category'].create({'name': 'DashboardTest'})
         cls.today = fields.Date.context_today(cls.env['dashboard.board'])
+        # Odoo 20 computes `is_company` from the VAT number (a partner that is
+        # its own commercial entity and has one): Alpha and Beta get one.
         cls.partners = cls.env['res.partner'].create([
-            {'name': 'Alpha', 'category_id': [(4, cls.tag.id)], 'is_company': True,
+            {'name': 'Alpha', 'category_id': [(4, cls.tag.id)], 'vat': 'DT-ALPHA',
              'partner_latitude': 100.0},
-            {'name': 'Beta', 'category_id': [(4, cls.tag.id)], 'is_company': True,
+            {'name': 'Beta', 'category_id': [(4, cls.tag.id)], 'vat': 'DT-BETA',
              'partner_latitude': 300.0},
-            {'name': 'Gamma', 'category_id': [(4, cls.tag.id)], 'is_company': False,
+            {'name': 'Gamma', 'category_id': [(4, cls.tag.id)],
              'partner_latitude': 600.0},
         ])
         cls.base_domain = f"[('category_id', 'in', [{cls.tag.id}])]"
@@ -535,7 +537,7 @@ class TestDashboardExportImportUI(TestDashboardCommon):
         attachment_id = int(action['url'].split('/web/content/')[1].split('?')[0])
         attachment = self.env['ir.attachment'].browse(attachment_id)
         self.assertEqual(attachment.mimetype, 'application/json')
-        payload = json.loads(base64.b64decode(attachment.datas).decode('utf-8'))
+        payload = json.loads(attachment.raw.content.decode('utf-8'))
         self.assertEqual(payload['boards'][0]['name'], self.board.name)
         self.assertEqual(len(payload['boards'][0]['items']), 1)
 
@@ -553,12 +555,12 @@ class TestDashboardExportImportUI(TestDashboardCommon):
         attachment_id = int(action['url'].split('/web/content/')[1].split('?')[0])
         attachment = self.env['ir.attachment'].browse(attachment_id)
         self.assertEqual(attachment.name, 'dashboards.json')
-        payload = json.loads(base64.b64decode(attachment.datas).decode('utf-8'))
+        payload = json.loads(attachment.raw.content.decode('utf-8'))
         self.assertEqual(len(payload['boards']), 2)
 
     def _wizard(self, payload):
         return self.env['dashboard.import'].create({
-            'file_data': base64.b64encode(json.dumps(payload).encode('utf-8')),
+            'file_data': base64.b64encode(json.dumps(payload).encode('utf-8')).decode(),
             'file_name': 'board.json',
         })
 
@@ -585,7 +587,7 @@ class TestDashboardExportImportUI(TestDashboardCommon):
 
     def test_wizard_refuses_a_file_that_is_not_one(self):
         wizard = self.env['dashboard.import'].create({
-            'file_data': base64.b64encode(b'this is not json'),
+            'file_data': base64.b64encode(b'this is not json').decode(),
             'file_name': 'notes.txt',
         })
         with self.assertRaises(UserError):

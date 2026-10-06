@@ -351,9 +351,16 @@ class Website(models.Model):
         Partner = self.env['res.partner'].sudo()
         services = self.lab_services()
         designs = sum(s['count'] for s in services) or Product.search_count([('sale_ok', '=', True)])
-        clinic_domain = [('is_clinic', '=', True)] if 'is_clinic' in Partner._fields \
-            else [('customer_rank', '>', 0)]
-        clinics = Partner.search_count(clinic_domain)
+        # `is_clinic` comes with the lab's own modules and `customer_rank` with
+        # Accounting; with neither installed there is nothing to count, and the
+        # tile is left out rather than the page going down.
+        if 'is_clinic' in Partner._fields:
+            clinic_domain = [('is_clinic', '=', True)]
+        elif 'customer_rank' in Partner._fields:
+            clinic_domain = [('customer_rank', '>', 0)]
+        else:
+            clinic_domain = None
+        clinics = Partner.search_count(clinic_domain) if clinic_domain is not None else 0
         tiles = []
         if designs:
             tiles.append({'n': designs, 'suffix': '+', 'l': 'Restoration designs in the catalogue'})

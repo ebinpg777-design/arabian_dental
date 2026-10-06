@@ -22,6 +22,8 @@ from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools.safe_eval import safe_eval, datetime as safe_datetime, time as safe_time
 
+from .dashboard_icons import CARD_ICON, normalize_icon, normalize_icon_vals
+
 _logger = logging.getLogger(__name__)
 
 # Palette keys. The hex values live in static/src/core/board_colors.js - the
@@ -323,7 +325,8 @@ class DashboardItem(models.Model):
     _description = 'Dashboard Card'
     _order = 'sequence, id'
 
-    name = fields.Char(string='Title', required=True, translate=True)
+    # copy=True: a copied board keeps its cards' titles (Odoo 20 would add "(copy)").
+    name = fields.Char(string='Title', required=True, translate=True, copy=True)
     board_id = fields.Many2one(
         'dashboard.board', string='Dashboard', required=True, ondelete='cascade', index=True)
     sequence = fields.Integer(default=10, index=True)
@@ -472,7 +475,7 @@ class DashboardItem(models.Model):
 
     # --- decoration -------------------------------------------------------
     color = fields.Selection(CARD_COLORS, default='indigo', required=True)
-    icon = fields.Char(default='fa-bar-chart')
+    icon = fields.Char(default=CARD_ICON)
     tooltip = fields.Char(string='Hint', translate=True, help="Shown when hovering the card.")
     width = fields.Integer(
         string='Width', default=3,
@@ -1064,7 +1067,7 @@ class DashboardItem(models.Model):
             'kind': self.kind,
             'model': self.model_name or '',
             'color': self.color,
-            'icon': self.icon or 'fa-bar-chart',
+            'icon': normalize_icon(self.icon) or CARD_ICON,
             'tooltip': self.tooltip or self.summary or '',
             'width': max(1, min(self.width or 3, BOARD_COLUMNS)),
             'height': self.height or DEFAULT_HEIGHT.get(self.kind, DEFAULT_CHART_HEIGHT),
@@ -1381,7 +1384,7 @@ class DashboardItem(models.Model):
                 'id': item.id,
                 'name': item.name,
                 'kind': item.kind,
-                'icon': item.icon or 'fa-bar-chart',
+                'icon': normalize_icon(item.icon) or CARD_ICON,
                 'board_id': item.board_id.id,
                 'board_name': item.board_id.name,
             })
@@ -1398,7 +1401,7 @@ class DashboardItem(models.Model):
             if not board._can_edit():
                 raise AccessError(self.env._(
                     'You cannot add a card to "%(name)s".', name=board.name))
-        return super().create(vals_list)
+        return super().create([normalize_icon_vals(vals) for vals in vals_list])
 
     def write(self, vals):
         """...and changed by the same person.
@@ -1413,7 +1416,7 @@ class DashboardItem(models.Model):
             if not board._can_edit():
                 raise AccessError(self.env._(
                     'You cannot change the cards of "%(name)s".', name=board.name))
-        return super().write(vals)
+        return super().write(normalize_icon_vals(vals))
 
     def unlink(self):
         """A card is removed by whoever may change the board it sits on."""

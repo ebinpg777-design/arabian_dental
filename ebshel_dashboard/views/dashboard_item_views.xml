@@ -110,7 +110,7 @@
                                     </field>
                                 </div>
                                 <div class="o_dbf_summary" invisible="not summary">
-                                    <i class="fa fa-quote-left" role="img" aria-label="In plain words"/>
+                                    <i class="oi" data-icon="format_quote" role="img" aria-label="In plain words"/>
                                     <field name="summary" readonly="1" nolabel="1" class="o_dbf_summary_text"/>
                                 </div>
                             </div>
@@ -129,7 +129,7 @@
                                 <notebook class="o_dbf_tabs">
                                     <page string="Underneath" name="subvalues" invisible="kind not in ('kpi', 'gauge', 'status', 'bullet', 'formula')">
                                         <div class="o_dbf_page_intro">
-                                            <i class="fa fa-list-ol" role="img" aria-hidden="true" aria-label="Icon"/>
+                                            <i class="oi" data-icon="format_list_numbered" role="img" aria-hidden="true" aria-label="Icon"/>
                                             <div>
                                                 <b>The questions that come straight after the headline</b> - how many
                                                 are late, how many are mine, what are they worth. Each is the card's
@@ -158,7 +158,7 @@
                                         <div class="o_dbf_panels">
                                             <div class="o_dbf_panel" name="split" invisible="kind not in ('bar', 'hbar', 'stacked', 'combo', 'heatmap', 'pivot', 'pie', 'donut', 'polar', 'radar', 'funnel', 'progress', 'table', 'waterfall', 'pareto', 'treemap', 'lollipop', 'bubble')">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-th-large" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="grid_view" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Split</span>
                                                 <span class="o_dbf_panel_hint">One bar, slice or row per value of this field.</span>
                                             </div>
@@ -183,7 +183,7 @@
 
                                             <div class="o_dbf_panel" name="columns" invisible="kind != 'list'">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-columns" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="view_column" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Columns</span>
                                                 <span class="o_dbf_panel_hint">After the record's name, ranked by the measure.</span>
                                             </div>
@@ -195,7 +195,7 @@
                                                 </group>
                                                 <div class="o_dbf_opts">
                                             <div class="o_dbf_opt">
-                                                <i class="fa fa-align-left o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="format_align_left" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="show_bars" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">A bar behind each number, so the rows compare at a glance.</span>
@@ -203,7 +203,7 @@
                                                 <field name="show_bars" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt">
-                                                <i class="fa fa-trophy o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="trophy" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="rank_medals" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Gold, silver and bronze on the first three rows.</span>
@@ -215,7 +215,7 @@
 
                                             <div class="o_dbf_panel" name="conditional" invisible="kind not in ('list', 'table')">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-tint" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="water_drop" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Colour a row</span>
                                                 <span class="o_dbf_panel_hint">When one of its fields meets a rule.</span>
                                             </div>
@@ -239,7 +239,7 @@
 
                                             <div class="o_dbf_panel" name="time">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-calendar" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="calendar_today" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Time</span>
                                                 <span class="o_dbf_panel_hint">The date the board's period is read against.</span>
                                             </div>
@@ -262,7 +262,7 @@
                                                 </group>
                                                 <div class="o_dbf_opts" invisible="kind in ('list', 'scatter', 'formula')">
                                                     <div class="o_dbf_opt o_dbf_opt_wide">
-                                                        <i class="fa fa-exchange o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                        <i class="oi o_dbf_opt_icon" data-icon="swap_horiz" role="img" aria-hidden="true" aria-label="Icon"/>
                                                         <div class="o_dbf_opt_text">
                                                             <label for="compare" class="o_dbf_opt_title"/>
                                                             <span class="o_dbf_opt_desc">How the number moved against the period before. Needs a period field.</span>
@@ -290,7 +290,7 @@
                                         <div class="o_dbf_panels">
                                             <div class="o_dbf_panel" name="format">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-hashtag" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="tag" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Written as</span>
                                                 <span class="o_dbf_panel_hint">A prefix, a unit, the grouping, the decimals.</span>
                                             </div>
@@ -304,7 +304,7 @@
                                                 </group>
                                                 <div class="o_dbf_opts" invisible="kind not in ('kpi', 'gauge', 'status')">
                                             <div class="o_dbf_opt" invisible="aggregate == 'count'">
-                                                <i class="fa fa-hashtag o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="tag" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="show_count" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Under a sum or an average, also say how many records it covers.</span>
@@ -312,7 +312,7 @@
                                                 <field name="show_count" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt">
-                                                <i class="fa fa-percent o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="percent" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="as_ratio" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">A percentage of what the whole model gives over the same period, ignoring this card's own filter.</span>
@@ -324,7 +324,7 @@
                                             <div class="o_dbf_panel" name="target"
                                                  invisible="kind not in ('kpi', 'gauge', 'bullet', 'bar', 'hbar', 'line', 'area', 'stacked')">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-bullseye" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="radio_button_checked" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Target</span>
                                                 <span class="o_dbf_panel_hint">A number draws a ring towards it, a gauge fills towards it, a chart draws it as a dashed line.</span>
                                             </div>
@@ -338,7 +338,7 @@
                                     <page string="Look" name="chart" invisible="kind not in ('bar', 'hbar', 'lollipop', 'stacked', 'combo', 'waterfall', 'pareto', 'bubble', 'line', 'area', 'pie', 'donut', 'polar', 'radar', 'funnel', 'scatter', 'progress', 'treemap')">
                                         <div class="o_dbf_panel" name="colours" invisible="kind not in ('bar', 'hbar', 'lollipop', 'funnel', 'progress', 'scatter', 'stacked', 'pie', 'donut', 'polar', 'treemap', 'combo', 'waterfall', 'pareto')">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-paint-brush" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="brush" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Colours</span>
                                                 <span class="o_dbf_panel_hint">The ramp the slices, stacks and bars take.</span>
                                             </div>
@@ -346,7 +346,7 @@
                                         </div>
                                         <div class="o_dbf_opts">
                                             <div class="o_dbf_opt" invisible="kind not in ('bar', 'hbar', 'lollipop', 'funnel', 'progress', 'scatter')">
-                                                <i class="fa fa-tint o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="water_drop" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="multicolor" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Bars take the palette in turn instead of the card's colour.</span>
@@ -354,7 +354,7 @@
                                                 <field name="multicolor" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind in ('progress', 'scatter', 'bubble', 'treemap')">
-                                                <i class="fa fa-tag o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="sell" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="show_values" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Each value written next to its bar, slice or point.</span>
@@ -362,7 +362,7 @@
                                                 <field name="show_values" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt o_dbf_opt_wide" invisible="kind not in ('bar', 'hbar', 'lollipop', 'line', 'area')">
-                                                <i class="fa fa-star-o o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="star" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="emphasis" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">One bar or point drawn in full, the rest quieter.</span>
@@ -370,7 +370,7 @@
                                                 <field name="emphasis" widget="radio" options="{'horizontal': True}" nolabel="1" class="o_dbf_seg"/>
                                             </div>
                                             <div class="o_dbf_opt o_dbf_opt_wide" invisible="kind not in ('bar', 'hbar', 'stacked', 'funnel', 'combo', 'waterfall', 'pareto')">
-                                                <i class="fa fa-square-o o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="square" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="bar_shape" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Softly rounded, square, or fully rounded like a pill.</span>
@@ -378,7 +378,7 @@
                                                 <field name="bar_shape" widget="radio" options="{'horizontal': True}" nolabel="1" class="o_dbf_seg"/>
                                             </div>
                                             <div class="o_dbf_opt o_dbf_opt_wide" invisible="kind not in ('pie', 'donut', 'polar', 'stacked')">
-                                                <i class="fa fa-list-ul o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="format_list_bulleted" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="legend" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Where the names of the slices or stacks go.</span>
@@ -386,7 +386,7 @@
                                                 <field name="legend" widget="radio" options="{'horizontal': True}" nolabel="1" class="o_dbf_seg"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind not in ('bar', 'hbar', 'lollipop', 'stacked', 'combo', 'waterfall', 'pareto', 'bubble', 'line', 'area', 'scatter')">
-                                                <i class="fa fa-th o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="grid_view" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="show_grid" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">The faint lines behind the chart. Off, the bars stand on a bare axis.</span>
@@ -394,7 +394,7 @@
                                                 <field name="show_grid" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind not in ('bar', 'hbar', 'lollipop', 'stacked', 'combo', 'waterfall', 'pareto', 'bubble', 'line', 'area', 'scatter')">
-                                                <i class="fa fa-text-width o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="text_fields" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="axis_titles" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">What each axis is, written along it.</span>
@@ -402,7 +402,7 @@
                                                 <field name="axis_titles" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind not in ('line', 'area')">
-                                                <i class="fa fa-arrows-v o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="height" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="free_axis" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">The value axis starts where the values do, not at zero: for a price, a temperature, a rate.</span>
@@ -410,7 +410,7 @@
                                                 <field name="free_axis" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind not in ('bar', 'hbar', 'line', 'area', 'stacked', 'scatter')">
-                                                <i class="fa fa-superscript o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="superscript" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="log_scale" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">For values spread over several orders of magnitude.</span>
@@ -418,7 +418,7 @@
                                                 <field name="log_scale" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind not in ('line', 'area')">
-                                                <i class="fa fa-signal o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="signal_cellular_4_bar" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="stepped" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">A value that holds until it changes: a headcount, a price.</span>
@@ -426,7 +426,7 @@
                                                 <field name="stepped" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind != 'combo'">
-                                                <i class="fa fa-arrows-h o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="width" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="dual_axis" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">The line keeps its own scale on the right, for two measures that do not share one.</span>
@@ -434,7 +434,7 @@
                                                 <field name="dual_axis" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind != 'stacked'">
-                                                <i class="fa fa-percent o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="percent" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="stack_percent" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Every bar the same height, so the pieces read as percentages.</span>
@@ -442,7 +442,7 @@
                                                 <field name="stack_percent" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind != 'stacked'">
-                                                <i class="fa fa-align-left o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="format_align_left" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="stack_horizontal" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Bars on their side: better for long labels and many categories.</span>
@@ -450,7 +450,7 @@
                                                 <field name="stack_horizontal" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind not in ('pie', 'donut', 'polar')">
-                                                <i class="fa fa-adjust o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="contrast" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="semicircle" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">The pie, donut or polar chart as a half circle.</span>
@@ -458,7 +458,7 @@
                                                 <field name="semicircle" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                             <div class="o_dbf_opt" invisible="kind != 'donut'">
-                                                <i class="fa fa-circle-o o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="radio_button_unchecked" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="center_total" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">The sum of the slices, written in the hole.</span>
@@ -471,7 +471,7 @@
                                     <page string="Threshold" name="threshold" invisible="kind not in ('kpi', 'gauge', 'status', 'bullet', 'formula')">
                                         <div class="o_dbf_panel" name="alert">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-bell-o" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="notifications" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Threshold</span>
                                                 <span class="o_dbf_panel_hint">The card changes colour while its value is past a line, and can say so.</span>
                                             </div>
@@ -490,7 +490,7 @@
                                             </div>
                                             <div class="o_dbf_opts" invisible="alert_operator == 'none'">
                                             <div class="o_dbf_opt">
-                                                <i class="fa fa-bullhorn o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi o_dbf_opt_icon" data-icon="campaign" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <div class="o_dbf_opt_text">
                                                     <label for="alert_notify" class="o_dbf_opt_title"/>
                                                     <span class="o_dbf_opt_desc">Once, when it happens: the owner of a personal board, the restricted groups of a shared one, or the dashboard managers.</span>
@@ -498,7 +498,7 @@
                                                 <field name="alert_notify" widget="boolean_toggle" nolabel="1" class="o_dbf_opt_switch"/>
                                             </div>
                                                 <div class="o_dbf_opt o_dbf_opt_wide">
-                                                    <i class="fa fa-plug o_dbf_opt_icon" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                    <i class="oi o_dbf_opt_icon" data-icon="power" role="img" aria-hidden="true" aria-label="Icon"/>
                                                     <div class="o_dbf_opt_text">
                                                         <label for="alert_webhook" class="o_dbf_opt_title"/>
                                                         <span class="o_dbf_opt_desc">A POST with the card, its value and the message: Slack, Teams, or anything with a URL.</span>
@@ -506,7 +506,7 @@
                                                             <field name="alert_webhook" nolabel="1" class="o_dbf_inline o_dbf_inline_text"
                                                                    placeholder="https://hooks.slack.com/services/…"/>
                                                             <button name="action_test_webhook" type="object"
-                                                                    class="btn btn-link btn-sm" string="Send a test" icon="fa-paper-plane"
+                                                                    class="btn btn-link btn-sm" string="Send a test" icon="send"
                                                                     invisible="not alert_webhook"/>
                                                         </div>
                                                     </div>
@@ -523,7 +523,7 @@
                                         <div class="o_dbf_panels">
                                             <div class="o_dbf_panel" name="who">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-users" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="group" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">Who sees it</span>
                                                 <span class="o_dbf_panel_hint">Left empty, everyone who can open the board.</span>
                                             </div>
@@ -538,7 +538,7 @@
                                             </div>
                                             <div class="o_dbf_panel" name="when" invisible="kind not in ('kpi', 'gauge', 'status', 'bullet', 'formula')">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-eye-slash" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="visibility_off" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">When it shows</span>
                                                 <span class="o_dbf_panel_hint">A card that stays off the board until its value matters - "Late deliveries" only when there are any.</span>
                                             </div>
@@ -555,7 +555,7 @@
                                     <page string="Click" name="drill">
                                         <div class="o_dbf_panel" name="drill">
                                             <div class="o_dbf_panel_head">
-                                                <i class="fa fa-hand-pointer-o" role="img" aria-hidden="true" aria-label="Icon"/>
+                                                <i class="oi" data-icon="pan_tool_alt" role="img" aria-hidden="true" aria-label="Icon"/>
                                                 <span class="o_dbf_panel_title">When the card is clicked</span>
                                                 <span class="o_dbf_panel_hint">The card opens the records it counted; a bar, a slice or a point narrows the whole board to that value.</span>
                                             </div>
@@ -607,47 +607,47 @@
                             <field name="preview" widget="dashboard_card_preview" nolabel="1"/>
                             <div class="o_dbf_tips">
                                 <div class="o_dbf_tip" invisible="kind != 'formula'">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     Name each number by a letter and combine them: <b>a / b * 100</b> is a
                                     rate, <b>a - b</b> a difference. Division by zero gives 0.
                                 </div>
                                 <div class="o_dbf_tip" invisible="kind != 'scatter'">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     One point per record: the first measure across, the second up.
                                     "Points" times five records are drawn, biggest first.
                                 </div>
                                 <div class="o_dbf_tip" invisible="kind != 'bullet'">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     A bullet reads left to right: the bar is the value, the mark the
                                     target, the shading how far there is to go.
                                 </div>
                                 <div class="o_dbf_tip" invisible="kind not in ('kpi', 'gauge', 'status')">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     Give a number a <b>period field</b> and it gets a sparkline and a
                                     comparison; a <b>target</b> turns it into progress.
                                 </div>
                                 <div class="o_dbf_tip" invisible="kind not in ('bar', 'hbar', 'pie', 'donut', 'polar', 'radar', 'funnel', 'progress', 'table')">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     Anything past <b>Points</b> is folded into "Others". Clicking a part
                                     on the board focuses every card of the same model on it.
                                 </div>
                                 <div class="o_dbf_tip" invisible="kind not in ('stacked', 'heatmap', 'pivot')">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     Two different fields are crossed: one for the rows or bars, one for
                                     the pieces, cells or columns.
                                 </div>
                                 <div class="o_dbf_tip" invisible="kind not in ('line', 'area')">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     Inside a period the line covers every bucket, empty ones included;
                                     over all time it draws the last twelve.
                                 </div>
                                 <div class="o_dbf_tip" invisible="kind != 'list'">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     A list ranks the records by the measure; without one it shows the
                                     newest first.
                                 </div>
                                 <div class="o_dbf_tip" invisible="kind != 'text'">
-                                    <i class="fa fa-lightbulb-o" role="img" aria-label="Tip"/>
+                                    <i class="oi" data-icon="lightbulb" role="img" aria-label="Tip"/>
                                     A note needs no model. Use it for a heading, an explanation or a
                                     reminder between the cards.
                                 </div>

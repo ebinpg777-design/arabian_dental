@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component } from "@odoo/owl";
+import { Component, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
@@ -9,32 +9,32 @@ import { CARD_COLORS, DEFAULT_CARD_COLOR } from "../core/board_colors";
 
 /* One face per card kind. The keys are the `kind` selection of dashboard.item. */
 const KIND_ICONS = {
-    kpi: "fa-hashtag",
-    gauge: "fa-tachometer",
-    status: "fa-circle",
-    bar: "fa-bar-chart",
-    hbar: "fa-align-left",
-    stacked: "fa-th-large",
-    combo: "fa-signal",
-    waterfall: "fa-bar-chart",
-    pareto: "fa-sort-amount-desc",
-    bubble: "fa-circle-o",
-    treemap: "fa-th-large",
-    lollipop: "fa-map-pin",
-    calendar: "fa-calendar",
-    heatmap: "fa-th",
-    pivot: "fa-table",
-    line: "fa-line-chart",
-    area: "fa-area-chart",
-    pie: "fa-pie-chart",
-    donut: "fa-circle-o-notch",
-    polar: "fa-bullseye",
-    radar: "fa-dot-circle-o",
-    funnel: "fa-filter",
-    progress: "fa-tasks",
-    table: "fa-table",
-    list: "fa-list-ol",
-    text: "fa-sticky-note-o",
+    kpi: "tag",
+    gauge: "speed",
+    status: "circle",
+    bar: "bar_chart",
+    hbar: "format_align_left",
+    stacked: "grid_view",
+    combo: "signal_cellular_4_bar",
+    waterfall: "bar_chart",
+    pareto: "sort",
+    bubble: "radio_button_unchecked",
+    treemap: "grid_view",
+    lollipop: "location_on",
+    calendar: "calendar_today",
+    heatmap: "grid_view",
+    pivot: "table",
+    line: "show_chart",
+    area: "area_chart",
+    pie: "pie_chart",
+    donut: "progress_activity",
+    polar: "radio_button_checked",
+    radar: "radio_button_checked",
+    funnel: "filter_alt",
+    progress: "checklist",
+    table: "table",
+    list: "format_list_numbered",
+    text: "sticky_note_2",
 };
 
 const KIND_HINTS = {
@@ -198,7 +198,7 @@ const KIND_GROUPS = [
 /** The card kinds as families of faces - what a chart looks like beats its name. */
 export class KindPickerField extends Component {
     static template = "ebshel_dashboard.KindPickerField";
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     get labels() {
         const field = this.props.record.fields[this.props.name];
@@ -214,7 +214,7 @@ export class KindPickerField extends Component {
                 .map((key) => ({
                     key,
                     label: labels[key],
-                    icon: KIND_ICONS[key] || "fa-square-o",
+                    icon: KIND_ICONS[key] || "square",
                     hint: KIND_HINTS[key] || "",
                 })),
         })).filter((group) => group.options.length);

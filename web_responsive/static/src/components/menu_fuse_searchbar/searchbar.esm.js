@@ -8,6 +8,7 @@ import {AppsMenuCanonicalSearchBar} from "@web_responsive/components/menu_canoni
  * @extends AppsMenuCanonicalSearchBar
  */
 export class AppsMenuFuseSearchBar extends AppsMenuCanonicalSearchBar {
+    static template = "web_responsive.AppsMenuFuseSearchBar";
     setup() {
         super.setup();
         this.fuseOptions = {
@@ -26,6 +27,3 @@ export class AppsMenuFuseSearchBar extends AppsMenuCanonicalSearchBar {
         state.subItems = this.subMenuItems.search(query);
     }
 }
-
-AppsMenuFuseSearchBar.props = {};
-AppsMenuFuseSearchBar.template = "web_responsive.AppsMenuFuseSearchBar";

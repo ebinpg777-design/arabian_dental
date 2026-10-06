@@ -5,8 +5,8 @@
         <div class="o_dbf_preview">
             <div class="o_dbf_preview_bar">
                 <span class="o_dbf_preview_title">
-                    <i class="fa fa-eye me-1" role="img" aria-label="Preview"/> Live preview
-                    <i t-if="this.state.loading" class="fa fa-circle-o-notch fa-spin ms-2" role="img" aria-label="Computing"/>
+                    <i class="oi me-1" data-icon="visibility" role="img" aria-label="Preview"/> Live preview
+                    <i t-if="this.state.loading" class="oi oi-spin ms-2" data-icon="progress_activity" role="img" aria-label="Computing"/>
                 </span>
                 <select class="form-select form-select-sm o_dbf_preview_period" aria-label="Preview period"
                         t-on-change="this.onPeriod">
@@ -24,7 +24,7 @@
                 </t>
                 <t t-else="">
                     <div class="o_dbf_preview_empty">
-                        <i class="fa fa-th-large me-2" role="img" aria-label="Empty"/>
+                        <i class="oi me-2" data-icon="grid_view" role="img" aria-label="Empty"/>
                         Pick a model and the card draws itself here, with real numbers.
                     </div>
                 </t>

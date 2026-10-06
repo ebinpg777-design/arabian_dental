@@ -24,12 +24,12 @@
                     <field name="restrict" widget="boolean_toggle" invisible="not has_groups"/>
                 </group>
                 <div class="text-muted" invisible="placement != 'app'">
-                    <i class="fa fa-lightbulb-o me-1" role="img" aria-label="Tip"/>
+                    <i class="oi me-1" data-icon="lightbulb" role="img" aria-label="Tip"/>
                     An app of its own sits on the top bar with this module's icon, beside
                     Sales and Inventory - for the board a whole team lives in.
                 </div>
                 <div class="text-muted" invisible="not has_groups or restrict">
-                    <i class="fa fa-lightbulb-o me-1" role="img" aria-label="Tip"/>
+                    <i class="oi me-1" data-icon="lightbulb" role="img" aria-label="Tip"/>
                     The dashboard is restricted to groups but the menu will be visible to
                     everyone. They will see the entry and an empty page behind it.
                 </div>

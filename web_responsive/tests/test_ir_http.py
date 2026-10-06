@@ -14,6 +14,7 @@ class TestIrHttp(HttpCase):
         self.assertIsNotNone(apps_menu)
         self.assertTrue("search_type" in apps_menu)
         self.assertTrue("theme" in apps_menu)
+        self.assertTrue("is_redirect_home" in apps_menu)
 
     def _find_session_info(self, line_items):
         key = "odoo.__session_info__ = "

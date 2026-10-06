@@ -1,10 +1,9 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, signal, t, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useRecordObserver } from "@web/model/relational_model/utils";
-import { useRef } from "@web/owl2/utils";
 
 /* The same families the form's own visibility rules use, so a chip is only
    ever offered for a setting the card can actually use. */
@@ -47,13 +46,13 @@ function count(list) {
  */
 export class SetupChipsWidget extends Component {
     static template = "ebshel_dashboard.SetupChips";
-    static props = {
-        record: Object,
-        readonly: { type: Boolean, optional: true },
-    };
+    props = useProps({
+        record: t.object(),
+        readonly: t.boolean().optional(),
+    });
+    root = signal.ref();
 
     setup() {
-        this.root = useRef("root");
         this.state = proxy({ chips: [] });
         // Built inside the observer, so any field a chip reads re-fires it.
         useRecordObserver((record) => {
@@ -82,7 +81,7 @@ export class SetupChipsWidget extends Component {
 
         const subs = count(data.subvalue_ids);
         if (number && subs) {
-            chips.push({ page: "subvalues", icon: "fa-list-ol",
+            chips.push({ page: "subvalues", icon: "format_list_numbered",
                          text: subs === 1 ? _t("One number underneath") : _t("%s numbers underneath", subs) });
         }
 
@@ -95,11 +94,11 @@ export class SetupChipsWidget extends Component {
             } else if (["date", "datetime"].includes(data.group_by_field_type) && data.group_by_interval) {
                 text = _t("Split by %s, every %s", split.name, lower(label("group_by_interval", data.group_by_interval)));
             }
-            chips.push({ page: "shape", icon: "fa-th-large", text });
+            chips.push({ page: "shape", icon: "grid_view", text });
         }
         if (kind === "list") {
             const columns = count(data.list_field_ids);
-            chips.push({ page: "shape", icon: "fa-columns",
+            chips.push({ page: "shape", icon: "view_column",
                          text: columns ? _t("%s columns, %s rows", columns, data.limit || 0)
                                        : _t("%s rows", data.limit || 0) });
         }
@@ -109,22 +108,22 @@ export class SetupChipsWidget extends Component {
             const text = data.period_mode === "own"
                 ? _t("Always %s, by %s", lower(label("own_period", data.own_period)), date.name)
                 : _t("The board's period, by %s", date.name);
-            chips.push({ page: "shape", icon: "fa-calendar", text });
+            chips.push({ page: "shape", icon: "calendar_today", text });
             if (data.compare && !NO_COMPARE.includes(kind)) {
-                chips.push({ page: "shape", icon: "fa-exchange",
+                chips.push({ page: "shape", icon: "swap_horiz",
                              text: _t("Compared with %s", lower(label("compare_mode", data.compare_mode))) });
             }
         } else {
-            chips.push({ page: "shape", icon: "fa-calendar-o", quiet: true,
+            chips.push({ page: "shape", icon: "calendar_today", quiet: true,
                          text: _t("No period field: shows everything, always") });
         }
         if (SERIES_KINDS.includes(kind) && data.transform && data.transform !== "none") {
-            chips.push({ page: "shape", icon: "fa-line-chart", text: label("transform", data.transform) });
+            chips.push({ page: "shape", icon: "show_chart", text: label("transform", data.transform) });
         }
         const rule = m2o(data.cf_field_id);
         if (rule && ["list", "table"].includes(kind)) {
             const test = lower(label("cf_operator", data.cf_operator));
-            chips.push({ page: "shape", icon: "fa-tint",
+            chips.push({ page: "shape", icon: "water_drop",
                          text: _t("Rows coloured when %s is %s", rule.name,
                                   data.cf_value ? `${test} ${data.cf_value}` : test) });
         }
@@ -143,10 +142,10 @@ export class SetupChipsWidget extends Component {
             written.push(_t("times %s", data.multiplier));
         }
         if (written.length) {
-            chips.push({ page: "numbers", icon: "fa-hashtag", text: _t("Written as %s", written.join(" · ")) });
+            chips.push({ page: "numbers", icon: "tag", text: _t("Written as %s", written.join(" · ")) });
         }
         if (data.target_value) {
-            chips.push({ page: "numbers", icon: "fa-bullseye", text: _t("Target %s", data.target_value) });
+            chips.push({ page: "numbers", icon: "radio_button_checked", text: _t("Target %s", data.target_value) });
         }
 
         const look = [];
@@ -193,11 +192,11 @@ export class SetupChipsWidget extends Component {
             look.push(_t("axis follows the data"));
         }
         if (look.length && !number && !["list", "table", "text"].includes(kind)) {
-            chips.push({ page: "chart", icon: "fa-paint-brush", text: look.join(" · ") });
+            chips.push({ page: "chart", icon: "brush", text: look.join(" · ") });
         }
 
         if (number && data.alert_operator && data.alert_operator !== "none") {
-            chips.push({ page: "threshold", icon: "fa-bell-o",
+            chips.push({ page: "threshold", icon: "notifications",
                          tone: data.alert_level === "danger" ? "danger" : "warning",
                          text: _t("%s %s: %s", label("alert_operator", data.alert_operator), data.alert_value || 0,
                                   lower(label("alert_level", data.alert_level))) });
@@ -206,22 +205,22 @@ export class SetupChipsWidget extends Component {
         const groups = count(data.group_ids);
         const companies = count(data.company_ids);
         if (groups) {
-            chips.push({ page: "visibility", icon: "fa-users",
+            chips.push({ page: "visibility", icon: "group",
                          text: groups === 1 ? _t("One group only") : _t("%s groups only", groups) });
         }
         if (companies) {
-            chips.push({ page: "visibility", icon: "fa-building-o",
+            chips.push({ page: "visibility", icon: "business",
                          text: companies === 1 ? _t("One company") : _t("%s companies", companies) });
         }
         if (number && data.hide_operator && data.hide_operator !== "none") {
-            chips.push({ page: "visibility", icon: "fa-eye-slash",
+            chips.push({ page: "visibility", icon: "visibility_off",
                          text: _t("Hidden while %s %s", lower(label("hide_operator", data.hide_operator)), data.hide_value || 0) });
         }
 
         const action = m2o(data.action_id);
         if (action || (data.drill_view && data.drill_view !== "list")) {
             const view = lower(label("drill_view", data.drill_view));
-            chips.push({ page: "drill", icon: "fa-hand-pointer-o",
+            chips.push({ page: "drill", icon: "pan_tool_alt",
                          text: action ? _t("Opens %s, as a %s", action.name, view) : _t("Opens as a %s", view) });
         }
         return chips;
@@ -233,7 +232,7 @@ export class SetupChipsWidget extends Component {
 
     /** Activate the tab that holds the setting a chip names. */
     jump(chip) {
-        const section = this.root.el && this.root.el.closest(".o_dbf_section");
+        const section = this.root() && this.root().closest(".o_dbf_section");
         const tab = section && section.querySelector(`.o_dbf_tabs .nav-link[name="${chip.page}"]`);
         if (tab) {
             tab.click();

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Home Screen',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'summary': "The lab's own home screen: wallpaper and the warnings that belong there",
     'description': """
 Home Screen

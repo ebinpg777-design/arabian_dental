@@ -2,13 +2,13 @@
 {
     'name': 'Enterprise Theme for Community',
 
-    'summary': 'Enterprise-style Odoo 19 web client for Community — home menu, purple theme, global search, and dark mode.',
+    'summary': 'Enterprise-style Odoo 20 web client for Community — home menu, purple theme, global search, and dark mode.',
 
     'description': """
 Enterprise Theme for Community
 ==============================
 
-Bring the Odoo Enterprise look and feel to Odoo 19 Community Edition.
+Bring the Odoo Enterprise look and feel to Odoo 20 Community Edition.
 
 Key capabilities
 ----------------
@@ -22,7 +22,7 @@ Key capabilities
 
 Requirements
 ------------
-* Odoo 19 Community Edition
+* Odoo 20 Community Edition
 * Do not install together with Odoo Enterprise ``web_enterprise`` (conflicting web client)
     """,
 
@@ -31,7 +31,7 @@ Requirements
     'maintainer': 'Rizwan Chaudhary',
     'support': 'info@zarixsol.com',
 
-    'version': '19.0.1.0.2',
+    'version': '20.0.1.0.2',
     'license': 'LGPL-3',
     'category': 'Productivity',
 

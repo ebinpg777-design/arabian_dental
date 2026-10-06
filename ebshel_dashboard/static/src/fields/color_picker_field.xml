@@ -11,7 +11,7 @@
                         t-att-title="entry.label"
                         t-att-disabled="this.props.readonly"
                         t-on-click="() => this.select(entry.key)">
-                    <i t-if="entry.key === this.current" class="fa fa-check" role="img" aria-label="Selected"/>
+                    <i t-if="entry.key === this.current" class="oi" data-icon="check" role="img" aria-label="Selected"/>
                 </button>
             </t>
         </div>

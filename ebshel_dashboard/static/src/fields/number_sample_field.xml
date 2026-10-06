@@ -7,7 +7,7 @@
             <t t-foreach="this.samples" t-as="sample" t-key="sample_index">
                 <span class="o_dbf_sample_pair">
                     <span class="o_dbf_sample_raw" t-out="sample.raw"/>
-                    <i class="fa fa-long-arrow-right" role="img" aria-label="becomes"/>
+                    <i class="oi" data-icon="arrow_forward" role="img" aria-label="becomes"/>
                     <span class="o_dbf_sample_out" t-out="sample.text"/>
                 </span>
             </t>

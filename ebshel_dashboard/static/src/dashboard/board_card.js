@@ -1,11 +1,11 @@
 /** @odoo-module **/
 
-import { Component, markup, onWillUnmount, proxy } from "@odoo/owl";
+import { Component, markup, onWillUnmount, proxy, signal, t, useListener, useProps } from "@odoo/owl";
+import { useLayoutEffect } from "@web/owl2/utils";
 import { _t } from "@web/core/l10n/translation";
 
 import { CARD_COLORS, chartInk, resolveCardColor, seriesColors, withAlpha } from "../core/board_colors";
 import { formatNumber } from "../core/number_format";
-import { useExternalListener, useLayoutEffect, useRef } from "@web/owl2/utils";
 
 /**
  * A canvas as a white-backed PNG data URL, at most 1400px wide.
@@ -184,27 +184,27 @@ function csvCell(value) {
  */
 export class BoardCard extends Component {
     static template = "ebshel_dashboard.BoardCard";
-    static props = {
-        item: Object,
-        editable: { type: Boolean, optional: true },
-        focus: { type: Object, optional: true },
-        compact: { type: Boolean, optional: true },
-        pinned: { type: Boolean, optional: true },
-        palette: { type: String, optional: true },
-        onDrill: Function,
-        onFocus: { type: Function, optional: true },
-        onEdit: { type: Function, optional: true },
-        onRefresh: { type: Function, optional: true },
-        onPin: { type: Function, optional: true },
-        onPdf: { type: Function, optional: true },
-        onXlsx: { type: Function, optional: true },
-        onRemove: { type: Function, optional: true },
-        canEdit: { type: Boolean, optional: true },
-    };
+    props = useProps({
+        item: t.object(),
+        editable: t.boolean().optional(),
+        focus: t.or([t.object(), t.literal(null)]).optional(),
+        compact: t.boolean().optional(),
+        pinned: t.boolean().optional(),
+        palette: t.string().optional(),
+        onDrill: t.function(),
+        onFocus: t.function().optional(),
+        onEdit: t.function().optional(),
+        onRefresh: t.function().optional(),
+        onPin: t.function().optional(),
+        onPdf: t.function().optional(),
+        onXlsx: t.function().optional(),
+        onRemove: t.function().optional(),
+        canEdit: t.boolean().optional(),
+    });
+    canvasRef = signal.ref();
+    menuRef = signal.ref();
 
     setup() {
-        this.canvasRef = useRef("canvas");
-        this.menuRef = useRef("menu");
         this.chart = null;
         this.frame = null;
         this.state = proxy({ showTable: false, menuOpen: false, shown: null });
@@ -223,8 +223,8 @@ export class BoardCard extends Component {
             () => this.countUp(),
             () => [this.props.item.value]
         );
-        useExternalListener(window, "click", (ev) => {
-            if (this.state.menuOpen && this.menuRef.el && !this.menuRef.el.contains(ev.target)) {
+        useListener(window, "click", (ev) => {
+            if (this.state.menuOpen && this.menuRef() && !this.menuRef().contains(ev.target)) {
                 this.state.menuOpen = false;
             }
         });
@@ -964,7 +964,7 @@ export class BoardCard extends Component {
 
     /** The chart as it stands, for a download or for the PDF. */
     chartImage() {
-        return canvasToPng(this.canvasRef.el);
+        return canvasToPng(this.canvasRef());
     }
 
     /** The colour a sub-value was given, as CSS. */
@@ -1034,7 +1034,7 @@ export class BoardCard extends Component {
 
     exportImage() {
         this.state.menuOpen = false;
-        const canvas = this.canvasRef.el;
+        const canvas = this.canvasRef();
         if (!canvas) {
             return;
         }
@@ -1096,7 +1096,7 @@ export class BoardCard extends Component {
             return;
         }
         this.destroyChart();
-        if (!this.isChart || !this.hasContent || this.state.showTable || !this.canvasRef.el || !window.Chart) {
+        if (!this.isChart || !this.hasContent || this.state.showTable || !this.canvasRef() || !window.Chart) {
             return;
         }
         const ink = chartInk();
@@ -1169,7 +1169,7 @@ export class BoardCard extends Component {
             },
             config.options || {}
         );
-        this.chart = new window.Chart(this.canvasRef.el, config);
+        this.chart = new window.Chart(this.canvasRef(), config);
     }
 
     tooltipLabel(context) {

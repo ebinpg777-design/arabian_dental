@@ -1,12 +1,12 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, signal, useListener, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
-import { useExternalListener, useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
 import { CARD_COLORS } from "../core/board_colors";
+import { iconName } from "../core/icons";
 import { IconPanel } from "./icon_panel";
 
 /**
@@ -16,13 +16,13 @@ import { IconPanel } from "./icon_panel";
 export class IconPickerField extends Component {
     static template = "ebshel_dashboard.IconPickerField";
     static components = { IconPanel };
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
+    rootRef = signal.ref();
 
     setup() {
-        this.rootRef = useRef("root");
         this.state = proxy({ open: false });
-        useExternalListener(window, "click", (ev) => {
-            if (this.state.open && this.rootRef.el && !this.rootRef.el.contains(ev.target)) {
+        useListener(window, "click", (ev) => {
+            if (this.state.open && this.rootRef() && !this.rootRef().contains(ev.target)) {
                 this.state.open = false;
             }
         });
@@ -30,6 +30,11 @@ export class IconPickerField extends Component {
 
     get current() {
         return this.props.record.data[this.props.name] || "";
+    }
+
+    /** What the face draws: a name typed in the 19.0 way has no glyph yet. */
+    get shownIcon() {
+        return iconName(this.current, "square");
     }
 
     get color() {

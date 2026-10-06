@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, t, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
@@ -22,12 +22,12 @@ export class FieldSuggestField extends Component {
     static template = "ebshel_dashboard.FieldSuggestField";
     // A view widget, not a field widget: the model is already on the form
     // once, and a form may not carry the same field twice.
-    static props = {
-        record: Object,
-        readonly: { type: Boolean, optional: true },
-        kind: { type: String, optional: true },
-        target: { type: String, optional: true },
-    };
+    props = useProps({
+        record: t.object(),
+        readonly: t.boolean().optional(),
+        kind: t.string().optional(),
+        target: t.string().optional(),
+    });
 
     setup() {
         this.orm = useService("orm");

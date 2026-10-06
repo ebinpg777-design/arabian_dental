@@ -20,8 +20,10 @@ class DashboardVariable(models.Model):
     item_id = fields.Many2one(
         'dashboard.item', string='Card', required=True, ondelete='cascade', index=True)
     sequence = fields.Integer(default=10)
+    # copy=True: Odoo 20 would copy the letter as "a (copy)", and a formula
+    # names its variables by letter.
     name = fields.Char(
-        string='Letter', required=True, default='a', size=1,
+        copy=True, string='Letter', required=True, default='a', size=1,
         help="The letter the formula uses for this number: a, b, c...")
     label = fields.Char(string='Meaning', help="What the number is, for the card's hint.")
     domain = fields.Char(

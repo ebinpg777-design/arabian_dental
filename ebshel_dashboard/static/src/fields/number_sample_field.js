@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, t, useProps } from "@odoo/owl";
 import { formatFloat } from "@web/core/utils/numbers";
 import { registry } from "@web/core/registry";
 import { useRecordObserver } from "@web/model/relational_model/utils";
@@ -16,10 +16,10 @@ const SAMPLES = [12.5, 3456, 1234567];
  */
 export class NumberSampleWidget extends Component {
     static template = "ebshel_dashboard.NumberSample";
-    static props = {
-        record: Object,
-        readonly: { type: Boolean, optional: true },
-    };
+    props = useProps({
+        record: t.object(),
+        readonly: t.boolean().optional(),
+    });
 
     setup() {
         this.state = proxy({ samples: [] });

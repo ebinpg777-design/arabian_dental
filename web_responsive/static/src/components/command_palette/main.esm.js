@@ -1,12 +1,12 @@
 import {CommandPalette} from "@web/core/commands/command_palette";
-import { UIPlugin } from "@web/core/ui/ui_plugin";
 import {patch} from "@web/core/utils/patch";
-import { proxy, usePlugin } from "@odoo/owl";
+import {useService} from "@web/core/utils/hooks";
+import {proxy} from "@odoo/owl";
 
 export const unpatchCommandPalette = patch(CommandPalette.prototype, {
     setup() {
         super.setup();
-        this.ui = proxy(usePlugin(UIPlugin));
+        this.ui = proxy(useService("ui"));
     },
 
     get small() {

@@ -30,7 +30,7 @@ class DashboardSubvalue(models.Model):
         'dashboard.item', string='Card', required=True, ondelete='cascade', index=True)
     sequence = fields.Integer(default=10)
     name = fields.Char(
-        string='Label', required=True,
+        copy=True, string='Label', required=True,
         help="What this number is: Late, Mine, This week...")
     domain = fields.Char(
         string='Filter', default='[]', required=True,

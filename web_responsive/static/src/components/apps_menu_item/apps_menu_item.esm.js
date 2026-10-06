@@ -4,12 +4,20 @@
  * Copyright 2023 Taras Shabaranskyi
  * License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). */
 
-import {Component, onWillUpdateProps} from "@odoo/owl";
+import {Component, onWillUpdateProps, t, useProps} from "@odoo/owl";
 import {getWebIconData} from "@web_responsive/components/apps_menu_tools.esm";
 
 export class AppMenuItem extends Component {
+    static template = "web_responsive.AppMenuItem";
+    props = useProps({
+        app: t.object(),
+        href: t.string(),
+        // null while no app is open
+        currentApp: t.or([t.object(), t.literal(null)]).optional(),
+        onClick: t.function(),
+    });
+
     setup() {
-        super.setup();
         this.webIconData = getWebIconData(this.props.app);
         onWillUpdateProps(this.onUpdateProps);
     }
@@ -37,16 +45,3 @@ export class AppMenuItem extends Component {
         }
     }
 }
-
-Object.assign(AppMenuItem, {
-    template: "web_responsive.AppMenuItem",
-    props: {
-        app: Object,
-        href: String,
-        currentApp: {
-            type: Object,
-            optional: true,
-        },
-        onClick: Function,
-    },
-});

@@ -37,7 +37,7 @@ class DashboardFilter(models.Model):
                "['many2one', 'selection', 'boolean', 'char']), ('store', '=', True)]")
     field_name = fields.Char(related='field_id.name', store=True)
     name = fields.Char(
-        string='Label', help="What the reader sees. Empty means the field's own label.")
+        copy=True, string='Label', help="What the reader sees. Empty means the field's own label.")
     label = fields.Char(compute='_compute_label')
 
     @api.depends('name', 'field_id')

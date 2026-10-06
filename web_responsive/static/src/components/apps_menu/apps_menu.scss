@@ -53,18 +53,27 @@
 
 // Iconized full screen apps menu
 .o_grid_apps_menu {
+    // Odoo 20 pads the navbar by $o-navbar-padding-v above and below: the button is an
+    // entry of the padded row like the menus beside it, not the full navbar height
+    // (which put its icon 10px below the menu names and opened the apps 10px too low)
     &__button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         background: unset;
         border: unset;
         outline: unset;
-        margin-right: 0.25rem;
-        min-height: $o-navbar-height;
-        height: $o-navbar-height;
-        width: $o-navbar-height;
+        margin-left: map-get($spacers, 2);
+        margin-right: map-get($spacers, 1);
+        padding: 0;
+        min-height: 0;
+        height: calc(var(--o-navbar-height) - #{$o-navbar-padding-v * 2});
+        width: calc(var(--o-navbar-height) - #{$o-navbar-padding-v * 2} + #{map-get($spacers, 2)});
+        border-radius: $o-navbar-entry-border-radius;
         color: $o-navbar-brand-color;
 
         &:hover,
-        &:focus {
+        &:focus-visible {
             background: $o-navbar-entry-bg--hover;
         }
     }
@@ -83,6 +92,8 @@
 
 .app-menu-container {
     @include full-screen-dropdown();
+    // flush under the navbar (fixed, it otherwise opens where the button ends)
+    top: var(--o-navbar-height);
     overflow: auto;
     background-clip: border-box;
     padding: 1rem 0.5rem;

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Website App (PWA)',
-    'version': '19.0.1.2.0',
+    'version': '20.0.1.2.0',
     'summary': "Install the public site on a phone like an app",
     'description': """
 Lab Website App

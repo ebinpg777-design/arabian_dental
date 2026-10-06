@@ -2,19 +2,19 @@
 <templates xml:space="preserve">
 
     <t t-name="ebshel_dashboard.IconPickerField">
-        <div class="o_dbf_icon" t-custom-ref="root">
+        <div class="o_dbf_icon" t-ref="this.rootRef">
             <div class="o_dbf_icon_field">
                 <button type="button" class="o_dbf_icon_face" t-on-click="this.toggle"
                         t-att-style="'--dbc-color: ' + this.color"
                         t-att-disabled="this.props.readonly" title="Pick an icon">
-                    <i t-attf-class="fa #{this.current or 'fa-square-o'}" role="img" aria-label="Current icon"/>
+                    <i class="oi" t-att-data-icon="this.shownIcon" role="img" aria-label="Current icon"/>
                 </button>
                 <input type="text" class="o_input o_dbf_icon_input" t-att-value="this.current"
-                       t-att-readonly="this.props.readonly" placeholder="fa-bar-chart"
+                       t-att-readonly="this.props.readonly" placeholder="bar_chart"
                        t-on-change="this.onTyped"/>
                 <button type="button" class="btn btn-secondary btn-sm o_dbf_icon_open" t-on-click="this.toggle"
                         t-att-disabled="this.props.readonly">
-                    <i class="fa fa-th me-1" role="img" aria-label="Browse"/> Browse
+                    <i class="oi me-1" data-icon="grid_view" role="img" aria-label="Browse"/> Browse
                 </button>
             </div>
 

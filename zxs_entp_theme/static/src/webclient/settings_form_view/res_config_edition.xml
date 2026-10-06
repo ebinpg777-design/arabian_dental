@@ -4,7 +4,7 @@
     <t t-inherit="res_config_edition" t-inherit-mode="extension">
         <xpath expr="//h3" position="replace">
             <h3 class="px-0">
-                Odoo <t t-out="serverVersion"/> (Community Edition)
+                Odoo <t t-out="this.serverVersion"/> (Community Edition)
             </h3>
         </xpath>
         <xpath expr="//*[@id='license']" position="replace">

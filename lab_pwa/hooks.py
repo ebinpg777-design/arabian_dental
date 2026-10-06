@@ -21,7 +21,7 @@ def set_default_icon(env):
         return
     try:
         with file_open('lab_pwa/static/src/img/app_icon.png', 'rb') as handle:
-            icon = base64.b64encode(handle.read())
+            icon = base64.b64encode(handle.read()).decode()
     except OSError:
         _logger.warning("lab_pwa: shipped app icon is missing")
         return

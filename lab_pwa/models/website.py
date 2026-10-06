@@ -6,7 +6,6 @@ sites, and an app installed from one of them is that site's app. The defaults
 are chosen so the module does something sensible the moment it is installed and
 nothing has been configured yet.
 """
-import base64
 import hashlib
 import io
 
@@ -73,7 +72,8 @@ class Website(models.Model):
         """(base64 image, its width) — the best source this site can offer.
 
         In order of how much the lab meant it: an icon chosen for this, then
-        the logo, then the favicon. Anything Pillow cannot open is skipped
+        the logo, then the favicon (raw bytes: Odoo 20 reads binary fields as
+        a BinaryValue, not base64). Anything Pillow cannot open is skipped
         rather than allowed to 404 the icon - an ICO favicon is the common
         case and Odoo's own image_process refuses it.
         """
@@ -82,7 +82,7 @@ class Website(models.Model):
             if not candidate:
                 continue
             try:
-                image = Image.open(io.BytesIO(base64.b64decode(candidate)))
+                image = Image.open(io.BytesIO(bytes(candidate)))
                 return candidate, image.width
             except Exception:                                   # noqa: BLE001
                 continue
@@ -105,7 +105,7 @@ class Website(models.Model):
         the CDN that served the old bytes for hours after they changed."""
         self.ensure_one()
         source, _width = self._pwa_icon_source()
-        return hashlib.sha1(source[:4096]).hexdigest()[:10] if source else '0'
+        return hashlib.sha1(bytes(source)[:4096]).hexdigest()[:10] if source else '0'
 
     def _pwa_values(self):
         """Everything the manifest and the layout need, with the blanks filled.

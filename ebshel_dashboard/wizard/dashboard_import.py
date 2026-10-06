@@ -7,7 +7,6 @@ board built where Sales is installed will not bring its sales cards into a
 database without it - and a user needs to be told exactly what did not come
 across, rather than being handed either a silent gap or a failure.
 """
-import base64
 import binascii
 import json
 import logging
@@ -42,7 +41,7 @@ class DashboardImport(models.TransientModel):
         """Read the file, create what it describes, and report what it could not."""
         self.ensure_one()
         try:
-            payload = json.loads(base64.b64decode(self.file_data or b'').decode('utf-8'))
+            payload = json.loads((self.file_data.content if self.file_data else b'').decode('utf-8'))
         except (ValueError, UnicodeDecodeError, binascii.Error) as err:
             raise UserError(self.env._(
                 'This file is not a dashboard export: %(error)s', error=err)) from err

@@ -11,7 +11,6 @@ xlsxwriter is one of Odoo's own requirements, so nothing new has to be
 installed; if a hand-built environment is missing it, only this download says
 so and the rest of the module is untouched.
 """
-import base64
 import io
 import re
 
@@ -64,7 +63,7 @@ class DashboardBoardXlsx(models.Model):
         attachment = self.env['ir.attachment'].create({
             'name': '%s.xlsx' % (stem or 'dashboard'),
             'type': 'binary',
-            'datas': base64.b64encode(stream.getvalue()),
+            'raw': stream.getvalue(),
             'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'res_model': 'dashboard.board',
             'res_id': self.id,

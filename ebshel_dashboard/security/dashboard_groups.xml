@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
     <!-- Technical group: no privilege category, it is not a per-app right. -->
     <record id="group_dashboard_manager" model="res.groups">
@@ -9,4 +10,20 @@
         <field name="implied_ids" eval="[(4, ref('ebshel_dashboard.group_dashboard_manager'))]"/>
     </record>
 
-    </odoo>
+    <!--
+        Ownership model
+        ===============
+        `owner_id` empty  = shared board: everybody sees it, only a manager edits it.
+        `owner_id` set    = personal board: only its owner sees it, and only its owner edits it.
+
+        The record-level side of this lives in ir.access.csv (Odoo 20 merged
+        access rights and record rules into ir.access): regular users read the
+        shared boards and their own, and create/change/delete only their own;
+        `create()` stamps their boards as personal, so the write permission is
+        never a surprise at save time. Cards, tabs, filters, variables and
+        sub-values follow the board they sit on; notes, preferences and saved
+        views belong to the reader who made them. A board or card pinned to a
+        company only exists inside it (a group-less restriction row).
+    -->
+
+</odoo>

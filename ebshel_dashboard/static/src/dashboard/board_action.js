@@ -1,9 +1,8 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, signal, useListener, useProps } from "@odoo/owl";
 import { loadBundle } from "@web/core/assets";
 import { useHotkey } from "@web/core/hotkeys/hotkey_hook";
-import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { useDebounced } from "@web/core/utils/timing";
@@ -14,12 +13,14 @@ import { _t } from "@web/core/l10n/translation";
 import { resolveCardColor } from "../core/board_colors";
 import { IconPanel } from "../fields/icon_panel";
 import { BoardCard, canvasToPng } from "./board_card";
-import { markup } from "@odoo/owl";
-import { escape } from "@web/core/utils/strings";
+import { htmlEscape, markup } from "@odoo/owl";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { QuickFindDialog } from "./quick_find_dialog";
-import { useExternalListener, useRef } from "@web/owl2/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+
+/** Plain text made safe to put in HTML, as a plain string. */
+function escape(text) {
+    return String(htmlEscape(String(text ?? "")));
+}
 
 const GRID_GAP = 12; // must match the stylesheet
 const MIN_HEIGHT = 120;
@@ -97,16 +98,16 @@ function writeSidebar(min) {
 export class DashboardBoardAction extends Component {
     static template = "ebshel_dashboard.BoardAction";
     static components = { BoardCard, IconPanel };
-    static props = ["*"];
+    props = useProps();
+    rootRef = signal.ref();
+    moreRef = signal.ref();
+    periodRef = signal.ref();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.dialog = useService("dialog");
-        this.notification = usePlugin(NotificationPlugin);
-        this.rootRef = useRef("root");
-        this.moreRef = useRef("more");
-        this.periodRef = useRef("period");
+        this.notification = useService("notification");
         this.state = proxy({
             loading: true,
             board: null,
@@ -180,11 +181,11 @@ export class DashboardBoardAction extends Component {
             clearInterval(this.clockTimer);
             document.removeEventListener("fullscreenchange", this.onFullscreenChange);
         });
-        useExternalListener(window, "click", (ev) => {
-            if (this.state.periodOpen && this.periodRef.el && !this.periodRef.el.contains(ev.target)) {
+        useListener(window, "click", (ev) => {
+            if (this.state.periodOpen && this.periodRef() && !this.periodRef().contains(ev.target)) {
                 this.state.periodOpen = false;
             }
-            if (this.state.menuOpen && this.moreRef.el && !this.moreRef.el.contains(ev.target)) {
+            if (this.state.menuOpen && this.moreRef() && !this.moreRef().contains(ev.target)) {
                 this.state.menuOpen = false;
             }
         });
@@ -240,7 +241,7 @@ export class DashboardBoardAction extends Component {
         this.state.renaming = true;
         this.state.newName = this.state.board.name;
         window.setTimeout(() => {
-            const input = this.rootRef.el && this.rootRef.el.querySelector(".o_dbb_title_input");
+            const input = this.rootRef() && this.rootRef().querySelector(".o_dbb_title_input");
             if (input) {
                 input.focus();
                 input.select();
@@ -472,14 +473,14 @@ export class DashboardBoardAction extends Component {
             const against = top.compare_mode === "year" ? _t("last year") : _t("the previous period");
             insights.push({
                 tone: up ? "up" : "down",
-                icon: up ? "fa-arrow-up" : "fa-arrow-down",
+                icon: up ? "arrow_upward" : "arrow_downward",
                 itemId: top.id,
                 text: _t("%s is %s%% %s %s", `**${top.name}**`, Math.abs(top.delta_percent),
                          up ? _t("up on") : _t("down on"), against),
             });
             if (movers.length > 1) {
                 insights.push({
-                    tone: "info", icon: "fa-exchange", itemId: movers[1].id,
+                    tone: "info", icon: "swap_horiz", itemId: movers[1].id,
                     text: movers.length === 2
                         ? _t("%s moved by 10%% or more too", `**${movers[1].name}**`)
                         : _t("%s other cards moved by 10%% or more", movers.length - 1),
@@ -489,14 +490,14 @@ export class DashboardBoardAction extends Component {
         for (const item of items.filter((entry) => entry.alert)) {
             insights.push({
                 tone: item.alert === "danger" ? "danger" : "warning",
-                icon: "fa-exclamation-triangle", itemId: item.id,
+                icon: "warning", itemId: item.id,
                 text: _t("%s has crossed its threshold", `**${item.name}**`),
             });
         }
         for (const item of items.filter((entry) => entry.anomaly)) {
             insights.push({
                 tone: item.anomaly.direction === "above" ? "danger" : "info",
-                icon: "fa-bolt", itemId: item.id,
+                icon: "flash_on", itemId: item.id,
                 text: _t("%s is unusual today: %sσ %s its own last %s days", `**${item.name}**`,
                          Math.abs(item.anomaly.z),
                          item.anomaly.direction === "above" ? _t("above") : _t("below"),
@@ -505,7 +506,7 @@ export class DashboardBoardAction extends Component {
         }
         for (const item of items.filter((entry) => entry.pace && entry.pace.status === "behind")) {
             insights.push({
-                tone: "warning", icon: "fa-flag-o", itemId: item.id,
+                tone: "warning", icon: "flag", itemId: item.id,
                 text: _t("%s is behind its goal for the period", `**${item.name}**`),
             });
         }
@@ -525,10 +526,10 @@ export class DashboardBoardAction extends Component {
 
     /** Take the reader to the card an insight is about. */
     jumpTo(insight) {
-        if (!insight.itemId || !this.rootRef.el) {
+        if (!insight.itemId || !this.rootRef()) {
             return;
         }
-        const cell = this.rootRef.el.querySelector(`.o_dbb_cell[data-item-id="${insight.itemId}"]`);
+        const cell = this.rootRef().querySelector(`.o_dbb_cell[data-item-id="${insight.itemId}"]`);
         if (cell) {
             cell.scrollIntoView({ behavior: "smooth", block: "center" });
         }
@@ -548,7 +549,7 @@ export class DashboardBoardAction extends Component {
         const untabbed = this.state.items.filter((item) => !item.tab_id).length;
         const pages = [];
         if (untabbed || this.state.editing) {
-            pages.push({ id: null, name: _t("Overview"), icon: "fa-home", count: untabbed });
+            pages.push({ id: null, name: _t("Overview"), icon: "home", count: untabbed });
         }
         for (const tab of board.tabs) {
             pages.push({ id: tab.id, name: tab.name, icon: tab.icon,
@@ -878,7 +879,7 @@ export class DashboardBoardAction extends Component {
             return;
         }
         window.setTimeout(() => {
-            const root = this.rootRef.el;
+            const root = this.rootRef();
             const content = root && root.querySelector(".o_dbb_content");
             const hero = root && root.querySelector(".o_dbb_hero");
             if (!content || !hero) {
@@ -909,23 +910,23 @@ export class DashboardBoardAction extends Component {
 
     openQuickFind() {
         const actions = [
-            { key: "refresh", label: _t("Refresh"), icon: "fa-refresh", run: () => this.refresh() },
-            { key: "present", label: _t("Present full screen"), icon: "fa-expand", run: () => this.togglePresenting() },
-            { key: "print", label: _t("Print"), icon: "fa-print", run: () => this.print() },
-            { key: "pdf", label: _t("Download as PDF"), icon: "fa-file-pdf-o", run: () => this.downloadPdf() },
-            { key: "xlsx", label: _t("Download as a spreadsheet"), icon: "fa-file-excel-o", run: () => this.downloadXlsx() },
-            { key: "export", label: _t("Export this dashboard"), icon: "fa-download", run: () => this.exportBoard() },
-            { key: "tour", label: _t("Show the tour"), icon: "fa-question-circle", run: () => this.startTour() },
+            { key: "refresh", label: _t("Refresh"), icon: "refresh", run: () => this.refresh() },
+            { key: "present", label: _t("Present full screen"), icon: "fullscreen", run: () => this.togglePresenting() },
+            { key: "print", label: _t("Print"), icon: "print", run: () => this.print() },
+            { key: "pdf", label: _t("Download as PDF"), icon: "picture_as_pdf", run: () => this.downloadPdf() },
+            { key: "xlsx", label: _t("Download as a spreadsheet"), icon: "table_chart", run: () => this.downloadXlsx() },
+            { key: "export", label: _t("Export this dashboard"), icon: "download", run: () => this.exportBoard() },
+            { key: "tour", label: _t("Show the tour"), icon: "help", run: () => this.startTour() },
         ];
         if (this.canBuild) {
             actions.push({ key: "build", label: _t("Build a dashboard from a model"),
-                           icon: "fa-magic", run: () => this.buildBoard() });
+                           icon: "wand_stars", run: () => this.buildBoard() });
         }
         if (this.canEdit) {
             actions.unshift(
-                { key: "arrange", label: _t("Arrange the cards"), icon: "fa-arrows", run: () => this.toggleEditing() },
-                { key: "card", label: _t("Add a card"), icon: "fa-plus", run: () => this.addCard() },
-                { key: "view", label: _t("Save this view"), icon: "fa-bookmark-o", run: () => this.startSavingView() },
+                { key: "arrange", label: _t("Arrange the cards"), icon: "open_with", run: () => this.toggleEditing() },
+                { key: "card", label: _t("Add a card"), icon: "add", run: () => this.addCard() },
+                { key: "view", label: _t("Save this view"), icon: "bookmark", run: () => this.startSavingView() },
             );
         }
         this.dialog.add(QuickFindDialog, {
@@ -957,7 +958,7 @@ export class DashboardBoardAction extends Component {
         this.state.filter = "";
         this.state.flashId = itemId;
         window.setTimeout(() => {
-            const cell = this.rootRef.el && this.rootRef.el.querySelector(`.o_dbb_cell[data-item-id="${itemId}"]`);
+            const cell = this.rootRef() && this.rootRef().querySelector(`.o_dbb_cell[data-item-id="${itemId}"]`);
             if (cell && cell.scrollIntoView) {
                 cell.scrollIntoView({ behavior: "smooth", block: "center" });
             }
@@ -1042,7 +1043,7 @@ export class DashboardBoardAction extends Component {
      */
     boardImages(onlyId = null) {
         const images = {};
-        const cells = this.rootRef.el ? this.rootRef.el.querySelectorAll(".o_dbb_cell[data-item-id]") : [];
+        const cells = this.rootRef() ? this.rootRef().querySelectorAll(".o_dbb_cell[data-item-id]") : [];
         for (const cell of cells) {
             const id = Number(cell.dataset.itemId);
             if (onlyId && id !== onlyId) {
@@ -1110,7 +1111,7 @@ export class DashboardBoardAction extends Component {
         this.state.addingTab = true;
         this.state.tabName = "";
         window.setTimeout(() => {
-            const input = this.rootRef.el && this.rootRef.el.querySelector(".o_dbb_tab_input");
+            const input = this.rootRef() && this.rootRef().querySelector(".o_dbb_tab_input");
             if (input) {
                 input.focus();
             }
@@ -1170,10 +1171,10 @@ export class DashboardBoardAction extends Component {
     // ------------------------------------------------------------------
     get tourSteps() {
         return [
-            { title: _t("Welcome to your dashboards"), text: _t("Every card here is a live question asked of your data. Click a number to open the records it counted."), icon: "fa-tachometer" },
-            { title: _t("Narrow the whole page"), text: _t("Click a bar, a slice or a table row and every card on the same model follows. Esc clears it."), icon: "fa-filter" },
-            { title: _t("The rail on the left"), text: _t("Your dashboards and the tools: quick find (Q), a watchlist for pinned numbers, private notes, presentation mode."), icon: "fa-bars" },
-            { title: _t("Make it yours"), text: _t("Arrange (E) drags and resizes cards, + Card adds one with a live preview, and the more menu builds, exports and saves views."), icon: "fa-magic" },
+            { title: _t("Welcome to your dashboards"), text: _t("Every card here is a live question asked of your data. Click a number to open the records it counted."), icon: "speed" },
+            { title: _t("Narrow the whole page"), text: _t("Click a bar, a slice or a table row and every card on the same model follows. Esc clears it."), icon: "filter_alt" },
+            { title: _t("The rail on the left"), text: _t("Your dashboards and the tools: quick find (Q), a watchlist for pinned numbers, private notes, presentation mode."), icon: "menu" },
+            { title: _t("Make it yours"), text: _t("Arrange (E) drags and resizes cards, + Card adds one with a live preview, and the more menu builds, exports and saves views."), icon: "wand_stars" },
         ];
     }
 
@@ -1260,7 +1261,7 @@ export class DashboardBoardAction extends Component {
         this.state.presenting = !this.state.presenting;
         this.state.editing = false;
         this.state.menuOpen = false;
-        const el = this.rootRef.el;
+        const el = this.rootRef();
         if (this.state.presenting && el && el.requestFullscreen) {
             el.requestFullscreen().catch(() => {});
         } else if (!this.state.presenting && document.fullscreenElement && document.exitFullscreen) {
@@ -1278,7 +1279,7 @@ export class DashboardBoardAction extends Component {
         this.state.savingView = true;
         this.state.viewName = "";
         window.setTimeout(() => {
-            const input = this.rootRef.el && this.rootRef.el.querySelector(".o_dbb_view_input");
+            const input = this.rootRef() && this.rootRef().querySelector(".o_dbb_view_input");
             if (input) {
                 input.focus();
             }
@@ -1378,7 +1379,7 @@ export class DashboardBoardAction extends Component {
     async onCardDropped() {
         // Read the order back from the DOM: the sortable has already moved the
         // node, and the DOM is what the user actually sees.
-        const nodes = this.rootRef.el.querySelectorAll(".o_dbb_cell[data-item-id]");
+        const nodes = this.rootRef().querySelectorAll(".o_dbb_cell[data-item-id]");
         const layout = [...nodes].map((node) => Number(node.dataset.itemId));
         await this.orm.call("dashboard.board", "arrange_items", [[this.state.board.id], layout]);
         await this.refresh();
@@ -1400,7 +1401,7 @@ export class DashboardBoardAction extends Component {
         ev.preventDefault();
         ev.stopPropagation();
         const cell = ev.target.closest(".o_dbb_cell");
-        const grid = this.rootRef.el.querySelector(".o_dbb_grid");
+        const grid = this.rootRef().querySelector(".o_dbb_grid");
         if (!cell || !grid) {
             return;
         }

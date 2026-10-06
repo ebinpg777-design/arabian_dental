@@ -27,6 +27,20 @@
     }
 }
 
+// Odoo 20: the home menu search input is visible on touch devices
+.o_touch_device .o_home_menu {
+    scrollbar-width: none;
+    .o_home_menu_search_input {
+        border: $o-home-menu-input-border;
+        @include media-breakpoint-up(md) {
+            max-width: $o-home-menu-container-size !important;
+        }
+    }
+    .container {
+        min-height: 100vh;
+    }
+}
+
 .o_home_menu {
     font-size: $font-size-base;
     scrollbar-color: #{rgba($body-color, .5)} transparent;
@@ -66,7 +80,7 @@
             transition: var(--AppSwitcherIcon-transition);
             box-shadow: var(--AppSwitcherIcon-box-shadow);
 
-            .fa {
+            .oi {
                 font-size: $o-home-menu-app-icon-max-width * 0.5;
             }
         }

@@ -1,98 +1,120 @@
 /** @odoo-module **/
 
-import { Component, proxy } from "@odoo/owl";
+import { Component, proxy, signal, t, useListener, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
-import { useExternalListener, useRef } from "@web/owl2/utils";
 
 const RECENT_KEY = "ebshel_dashboard.recent_icons";
 const RECENT_MAX = 12;
 
 export const ICON_GROUPS = [
     { key: "analytics", label: _t("Analytics"), icons: [
-        ["fa-bar-chart", "bars chart"], ["fa-line-chart", "line trend"], ["fa-area-chart", "area"],
-        ["fa-pie-chart", "pie share"], ["fa-tachometer", "gauge speed dashboard"], ["fa-signal", "signal"],
-        ["fa-dashboard", "dashboard"], ["fa-trophy", "win award"], ["fa-bullseye", "target goal"],
-        ["fa-crosshairs", "target aim"], ["fa-percent", "ratio percent"], ["fa-hashtag", "number count"],
-        ["fa-sort-numeric-asc", "rank order"], ["fa-table", "table grid"], ["fa-th-large", "grid tiles"],
-        ["fa-list-ol", "list ranked"], ["fa-tasks", "progress tasks"], ["fa-filter", "funnel filter"],
-        ["fa-magic", "auto wand"], ["fa-rocket", "launch growth"], ["fa-lightbulb-o", "idea"],
-        ["fa-fire", "hot urgent"], ["fa-diamond", "premium"], ["fa-flash", "bolt fast"],
+        ["bar_chart", "bars chart bar"], ["show_chart", "line trend chart"],
+        ["area_chart", "area chart"], ["pie_chart", "pie share chart"],
+        ["speed", "gauge speed dashboard tachometer"], ["signal_cellular_4_bar", "signal"],
+        ["trophy", "win award trophy"], ["radio_button_checked", "target goal bullseye"],
+        ["my_location", "target aim crosshairs"], ["percent", "ratio percent"],
+        ["tag", "number count hashtag"],
+        ["format_list_numbered", "rank order sort numeric asc list ranked ol"],
+        ["table", "table grid"], ["grid_view", "grid tiles th large"],
+        ["checklist", "progress tasks"], ["filter_alt", "funnel filter"],
+        ["wand_stars", "auto wand magic"], ["rocket_launch", "launch growth rocket"],
+        ["lightbulb", "idea lightbulb"], ["whatshot", "hot urgent fire"],
+        ["diamond", "premium diamond"], ["flash_on", "bolt fast flash"],
     ]},
     { key: "status", label: _t("Status"), icons: [
-        ["fa-check-circle", "done ok approved"], ["fa-check-square-o", "done check"], ["fa-times-circle", "cancel failed"],
-        ["fa-ban", "blocked forbidden"], ["fa-exclamation-triangle", "warning alert"], ["fa-exclamation-circle", "important"],
-        ["fa-question-circle", "unknown question"], ["fa-info-circle", "info"], ["fa-hourglass-half", "waiting pending"],
-        ["fa-clock-o", "time late"], ["fa-history", "history past"], ["fa-refresh", "refresh sync"],
-        ["fa-spinner", "in progress"], ["fa-flag", "flag"], ["fa-flag-checkered", "finish"],
-        ["fa-thumbs-o-up", "good like"], ["fa-thumbs-o-down", "bad dislike"], ["fa-star", "favourite star"],
-        ["fa-heart", "love"], ["fa-bell", "notification alarm"], ["fa-bullhorn", "announce"],
-        ["fa-lock", "locked"], ["fa-unlock", "open"], ["fa-circle", "dot light"],
-        ["fa-pause-circle", "paused"], ["fa-play-circle", "running"], ["fa-stop-circle", "stopped"],
+        ["check_circle", "done ok approved check circle"], ["check_box", "done check square"],
+        ["cancel", "cancel failed times circle"], ["block", "blocked forbidden ban"],
+        ["warning", "warning alert exclamation triangle"],
+        ["error", "important exclamation circle"], ["help", "unknown question circle"],
+        ["info", "info circle"], ["hourglass_top", "waiting pending hourglass half"],
+        ["schedule", "time late clock"], ["history", "history past"], ["refresh", "refresh sync"],
+        ["progress_activity", "in progress spinner"], ["flag", "flag"],
+        ["sports_score", "finish flag checkered"], ["thumb_up", "good like thumbs up"],
+        ["thumb_down", "bad dislike thumbs down"], ["star", "favourite star"],
+        ["favorite", "love heart"], ["notifications", "notification alarm bell"],
+        ["campaign", "announce bullhorn"], ["lock", "locked lock"], ["lock_open", "open unlock"],
+        ["circle", "dot light circle"], ["pause_circle", "paused pause circle"],
+        ["play_circle", "running play circle"], ["stop_circle", "stopped stop circle"],
     ]},
     { key: "money", label: _t("Money"), icons: [
-        ["fa-money", "cash revenue"], ["fa-credit-card", "card payment"], ["fa-bank", "bank"],
-        ["fa-calculator", "calc"], ["fa-usd", "dollar"], ["fa-eur", "euro"], ["fa-gbp", "pound"],
-        ["fa-inr", "rupee"], ["fa-jpy", "yen"], ["fa-btc", "bitcoin"], ["fa-tag", "price tag"],
-        ["fa-tags", "tags"], ["fa-shopping-cart", "cart sales"], ["fa-shopping-basket", "basket"],
-        ["fa-shopping-bag", "bag"], ["fa-gift", "gift"], ["fa-balance-scale", "balance"],
-        ["fa-line-chart", "revenue"], ["fa-pie-chart", "share"], ["fa-file-text-o", "invoice"],
-        ["fa-handshake-o", "deal"], ["fa-briefcase", "business"],
+        ["payments", "cash revenue money"], ["credit_card", "card payment credit"],
+        ["account_balance", "bank"], ["calculate", "calc calculator"],
+        ["attach_money", "dollar usd"], ["euro", "euro eur"], ["currency_pound", "pound gbp"],
+        ["currency_rupee", "rupee inr"], ["currency_yen", "yen jpy"],
+        ["currency_bitcoin", "bitcoin btc"], ["sell", "price tag"], ["label", "tags"],
+        ["shopping_cart", "cart sales shopping"], ["shopping_basket", "basket shopping"],
+        ["shopping_bag", "bag shopping"], ["card_giftcard", "gift"], ["balance", "balance scale"],
+        ["show_chart", "revenue line chart"], ["pie_chart", "share pie chart"],
+        ["description", "invoice file text"], ["handshake", "deal handshake"],
+        ["work", "business briefcase"],
     ]},
     { key: "documents", label: _t("Documents"), icons: [
-        ["fa-file-text-o", "document"], ["fa-file-o", "file"], ["fa-files-o", "files"],
-        ["fa-folder-open-o", "folder"], ["fa-clipboard", "clipboard"], ["fa-pencil", "edit draft"],
-        ["fa-pencil-square-o", "edit"], ["fa-paperclip", "attachment"], ["fa-print", "print"],
-        ["fa-envelope-o", "mail"], ["fa-paper-plane", "sent"], ["fa-inbox", "inbox"],
-        ["fa-archive", "archive"], ["fa-sticky-note-o", "note"], ["fa-book", "book"],
-        ["fa-newspaper-o", "news"], ["fa-list-alt", "form"], ["fa-file-pdf-o", "pdf"],
-        ["fa-file-excel-o", "spreadsheet"], ["fa-quote-left", "quote"], ["fa-commenting-o", "comment"],
+        ["description", "document file text"], ["article", "file"], ["content_copy", "files"],
+        ["folder_open", "folder open"], ["assignment", "clipboard"], ["edit", "edit draft pencil"],
+        ["edit_square", "edit pencil square"], ["attach_file", "attachment paperclip"],
+        ["print", "print"], ["mail", "mail envelope"], ["send", "sent paper plane"],
+        ["inbox", "inbox"], ["archive", "archive"], ["sticky_note_2", "note sticky"],
+        ["book", "book"], ["newspaper", "news newspaper"], ["list_alt", "form list alt"],
+        ["picture_as_pdf", "pdf file"], ["table_chart", "spreadsheet file excel"],
+        ["format_quote", "quote left"], ["mode_comment", "comment commenting"],
     ]},
     { key: "logistics", label: _t("Logistics"), icons: [
-        ["fa-truck", "delivery shipping"], ["fa-cube", "product unit"], ["fa-cubes", "stock inventory"],
-        ["fa-industry", "factory manufacturing"], ["fa-wrench", "repair maintenance"], ["fa-cogs", "settings machine"],
-        ["fa-cog", "gear"], ["fa-barcode", "barcode"], ["fa-qrcode", "qr"], ["fa-recycle", "recycle"],
-        ["fa-map-marker", "location"], ["fa-map-o", "map"], ["fa-globe", "world country"],
-        ["fa-plane", "flight"], ["fa-ship", "sea"], ["fa-train", "rail"], ["fa-bicycle", "bike"],
-        ["fa-car", "car"], ["fa-road", "route"], ["fa-dropbox", "box"],
-        ["fa-exchange", "transfer"], ["fa-random", "route"], ["fa-battery-three-quarters", "battery"],
+        ["local_shipping", "delivery shipping truck"], ["deployed_code", "product unit cube"],
+        ["inventory_2", "stock inventory cubes"], ["factory", "factory manufacturing industry"],
+        ["build", "repair maintenance wrench"], ["settings", "settings machine cogs gear cog"],
+        ["barcode", "barcode"], ["qr_code", "qr qrcode"], ["recycling", "recycle"],
+        ["location_on", "location map marker"], ["map", "map"], ["public", "world country globe"],
+        ["flight", "flight plane"], ["directions_boat", "sea ship"], ["train", "rail train"],
+        ["directions_bike", "bike bicycle"], ["directions_car", "car"], ["road", "route road"],
+        ["package_2", "box dropbox"], ["swap_horiz", "transfer exchange"],
+        ["shuffle", "route random"], ["battery_5_bar", "battery three quarters"],
     ]},
     { key: "people", label: _t("People"), icons: [
-        ["fa-user", "user person"], ["fa-user-o", "person"], ["fa-users", "team group"],
-        ["fa-user-plus", "new user"], ["fa-user-circle-o", "avatar"], ["fa-user-secret", "anonymous"],
-        ["fa-address-card-o", "contact"], ["fa-address-book", "contacts"], ["fa-handshake-o", "partner"],
-        ["fa-comments-o", "chat discussion"], ["fa-comment-o", "message"], ["fa-phone", "call"],
-        ["fa-headphones", "support"], ["fa-child", "child"], ["fa-female", "woman"], ["fa-male", "man"],
-        ["fa-smile-o", "happy"], ["fa-frown-o", "unhappy"], ["fa-meh-o", "neutral"],
-        ["fa-id-badge", "employee"], ["fa-graduation-cap", "training"], ["fa-birthday-cake", "birthday"],
+        ["person", "user person"], ["group", "team group users"], ["person_add", "new user plus"],
+        ["account_circle", "avatar user circle"], ["oi_user-secret", "anonymous user secret"],
+        ["badge", "contact address card employee id badge"],
+        ["contact_page", "contacts address book"], ["handshake", "partner handshake"],
+        ["forum", "chat discussion comments"], ["chat_bubble", "message comment"],
+        ["phone", "call phone"], ["headphones", "support headphones"], ["child_care", "child"],
+        ["female", "woman female"], ["male", "man male"], ["sentiment_satisfied", "happy smile"],
+        ["sentiment_dissatisfied", "unhappy frown"], ["sentiment_neutral", "neutral meh"],
+        ["school", "training graduation cap"], ["cake", "birthday cake"],
     ]},
     { key: "time", label: _t("Time & Places"), icons: [
-        ["fa-calendar", "calendar"], ["fa-calendar-check-o", "planned"], ["fa-calendar-times-o", "missed"],
-        ["fa-calendar-plus-o", "schedule"], ["fa-hourglass-end", "deadline"], ["fa-clock-o", "clock"],
-        ["fa-building-o", "company office"], ["fa-building", "company"], ["fa-home", "home"],
-        ["fa-briefcase", "work"], ["fa-suitcase", "travel"], ["fa-shield", "protected"],
-        ["fa-stethoscope", "health"], ["fa-medkit", "medical"], ["fa-hospital-o", "hospital"],
-        ["fa-university", "school"], ["fa-bed", "hotel"], ["fa-coffee", "break"],
-        ["fa-cutlery", "food"], ["fa-sun-o", "day"], ["fa-moon-o", "night"], ["fa-umbrella", "leave"],
+        ["calendar_today", "calendar"], ["event_available", "planned calendar check"],
+        ["event_busy", "missed calendar times"], ["calendar_add_on", "schedule calendar plus"],
+        ["hourglass_bottom", "deadline hourglass end"], ["schedule", "clock"],
+        ["business", "company office building"], ["home", "home"], ["work", "work briefcase"],
+        ["luggage", "travel suitcase"], ["security", "protected shield"],
+        ["stethoscope", "health stethoscope"], ["medical_services", "medical medkit"],
+        ["local_hospital", "hospital"], ["account_balance", "school university"],
+        ["bed", "hotel bed"], ["coffee", "break coffee"], ["restaurant", "food cutlery"],
+        ["light_mode", "day sun"], ["dark_mode", "night moon"], ["umbrella", "leave umbrella"],
     ]},
     { key: "tech", label: _t("Technology"), icons: [
-        ["fa-laptop", "laptop"], ["fa-desktop", "desktop"], ["fa-mobile", "phone"], ["fa-tablet", "tablet"],
-        ["fa-server", "server"], ["fa-database", "database records"], ["fa-cloud", "cloud"],
-        ["fa-cloud-upload", "upload"], ["fa-cloud-download", "download"], ["fa-wifi", "network"],
-        ["fa-plug", "integration"], ["fa-code", "code"], ["fa-bug", "bug issue"], ["fa-terminal", "shell"],
-        ["fa-key", "key access"], ["fa-microchip", "chip"], ["fa-hdd-o", "disk"], ["fa-sitemap", "structure"],
-        ["fa-link", "link"], ["fa-share-alt", "share"], ["fa-rss", "feed"], ["fa-camera", "photo"],
+        ["laptop", "laptop"], ["desktop_windows", "desktop"], ["smartphone", "phone mobile"],
+        ["tablet", "tablet"], ["dns", "server"], ["database", "database records"],
+        ["cloud", "cloud"], ["cloud_upload", "upload cloud"], ["cloud_download", "download cloud"],
+        ["wifi", "network wifi"], ["power", "integration plug"], ["code", "code"],
+        ["bug_report", "bug issue"], ["terminal", "shell terminal"], ["key", "key access"],
+        ["memory", "chip microchip"], ["storage", "disk hdd"],
+        ["account_tree", "structure sitemap"], ["link", "link"], ["share", "share alt"],
+        ["rss_feed", "feed rss"], ["photo_camera", "photo camera"],
     ]},
 ];
 
 const ALL_ICONS = ICON_GROUPS.flatMap((group) =>
-    group.icons.map(([icon, words]) => ({ icon, words: `${icon.replace("fa-", "").replace(/-/g, " ")} ${words}`, group: group.key }))
+    group.icons.map(([icon, words]) => ({ icon, words: `${icon.replace(/^oi_/, "").replace(/[_-]/g, " ")} ${words}`, group: group.key }))
 );
 
 function readRecent() {
     try {
         const raw = window.localStorage.getItem(RECENT_KEY);
         const list = raw ? JSON.parse(raw) : [];
-        return Array.isArray(list) ? list.filter((icon) => typeof icon === "string") : [];
+        // Names picked under 19.0 were FontAwesome classes, which Odoo 20 cannot draw.
+        return Array.isArray(list)
+            ? list.filter((icon) => typeof icon === "string" && !icon.startsWith("fa"))
+            : [];
     } catch {
         return [];
     }
@@ -116,27 +138,27 @@ function writeRecent(list) {
  */
 export class IconPanel extends Component {
     static template = "ebshel_dashboard.IconPanel";
-    static props = {
-        current: { type: String, optional: true },
-        onPick: Function,
-        onClose: { type: Function, optional: true },
-        anchor: { type: String, optional: true },
-    };
+    props = useProps({
+        current: t.string().optional(),
+        onPick: t.function(),
+        onClose: t.function().optional(),
+        anchor: t.string().optional(),
+    });
+    rootRef = signal.ref();
+    searchRef = signal.ref();
 
     setup() {
-        this.rootRef = useRef("root");
-        this.searchRef = useRef("search");
         this.state = proxy({ query: "", group: "all", recent: readRecent() });
-        window.setTimeout(() => this.searchRef.el && this.searchRef.el.focus(), 0);
-        useExternalListener(window, "click", (ev) => {
+        window.setTimeout(() => this.searchRef() && this.searchRef().focus(), 0);
+        useListener(window, "click", (ev) => {
             // The click that opened the panel is still travelling: only a click
             // outside both the panel and its anchor closes it.
             const anchor = this.props.anchor && ev.target.closest && ev.target.closest(this.props.anchor);
-            if (!anchor && this.rootRef.el && !this.rootRef.el.contains(ev.target)) {
+            if (!anchor && this.rootRef() && !this.rootRef().contains(ev.target)) {
                 this.close();
             }
         });
-        useExternalListener(window, "keydown", (ev) => {
+        useListener(window, "keydown", (ev) => {
             if (ev.key === "Escape") {
                 ev.stopPropagation();
                 this.close();

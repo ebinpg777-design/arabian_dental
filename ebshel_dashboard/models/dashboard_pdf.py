@@ -465,7 +465,7 @@ class DashboardBoardPdf(models.Model):
         attachment = self.env['ir.attachment'].create({
             'name': name,
             'type': 'binary',
-            'datas': base64.b64encode(pdf),
+            'raw': pdf,
             'mimetype': 'application/pdf',
             'res_model': 'dashboard.board',
             'res_id': self.id,

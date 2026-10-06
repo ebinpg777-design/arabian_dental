@@ -15,6 +15,9 @@ class ResUsers(models.Model):
         ],
         default="canonical",
         required=True,
+        # Each user sets these in the Apps Menu Preferences dialog, on their
+        # own record: without this a non-admin's save is refused.
+        user_writeable=True,
     )
     apps_menu_theme = fields.Selection(
         [
@@ -23,6 +26,7 @@ class ResUsers(models.Model):
         ],
         default="milk",
         required=True,
+        user_writeable=True,
     )
     is_redirect_home = fields.Boolean(
         string="Redirect to Home",

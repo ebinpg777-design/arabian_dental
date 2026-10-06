@@ -2,10 +2,10 @@
 <templates xml:space="preserve">
 
     <t t-name="ebshel_dashboard.IconPanel">
-        <div class="o_dbf_icon_panel" t-custom-ref="root">
+        <div class="o_dbf_icon_panel" t-ref="this.rootRef">
             <div class="o_dbf_icon_search">
-                <i class="fa fa-search" role="img" aria-label="Search"/>
-                <input type="text" t-custom-ref="search" class="o_input"
+                <i class="oi" data-icon="search" role="img" aria-label="Search"/>
+                <input type="text" t-ref="this.searchRef" class="o_input"
                        placeholder="Search by name or meaning: late, revenue, team..."
                        t-att-value="this.state.query" t-on-input="this.onQueryInput" t-on-keydown="this.onQueryKeydown"/>
                 <span class="o_dbf_icon_count"><t t-out="this.matches.length"/> icons</span>
@@ -24,7 +24,7 @@
                         <button type="button"
                                 t-attf-class="o_dbf_icon_cell {{ icon === this.props.current ? 'o_dbf_icon_cell_on' : '' }}"
                                 t-att-title="icon" t-on-click="() => this.select(icon)">
-                            <i t-attf-class="fa #{icon}" role="img" t-att-aria-label="icon"/>
+                            <i class="oi" t-att-data-icon="icon" role="img" t-att-aria-label="icon"/>
                         </button>
                     </t>
                 </div>
@@ -34,11 +34,11 @@
                     <button type="button"
                             t-attf-class="o_dbf_icon_cell {{ icon === this.props.current ? 'o_dbf_icon_cell_on' : '' }}"
                             t-att-title="icon" t-on-click="() => this.select(icon)">
-                        <i t-attf-class="fa #{icon}" role="img" t-att-aria-label="icon"/>
+                        <i class="oi" t-att-data-icon="icon" role="img" t-att-aria-label="icon"/>
                     </button>
                 </t>
                 <t t-if="!this.matches.length">
-                    <div class="o_dbf_icon_none">No icon matches. Any FontAwesome 4 class can still be typed in the box.</div>
+                    <div class="o_dbf_icon_none">No icon matches. Any Material Symbols name can still be typed in the box.</div>
                 </t>
             </div>
         </div>

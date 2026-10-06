@@ -177,7 +177,7 @@ reader is not allowed to see.
 
 ## Requirements
 
-Odoo 19.0, Community or Enterprise. Depends on `web` and `bus` only: no
+Odoo 20.0, Community or Enterprise. Depends on `web` and `bus` only: no
 Enterprise module, no external Python package, no external JavaScript
 library. Charts use the Chart.js build that ships inside Odoo, loaded only
 when a board is opened.

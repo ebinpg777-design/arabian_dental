@@ -8,7 +8,6 @@ how dense the grid is, and who may see it.
 The browser asks for one board at a time through :meth:`DashboardBoard.read_board`,
 which returns the whole page - definition and numbers - in a single call.
 """
-import base64
 import json
 import logging
 import re
@@ -19,6 +18,9 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 from .dashboard_item import (
     BOARD_COLUMNS, CARD_COLORS, DATE_FIELD_CANDIDATES, DATE_TYPES, NUMERIC_TYPES, PERIODS,
     USER_FIELD_CANDIDATES,
+)
+from .dashboard_icons import (
+    BOARD_ICON, CARD_ICON, TAB_ICON, is_icon, normalize_icon, normalize_icon_vals,
 )
 
 _logger = logging.getLogger(__name__)
@@ -82,7 +84,7 @@ class DashboardBoard(models.Model):
     name = fields.Char(required=True, translate=True)
     sequence = fields.Integer(default=10, index=True)
     active = fields.Boolean(default=True)
-    icon = fields.Char(default='fa-tachometer', help="FontAwesome icon of the board.")
+    icon = fields.Char(default=BOARD_ICON, help="Icon of the board: a Material Symbols name.")
     color = fields.Selection(CARD_COLORS, default='indigo', required=True)
     description = fields.Text(translate=True, help="Shown under the board title.")
 
@@ -174,7 +176,7 @@ class DashboardBoard(models.Model):
             raise AccessError(self.env._(
                 'Building dashboards needs the Dashboards / Manager role. '
                 'Ask an administrator for it.'))
-        return super().create(vals_list)
+        return super().create([normalize_icon_vals(vals) for vals in vals_list])
 
     def write(self, vals):
         """A dashboard is changed by whoever may build on it."""
@@ -182,7 +184,7 @@ class DashboardBoard(models.Model):
             if not board._can_edit():
                 raise AccessError(self.env._(
                     'You cannot change "%(name)s".', name=board.name))
-        return super().write(vals)
+        return super().write(normalize_icon_vals(vals))
 
     @api.constrains('group_ids', 'owner_id')
     def _check_groups(self):
@@ -239,11 +241,14 @@ class DashboardBoard(models.Model):
         if not self._can_edit():
             raise UserError(self.env._('You cannot change a dashboard you do not own.'))
         icon = (icon or '').strip()
-        # Any FontAwesome 4 class is allowed - the picker offers a curated set,
-        # the field takes the rest - but only a class: this ends up in markup.
-        if not re.fullmatch(r'fa-[a-z0-9-]{1,40}', icon):
+        # Any icon the Odoo 20 fonts draw is allowed - the picker offers a
+        # curated set, the field takes the rest - but only an icon name: this
+        # ends up in markup. A 19.0 FontAwesome class is translated.
+        if re.fullmatch(r'fa-[a-z0-9-]{1,40}', icon):
+            icon = normalize_icon(icon)
+        if not is_icon(icon):
             raise UserError(self.env._(
-                'An icon is a FontAwesome class, like "fa-line-chart".'))
+                'An icon is the name of a Material Symbols icon, like "show_chart".'))
         self.write({'icon': icon})
         return {'icon': self.icon}
 
@@ -302,7 +307,7 @@ class DashboardBoard(models.Model):
             'id': self.id,
             'name': self.name,
             'description': self.description or '',
-            'icon': self.icon or 'fa-tachometer',
+            'icon': normalize_icon(self.icon) or BOARD_ICON,
             'color': self.color,
             'period': self.period,
             'allow_period': self.allow_period,
@@ -794,7 +799,7 @@ class DashboardBoard(models.Model):
         board = self.create({
             'name': name or self.env._('%(model)s Overview', model=records),
             'description': self.env._('Built from the %(model)s model.', model=records),
-            'icon': 'fa-tachometer',
+            'icon': BOARD_ICON,
             'period': 'this_month' if date else 'all',
         })
         cards = []
@@ -806,40 +811,40 @@ class DashboardBoard(models.Model):
             cards.append(values)
 
         add(name=self.env._('All %(model)s', model=records), kind='kpi', aggregate='count',
-            icon='fa-database', color='indigo', width=3)
+            icon='database', color='indigo', width=3)
         if date:
             add(name=self.env._('New %(model)s', model=records), kind='kpi', aggregate='count',
-                date_field_id=field_id(date), compare=True, icon='fa-plus-circle',
+                date_field_id=field_id(date), compare=True, icon='add_circle',
                 color='sky', width=3)
         if measure:
             add(name=self.env._('Total %(field)s', field=label(measure)), kind='kpi',
                 aggregate='sum', measure_field_id=field_id(measure),
                 date_field_id=field_id(date), compare=bool(date), show_count=True,
-                icon='fa-money', color='emerald', width=3, digits=2)
+                icon='payments', color='emerald', width=3, digits=2)
         if user:
             add(name=self.env._('My %(model)s', model=records), kind='kpi', aggregate='count',
                 only_mine=True, user_field_id=field_id(user), date_field_id=field_id(date),
-                icon='fa-user', color='violet', width=3)
+                icon='person', color='violet', width=3)
         if date:
             add(name=self.env._('Over Time'), kind='area', aggregate='count',
                 date_field_id=field_id(date), group_by_interval='month',
-                icon='fa-area-chart', color='sky', width=8 if split else 12)
+                icon='area_chart', color='sky', width=8 if split else 12)
         if split:
             add(name=self.env._('By %(field)s', field=label(split)), kind='donut',
                 aggregate='count', group_by_field_id=field_id(split), limit=6,
-                icon='fa-pie-chart', color='amber', width=4)
+                icon='pie_chart', color='amber', width=4)
         if user:
             add(name=self.env._('By %(field)s', field=label(user)), kind='hbar',
                 aggregate='count', group_by_field_id=field_id(user), limit=8,
-                date_field_id=field_id(date), icon='fa-bar-chart', color='orange', width=6)
+                date_field_id=field_id(date), icon=CARD_ICON, color='orange', width=6)
         elif second:
             add(name=self.env._('By %(field)s', field=label(second)), kind='hbar',
                 aggregate='count', group_by_field_id=field_id(second), limit=8,
-                icon='fa-bar-chart', color='orange', width=6)
+                icon=CARD_ICON, color='orange', width=6)
         add(name=self.env._('Top %(model)s', model=records), kind='list',
             aggregate='sum' if measure else 'count',
             measure_field_id=field_id(measure) if measure else False,
-            date_field_id=field_id(date), limit=8, icon='fa-list', color='slate',
+            date_field_id=field_id(date), limit=8, icon='format_list_bulleted', color='slate',
             width=6 if (user or second) else 12)
         self.env['dashboard.item'].create(cards)
         return board
@@ -887,7 +892,7 @@ class DashboardBoard(models.Model):
         attachment = self.env['ir.attachment'].create({
             'name': f"{stem or 'dashboard'}.json",
             'type': 'binary',
-            'datas': base64.b64encode(boards.export_boards().encode('utf-8')),
+            'raw': boards.export_boards().encode('utf-8'),
             'mimetype': 'application/json',
             'res_model': 'dashboard.board',
             'res_id': boards[:1].id,
@@ -931,7 +936,7 @@ class DashboardBoard(models.Model):
             for raw_tab in entry.get('tabs') or []:
                 tab = self.env['dashboard.tab'].create({
                     'board_id': board.id, 'name': raw_tab.get('name') or self.env._('Tab'),
-                    'icon': raw_tab.get('icon') or 'fa-folder-o',
+                    'icon': raw_tab.get('icon') or TAB_ICON,
                     'sequence': raw_tab.get('sequence') or 10})
                 tabs_by_name[tab.name] = tab.id
             for raw in entry.get('items') or []:

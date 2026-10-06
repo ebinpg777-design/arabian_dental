@@ -5,11 +5,11 @@
         <Dialog title="'Quick find'" size="'md'" footer="false" contentClass="'o_dbq_dialog'">
             <div class="o_dbq">
                 <div class="o_dbq_search">
-                    <i class="fa fa-search" role="img" aria-label="Search"/>
-                    <input type="text" t-custom-ref="input" class="o_dbq_input"
+                    <i class="oi" data-icon="search" role="img" aria-label="Search"/>
+                    <input type="text" t-ref="this.inputRef" class="o_dbq_input"
                            placeholder="Find a dashboard, a card or an action…"
                            t-att-value="this.state.query" t-on-input="this.onInput" t-on-keydown="this.onKeydown"/>
-                    <i t-if="this.state.searching" class="fa fa-circle-o-notch fa-spin" role="img" aria-label="Searching"/>
+                    <i t-if="this.state.searching" class="oi oi-spin" data-icon="progress_activity" role="img" aria-label="Searching"/>
                     <kbd>Esc</kbd>
                 </div>
                 <div class="o_dbq_list">
@@ -22,17 +22,17 @@
                              t-on-mouseenter="() => this.state.cursor = hit_index"
                              t-on-click="() => this.pick(hit)">
                             <t t-if="hit.type === 'board'">
-                                <i t-attf-class="fa #{hit.board.icon} o_dbq_icon" role="img" aria-label="Dashboard"/>
+                                <i class="oi o_dbq_icon" t-att-data-icon="hit.board.icon" role="img" aria-label="Dashboard"/>
                                 <span class="o_dbq_name" t-out="hit.board.name"/>
                                 <span class="o_dbq_kind">Dashboard</span>
                             </t>
                             <t t-elif="hit.type === 'action'">
-                                <i t-attf-class="fa #{hit.action.icon} o_dbq_icon" role="img" aria-label="Action"/>
+                                <i class="oi o_dbq_icon" t-att-data-icon="hit.action.icon" role="img" aria-label="Action"/>
                                 <span class="o_dbq_name" t-out="hit.action.label"/>
                                 <span class="o_dbq_kind">Action</span>
                             </t>
                             <t t-else="">
-                                <i t-attf-class="fa #{hit.card.icon} o_dbq_icon" role="img" aria-label="Card"/>
+                                <i class="oi o_dbq_icon" t-att-data-icon="hit.card.icon" role="img" aria-label="Card"/>
                                 <span class="o_dbq_name" t-out="hit.card.name"/>
                                 <span class="o_dbq_kind"><t t-out="hit.card.board_name"/> · <t t-out="hit.card.kind"/></span>
                             </t>

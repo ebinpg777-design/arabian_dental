@@ -1,19 +1,20 @@
-import { useLayoutEffect, useRef } from "@web/owl2/utils";
 import { NavBar } from "@web/webclient/navbar/navbar";
 import { useService, useBus } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
+import { onMounted, onPatched, signal } from "@odoo/owl";
 
 export class EnterpriseNavBar extends NavBar {
     static template = "zxs_entp_theme.EnterpriseNavBar";
+    navRef = signal.ref();
+    appIconRef = signal.ref();
     setup() {
         super.setup();
         this.hm = useService("home_menu");
         this.pwa = useService("pwa");
-        this.menuAppsRef = useRef("menuApps");
-        this.navRef = useRef("nav");
         this._busToggledCallback = () => this._updateMenuAppsIcon();
-        useBus(this.env.bus, "HOME-MENU:TOGGLED", this._busToggledCallback);
-        useLayoutEffect(() => this._updateMenuAppsIcon());
+        useBus(this.env.bus, "HOME-MENU:TOGGLED", this._busToggledCallback.bind(this));
+        onMounted(() => this._updateMenuAppsIcon());
+        onPatched(() => this._updateMenuAppsIcon());
     }
     get hasBackgroundAction() {
         return this.hm.hasBackgroundAction;
@@ -30,7 +31,7 @@ export class EnterpriseNavBar extends NavBar {
         }
     }
     _updateMenuAppsIcon() {
-        const menuAppsEl = this.menuAppsRef.el;
+        const menuAppsEl = this.menuApps();
         menuAppsEl.classList.toggle("o_hidden", !this.isInApp && !this.hasBackgroundAction);
         menuAppsEl.classList.toggle(
             "o_menu_toggle_back",
@@ -43,22 +44,22 @@ export class EnterpriseNavBar extends NavBar {
             menuAppsEl.ariaLabel = title;
         }
 
-        const menuBrand = this.navRef.el.querySelector(".o_menu_brand");
+        const menuBrand = this.navRef().querySelector(".o_menu_brand");
         if (menuBrand) {
             menuBrand.classList.toggle("o_hidden", !this.isInApp);
         }
 
-        const menuBrandIcon = this.navRef.el.querySelector(".o_menu_brand_icon");
+        const menuBrandIcon = this.navRef().querySelector(".o_menu_brand_icon");
         if (menuBrandIcon) {
             menuBrandIcon.classList.toggle("o_hidden", !this.isInApp);
         }
 
-        const appSubMenus = this.appSubMenus.el;
+        const appSubMenus = this.appSubMenus();
         if (appSubMenus) {
             appSubMenus.classList.toggle("o_hidden", !this.isInApp);
         }
 
-        const breadcrumb = this.navRef.el.querySelector(".o_breadcrumb");
+        const breadcrumb = this.navRef().querySelector(".o_breadcrumb");
         if (breadcrumb) {
             breadcrumb.classList.toggle("o_hidden", !this.isInApp);
         }

@@ -341,7 +341,7 @@ class TestPreviewAndWords(TestDashboardCommon):
             group_by_field_id=self._field('res.partner', 'country_id').id,
             date_field_id=self._field('res.partner', 'create_date').id, kind='bar')
         words = card.summary
-        self.assertIn('Sum of Geo Latitude of Contact', words)
+        self.assertIn('Sum of Latitude of Contact', words)
         self.assertIn('Is a Company', words)
         self.assertIn('split by Country', words)
         self.assertIn("board's period", words)
@@ -743,7 +743,7 @@ class TestPdf(TestDashboardCommon):
         attachment = self.env['ir.attachment'].browse(
             int(action['url'].split('/web/content/')[1].split('?')[0]))
         self.assertEqual(attachment.mimetype, 'application/pdf')
-        return attachment, attachment.raw
+        return attachment, attachment.raw.content
 
     def test_a_board_downloads_as_a_pdf(self):
         self._card(name='Count')
@@ -1730,7 +1730,7 @@ class TestSpreadsheet(TestDashboardCommon):
             int(action['url'].split('/web/content/')[1].split('?')[0]))
         self.assertEqual(attachment.mimetype,
                          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        return attachment, attachment.raw
+        return attachment, attachment.raw.content
 
     def test_a_board_downloads_as_a_spreadsheet(self):
         self._card(name='Count')
@@ -1927,20 +1927,56 @@ class TestBoardIcon(TestDashboardCommon):
     """The dashboard's icon, changed from the page that shows it."""
 
     def test_the_owner_changes_the_icon(self):
-        self.assertEqual(self.board.icon, 'fa-tachometer')
-        self.assertEqual(self.board.set_icon('fa-line-chart'), {'icon': 'fa-line-chart'})
-        self.assertEqual(self.board.icon, 'fa-line-chart')
+        self.assertEqual(self.board.icon, 'speed')
+        self.assertEqual(self.board.set_icon('show_chart'), {'icon': 'show_chart'})
+        self.assertEqual(self.board.icon, 'show_chart')
+        # A 19.0 FontAwesome class still works: it is translated.
+        self.assertEqual(self.board.set_icon('fa-line-chart'), {'icon': 'show_chart'})
 
     def test_only_a_class_is_accepted(self):
         for bad in ('', '   ', 'fa line-chart', '<script>', 'line-chart',
-                    'fa-x" onload="alert(1)'):
+                    'fa-x" onload="alert(1)', 'no_such_icon_name'):
             with self.assertRaises(UserError):
                 self.board.set_icon(bad)
-        self.assertEqual(self.board.icon, 'fa-tachometer')
+        self.assertEqual(self.board.icon, 'speed')
 
     def test_a_reader_cannot(self):
         # new_test_user, not a plain create: the field naming the user's groups
         # is `group_ids` on 19.0 and `groups_id` on 18.0.
         reader = new_test_user(self.env, login='icon_reader', groups='base.group_user')
         with self.assertRaises(UserError):
-            self.board.with_user(reader).set_icon('fa-bug')
+            self.board.with_user(reader).set_icon('bug_report')
+
+
+class TestIcons(TestDashboardCommon):
+    """Odoo 20 has no FontAwesome: every icon must be one its fonts draw."""
+
+    def test_every_translation_is_drawable(self):
+        from odoo.addons.web.icons import ICONS
+        from ..models.dashboard_icons import (
+            BOARD_ICON, CARD_ICON, FA_TO_ICON, FALLBACK_ICON, TAB_ICON)
+        missing = {fa: name for fa, name in FA_TO_ICON.items() if name not in ICONS}
+        self.assertFalse(missing)
+        for name in (BOARD_ICON, CARD_ICON, TAB_ICON, FALLBACK_ICON):
+            self.assertIn(name, ICONS)
+
+    def test_a_fontawesome_icon_is_translated_on_the_way_in(self):
+        card = self._card(icon='fa-truck')
+        self.assertEqual(card.icon, 'local_shipping')
+        card.icon = 'fa fa-fw fa-users'
+        self.assertEqual(card.icon, 'group')
+        card.icon = 'fa-no-such-thing'
+        self.assertEqual(card.icon, 'widgets')
+        card.icon = 'rocket_launch'
+        self.assertEqual(card.icon, 'rocket_launch')
+        tab = self.board.add_tab('Sales')
+        self.assertEqual(tab['icon'], 'folder')
+        self.board.write({'icon': 'fa-money'})
+        self.assertEqual(self.board.icon, 'payments')
+
+    def test_the_demo_and_generated_icons_are_drawable(self):
+        from odoo.addons.web.icons import ICONS
+        icons = set(self.env['dashboard.board'].search([]).mapped('icon'))
+        icons |= set(self.env['dashboard.item'].search([]).mapped('icon'))
+        icons |= set(self.env['dashboard.tab'].search([]).mapped('icon'))
+        self.assertFalse({icon for icon in icons if icon and icon not in ICONS})

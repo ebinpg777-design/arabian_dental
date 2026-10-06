@@ -1,11 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onMounted, proxy } from "@odoo/owl";
+import { Component, onMounted, proxy, signal, t, useProps } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { useDebounced } from "@web/core/utils/timing";
-import { useRef } from "@web/owl2/utils";
 
 /**
  * Quick find: type a few letters, get boards and cards, press Enter.
@@ -16,19 +15,19 @@ import { useRef } from "@web/owl2/utils";
 export class QuickFindDialog extends Component {
     static template = "ebshel_dashboard.QuickFindDialog";
     static components = { Dialog };
-    static props = {
-        boards: Array,
-        actions: { type: Array, optional: true },
-        onPick: Function,
-        close: Function,
-    };
+    props = useProps({
+        boards: t.array(),
+        actions: t.array().optional(),
+        onPick: t.function(),
+        close: t.function(),
+    });
+    inputRef = signal.ref();
 
     setup() {
         this.orm = useService("orm");
-        this.inputRef = useRef("input");
         this.state = proxy({ query: "", cards: [], cursor: 0, searching: false });
         this.searchCards = useDebounced(() => this.fetchCards(), 250);
-        onMounted(() => this.inputRef.el && this.inputRef.el.focus());
+        onMounted(() => this.inputRef() && this.inputRef().focus());
     }
 
     get boardHits() {

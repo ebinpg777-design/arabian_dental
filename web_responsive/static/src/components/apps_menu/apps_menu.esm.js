@@ -6,7 +6,7 @@
  * Copyright 2023 Taras Shabaranskyi
  * License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). */
 
-import { Component, onWillStart, proxy } from "@odoo/owl";
+import {Component, proxy, t, useProps} from "@odoo/owl";
 import {useBus, useService} from "@web/core/utils/hooks";
 import {AppMenuItem} from "@web_responsive/components/apps_menu_item/apps_menu_item.esm";
 import {AppsMenuSearchBar} from "@web_responsive/components/menu_searchbar/searchbar.esm";
@@ -27,39 +27,36 @@ patch(WebClient.prototype, {
         useBus(this.env.bus, "APPS_MENU:STATE_CHANGED", ({detail: state}) => {
             document.body.classList.toggle("o_apps_menu_opened", state);
         });
-        this.user = user;
-        onWillStart(async () => {
-            const is_redirect_home = await this.orm.searchRead(
-                "res.users",
-                [["id", "=", this.user.userId]],
-                ["is_redirect_home"]
-            );
-            user.updateContext({
-                is_redirect_to_home: is_redirect_home[0]?.is_redirect_home,
-            });
+        // The preference comes with the session (see ir.http): no request
+        // has to be made before the web client knows where to land
+        user.updateContext({
+            is_redirect_to_home: Boolean(session.apps_menu?.is_redirect_home),
         });
-        this.redirect = false;
     },
     _loadDefaultApp() {
         if (user.context.is_redirect_to_home) {
             this.env.bus.trigger("APPS_MENU:STATE_CHANGED", true);
         } else {
-            super._loadDefaultApp();
+            return super._loadDefaultApp();
         }
     },
 });
 
 export class AppsMenu extends Component {
+    static template = "web_responsive.AppsMenu";
+    props = useProps({
+        slots: t.object().optional(),
+    });
+
     setup() {
-        super.setup();
         this.state = proxy({open: false});
-        this.theme = session.apps_menu.theme || "milk";
+        this.theme = session.apps_menu?.theme || "milk";
         this.menuService = useService("menu");
         browser.localStorage.setItem("redirect_menuId", "");
         if (user.context.is_redirect_to_home) {
             this.router = router;
             const menuId = Number(this.router.current.menu_id || 0);
-            this.state = proxy({open: menuId === 0});
+            this.state.open = menuId === 0;
         }
         useBus(this.env.bus, "ACTION_MANAGER:UI-UPDATED", () => {
             this.setOpenState(false);
@@ -171,31 +168,12 @@ patch(NavBar.prototype, {
             this._openAppMenuSidebar();
         });
     },
-
-    openAppMenu() {
-        this.env.bus.trigger("APP_MENU:OPEN_APP_MENU");
-        this._closeAppMenuSidebar();
-    },
-});
-
-Object.assign(AppsMenu, {
-    template: "web_responsive.AppsMenu",
-    props: {
-        slots: {
-            type: Object,
-            optional: true,
-        },
-    },
 });
 
 Object.assign(NavBar.components, {AppsMenu, AppMenuItem, AppsMenuSearchBar});
 
 // Add this patch after the WebClient patch
 patch(BurgerMenu.prototype, {
-    setup() {
-        super.setup();
-    },
-
     _openAppMenuSidebarMobile() {
         this.env.bus.trigger("APP_MENU:TOGGLE_SIDEBAR");
     },

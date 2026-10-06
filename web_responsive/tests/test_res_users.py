@@ -7,9 +7,12 @@ from odoo.addons.base.tests.common import BaseCommon
 
 class TestResUsers(BaseCommon):
     def test_compute_redirect_home(self):
-        record = new_test_user(self.env, login="jeant@mail.com")
+        # BaseCommon runs as a plain user since Odoo 20: creating an action
+        # and editing another user take an administrator
+        env = self.env(su=True)
+        record = new_test_user(env, login="jeant@mail.com")
         self.assertFalse(record.is_redirect_home)
-        action = self.env["ir.actions.act_window"].create(
+        action = env["ir.actions.act_window"].create(
             {
                 "name": "Test Action",
                 "type": "ir.actions.act_window",

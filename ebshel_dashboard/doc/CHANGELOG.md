@@ -2,6 +2,23 @@
 
 All notable changes to *Dynamic Dashboards*.
 
+## 20.0.1.2.0
+
+Ported to Odoo 20 (Community and Enterprise); behaviour is the 19.0.1.2.0 one.
+
+* **Icons are Odoo 20's.** Odoo 20 ships no FontAwesome: every icon is now a
+  Material Symbols name (`bar_chart`, `local_shipping`) or an `oi_*` one. The
+  icon picker offers the same groups, searchable by meaning as before; a
+  FontAwesome class typed in, imported from a 19.0 export or stored by 19.0 is
+  translated on the way in (`models/dashboard_icons.py`, and the
+  `20.0.1.2.0/post-icons.py` migration for existing boards, cards and tabs).
+* Access rights and record rules are one `security/ir.access.csv`, with the
+  same ownership model: shared boards for everybody, personal ones for their
+  owner, editing for the Dashboards / Manager role.
+* The browser side runs on OWL 3. New browser tests mount the board with one
+  card of every kind, the card form with every widget, and the reader's and
+  the builder's controls.
+
 ## 19.0.1.2.0 (in progress)
 
 ### Added

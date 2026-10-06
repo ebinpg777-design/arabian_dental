@@ -8,7 +8,6 @@ public site, which is where the doctors are, is not. These are the public
 site's own, at the root scope, and the two do not collide: a page under
 ``/odoo`` is matched by core's narrower scope.
 """
-import base64
 import io
 import logging
 import math
@@ -24,6 +23,16 @@ ICON_SIZES = (192, 512)
 # A phone re-reads the manifest rarely and the icons almost never; a day is long
 # enough to be cheap and short enough that re-branding lands within a day.
 ICON_MAX_AGE = 86400
+
+
+def current_website(env):
+    """The site this request is for, as superuser - the same fallbacks Odoo 20's
+    own website code uses now that `get_current_website()` is gone."""
+    website = env.website or env['website'].browse(env.context.get('host_id'))
+    if not website.exists():
+        website = env.ref('base.default_website', raise_if_not_found=False) \
+            or env['website']
+    return website.sudo()
 
 
 def icon_entries(website):
@@ -52,15 +61,13 @@ class LabPwa(http.Controller):
     def _website(self):
         """The site being served, on routes that are and are not `website=True`.
 
-        `request.website` is set by the website router and simply does not
-        exist on a plain route - the icon route is not a page and should not
-        pay for language prefixes to be a picture - so it falls back to the
-        same lookup the router itself uses.
+        `request.env.website` is set by the website router and is empty on a
+        plain route - the icon route is not a page and should not pay for
+        language prefixes to be a picture - so it falls back to the site the
+        host name points at (`host_id`, which Odoo 20 puts on every request),
+        then to the default site.
         """
-        website = getattr(request, 'website', None)
-        if website:
-            return website.sudo()
-        return request.env['website'].sudo().get_current_website()
+        return current_website(request.env)
 
     # ------------------------------------------------------------- manifest
     @http.route('/manifest.webmanifest', type='http', auth='public',
@@ -154,7 +161,7 @@ class LabPwa(http.Controller):
         padded - which is also the safe zone a `maskable` icon needs before
         Android crops it to the launcher's shape.
         """
-        image = Image.open(io.BytesIO(base64.b64decode(source)))
+        image = Image.open(io.BytesIO(bytes(source)))
         image = image.convert('RGBA')
         plate = self._plate_colour(image)
         # Work from the ART, not the file. A source may already be a finished
@@ -337,7 +344,7 @@ class LabBackendManifest(WebManifest):
     def _get_webmanifest(self):
         manifest = super()._get_webmanifest()
         try:
-            website = request.env['website'].sudo().get_current_website()
+            website = current_website(request.env)
         except Exception:                                       # noqa: BLE001
             return manifest
         if not website or not website.pwa_enabled:

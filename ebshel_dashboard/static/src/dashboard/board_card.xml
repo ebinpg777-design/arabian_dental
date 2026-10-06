@@ -8,94 +8,94 @@
              t-att-title="this.item.tooltip or false">
 
             <div class="o_dbc_head">
-                <i t-attf-class="fa #{this.item.icon} o_dbc_icon" role="img" t-att-aria-label="this.item.name"/>
+                <i class="oi o_dbc_icon" t-att-data-icon="this.item.icon" role="img" t-att-aria-label="this.item.name"/>
                 <span class="o_dbc_title" t-out="this.item.name"/>
                 <span t-if="this.periodBadge" class="o_dbc_badge" t-out="this.periodBadge"/>
                 <span t-if="this.item.focused" class="o_dbc_badge o_dbc_badge_focus" title="Narrowed by the focus">
-                    <i class="fa fa-filter" role="img" aria-label="Focused"/>
+                    <i class="oi" data-icon="filter_alt" role="img" aria-label="Focused"/>
                 </span>
                 <span t-if="this.alert" t-attf-class="o_dbc_badge o_dbc_badge_{{ this.alert }}"
                       t-att-title="this.item.alert_message or 'Threshold crossed'">
-                    <i class="fa fa-exclamation-triangle" role="img" aria-label="Threshold"/>
+                    <i class="oi" data-icon="warning" role="img" aria-label="Threshold"/>
                 </span>
                 <span t-if="!this.isNumber and this.item.compare and this.deltaLabel" t-attf-class="o_dbc_badge o_dbc_delta_badge {{ this.deltaClass }}"
                       t-att-title="this.compareLabel">
-                    <i t-attf-class="fa {{ (this.item.delta or 0) &gt;= 0 ? 'fa-arrow-up' : 'fa-arrow-down' }}" role="img" aria-label="Change"/>
+                    <i class="oi" t-att-data-icon="(this.item.delta or 0) &gt;= 0 ? 'arrow_upward' : 'arrow_downward'" role="img" aria-label="Change"/>
                     <t t-out="this.deltaLabel"/>
                 </span>
                 <span class="o_dbc_spacer"/>
                 <t t-if="this.item.kind !== 'text' and !this.item.error">
                     <span class="o_dbc_info" t-att-title="this.infoTitle" tabindex="0">
-                        <i class="fa fa-info-circle" role="img" aria-label="What this card computes"/>
+                        <i class="oi" data-icon="info" role="img" aria-label="What this card computes"/>
                     </span>
                     <button t-if="this.isNumber and this.props.onPin"
                             t-attf-class="o_dbc_tool o_dbc_pin {{ this.props.pinned ? 'o_dbc_pin_on' : '' }}"
                             t-on-click="this.onPinClick"
                             t-att-title="this.props.pinned ? 'Unpin from the watchlist' : 'Pin to the watchlist'">
-                        <i class="fa fa-thumb-tack" role="img" aria-label="Pin"/>
+                        <i class="oi" data-icon="push_pin" role="img" aria-label="Pin"/>
                     </button>
                     <button class="o_dbc_tool" t-on-click="this.onRefreshClick"
                             t-if="this.props.onRefresh" title="Refresh this card">
-                        <i class="fa fa-refresh" role="img" aria-label="Refresh"/>
+                        <i class="oi" data-icon="refresh" role="img" aria-label="Refresh"/>
                     </button>
                     <button class="o_dbc_tool" t-on-click="this.onOpenClick"
                             title="Open the records">
-                        <i class="fa fa-external-link" role="img" aria-label="Open"/>
+                        <i class="oi" data-icon="open_in_new" role="img" aria-label="Open"/>
                     </button>
-                    <span class="o_dbc_menu_wrap" t-custom-ref="menu">
+                    <span class="o_dbc_menu_wrap" t-ref="this.menuRef">
                         <button class="o_dbc_tool" t-on-click="this.toggleMenu" title="More">
-                            <i class="fa fa-ellipsis-v" role="img" aria-label="More"/>
+                            <i class="oi" data-icon="more_vert" role="img" aria-label="More"/>
                         </button>
                         <div t-if="this.state.menuOpen" class="dropdown-menu show o_dbc_menu" role="menu">
                             <a t-if="this.isChart" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="this.toggleTable">
-                                <i t-attf-class="fa {{ this.state.showTable ? 'fa-bar-chart' : 'fa-table' }}"/>
+                                <i class="oi" t-att-data-icon="this.state.showTable ? 'bar_chart' : 'table'"/>
                                 <t t-if="this.state.showTable">Show as a chart</t>
                                 <t t-else="">Show as a table</t>
                             </a>
                             <a t-if="this.isChart and !this.state.showTable" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="this.exportImage">
-                                <i class="fa fa-picture-o"/> Download as image
+                                <i class="oi" data-icon="image"/> Download as image
                             </a>
                             <t t-if="this.props.canEdit">
                                 <a t-if="this.props.onEdit" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="this.onEditClick">
-                                    <i class="fa fa-pencil"/> Edit this card
+                                    <i class="oi" data-icon="edit"/> Edit this card
                                 </a>
                                 <a t-if="this.props.onRemove" href="#" class="dropdown-item text-danger" role="menuitem"
                                    t-on-click.prevent="() => this.props.onRemove(this.item)">
-                                    <i class="fa fa-trash-o"/> Remove this card
+                                    <i class="oi" data-icon="delete"/> Remove this card
                                 </a>
                                 <div class="dropdown-divider"/>
                             </t>
                             <a t-if="this.props.onPdf" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="this.exportPdf">
-                                <i class="fa fa-file-pdf-o"/> Download as PDF
+                                <i class="oi" data-icon="picture_as_pdf"/> Download as PDF
                             </a>
                             <a t-if="this.props.onXlsx" href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="this.exportXlsx">
-                                <i class="fa fa-file-excel-o"/> Download as a spreadsheet
+                                <i class="oi" data-icon="table_chart"/> Download as a spreadsheet
                             </a>
                             <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="this.exportCsv">
-                                <i class="fa fa-file-text-o"/> Download as CSV
+                                <i class="oi" data-icon="description"/> Download as CSV
                             </a>
                             <a href="#" class="dropdown-item" role="menuitem" t-on-click.prevent="this.exportJson">
-                                <i class="fa fa-code"/> Download as JSON
+                                <i class="oi" data-icon="code"/> Download as JSON
                             </a>
                         </div>
                     </span>
                 </t>
                 <t t-if="this.props.canEdit and !this.props.editable and this.props.onEdit">
                     <button class="o_dbc_tool" t-on-click="this.onEditClick" title="Edit this card">
-                        <i class="fa fa-pencil" role="img" aria-label="Edit"/>
+                        <i class="oi" data-icon="edit" role="img" aria-label="Edit"/>
                     </button>
                 </t>
                 <t t-if="this.props.editable">
                     <button t-if="this.props.onRemove" class="o_dbc_tool o_dbc_tool_danger"
                             t-on-click="() => this.props.onRemove(this.item)" title="Remove this card">
-                        <i class="fa fa-trash-o" role="img" aria-label="Remove"/>
+                        <i class="oi" data-icon="delete" role="img" aria-label="Remove"/>
                     </button>
                     <button class="o_dbc_tool" t-on-click="this.onEditClick"
                             title="Edit this card">
-                        <i class="fa fa-pencil" role="img" aria-label="Edit"/>
+                        <i class="oi" data-icon="edit" role="img" aria-label="Edit"/>
                     </button>
                     <span class="o_dbc_handle" title="Drag to move">
-                        <i class="fa fa-arrows" role="img" aria-label="Move"/>
+                        <i class="oi" data-icon="open_with" role="img" aria-label="Move"/>
                     </span>
                 </t>
             </div>
@@ -147,7 +147,7 @@
                         </div>
                         <div t-if="this.item.compare and this.deltaLabel" class="o_dbc_delta_row">
                             <span t-attf-class="o_dbc_pill {{ this.deltaClass }}">
-                                <i t-attf-class="fa {{ (this.item.delta or 0) &gt;= 0 ? 'fa-arrow-up' : 'fa-arrow-down' }}"
+                                <i class="oi" t-att-data-icon="(this.item.delta or 0) &gt;= 0 ? 'arrow_upward' : 'arrow_downward'"
                                    role="img" aria-label="Change"/>
                                 <span t-out="this.deltaLabel"/>
                             </span>
@@ -161,7 +161,7 @@
                         </div>
                         <div t-if="this.anomaly" t-attf-class="o_dbc_anomaly o_dbc_anomaly_{{ this.anomaly.above ? 'up' : 'down' }}"
                              t-att-title="this.anomaly.text">
-                            <i t-attf-class="fa {{ this.anomaly.above ? 'fa-arrow-up' : 'fa-arrow-down' }}" role="img" aria-label="Unusual"/>
+                            <i class="oi" t-att-data-icon="this.anomaly.above ? 'arrow_upward' : 'arrow_downward'" role="img" aria-label="Unusual"/>
                             <span>Unusual · <t t-out="this.anomaly.z"/>σ</span>
                         </div>
                         <div t-if="this.item.subvalues and this.item.subvalues.length" class="o_dbc_subs">
@@ -299,12 +299,12 @@
                     <t t-if="this.hasContent">
                         <!-- The box has the size; the canvas is sized by Chart.js to fit it. -->
                         <div class="o_dbc_chart_box">
-                            <canvas t-custom-ref="canvas" class="o_dbc_canvas"/>
+                            <canvas t-ref="this.canvasRef" class="o_dbc_canvas"/>
                         </div>
                     </t>
                     <t t-elif="!this.item.error">
                         <div class="o_dbc_empty">
-                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <i class="oi me-2" data-icon="inbox" role="img" aria-label="Empty"/>
                             <span t-out="this.emptyLabel"/>
                         </div>
                     </t>
@@ -317,7 +317,7 @@
                             <span class="o_dbc_fact_value" t-out="fact[1]"/>
                         </span>
                     </t>
-                    <i class="fa fa-angle-right ms-auto" role="img" aria-label="Open"/>
+                    <i class="oi ms-auto" data-icon="chevron_right" role="img" aria-label="Open"/>
                 </div>
             </t>
 
@@ -342,7 +342,7 @@
                         </svg>
                     </t>
                     <t t-elif="!this.item.error">
-                        <div class="o_dbc_empty"><i class="fa fa-inbox me-2" role="img" aria-label="Empty"/><span t-out="this.emptyLabel"/></div>
+                        <div class="o_dbc_empty"><i class="oi me-2" data-icon="inbox" role="img" aria-label="Empty"/><span t-out="this.emptyLabel"/></div>
                     </t>
                 </div>
             </t>
@@ -372,7 +372,7 @@
                         </svg>
                     </t>
                     <t t-elif="!this.item.error">
-                        <div class="o_dbc_empty"><i class="fa fa-inbox me-2" role="img" aria-label="Empty"/><span t-out="this.emptyLabel"/></div>
+                        <div class="o_dbc_empty"><i class="oi me-2" data-icon="inbox" role="img" aria-label="Empty"/><span t-out="this.emptyLabel"/></div>
                     </t>
                 </div>
             </t>
@@ -419,7 +419,7 @@
                     </t>
                     <t t-elif="!this.item.error">
                         <div class="o_dbc_empty">
-                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <i class="oi me-2" data-icon="inbox" role="img" aria-label="Empty"/>
                             <span t-out="this.emptyLabel"/>
                         </div>
                     </t>
@@ -449,7 +449,7 @@
                     </t>
                     <t t-elif="!this.item.error">
                         <div class="o_dbc_empty">
-                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <i class="oi me-2" data-icon="inbox" role="img" aria-label="Empty"/>
                             <span t-out="this.emptyLabel"/>
                         </div>
                     </t>
@@ -492,7 +492,7 @@
                     </t>
                     <t t-elif="!this.item.error">
                         <div class="o_dbc_empty">
-                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <i class="oi me-2" data-icon="inbox" role="img" aria-label="Empty"/>
                             <span t-out="this.emptyLabel"/>
                         </div>
                     </t>
@@ -560,14 +560,14 @@
                     </t>
                     <t t-elif="!this.item.error">
                         <div class="o_dbc_empty">
-                            <i class="fa fa-inbox me-2" role="img" aria-label="Empty"/>
+                            <i class="oi me-2" data-icon="inbox" role="img" aria-label="Empty"/>
                             <span t-out="this.emptyLabel"/>
                         </div>
                     </t>
                 </div>
                 <div class="o_dbc_foot" role="button" t-on-click="this.onCardClick">
                     <span t-out="this.formatValue(this.item.count or 0)"/> records
-                    <i class="fa fa-angle-right ms-1" role="img" aria-label="Open"/>
+                    <i class="oi ms-1" data-icon="chevron_right" role="img" aria-label="Open"/>
                 </div>
             </t>
 
@@ -578,7 +578,7 @@
 
             <t t-if="this.item.error">
                 <div class="o_dbc_empty o_dbc_empty_error">
-                    <i class="fa fa-exclamation-triangle me-2" role="img" aria-label="Error"/>
+                    <i class="oi me-2" data-icon="warning" role="img" aria-label="Error"/>
                     <span t-out="this.emptyLabel"/>
                 </div>
             </t>

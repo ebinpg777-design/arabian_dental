@@ -12,15 +12,16 @@ export function getWebIconData(menu) {
         return path.startsWith("/") ? path : "/" + path;
     }
     const iconData = menu.webIconData;
-    if (!menu.webIcon) {
+    // an app drawn with an icon font (webIcon "icon,color,background") has no image
+    if (!iconData) {
         return result;
+    }
+    if (iconData.startsWith("data:image") || iconData.startsWith("/")) {
+        return iconData;
     }
     const prefix = iconData.startsWith("P")
         ? "data:image/svg+xml;base64,"
         : "data:image/png;base64,";
-    if (iconData.startsWith("data:image")) {
-        return iconData;
-    }
     return prefix + iconData.replace(/\s/g, "");
 }
 

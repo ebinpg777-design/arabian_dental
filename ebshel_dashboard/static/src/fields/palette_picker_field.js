@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component } from "@odoo/owl";
+import { Component, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
@@ -14,7 +14,7 @@ import { CARD_COLORS, seriesColors } from "../core/board_colors";
  */
 export class PalettePickerField extends Component {
     static template = "ebshel_dashboard.PalettePickerField";
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     get options() {
         const description = this.props.record.fields[this.props.name];

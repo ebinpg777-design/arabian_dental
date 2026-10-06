@@ -115,7 +115,7 @@ class TestManifest(HttpCase):
         website = self.env['website'].search([], limit=1)
         buf = io.BytesIO()
         Image.new('RGB', (82, 63), '#123456').save(buf, format='PNG')
-        website.pwa_icon = base64.b64encode(buf.getvalue())
+        website.pwa_icon = base64.b64encode(buf.getvalue()).decode()
         response = self.url_open('/pwa/icon/192.png')
         self.assertEqual(
             Image.open(io.BytesIO(response.content)).size, (192, 192))
@@ -129,7 +129,7 @@ class TestManifest(HttpCase):
         website = self.env['website'].search([], limit=1)
         buf = io.BytesIO()
         Image.new('RGB', (512, 512), '#654321').save(buf, format='PNG')
-        website.pwa_icon = base64.b64encode(buf.getvalue())
+        website.pwa_icon = base64.b64encode(buf.getvalue()).decode()
         image = Image.open(io.BytesIO(
             self.url_open('/pwa/icon/192.png').content)).convert('RGB')
         self.assertEqual(image.size, (192, 192))
@@ -212,7 +212,7 @@ class TestPwaSettings(TransactionCase):
         buf = io.BytesIO()
         Image.new('RGB', (512, 512), '#714B67').save(buf, format='PNG')
         website = self.env['website'].search([], limit=1)
-        website.pwa_icon = base64.b64encode(buf.getvalue())
+        website.pwa_icon = base64.b64encode(buf.getvalue()).decode()
         website.invalidate_recordset(['pwa_icon_warning'])
         self.assertFalse(website.pwa_icon_warning)
         source, width = website._pwa_icon_source()
@@ -404,7 +404,7 @@ class TestIconsSurviveACdn(HttpCase):
         before = json.loads(self.url_open('/manifest.webmanifest').content)
         buf = io.BytesIO()
         Image.new('RGB', (512, 512), '#0055aa').save(buf, format='PNG')
-        website.pwa_icon = base64.b64encode(buf.getvalue())
+        website.pwa_icon = base64.b64encode(buf.getvalue()).decode()
         after = json.loads(self.url_open('/manifest.webmanifest').content)
         self.assertNotEqual({i['src'] for i in before['icons']},
                             {i['src'] for i in after['icons']})
