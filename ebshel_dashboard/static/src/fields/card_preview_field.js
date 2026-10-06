@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy } from "@odoo/owl";
 import { loadBundle } from "@web/core/assets";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
@@ -58,7 +58,7 @@ export class CardPreviewField extends Component {
     setup() {
         this.orm = useService("orm");
         this.keepLast = new KeepLast();
-        this.state = useState({ item: null, loading: true, period: "all", ready: false });
+        this.state = proxy({ item: null, loading: true, period: "all", ready: false });
         onWillStart(async () => {
             await loadBundle("web.chartjs_lib");
             this.state.ready = true;

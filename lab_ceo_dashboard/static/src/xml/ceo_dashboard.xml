@@ -9,48 +9,48 @@
         <!-- No brand block: the app's own name is already in the navbar above,
              and the strip's width is for the tiles. (client, 2026-09-28) -->
         <div class="o_ceo_strip">
-            <div t-if="state.loading" class="text-muted small">
+            <div t-if="this.state.loading" class="text-muted small">
                 <i class="fa fa-circle-o-notch fa-spin me-1" title="Loading"/> Loading…
             </div>
             <nav t-else="" class="o_ceo_tabs" aria-label="Management screens" role="tablist">
-                <button t-foreach="state.launchers" t-as="l" t-key="l.key" type="button"
+                <button t-foreach="this.state.launchers" t-as="l" t-key="l.key" type="button"
                         role="tab" class="o_ceo_tab"
-                        t-att-class="{ o_ceo_tab_on: l.key === state.active }"
-                        t-att-aria-selected="l.key === state.active ? 'true' : 'false'"
+                        t-att-class="{ o_ceo_tab_on: l.key === this.state.active }"
+                        t-att-aria-selected="l.key === this.state.active ? 'true' : 'false'"
                         t-att-title="l.hint"
                         t-on-click="() => this.select(l)">
                     <i t-att-class="'fa ' + l.icon + ' o_ceo_tab_icon'" aria-hidden="true"/>
-                    <span class="o_ceo_tab_name" t-esc="l.name"/>
+                    <span class="o_ceo_tab_name" t-out="l.name"/>
                     <!-- The badge says 25.9 Cr; the hover says every paisa. -->
-                    <span t-if="figure(l) !== ''" class="o_ceo_tab_fig"
-                          t-att-title="exact(l) + ' ' + l.unit">
-                        <t t-esc="figure(l)"/>
+                    <span t-if="this.figure(l) !== ''" class="o_ceo_tab_fig"
+                          t-att-title="this.exact(l) + ' ' + l.unit">
+                        <t t-out="this.figure(l)"/>
                     </span>
                 </button>
             </nav>
-            <button t-if="active" type="button" class="o_ceo_full"
+            <button t-if="this.active" type="button" class="o_ceo_full"
                     title="Open this screen on its own page"
-                    t-on-click="() => this.openFull(active)">
+                    t-on-click="() => this.openFull(this.active)">
                 <i class="fa fa-external-link me-1" aria-hidden="true"/> Full screen
             </button>
         </div>
 
         <!-- The chosen screen, mounted here. -->
         <div class="o_ceo_stage">
-            <t t-if="active" t-key="active.key">
-                <ErrorHandler onError="(error) => this.onEmbedError(active, error)">
-                    <t t-if="component(active)"
-                       t-component="component(active)" t-props="clientProps(active)"/>
-                    <View t-elif="active.kind === 'window'" t-props="viewProps(active)"/>
+            <t t-if="this.active" t-key="this.active.key">
+                <ErrorHandler onError="(error) => this.onEmbedError(this.active, error)">
+                    <t t-if="this.component(this.active)"
+                       t-component="this.component(this.active)" t-props="this.clientProps(this.active)"/>
+                    <View t-elif="this.active.kind === 'window'" t-props="this.viewProps(this.active)"/>
                     <div t-else="" class="o_ceo_stage_note">
                         <button type="button" class="btn btn-primary"
-                                t-on-click="() => this.openFull(active)">
-                            Open <t t-esc="active.name"/>
+                                t-on-click="() => this.openFull(this.active)">
+                            Open <t t-out="this.active.name"/>
                         </button>
                     </div>
                 </ErrorHandler>
             </t>
-            <div t-elif="!state.loading and !state.launchers.length" class="o_ceo_stage_note">
+            <div t-elif="!this.state.loading and !this.state.launchers.length" class="o_ceo_stage_note">
                 Nothing here is open to you yet — ask for the Management role.
             </div>
         </div>

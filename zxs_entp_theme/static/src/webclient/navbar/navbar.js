@@ -1,7 +1,7 @@
+import { useLayoutEffect, useRef } from "@web/owl2/utils";
 import { NavBar } from "@web/webclient/navbar/navbar";
 import { useService, useBus } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
-import { useEffect, useRef } from "@odoo/owl";
 
 export class EnterpriseNavBar extends NavBar {
     static template = "zxs_entp_theme.EnterpriseNavBar";
@@ -13,7 +13,7 @@ export class EnterpriseNavBar extends NavBar {
         this.navRef = useRef("nav");
         this._busToggledCallback = () => this._updateMenuAppsIcon();
         useBus(this.env.bus, "HOME-MENU:TOGGLED", this._busToggledCallback);
-        useEffect(() => this._updateMenuAppsIcon());
+        useLayoutEffect(() => this._updateMenuAppsIcon());
     }
     get hasBackgroundAction() {
         return this.hm.hasBackgroundAction;

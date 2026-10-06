@@ -5,8 +5,8 @@ import {
     onWillDestroy,
     onWillStart,
     onWillUpdateProps,
-    useRef,
-    useState,
+    proxy,
+    usePlugin,
 } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
@@ -16,16 +16,19 @@ import { Dropdown } from "@web/core/dropdown/dropdown";
 import { DropdownItem } from "@web/core/dropdown/dropdown_item";
 import { useHotkey } from "@web/core/hotkeys/hotkey_hook";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { usePopover } from "@web/core/popover/popover_hook";
 import { KeepLast } from "@web/core/utils/concurrency";
 import { useBus, useService } from "@web/core/utils/hooks";
 import { useSortable } from "@web/core/utils/sortable_owl";
 import { useDebounced } from "@web/core/utils/timing";
+import { useRef } from "@web/owl2/utils";
 import { FormViewDialog } from "@web/views/view_dialogs/form_view_dialog";
 import { FilterTile } from "../filter_tile/filter_tile";
 import { TileBreakdown } from "../tile_breakdown/tile_breakdown";
 import { TileGeneratorDialog } from "../tile_generator/tile_generator_dialog";
 import { TileImportDialog } from "../tile_io/tile_import_dialog";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 // Alt+1..9 reach the first nine tiles; past that the mouse is faster anyway.
 const MAX_SHORTCUTS = 9;
@@ -68,15 +71,15 @@ export class FilterTileBar extends Component {
     setup() {
         this.orm = useService("orm");
         this.dialog = useService("dialog");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         this.tileService = useService("filter_tiles");
         this.keepLast = new KeepLast();
         this.rootRef = useRef("root");
 
         // Which domains the browser has already refused, keyed by the text.
         this.domainCheck = {};
-        this.state = useState({
+        this.state = proxy({
             defs: [],
             values: {},
             total: 0,

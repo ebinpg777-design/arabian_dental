@@ -16,8 +16,8 @@
     <!-- The third door count on the hero strip, after cases and reworks
          collected: boxes handed to doctors today. (client, 2026-09-08) -->
     <xpath expr="//div[hasclass('o_fw_stats')]" position="inside">
-        <div class="o_fw_stat" t-if="state.data.summary.dispatched !== undefined">
-            <span class="o_fw_stat_v"><t t-esc="state.data.summary.dispatched"/></span>
+        <div class="o_fw_stat" t-if="this.state.data.summary.dispatched !== undefined">
+            <span class="o_fw_stat_v"><t t-out="this.state.data.summary.dispatched"/></span>
             <span class="o_fw_stat_l">dispatches delivered</span>
         </div>
     </xpath>
@@ -50,39 +50,39 @@
 
     <!-- What is in the bag, above the visits: it is the thing most easily forgotten. -->
     <xpath expr="//div[hasclass('o_fw_empty')]" position="before">
-        <div t-if="deliveries.length" class="o_fw_deliv">
+        <div t-if="this.deliveries.length" class="o_fw_deliv">
             <div class="o_fw_deliv_head">
                 <span>
                     <i class="fa fa-cube me-2" title="Deliveries"/>
                     In your bag
                 </span>
                 <span class="o_fw_deliv_counts">
-                    <span class="o_fw_chip"><t t-esc="deliverySummary.open"/> open</span>
-                    <span t-if="deliverySummary.late" class="o_fw_chip o_fw_chip_danger">
-                        <t t-esc="deliverySummary.late"/> late
+                    <span class="o_fw_chip"><t t-out="this.deliverySummary.open"/> open</span>
+                    <span t-if="this.deliverySummary.late" class="o_fw_chip o_fw_chip_danger">
+                        <t t-out="this.deliverySummary.late"/> late
                     </span>
                 </span>
             </div>
 
-            <div t-foreach="deliveries" t-as="d" t-key="d.id"
+            <div t-foreach="this.deliveries" t-as="d" t-key="d.id"
                  class="o_fw_card o_fw_card_deliv"
                  t-att-class="{ 'o_fw_card_deliv_late': d.delayed, 'o_fw_card_deliv_emg': d.emergency }">
                 <div class="o_fw_card_body" t-on-click="() => this.openDelivery(d)">
                     <div class="d-flex justify-content-between align-items-start">
-                        <strong class="o_fw_clinic"><t t-esc="d.clinic"/></strong>
+                        <strong class="o_fw_clinic"><t t-out="d.clinic"/></strong>
                         <span class="o_fw_chip"
                               t-att-class="d.out ? 'o_fw_chip_open' : ''"
-                              t-esc="d.state_label"/>
+                              t-out="d.state_label"/>
                     </div>
                     <div class="o_fw_meta">
-                        <t t-esc="d.name"/>
-                        <t t-if="d.patient"> · <t t-esc="d.patient"/></t>
-                        <t t-if="d.scheduled_label"> · due <t t-esc="d.scheduled_label"/></t>
-                        <t t-if="d.invoice"> · <strong t-esc="d.invoice"/></t>
+                        <t t-out="d.name"/>
+                        <t t-if="d.patient"> · <t t-out="d.patient"/></t>
+                        <t t-if="d.scheduled_label"> · due <t t-out="d.scheduled_label"/></t>
+                        <t t-if="d.invoice"> · <strong t-out="d.invoice"/></t>
                     </div>
                     <div t-if="d.is_courier" class="o_fw_meta">
                         <i class="fa fa-cube me-1" title="Courier"/>
-                        <t t-esc="d.courier"/> <t t-esc="d.awb"/>
+                        <t t-out="d.courier"/> <t t-out="d.awb"/>
                     </div>
                     <div t-if="d.courier_stale" class="o_fw_warn">
                         <i class="fa fa-exclamation-triangle me-1" title="Not moving"/>
@@ -95,7 +95,7 @@
                     </div>
                     <div t-if="d.delayed" class="o_fw_warn">
                         <i class="fa fa-clock-o me-1" title="Late"/>
-                        <t t-esc="d.delay_hours"/> h past the promised time
+                        <t t-out="d.delay_hours"/> h past the promised time
                     </div>
 
                     <!-- Same reasoning as the visit card: a WebView-wrapped field app
@@ -103,7 +103,7 @@
                          as text, not only reachable through the button.
                          (client, 2026-08-29) -->
                     <div t-if="d.map_address and !d.tracking_url"
-                         class="o_fw_meta o_fw_addr" t-esc="d.map_address"/>
+                         class="o_fw_meta o_fw_addr" t-out="d.map_address"/>
 
                     <div t-if="d.map_url or d.call or d.tracking_url" class="o_fw_quick"
                          t-on-click.stop="() => {}">
@@ -129,11 +129,11 @@
 
                 <!-- One button, same rule as the visit card: the state decides what it
                      does, so there is never a choice to make. -->
-                <button class="o_fw_action" t-att-disabled="state.busy === 'd' + d.id"
+                <button class="o_fw_action" t-att-disabled="this.state.busy === 'd' + d.id"
                         t-on-click="() => this.onDeliveryPrimary(d)">
                     <i t-att-class="'fa ' + (d.out ? 'fa-check' : 'fa-motorcycle')"
                        t-att-title="!d.out ? 'Set off' : (d.direction === 'in' ? 'Received at lab' : 'Delivered')"/>
-                    <span class="ms-2"><t t-esc="!d.out ? 'Set off' : (d.direction === 'in' ? 'Received' : 'Delivered')"/></span>
+                    <span class="ms-2"><t t-out="!d.out ? 'Set off' : (d.direction === 'in' ? 'Received' : 'Delivered')"/></span>
                 </button>
             </div>
         </div>
@@ -151,11 +151,11 @@
         the delivery cards added above ALSO carry that class and sit earlier in the
         template, so a class-only xpath lands in the wrong loop and `v` is undefined.
     -->
-    <xpath expr="//div[@t-foreach='state.data.visits']//div[hasclass('o_fw_meta')]"
+    <xpath expr="//div[@t-foreach='this.state.data.visits']//div[hasclass('o_fw_meta')]"
            position="after">
         <div t-if="v.deliveries_pending" class="o_fw_result o_fw_deliv_hint">
             <i class="fa fa-cube me-1" title="To hand over"/>
-            <t t-esc="v.deliveries_pending"/> to hand over here
+            <t t-out="v.deliveries_pending"/> to hand over here
         </div>
         <div t-if="v.state !== 'done'" class="o_fw_quick"
              t-on-click.stop="() => {}">

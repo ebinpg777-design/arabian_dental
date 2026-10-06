@@ -1,10 +1,12 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState, onMounted, onWillUnmount } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { money } from "../common/utils";
 import { splitRows, guessMapping, buildRows } from "./parse";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Bank reconciliation in three tabs:
@@ -20,10 +22,10 @@ export class BankRec extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         const params = (this.props.action && this.props.action.params) || {};
-        this.state = useState({
+        this.state = proxy({
             overview: null, journalId: params.journal_id || null, tab: params.tab || "match",
             // match
             lines: null, lineState: "open", search: "", selectedId: null, detail: null, parts: [], partnerId: null,

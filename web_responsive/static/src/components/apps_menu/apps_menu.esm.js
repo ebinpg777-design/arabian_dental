@@ -6,7 +6,7 @@
  * Copyright 2023 Taras Shabaranskyi
  * License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). */
 
-import {Component, onWillStart, useState} from "@odoo/owl";
+import { Component, onWillStart, proxy } from "@odoo/owl";
 import {useBus, useService} from "@web/core/utils/hooks";
 import {AppMenuItem} from "@web_responsive/components/apps_menu_item/apps_menu_item.esm";
 import {AppsMenuSearchBar} from "@web_responsive/components/menu_searchbar/searchbar.esm";
@@ -52,14 +52,14 @@ patch(WebClient.prototype, {
 export class AppsMenu extends Component {
     setup() {
         super.setup();
-        this.state = useState({open: false});
+        this.state = proxy({open: false});
         this.theme = session.apps_menu.theme || "milk";
         this.menuService = useService("menu");
         browser.localStorage.setItem("redirect_menuId", "");
         if (user.context.is_redirect_to_home) {
             this.router = router;
             const menuId = Number(this.router.current.menu_id || 0);
-            this.state = useState({open: menuId === 0});
+            this.state = proxy({open: menuId === 0});
         }
         useBus(this.env.bus, "ACTION_MANAGER:UI-UPDATED", () => {
             this.setOpenState(false);

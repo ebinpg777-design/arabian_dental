@@ -2,9 +2,11 @@
 
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { Component, onWillStart, useEffect, useRef, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { DateTimeInput } from "@web/core/datetime/datetime_input";
 import { deserializeDate, serializeDate } from "@web/core/l10n/dates";
+import { useLayoutEffect, useRef } from "@web/owl2/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Collections: what was invoiced against what has actually come in.
@@ -31,13 +33,13 @@ export class CollectionDashboard extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
+        this.action = usePlugin(ActionManagerPlugin);
         this.loadToken = 0;
         this.cancelTarget = false;
         this.targetInput = useRef("targetInput");
         // A freshly inserted <input> does not honour the autofocus attribute -
         // browsers apply that only on page load - so focus it when it appears.
-        useEffect(
+        useLayoutEffect(
             (el) => {
                 if (el) {
                     el.focus();
@@ -46,7 +48,7 @@ export class CollectionDashboard extends Component {
             },
             () => [this.targetInput.el]
         );
-        this.state = useState({
+        this.state = proxy({
             data: null,
             loading: true,
             tab: "route",

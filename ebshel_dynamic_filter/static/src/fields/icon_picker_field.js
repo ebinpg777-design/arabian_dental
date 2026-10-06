@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { Dropdown } from "@web/core/dropdown/dropdown";
 import { useDropdownState } from "@web/core/dropdown/dropdown_hooks";
 import { _t } from "@web/core/l10n/translation";
@@ -51,7 +51,7 @@ export class FaIconPickerField extends Component {
     static props = { ...standardFieldProps };
 
     setup() {
-        this.state = useState({ query: "" });
+        this.state = proxy({ query: "" });
         this.dropdown = useDropdownState();
     }
 

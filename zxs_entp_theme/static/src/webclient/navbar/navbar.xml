@@ -6,7 +6,7 @@
         <attribute name="t-ref">nav</attribute>
     </xpath>
     <xpath expr="//t[@t-call='web.NavBar.AppsMenu']" position="replace">
-        <a t-if="!isScopedApp" href="/odoo" class="o_menu_toggle border-0" t-att-class="{'hasImage': currentApp?.webIconData}" accesskey="h" t-ref="menuApps" t-on-click.prevent="() => { env.isSmall ? this._openAppMenuSidebar() : this.hm.toggle() }">
+        <a t-if="!isScopedApp" href="/odoo" class="o_menu_toggle border-0" t-att-class="{'hasImage': currentApp?.webIconData}" accesskey="h" t-custom-ref="menuApps" t-on-click.prevent="() => { env.isSmall ? this._openAppMenuSidebar() : this.hm.toggle() }">
             <t t-if="env.isSmall and !hm.hasHomeMenu">
                 <t t-call="web.NavBar.AppsMenu.Sidebar"/>
             </t>
@@ -22,18 +22,18 @@
                         t-att-src="currentApp.webIconData"
                         class="o_menu_brand_icon d-inline position-absolute start-0 h-100 ps-1 ms-2"
                         t-att-alt="currentApp.name"
-                        t-ref="appIcon"/>
+                        t-custom-ref="appIcon"/>
                     <span t-esc="currentApp.name" class="o_menu_brand d-flex ms-3 pe-0"/>
                 </t>
             </t>
         </a>
-        <a t-else="" t-att-href="pwa.startUrl" class="o_menu_toggle" t-ref="menuApps">
+        <a t-else="" t-att-href="pwa.startUrl" class="o_menu_toggle" t-custom-ref="menuApps">
             <img
                 t-if="currentApp &amp;&amp; currentApp.webIconData"
                 t-att-src="currentApp.webIconData"
                 class="o_menu_brand_icon d-none d-lg-inline position-absolute start-0 h-100 ps-1 ms-2"
                 t-att-alt="currentApp.name"
-                t-ref="appIcon"/>
+                t-custom-ref="appIcon"/>
 
             <span
                 t-if="currentApp"

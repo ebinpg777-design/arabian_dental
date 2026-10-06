@@ -7,10 +7,11 @@
  * board that asks the server once per department is a board that takes four
  * seconds to open and is therefore never opened.
  */
-import {Component, onWillStart, useState} from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import {registry} from "@web/core/registry";
 import {useService} from "@web/core/utils/hooks";
 import {formatMonetary} from "@web/views/fields/formatters";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const PERIODS = [
     {key: "month", label: "This month"},
@@ -33,8 +34,8 @@ export class CostCentreBoard extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.state = useState({
+        this.action = usePlugin(ActionManagerPlugin);
+        this.state = proxy({
             loading: true,
             period: "month",
             kind: "",          // "" = every kind

@@ -1,11 +1,13 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { session } from "@web/session";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
 import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * A header button that captures the browser's location before calling its method.
@@ -35,14 +37,14 @@ export class FwGeoButton extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         // While the browser looks for a position - which includes the time Chrome's
         // "Allow location?" question is on screen - the button is off. Every extra tap
         // used to queue another request, and the moment Allow was pressed they all
         // reached the server together: one opened the visit, the next was told "This
         // visit is not waiting to be started". (client, 2026-09-29)
-        this.state = useState({ busy: false });
+        this.state = proxy({ busy: false });
     }
 
     get label() {

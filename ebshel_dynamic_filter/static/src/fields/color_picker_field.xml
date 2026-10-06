@@ -2,14 +2,14 @@
 <templates xml:space="preserve">
 
     <t t-name="ebshel_dynamic_filter.TileColorPickerField">
-        <div class="o_dft_swatches" t-att-class="{ o_dft_swatches_readonly: props.readonly }">
-            <button class="o_dft_swatch" t-att-class="{ o_dft_swatch_current: entry.key === current }" t-foreach="palette"
+        <div class="o_dft_swatches" t-att-class="{ o_dft_swatches_readonly: this.props.readonly }">
+            <button class="o_dft_swatch" t-att-class="{ o_dft_swatch_current: entry.key === this.current }" t-foreach="this.palette"
                     t-as="entry"
                     t-key="entry.key"
                     t-attf-style="--dft-color: {{ entry.hex }};"
                     t-att-title="entry.label"
                     t-att-aria-label="entry.label"
-                    t-att-disabled="props.readonly"
+                    t-att-disabled="this.props.readonly"
                     t-on-click="() => this.select(entry.key)">
                 <i class="fa fa-check"/>
             </button>

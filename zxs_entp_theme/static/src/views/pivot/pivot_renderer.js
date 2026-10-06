@@ -1,14 +1,14 @@
 import { patch } from "@web/core/utils/patch";
+import { useLayoutEffect, useRef } from "@web/owl2/utils";
 import { PivotRenderer } from "@web/views/pivot/pivot_renderer";
 
-import { useEffect, useRef } from "@odoo/owl";
 
 patch(PivotRenderer.prototype, {
     setup() {
         super.setup();
         this.root = useRef("root");
         if (this.env.isSmall) {
-            useEffect(() => {
+            useLayoutEffect(() => {
                 if (this.root.el) {
                     const tooltipElems = this.root.el.querySelectorAll("*[data-tooltip]");
                     for (const el of tooltipElems) {

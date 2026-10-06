@@ -9,13 +9,13 @@
             <div class="o_fw_hero_top">
                 <div>
                     <div class="o_fw_hero_eyebrow">
-                        <t t-if="state.data">
-                            <t t-esc="state.data.greeting"/><t t-if="state.data.user_name">, <t t-esc="state.data.user_name"/></t>
+                        <t t-if="this.state.data">
+                            <t t-esc="this.state.data.greeting"/><t t-if="this.state.data.user_name">, <t t-esc="this.state.data.user_name"/></t>
                         </t>
                         <t t-else="">My Day</t>
                     </div>
                     <h2 class="o_fw_hero_date">
-                        <t t-esc="state.data and (state.data.date_label or state.data.date)"/>
+                        <t t-esc="this.state.data and (this.state.data.date_label or this.state.data.date)"/>
                     </h2>
                     <!-- The day stepper and the month's door count on ONE row:
                          two stacked control rows ate a third of a phone's
@@ -26,70 +26,70 @@
                              phone died on can still be written up. Never past today.
                              (client, 2026-08-25) -->
                         <div class="o_fw_daynav"
-                             t-if="state.data and (state.data.backdate_days or state.data.any_day)">
+                             t-if="this.state.data and (this.state.data.backdate_days or this.state.data.any_day)">
                             <button class="o_fw_daynav_btn" title="Previous day"
-                                    t-att-disabled="state.data.day &lt;= state.data.earliest"
+                                    t-att-disabled="this.state.data.day &lt;= this.state.data.earliest"
                                     t-on-click="() => this.shiftDay(-1)">
                                 <i class="fa fa-chevron-left"/>
                             </button>
-                            <button class="o_fw_daynav_today" t-if="!state.data.is_today"
+                            <button class="o_fw_daynav_today" t-if="!this.state.data.is_today"
                                     t-on-click="() => this.backToToday()">Today</button>
                             <button class="o_fw_daynav_btn" title="Next day"
-                                    t-att-disabled="state.data.is_today"
+                                    t-att-disabled="this.state.data.is_today"
                                     t-on-click="() => this.shiftDay(1)">
                                 <i class="fa fa-chevron-right"/>
                             </button>
                         </div>
                         <!-- Doors opened this month. An executive is judged on the work they
                              bring back AND the clinics they open. (client, 2026-08-27) -->
-                        <div class="o_fw_newclinic_line" t-if="state.data"
+                        <div class="o_fw_newclinic_line" t-if="this.state.data"
                              t-on-click="() => this.openNewClinics()">
                             <i class="fa fa-hospital-o me-1" title="New clinics"/>
-                            <b t-esc="state.data.new_clinics"/> new clinic(s) this month
+                            <b t-esc="this.state.data.new_clinics"/> new clinic(s) this month
                             <i class="fa fa-chevron-right ms-1"/>
                         </div>
                     </div>
                 </div>
-                <div t-if="state.data and state.data.target" class="o_fw_ring_wrap"
+                <div t-if="this.state.data and this.state.data.target" class="o_fw_ring_wrap"
                      t-on-click="() => this.openTarget()">
                     <!-- A ring, not a bar: it reads as "how far round the month am I"
                          at a glance and takes no horizontal space on a phone. -->
                     <div class="o_fw_ring"
-                         t-attf-style="--fw-pct: {{ Math.min(state.data.target.progress, 100) }}">
+                         t-attf-style="--fw-pct: {{ Math.min(this.state.data.target.progress, 100) }}">
                         <span class="o_fw_ring_label">
-                            <t t-esc="Math.round(state.data.target.progress)"/>%
+                            <t t-esc="Math.round(this.state.data.target.progress)"/>%
                         </span>
                     </div>
                     <div class="o_fw_ring_caption">of target</div>
                 </div>
             </div>
 
-            <div t-if="!state.loading" class="o_fw_stats">
+            <div t-if="!this.state.loading" class="o_fw_stats">
                 <div class="o_fw_stat">
                     <span class="o_fw_stat_v">
-                        <t t-esc="state.data.summary.done"/>/<t t-esc="state.data.summary.planned"/>
+                        <t t-esc="this.state.data.summary.done"/>/<t t-esc="this.state.data.summary.planned"/>
                     </span>
                     <span class="o_fw_stat_l">visits</span>
                 </div>
                 <div class="o_fw_stat">
-                    <span class="o_fw_stat_v"><t t-esc="state.data.summary.cases"/></span>
+                    <span class="o_fw_stat_v"><t t-esc="this.state.data.summary.cases"/></span>
                     <!-- "registered", now that a hand count sits on the next row:
                          this one is the slips that became orders at check-out. -->
                     <span class="o_fw_stat_l">cases registered</span>
                 </div>
                 <div class="o_fw_stat">
-                    <span t-att-class="statCls(money(state.data.summary.value))"><t t-esc="money(state.data.summary.value)"/></span>
+                    <span t-att-class="this.statCls(this.money(this.state.data.summary.value))"><t t-esc="this.money(this.state.data.summary.value)"/></span>
                     <span class="o_fw_stat_l">case value</span>
                 </div>
                 <div class="o_fw_stat">
-                    <span t-att-class="statCls(money(state.data.summary.collected))"><t t-esc="money(state.data.summary.collected)"/></span>
+                    <span t-att-class="this.statCls(this.money(this.state.data.summary.collected))"><t t-esc="this.money(this.state.data.summary.collected)"/></span>
                     <span class="o_fw_stat_l">collected</span>
                 </div>
                 <!-- The lab's money in this person's hands: taken as cash, not yet
                      counted back by the office, from any day. The same number the
                      card below and the Ops Desk show. (client, 2026-09-18) -->
                 <div class="o_fw_stat">
-                    <span t-att-class="statCls(money(state.data.summary.cash_in_hand))"><t t-esc="money(state.data.summary.cash_in_hand)"/></span>
+                    <span t-att-class="this.statCls(this.money(this.state.data.summary.cash_in_hand))"><t t-esc="this.money(this.state.data.summary.cash_in_hand)"/></span>
                     <span class="o_fw_stat_l">cash with you</span>
                 </div>
                 <!-- Second row, on purpose: what the executive carried in and out
@@ -98,17 +98,17 @@
                      lab_delivery appends the dispatches delivered after them.
                      (client, 2026-09-08) -->
                 <div class="o_fw_stat">
-                    <span class="o_fw_stat_v"><t t-esc="state.data.summary.cases_collected"/></span>
+                    <span class="o_fw_stat_v"><t t-esc="this.state.data.summary.cases_collected"/></span>
                     <span class="o_fw_stat_l">cases collected</span>
                 </div>
                 <div class="o_fw_stat">
-                    <span class="o_fw_stat_v"><t t-esc="state.data.summary.reworks_collected"/></span>
+                    <span class="o_fw_stat_v"><t t-esc="this.state.data.summary.reworks_collected"/></span>
                     <span class="o_fw_stat_l">reworks collected</span>
                 </div>
             </div>
         </div>
 
-        <div t-if="state.loading" class="text-center text-muted py-5">
+        <div t-if="this.state.loading" class="text-center text-muted py-5">
             <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
         </div>
 
@@ -118,27 +118,27 @@
                 started, so it is the first thing on the screen and it is the only card
                 that changes colour when it needs attention.
             -->
-            <div class="o_fw_clock" t-att-class="onDuty ? 'o_fw_clock_on' : 'o_fw_clock_off'">
+            <div class="o_fw_clock" t-att-class="this.onDuty ? 'o_fw_clock_on' : 'o_fw_clock_off'">
                 <div class="o_fw_clock_body">
                     <div class="o_fw_clock_state">
-                        <span class="o_fw_pulse" t-if="onDuty"/>
-                        <t t-if="attendance.state === 'no_employee'">Not set up for attendance</t>
-                        <t t-elif="onDuty">On duty</t>
+                        <span class="o_fw_pulse" t-if="this.onDuty"/>
+                        <t t-if="this.attendance.state === 'no_employee'">Not set up for attendance</t>
+                        <t t-elif="this.onDuty">On duty</t>
                         <t t-else="">Not started yet</t>
                     </div>
                     <div class="o_fw_clock_sub">
-                        <t t-if="attendance.state === 'no_employee'">
+                        <t t-if="this.attendance.state === 'no_employee'">
                             Ask HR to link your user to an employee record.
                         </t>
-                        <t t-elif="onDuty">
-                            Since <t t-esc="attendance.since"/> · <t t-esc="hoursToday"/> today
-                            <span t-if="tracking" class="o_fw_tracking"
+                        <t t-elif="this.onDuty">
+                            Since <t t-esc="this.attendance.since"/> · <t t-esc="this.hoursToday"/> today
+                            <span t-if="this.tracking" class="o_fw_tracking"
                                   title="Your route is recorded while your day is running, and stops when you end it.">
                                 <i class="fa fa-location-arrow"/> route recording
                             </span>
                         </t>
-                        <t t-elif="attendance.checked_out_at">
-                            Ended <t t-esc="attendance.checked_out_at"/> · <t t-esc="hoursToday"/> today
+                        <t t-elif="this.attendance.checked_out_at">
+                            Ended <t t-esc="this.attendance.checked_out_at"/> · <t t-esc="this.hoursToday"/> today
                         </t>
                         <t t-else="">
                             Mark your attendance to begin. Visits and travel stay locked
@@ -147,11 +147,11 @@
                     </div>
                 </div>
                 <button class="o_fw_clock_btn"
-                        t-att-disabled="state.busy === 'att' or attendance.state === 'no_employee'"
+                        t-att-disabled="this.state.busy === 'att' or this.attendance.state === 'no_employee'"
                         t-on-click="() => this.toggleAttendance()">
-                    <i t-att-class="'fa ' + (onDuty ? 'fa-sign-out' : 'fa-play')"
-                       t-att-title="clockLabel"/>
-                    <span class="ms-2"><t t-esc="clockLabel"/></span>
+                    <i t-att-class="'fa ' + (this.onDuty ? 'fa-sign-out' : 'fa-play')"
+                       t-att-title="this.clockLabel"/>
+                    <span class="ms-2"><t t-esc="this.clockLabel"/></span>
                 </button>
             </div>
 
@@ -173,7 +173,7 @@
                     <div class="o_fw_sec_grid">
                         <button class="o_fw_qa o_fw_qa_trip" t-on-click="() => this.openTrip()">
                             <i class="fa fa-motorcycle" title="Travel"/>
-                            <span t-if="state.data.trip">Travel</span>
+                            <span t-if="this.state.data.trip">Travel</span>
                             <span t-else="">Start the day</span>
                         </button>
                         <button class="o_fw_qa" t-on-click="() => this.openQuickEntry()">
@@ -186,7 +186,7 @@
                         </button>
                         <!-- Who else is on this road. (client, 2026-09-02) -->
                         <button class="o_fw_qa o_fw_qa_clinics"
-                                t-att-class="{ o_fw_qa_on: state.clinics.open }"
+                                t-att-class="{ o_fw_qa_on: this.state.clinics.open }"
                                 t-on-click="() => this.toggleClinics()">
                             <i class="fa fa-hospital-o" title="Doctors on my round"/>
                             <span>Doctors / Clinics</span>
@@ -241,43 +241,43 @@
                  what it owes, what is still open - and a star that is theirs
                  alone. No form view: res.partner opens on accounting fields an
                  executive cannot read. (client, 2026-09-02) -->
-            <div class="o_fw_clinics" t-if="state.clinics.open" t-ref="clinicsPanel">
+            <div class="o_fw_clinics" t-if="this.state.clinics.open" t-custom-ref="clinicsPanel">
                 <div class="o_fw_track_bar">
                     <i class="fa fa-hospital-o"/>
                     <input type="search" class="o_fw_track_input"
                            placeholder="Doctor, town or phone"
-                           t-att-value="state.clinics.query"
+                           t-att-value="this.state.clinics.query"
                            t-on-input="(ev) => this.onClinicInput(ev)"/>
                     <button class="o_fw_clinic_fav_toggle"
-                            t-att-class="{ o_fw_clinic_fav_on: state.clinics.favouritesOnly }"
-                            t-att-title="state.clinics.favouritesOnly ? 'Showing your favourites only' : 'Show only your favourites'"
+                            t-att-class="{ o_fw_clinic_fav_on: this.state.clinics.favouritesOnly }"
+                            t-att-title="this.state.clinics.favouritesOnly ? 'Showing your favourites only' : 'Show only your favourites'"
                             t-on-click="() => this.toggleFavouritesOnly()">
                         <i class="fa fa-star"/>
-                        <t t-esc="state.clinics.favourites"/>
+                        <t t-esc="this.state.clinics.favourites"/>
                     </button>
                     <button class="o_fw_track_close" t-on-click="() => this.toggleClinics()">
                         <i class="fa fa-times" title="Close"/>
                     </button>
                 </div>
 
-                <div t-if="state.clinics.busy" class="o_fw_track_busy">
+                <div t-if="this.state.clinics.busy" class="o_fw_track_busy">
                     <i class="fa fa-circle-o-notch fa-spin" title="Loading"/>
                 </div>
 
-                <div t-if="state.clinics.noRoute" class="o_fw_track_none">
+                <div t-if="this.state.clinics.noRoute" class="o_fw_track_none">
                     You are not on a sales route yet, so there are no clinics to show.
                     Ask your manager to put you on one.
                 </div>
-                <div t-elif="!state.clinics.busy and !state.clinics.rows.length"
+                <div t-elif="!this.state.clinics.busy and !this.state.clinics.rows.length"
                      class="o_fw_track_none">
-                    <t t-if="state.clinics.favouritesOnly">
+                    <t t-if="this.state.clinics.favouritesOnly">
                         You have not starred any clinic yet. Tap a star to keep one here.
                     </t>
                     <t t-else="">No clinic on your routes matches that.</t>
                 </div>
 
                 <div class="o_fw_clinic_grid">
-                    <div t-foreach="state.clinics.rows" t-as="c" t-key="c.id"
+                    <div t-foreach="this.state.clinics.rows" t-as="c" t-key="c.id"
                          class="o_fw_clinic_card"
                          t-att-class="{ o_fw_clinic_fav: c.favourite }">
                         <div class="o_fw_clinic_top">
@@ -303,7 +303,7 @@
                             <div class="o_fw_clinic_fact">
                                 <span class="o_fw_clinic_fact_v"
                                       t-att-class="c.open_receivable ? 'o_fw_clinic_owes' : ''">
-                                    <t t-if="c.open_receivable"><t t-esc="money(c.open_receivable)"/></t>
+                                    <t t-if="c.open_receivable"><t t-esc="this.money(c.open_receivable)"/></t>
                                     <t t-else="">—</t>
                                 </span>
                                 <span class="o_fw_clinic_fact_l">open receivable</span>
@@ -315,13 +315,13 @@
                                 <span class="o_fw_clinic_fact_l">
                                     <t t-if="c.open_orders === 1">open order</t>
                                     <t t-else="">open orders</t><t t-if="c.open_order_value">
-                                        · <t t-esc="money(c.open_order_value)"/></t>
+                                        · <t t-esc="this.money(c.open_order_value)"/></t>
                                 </span>
                             </div>
                         </div>
 
                         <div class="o_fw_clinic_acts">
-                            <button class="o_fw_clinic_go" t-att-disabled="state.busy"
+                            <button class="o_fw_clinic_go" t-att-disabled="this.state.busy"
                                     t-on-click="(ev) => this.newVisitFor(c, ev)">
                                 <i class="fa fa-plus me-1"/>
                                 <t t-if="c.visited_today">On today's round</t>
@@ -341,26 +341,26 @@
                     </div>
                 </div>
 
-                <div t-if="state.clinics.more" class="o_fw_track_more">
-                    Showing the first <t t-esc="state.clinics.rows.length"/> — search to narrow it.
+                <div t-if="this.state.clinics.more" class="o_fw_track_more">
+                    Showing the first <t t-esc="this.state.clinics.rows.length"/> — search to narrow it.
                 </div>
-                <div t-elif="state.clinics.rows.length" class="o_fw_track_more">
-                    <t t-esc="state.clinics.rows.length"/>
-                    <t t-if="state.clinics.favouritesOnly"> starred</t>
-                    <t t-elif="state.clinics.query"> matching</t>
-                    <t t-if="state.clinics.rows.length > 1">doctors and clinics</t>
+                <div t-elif="this.state.clinics.rows.length" class="o_fw_track_more">
+                    <t t-esc="this.state.clinics.rows.length"/>
+                    <t t-if="this.state.clinics.favouritesOnly"> starred</t>
+                    <t t-elif="this.state.clinics.query"> matching</t>
+                    <t t-if="this.state.clinics.rows.length > 1">doctors and clinics</t>
                     <t t-else="">doctor or clinic</t>
-                    <t t-if="!state.clinics.query and !state.clinics.favouritesOnly"> on your route</t>
+                    <t t-if="!this.state.clinics.query and !this.state.clinics.favouritesOnly"> on your route</t>
                 </div>
             </div>
 
             <!-- Track a work: the question asked at the clinic door. Only work that
                  is still open appears - an invoiced case is finished with - and only
                  on this person's own routes. (client, 2026-08-24) -->
-            <div class="o_fw_track" t-if="state.track.open" t-ref="trackPanel">
+            <div class="o_fw_track" t-if="this.state.track.open" t-custom-ref="trackPanel">
                 <div class="o_fw_track_bar">
                     <i class="fa fa-search"/>
-                    <input type="text" t-ref="trackInput"
+                    <input type="text" t-custom-ref="trackInput"
                            placeholder="Patient, clinic or order number"
                            t-on-input="(ev) => this.onTrackInput(ev)"/>
                     <button class="o_fw_track_close" t-on-click="() => this.toggleTrack()">
@@ -368,23 +368,23 @@
                     </button>
                 </div>
                 <!-- Standing in a clinic? One tap for everything pending there. -->
-                <div class="o_fw_track_chips" t-if="state.track.here">
-                    <button t-att-class="'o_fw_chip' + (state.track.partnerId ? ' o_fw_chip_on' : '')"
+                <div class="o_fw_track_chips" t-if="this.state.track.here">
+                    <button t-att-class="'o_fw_chip' + (this.state.track.partnerId ? ' o_fw_chip_on' : '')"
                             t-on-click="() => this.toggleHere()">
                         <i class="fa fa-map-marker me-1"/>
-                        At <t t-esc="state.track.here.name"/>
+                        At <t t-esc="this.state.track.here.name"/>
                     </button>
                 </div>
-                <div t-if="state.track.busy" class="o_fw_track_note">Searching…</div>
-                <div t-elif="state.track.no_route" class="o_fw_track_note">
+                <div t-if="this.state.track.busy" class="o_fw_track_note">Searching…</div>
+                <div t-elif="this.state.track.no_route" class="o_fw_track_note">
                     You are not on a sales route yet — ask your manager to add you.
                 </div>
-                <div t-elif="!state.track.rows.length" class="o_fw_track_note">
-                    <t t-if="state.track.query">Nothing open matches that.</t>
+                <div t-elif="!this.state.track.rows.length" class="o_fw_track_note">
+                    <t t-if="this.state.track.query">Nothing open matches that.</t>
                     <t t-else="">No work is open on your route or in your bag.</t>
                 </div>
                 <t t-else="">
-                    <t t-foreach="state.track.rows" t-as="r" t-key="r.id">
+                    <t t-foreach="this.state.track.rows" t-as="r" t-key="r.id">
                         <div class="o_fw_track_row"
                              t-on-click="() => this.openTrackDetail(r)">
                             <div class="o_fw_track_main">
@@ -411,8 +411,8 @@
                             </div>
                         </div>
 
-                        <div class="o_fw_track_detail" t-if="state.track.openId === r.id">
-                            <t t-set="d" t-value="trackDetail(r.id)"/>
+                        <div class="o_fw_track_detail" t-if="this.state.track.openId === r.id">
+                            <t t-set="d" t-value="this.trackDetail(r.id)"/>
                             <div t-if="!d" class="o_fw_track_note">Reading the file…</div>
                             <t t-elif="!d.ok">
                                 <div class="o_fw_track_note">That job is not on your route or in your bag.</div>
@@ -462,11 +462,11 @@
                                 <div class="o_fw_track_read">
                                     <span t-if="d.read_at">as of <t t-esc="d.read_at"/></span>
                                     <button class="o_fw_track_reread"
-                                            t-att-disabled="state.track.refreshing === r.id"
+                                            t-att-disabled="this.state.track.refreshing === r.id"
                                             t-on-click="(ev) => this.refreshTrack(r, ev)">
                                         <i t-att-class="'fa fa-refresh me-1'
-                                            + (state.track.refreshing === r.id ? ' fa-spin' : '')"/>
-                                        <t t-if="state.track.refreshing === r.id">Reading…</t>
+                                            + (this.state.track.refreshing === r.id ? ' fa-spin' : '')"/>
+                                        <t t-if="this.state.track.refreshing === r.id">Reading…</t>
                                         <t t-else="">Refresh</t>
                                     </button>
                                 </div>
@@ -488,7 +488,7 @@
                             </t>
                         </div>
                     </t>
-                    <div t-if="state.track.more" class="o_fw_track_note">
+                    <div t-if="this.state.track.more" class="o_fw_track_note">
                         Showing the newest 25 — type a name to narrow it.
                     </div>
                 </t>
@@ -497,12 +497,12 @@
             <!-- Travel: one line, because most days it needs no attention. -->
             <div class="o_fw_trip" t-on-click="() => this.openTrip()">
                 <i class="fa fa-motorcycle me-2" title="Travel"/>
-                <t t-if="state.data.trip">
+                <t t-if="this.state.data.trip">
                     <span class="flex-grow-1">
-                        Travel — <t t-esc="state.data.trip.distance"/> km
+                        Travel — <t t-esc="this.state.data.trip.distance"/> km
                     </span>
-                    <strong class="me-2"><t t-esc="money(state.data.trip.amount)"/></strong>
-                    <span class="o_fw_chip" t-esc="state.data.trip.state"/>
+                    <strong class="me-2"><t t-esc="this.money(this.state.data.trip.amount)"/></strong>
+                    <span class="o_fw_chip" t-esc="this.state.data.trip.state"/>
                 </t>
                 <t t-else="">
                     <span class="flex-grow-1 text-muted">
@@ -516,33 +516,33 @@
                  executive must not forget, so it is stated rather than left to be
                  remembered - with the way to be rid of it on the same card.
                  (client, 2026-09-18) -->
-            <div t-if="state.data.cash.with_you" class="o_fw_cash"
-                 t-att-class="{ o_fw_cash_overdue: state.data.cash.overdue }">
+            <div t-if="this.state.data.cash.with_you" class="o_fw_cash"
+                 t-att-class="{ o_fw_cash_overdue: this.state.data.cash.overdue }">
                 <div class="o_fw_cash_row" t-on-click="() => this.openCash()">
                     <i class="fa fa-money me-2" title="Cash"/>
                     <span class="flex-grow-1">
-                        Cash with you — <strong t-esc="money(state.data.cash.available)"/>
+                        Cash with you — <strong t-esc="this.money(this.state.data.cash.available)"/>
                     </span>
-                    <span t-if="state.data.cash.overdue" class="o_fw_chip o_fw_chip_danger">
-                        <t t-if="state.data.cash.days">oldest <t t-esc="state.data.cash.days"/> day<t t-if="state.data.cash.days > 1">s</t></t>
+                    <span t-if="this.state.data.cash.overdue" class="o_fw_chip o_fw_chip_danger">
+                        <t t-if="this.state.data.cash.days">oldest <t t-esc="this.state.data.cash.days"/> day<t t-if="this.state.data.cash.days > 1">s</t></t>
                         <t t-else="">hand over today</t>
                     </span>
-                    <span t-elif="state.data.cash.days > 0" class="o_fw_chip">
-                        oldest <t t-esc="state.data.cash.days"/> day<t t-if="state.data.cash.days > 1">s</t>
+                    <span t-elif="this.state.data.cash.days > 0" class="o_fw_chip">
+                        oldest <t t-esc="this.state.data.cash.days"/> day<t t-if="this.state.data.cash.days > 1">s</t>
                     </span>
                     <i t-else="" class="fa fa-chevron-right text-muted" title="Open"/>
                 </div>
                 <!-- On the desk, not yet counted: still yours until they confirm. -->
-                <div t-foreach="state.data.cash.pending_rows" t-as="h" t-key="h.id"
+                <div t-foreach="this.state.data.cash.pending_rows" t-as="h" t-key="h.id"
                      class="o_fw_cash_pending" t-on-click="() => this.openHandover(h)">
                     <i class="fa fa-inbox me-2" title="Waiting"/>
                     <span class="flex-grow-1">
-                        <strong t-esc="money(h.amount)"/> handed over <t t-esc="h.date"/>
+                        <strong t-esc="this.money(h.amount)"/> handed over <t t-esc="h.date"/>
                         — waiting for the office to count
                     </span>
                     <span class="o_fw_code_chip" t-esc="h.code"/>
                 </div>
-                <button t-if="state.data.cash.available > 0" class="o_fw_cash_btn"
+                <button t-if="this.state.data.cash.available > 0" class="o_fw_cash_btn"
                         t-on-click="() => this.handOverCash()">
                     <i class="fa fa-hand-paper-o me-2" title="Hand over"/>
                     Hand over cash
@@ -550,12 +550,12 @@
             </div>
 
             <!-- The list. This is the app. -->
-            <div t-if="!state.data.visits.length" class="o_fw_empty">
+            <div t-if="!this.state.data.visits.length" class="o_fw_empty">
                 <i class="fa fa-coffee fa-2x mb-2" title="Nothing planned"/>
                 <div class="fw-bold">Nothing planned for today.</div>
                 <!-- Never a dead end: if there is a round to work from, the suggestions
                      below are the answer; if there is not, say who can fix it. -->
-                <div t-if="state.data.suggestions.length" class="small mt-1">
+                <div t-if="this.state.data.suggestions.length" class="small mt-1">
                     There are clinics on your round worth a stop — see below.
                 </div>
                 <div t-else="" class="small mt-1">
@@ -564,7 +564,7 @@
                 </div>
             </div>
 
-            <div t-foreach="state.data.visits" t-as="v" t-key="v.id"
+            <div t-foreach="this.state.data.visits" t-as="v" t-key="v.id"
                  class="o_fw_card" t-att-class="'o_fw_card_' + v.state">
                 <div class="o_fw_card_body" t-on-click="() => this.openVisit(v)">
                     <div class="d-flex justify-content-between align-items-start">
@@ -617,11 +617,11 @@
                         <span t-if="v.outcome" class="me-3"><t t-esc="v.outcome"/></span>
                         <span t-if="v.cases" class="me-3">
                             <i class="fa fa-medkit me-1" title="Cases"/><t t-esc="v.cases"/>
-                            · <t t-esc="money(v.value)"/>
+                            · <t t-esc="this.money(v.value)"/>
                         </span>
                         <span t-if="v.collected">
                             <i class="fa fa-money me-1" title="Collected"/>
-                            <t t-esc="money(v.collected)"/>
+                            <t t-esc="this.money(v.collected)"/>
                         </span>
                     </div>
 
@@ -651,10 +651,10 @@
 
                 <!-- One button. What it does depends on where the visit is, so there is
                      never a choice to make. -->
-                <button class="o_fw_action" t-att-disabled="state.busy === v.id"
+                <button class="o_fw_action" t-att-disabled="this.state.busy === v.id"
                         t-on-click="() => this.onPrimary(v)">
-                    <i t-att-class="'fa ' + primaryIcon(v)" t-att-title="primaryLabel(v)"/>
-                    <span class="ms-2"><t t-esc="primaryLabel(v)"/></span>
+                    <i t-att-class="'fa ' + this.primaryIcon(v)" t-att-title="this.primaryLabel(v)"/>
+                    <span class="ms-2"><t t-esc="this.primaryLabel(v)"/></span>
                 </button>
             </div>
 
@@ -664,12 +664,12 @@
                 reads once a month. Ordered by what is at stake, so the first card is
                 always the one worth the detour.
             -->
-            <div t-if="state.data.suggestions.length" class="o_fw_suggest">
+            <div t-if="this.state.data.suggestions.length" class="o_fw_suggest">
                 <div class="o_fw_suggest_head">
                     <i class="fa fa-lightbulb-o me-2" title="Suggestions"/>
                     Worth a stop while you are out
                 </div>
-                <div t-foreach="state.data.suggestions" t-as="s" t-key="s.partner_id"
+                <div t-foreach="this.state.data.suggestions" t-as="s" t-key="s.partner_id"
                      class="o_fw_card o_fw_card_suggest">
                     <div class="o_fw_card_body">
                         <div class="d-flex justify-content-between align-items-start">
@@ -684,7 +684,7 @@
                         <div class="o_fw_result">
                             <span t-if="s.value" class="me-3">
                                 <i class="fa fa-medkit me-1" title="Recent business"/>
-                                <t t-esc="money(s.value)"/> in the last 90 days
+                                <t t-esc="this.money(s.value)"/> in the last 90 days
                             </span>
                             <span t-if="s.declining" class="text-danger">
                                 <i class="fa fa-arrow-down me-1" title="Declining"/>
@@ -693,7 +693,7 @@
                         </div>
                     </div>
                     <button class="o_fw_action o_fw_action_ghost"
-                            t-att-disabled="state.busy === 's' + s.partner_id"
+                            t-att-disabled="this.state.busy === 's' + s.partner_id"
                             t-on-click="() => this.addStop(s)">
                         <i class="fa fa-plus" title="Add to today"/>
                         <span class="ms-2">Add</span>

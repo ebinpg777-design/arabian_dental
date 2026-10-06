@@ -4,7 +4,7 @@
  * Copyright 2023 Taras Shabaranskyi
  * License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). */
 
-import {Component, useState} from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import {useAutofocus, useService} from "@web/core/utils/hooks";
 
 /**
@@ -14,7 +14,7 @@ import {useAutofocus, useService} from "@web/core/utils/hooks";
 export class AppsMenuOdooSearchBar extends Component {
     setup() {
         super.setup();
-        this.state = useState({
+        this.state = proxy({
             rootItems: [],
             subItems: [],
             offset: 0,

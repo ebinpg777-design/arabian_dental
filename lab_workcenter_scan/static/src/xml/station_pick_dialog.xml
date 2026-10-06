@@ -2,20 +2,20 @@
 <templates xml:space="preserve">
 
 <t t-name="lab_workcenter_scan.StationPickDialog">
-    <Dialog title="title" size="'lg'" contentClass="'o_st_pickdlg'">
-        <div t-if="props.stations.length > 6" class="o_st_pick_search">
+    <Dialog title="this.title" size="'lg'" contentClass="'o_st_pickdlg'">
+        <div t-if="this.props.stations.length > 6" class="o_st_pick_search">
             <i class="fa fa-search" title="Search"/>
-            <input type="text" t-ref="search" t-model="state.query"
-                   t-on-keydown="onKeydown" placeholder="Name or code…"
+            <input type="text" t-ref="search" t-custom-model="this.state.query"
+                   t-on-keydown="this.onKeydown" placeholder="Name or code…"
                    autocomplete="off" spellcheck="false"/>
         </div>
 
         <div class="o_st_pick_grid">
-            <button t-foreach="matches" t-as="s" t-key="s.id"
+            <button t-foreach="this.matches" t-as="s" t-key="s.id"
                     class="o_st_pick_card"
-                    t-att-class="{ o_st_pick_on: s.id === props.currentId }"
-                    t-att-disabled="state.busy"
-                    t-attf-style="--bench-hue: {{ hue(s) }}"
+                    t-att-class="{ o_st_pick_on: s.id === this.props.currentId }"
+                    t-att-disabled="this.state.busy"
+                    t-attf-style="--bench-hue: {{ this.hue(s) }}"
                     t-on-click="() => this.pick(s)">
                 <!-- HEADER: the bench's colour, its initials and its NAME, which is
                      what somebody standing at it recognises. Everything else -
@@ -23,9 +23,9 @@
                      the row beneath, so a long name never has to fight a number for
                      the same line. (client, 2026-09-10) -->
                 <span class="o_st_pick_head">
-                    <span class="o_st_pick_chip" t-esc="initials(s.name)"/>
+                    <span class="o_st_pick_chip" t-esc="this.initials(s.name)"/>
                     <span class="o_st_pick_name" t-esc="s.name"/>
-                    <i t-if="s.id === props.currentId" class="fa fa-check o_st_pick_tick"
+                    <i t-if="s.id === this.props.currentId" class="fa fa-check o_st_pick_tick"
                        title="You are here"/>
                 </span>
                 <span class="o_st_pick_foot">
@@ -44,7 +44,7 @@
                             <span class="o_st_pick_qn" t-esc="s.bench"/>
                             <span class="o_st_pick_ql">on bench</span>
                         </span>
-                        <span class="o_st_pick_c o_st_pick_c_done" t-att-title="'Passed on ' + props.dayLabel">
+                        <span class="o_st_pick_c o_st_pick_c_done" t-att-title="'Passed on ' + this.props.dayLabel">
                             <span class="o_st_pick_qn" t-esc="s.finished"/>
                             <span class="o_st_pick_ql">finished</span>
                         </span>
@@ -53,12 +53,12 @@
             </button>
         </div>
 
-        <div t-if="!matches.length" class="o_st_pick_none">
-            No station matches “<t t-esc="state.query"/>”.
+        <div t-if="!this.matches.length" class="o_st_pick_none">
+            No station matches “<t t-esc="this.state.query"/>”.
         </div>
 
         <t t-set-slot="footer">
-            <button class="btn btn-secondary" t-on-click="() => props.close()">Cancel</button>
+            <button class="btn btn-secondary" t-on-click="() => this.props.close()">Cancel</button>
         </t>
     </Dialog>
 </t>

@@ -6,20 +6,20 @@
             <div class="o_dbf_preview_bar">
                 <span class="o_dbf_preview_title">
                     <i class="fa fa-eye me-1" role="img" aria-label="Preview"/> Live preview
-                    <i t-if="state.loading" class="fa fa-circle-o-notch fa-spin ms-2" role="img" aria-label="Computing"/>
+                    <i t-if="this.state.loading" class="fa fa-circle-o-notch fa-spin ms-2" role="img" aria-label="Computing"/>
                 </span>
                 <select class="form-select form-select-sm o_dbf_preview_period" aria-label="Preview period"
-                        t-on-change="onPeriod">
-                    <t t-foreach="periods" t-as="period" t-key="period.key">
-                        <option t-att-value="period.key" t-att-selected="period.key === state.period"
-                                t-esc="period.label"/>
+                        t-on-change="this.onPeriod">
+                    <t t-foreach="this.periods" t-as="period" t-key="period.key">
+                        <option t-att-value="period.key" t-att-selected="period.key === this.state.period"
+                                t-out="period.label"/>
                     </t>
                 </select>
             </div>
             <div class="o_dbf_preview_stage">
-                <t t-if="state.item and state.ready">
-                    <div class="o_dbf_preview_cell" t-att-style="widthStyle">
-                        <BoardCard item="state.item" onDrill.bind="noop"/>
+                <t t-if="this.state.item and this.state.ready">
+                    <div class="o_dbf_preview_cell" t-att-style="this.widthStyle">
+                        <BoardCard item="this.state.item" onDrill.bind="this.noop"/>
                     </div>
                 </t>
                 <t t-else="">

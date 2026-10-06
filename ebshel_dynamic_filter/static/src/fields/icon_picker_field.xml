@@ -3,11 +3,11 @@
 
     <t t-name="ebshel_dynamic_filter.FaIconPickerField">
         <div class="o_dft_icon_field">
-            <Dropdown state="dropdown" menuClass="'o_dft_icon_menu'" disabled="props.readonly">
+            <Dropdown state="this.dropdown" menuClass="'o_dft_icon_menu'" disabled="this.props.readonly">
                 <button class="o_dft_icon_toggle btn btn-outline-secondary"
-                        t-att-disabled="props.readonly" title="Pick an icon">
-                    <i t-att-class="iconClass(currentIcon)"/>
-                    <span class="o_dft_icon_name" t-out="currentIcon"/>
+                        t-att-disabled="this.props.readonly" title="Pick an icon">
+                    <i t-att-class="this.iconClass(this.currentIcon)"/>
+                    <span class="o_dft_icon_name" t-out="this.currentIcon"/>
                     <i class="fa fa-caret-down ms-auto"/>
                 </button>
                 <t t-set-slot="content">
@@ -15,25 +15,25 @@
                         <i class="fa fa-search"/>
                         <input class="form-control form-control-sm" type="text"
                                placeholder="Search icons…" autocomplete="off"
-                               t-model="state.query"/>
+                               t-custom-model="this.state.query"/>
                     </div>
                     <div class="o_dft_icon_grid">
-                        <button class="o_dft_icon_cell" t-att-class="{ o_dft_icon_current: icon === currentIcon }" t-foreach="icons"
+                        <button class="o_dft_icon_cell" t-att-class="{ o_dft_icon_current: icon === this.currentIcon }" t-foreach="this.icons"
                                 t-as="icon"
                                 t-key="icon"
                                 t-att-title="icon"
                                 t-on-click="() => this.select(icon)">
-                            <i t-att-class="iconClass(icon)"/>
+                            <i t-att-class="this.iconClass(icon)"/>
                         </button>
                     </div>
-                    <div t-if="!icons.length" class="o_dft_icon_empty">
-                        No icon matches “<t t-esc="state.query"/>”.
+                    <div t-if="!this.icons.length" class="o_dft_icon_empty">
+                        No icon matches “<t t-esc="this.state.query"/>”.
                     </div>
                     <div class="o_dft_icon_manual">
                         <input class="form-control form-control-sm" type="text"
                                placeholder="…or type any class, e.g. fa-cutlery"
-                               t-att-value="props.record.data[props.name] or ''"
-                               t-on-change="onManualInput"/>
+                               t-att-value="this.props.record.data[this.props.name] or ''"
+                               t-on-change="this.onManualInput"/>
                     </div>
                 </t>
             </Dropdown>

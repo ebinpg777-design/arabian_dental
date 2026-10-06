@@ -1,10 +1,12 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onPatched, onWillStart, onWillUnmount, useState } from "@odoo/owl";
+import { Component, onMounted, onPatched, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { formatMonetary } from "@web/views/fields/formatters";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const LIVE_MS = 60000;
 
@@ -25,9 +27,9 @@ class DeskBase extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
-        this.state = useState({
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({
             data: null, loading: true, busy: false,
             day: null,                 // ops desk time travel
             sendback: null,            // {id, reason} while the inline box is open

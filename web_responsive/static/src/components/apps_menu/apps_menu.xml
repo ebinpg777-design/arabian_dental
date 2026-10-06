@@ -49,9 +49,9 @@
                 <i class="oi oi-apps fs-4" />
             </button>
             <div t-if="state.open" class="app-menu-container">
-                <t t-slot="search_bar" />
+                <t t-call-slot="search_bar" />
                 <div class="o-app-menu-list">
-                    <t t-slot="default" />
+                    <t t-call-slot="default" />
                 </div>
             </div>
         </div>

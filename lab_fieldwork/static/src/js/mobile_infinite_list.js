@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { onWillUnmount, useEffect } from "@odoo/owl";
+import { onWillUnmount, usePlugin } from "@odoo/owl";
+import { UIPlugin } from "@web/core/ui/ui_plugin";
 import { patch } from "@web/core/utils/patch";
-import { useService } from "@web/core/utils/hooks";
+import { useLayoutEffect } from "@web/owl2/utils";
 import { ListRenderer } from "@web/views/list/list_renderer";
 import { KanbanRenderer } from "@web/views/kanban/kanban_renderer";
 
@@ -36,10 +37,10 @@ const FALLBACK_STEP = 80;
 const infiniteScroll = () => ({
     setup() {
         super.setup(...arguments);
-        this.fwUi = this.uiService || useService("ui");
+        this.fwUi = this.uiService || usePlugin(UIPlugin);
         this.fwLoading = false;
 
-        useEffect(
+        useLayoutEffect(
             (sentinel) => {
                 if (!sentinel) {
                     return;

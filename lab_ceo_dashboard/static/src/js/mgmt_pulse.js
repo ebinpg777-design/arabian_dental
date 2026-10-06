@@ -1,12 +1,14 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useEffect, useRef, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { useLayoutEffect, useRef } from "@web/owl2/utils";
 import { formatMonetary } from "@web/views/fields/formatters";
 
 import { shortINR } from "@lab_ceo_dashboard/js/inr";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The Management menu's Sales & Cases / Field Force / Money screens.
@@ -22,9 +24,9 @@ export class LabMgmtPulse extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
+        this.action = usePlugin(ActionManagerPlugin);
         const params = (this.props.action && this.props.action.params) || {};
-        this.state = useState({
+        this.state = proxy({
             lens: "orders",
             userId: false,
             period: "month",
@@ -42,7 +44,7 @@ export class LabMgmtPulse extends Component {
         // The rail runs oldest to newest, so on a phone today and tomorrow start
         // off-screen: bring the chosen day into view whenever the day changes.
         this.rail = useRef("rail");
-        useEffect(
+        useLayoutEffect(
             (day) => {
                 const el = this.rail.el;
                 const on = el && el.querySelector(".o_sd_day_on");

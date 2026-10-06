@@ -1,4 +1,4 @@
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
@@ -9,7 +9,7 @@ export class CommunityAILauncher extends Component {
 
     setup() {
         this.bridge = useService("communityAiBridge");
-        this.state = useState(this.bridge.state);
+        this.state = proxy(this.bridge.state);
         onWillStart(() => this.bridge.bootstrap());
     }
 

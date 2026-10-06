@@ -1,4 +1,4 @@
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 
 /**
  * Confirmation card for an operation prepared by the assistant.
@@ -13,7 +13,7 @@ export class CaiActionDialogCard extends Component {
     };
 
     setup() {
-        this.state = useState({ sending: false });
+        this.state = proxy({ sending: false });
     }
 
     async decide(approve) {

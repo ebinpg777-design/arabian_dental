@@ -5,7 +5,8 @@
  * Copyright 2023 Taras Shabaranskyi
  * License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). */
 
-import {Component, onPatched, onWillPatch, useRef, useState} from "@odoo/owl";
+import { Component, onPatched, onWillPatch, proxy } from "@odoo/owl";
+import { useRef } from "@web/owl2/utils";
 import {
     collectRootMenuItems,
     collectSubMenuItems,
@@ -22,7 +23,7 @@ import {scrollTo} from "@web/core/utils/scrolling";
 export class AppsMenuCanonicalSearchBar extends Component {
     setup() {
         super.setup();
-        this.state = useState({
+        this.state = proxy({
             rootItems: [],
             subItems: [],
             offset: 0,

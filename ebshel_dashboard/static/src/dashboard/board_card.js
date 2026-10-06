@@ -1,10 +1,11 @@
 /** @odoo-module **/
 
-import { Component, markup, onWillUnmount, useEffect, useExternalListener, useRef, useState } from "@odoo/owl";
+import { Component, markup, onWillUnmount, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 
 import { CARD_COLORS, chartInk, resolveCardColor, seriesColors, withAlpha } from "../core/board_colors";
 import { formatNumber } from "../core/number_format";
+import { useExternalListener, useLayoutEffect, useRef } from "@web/owl2/utils";
 
 /**
  * A canvas as a white-backed PNG data URL, at most 1400px wide.
@@ -206,11 +207,11 @@ export class BoardCard extends Component {
         this.menuRef = useRef("menu");
         this.chart = null;
         this.frame = null;
-        this.state = useState({ showTable: false, menuOpen: false, shown: null });
+        this.state = proxy({ showTable: false, menuOpen: false, shown: null });
         // Redraw whenever the payload, the focus or the table toggle changes:
         // a period change, a refresh or a new focus hands the card a new
         // object, and Chart.js needs to be told.
-        useEffect(
+        useLayoutEffect(
             () => {
                 this.renderChart();
                 return () => this.destroyChart();
@@ -218,7 +219,7 @@ export class BoardCard extends Component {
             () => [this.props.item, this.props.focus, this.props.palette, this.state.showTable]
         );
         // The number counts up to its new value instead of jumping to it.
-        useEffect(
+        useLayoutEffect(
             () => this.countUp(),
             () => [this.props.item.value]
         );

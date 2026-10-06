@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUnmount, useState } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 
@@ -32,7 +32,7 @@ export class DoingItDialog extends Component {
     };
 
     setup() {
-        this.state = useState({ busy: false, picked: false });
+        this.state = proxy({ busy: false, picked: false });
         // 1..9 on a keyboard bench picks that tile; Escape is the dialog's own.
         this.onKey = (ev) => {
             if (ev.target && ["INPUT", "TEXTAREA", "SELECT"].includes(ev.target.tagName)) {

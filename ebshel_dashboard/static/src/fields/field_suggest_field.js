@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
@@ -31,7 +31,7 @@ export class FieldSuggestField extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.state = useState({ suggestions: [], modelId: null, loading: false });
+        this.state = proxy({ suggestions: [], modelId: null, loading: false });
         // The record is one stable object, so a prop change never fires: the
         // observer is what tells a widget that a field it cares about moved.
         useRecordObserver((record) => this.load(record));

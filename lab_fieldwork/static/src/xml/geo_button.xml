@@ -2,17 +2,17 @@
 <templates xml:space="preserve">
     <t t-name="lab_fieldwork.GeoButton">
         <button type="button" class="btn me-1"
-                t-att-class="props.btn_class || 'btn-primary'"
-                t-att-disabled="state.busy"
-                t-on-click="onClick">
-            <t t-if="state.busy">
+                t-att-class="this.props.btn_class || 'btn-primary'"
+                t-att-disabled="this.state.busy"
+                t-on-click="this.onClick">
+            <t t-if="this.state.busy">
                 <i class="fa fa-circle-o-notch fa-spin me-1" title="Finding your location"/>
                 Finding your location…
             </t>
             <t t-else="">
-                <i t-if="props.icon" t-att-class="'fa ' + props.icon + ' me-1'"
-                   t-att-title="label"/>
-                <t t-esc="label"/>
+                <i t-if="this.props.icon" t-att-class="'fa ' + this.props.icon + ' me-1'"
+                   t-att-title="this.label"/>
+                <t t-out="this.label"/>
             </t>
         </button>
     </t>

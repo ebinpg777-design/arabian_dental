@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { Component, useExternalListener, useRef, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
+import { useExternalListener, useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
 import { CARD_COLORS } from "../core/board_colors";
@@ -19,7 +20,7 @@ export class IconPickerField extends Component {
 
     setup() {
         this.rootRef = useRef("root");
-        this.state = useState({ open: false });
+        this.state = proxy({ open: false });
         useExternalListener(window, "click", (ev) => {
             if (this.state.open && this.rootRef.el && !this.rootRef.el.contains(ev.target)) {
                 this.state.open = false;

@@ -3,26 +3,26 @@
 
     <t t-name="lab_fieldwork.DayMap">
         <div class="o_fw_daymap">
-            <div t-if="state.loading" class="o_fw_daymap_msg">
+            <div t-if="this.state.loading" class="o_fw_daymap_msg">
                 <i class="fa fa-circle-o-notch fa-spin me-2"/>Drawing the day…
             </div>
-            <div t-elif="state.error" class="o_fw_daymap_msg text-danger">
-                <i class="fa fa-exclamation-triangle me-2"/><t t-esc="state.error"/>
+            <div t-elif="this.state.error" class="o_fw_daymap_msg text-danger">
+                <i class="fa fa-exclamation-triangle me-2"/><t t-esc="this.state.error"/>
             </div>
-            <t t-elif="hasPoints">
+            <t t-elif="this.hasPoints">
                 <div class="o_fw_daymap_cap">
-                    <t t-esc="caption"/>
-                    <a t-if="state.track.route_state === 'failed'" href="#"
-                       class="ms-2" t-on-click.prevent="redraw">try the routing again</a>
+                    <t t-esc="this.caption"/>
+                    <a t-if="this.state.track.route_state === 'failed'" href="#"
+                       class="ms-2" t-on-click.prevent="this.redraw">try the routing again</a>
                 </div>
-                <div class="o_fw_daymap_canvas" t-ref="map"/>
+                <div class="o_fw_daymap_canvas" t-custom-ref="map"/>
                 <div class="o_fw_daymap_key">
                     <span><i style="background:#0f9d58"/>at the door</span>
                     <span><i style="background:#dc3545"/>away from the clinic</span>
                     <span><i style="background:#2563eb"/>clinic not pinned</span>
-                    <span t-if="state.track.geometry.length"><i style="background:#6d28d9"/>the round, by road</span>
+                    <span t-if="this.state.track.geometry.length"><i style="background:#6d28d9"/>the round, by road</span>
                     <span t-else=""><i style="background:#6d28d9"/>the round, in order (straight lines)</span>
-                    <span t-if="state.track.trail &amp;&amp; state.track.trail.length">
+                    <span t-if="this.state.track.trail &amp;&amp; this.state.track.trail.length">
                         <i style="background:#0ea5e9"/>route recorded on the phone
                     </span>
                     <span class="o_fw_daymap_ring"><i/>clinic's own pin</span>

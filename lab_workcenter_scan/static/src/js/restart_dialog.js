@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { Component, onWillUnmount, useRef, useState } from "@odoo/owl";
+import { Component, onWillUnmount, proxy } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
+import { useRef } from "@web/owl2/utils";
 
 // How long the confirm button must be held. Long enough that no tap, double-tap or
 // sleeve can reach it; short enough that somebody who means it does not wonder
@@ -39,7 +40,7 @@ export class RestartDialog extends Component {
     };
 
     setup() {
-        this.state = useState({
+        this.state = proxy({
             reasonId: false,
             note: "",
             holding: false,

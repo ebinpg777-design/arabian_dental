@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { Component, useRef, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useRecordObserver } from "@web/model/relational_model/utils";
+import { useRef } from "@web/owl2/utils";
 
 /* The same families the form's own visibility rules use, so a chip is only
    ever offered for a setting the card can actually use. */
@@ -53,7 +54,7 @@ export class SetupChipsWidget extends Component {
 
     setup() {
         this.root = useRef("root");
-        this.state = useState({ chips: [] });
+        this.state = proxy({ chips: [] });
         // Built inside the observer, so any field a chip reads re-fires it.
         useRecordObserver((record) => {
             this.state.chips = this.build(record);

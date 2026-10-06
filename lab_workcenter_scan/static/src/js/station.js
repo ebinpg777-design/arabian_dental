@@ -1,7 +1,8 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUnmount, useState, useRef } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { scanBarcode } from "@web/core/barcode/barcode_dialog";
@@ -15,6 +16,8 @@ import { ChangeDialog } from "@lab_workcenter_scan/js/change_dialog";
 import { RestartDialog } from "@lab_workcenter_scan/js/restart_dialog";
 import { TargetsDialog } from "@lab_workcenter_scan/js/targets_dialog";
 import { StationPickDialog } from "@lab_workcenter_scan/js/station_pick_dialog";
+import { useRef } from "@web/owl2/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const REFRESH_MS = 60000;
 
@@ -36,10 +39,10 @@ export class LabStation extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         this.dialog = useService("dialog");
-        this.state = useState({
+        this.state = proxy({
             data: null,
             loading: true,
             busy: 0,

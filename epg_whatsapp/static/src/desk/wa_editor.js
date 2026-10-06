@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUpdateProps, useRef, useState } from "@odoo/owl";
+import { Component, onWillStart, onWillUpdateProps, proxy } from "@odoo/owl";
 import { useEmojiPicker } from "@web/core/emoji_picker/emoji_picker";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
 /**
@@ -25,7 +26,7 @@ export class WaEditorField extends Component {
     setup() {
         this.orm = useService("orm");
         this.textarea = useRef("textarea");
-        this.state = useState({ fields: [], showFields: false, query: "" });
+        this.state = proxy({ fields: [], showFields: false, query: "" });
         useEmojiPicker(
             useRef("emoji"),
             { onSelect: (codepoints) => this.insert(codepoints) },

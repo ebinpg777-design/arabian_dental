@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillStart, onWillUnmount, useState } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { browser } from "@web/core/browser/browser";
@@ -11,6 +11,7 @@ import { getCurrency } from "@web/core/currency";
 import { formatMonetary, formatFloat } from "@web/views/fields/formatters";
 
 import { shortINR } from "@lab_ceo_dashboard/js/inr";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const REMEMBER = "lab_ceo_hub.active";
 
@@ -30,8 +31,8 @@ export class LabCeoDashboard extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.state = useState({ launchers: [], loading: true, active: null, failed: {} });
+        this.action = usePlugin(ActionManagerPlugin);
+        this.state = proxy({ launchers: [], loading: true, active: null, failed: {} });
         onWillStart(() => this.loadLaunchers());
         this.onKey = (ev) => {
             if (ev.target && /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) {

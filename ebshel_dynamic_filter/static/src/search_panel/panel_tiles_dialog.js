@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { AUTO_COLOR_CYCLE, TILE_COLORS } from "../core/tile_colors";
 
@@ -25,7 +25,7 @@ export class PanelTilesDialog extends Component {
 
     setup() {
         const initial = this.props.values.slice(0, Math.min(6, this.props.maxTiles));
-        this.state = useState({
+        this.state = proxy({
             picked: initial.map((value) => value.id),
             // A manager publishes by default, like the tile set generator;
             // everybody else only ever builds private tiles.

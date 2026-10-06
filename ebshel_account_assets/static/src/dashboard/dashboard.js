@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** Assets at a glance: what they are worth, what they cost this year, what is
  *  due, what needs a decision. Every figure opens the list behind it. */
@@ -12,8 +13,8 @@ export class AssetDashboard extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.state = useState({ loading: true, data: null, busy: false });
+        this.action = usePlugin(ActionManagerPlugin);
+        this.state = proxy({ loading: true, data: null, busy: false });
         onWillStart(() => this.load());
     }
 

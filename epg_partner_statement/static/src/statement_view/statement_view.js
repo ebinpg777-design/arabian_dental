@@ -1,12 +1,15 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState, useExternalListener } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { formatDate, deserializeDate } from "@web/core/l10n/dates";
 import { formatFloat } from "@web/core/utils/numbers";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
+import { useExternalListener } from "@web/owl2/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The statements on screen, from the wizard's filters. (client, 2026-09-30)
@@ -23,14 +26,14 @@ export class StatementView extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         this.dialog = useService("dialog");
         const params = (this.props.action && this.props.action.params) || {};
         this.partnerIds = params.partner_ids || [];
         this.data = params.data || {};
         this.routes = params.routes || [];
-        this.state = useState({
+        this.state = proxy({
             summary: null, loading: true, failed: null,
             current: null, statement: null, stLoading: false,
             q: "", show: "all", sort: "route", busy: null, mobileDetail: false,

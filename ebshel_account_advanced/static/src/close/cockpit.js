@@ -1,9 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { money } from "../common/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** The month-end checklist with live counts, and the button that closes the period. */
 export class CloseCockpit extends Component {
@@ -12,9 +14,9 @@ export class CloseCockpit extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
-        this.state = useState({ loading: true, data: null, busy: false, periodId: (this.props.action && this.props.action.params && this.props.action.params.period_id) || null,
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({ loading: true, data: null, busy: false, periodId: (this.props.action && this.props.action.params && this.props.action.params.period_id) || null,
                                 creating: false, form: {}, noteFor: null, note: "" });
         this.money = (v) => money(v, this.state.data && this.state.data.currency);
         onWillStart(() => this.load());

@@ -1,8 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Production reports, in two halves.
@@ -23,9 +25,9 @@ export class LabMrpReport extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
-        this.state = useState({
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({
             weeks: 8, data: null, loading: true, half: "now",
             // The targets half: its own period, its own payload, its own spinner -
             // read on first visit, not with the page. (client, 2026-09-09)

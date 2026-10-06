@@ -5,12 +5,12 @@
 
 import {Chatter} from "@mail/chatter/web_portal/chatter";
 import {patch} from "@web/core/utils/patch";
-import {useEffect} from "@odoo/owl";
+import { useLayoutEffect } from "@web/owl2/utils";
 
 patch(Chatter.prototype, {
     setup() {
         super.setup();
-        useEffect(this._resetScrollToAttachmentsEffect.bind(this), () => [
+        useLayoutEffect(this._resetScrollToAttachmentsEffect.bind(this), () => [
             this.state.isAttachmentBoxOpened,
         ]);
     },

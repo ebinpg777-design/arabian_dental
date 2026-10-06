@@ -1,7 +1,8 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { useDebounced } from "@web/core/utils/timing";
@@ -39,8 +40,8 @@ export class FwCaseItems extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.notification = useService("notification");
-        this.state = useState({
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({
             sheet: null,            // null | "product" | "shade" | "teeth"
             teethFor: null, teeth: [], extras: [], primary: false, follow: true,
             query: "", categ: null, catalog: null, loading: false, added: 0, lastAdded: "",

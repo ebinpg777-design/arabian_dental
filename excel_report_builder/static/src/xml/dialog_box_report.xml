@@ -18,7 +18,7 @@
                     <span class="erd-cp-label">    </span>
                     <t t-if="savedTemplates and savedTemplates.length > 0">
                         <span class="erd-cp-count-badge">
-                            <t t-esc="savedTemplates.length"/>
+                            <t t-out="savedTemplates.length"/>
                         </span>
                     </t>
                 </button>
@@ -68,7 +68,7 @@
                                 <i class="fa fa-bookmark me-1"/>Quick Export
                             </span>
                             <span class="badge rounded-pill bg-secondary" style="font-size: 0.6rem;">
-                                <t t-esc="savedTemplates.length"/>
+                                <t t-out="savedTemplates.length"/>
                             </span>
                         </li>
                         <t t-foreach="savedTemplates" t-as="tpl" t-key="tpl.id">
@@ -80,11 +80,11 @@
                                     <span t-att-class="'erd-cp-type-dot ' + (tpl.field_type === 'group' ? 'erd-cp-type-dot-grp' : 'erd-cp-type-dot-std')"/>
                                     <div class="flex-grow-1 overflow-hidden">
                                         <div class="text-truncate fw-semibold" style="font-size: 0.8rem;">
-                                            <t t-esc="tpl.name"/>
+                                            <t t-out="tpl.name"/>
                                         </div>
                                         <div class="d-flex align-items-center gap-1 mt-1" style="font-size: 0.65rem;">
                                             <span t-att-class="'erd-cp-pill ' + (tpl.field_type === 'group' ? 'erd-cp-pill-grp' : 'erd-cp-pill-std')">
-                                                <t t-esc="tpl.field_type === 'group' ? 'Grouped' : 'Standard'"/>
+                                                <t t-out="tpl.field_type === 'group' ? 'Grouped' : 'Standard'"/>
                                             </span>
                                             <t t-if="tpl.is_shared">
                                                 <span class="erd-cp-pill erd-cp-pill-shared">🌐 Shared</span>
@@ -125,68 +125,68 @@
                             <div class="card-body p-2">
                                 <div class="d-flex gap-2 mb-2">
                                     <select class="form-select form-select-sm flex-grow-1 erd-tpl-select"
-                                            t-on-change="onTemplateChange">
+                                            t-on-change="this.onTemplateChange">
                                         <option value="">— New Report —</option>
-                                        <t t-foreach="state.templates" t-as="tpl" t-key="tpl.id">
+                                        <t t-foreach="this.state.templates" t-as="tpl" t-key="tpl.id">
                                             <option t-att-value="tpl.id"
-                                                    t-att-selected="state.selectedTemplateId === tpl.id">
-                                                <t t-esc="tpl.name"/>
+                                                    t-att-selected="this.state.selectedTemplateId === tpl.id">
+                                                <t t-out="tpl.name"/>
                                                 <t t-if="tpl.is_shared"> 🌐</t>
                                             </option>
                                         </t>
                                     </select>
 
-                                    <t t-if="state.existingTemplateSelected">
+                                    <t t-if="this.state.existingTemplateSelected">
                                         <button class="btn btn-sm btn-outline-primary erd-icon-btn"
                                                 title="Save changes to this template"
-                                                t-on-click="updateTemplate">
+                                                t-on-click="this.updateTemplate">
                                             <i class="fa fa-save"/>
                                         </button>
                                         <button class="btn btn-sm btn-outline-secondary erd-icon-btn"
                                                 title="Duplicate this template"
-                                                t-on-click="duplicateTemplate">
+                                                t-on-click="this.duplicateTemplate">
                                             <i class="fa fa-copy"/>
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger erd-icon-btn"
                                                 title="Delete template"
-                                                t-on-click="deleteTemplate">
+                                                t-on-click="this.deleteTemplate">
                                             <i class="fa fa-trash"/>
                                         </button>
                                     </t>
                                     <t t-else="">
                                         <button class="btn btn-sm btn-outline-success erd-icon-btn"
                                                 title="Save as new template"
-                                                t-on-click="showSaveNewInput">
+                                                t-on-click="this.showSaveNewInput">
                                             <i class="fa fa-plus"/>
                                         </button>
                                     </t>
                                 </div>
 
                                 <!-- Inline name input for saving new template -->
-                                <t t-if="state.showSaveInput">
+                                <t t-if="this.state.showSaveInput">
                                     <div class="d-flex gap-1 mt-1 erd-save-row">
                                         <input type="text"
                                                class="form-control form-control-sm flex-grow-1"
                                                placeholder="Template name…"
-                                               t-att-value="state.newTemplateName"
-                                               t-on-input="(ev) => state.newTemplateName = ev.target.value"
-                                               t-on-keydown="(ev) => ev.key === 'Enter' &amp;&amp; confirmSaveNew()"/>
-                                        <button class="btn btn-sm btn-success" t-on-click="confirmSaveNew"
+                                               t-att-value="this.state.newTemplateName"
+                                               t-on-input="(ev) => this.state.newTemplateName = ev.target.value"
+                                               t-on-keydown="(ev) => ev.key === 'Enter' &amp;&amp; this.confirmSaveNew()"/>
+                                        <button class="btn btn-sm btn-success" t-on-click="this.confirmSaveNew"
                                                 title="Confirm">
                                             <i class="fa fa-check"/>
                                         </button>
-                                        <button class="btn btn-sm btn-light border" t-on-click="cancelSaveInput"
+                                        <button class="btn btn-sm btn-light border" t-on-click="this.cancelSaveInput"
                                                 title="Cancel">
                                             <i class="fa fa-times"/>
                                         </button>
                                     </div>
                                 </t>
 
-                                <t t-if="state.existingTemplateSelected and state.selectedTemplateId">
-                                    <t t-set="activeTpl" t-value="state.templates.find(t => t.id === state.selectedTemplateId)"/>
+                                <t t-if="this.state.existingTemplateSelected and this.state.selectedTemplateId">
+                                    <t t-set="activeTpl" t-value="this.state.templates.find(t => t.id === this.state.selectedTemplateId)"/>
                                     <t t-if="activeTpl and activeTpl.description">
                                         <p class="text-muted small mt-2 mb-0 fst-italic">
-                                            <t t-esc="activeTpl.description"/>
+                                            <t t-out="activeTpl.description"/>
                                         </p>
                                     </t>
                                 </t>
@@ -202,16 +202,16 @@
                             </div>
                             <div class="card-body p-2">
                                 <div class="d-flex gap-2 mb-2">
-                                    <button t-att-class="'btn btn-sm flex-fill ' + (state.fieldType === 'standard' ? 'btn-primary' : 'btn-outline-secondary')"
+                                    <button t-att-class="'btn btn-sm flex-fill ' + (this.state.fieldType === 'standard' ? 'btn-primary' : 'btn-outline-secondary')"
                                             t-on-click="() => this.toggleFieldType('standard')">
                                         <i class="fa fa-list me-1"/>Standard
                                     </button>
-                                    <button t-att-class="'btn btn-sm flex-fill ' + (state.fieldType === 'group' ? 'btn-primary' : 'btn-outline-secondary')"
+                                    <button t-att-class="'btn btn-sm flex-fill ' + (this.state.fieldType === 'group' ? 'btn-primary' : 'btn-outline-secondary')"
                                             t-on-click="() => this.toggleFieldType('group')">
                                         <i class="fa fa-th-large me-1"/>Grouped
                                     </button>
                                 </div>
-                                <t t-if="state.fieldType === 'group'">
+                                <t t-if="this.state.fieldType === 'group'">
                                     <!-- Multi-groupby dimension selector -->
                                     <label class="form-label small fw-semibold mb-1">
                                         <i class="fa fa-object-group me-1 text-primary"/>Dimensions (Group By)
@@ -219,14 +219,14 @@
 
                                     <!-- Selected dimension chips -->
                                     <div class="d-flex flex-wrap gap-1 mb-2 min-height-28">
-                                        <t t-if="state.selectedGroupFields.length === 0">
+                                        <t t-if="this.state.selectedGroupFields.length === 0">
                                             <span class="text-muted small fst-italic">No dimensions yet — add below.</span>
                                         </t>
-                                        <t t-foreach="state.selectedGroupFields" t-as="gf" t-key="gf.name">
+                                        <t t-foreach="this.state.selectedGroupFields" t-as="gf" t-key="gf.name">
                                             <div class="d-inline-flex align-items-center gap-1 px-2 py-1 rounded"
                                                  style="background:#e8f0fe; color:#1a56db; border:1px solid #c7d7fb; font-size:0.78rem;">
                                                 <i class="fa fa-object-group me-1"/>
-                                                <span class="fw-semibold"><t t-esc="gf.string"/></span>
+                                                <span class="fw-semibold"><t t-out="gf.string"/></span>
                                                 <t t-if="['date','datetime'].includes(gf.type)">
                                                     <select class="form-select form-select-sm ms-1"
                                                             style="max-width:70px; font-size:0.7rem; padding:1px 4px; height:auto; color:#1a56db; border-color:#c7d7fb;"
@@ -250,11 +250,11 @@
 
                                     <!-- Add dimension dropdown -->
                                     <select class="form-select form-select-sm mb-2"
-                                            t-on-change="onAddGroupByField">
+                                            t-on-change="this.onAddGroupByField">
                                         <option value="">+ Add a dimension…</option>
-                                        <t t-foreach="state.groupFields.filter(f => !state.selectedGroupFields.some(s => s.name === f.name))" t-as="gf" t-key="gf.name">
+                                        <t t-foreach="this.state.groupFields.filter(f => !this.state.selectedGroupFields.some(s => s.name === f.name))" t-as="gf" t-key="gf.name">
                                             <option t-att-value="gf.name">
-                                                <t t-esc="gf.string"/>
+                                                <t t-out="gf.string"/>
                                                 <t t-if="['date','datetime'].includes(gf.type)"> [date]</t>
                                             </option>
                                         </t>
@@ -267,8 +267,8 @@
                                         </label>
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox" id="erd_rec_count"
-                                                   t-att-checked="state.showRecordCount"
-                                                   t-on-change="toggleRecordCount"/>
+                                                   t-att-checked="this.state.showRecordCount"
+                                                   t-on-change="this.toggleRecordCount"/>
                                         </div>
                                     </div>
 
@@ -276,7 +276,7 @@
                                         <i class="fa fa-info-circle me-1"/>Add <strong>numeric</strong> measure columns from the field panel.
                                     </p>
                                 </t>
-                                <t t-if="state.fieldType === 'standard'">
+                                <t t-if="this.state.fieldType === 'standard'">
                                     <p class="text-muted small mt-1 mb-0">
                                         <i class="fa fa-list me-1"/>One row per record — all field types available.
                                     </p>
@@ -297,8 +297,8 @@
                                         <label class="form-label small fw-semibold mb-1">Report Title</label>
                                         <input type="text" class="form-control form-control-sm"
                                                placeholder="Displayed as merged header row in XLSX"
-                                               t-att-value="state.exportTitle"
-                                               t-on-input="(ev) => state.exportTitle = ev.target.value"/>
+                                               t-att-value="this.state.exportTitle"
+                                               t-on-input="(ev) => this.state.exportTitle = ev.target.value"/>
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label small fw-semibold mb-1">Filename</label>
@@ -306,8 +306,8 @@
                                             <input type="text"
                                                    class="form-control"
                                                    placeholder="auto-generated"
-                                                   t-att-value="state.filename"
-                                                   t-on-input="onFilenameChange"/>
+                                                   t-att-value="this.state.filename"
+                                                   t-on-input="this.onFilenameChange"/>
                                             <span class="input-group-text text-muted">.xlsx</span>
                                         </div>
                                     </div>
@@ -315,22 +315,22 @@
                                         <label class="form-label small fw-semibold mb-1">Header BG</label>
                                         <input type="color"
                                                class="form-control form-control-color form-control-sm w-100"
-                                               t-att-value="state.headerBgColor"
+                                               t-att-value="this.state.headerBgColor"
                                                t-on-change="(ev) => this.onColorChange('headerBgColor', ev)"/>
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label small fw-semibold mb-1">Header Font</label>
                                         <input type="color"
                                                class="form-control form-control-color form-control-sm w-100"
-                                               t-att-value="state.headerFontColor"
+                                               t-att-value="this.state.headerFontColor"
                                                t-on-change="(ev) => this.onColorChange('headerFontColor', ev)"/>
                                     </div>
                                     <div class="col-6">
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox"
                                                    id="erd_freeze"
-                                                   t-att-checked="state.freezeHeader"
-                                                   t-on-change="(ev) => state.freezeHeader = ev.target.checked"/>
+                                                   t-att-checked="this.state.freezeHeader"
+                                                   t-on-change="(ev) => this.state.freezeHeader = ev.target.checked"/>
                                             <label class="form-check-label small" for="erd_freeze">Freeze header</label>
                                         </div>
                                     </div>
@@ -338,8 +338,8 @@
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox"
                                                    id="erd_altrows"
-                                                   t-att-checked="state.alternateRows"
-                                                   t-on-change="(ev) => state.alternateRows = ev.target.checked"/>
+                                                   t-att-checked="this.state.alternateRows"
+                                                   t-on-change="(ev) => this.state.alternateRows = ev.target.checked"/>
                                             <label class="form-check-label small" for="erd_altrows">Zebra rows</label>
                                         </div>
                                     </div>
@@ -347,8 +347,8 @@
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox"
                                                    id="erd_totals"
-                                                   t-att-checked="state.showTotals"
-                                                   t-on-change="(ev) => state.showTotals = ev.target.checked"/>
+                                                   t-att-checked="this.state.showTotals"
+                                                   t-on-change="(ev) => this.state.showTotals = ev.target.checked"/>
                                             <label class="form-check-label small" for="erd_totals">Totals row</label>
                                         </div>
                                     </div>
@@ -356,8 +356,8 @@
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox"
                                                    id="erd_summary"
-                                                   t-att-checked="state.addSummarySheet"
-                                                   t-on-change="(ev) => state.addSummarySheet = ev.target.checked"/>
+                                                   t-att-checked="this.state.addSummarySheet"
+                                                   t-on-change="(ev) => this.state.addSummarySheet = ev.target.checked"/>
                                             <label class="form-check-label small" for="erd_summary">Summary sheet</label>
                                         </div>
                                     </div>
@@ -365,8 +365,8 @@
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox"
                                                    id="erd_autofilter"
-                                                   t-att-checked="state.autoFilter"
-                                                   t-on-change="onAutoFilterToggle"/>
+                                                   t-att-checked="this.state.autoFilter"
+                                                   t-on-change="this.onAutoFilterToggle"/>
                                             <label class="form-check-label small" for="erd_autofilter">AutoFilter</label>
                                         </div>
                                     </div>
@@ -374,26 +374,26 @@
                                         <label class="form-label small fw-semibold mb-1">Sheet name</label>
                                         <input type="text" class="form-control form-control-sm"
                                                placeholder="Data"
-                                               t-att-value="state.sheetName"
-                                               t-on-input="onSheetNameChange"/>
+                                               t-att-value="this.state.sheetName"
+                                               t-on-input="this.onSheetNameChange"/>
                                     </div>
                                     <!-- Sort -->
                                     <div class="col-12">
                                         <label class="form-label small fw-semibold mb-1">Sort by</label>
                                         <div class="input-group input-group-sm">
                                             <select class="form-select form-select-sm"
-                                                    t-att-value="state.sortField"
-                                                    t-on-change="onSortFieldChange">
+                                                    t-att-value="this.state.sortField"
+                                                    t-on-change="this.onSortFieldChange">
                                                 <option value="">— none —</option>
-                                                <t t-foreach="state.groupFields" t-as="sf" t-key="sf.name">
-                                                    <option t-att-value="sf.name"><t t-esc="sf.string"/></option>
+                                                <t t-foreach="this.state.groupFields" t-as="sf" t-key="sf.name">
+                                                    <option t-att-value="sf.name"><t t-out="sf.string"/></option>
                                                 </t>
                                             </select>
-                                            <button t-att-class="'btn btn-outline-secondary erd-sort-dir ' + (state.sortDir === 'asc' ? 'active' : '')"
+                                            <button t-att-class="'btn btn-outline-secondary erd-sort-dir ' + (this.state.sortDir === 'asc' ? 'active' : '')"
                                                     title="Toggle sort direction"
-                                                    t-on-click="toggleSortDir">
-                                                <i t-att-class="'fa ' + (state.sortDir === 'asc' ? 'fa-sort-amount-asc' : 'fa-sort-amount-desc')"/>
-                                                <t t-esc="state.sortDir === 'asc' ? ' ASC' : ' DESC'"/>
+                                                    t-on-click="this.toggleSortDir">
+                                                <i t-att-class="'fa ' + (this.state.sortDir === 'asc' ? 'fa-sort-amount-asc' : 'fa-sort-amount-desc')"/>
+                                                <t t-out="this.state.sortDir === 'asc' ? ' ASC' : ' DESC'"/>
                                             </button>
                                         </div>
                                     </div>
@@ -404,8 +404,8 @@
                                             <input type="number" class="form-control"
                                                    placeholder="All records"
                                                    min="0"
-                                                   t-att-value="state.exportLimit"
-                                                   t-on-input="onExportLimitChange"/>
+                                                   t-att-value="this.state.exportLimit"
+                                                   t-on-input="this.onExportLimitChange"/>
                                             <span class="input-group-text text-muted small">0 = all</span>
                                         </div>
                                     </div>
@@ -415,7 +415,7 @@
                                             <i class="fa fa-bar-chart me-1 text-primary"/>Chart
                                         </label>
                                         <select class="form-select form-select-sm"
-                                                t-att-value="state.chartType" t-on-change="onChartTypeChange">
+                                                t-att-value="this.state.chartType" t-on-change="this.onChartTypeChange">
                                             <option value="">None</option>
                                             <option value="column">Column</option>
                                             <option value="bar">Bar</option>
@@ -424,14 +424,14 @@
                                             <option value="pie">Pie</option>
                                         </select>
                                     </div>
-                                    <div class="col-6" t-if="state.chartType">
+                                    <div class="col-6" t-if="this.state.chartType">
                                         <label class="form-label small fw-semibold mb-1">Chart measure</label>
                                         <select class="form-select form-select-sm"
-                                                t-att-value="state.chartMeasure" t-on-change="onChartMeasureChange">
+                                                t-att-value="this.state.chartMeasure" t-on-change="this.onChartMeasureChange">
                                             <option value="">Auto (all numeric)</option>
-                                            <t t-foreach="state.selectedFields.filter(f => ['integer','float','monetary','computed'].includes(f.type) || f.name === '__count')" t-as="cf" t-key="'cm_'+cf.name">
-                                                <option t-att-value="cf.name" t-att-selected="state.chartMeasure === cf.name">
-                                                    <t t-esc="cf.string"/>
+                                            <t t-foreach="this.state.selectedFields.filter(f => ['integer','float','monetary','computed'].includes(f.type) || f.name === '__count')" t-as="cf" t-key="'cm_'+cf.name">
+                                                <option t-att-value="cf.name" t-att-selected="this.state.chartMeasure === cf.name">
+                                                    <t t-out="cf.string"/>
                                                 </option>
                                             </t>
                                         </select>
@@ -447,21 +447,21 @@
                     <div class="card-header erd-card-header d-flex align-items-center justify-content-between">
                         <span><i class="fa fa-filter me-1"/>Filter Records</span>
                         <span class="erd-count-badge">
-                            <t t-if="state.isCountLoading">
+                            <t t-if="this.state.isCountLoading">
                                 <i class="fa fa-spinner fa-spin me-1"/>counting…
                             </t>
-                            <t t-elif="state.recordCount !== null">
+                            <t t-elif="this.state.recordCount !== null">
                                 <i class="fa fa-database me-1"/>
-                                <t t-esc="state.recordCount"/> record(s) match
+                                <t t-out="this.state.recordCount"/> record(s) match
                             </t>
                         </span>
                     </div>
                     <div class="card-body p-2">
                         <DomainSelector
-                            resModel="props.model"
-                            domain="state.domain"
+                            resModel="this.props.model"
+                            domain="this.state.domain"
                             readonly="false"
-                            update.bind="onDomainChange"
+                            update.bind="this.onDomainChange"
                         />
                     </div>
                 </div>
@@ -472,17 +472,17 @@
                         <span><i class="fa fa-clock-o me-1"/>Scheduled Email Delivery</span>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" id="erd_sched"
-                                   t-att-checked="state.scheduleEnabled"
-                                   t-on-change="onScheduleToggle"/>
+                                   t-att-checked="this.state.scheduleEnabled"
+                                   t-on-change="this.onScheduleToggle"/>
                             <label class="form-check-label small" for="erd_sched">Enable</label>
                         </div>
                     </div>
-                    <div class="card-body p-2" t-if="state.scheduleEnabled">
+                    <div class="card-body p-2" t-if="this.state.scheduleEnabled">
                         <div class="row g-2 align-items-end">
                             <div class="col-md-3">
                                 <label class="form-label small fw-semibold mb-1">Frequency</label>
                                 <select class="form-select form-select-sm"
-                                        t-att-value="state.scheduleInterval" t-on-change="onScheduleIntervalChange">
+                                        t-att-value="this.state.scheduleInterval" t-on-change="this.onScheduleIntervalChange">
                                     <option value="daily">Daily</option>
                                     <option value="weekly">Weekly</option>
                                     <option value="monthly">Monthly</option>
@@ -492,8 +492,8 @@
                                 <label class="form-label small fw-semibold mb-1">Recipients (comma-separated emails)</label>
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="alice@example.com, bob@example.com"
-                                       t-att-value="state.scheduleEmailTo"
-                                       t-on-input="onScheduleEmailChange"/>
+                                       t-att-value="this.state.scheduleEmailTo"
+                                       t-on-input="this.onScheduleEmailChange"/>
                             </div>
                         </div>
                         <p class="text-muted small mb-0 mt-2">
@@ -510,22 +510,22 @@
                     <div class="col-lg-5">
                         <div class="card border-0 shadow-sm" style="height: 420px; display: flex; flex-direction: column;">
                             <div class="card-header erd-card-header d-flex align-items-center gap-2 flex-shrink-0">
-                                <t t-if="fieldPath.length > 0">
-                                    <button class="btn btn-sm btn-light py-0 px-2 me-1" t-on-click="goBack"
+                                <t t-if="this.fieldPath.length > 0">
+                                    <button class="btn btn-sm btn-light py-0 px-2 me-1" t-on-click="this.goBack"
                                             title="Back to parent model">
                                         <i class="fa fa-arrow-left"/>
                                     </button>
                                     <span class="text-truncate small fw-semibold">
-                                        <t t-esc="fieldPath[fieldPath.length - 1].label"/>
+                                        <t t-out="this.fieldPath[this.fieldPath.length - 1].label"/>
                                     </span>
                                 </t>
                                 <t t-else="">
                                     <i class="fa fa-columns me-1"/>Available Fields
                                 </t>
                                 <span class="badge bg-secondary ms-auto rounded-pill" style="font-size: 0.65rem;">
-                                    <t t-esc="filteredFields.length"/>
+                                    <t t-out="this.filteredFields.length"/>
                                 </span>
-                                <t t-if="fieldPath.length === 0">
+                                <t t-if="this.fieldPath.length === 0">
                                     <div class="dropdown ms-1">
                                         <button class="btn btn-sm erd-quickadd-btn dropdown-toggle"
                                                 data-bs-toggle="dropdown" title="Quick-add multiple fields">
@@ -534,13 +534,13 @@
                                         <ul class="dropdown-menu dropdown-menu-end shadow-sm erd-quickadd-menu">
                                             <li class="dropdown-header small text-uppercase fw-bold px-3 py-1">Quick Add</li>
                                             <!-- List view columns — only shown when available -->
-                                            <t t-if="props.listViewFields and props.listViewFields.length > 0">
+                                            <t t-if="this.props.listViewFields and this.props.listViewFields.length > 0">
                                                 <li><a class="dropdown-item erd-quickadd-item" href="#"
                                                        t-on-click.prevent="() => this.quickAddFields('listview')">
                                                     <span class="erd-qa-icon bg-warning text-dark"><i class="fa fa-list"/></span>
                                                     Current list view columns
                                                     <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">
-                                                        <t t-esc="props.listViewFields.length"/>
+                                                        <t t-out="this.props.listViewFields.length"/>
                                                     </span>
                                                 </a></li>
                                                 <li><hr class="dropdown-divider my-1"/></li>
@@ -567,7 +567,7 @@
                                             </a></li>
                                             <li><hr class="dropdown-divider my-1"/></li>
                                             <li><a class="dropdown-item erd-quickadd-item text-danger" href="#"
-                                                   t-on-click.prevent="clearAllColumns">
+                                                   t-on-click.prevent="this.clearAllColumns">
                                                 <span class="erd-qa-icon bg-danger"><i class="fa fa-trash"/></span>
                                                 Clear all columns
                                             </a></li>
@@ -585,11 +585,11 @@
                                     <input type="text"
                                            class="form-control border-start-0 ps-0"
                                            placeholder="Search by label or field name…"
-                                           t-att-value="state.fieldSearchQuery"
-                                           t-on-input="onFieldSearch"/>
-                                    <t t-if="state.fieldSearchQuery">
+                                           t-att-value="this.state.fieldSearchQuery"
+                                           t-on-input="this.onFieldSearch"/>
+                                    <t t-if="this.state.fieldSearchQuery">
                                         <button class="btn btn-outline-secondary border-start-0"
-                                                t-on-click="() => state.fieldSearchQuery = ''">
+                                                t-on-click="() => this.state.fieldSearchQuery = ''">
                                             <i class="fa fa-times"/>
                                         </button>
                                     </t>
@@ -598,18 +598,18 @@
 
                             <!-- Field list -->
                             <div class="flex-grow-1 p-2 overflow-auto">
-                                <t t-foreach="filteredFields" t-as="field" t-key="field.name">
-                                    <t t-set="badge" t-value="getFieldTypeBadge(field.type)"/>
+                                <t t-foreach="this.filteredFields" t-as="field" t-key="field.name">
+                                    <t t-set="badge" t-value="this.getFieldTypeBadge(field.type)"/>
                                     <div class="erd-field-item d-flex align-items-center gap-2 p-2 mb-1 rounded">
                                         <span t-att-class="'erd-type-badge ' + badge.cls">
-                                            <t t-esc="badge.label"/>
+                                            <t t-out="badge.label"/>
                                         </span>
                                         <div class="flex-grow-1 overflow-hidden">
                                             <div class="fw-semibold text-truncate erd-field-label">
-                                                <t t-esc="field.string"/>
+                                                <t t-out="field.string"/>
                                             </div>
                                             <div class="text-muted text-truncate erd-field-name">
-                                                <t t-esc="field.name"/>
+                                                <t t-out="field.name"/>
                                             </div>
                                         </div>
                                         <div class="d-flex gap-1 flex-shrink-0">
@@ -629,11 +629,11 @@
                                     </div>
                                 </t>
 
-                                <t t-if="filteredFields.length === 0">
+                                <t t-if="this.filteredFields.length === 0">
                                     <div class="text-center py-5 text-muted">
                                         <i class="fa fa-search fa-2x mb-2 d-block" style="opacity: 0.3;"/>
-                                        <small t-if="state.fieldSearchQuery">
-                                            No fields match "<t t-esc="state.fieldSearchQuery"/>"
+                                        <small t-if="this.state.fieldSearchQuery">
+                                            No fields match "<t t-out="this.state.fieldSearchQuery"/>"
                                         </small>
                                         <small t-else="">No fields available</small>
                                     </div>
@@ -648,22 +648,22 @@
                             <div class="card-header erd-card-header d-flex align-items-center flex-shrink-0">
                                 <i class="fa fa-table me-1"/>Selected Columns
                                 <span class="badge bg-success ms-2 rounded-pill" style="font-size: 0.65rem;">
-                                    <t t-esc="state.selectedFields.length"/>
+                                    <t t-out="this.state.selectedFields.length"/>
                                 </span>
                                 <!-- Formula column button -->
-                                <button t-if="state.fieldType !== 'group'"
-                                        t-att-class="'btn btn-sm ms-auto erd-formula-btn ' + (state.showFormulaInput ? 'active' : '')"
+                                <button t-if="this.state.fieldType !== 'group'"
+                                        t-att-class="'btn btn-sm ms-auto erd-formula-btn ' + (this.state.showFormulaInput ? 'active' : '')"
                                         title="Add a computed formula column"
-                                        t-on-click="toggleFormulaInput">
+                                        t-on-click="this.toggleFormulaInput">
                                     <i class="fa fa-calculator me-1"/>f(x)
                                 </button>
-                                <span class="ms-auto text-muted small" t-if="state.selectedFields.length > 0 and state.fieldType === 'group'">
+                                <span class="ms-auto text-muted small" t-if="this.state.selectedFields.length > 0 and this.state.fieldType === 'group'">
                                     drag ↕ to reorder
                                 </span>
                             </div>
 
                             <!-- Formula input panel -->
-                            <t t-if="state.showFormulaInput">
+                            <t t-if="this.state.showFormulaInput">
                                 <div class="erd-formula-panel p-2 border-bottom flex-shrink-0">
                                     <div class="fw-semibold small mb-2 text-primary">
                                         <i class="fa fa-calculator me-1"/>New Computed Column
@@ -671,33 +671,33 @@
                                     <div class="d-flex gap-2 mb-2">
                                         <input type="text" class="form-control form-control-sm flex-grow-1"
                                                placeholder="Column label…"
-                                               t-att-value="state.newFormulaLabel"
-                                               t-on-input="(ev) => state.newFormulaLabel = ev.target.value"/>
+                                               t-att-value="this.state.newFormulaLabel"
+                                               t-on-input="(ev) => this.state.newFormulaLabel = ev.target.value"/>
                                     </div>
                                     <div class="d-flex gap-1 mb-2 align-items-center">
                                         <input type="text" class="form-control form-control-sm flex-grow-1 font-monospace"
                                                placeholder="{field_a} * {field_b} + 100"
-                                               t-att-value="state.newFormulaExpr"
-                                               t-on-input="(ev) => state.newFormulaExpr = ev.target.value"/>
-                                        <button class="btn btn-sm btn-success flex-shrink-0" t-on-click="confirmAddFormula"
+                                               t-att-value="this.state.newFormulaExpr"
+                                               t-on-input="(ev) => this.state.newFormulaExpr = ev.target.value"/>
+                                        <button class="btn btn-sm btn-success flex-shrink-0" t-on-click="this.confirmAddFormula"
                                                 title="Add column"><i class="fa fa-check"/></button>
-                                        <button class="btn btn-sm btn-light border flex-shrink-0" t-on-click="toggleFormulaInput"
+                                        <button class="btn btn-sm btn-light border flex-shrink-0" t-on-click="this.toggleFormulaInput"
                                                 title="Cancel"><i class="fa fa-times"/></button>
                                     </div>
                                     <!-- Quick-insert field tokens -->
                                     <div class="d-flex flex-wrap gap-1 mb-1">
-                                        <t t-foreach="state.selectedFields.filter(f => f.type !== 'computed' and f.name !== '__count')" t-as="tf" t-key="tf.name">
+                                        <t t-foreach="this.state.selectedFields.filter(f => f.type !== 'computed' and f.name !== '__count')" t-as="tf" t-key="tf.name">
                                             <button class="btn btn-sm erd-token-btn"
                                                     t-att-title="'Insert {' + tf.name + '}'"
                                                     t-on-click="() => this.insertFieldToken(tf.name)">
-                                                <t t-esc="tf.string"/>
+                                                <t t-out="tf.string"/>
                                             </button>
                                         </t>
                                     </div>
-                                    <t t-if="state.formulaError">
+                                    <t t-if="this.state.formulaError">
                                         <div class="text-danger small mt-1">
                                             <i class="fa fa-exclamation-circle me-1"/>
-                                            <t t-esc="state.formulaError"/>
+                                            <t t-out="this.state.formulaError"/>
                                         </div>
                                     </t>
                                     <div class="text-muted" style="font-size: 0.68rem;">
@@ -707,7 +707,7 @@
                             </t>
 
                             <div class="flex-grow-1 p-2 overflow-auto">
-                                <t t-if="state.selectedFields.length === 0">
+                                <t t-if="this.state.selectedFields.length === 0">
                                     <div class="text-center py-5 text-muted">
                                         <i class="fa fa-arrow-left fa-2x mb-2 d-block" style="opacity: 0.3;"/>
                                         <div class="small">Click <strong>+</strong> on any field to add it here.</div>
@@ -717,22 +717,22 @@
                                     </div>
                                 </t>
 
-                                <t t-foreach="state.selectedFields" t-as="field" t-key="field.name">
+                                <t t-foreach="this.state.selectedFields" t-as="field" t-key="field.name">
                                     <div class="erd-col-item d-flex align-items-center gap-2 p-2 mb-1 rounded">
-                                        <span class="erd-col-num"><t t-esc="field_index + 1"/></span>
+                                        <span class="erd-col-num"><t t-out="field_index + 1"/></span>
 
                                         <!-- Inline editing mode -->
-                                        <t t-if="state.editingHeader.fieldName === field.name">
+                                        <t t-if="this.state.editingHeader.fieldName === field.name">
                                             <input type="text"
                                                    class="form-control form-control-sm flex-grow-1 erd-header-input"
-                                                   t-att-value="state.editingHeader.value"
-                                                   t-on-input="(ev) => state.editingHeader.value = ev.target.value"
-                                                   t-on-keydown="onHeaderKeydown"/>
+                                                   t-att-value="this.state.editingHeader.value"
+                                                   t-on-input="(ev) => this.state.editingHeader.value = ev.target.value"
+                                                   t-on-keydown="this.onHeaderKeydown"/>
                                             <div class="btn-group btn-group-sm flex-shrink-0">
-                                                <button class="btn btn-success erd-act-btn" title="Confirm rename" t-on-click="confirmEditHeader">
+                                                <button class="btn btn-success erd-act-btn" title="Confirm rename" t-on-click="this.confirmEditHeader">
                                                     <i class="fa fa-check"/>
                                                 </button>
-                                                <button class="btn btn-outline-secondary erd-act-btn" title="Cancel" t-on-click="cancelEditHeader">
+                                                <button class="btn btn-outline-secondary erd-act-btn" title="Cancel" t-on-click="this.cancelEditHeader">
                                                     <i class="fa fa-times"/>
                                                 </button>
                                             </div>
@@ -742,21 +742,21 @@
                                         <t t-else="">
                                             <div class="flex-grow-1 overflow-hidden">
                                                 <div class="fw-semibold text-truncate erd-field-label">
-                                                    <t t-esc="field.string"/>
+                                                    <t t-out="field.string"/>
                                                 </div>
                                                 <div class="text-muted text-truncate erd-field-name">
-                                                    <t t-esc="field.name"/>
+                                                    <t t-out="field.name"/>
                                                 </div>
                                                 <!-- Formula expression subtitle for computed columns -->
                                                 <t t-if="field.type === 'computed'">
                                                     <div class="text-muted text-truncate erd-formula-expr" style="font-size: 0.62rem;">
                                                         <i class="fa fa-code me-1"/>
-                                                        <t t-esc="field.formula"/>
+                                                        <t t-out="field.formula"/>
                                                     </div>
                                                 </t>
                                                 <!-- Per-column options: number format, analytic transform &
                                                      conditional formatting (numeric columns, both modes) -->
-                                                <t t-if="['integer','float','monetary','computed'].includes(field.type) and !state.selectedGroupFields.some(g => g.name === field.name) and field.name !== '__count'">
+                                                <t t-if="['integer','float','monetary','computed'].includes(field.type) and !this.state.selectedGroupFields.some(g => g.name === field.name) and field.name !== '__count'">
                                                     <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
                                                         <select class="form-select form-select-sm erd-fmt-select"
                                                                 t-att-value="field.num_format or ''"
@@ -821,7 +821,7 @@
                                                     <t t-if="field.cond_format === 'top' or field.cond_format === 'bottom'">
                                                         <div class="d-flex align-items-center gap-1 mt-1">
                                                             <span class="small text-muted">
-                                                                <t t-esc="field.cond_format === 'top' ? 'Top' : 'Bottom'"/>
+                                                                <t t-out="field.cond_format === 'top' ? 'Top' : 'Bottom'"/>
                                                             </span>
                                                             <input type="number" class="form-control form-control-sm"
                                                                    style="max-width: 80px;" min="1" placeholder="N"
@@ -838,7 +838,7 @@
                                             </div>
 
                                             <!-- Aggregation selector (grouped mode only) -->
-                                            <t t-if="state.fieldType === 'group' and !state.selectedGroupFields.some(g => g.name === field.name) and field.name !== '__count'">
+                                            <t t-if="this.state.fieldType === 'group' and !this.state.selectedGroupFields.some(g => g.name === field.name) and field.name !== '__count'">
                                                 <select class="form-select form-select-sm erd-agg-select"
                                                         t-att-value="field.agg_type or 'sum'"
                                                         t-on-change="(ev) => this.onAggregationChange(field_index, ev)">
@@ -856,11 +856,11 @@
                                                 </span>
                                             </t>
                                             <!-- Dimension badge for group-by fields -->
-                                            <t t-set="gbInfo" t-value="state.selectedGroupFields.find(g => g.name === field.name)"/>
-                                            <t t-if="state.fieldType === 'group' and gbInfo">
+                                            <t t-set="gbInfo" t-value="this.state.selectedGroupFields.find(g => g.name === field.name)"/>
+                                            <t t-if="this.state.fieldType === 'group' and gbInfo">
                                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem; padding: 3px 7px;">
                                                     dimension
-                                                    <t t-if="gbInfo.period"> · <t t-esc="gbInfo.period"/></t>
+                                                    <t t-if="gbInfo.period"> · <t t-out="gbInfo.period"/></t>
                                                 </span>
                                             </t>
 
@@ -901,41 +901,41 @@
                     <div class="card-header erd-card-header d-flex align-items-center justify-content-between">
                         <span><i class="fa fa-eye me-1"/>Data Preview</span>
                         <span class="text-muted small">
-                            <t t-if="state.previewData.length > 0">
-                                Showing <strong><t t-esc="state.previewData.length"/></strong> of
-                                <t t-if="state.recordCount !== null">
-                                    <strong><t t-esc="state.recordCount"/></strong> total record(s)
+                            <t t-if="this.state.previewData.length > 0">
+                                Showing <strong><t t-out="this.state.previewData.length"/></strong> of
+                                <t t-if="this.state.recordCount !== null">
+                                    <strong><t t-out="this.state.recordCount"/></strong> total record(s)
                                 </t>
                                 <t t-else="">? record(s)</t>
                                 — <span class="fst-italic">headers are editable (click ✏)</span>
                             </t>
-                            <t t-elif="state.selectedFields.length === 0">
+                            <t t-elif="this.state.selectedFields.length === 0">
                                 Add columns to see a live preview
                             </t>
                         </span>
                     </div>
                     <div class="card-body p-0">
-                        <t t-if="state.selectedFields.length > 0">
+                        <t t-if="this.state.selectedFields.length > 0">
                             <div class="erd-preview-wrap">
                                 <table class="table table-sm table-bordered mb-0 erd-preview-table">
                                     <thead>
                                         <tr>
-                                            <th t-foreach="state.selectedFields" t-as="f" t-key="f.name"
-                                                t-attf-style="background-color: {{state.headerBgColor}}; color: {{state.headerFontColor}}; white-space: nowrap; font-size: 0.78rem; vertical-align: middle;">
+                                            <th t-foreach="this.state.selectedFields" t-as="f" t-key="f.name"
+                                                t-attf-style="background-color: {{this.state.headerBgColor}}; color: {{this.state.headerFontColor}}; white-space: nowrap; font-size: 0.78rem; vertical-align: middle;">
                                                 <!-- Inline edit mode in preview header -->
-                                                <t t-if="state.editingHeader.fieldName === f.name">
+                                                <t t-if="this.state.editingHeader.fieldName === f.name">
                                                     <div class="d-flex align-items-center gap-1">
                                                         <input type="text"
                                                                class="form-control form-control-sm erd-preview-header-input"
-                                                               t-att-value="state.editingHeader.value"
-                                                               t-on-input="(ev) => state.editingHeader.value = ev.target.value"
-                                                               t-on-keydown="onHeaderKeydown"/>
+                                                               t-att-value="this.state.editingHeader.value"
+                                                               t-on-input="(ev) => this.state.editingHeader.value = ev.target.value"
+                                                               t-on-keydown="this.onHeaderKeydown"/>
                                                         <button class="btn btn-sm erd-pencil-confirm-btn"
-                                                                title="Confirm" t-on-click="confirmEditHeader">
+                                                                title="Confirm" t-on-click="this.confirmEditHeader">
                                                             <i class="fa fa-check"/>
                                                         </button>
                                                         <button class="btn btn-sm erd-pencil-cancel-btn"
-                                                                title="Cancel" t-on-click="cancelEditHeader">
+                                                                title="Cancel" t-on-click="this.cancelEditHeader">
                                                             <i class="fa fa-times"/>
                                                         </button>
                                                     </div>
@@ -948,25 +948,25 @@
                                                                 t-on-click="() => this.startEditHeader(f)">
                                                             <i class="fa fa-pencil"/>
                                                         </button>
-                                                        <span><t t-esc="f.string"/></span>
+                                                        <span><t t-out="f.string"/></span>
                                                     </div>
                                                 </t>
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <t t-if="state.previewData.length > 0">
-                                            <tr t-foreach="state.previewData" t-as="rec"
+                                        <t t-if="this.state.previewData.length > 0">
+                                            <tr t-foreach="this.state.previewData" t-as="rec"
                                                 t-key="rec.id or rec_index">
-                                                <td t-foreach="state.selectedFields" t-as="f" t-key="f.name"
+                                                <td t-foreach="this.state.selectedFields" t-as="f" t-key="f.name"
                                                     class="text-nowrap" style="font-size: 0.81rem;">
-                                                    <t t-esc="getValue(rec, f.name)"/>
+                                                    <t t-out="this.getValue(rec, f.name)"/>
                                                 </td>
                                             </tr>
                                         </t>
                                         <t t-else="">
                                             <tr>
-                                                <td t-att-colspan="state.selectedFields.length"
+                                                <td t-att-colspan="this.state.selectedFields.length"
                                                     class="text-center text-muted py-3">
                                                     <i class="fa fa-inbox me-2"/>
                                                     No records match the current filter
@@ -975,14 +975,14 @@
                                         </t>
                                     </tbody>
                                     <!-- Statistics footer (preview only) -->
-                                    <tfoot t-if="state.previewData.length > 0">
+                                    <tfoot t-if="this.state.previewData.length > 0">
                                         <tr class="erd-preview-stat-row">
-                                            <td t-foreach="state.selectedFields" t-as="f" t-key="f.name"
+                                            <td t-foreach="this.state.selectedFields" t-as="f" t-key="f.name"
                                                 class="text-nowrap" style="font-size: 0.68rem;">
-                                                <t t-set="stat" t-value="getPreviewStat(f.name, f.type)"/>
+                                                <t t-set="stat" t-value="this.getPreviewStat(f.name, f.type)"/>
                                                 <t t-if="stat">
                                                     <span class="erd-stat-chip" t-att-title="'Preview stat for ' + f.string">
-                                                        <t t-esc="stat"/>
+                                                        <t t-out="stat"/>
                                                     </span>
                                                 </t>
                                             </td>
@@ -1007,25 +1007,25 @@
                 <div class="d-flex align-items-center gap-2 w-100 flex-wrap">
                     <!-- Stats badges — solid colors for readability -->
                     <div class="me-auto d-flex gap-2 align-items-center flex-wrap">
-                        <t t-if="state.selectedFields.length > 0">
+                        <t t-if="this.state.selectedFields.length > 0">
                             <span class="erd-footer-badge erd-footer-badge-blue">
                                 <i class="fa fa-columns me-1"/>
-                                <t t-esc="state.selectedFields.length"/> column(s)
+                                <t t-out="this.state.selectedFields.length"/> column(s)
                             </span>
                         </t>
-                        <t t-if="state.recordCount !== null">
+                        <t t-if="this.state.recordCount !== null">
                             <span class="erd-footer-badge erd-footer-badge-green">
                                 <i class="fa fa-database me-1"/>
-                                <t t-esc="state.recordCount"/> record(s)
+                                <t t-out="this.state.recordCount"/> record(s)
                             </span>
                         </t>
-                        <t t-if="state.exportLimit and state.exportLimit != '0'">
+                        <t t-if="this.state.exportLimit and this.state.exportLimit != '0'">
                             <span class="erd-footer-badge erd-footer-badge-orange">
                                 <i class="fa fa-cut me-1"/>
-                                max <t t-esc="state.exportLimit"/> rows
+                                max <t t-out="this.state.exportLimit"/> rows
                             </span>
                         </t>
-                        <t t-if="state.showTotals">
+                        <t t-if="this.state.showTotals">
                             <span class="erd-footer-badge erd-footer-badge-purple">
                                 <i class="fa fa-calculator me-1"/>totals row
                             </span>
@@ -1033,17 +1033,17 @@
                     </div>
                     <!-- Export buttons -->
                     <button class="btn btn-outline-secondary btn-sm"
-                            t-on-click="generateCsv"
-                            t-att-disabled="state.selectedFields.length === 0"
+                            t-on-click="this.generateCsv"
+                            t-att-disabled="this.state.selectedFields.length === 0"
                             title="Export as CSV (UTF-8, Excel-compatible)">
                         <i class="fa fa-file-text-o me-1"/>CSV
                     </button>
                     <button class="btn btn-success px-4"
-                            t-on-click="generate"
-                            t-att-disabled="!canExport">
+                            t-on-click="this.generate"
+                            t-att-disabled="!this.canExport">
                         <i class="fa fa-file-excel-o me-1"/>Export XLSX
                     </button>
-                    <button class="btn btn-light border" t-on-click="props.close">Cancel</button>
+                    <button class="btn btn-light border" t-on-click="this.props.close">Cancel</button>
                 </div>
             </t>
         </Dialog>

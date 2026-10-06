@@ -3,11 +3,11 @@
 
     <t t-name="ebshel_dashboard.PalettePickerField">
         <div class="o_dbf_palettes" role="radiogroup">
-            <t t-foreach="options" t-as="option" t-key="option.key">
+            <t t-foreach="this.options" t-as="option" t-key="option.key">
                 <button type="button"
-                        t-attf-class="o_dbf_pal {{ option.key === current ? 'o_dbf_pal_on' : '' }}"
-                        role="radio" t-att-aria-checked="option.key === current"
-                        t-att-disabled="props.readonly"
+                        t-attf-class="o_dbf_pal {{ option.key === this.current ? 'o_dbf_pal_on' : '' }}"
+                        role="radio" t-att-aria-checked="option.key === this.current"
+                        t-att-disabled="this.props.readonly"
                         t-on-click="() => this.select(option.key)">
                     <span class="o_dbf_pal_dots">
                         <t t-if="option.inherited">
@@ -19,7 +19,7 @@
                             </t>
                         </t>
                     </span>
-                    <span class="o_dbf_pal_label" t-esc="option.label"/>
+                    <span class="o_dbf_pal_label" t-out="option.label"/>
                 </button>
             </t>
         </div>

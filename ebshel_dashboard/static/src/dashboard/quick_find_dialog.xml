@@ -6,19 +6,19 @@
             <div class="o_dbq">
                 <div class="o_dbq_search">
                     <i class="fa fa-search" role="img" aria-label="Search"/>
-                    <input type="text" t-ref="input" class="o_dbq_input"
+                    <input type="text" t-custom-ref="input" class="o_dbq_input"
                            placeholder="Find a dashboard, a card or an action…"
-                           t-att-value="state.query" t-on-input="onInput" t-on-keydown="onKeydown"/>
-                    <i t-if="state.searching" class="fa fa-circle-o-notch fa-spin" role="img" aria-label="Searching"/>
+                           t-att-value="this.state.query" t-on-input="this.onInput" t-on-keydown="this.onKeydown"/>
+                    <i t-if="this.state.searching" class="fa fa-circle-o-notch fa-spin" role="img" aria-label="Searching"/>
                     <kbd>Esc</kbd>
                 </div>
                 <div class="o_dbq_list">
-                    <t t-if="!hits.length">
-                        <div class="o_dbq_empty" t-esc="emptyLabel"/>
+                    <t t-if="!this.hits.length">
+                        <div class="o_dbq_empty" t-esc="this.emptyLabel"/>
                     </t>
-                    <t t-foreach="hits" t-as="hit" t-key="hit.key">
-                        <div t-attf-class="o_dbq_hit {{ hit_index === state.cursor ? 'o_dbq_hit_on' : '' }}"
-                             role="option" t-att-aria-selected="hit_index === state.cursor"
+                    <t t-foreach="this.hits" t-as="hit" t-key="hit.key">
+                        <div t-attf-class="o_dbq_hit {{ hit_index === this.state.cursor ? 'o_dbq_hit_on' : '' }}"
+                             role="option" t-att-aria-selected="hit_index === this.state.cursor"
                              t-on-mouseenter="() => this.state.cursor = hit_index"
                              t-on-click="() => this.pick(hit)">
                             <t t-if="hit.type === 'board'">

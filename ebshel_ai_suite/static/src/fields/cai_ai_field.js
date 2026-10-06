@@ -1,5 +1,6 @@
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
@@ -21,8 +22,8 @@ export class CommunityAIFieldRefresh extends Component {
     setup() {
         this.bridge = useService("communityAiBridge");
         this.orm = useService("orm");
-        this.notification = useService("notification");
-        this.state = useState({ busy: false, enabled: false });
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({ busy: false, enabled: false });
         this.bridge.bootstrap().then((config) => {
             this.state.enabled = Boolean(config?.enabled);
         });

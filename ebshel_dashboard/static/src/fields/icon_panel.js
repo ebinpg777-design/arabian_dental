@@ -1,7 +1,8 @@
 /** @odoo-module **/
 
-import { Component, useExternalListener, useRef, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { useExternalListener, useRef } from "@web/owl2/utils";
 
 const RECENT_KEY = "ebshel_dashboard.recent_icons";
 const RECENT_MAX = 12;
@@ -125,7 +126,7 @@ export class IconPanel extends Component {
     setup() {
         this.rootRef = useRef("root");
         this.searchRef = useRef("search");
-        this.state = useState({ query: "", group: "all", recent: readRecent() });
+        this.state = proxy({ query: "", group: "all", recent: readRecent() });
         window.setTimeout(() => this.searchRef.el && this.searchRef.el.focus(), 0);
         useExternalListener(window, "click", (ev) => {
             // The click that opened the panel is still travelling: only a click

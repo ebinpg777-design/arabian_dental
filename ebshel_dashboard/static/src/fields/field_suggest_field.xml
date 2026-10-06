@@ -2,24 +2,24 @@
 <templates xml:space="preserve">
 
     <t t-name="ebshel_dashboard.FieldSuggestField">
-        <div class="o_dbf_suggest" t-if="chips.length or state.loading" t-att-data-model="state.modelId">
+        <div class="o_dbf_suggest" t-if="this.chips.length or this.state.loading" t-att-data-model="this.state.modelId">
             <span class="o_dbf_suggest_label">
-                <t t-esc="label"/>
-                <i t-if="state.loading" class="fa fa-circle-o-notch fa-spin ms-1" role="img" aria-label="Reading the model"/>
+                <t t-out="this.label"/>
+                <i t-if="this.state.loading" class="fa fa-circle-o-notch fa-spin ms-1" role="img" aria-label="Reading the model"/>
             </span>
-            <t t-foreach="chips" t-as="chip" t-key="chip.id">
+            <t t-foreach="this.chips" t-as="chip" t-key="chip.id">
                 <button type="button"
-                        t-attf-class="o_dbf_suggest_chip {{ chip.id === currentId ? 'o_dbf_suggest_on' : '' }}"
-                        t-att-disabled="props.readonly"
+                        t-attf-class="o_dbf_suggest_chip {{ chip.id === this.currentId ? 'o_dbf_suggest_on' : '' }}"
+                        t-att-disabled="this.props.readonly"
                         t-att-title="chip.name"
                         t-on-click="() => this.pick(chip)">
-                    <span t-esc="chip.label"/>
-                    <span class="o_dbf_suggest_type" t-esc="typeLabel(chip.type)"/>
+                    <span t-out="chip.label"/>
+                    <span class="o_dbf_suggest_type" t-out="this.typeLabel(chip.type)"/>
                 </button>
             </t>
         </div>
-        <div class="o_dbf_suggest o_dbf_suggest_none" t-elif="state.modelId"
-             t-att-data-model="state.modelId">
+        <div class="o_dbf_suggest o_dbf_suggest_none" t-elif="this.state.modelId"
+             t-att-data-model="this.state.modelId">
             <span class="o_dbf_suggest_label">Nothing obvious to suggest on this model</span>
         </div>
     </t>

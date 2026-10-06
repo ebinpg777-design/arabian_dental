@@ -3,18 +3,18 @@
 
     <t t-name="ebshel_dashboard.WidthPickerField">
         <div class="o_dbf_width" t-on-mouseleave="() => this.state.hover = 0">
-            <div class="o_dbf_width_track" role="slider" t-att-aria-valuenow="current"
+            <div class="o_dbf_width_track" role="slider" t-att-aria-valuenow="this.current"
                  aria-valuemin="1" aria-valuemax="12">
-                <t t-foreach="columns" t-as="column" t-key="column">
+                <t t-foreach="this.columns" t-as="column" t-key="column">
                     <button type="button"
-                            t-attf-class="o_dbf_width_seg {{ column &lt;= shown ? 'o_dbf_width_on' : '' }} {{ column === current ? 'o_dbf_width_edge' : '' }}"
+                            t-attf-class="o_dbf_width_seg {{ column &lt;= this.shown ? 'o_dbf_width_on' : '' }} {{ column === this.current ? 'o_dbf_width_edge' : '' }}"
                             t-att-title="column + '/12'"
-                            t-att-disabled="props.readonly"
+                            t-att-disabled="this.props.readonly"
                             t-on-mouseenter="() => this.state.hover = column"
                             t-on-click="() => this.select(column)"/>
                 </t>
             </div>
-            <span class="o_dbf_width_label" t-esc="label"/>
+            <span class="o_dbf_width_label" t-out="this.label"/>
         </div>
     </t>
 

@@ -1,4 +1,4 @@
-import { reactive } from "@odoo/owl";
+import { proxy } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { router } from "@web/core/browser/router";
 import { _t } from "@web/core/l10n/translation";
@@ -21,7 +21,7 @@ export class CaiBridge {
         this.orm = services.orm;
         this.action = services.action;
         this.notification = services.notification;
-        this.state = reactive({ open: false, pendingPrompt: null, config: null });
+        this.state = proxy({ open: false, pendingPrompt: null, config: null });
         this._boot = null;
     }
 

@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUnmount, useRef, useState } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { usePopover } from "@web/core/popover/popover_hook";
+import { useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
 /**
@@ -76,7 +77,7 @@ export class FdiTeethChart extends Component {
 
     setup() {
         const parsed = parseTeeth(this.props.value);
-        this.state = useState({
+        this.state = proxy({
             teeth: parsed.teeth,
             extras: parsed.extras.join(", "),
             // the baby-teeth rows open by themselves when one is already chosen

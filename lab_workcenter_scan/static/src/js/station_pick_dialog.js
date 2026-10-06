@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { Component, useState, onMounted, useRef } from "@odoo/owl";
+import { Component, proxy, onMounted } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
+import { useRef } from "@web/owl2/utils";
 
 /**
  * Which bench am I standing at?
@@ -29,7 +30,7 @@ export class StationPickDialog extends Component {
     };
 
     setup() {
-        this.state = useState({ query: "", busy: false });
+        this.state = proxy({ query: "", busy: false });
         this.searchRef = useRef("search");
         onMounted(() => this.searchRef.el && this.searchRef.el.focus());
     }

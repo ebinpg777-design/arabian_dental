@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUnmount, onWillUpdateProps, useState } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, onWillUpdateProps, proxy } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { _t } from "@web/core/l10n/translation";
 import { humanNumber } from "@web/core/utils/numbers";
@@ -70,11 +70,11 @@ export class FilterTile extends Component {
         // `change`: how much the value moved at the last refresh, shown as a
         // pulsing "+3" for a few seconds. Only a move under the same filter
         // counts - a new filter changing every number is not news.
-        this.state = useState({ shown: this.rawValue(this.props), change: 0 });
+        this.state = proxy({ shown: this.rawValue(this.props), change: 0 });
         this.changeTimer = null;
         // Width while a drag is in progress; 0 the rest of the time, when the
         // tile's own `width` (or the stylesheet default) rules.
-        this.resize = useState({ width: 0, dragging: false });
+        this.resize = proxy({ width: 0, dragging: false });
         this.stopResize = null;
         this.frame = null;
         this.reduceMotion =

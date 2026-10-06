@@ -1,9 +1,11 @@
 /** @odoo-module **/
-import { Component, onMounted, onWillStart, onWillUnmount, useState } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
 import { serializeDateTime } from "@web/core/l10n/dates";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const { DateTime } = luxon;
 
@@ -33,11 +35,11 @@ export class DoctorDesk extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         const params = (this.props.action && this.props.action.params) || {};
         this.columns = COLUMNS;
-        this.state = useState({
+        this.state = proxy({
             loading: true,
             error: null,
             data: null,

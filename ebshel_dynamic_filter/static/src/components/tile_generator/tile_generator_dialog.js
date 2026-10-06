@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 import { AUTO_COLOR_CYCLE, TILE_COLORS } from "../../core/tile_colors";
@@ -28,7 +28,7 @@ export class TileGeneratorDialog extends Component {
     static defaultProps = { rowCount: 1, maxRows: 6 };
 
     setup() {
-        this.state = useState({
+        this.state = proxy({
             selected: this.props.fields.length ? this.props.fields[0].name : "",
             replace: false,
             generating: false,

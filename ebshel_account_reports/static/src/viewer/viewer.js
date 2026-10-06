@@ -1,12 +1,15 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onMounted, onWillUnmount, useEffect, useState, useRef } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { useDebounced } from "@web/core/utils/timing";
 import { _t } from "@web/core/l10n/translation";
 import { DateTimeInput } from "@web/core/datetime/datetime_input";
 import { deserializeDate, serializeDate } from "@web/core/l10n/dates";
+import { useLayoutEffect, useRef } from "@web/owl2/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The report viewer: one screen for every dynamic financial report.
@@ -29,12 +32,12 @@ export class FinReportViewer extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         this.tableRef = useRef("table");
         const params = (this.props.action && this.props.action.params) || {};
         this.reportKey = params.report_key;
-        this.state = useState({
+        this.state = proxy({
             loading: true,
             error: null,
             report: null,
@@ -93,13 +96,13 @@ export class FinReportViewer extends Component {
         this.accountSearch = useDebounced(() => this.loadAccountHits(), 200);
         // the first column at the width the report asks for, whenever the table is drawn anew
         this.onResize = () => this.fitFirstColumn();
-        useEffect(() => {
+        useLayoutEffect(() => {
             this.fitFirstColumn();
         }, () => [this.state.report && this.state.report.key, this.state.columns.length, this.state.lines.length,
                   this.state.limit, this.state.display.density, !!this.state.movers, !!this.state.explain,
                   this.state.options.trend, this.state.options.share, this.state.loading]);
         // once a popover is drawn, it is pulled back inside the window
-        useEffect((menu) => {
+        useLayoutEffect((menu) => {
             if (menu) {
                 this.fitPopover();
             }

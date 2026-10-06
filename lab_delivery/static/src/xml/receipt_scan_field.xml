@@ -7,70 +7,70 @@
              on a phone that opens the camera straight away, on a desktop the file
              chooser, and neither needs a permission prompt before the person has
              even decided to scan. -->
-        <div class="o_crs_actions" t-if="!props.readonly">
-            <label class="btn btn-primary o_crs_btn" t-att-class="{ disabled: state.busy }">
+        <div class="o_crs_actions" t-if="!this.props.readonly">
+            <label class="btn btn-primary o_crs_btn" t-att-class="{ disabled: this.state.busy }">
                 <i class="fa fa-camera me-1" title="Camera"/> Photograph the receipt
                 <input type="file" accept="image/*" capture="environment" class="d-none"
-                       t-att-disabled="state.busy" t-on-change="onFile"/>
+                       t-att-disabled="this.state.busy" t-on-change="this.onFile"/>
             </label>
-            <label class="btn btn-secondary o_crs_btn" t-att-class="{ disabled: state.busy }">
+            <label class="btn btn-secondary o_crs_btn" t-att-class="{ disabled: this.state.busy }">
                 <i class="fa fa-upload me-1" title="Upload"/> Upload an image
                 <input type="file" accept="image/*" class="d-none"
-                       t-att-disabled="state.busy" t-on-change="onFile"/>
+                       t-att-disabled="this.state.busy" t-on-change="this.onFile"/>
             </label>
-            <button t-if="cameraScan" type="button" class="btn btn-secondary o_crs_btn"
-                    t-att-disabled="state.busy" t-on-click="onLiveScan">
+            <button t-if="this.cameraScan" type="button" class="btn btn-secondary o_crs_btn"
+                    t-att-disabled="this.state.busy" t-on-click="this.onLiveScan">
                 <i class="fa fa-barcode me-1" title="Scan"/> Scan the barcode live
             </button>
         </div>
 
-        <div t-if="state.busy" class="o_crs_status" role="status">
+        <div t-if="this.state.busy" class="o_crs_status" role="status">
             <i class="fa fa-circle-o-notch fa-spin me-2" title="Working"/>
-            <t t-esc="state.stage"/>
+            <t t-out="this.state.stage"/>
         </div>
 
-        <div t-if="state.error" class="alert alert-warning o_crs_alert" role="alert">
-            <t t-esc="state.error"/>
+        <div t-if="this.state.error" class="alert alert-warning o_crs_alert" role="alert">
+            <t t-out="this.state.error"/>
         </div>
 
-        <div class="o_crs_body" t-if="previewSrc or state.candidates.length or state.note">
-            <div t-if="previewSrc" class="o_crs_preview">
-                <img t-att-src="previewSrc" alt="Courier receipt"/>
+        <div class="o_crs_body" t-if="this.previewSrc or this.state.candidates.length or this.state.note">
+            <div t-if="this.previewSrc" class="o_crs_preview">
+                <img t-att-src="this.previewSrc" alt="Courier receipt"/>
             </div>
 
             <div class="o_crs_results">
                 <!-- Candidates, best first, each with its reason. Tapping one fills
                      the form; the filled one is marked so a change of mind is one
                      more tap, not a retype. -->
-                <div t-if="state.candidates.length" class="o_crs_list">
-                    <div t-foreach="state.candidates" t-as="c" t-key="c.token"
+                <div t-if="this.state.candidates.length" class="o_crs_list">
+                    <div t-foreach="this.state.candidates" t-as="c" t-key="c.token"
                          class="o_crs_cand"
-                         t-att-class="{ o_crs_cand_on: c.token === state.applied,
+                         t-att-class="{ o_crs_cand_on: c.token === this.state.applied,
                                         o_crs_cand_clash: c.clash }"
                          t-on-click="() => this.apply(c)">
                         <div class="o_crs_cand_main">
-                            <span class="o_crs_tok" t-esc="c.token"/>
-                            <span class="o_crs_score" t-att-class="scoreClass(c)"
+                            <span class="o_crs_tok" t-out="c.token"/>
+                            <span class="o_crs_score" t-att-class="this.scoreClass(c)"
                                   t-att-title="c.score + '/100'">
-                                <t t-esc="c.score"/>
+                                <t t-out="c.score"/>
                             </span>
                         </div>
-                        <div class="o_crs_why" t-esc="c.reason"/>
+                        <div class="o_crs_why" t-out="c.reason"/>
                         <div t-if="c.clash" class="o_crs_clash">
                             <i class="fa fa-exclamation-triangle me-1" title="Duplicate"/>
-                            Already on <t t-esc="c.clash"/>
+                            Already on <t t-out="c.clash"/>
                         </div>
-                        <div t-if="c.token === state.applied" class="o_crs_used">
+                        <div t-if="c.token === this.state.applied" class="o_crs_used">
                             <i class="fa fa-check me-1" title="Used"/> in the form
                         </div>
                     </div>
                 </div>
-                <div t-if="state.courier and state.applied" class="o_crs_courier">
-                    Courier: <b t-esc="state.courier.display_name"/>
-                    <span class="text-muted"> — <t t-esc="state.courier.why"/></span>
+                <div t-if="this.state.courier and this.state.applied" class="o_crs_courier">
+                    Courier: <b t-out="this.state.courier.display_name"/>
+                    <span class="text-muted"> — <t t-out="this.state.courier.why"/></span>
                 </div>
-                <div t-if="state.note" class="o_crs_note" t-esc="state.note"/>
-                <div t-if="state.engines.length and !state.engines.includes('vision')"
+                <div t-if="this.state.note" class="o_crs_note" t-out="this.state.note"/>
+                <div t-if="this.state.engines.length and !this.state.engines.includes('vision')"
                      class="o_crs_engines text-muted">
                     Barcode only — receipt text reading is not set up.
                 </div>

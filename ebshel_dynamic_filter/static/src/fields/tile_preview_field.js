@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { KeepLast } from "@web/core/utils/concurrency";
@@ -28,7 +28,7 @@ export class FilterTilePreviewField extends Component {
         // data: undefined, never null - FilterTile's `data` is an optional Object
         // prop, and OWL's validation (debug mode) rejects null while accepting an
         // omitted prop. Same trap the bar's dataFor() hit. (client, 2026-08-28)
-        this.state = useState({ data: undefined, total: 0, loading: true });
+        this.state = proxy({ data: undefined, total: 0, loading: true });
 
         const refresh = useDebounced(() => this.compute(), 350);
         // useRecordObserver re-fires on the record values *read inside* the

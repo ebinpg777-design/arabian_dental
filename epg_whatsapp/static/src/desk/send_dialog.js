@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { Component, markup, onMounted, onWillStart, onWillUnmount, useState } from "@odoo/owl";
+import { Component, markup, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
@@ -52,8 +53,8 @@ export class WaSendDialog extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.notification = useService("notification");
-        this.state = useState({
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({
             loading: true,
             payload: null,
             error: "",

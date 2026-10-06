@@ -1,4 +1,4 @@
-import { Component, onWillUnmount, useState } from "@odoo/owl";
+import { Component, onWillUnmount, proxy } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
@@ -12,7 +12,7 @@ export class CommunityAIVoiceDialog extends Component {
 
     setup() {
         this.bridge = useService("communityAiBridge");
-        this.state = useState({ phase: "idle", transcript: "", summary: "", error: "", started: 0, elapsed: 0 });
+        this.state = proxy({ phase: "idle", transcript: "", summary: "", error: "", started: 0, elapsed: 0 });
         onWillUnmount(() => {
             clearInterval(this.timer);
             if (this.state.phase === "recording") {

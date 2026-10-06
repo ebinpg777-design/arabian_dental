@@ -60,7 +60,7 @@
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="Name the current selection"
                                        t-att-disabled="!dftChips.length"
-                                       t-model="dft.presetName" t-on-keydown="onDftPresetKeydown"/>
+                                       t-custom-model="dft.presetName" t-on-keydown="onDftPresetKeydown"/>
                                 <button class="btn btn-sm btn-primary"
                                         t-att-disabled="!dftChips.length or !dft.presetName.trim()"
                                         t-on-click="dftSavePreset">Save</button>
@@ -135,7 +135,7 @@
                     <i class="fa fa-search" role="img" aria-hidden="true"/>
                     <input type="text" class="form-control form-control-sm"
                            placeholder="Find…" aria-label="Find in panel"
-                           t-model="dft.query" t-on-keydown="onDftFindKeydown"/>
+                           t-custom-model="dft.query" t-on-keydown="onDftFindKeydown"/>
                     <button t-if="dft.query" class="btn btn-link o_dft_sp_find_clear"
                             title="Clear" t-on-click="dftClearQuery">
                         <i class="fa fa-times" role="img" aria-label="Clear"/>

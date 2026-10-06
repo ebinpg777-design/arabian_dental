@@ -1,14 +1,16 @@
 /** @odoo-module **/
 
-import { Component, onWillDestroy, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillDestroy, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useBus, useService } from "@web/core/utils/hooks";
 import { Layout } from "@web/search/layout";
 
 import { initials } from "./format";
 import { WaSendDialog } from "./send_dialog";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The WhatsApp Desk: every message waiting to be sent from the lab's own WhatsApp,
@@ -24,10 +26,10 @@ export class WaDesk extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
+        this.action = usePlugin(ActionManagerPlugin);
         this.dialog = useService("dialog");
-        this.notification = useService("notification");
-        this.state = useState({
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({
             data: null,
             scope: "mine",
             loading: true,

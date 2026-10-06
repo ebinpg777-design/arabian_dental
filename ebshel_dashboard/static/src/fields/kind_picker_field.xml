@@ -4,47 +4,47 @@
     <t t-name="ebshel_dashboard.KindPickerField">
         <div class="o_dbf_kindpicker">
             <div class="o_dbf_kindgroups" role="radiogroup">
-                <t t-foreach="groups" t-as="group" t-key="group.key">
+                <t t-foreach="this.groups" t-as="group" t-key="group.key">
                     <div class="o_dbf_kindgroup">
                         <div class="o_dbf_kindgroup_head">
-                            <span class="o_dbf_kindgroup_label" t-esc="group.label"/>
-                            <span t-if="group.needs" class="o_dbf_kindgroup_needs" t-esc="group.needs"/>
+                            <span class="o_dbf_kindgroup_label" t-out="group.label"/>
+                            <span t-if="group.needs" class="o_dbf_kindgroup_needs" t-out="group.needs"/>
                         </div>
                         <div class="o_dbf_kinds">
                             <t t-foreach="group.options" t-as="option" t-key="option.key">
                                 <button type="button"
-                                        t-attf-class="o_dbf_kind {{ option.key === current ? 'o_dbf_kind_on' : '' }}"
-                                        role="radio" t-att-aria-checked="option.key === current"
+                                        t-attf-class="o_dbf_kind {{ option.key === this.current ? 'o_dbf_kind_on' : '' }}"
+                                        role="radio" t-att-aria-checked="option.key === this.current"
                                         t-att-title="option.hint"
-                                        t-att-disabled="props.readonly"
+                                        t-att-disabled="this.props.readonly"
                                         t-on-click="() => this.select(option.key)">
                                     <svg class="o_dbf_kind_sketch" viewBox="0 0 40 24" role="img"
                                          t-att-aria-label="option.label" focusable="false">
-                                        <t t-foreach="sketch(option.key)" t-as="shape" t-key="shape_index">
+                                        <t t-foreach="this.sketch(option.key)" t-as="shape" t-key="shape_index">
                                             <rect t-if="shape.t === 'r'" t-att-x="shape.x" t-att-y="shape.y"
                                                   t-att-width="shape.w" t-att-height="shape.h" rx="1"
-                                                  t-att-fill="colour(shape)" t-att-fill-opacity="shape.f"/>
+                                                  t-att-fill="this.colour(shape)" t-att-fill-opacity="shape.f"/>
                                             <circle t-elif="shape.t === 'c'" t-att-cx="shape.x" t-att-cy="shape.y"
                                                     t-att-r="shape.r"
-                                                    t-att-fill="colour(shape)" t-att-fill-opacity="shape.f"/>
+                                                    t-att-fill="this.colour(shape)" t-att-fill-opacity="shape.f"/>
                                             <path t-else="" t-att-d="shape.d"
-                                                  t-att-fill="colour(shape)"
+                                                  t-att-fill="this.colour(shape)"
                                                   t-att-fill-opacity="shape.w ? 0 : shape.f"
-                                                  t-att-stroke="colour(shape)"
+                                                  t-att-stroke="this.colour(shape)"
                                                   t-att-stroke-width="shape.w"
                                                   t-att-stroke-opacity="shape.w ? shape.f : 0"/>
                                         </t>
                                     </svg>
-                                    <span t-esc="option.label"/>
+                                    <span t-out="option.label"/>
                                 </button>
                             </t>
                         </div>
                     </div>
                 </t>
             </div>
-            <div t-if="missing" class="o_dbf_kind_missing">
+            <div t-if="this.missing" class="o_dbf_kind_missing">
                 <i class="fa fa-info-circle" role="img" aria-label="Needs"/>
-                <span t-esc="missing"/>
+                <span t-out="this.missing"/>
             </div>
         </div>
     </t>

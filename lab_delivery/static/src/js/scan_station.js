@@ -1,9 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUnmount, useRef, useState } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { useService } from "@web/core/utils/hooks";
+import { useRef } from "@web/owl2/utils";
 import { session } from "@web/session";
 import { isBarcodeScannerSupported } from "@web/core/barcode/barcode_video_scanner";
 import {
@@ -12,6 +14,7 @@ import {
     readCodesFromPhoto,
     toCanvas as toCanvasFromBlob,
 } from "@lab_delivery/js/photo_barcode";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The Scan Station: a full-screen hand-over counter, not a prompt.
@@ -43,12 +46,12 @@ export class ScanStation extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         // A phone the lab has excused from scanning gets the keyboard and
         // nothing else: the invoice number is typed. (client, 2026-09-28)
         this.live = isBarcodeScannerSupported() && !this.cameraExempt;
-        this.state = useState({
+        this.state = proxy({
             // 'camera' only ever offered when the live scanner can exist at all.
             mode: this.cameraExempt ? "type" : (this.live ? "camera" : "photo"),
             cameraReady: false,

@@ -2,66 +2,66 @@
 <templates xml:space="preserve">
 
     <t t-name="ebshel_dynamic_filter.FilterTileBar">
-        <div t-if="isVisible" class="o_dft_bar" t-att-class="{
-                 o_dft_bar_collapsed: state.collapsed,
-                 o_dft_bar_compact: state.compact,
-                 o_dft_bar_empty: !state.defs.length,
-                 o_dft_bar_resizing: state.resizingRow,
+        <div t-if="this.isVisible" class="o_dft_bar" t-att-class="{
+                 o_dft_bar_collapsed: this.state.collapsed,
+                 o_dft_bar_compact: this.state.compact,
+                 o_dft_bar_empty: !this.state.defs.length,
+                 o_dft_bar_resizing: this.state.resizingRow,
              }"
-             t-ref="root">
+             t-custom-ref="root">
 
             <button class="o_dft_collapse btn btn-link"
-                    t-att-title="state.collapsed ? 'Show filter tiles' : 'Hide filter tiles'"
-                    t-on-click="toggleCollapsed">
-                <i class="fa" t-att-class="state.collapsed ? 'fa-caret-right' : 'fa-caret-down'"/>
+                    t-att-title="this.state.collapsed ? 'Show filter tiles' : 'Hide filter tiles'"
+                    t-on-click="this.toggleCollapsed">
+                <i class="fa" t-att-class="this.state.collapsed ? 'fa-caret-right' : 'fa-caret-down'"/>
             </button>
 
             <!-- One block per row: its own strip, its own scroll, its own height. -->
-            <div t-if="!state.collapsed" class="o_dft_rows">
-                <div class="o_dft_row" t-foreach="rows" t-as="rowInfo" t-key="rowInfo.row">
+            <div t-if="!this.state.collapsed" class="o_dft_rows">
+                <div class="o_dft_row" t-foreach="this.rows" t-as="rowInfo" t-key="rowInfo.row">
                     <!-- Row caption, standing on its left edge: it costs a few
                          pixels of width instead of a whole line of height.
                          Editable for managers, plain text for everybody else,
                          and absent entirely on a bare one-row bar. -->
-                    <div t-if="showRowNames" class="o_dft_row_name"
+                    <div t-if="this.showRowNames" class="o_dft_row_name"
                          t-att-title="rowInfo.name or 'Name this row'">
                         <!-- A textarea rather than an input: a row name is two or
                              three words and has to wrap inside a narrow pane,
                              which an input can never do. Enter saves, it does
                              not insert a line break. -->
-                        <textarea t-if="state.canManage"
+                        <textarea t-if="this.state.canManage"
                                   rows="2"
                                   t-att-data-row="rowInfo.row"
                                   t-attf-placeholder="Row {{ rowInfo.row }}"
                                   t-on-change="(ev) => this.renameRow(rowInfo.row, ev.target.value)"
-                                  t-on-keydown="onRowNameKeydown"><t t-esc="rowInfo.name"/></textarea>
+                                  t-on-keydown="this.onRowNameKeydown"><t t-esc="rowInfo.name"/></textarea>
                         <span t-else="" t-out="rowInfo.name"/>
 
-                        <button t-if="canDeleteRow" class="o_dft_row_delete"
+                        <button t-if="this.canDeleteRow" class="o_dft_row_delete"
                                 t-on-click="() => this.deleteRow(rowInfo)"
                                 t-attf-title="Delete row {{ rowInfo.row }} — its tiles move to the next row">
                             <i class="fa fa-times"/>
                         </button>
                     </div>
 
-                    <div t-att-class="{ o_dft_strip_sized: state.rowHeights[rowInfo.row] }"
-                         t-attf-class="o_dft_strip {{ rowSizeClass(rowInfo.row) }}"
+                    <div t-att-class="{ o_dft_strip_sized: this.state.rowHeights[rowInfo.row] }"
+                         t-attf-class="o_dft_strip {{ this.rowSizeClass(rowInfo.row) }}"
                          t-att-data-row="rowInfo.row"
-                         t-att-style="rowStyle(rowInfo.row)">
+                         t-att-style="this.rowStyle(rowInfo.row)">
 
                         <FilterTile t-foreach="rowInfo.defs" t-as="def" t-key="def.key"
                                     def="def"
-                                    data="dataFor(def)"
-                                    total="state.total"
-                                    active="isActive(def)"
-                                    broken="tileIsBroken(def)"
-                                    compact="state.compact"
-                                    look="state.look"
-                                    contextKey="state.contextKey"
-                                    canManage="state.canManage"
-                                    selectable="state.multiSelect"
-                                    shortcut="shortcutFor(def)"
-                                    loading="state.loading and !dataFor(def)"
+                                    data="this.dataFor(def)"
+                                    total="this.state.total"
+                                    active="this.isActive(def)"
+                                    broken="this.tileIsBroken(def)"
+                                    compact="this.state.compact"
+                                    look="this.state.look"
+                                    contextKey="this.state.contextKey"
+                                    canManage="this.state.canManage"
+                                    selectable="this.state.multiSelect"
+                                    shortcut="this.shortcutFor(def)"
+                                    loading="this.state.loading and !this.dataFor(def)"
                                     onSelect="(ev) => this.onTileSelected(def, ev)"
                                     onEdit="() => this.openEditor(def.id)"
                                     onBreakdown="(target) => this.openBreakdown(def, target)"
@@ -70,17 +70,17 @@
 
                         <!-- Ghost tile: turns whatever is filtered right now into a
                              tile, on this row. -->
-                        <button t-if="state.canManage or state.canPersonalize" class="o_dft_add"
-                                t-on-click="() => this.openEditor(false, !state.canManage, rowInfo.row)"
+                        <button t-if="this.state.canManage or this.state.canPersonalize" class="o_dft_add"
+                                t-on-click="() => this.openEditor(false, !this.state.canManage, rowInfo.row)"
                                 t-attf-title="Create a tile from the current filter, on row {{ rowInfo.row }}">
                             <i class="fa fa-plus"/>
-                            <span t-if="!state.defs.length" class="o_dft_add_label">
+                            <span t-if="!this.state.defs.length" class="o_dft_add_label">
                                 Capture this filter as a tile
                             </span>
                         </button>
 
-                        <button t-if="!state.defs.length" class="o_dft_dismiss btn btn-link"
-                                title="Not here, thanks" t-on-click="dismissHint">
+                        <button t-if="!this.state.defs.length" class="o_dft_dismiss btn btn-link"
+                                title="Not here, thanks" t-on-click="this.dismissHint">
                             <i class="fa fa-times"/>
                         </button>
                     </div>
@@ -93,7 +93,7 @@
                 </div>
 
                 <div class="o_dft_row_tools">
-                    <button t-if="canAddRow" class="o_dft_add_row" t-on-click="() => this.addRow()"
+                    <button t-if="this.canAddRow" class="o_dft_add_row" t-on-click="() => this.addRow()"
                             title="Stack another row of tiles on this view">
                         <i class="fa fa-plus me-1"/>Add a row
                     </button>
@@ -101,91 +101,91 @@
                     <!-- Multi-select: a real checkbox that is always there, so the
                          option is discoverable before it is on and obvious while it is. -->
                     <label class="o_dft_multi_toggle"
-                           t-att-class="{ o_dft_multi_toggle_on: state.multiSelect }"
+                           t-att-class="{ o_dft_multi_toggle_on: this.state.multiSelect }"
                            title="When on, every click adds a tile to the selection instead of replacing it">
-                        <input type="checkbox" t-att-checked="state.multiSelect"
+                        <input type="checkbox" t-att-checked="this.state.multiSelect"
                                t-on-change="() => this.toggleMultiSelect()"/>
                         <span>Multi-select</span>
                     </label>
-                    <button t-if="activeKeys.length > 1" class="o_dft_multi o_dft_multi_mode"
+                    <button t-if="this.activeKeys.length > 1" class="o_dft_multi o_dft_multi_mode"
                             t-on-click="() => this.toggleCombineMode()"
-                            t-att-title="state.combineAll
+                            t-att-title="this.state.combineAll
                                 ? 'Records must match every selected tile - click for any'
                                 : 'Records may match any selected tile - click for all'">
-                        <t t-esc="state.combineAll ? 'match all' : 'match any'"/>
+                        <t t-esc="this.state.combineAll ? 'match all' : 'match any'"/>
                     </button>
-                    <button t-if="activeKeys.length" class="o_dft_multi"
+                    <button t-if="this.activeKeys.length" class="o_dft_multi"
                             t-on-click="() => this.clearTileFacets()"
                             title="Unselect every tile (Alt + 0)">
-                        <i class="fa fa-times me-1"/><t t-esc="activeKeys.length"/> selected
+                        <i class="fa fa-times me-1"/><t t-esc="this.activeKeys.length"/> selected
                     </button>
                 </div>
             </div>
 
             <div t-else="" class="o_dft_summary">
                 <span class="o_dft_summary_count">
-                    <t t-esc="state.defs.length"/> tiles
+                    <t t-esc="this.state.defs.length"/> tiles
                 </span>
-                <span t-if="rows.length > 1" class="o_dft_summary_rows">
-                    · <t t-esc="rows.length"/> rows
+                <span t-if="this.rows.length > 1" class="o_dft_summary_rows">
+                    · <t t-esc="this.rows.length"/> rows
                 </span>
-                <span t-if="activeKeys.length" class="o_dft_summary_active">
-                    · <t t-esc="activeKeys.length"/> applied
+                <span t-if="this.activeKeys.length" class="o_dft_summary_active">
+                    · <t t-esc="this.activeKeys.length"/> applied
                 </span>
             </div>
 
-            <Dropdown t-if="state.canManage or state.canPersonalize" menuClass="'o_dft_menu'">
+            <Dropdown t-if="this.state.canManage or this.state.canPersonalize" menuClass="'o_dft_menu'">
                 <button class="o_dft_gear btn btn-link" title="Tile studio">
                     <i class="fa fa-sliders"/>
                 </button>
                 <t t-set-slot="content">
-                    <DropdownItem t-if="state.canManage"
+                    <DropdownItem t-if="this.state.canManage"
                                   onSelected="() => this.openEditor(false, false)">
                         <i class="fa fa-plus fa-fw me-2"/>New shared tile from this filter
                     </DropdownItem>
                     <DropdownItem onSelected="() => this.openEditor(false, true)">
                         <i class="fa fa-user-secret fa-fw me-2"/>New tile just for me
                     </DropdownItem>
-                    <DropdownItem t-if="state.canManage" onSelected="() => this.openGenerator()">
+                    <DropdownItem t-if="this.state.canManage" onSelected="() => this.openGenerator()">
                         <i class="fa fa-magic fa-fw me-2"/>Generate a tile set…
                     </DropdownItem>
                     <div class="dropdown-divider" role="separator"/>
-                    <DropdownItem t-if="canAddRow" onSelected="() => this.addRow()">
+                    <DropdownItem t-if="this.canAddRow" onSelected="() => this.addRow()">
                         <i class="fa fa-plus-square-o fa-fw me-2"/>Add a row
                     </DropdownItem>
-                    <DropdownItem t-if="state.multiSelect or activeKeys.length > 1"
+                    <DropdownItem t-if="this.state.multiSelect or this.activeKeys.length > 1"
                                   onSelected="() => this.toggleCombineMode()">
                         <i class="fa fa-fw me-2"
-                           t-att-class="state.combineAll ? 'fa-compress' : 'fa-code-fork'"/>
-                        <t t-esc="combineLabel"/>
+                           t-att-class="this.state.combineAll ? 'fa-compress' : 'fa-code-fork'"/>
+                        <t t-esc="this.combineLabel"/>
                     </DropdownItem>
                     <div class="dropdown-divider" role="separator"/>
                     <DropdownItem onSelected="() => this.toggleCompact()">
                         <i class="fa fa-fw me-2"
-                           t-att-class="state.compact ? 'fa-expand' : 'fa-compress'"/>
-                        <t t-esc="state.compact ? 'Comfortable tiles' : 'Compact tiles'"/>
+                           t-att-class="this.state.compact ? 'fa-expand' : 'fa-compress'"/>
+                        <t t-esc="this.state.compact ? 'Comfortable tiles' : 'Compact tiles'"/>
                     </DropdownItem>
                     <div class="dropdown-divider" role="separator"/>
                     <div class="dropdown-header">Tile style</div>
-                    <DropdownItem t-foreach="tileLooks" t-as="look" t-key="look.key"
+                    <DropdownItem t-foreach="this.tileLooks" t-as="look" t-key="look.key"
                                   onSelected="() => this.setLook(look.key)">
-                        <i class="fa fa-fw me-2" t-att-class="state.look === look.key ? 'fa-check' : look.icon"/>
+                        <i class="fa fa-fw me-2" t-att-class="this.state.look === look.key ? 'fa-check' : look.icon"/>
                         <t t-esc="look.label"/>
                     </DropdownItem>
                     <div class="dropdown-divider" role="separator"/>
                     <DropdownItem onSelected="() => this.cycleRefresh()">
                         <i class="fa fa-refresh fa-fw me-2"
-                           t-att-class="{ 'fa-spin': state.refreshEvery }"/>
-                        <t t-esc="refreshLabel"/>
+                           t-att-class="{ 'fa-spin': this.state.refreshEvery }"/>
+                        <t t-esc="this.refreshLabel"/>
                     </DropdownItem>
-                    <DropdownItem t-if="hasCustomHeights" onSelected="() => this.resetAllRowHeights()">
+                    <DropdownItem t-if="this.hasCustomHeights" onSelected="() => this.resetAllRowHeights()">
                         <i class="fa fa-arrows-v fa-fw me-2"/>Reset the row heights
                     </DropdownItem>
                     <div class="dropdown-divider" role="separator"/>
-                    <DropdownItem t-if="state.defs.length" onSelected="() => this.exportTiles()">
+                    <DropdownItem t-if="this.state.defs.length" onSelected="() => this.exportTiles()">
                         <i class="fa fa-download fa-fw me-2"/>Export these tiles
                     </DropdownItem>
-                    <DropdownItem t-if="state.canManage" onSelected="() => this.openImport()">
+                    <DropdownItem t-if="this.state.canManage" onSelected="() => this.openImport()">
                         <i class="fa fa-upload fa-fw me-2"/>Import a tile set…
                     </DropdownItem>
                     <DropdownItem onSelected="() => this.openTileList()">

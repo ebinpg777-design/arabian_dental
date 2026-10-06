@@ -1,9 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUnmount, useEffect, useRef, useState } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { useLayoutEffect, useRef } from "@web/owl2/utils";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The day's track, on a map, inside the day sheet.
@@ -28,16 +30,16 @@ export class FwDayMap extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
+        this.action = usePlugin(ActionManagerPlugin);
         this.mapRef = useRef("map");
-        this.state = useState({ track: null, error: null, loading: true });
+        this.state = proxy({ track: null, error: null, loading: true });
         this.map = null;
 
         onWillStart(() => this.load());
 
         // Draw when the data and the element are both there, and redraw when the
         // record changes under us (Previous day / Next day keep the same widget).
-        useEffect(
+        useLayoutEffect(
             () => {
                 if (this.state.track && this.mapRef.el) {
                     this.draw();

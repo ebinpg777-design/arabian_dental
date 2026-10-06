@@ -1,12 +1,13 @@
 /** @odoo-module **/
 
-import { onWillRender, useState } from "@odoo/owl";
+import { proxy } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { Domain } from "@web/core/domain";
 import { Dropdown } from "@web/core/dropdown/dropdown";
 import { DropdownItem } from "@web/core/dropdown/dropdown_item";
 import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
+import { onWillRender } from "@web/owl2/utils";
 import { SearchPanel } from "@web/search/search_panel/search_panel";
 import { FormViewDialog } from "@web/views/view_dialogs/form_view_dialog";
 import { PanelTilesDialog } from "./panel_tiles_dialog";
@@ -114,7 +115,7 @@ patch(SearchPanel.prototype, {
         this.DftDropdown = Dropdown;
         this.DftDropdownItem = DropdownItem;
 
-        this.dft = useState({
+        this.dft = proxy({
             query: "",
             options: this.dftReadOptions(),
             collapsed: this.dftReadJSON(this.dftKey("collapsed"), {}),

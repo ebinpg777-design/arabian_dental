@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact } from "../common/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** The accounting app's home: profit and loss as a waterfall, the balance sheet as
  *  two stacks, twelve months of trend, ratios, and the work waiting on the team. */
@@ -13,8 +14,8 @@ export class FinanceCockpit extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.state = useState({ period: "month", data: null, loading: true, hover: null });
+        this.action = usePlugin(ActionManagerPlugin);
+        this.state = proxy({ period: "month", data: null, loading: true, hover: null });
         this.money = (v) => money(v, this.state.data && this.state.data.currency);
         this.compact = (v) => compact(v, this.state.data && this.state.data.currency);
         onWillStart(() => this.load());

@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { Component, useRef, useState } from "@odoo/owl";
+import { Component, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
-import { useService } from "@web/core/utils/hooks";
+import { useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
 import { formatMonetary } from "@web/views/fields/formatters";
@@ -188,8 +189,8 @@ export class FwCamera extends Component {
     static props = { ...standardFieldProps };
 
     setup() {
-        this.notification = useService("notification");
-        this.state = useState({ busy: false });
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({ busy: false });
     }
 
     get value() {

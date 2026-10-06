@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { humanNumber } from "@web/core/utils/numbers";
 import { useService } from "@web/core/utils/hooks";
@@ -27,7 +27,7 @@ export class TileBreakdown extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.state = useState({ loading: true, rows: [], label: "", others: null });
+        this.state = proxy({ loading: true, rows: [], label: "", others: null });
 
         onWillStart(async () => {
             try {

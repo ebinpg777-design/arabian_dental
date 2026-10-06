@@ -1,9 +1,12 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useRef, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { useRef } from "@web/owl2/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Track a Work — one box, one screen, everything.
@@ -21,10 +24,10 @@ export class LabTrack extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         this.input = useRef("search");
-        this.state = useState({
+        this.state = proxy({
             ref: "",
             data: null,
             matches: null,

@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
@@ -27,7 +27,7 @@ export class WidthPickerField extends Component {
     static props = { ...standardFieldProps };
 
     setup() {
-        this.state = useState({ hover: 0 });
+        this.state = proxy({ hover: 0 });
     }
 
     get columns() {

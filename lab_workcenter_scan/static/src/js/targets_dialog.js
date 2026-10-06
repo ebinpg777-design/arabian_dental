@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 
@@ -25,7 +25,7 @@ export class TargetsDialog extends Component {
     };
 
     setup() {
-        this.state = useState({
+        this.state = proxy({
             busy: false,
             all: "",
             values: Object.fromEntries(this.props.people.map((p) => [p.id, p.target || 0])),

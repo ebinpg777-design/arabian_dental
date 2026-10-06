@@ -11,7 +11,7 @@
         <!-- Search. Autofocused, because the first thing this screen is for is typing. -->
         <div class="o_trk_searchbar">
             <div class="o_trk_searchbox">
-                <button t-if="readonly and canGoBack" class="o_trk_back"
+                <button t-if="this.readonly and this.canGoBack" class="o_trk_back"
                         t-on-click="() => this.goBack()" title="Back to the Station Board">
                     <i class="fa fa-arrow-left"/>
                 </button>
@@ -19,30 +19,30 @@
                 <input type="text" t-ref="search" autofocus="autofocus"
                        class="o_trk_input"
                        placeholder="Case, invoice, delivery or consignment number — or a patient or doctor"
-                       t-model="state.ref" t-on-keydown="onKeydown"
+                       t-custom-model="this.state.ref" t-on-keydown="this.onKeydown"
                        t-on-input="() => this.onInput()"/>
-                <button t-if="state.ref" class="o_trk_clear" t-on-click="() => this.clear()"
+                <button t-if="this.state.ref" class="o_trk_clear" t-on-click="() => this.clear()"
                         title="Clear">
                     <i class="fa fa-times"/>
                 </button>
                 <button class="o_trk_go" t-on-click="() => this.search()">Track</button>
             </div>
             <!-- One tap narrows everything below to a stage; tapping again clears it. -->
-            <div class="o_trk_filters" t-if="!state.data">
-                <button t-foreach="stageFilters" t-as="f" t-key="f[0]"
-                        t-attf-class="o_trk_filter #{stageClass(f[0])} #{state.stageFilter === f[0] ? 'o_trk_filter_on' : ''}"
+            <div class="o_trk_filters" t-if="!this.state.data">
+                <button t-foreach="this.stageFilters" t-as="f" t-key="f[0]"
+                        t-attf-class="o_trk_filter #{this.stageClass(f[0])} #{this.state.stageFilter === f[0] ? 'o_trk_filter_on' : ''}"
                         t-on-click="() => this.setStageFilter(f[0])">
                     <t t-esc="f[1]"/>
                 </button>
             </div>
-            <div t-if="state.loading" class="o_trk_loading">
+            <div t-if="this.state.loading" class="o_trk_loading">
                 <i class="fa fa-circle-o-notch fa-spin me-2"/>Looking…
             </div>
         </div>
 
         <!-- The Station Board's tracker opens on an empty box: the bench already
              has its own queue, and what it asks is about one case. -->
-        <div t-if="readonly and !state.data and !state.matches and !state.searched"
+        <div t-if="this.readonly and !this.state.data and !this.state.matches and !this.state.searched"
              class="o_trk_empty o_trk_readonly_hint">
             <i class="fa fa-eye me-1"/>Read-only. Type an order, delivery or invoice
             number, or a patient or doctor, to see where the case is.
@@ -53,26 +53,26 @@
              station repeated the same backlog twelve times over - a case has a
              step at every bench it will ever reach. One line per station, and the
              cases behind it on a tap. (client, 2026-09-09) -->
-        <div t-if="!state.data and !state.matches and !state.searched and state.floor"
+        <div t-if="!this.state.data and !this.state.matches and !this.state.searched and this.state.floor"
              class="o_trk_floor">
             <div class="o_trk_floor_head">
                 <h5 class="o_trk_recent_h">On the floor</h5>
-                <span class="o_trk_floor_day" t-if="state.floor.has_floor">
-                    <b t-esc="state.floor.total_open"/> live ·
-                    <t t-esc="state.floor.started_today"/> started today ·
-                    <t t-esc="state.floor.finished_today"/> finished today
+                <span class="o_trk_floor_day" t-if="this.state.floor.has_floor">
+                    <b t-esc="this.state.floor.total_open"/> live ·
+                    <t t-esc="this.state.floor.started_today"/> started today ·
+                    <t t-esc="this.state.floor.finished_today"/> finished today
                 </span>
-                <span class="o_trk_read_at">as of <t t-esc="state.floor.as_of"/></span>
-                <button class="o_trk_refresh" t-att-disabled="state.floorBusy"
+                <span class="o_trk_read_at">as of <t t-esc="this.state.floor.as_of"/></span>
+                <button class="o_trk_refresh" t-att-disabled="this.state.floorBusy"
                         t-on-click="() => this.refreshFloor()"
                         title="Read the floor again">
-                    <i t-attf-class="fa fa-refresh me-1 #{state.floorBusy ? 'fa-spin' : ''}"/>
-                    <t t-if="state.floorBusy">Reading…</t>
+                    <i t-attf-class="fa fa-refresh me-1 #{this.state.floorBusy ? 'fa-spin' : ''}"/>
+                    <t t-if="this.state.floorBusy">Reading…</t>
                     <t t-else="">Refresh</t>
                 </button>
             </div>
 
-            <div t-if="!state.floor.stations.length" class="o_trk_empty">
+            <div t-if="!this.state.floor.stations.length" class="o_trk_empty">
                 Nothing is open on the floor.
             </div>
 
@@ -87,12 +87,12 @@
                         <span class="o_trk_st_n" title="At this bench, not started">Waiting</span>
                         <span class="o_trk_st_n" title="How long the oldest has stood there">Oldest</span>
                     </div>
-                    <t t-foreach="state.floor.stations" t-as="st" t-key="st.id">
+                    <t t-foreach="this.state.floor.stations" t-as="st" t-key="st.id">
                         <button class="o_trk_st_row"
-                                t-att-class="{ 'o_trk_st_open': state.openStation === st.id }"
+                                t-att-class="{ 'o_trk_st_open': this.state.openStation === st.id }"
                                 t-on-click="() => this.toggleStation(st)">
                             <span class="o_trk_st_name">
-                                <i t-attf-class="fa fa-chevron-#{state.openStation === st.id ? 'down' : 'right'} me-2 o_trk_st_caret"/>
+                                <i t-attf-class="fa fa-chevron-#{this.state.openStation === st.id ? 'down' : 'right'} me-2 o_trk_st_caret"/>
                                 <t t-esc="st.name"/>
                                 <!-- The share of the floor standing here, as a bar
                                      rather than a number nobody compares. -->
@@ -105,15 +105,15 @@
                             <span class="o_trk_st_n" t-esc="st.waiting"/>
                             <span class="o_trk_st_n o_trk_st_old"
                                   t-att-class="{ 'o_trk_floor_old': st.oldest_h >= 48 }"
-                                  t-esc="waited(st.oldest_h) or '—'"/>
+                                  t-esc="this.waited(st.oldest_h) or '—'"/>
                         </button>
 
-                        <div t-if="state.openStation === st.id" class="o_trk_st_jobs">
-                            <div t-if="state.stationBusy === st.id" class="o_trk_floor_none">
+                        <div t-if="this.state.openStation === st.id" class="o_trk_st_jobs">
+                            <div t-if="this.state.stationBusy === st.id" class="o_trk_floor_none">
                                 Reading that bench…
                             </div>
                             <t t-else="">
-                                <button t-foreach="stationJobs(st.id)" t-as="w" t-key="w.id"
+                                <button t-foreach="this.stationJobs(st.id)" t-as="w" t-key="w.id"
                                         class="o_trk_floor_row"
                                         t-att-disabled="!w.order_id"
                                         t-on-click="() => this.open(w.order_id)">
@@ -139,16 +139,16 @@
                                               t-att-class="{ 'o_trk_floor_old': w.hours >= 48 }">
                                             <t t-if="!w.waiting">since <t t-esc="w.since"/></t>
                                             <t t-else="">waiting</t>
-                                            <t t-if="waited(w.hours)"> · <t t-esc="waited(w.hours)"/></t>
+                                            <t t-if="this.waited(w.hours)"> · <t t-esc="this.waited(w.hours)"/></t>
                                         </span>
                                     </span>
                                 </button>
-                                <div t-if="!stationJobs(st.id).length" class="o_trk_floor_none">
+                                <div t-if="!this.stationJobs(st.id).length" class="o_trk_floor_none">
                                     Nothing standing here.
                                 </div>
-                                <div t-if="st.total > stationJobs(st.id).length"
+                                <div t-if="st.total > this.stationJobs(st.id).length"
                                      class="o_trk_floor_none">
-                                    Showing <t t-esc="stationJobs(st.id).length"/> of
+                                    Showing <t t-esc="this.stationJobs(st.id).length"/> of
                                     <t t-esc="st.total"/> — in progress first.
                                 </div>
                             </t>
@@ -159,9 +159,9 @@
                 <!-- The one list that says what to DO. A floor view that only
                      reports where things are lets the oldest case go on being
                      the oldest. -->
-                <section class="o_trk_card o_trk_floor_oldest" t-if="state.floor.oldest.length">
+                <section class="o_trk_card o_trk_floor_oldest" t-if="this.state.floor.oldest.length">
                     <h5><i class="fa fa-hourglass-half me-2"/>Standing longest</h5>
-                    <button t-foreach="state.floor.oldest" t-as="w" t-key="w.id"
+                    <button t-foreach="this.state.floor.oldest" t-as="w" t-key="w.id"
                             class="o_trk_floor_row"
                             t-att-disabled="!w.order_id"
                             t-on-click="() => this.open(w.order_id)">
@@ -179,7 +179,7 @@
                         <span class="o_trk_floor_side">
                             <span class="o_trk_floor_tech" t-esc="w.station"/>
                             <span class="o_trk_floor_since o_trk_floor_old"
-                                  t-esc="waited(w.hours)"/>
+                                  t-esc="this.waited(w.hours)"/>
                         </span>
                     </button>
                 </section>
@@ -187,20 +187,20 @@
         </div>
 
         <!-- More than one candidate -->
-        <div t-if="state.matches" class="o_trk_matches">
+        <div t-if="this.state.matches" class="o_trk_matches">
             <h5>
-                <t t-if="visibleMatches.length">Matching work</t>
-                <t t-else="">Nothing matches that<t t-if="state.stageFilter"> in this stage</t>.</t>
+                <t t-if="this.visibleMatches.length">Matching work</t>
+                <t t-else="">Nothing matches that<t t-if="this.state.stageFilter"> in this stage</t>.</t>
             </h5>
             <div class="o_trk_recent_grid">
-                <button t-foreach="visibleMatches" t-as="m" t-key="m.id"
+                <button t-foreach="this.visibleMatches" t-as="m" t-key="m.id"
                         class="o_trk_recent_card" t-on-click="() => this.open(m.id)">
                     <span class="o_trk_recent_doctor" t-esc="m.doctor"/>
                     <span class="o_trk_recent_patient" t-esc="m.patient or '—'"/>
                     <span t-if="m.product" class="o_trk_recent_product" t-esc="m.product"/>
                     <span class="o_trk_recent_name" t-esc="m.name"/>
                     <span class="d-flex align-items-center gap-2">
-                        <span t-attf-class="o_trk_chip #{stageClass(m.stage)}" t-esc="m.stage_label"/>
+                        <span t-attf-class="o_trk_chip #{this.stageClass(m.stage)}" t-esc="m.stage_label"/>
                         <small class="text-muted" t-esc="m.date"/>
                     </span>
                 </button>
@@ -208,58 +208,58 @@
         </div>
 
         <!-- The answer -->
-        <t t-if="state.data">
+        <t t-if="this.state.data">
             <!-- Headline: who, what, where it is, at a glance -->
             <div class="o_trk_hero">
                 <div class="o_trk_hero_main">
                     <div class="o_trk_hero_top">
-                        <h2 class="o_trk_patient" t-esc="order.patient or order.name"/>
-                        <span t-attf-class="o_trk_chip o_trk_chip_lg #{stageClass(order.stage)}"
-                              t-esc="order.operation or order.stage_label or order.stage"/>
-                        <span t-if="order.priority === 'emergency'" class="o_trk_chip o_trk_chip_danger">EMERGENCY</span>
-                        <span t-elif="order.priority === 'urgent'" class="o_trk_chip o_trk_chip_warn">URGENT</span>
-                        <span t-if="order.is_rework" class="o_trk_chip o_trk_chip_info">REWORK</span>
+                        <h2 class="o_trk_patient" t-esc="this.order.patient or this.order.name"/>
+                        <span t-attf-class="o_trk_chip o_trk_chip_lg #{this.stageClass(this.order.stage)}"
+                              t-esc="this.order.operation or this.order.stage_label or this.order.stage"/>
+                        <span t-if="this.order.priority === 'emergency'" class="o_trk_chip o_trk_chip_danger">EMERGENCY</span>
+                        <span t-elif="this.order.priority === 'urgent'" class="o_trk_chip o_trk_chip_warn">URGENT</span>
+                        <span t-if="this.order.is_rework" class="o_trk_chip o_trk_chip_info">REWORK</span>
                     </div>
                     <div class="o_trk_hero_meta">
-                        <button t-if="!readonly" class="o_trk_link" t-on-click="() => this.openRecord('sale.order', order.id)">
-                            <i class="fa fa-file-text-o me-1"/><t t-esc="order.name"/>
+                        <button t-if="!this.readonly" class="o_trk_link" t-on-click="() => this.openRecord('sale.order', this.order.id)">
+                            <i class="fa fa-file-text-o me-1"/><t t-esc="this.order.name"/>
                         </button>
                         <span t-else="" class="o_trk_ref">
-                            <i class="fa fa-file-text-o me-1"/><t t-esc="order.name"/>
+                            <i class="fa fa-file-text-o me-1"/><t t-esc="this.order.name"/>
                         </span>
                         <span>·</span>
-                        <span><i class="fa fa-user-md me-1"/><t t-esc="order.doctor"/></span>
-                        <span t-if="order.executive">·</span>
-                        <span t-if="order.executive"><i class="fa fa-motorcycle me-1"/><t t-esc="order.executive"/></span>
+                        <span><i class="fa fa-user-md me-1"/><t t-esc="this.order.doctor"/></span>
+                        <span t-if="this.order.executive">·</span>
+                        <span t-if="this.order.executive"><i class="fa fa-motorcycle me-1"/><t t-esc="this.order.executive"/></span>
                         <span>·</span>
-                        <span t-esc="order.date"/>
+                        <span t-esc="this.order.date"/>
                     </div>
                     <div class="o_trk_progress">
-                        <div class="o_trk_progress_fill" t-attf-style="width: #{order.progress}%"/>
+                        <div class="o_trk_progress_fill" t-attf-style="width: #{this.order.progress}%"/>
                     </div>
                 </div>
                 <div class="o_trk_hero_side">
-                    <div t-if="state.data.money" class="o_trk_amount">
-                        <t t-esc="order.currency"/><t t-esc="order.amount.toLocaleString()"/>
+                    <div t-if="this.state.data.money" class="o_trk_amount">
+                        <t t-esc="this.order.currency"/><t t-esc="this.order.amount.toLocaleString()"/>
                     </div>
                     <div class="o_trk_badges">
-                        <span class="o_trk_chip" t-esc="order.state_label"/>
-                        <span t-if="order.verification_label" class="o_trk_chip"
-                              t-esc="order.verification_label"/>
-                        <span t-if="order.from_field" class="o_trk_chip o_trk_chip_soft">From the field</span>
+                        <span class="o_trk_chip" t-esc="this.order.state_label"/>
+                        <span t-if="this.order.verification_label" class="o_trk_chip"
+                              t-esc="this.order.verification_label"/>
+                        <span t-if="this.order.from_field" class="o_trk_chip o_trk_chip_soft">From the field</span>
                     </div>
                     <!-- The floor keeps scanning while this screen is open, so the
                          reading needs a date and a way to take it again.
                          (client, 2026-09-09) -->
                     <div class="o_trk_read">
-                        <span t-if="state.data.read_at" class="o_trk_read_at">
-                            as of <t t-esc="state.data.read_at"/>
+                        <span t-if="this.state.data.read_at" class="o_trk_read_at">
+                            as of <t t-esc="this.state.data.read_at"/>
                         </span>
-                        <button class="o_trk_refresh" t-att-disabled="state.refreshing"
+                        <button class="o_trk_refresh" t-att-disabled="this.state.refreshing"
                                 t-on-click="() => this.refresh()"
                                 title="Read this case again">
-                            <i t-attf-class="fa fa-refresh me-1 #{state.refreshing ? 'fa-spin' : ''}"/>
-                            <t t-if="state.refreshing">Reading…</t>
+                            <i t-attf-class="fa fa-refresh me-1 #{this.state.refreshing ? 'fa-spin' : ''}"/>
+                            <t t-if="this.state.refreshing">Reading…</t>
                             <t t-else="">Refresh</t>
                         </button>
                     </div>
@@ -272,7 +272,7 @@
                 <section class="o_trk_card o_trk_timeline_card">
                     <h5><i class="fa fa-clock-o me-2"/>Journey</h5>
                     <div class="o_trk_timeline">
-                        <div t-foreach="state.data.timeline" t-as="e" t-key="e_index"
+                        <div t-foreach="this.state.data.timeline" t-as="e" t-key="e_index"
                              t-attf-class="o_trk_event #{e.done ? 'o_trk_event_done' : 'o_trk_event_open'}">
                             <span class="o_trk_event_dot"><i t-attf-class="fa #{e.icon}"/></span>
                             <div class="o_trk_event_body">
@@ -289,13 +289,13 @@
                 <!-- Production, station by station -->
                 <section class="o_trk_card">
                     <h5><i class="fa fa-cogs me-2"/>In the lab</h5>
-                    <div t-if="!state.data.productions.length" class="o_trk_empty">
+                    <div t-if="!this.state.data.productions.length" class="o_trk_empty">
                         Not in production yet.
                     </div>
-                    <div t-foreach="state.data.productions" t-as="mo" t-key="mo.id"
+                    <div t-foreach="this.state.data.productions" t-as="mo" t-key="mo.id"
                          class="o_trk_mo">
                         <div class="o_trk_mo_head">
-                            <button t-if="!readonly" class="o_trk_link" t-on-click="() => this.openRecord('mrp.production', mo.id)">
+                            <button t-if="!this.readonly" class="o_trk_link" t-on-click="() => this.openRecord('mrp.production', mo.id)">
                                 <t t-esc="mo.name"/>
                             </button>
                             <span t-else="" class="o_trk_ref">
@@ -314,7 +314,7 @@
                         </div>
                         <div class="o_trk_stations">
                             <div t-foreach="mo.workorders" t-as="wo" t-key="wo.name + wo_index"
-                                 t-attf-class="o_trk_station #{woClass(wo.state)}">
+                                 t-attf-class="o_trk_station #{this.woClass(wo.state)}">
                                 <span class="o_trk_station_name">
                                     <!-- Which piece this run of the bench is
                                          making, where the case has two. -->
@@ -334,8 +334,8 @@
                                     <t t-if="wo.started and wo.finished"> → </t>
                                     <t t-if="wo.finished"><t t-esc="wo.finished"/></t>
                                     <t t-if="wo.minutes"> · <t t-esc="wo.minutes"/> min</t>
-                                    <t t-if="!wo.finished and waited(wo.waiting_h)">
-                                        · here <t t-esc="waited(wo.waiting_h)"/>
+                                    <t t-if="!wo.finished and this.waited(wo.waiting_h)">
+                                        · here <t t-esc="this.waited(wo.waiting_h)"/>
                                     </t>
                                 </span>
                                 <!-- Who made it, and who finished it: two names at a
@@ -357,13 +357,13 @@
                 <!-- Delivery -->
                 <section class="o_trk_card">
                     <h5><i class="fa fa-truck me-2"/>Delivery</h5>
-                    <div t-if="!state.data.deliveries.length" class="o_trk_empty">
+                    <div t-if="!this.state.data.deliveries.length" class="o_trk_empty">
                         No delivery raised yet.
                     </div>
-                    <div t-foreach="state.data.deliveries" t-as="d" t-key="d.id"
+                    <div t-foreach="this.state.data.deliveries" t-as="d" t-key="d.id"
                          t-attf-class="o_trk_row #{d.delayed ? 'o_trk_row_late' : ''}">
                         <div class="o_trk_row_main">
-                            <button t-if="!readonly" class="o_trk_link" t-on-click="() => this.openRecord('lab.delivery', d.id)">
+                            <button t-if="!this.readonly" class="o_trk_link" t-on-click="() => this.openRecord('lab.delivery', d.id)">
                                 <t t-esc="d.name"/>
                             </button>
                             <span t-else="" class="o_trk_ref">
@@ -378,7 +378,7 @@
                         <div t-if="d.mode === 'courier'" class="o_trk_row_meta">
                             <i class="fa fa-cube me-1" title="Courier"/>
                             <t t-esc="d.courier"/>
-                            <a t-if="d.tracking_url and !readonly" t-att-href="d.tracking_url"
+                            <a t-if="d.tracking_url and !this.readonly" t-att-href="d.tracking_url"
                                target="_blank" rel="noopener" class="o_trk_link ms-1">
                                 <t t-esc="d.awb"/>
                             </a>
@@ -405,13 +405,13 @@
                      question from whether an executive carried it. -->
                 <section class="o_trk_card">
                     <h5><i class="fa fa-archive me-2"/>Delivery Orders</h5>
-                    <div t-if="!state.data.pickings.length" class="o_trk_empty">
+                    <div t-if="!this.state.data.pickings.length" class="o_trk_empty">
                         Nothing packed for this order yet.
                     </div>
-                    <div t-foreach="state.data.pickings" t-as="p" t-key="p.id"
+                    <div t-foreach="this.state.data.pickings" t-as="p" t-key="p.id"
                          class="o_trk_row">
                         <div class="o_trk_row_main">
-                            <button t-if="!readonly" class="o_trk_link"
+                            <button t-if="!this.readonly" class="o_trk_link"
                                     t-on-click="() => this.openRecord('stock.picking', p.id)">
                                 <t t-esc="p.name"/>
                             </button>
@@ -439,14 +439,14 @@
                 </section>
 
                 <!-- Money -->
-                <section t-if="state.data.money" class="o_trk_card">
+                <section t-if="this.state.data.money" class="o_trk_card">
                     <h5><i class="fa fa-inr me-2"/>Invoicing</h5>
-                    <div t-if="!state.data.invoices.length" class="o_trk_empty">
+                    <div t-if="!this.state.data.invoices.length" class="o_trk_empty">
                         Not invoiced yet.
                     </div>
-                    <div t-foreach="state.data.invoices" t-as="i" t-key="i.id" class="o_trk_row">
+                    <div t-foreach="this.state.data.invoices" t-as="i" t-key="i.id" class="o_trk_row">
                         <div class="o_trk_row_main">
-                            <button t-if="!readonly" class="o_trk_link" t-on-click="() => this.openRecord('account.move', i.id)">
+                            <button t-if="!this.readonly" class="o_trk_link" t-on-click="() => this.openRecord('account.move', i.id)">
                                 <t t-esc="i.name"/>
                             </button>
                             <span t-else="" class="o_trk_ref">
@@ -477,14 +477,14 @@
                     <!-- Receipts. The CLINIC's, said plainly: nothing on this ledger
                          ties a receipt to one invoice, so a per-invoice payment list
                          would be invented. (client, 2026-08-29) -->
-                    <div t-if="state.data.payments.length" class="o_trk_pay">
+                    <div t-if="this.state.data.payments.length" class="o_trk_pay">
                         <div class="o_trk_pay_h">
                             Recent receipts from this clinic
                         </div>
-                        <div t-foreach="state.data.payments" t-as="pm" t-key="pm.id"
+                        <div t-foreach="this.state.data.payments" t-as="pm" t-key="pm.id"
                              t-attf-class="o_trk_row #{pm.after_order ? 'o_trk_row_new' : ''}">
                             <div class="o_trk_row_main">
-                                <button t-if="!readonly" class="o_trk_link"
+                                <button t-if="!this.readonly" class="o_trk_link"
                                         t-on-click="() => this.openRecord('account.move', pm.move_id)">
                                     <t t-esc="pm.name"/>
                                 </button>
@@ -508,9 +508,9 @@
                 </section>
 
                 <!-- Doctor calls -->
-                <section t-if="state.data.calls.length" class="o_trk_card">
+                <section t-if="this.state.data.calls.length" class="o_trk_card">
                     <h5><i class="fa fa-phone me-2"/>Doctor calls</h5>
-                    <div t-foreach="state.data.calls" t-as="c" t-key="c_index" class="o_trk_row">
+                    <div t-foreach="this.state.data.calls" t-as="c" t-key="c_index" class="o_trk_row">
                         <div class="o_trk_row_main">
                             <span t-attf-class="o_trk_chip #{c.answered ? 'o_trk_chip_ok' : 'o_trk_chip_warn'}"
                                   t-esc="c.response"/>
@@ -522,11 +522,11 @@
                 </section>
 
                 <!-- Reworks -->
-                <section t-if="state.data.reworks.length" class="o_trk_card">
+                <section t-if="this.state.data.reworks.length" class="o_trk_card">
                     <h5><i class="fa fa-refresh me-2"/>Reworks</h5>
-                    <div t-foreach="state.data.reworks" t-as="r" t-key="r.id" class="o_trk_row">
+                    <div t-foreach="this.state.data.reworks" t-as="r" t-key="r.id" class="o_trk_row">
                         <div class="o_trk_row_main">
-                            <button t-if="!readonly" class="o_trk_link" t-on-click="() => this.openRecord('sale.order', r.id)">
+                            <button t-if="!this.readonly" class="o_trk_link" t-on-click="() => this.openRecord('sale.order', r.id)">
                                 <t t-esc="r.name"/>
                             </button>
                             <span t-else="" class="o_trk_ref">

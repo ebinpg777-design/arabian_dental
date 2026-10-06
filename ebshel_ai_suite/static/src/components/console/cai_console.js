@@ -1,4 +1,4 @@
-import { Component, onMounted, onWillStart, useState } from "@odoo/owl";
+import { Component, onMounted, onWillStart, proxy } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { CaiPromptInput } from "./cai_prompt_input";
@@ -22,7 +22,7 @@ export class CommunityAIConsole extends Component {
 
     setup() {
         this.bridge = useService("communityAiBridge");
-        this.state = useState({
+        this.state = proxy({
             ready: false,
             enabled: true,
             assistants: [],

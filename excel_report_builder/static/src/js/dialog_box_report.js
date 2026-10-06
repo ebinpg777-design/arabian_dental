@@ -1,12 +1,14 @@
 /** @odoo-module **/
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
-import { Component, useState, onWillStart, onWillUpdateProps } from "@odoo/owl";
+import { Component, onWillStart, onWillUpdateProps, proxy, usePlugin } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { ControlPanel } from "@web/search/control_panel/control_panel";
 import { DomainSelector } from "@web/core/domain_selector/domain_selector";
 import { user } from "@web/core/user";
 import { Domain } from "@web/core/domain";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * A domain as the Python-literal string the domain editor and the server both
@@ -40,9 +42,9 @@ class ExportDialog extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.notification = useService("notification");
-        this.fieldPath = useState([]);
-        this.state = useState({
+        this.notification = usePlugin(NotificationPlugin);
+        this.fieldPath = proxy([]);
+        this.state = proxy({
             availableFields: [],
             groupFields: [],
             selectedFields: [],
@@ -995,7 +997,7 @@ patch(ControlPanel.prototype, {
         super.setup();
         this.dialog = useService("dialog");
         this.orm = useService("orm");
-        this.actionService = useService("action");
+        this.actionService = usePlugin(ActionManagerPlugin);
         this.savedTemplates = [];
         this.isExcelReportUser = false;
         this.allowedModels = [];

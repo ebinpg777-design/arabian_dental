@@ -10,12 +10,12 @@ import {
 } from "@web/webclient/actions/action_service";
 import { HomeMenu } from "./home_menu";
 
-import { Component, onMounted, onWillUnmount, reactive, xml } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy, xml } from "@odoo/owl";
 
 export const homeMenuService = {
     dependencies: ["action"],
     start(env) {
-        const state = reactive({
+        const state = proxy({
             hasHomeMenu: false, // true iff the HomeMenu is currently displayed
             hasBackgroundAction: false, // true iff there is an action behind the HomeMenu
             toggle,
@@ -25,7 +25,7 @@ export const homeMenuService = {
             static components = { HomeMenu };
             static target = "current";
             static props = { ...standardActionServiceProps };
-            static template = xml`<HomeMenu t-props="homeMenuProps"/>`;
+            static template = xml`<HomeMenu t-props="this.homeMenuProps"/>`;
             static displayName = _t("Home");
 
             setup() {
@@ -36,7 +36,7 @@ export const homeMenuService = {
             }
             get homeMenuProps() {
                 const homemenuConfig = JSON.parse(user.settings?.homemenu_config || "null");
-                const apps = reactive(
+                const apps = proxy(
                     computeAppsAndMenuItems(this.menus.getMenuAsTree("root")).apps
                 );
                 if (homemenuConfig) {

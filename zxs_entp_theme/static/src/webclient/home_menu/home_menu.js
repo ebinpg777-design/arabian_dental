@@ -1,18 +1,19 @@
 import { hasTouch, isIosApp, isMacOS } from "@web/core/browser/feature_detection";
 import { useHotkey } from "@web/core/hotkeys/hotkey_hook";
+import { UIPlugin } from "@web/core/ui/ui_plugin";
 import { user } from "@web/core/user";
 import { useService } from "@web/core/utils/hooks";
 import { useSortable } from "@web/core/utils/sortable_owl";
 
 import {
     Component,
-    useExternalListener,
     onMounted,
     onPatched,
     onWillUpdateProps,
-    useState,
-    useRef,
+    proxy,
+    usePlugin,
 } from "@odoo/owl";
+import { useExternalListener, useRef } from "@web/owl2/utils";
 
 class FooterComponent extends Component {
     static template = "zxs_entp_theme.HomeMenu.CommandPalette.Footer";
@@ -90,8 +91,8 @@ export class HomeMenu extends Component {
         this.command = useService("command");
         this.menus = useService("menu");
         this.homeMenuService = useService("home_menu");
-        this.ui = useService("ui");
-        this.state = useState({
+        this.ui = usePlugin(UIPlugin);
+        this.state = proxy({
             focusedIndex: null,
             isIosApp: isIosApp(),
         });

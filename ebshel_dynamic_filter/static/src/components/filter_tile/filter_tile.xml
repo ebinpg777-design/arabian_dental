@@ -3,134 +3,134 @@
 
     <t t-name="ebshel_dynamic_filter.FilterTile">
         <div t-att-class="{
-                 o_dft_broken: props.broken,
-                 o_dft_active: props.active,
-                 o_dft_compact: props.compact,
-                 o_dft_changed: state.change,
-                 o_dft_loading: props.loading,
-                 o_dft_manageable: props.canManage,
-                 o_dft_alerting: isAlerting,
-                 o_dft_personal: props.def.personal,
-                 o_dft_selectable: props.selectable,
-                 o_dft_error: props.data and props.data.error,
+                 o_dft_broken: this.props.broken,
+                 o_dft_active: this.props.active,
+                 o_dft_compact: this.props.compact,
+                 o_dft_changed: this.state.change,
+                 o_dft_loading: this.props.loading,
+                 o_dft_manageable: this.props.canManage,
+                 o_dft_alerting: this.isAlerting,
+                 o_dft_personal: this.props.def.personal,
+                 o_dft_selectable: this.props.selectable,
+                 o_dft_error: this.props.data and this.props.data.error,
              }"
-             t-attf-class="o_dft_tile o_dft_look_{{ props.look }} {{ widthClass }}"
-             t-att-style="style"
-             t-att-data-tile-id="props.def.id"
-             t-att-title="tooltip"
-             t-att-aria-pressed="props.active"
+             t-attf-class="o_dft_tile o_dft_look_{{ this.props.look }} {{ this.widthClass }}"
+             t-att-style="this.style"
+             t-att-data-tile-id="this.props.def.id"
+             t-att-title="this.tooltip"
+             t-att-aria-pressed="this.props.active"
              role="button"
              tabindex="0"
-             t-on-click="onClick"
-             t-on-keydown="onKeydown">
+             t-on-click="this.onClick"
+             t-on-keydown="this.onKeydown">
             <!-- Its filter is something the browser cannot work out, so tapping
                  it would do nothing but explain itself. Said on the tile, in the
                  place a manager will see it. (client, 2026-09-10) -->
-            <span t-if="props.broken" class="o_dft_broken_flag"
+            <span t-if="this.props.broken" class="o_dft_broken_flag"
                   title="This tile's filter cannot be applied — edit it and simplify the filter">
                 <i class="fa fa-exclamation-triangle" role="img" aria-label="Unusable filter"/>
             </span>
 
-            <span t-if="props.canManage" class="o_dft_grip" title="Drag to reorder">
+            <span t-if="this.props.canManage" class="o_dft_grip" title="Drag to reorder">
                 <i class="fa fa-ellipsis-v" role="img" aria-label="Drag handle"/>
             </span>
 
             <div class="o_dft_body">
                 <div class="o_dft_head">
                     <span class="o_dft_icon">
-                        <i t-attf-class="{{ iconClass }}" role="img" aria-hidden="true"/>
+                        <i t-attf-class="{{ this.iconClass }}" role="img" aria-hidden="true"/>
                     </span>
-                    <span class="o_dft_label" t-out="props.def.name"/>
+                    <span class="o_dft_label" t-out="this.props.def.name"/>
                     <!-- Private tile: nobody else has this one. -->
-                    <i t-if="props.def.personal" class="o_dft_private fa fa-user-secret"
+                    <i t-if="this.props.def.personal" class="o_dft_private fa fa-user-secret"
                        role="img" aria-label="Private tile"/>
                     <!-- Grouping tile: one click filters and groups the view. -->
-                    <i t-if="props.def.group_by" class="o_dft_grouped fa fa-th-list"
+                    <i t-if="this.props.def.group_by" class="o_dft_grouped fa fa-th-list"
                        role="img" aria-label="Groups the view"/>
                     <!-- Past its threshold: the tile says so before anyone asks. -->
-                    <i t-if="isAlerting" class="o_dft_bell fa fa-bell" role="img"
+                    <i t-if="this.isAlerting" class="o_dft_bell fa fa-bell" role="img"
                        aria-label="Threshold crossed"/>
-                    <span t-if="delta and !props.compact and !isAlerting" class="o_dft_delta"
-                          t-att-class="{ o_dft_delta_up: delta.up }"
+                    <span t-if="this.delta and !this.props.compact and !this.isAlerting" class="o_dft_delta"
+                          t-att-class="{ o_dft_delta_up: this.delta.up }"
                           title="Change vs the previous period">
-                        <i t-attf-class="fa fa-caret-{{ delta.up ? 'up' : 'down' }}"/>
-                        <span t-out="delta.text"/>
+                        <i t-attf-class="fa fa-caret-{{ this.delta.up ? 'up' : 'down' }}"/>
+                        <span t-out="this.delta.text"/>
                     </span>
                 </div>
 
                 <div class="o_dft_value_row">
-                    <span class="o_dft_value" t-out="formattedValue"/>
+                    <span class="o_dft_value" t-out="this.formattedValue"/>
                     <!-- It just moved, under the same filter: say by how much. -->
-                    <span t-if="state.change" class="o_dft_change"
-                          t-att-class="{ o_dft_change_down: state.change &lt; 0 }"
-                          title="Changed at the last refresh" t-esc="changeText"/>
-                    <span t-if="subLabel" class="o_dft_sub" t-out="subLabel"/>
-                    <i t-if="props.active" class="o_dft_check fa fa-check-circle" role="img"
+                    <span t-if="this.state.change" class="o_dft_change"
+                          t-att-class="{ o_dft_change_down: this.state.change &lt; 0 }"
+                          title="Changed at the last refresh" t-out="this.changeText"/>
+                    <span t-if="this.subLabel" class="o_dft_sub" t-out="this.subLabel"/>
+                    <i t-if="this.props.active" class="o_dft_check fa fa-check-circle" role="img"
                        aria-label="Filter applied"/>
-                    <i t-if="props.selectable and !props.active"
+                    <i t-if="this.props.selectable and !this.props.active"
                        class="o_dft_check o_dft_unchecked fa fa-square-o" role="img"
                        aria-label="Not selected"/>
                 </div>
 
                 <!-- Trend mode: sparkline of the last periods. -->
-                <div t-if="spark" class="o_dft_spark">
+                <div t-if="this.spark" class="o_dft_spark">
                     <svg viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
-                        <path class="o_dft_spark_area" t-att-d="spark.area"/>
-                        <path class="o_dft_spark_line" t-att-d="spark.line"
+                        <path class="o_dft_spark_area" t-att-d="this.spark.area"/>
+                        <path class="o_dft_spark_line" t-att-d="this.spark.line"
                               vector-effect="non-scaling-stroke"/>
                     </svg>
                     <span class="o_dft_spark_dot"
-                          t-attf-style="left: {{ spark.lastX }}%; bottom: {{ spark.lastY }}%;"/>
+                          t-attf-style="left: {{ this.spark.lastX }}%; bottom: {{ this.spark.lastY }}%;"/>
                 </div>
             </div>
 
             <!-- Goal mode: progress ring towards the tile's target. -->
-            <div t-if="mode === 'goal'" class="o_dft_ring"
-                 t-attf-title="{{ goal.percent }}% of target">
+            <div t-if="this.mode === 'goal'" class="o_dft_ring"
+                 t-attf-title="{{ this.goal.percent }}% of target">
                 <svg viewBox="0 0 36 36" aria-hidden="true">
-                    <circle class="o_dft_ring_track" cx="18" cy="18" t-att-r="goal.radius"/>
-                    <circle class="o_dft_ring_value" cx="18" cy="18" t-att-r="goal.radius"
-                            t-att-stroke-dasharray="goal.circumference"
-                            t-att-stroke-dashoffset="goal.offset"
+                    <circle class="o_dft_ring_track" cx="18" cy="18" t-att-r="this.goal.radius"/>
+                    <circle class="o_dft_ring_value" cx="18" cy="18" t-att-r="this.goal.radius"
+                            t-att-stroke-dasharray="this.goal.circumference"
+                            t-att-stroke-dashoffset="this.goal.offset"
                             transform="rotate(-90 18 18)"/>
                 </svg>
                 <span class="o_dft_ring_label">
-                    <i t-if="goal.reached" class="fa fa-trophy"/>
-                    <t t-else=""><t t-esc="goal.percent"/>%</t>
+                    <i t-if="this.goal.reached" class="fa fa-trophy"/>
+                    <t t-else=""><t t-out="this.goal.percent"/>%</t>
                 </span>
             </div>
 
             <!-- Keyboard hint: Alt + n toggles this tile. -->
-            <span t-if="props.shortcut and !props.compact" class="o_dft_kbd">
-                <t t-esc="props.shortcut"/>
+            <span t-if="this.props.shortcut and !this.props.compact" class="o_dft_kbd">
+                <t t-out="this.props.shortcut"/>
             </span>
 
             <div class="o_dft_actions">
                 <!-- What is inside this tile? -->
-                <button t-if="props.onBreakdown" class="o_dft_split btn btn-link"
-                        title="Break this tile down" t-on-click="onBreakdownClick">
+                <button t-if="this.props.onBreakdown" class="o_dft_split btn btn-link"
+                        title="Break this tile down" t-on-click="this.onBreakdownClick">
                     <i class="fa fa-pie-chart" role="img" aria-label="Break down"/>
                 </button>
-                <button t-if="props.def.editable" class="o_dft_edit btn btn-link"
-                        title="Edit this tile" t-on-click="onEditClick">
+                <button t-if="this.props.def.editable" class="o_dft_edit btn btn-link"
+                        title="Edit this tile" t-on-click="this.onEditClick">
                     <i class="fa fa-pencil" role="img" aria-label="Edit tile"/>
                 </button>
-                <button t-if="props.onDelete" class="o_dft_remove btn btn-link"
-                        title="Remove this tile" t-on-click="onDeleteClick">
+                <button t-if="this.props.onDelete" class="o_dft_remove btn btn-link"
+                        title="Remove this tile" t-on-click="this.onDeleteClick">
                     <i class="fa fa-trash-o" role="img" aria-label="Remove tile"/>
                 </button>
             </div>
 
             <!-- Share of the records currently in the view. -->
-            <span t-if="mode !== 'goal'" class="o_dft_share">
-                <span class="o_dft_share_fill" t-attf-style="width: {{ share }}%;"/>
+            <span t-if="this.mode !== 'goal'" class="o_dft_share">
+                <span class="o_dft_share_fill" t-attf-style="width: {{ this.share }}%;"/>
             </span>
 
             <!-- Drag the edge to make the tile wider; double-click to reset. -->
-            <span t-if="props.onResize" class="o_dft_resize"
+            <span t-if="this.props.onResize" class="o_dft_resize"
                   title="Drag to resize · double-click for the standard width"
-                  t-on-pointerdown="onResizeStart"
-                  t-on-dblclick="onResizeReset"
+                  t-on-pointerdown="this.onResizeStart"
+                  t-on-dblclick="this.onResizeReset"
                   t-on-click.stop="() => {}"/>
         </div>
     </t>

@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact, pct } from "../common/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** One budget at a glance: bars per line, the months, the run-rate projection. */
 export class BudgetBoard extends Component {
@@ -12,8 +13,8 @@ export class BudgetBoard extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.state = useState({ loading: true, data: null, budgetId: (this.props.action && this.props.action.params && this.props.action.params.budget_id) || null });
+        this.action = usePlugin(ActionManagerPlugin);
+        this.state = proxy({ loading: true, data: null, budgetId: (this.props.action && this.props.action.params && this.props.action.params.budget_id) || null });
         this.money = (v) => money(v, this.state.data && this.state.data.currency);
         this.compact = (v) => compact(v, this.state.data && this.state.data.currency);
         this.pct = pct;

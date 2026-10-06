@@ -1,7 +1,9 @@
-import { Component, onMounted, useRef, useState } from "@odoo/owl";
+import { Component, onMounted, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { CaiVoiceRecorder } from "../../core/cai_voice";
+import { useRef } from "@web/owl2/utils";
 
 /** Prompt input: Enter sends, Shift+Enter inserts a new line. */
 export class CaiPromptInput extends Component {
@@ -18,9 +20,9 @@ export class CaiPromptInput extends Component {
     };
 
     setup() {
-        this.state = useState({ text: "", recording: false, transcribing: false });
+        this.state = proxy({ text: "", recording: false, transcribing: false });
         this.bridge = useService("communityAiBridge");
-        this.notification = useService("notification");
+        this.notification = usePlugin(NotificationPlugin);
         this.canRecord = CaiVoiceRecorder.isSupported();
         this.inputRef = useRef("input");
         this.fileRef = useRef("file");

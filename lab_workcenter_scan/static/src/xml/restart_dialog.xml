@@ -13,34 +13,34 @@
                 <strong>Every bench starts again from the first step.</strong>
                 The work already done on this case is not kept, and the case is
                 recorded as having been done again.
-                <t t-if="props.job.redo_count">
+                <t t-if="this.props.job.redo_count">
                     This case has already been started again
-                    <t t-esc="props.job.redo_count"/> time(s).
+                    <t t-esc="this.props.job.redo_count"/> time(s).
                 </t>
             </div>
         </div>
 
         <!-- Which case. A wrong card must be obvious BEFORE anything happens. -->
         <div class="o_st_doing_job">
-            <span class="o_st_mo" t-esc="props.job.production or props.job.name"/>
-            <span t-if="props.job.order" class="o_st_ref" t-esc="props.job.order"/>
-            <div t-if="props.job.patient or props.job.clinic" class="o_st_case">
-                <span t-if="props.job.patient" class="o_st_patient" t-esc="props.job.patient"/>
-                <span t-if="props.job.patient and props.job.clinic"> · </span>
-                <span t-if="props.job.clinic" class="o_st_clinic" t-esc="props.job.clinic"/>
+            <span class="o_st_mo" t-esc="this.props.job.production or this.props.job.name"/>
+            <span t-if="this.props.job.order" class="o_st_ref" t-esc="this.props.job.order"/>
+            <div t-if="this.props.job.patient or this.props.job.clinic" class="o_st_case">
+                <span t-if="this.props.job.patient" class="o_st_patient" t-esc="this.props.job.patient"/>
+                <span t-if="this.props.job.patient and this.props.job.clinic"> · </span>
+                <span t-if="this.props.job.clinic" class="o_st_clinic" t-esc="this.props.job.clinic"/>
             </div>
             <div class="o_st_doing_next">
                 <i class="fa fa-industry me-1" title="Now at"/>
-                Now at <strong t-esc="props.job.operation"/>
+                Now at <strong t-esc="this.props.job.operation"/>
             </div>
         </div>
 
         <div class="o_st_doing_lead">Why is it being done again?</div>
         <div class="o_st_tiles o_st_tiles_reason">
-            <button t-foreach="props.reasons" t-as="r" t-key="r.id"
+            <button t-foreach="this.props.reasons" t-as="r" t-key="r.id"
                     class="o_st_tile o_st_tile_reason"
-                    t-att-class="state.reasonId === r.id ? 'o_st_tile_on' : ''"
-                    t-att-disabled="state.busy"
+                    t-att-class="this.state.reasonId === r.id ? 'o_st_tile_on' : ''"
+                    t-att-disabled="this.state.busy"
                     t-on-click="() => this.pickReason(r)">
                 <span class="o_st_tile_name" t-esc="r.name"/>
                 <span t-if="r.station" class="o_st_tile_load" t-esc="r.station"/>
@@ -51,42 +51,42 @@
             What happened? <span class="o_st_optional">(optional)</span>
         </label>
         <input id="o_st_redo_note" class="form-control o_st_redo_note" t-ref="note"
-               type="text" t-model="state.note" maxlength="120"
+               type="text" t-custom-model="this.state.note" maxlength="120"
                placeholder="e.g. clasp snapped while fitting"
-               t-att-disabled="state.busy"/>
+               t-att-disabled="this.state.busy"/>
 
         <!-- Held, not tapped. A single tap cannot start a redo at all. -->
         <div class="o_st_holdwrap">
             <button class="o_st_hold"
                     t-att-class="{
-                        'o_st_hold_armed': armed,
-                        'o_st_hold_holding': state.holding,
-                        'o_st_hold_busy': state.busy,
+                        'o_st_hold_armed': this.armed,
+                        'o_st_hold_holding': this.state.holding,
+                        'o_st_hold_busy': this.state.busy,
                     }"
-                    t-att-disabled="!armed"
+                    t-att-disabled="!this.armed"
                     t-on-pointerdown="() => this.startHold()"
                     t-on-pointerup="() => this.stopHold()"
                     t-on-pointerleave="() => this.stopHold()"
                     t-on-pointercancel="() => this.stopHold()"
-                    t-on-keydown="onKeyDown"
-                    t-on-keyup="onKeyUp">
-                <span class="o_st_hold_fill" t-attf-style="width: {{ state.progress }}%"/>
+                    t-on-keydown="this.onKeyDown"
+                    t-on-keyup="this.onKeyUp">
+                <span class="o_st_hold_fill" t-attf-style="width: {{ this.state.progress }}%"/>
                 <span class="o_st_hold_label">
-                    <i t-if="state.busy" class="fa fa-circle-o-notch fa-spin me-2"/>
+                    <i t-if="this.state.busy" class="fa fa-circle-o-notch fa-spin me-2"/>
                     <i t-else="" class="fa fa-refresh me-2"/>
-                    <t t-esc="holdLabel"/>
+                    <t t-esc="this.holdLabel"/>
                 </span>
             </button>
-            <div t-if="state.slipped" class="o_st_holdhint o_st_holdhint_warn">
+            <div t-if="this.state.slipped" class="o_st_holdhint o_st_holdhint_warn">
                 Keep holding until the bar fills — nothing has been changed.
             </div>
-            <div t-elif="armed" class="o_st_holdhint">
+            <div t-elif="this.armed" class="o_st_holdhint">
                 Press and hold. Let go at any time to cancel.
             </div>
         </div>
 
         <div class="o_st_doing_foot">
-            <button class="btn btn-link" t-att-disabled="state.busy"
+            <button class="btn btn-link" t-att-disabled="this.state.busy"
                     t-on-click="() => this.props.close()">Leave it as it is</button>
         </div>
     </Dialog>

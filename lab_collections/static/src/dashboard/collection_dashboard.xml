@@ -14,49 +14,49 @@
                     <h2 class="mb-0">Collections</h2>
                     <small class="text-muted o_coll_subtitle">
                         What was invoiced, against what has actually come in
-                        <t t-if="state.data and state.data.scope_label">
-                            · <b t-esc="state.data.scope_label"/> only
+                        <t t-if="this.state.data and this.state.data.scope_label">
+                            · <b t-esc="this.state.data.scope_label"/> only
                         </t>
                     </small>
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <!-- Last period's invoicing has no part on the opening basis. -->
-                    <div class="o_coll_period" t-if="!isOpening">
+                    <div class="o_coll_period" t-if="!this.isOpening">
                         <span>Invoiced between</span>
                         <div class="d-flex align-items-center gap-1">
-                            <DateTimeInput type="'date'" format="dateFormat"
-                                           value="dateValue('sales_from')"
+                            <DateTimeInput type="'date'" format="this.dateFormat"
+                                           value="this.dateValue('sales_from')"
                                            onChange="(v) => this.onDateChange('sales_from', v)"/>
                             <span class="text-muted">–</span>
-                            <DateTimeInput type="'date'" format="dateFormat"
-                                           value="dateValue('sales_to')"
+                            <DateTimeInput type="'date'" format="this.dateFormat"
+                                           value="this.dateValue('sales_to')"
                                            onChange="(v) => this.onDateChange('sales_to', v)"/>
                         </div>
                     </div>
                     <div class="o_coll_period">
-                        <span t-esc="isOpening ? 'Period' : 'Received between'"/>
+                        <span t-esc="this.isOpening ? 'Period' : 'Received between'"/>
                         <div class="d-flex align-items-center gap-1">
-                            <DateTimeInput type="'date'" format="dateFormat"
-                                           value="dateValue('pay_from')"
+                            <DateTimeInput type="'date'" format="this.dateFormat"
+                                           value="this.dateValue('pay_from')"
                                            onChange="(v) => this.onDateChange('pay_from', v)"/>
                             <span class="text-muted">–</span>
-                            <DateTimeInput type="'date'" format="dateFormat"
-                                           value="dateValue('pay_to')"
+                            <DateTimeInput type="'date'" format="this.dateFormat"
+                                           value="this.dateValue('pay_to')"
                                            onChange="(v) => this.onDateChange('pay_to', v)"/>
                         </div>
                     </div>
                     <!-- What the percentage divides by. The company's default is
                          starred; "Current" puts it back along with the periods. -->
-                    <div class="o_coll_period o_coll_basis" t-if="state.data">
+                    <div class="o_coll_period o_coll_basis" t-if="this.state.data">
                         <span>Collection against</span>
                         <div class="btn-group btn-group-sm" role="group">
-                            <button t-foreach="state.data.bases" t-as="b" t-key="b[0]"
+                            <button t-foreach="this.state.data.bases" t-as="b" t-key="b[0]"
                                     type="button" class="btn"
-                                    t-att-class="basis === b[0] ? 'btn-primary' : 'btn-outline-primary'"
-                                    t-att-title="b[2] + (isDefaultBasis(b[0]) ? ' (company default)' : '')"
+                                    t-att-class="this.basis === b[0] ? 'btn-primary' : 'btn-outline-primary'"
+                                    t-att-title="b[2] + (this.isDefaultBasis(b[0]) ? ' (company default)' : '')"
                                     t-on-click="() => this.setBasis(b[0])">
                                 <t t-esc="b[1]"/>
-                                <i t-if="isDefaultBasis(b[0])" class="fa fa-star o_coll_default_mark"/>
+                                <i t-if="this.isDefaultBasis(b[0])" class="fa fa-star o_coll_default_mark"/>
                             </button>
                         </div>
                     </div>
@@ -79,62 +79,62 @@
             </div>
 
             <div class="o_content o_coll_body px-3 pb-2">
-                <div t-if="state.loading" class="text-muted p-4">
+                <div t-if="this.state.loading" class="text-muted p-4">
                     <i class="fa fa-circle-o-notch fa-spin me-2"/>Loading…
                 </div>
 
-                <t t-if="state.data and !state.loading">
+                <t t-if="this.state.data and !this.state.loading">
                     <!-- Every card opens the documents behind it. -->
                     <div class="o_coll_kpis mb-2">
-                        <div t-att-class="'o_coll_kpi o_coll_kpi_inv' + (canDrillDocuments ? ' o_coll_clickable' : '')"
-                             t-on-click="() => canDrillDocuments and this.drill('invoices', null)">
+                        <div t-att-class="'o_coll_kpi o_coll_kpi_inv' + (this.canDrillDocuments ? ' o_coll_clickable' : '')"
+                             t-on-click="() => this.canDrillDocuments and this.drill('invoices', null)">
                             <div class="o_coll_kpi_top">
-                                <span class="o_coll_kpi_label">Invoiced <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></span>
+                                <span class="o_coll_kpi_label">Invoiced <i t-if="this.canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></span>
                                 <span class="o_coll_kpi_sub">
-                                    <t t-esc="state.data.totals.invoices"/> invoices
-                                    <t t-if="state.data.totals.credit_notes">
-                                        · <t t-esc="state.data.totals.credit_notes"/> credit notes
+                                    <t t-esc="this.state.data.totals.invoices"/> invoices
+                                    <t t-if="this.state.data.totals.credit_notes">
+                                        · <t t-esc="this.state.data.totals.credit_notes"/> credit notes
                                     </t>
                                 </span>
                             </div>
-                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.sales)"/>
+                            <div class="o_coll_kpi_value" t-esc="this.money(this.state.data.totals.sales)"/>
                         </div>
                         <!-- The book the day before the receipts began: the ledger
                              closed at that date, both sides. No drill: the open-item
                              list is today's, and a click that opened the wrong list
                              would be worse than none. -->
                         <div class="o_coll_kpi o_coll_kpi_opening"
-                             t-attf-title="Every rupee still owed on {{ state.data.opening_date }}, the day before the receipts period begins">
+                             t-attf-title="Every rupee still owed on {{ this.state.data.opening_date }}, the day before the receipts period begins">
                             <div class="o_coll_kpi_top">
                                 <span class="o_coll_kpi_label">Open at start</span>
-                                <span class="o_coll_kpi_sub">unpaid as of <t t-esc="state.data.opening_date"/></span>
+                                <span class="o_coll_kpi_sub">unpaid as of <t t-esc="this.state.data.opening_date"/></span>
                             </div>
-                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.opening)"/>
+                            <div class="o_coll_kpi_value" t-esc="this.money(this.state.data.totals.opening)"/>
                         </div>
-                        <div t-att-class="'o_coll_kpi o_coll_kpi_recv' + (canDrillDocuments ? ' o_coll_clickable' : '')"
-                             t-on-click="() => canDrillDocuments and this.drill('receipts', null)">
+                        <div t-att-class="'o_coll_kpi o_coll_kpi_recv' + (this.canDrillDocuments ? ' o_coll_clickable' : '')"
+                             t-on-click="() => this.canDrillDocuments and this.drill('receipts', null)">
                             <div class="o_coll_kpi_top">
-                                <span class="o_coll_kpi_label">Received <i t-if="canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></span>
-                                <span class="o_coll_kpi_sub"><t t-esc="state.data.totals.receipts"/> receipts</span>
+                                <span class="o_coll_kpi_label">Received <i t-if="this.canDrillDocuments" class="fa fa-external-link ms-1 o_coll_hint"/></span>
+                                <span class="o_coll_kpi_sub"><t t-esc="this.state.data.totals.receipts"/> receipts</span>
                             </div>
-                            <div class="o_coll_kpi_value o_coll_good" t-esc="money(state.data.totals.collected)"/>
+                            <div class="o_coll_kpi_value o_coll_good" t-esc="this.money(this.state.data.totals.collected)"/>
                         </div>
                         <div class="o_coll_kpi o_coll_kpi_pct">
                             <div class="o_coll_kpi_top">
                                 <span class="o_coll_kpi_label">Collection</span>
-                                <span class="o_coll_kpi_sub" t-esc="basisNote"/>
+                                <span class="o_coll_kpi_sub" t-esc="this.basisNote"/>
                             </div>
                             <div class="o_coll_kpi_value">
-                                <t t-esc="state.data.totals.percent"/>%
-                                <small t-att-class="flagClass(state.data.totals.percent, state.data.totals.target)"
-                                       t-esc="targetGap(state.data.totals.percent, state.data.totals.target)"/>
+                                <t t-esc="this.state.data.totals.percent"/>%
+                                <small t-att-class="this.flagClass(this.state.data.totals.percent, this.state.data.totals.target)"
+                                       t-esc="this.targetGap(this.state.data.totals.percent, this.state.data.totals.target)"/>
                                 <!-- The lab-wide sparkline sits by the figure, not in the label,
                                      so the label line stays short enough for its note. -->
-                                <span class="o_coll_headline_spark" t-if="state.headline.length"
+                                <span class="o_coll_headline_spark" t-if="this.state.headline.length"
                                       title="The lab as a whole, month by month: received ÷ invoiced">
-                                    <t t-foreach="state.headline" t-as="pt" t-key="pt.label">
-                                        <span t-att-class="'o_coll_spark_bar ' + barClass(pt.percent, state.data.totals.target)"
-                                              t-attf-style="height: {{ sparkHeight(pt, state.headline) }}%;"
+                                    <t t-foreach="this.state.headline" t-as="pt" t-key="pt.label">
+                                        <span t-att-class="'o_coll_spark_bar ' + this.barClass(pt.percent, this.state.data.totals.target)"
+                                              t-attf-style="height: {{ this.sparkHeight(pt, this.state.headline) }}%;"
                                               t-attf-title="{{ pt.label }}: {{ pt.percent }}%"/>
                                     </t>
                                 </span>
@@ -146,22 +146,22 @@
                                 <span class="o_coll_kpi_label">Open receivable <i class="fa fa-external-link ms-1 o_coll_hint"/></span>
                                 <span class="o_coll_kpi_sub">
                                     all periods
-                                    <t t-if="state.data.dso">
-                                        · DSO <b t-esc="state.data.dso"/>d
+                                    <t t-if="this.state.data.dso">
+                                        · DSO <b t-esc="this.state.data.dso"/>d
                                         <i class="fa fa-question-circle-o o_coll_hint"
                                            title="Days sales outstanding: the open book divided by the last 90 days' average daily invoicing. Rising means the lab is being paid slower, not just selling more."/>
                                     </t>
                                 </span>
                             </div>
-                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.open)"/>
+                            <div class="o_coll_kpi_value" t-esc="this.money(this.state.data.totals.open)"/>
                         </div>
                         <div class="o_coll_kpi o_coll_kpi_pending o_coll_clickable"
                              t-on-click="() => this.drill('overdue', null)">
                             <div class="o_coll_kpi_top">
                                 <span class="o_coll_kpi_label">Overdue <i class="fa fa-external-link ms-1 o_coll_hint"/></span>
-                                <span class="o_coll_kpi_sub">30+ days · as of <t t-esc="state.data.as_of"/></span>
+                                <span class="o_coll_kpi_sub">30+ days · as of <t t-esc="this.state.data.as_of"/></span>
                             </div>
-                            <div class="o_coll_kpi_value" t-esc="money(state.data.totals.overdue)"/>
+                            <div class="o_coll_kpi_value" t-esc="this.money(this.state.data.totals.overdue)"/>
                         </div>
                     </div>
 
@@ -169,23 +169,23 @@
                          began - the opening basis's own analysis. Cleared is FIFO
                          per clinic, so paying this month's bills does not count as
                          clearing last month's; the headline percentage would. -->
-                    <t t-set="book" t-value="isOpening ? state.data.opening_book : null"/>
+                    <t t-set="book" t-value="this.isOpening ? this.state.data.opening_book : null"/>
                     <div class="o_coll_flow o_coll_book mb-2" t-if="book and book.opening > 0">
                         <div class="o_coll_flow_title">
                             What became of the opening book ·
-                            <t t-esc="money(book.opening)"/> open on <t t-esc="state.data.opening_date"/>
-                            <span t-if="state.data.scope_label" class="text-muted"> · your routes</span>
+                            <t t-esc="this.money(book.opening)"/> open on <t t-esc="this.state.data.opening_date"/>
+                            <span t-if="this.state.data.scope_label" class="text-muted"> · your routes</span>
                         </div>
                         <div class="o_coll_flow_row">
                             <div class="o_coll_flow_cell o_coll_book_cleared"
                                  title="Receipts in the period, applied to each clinic's opening book oldest first. A clinic that paid more than it owed at the start clears its opening book and no more.">
                                 <span class="o_coll_flow_l">Cleared</span>
-                                <span class="o_coll_flow_v o_coll_good" t-esc="shortMoney(book.cleared)"/>
+                                <span class="o_coll_flow_v o_coll_good" t-esc="this.shortMoney(book.cleared)"/>
                                 <span class="o_coll_flow_s"><b t-esc="book.cleared_pct"/>% of the opening book</span>
                             </div>
                             <div class="o_coll_flow_cell o_coll_book_carried">
                                 <span class="o_coll_flow_l">Carried forward</span>
-                                <span class="o_coll_flow_v" t-esc="shortMoney(book.carried)"/>
+                                <span class="o_coll_flow_v" t-esc="this.shortMoney(book.carried)"/>
                                 <span class="o_coll_flow_s">
                                     <t t-if="book.days_to_clear !== null">at this pace, clear in <b t-esc="book.days_to_clear"/> days</t>
                                     <t t-elif="book.carried > 0">nothing of it has moved</t>
@@ -203,25 +203,25 @@
                                  t-on-click="() => this.drill('silent', null)">
                                 <span class="o_coll_flow_l">Paid nothing <i class="fa fa-external-link ms-1 o_coll_hint"/></span>
                                 <span class="o_coll_flow_v"><t t-esc="book.silent_count"/> clinics</span>
-                                <span class="o_coll_flow_s"><t t-esc="shortMoney(book.silent_amount)"/> untouched since <t t-esc="state.data.opening_date"/></span>
+                                <span class="o_coll_flow_s"><t t-esc="this.shortMoney(book.silent_amount)"/> untouched since <t t-esc="this.state.data.opening_date"/></span>
                             </div>
                         </div>
                         <!-- Recovery by the age the money had on the opening day. -->
                         <div class="o_coll_book_bands">
                             <t t-foreach="book.bands" t-as="b" t-key="b.key">
                                 <div class="o_coll_book_band" t-if="b.opening > 0"
-                                     t-attf-title="{{ b.label }} on {{ state.data.opening_date }}: {{ money(b.opening) }}, of which {{ money(b.cleared) }} came in">
+                                     t-attf-title="{{ b.label }} on {{ this.state.data.opening_date }}: {{ this.money(b.opening) }}, of which {{ this.money(b.cleared) }} came in">
                                     <div class="o_coll_book_band_head">
-                                        <i t-att-class="'o_coll_age_dot ' + ageClass(b.key)"/>
+                                        <i t-att-class="'o_coll_age_dot ' + this.ageClass(b.key)"/>
                                         <t t-esc="b.label"/>
                                         <b class="ms-auto"><t t-esc="b.pct"/>%</b>
                                     </div>
                                     <div class="o_coll_book_track">
-                                        <div t-att-class="'o_coll_book_fill ' + ageClass(b.key)"
+                                        <div t-att-class="'o_coll_book_fill ' + this.ageClass(b.key)"
                                              t-attf-style="width: {{ b.pct }}%;"/>
                                     </div>
                                     <div class="o_coll_book_band_foot">
-                                        <t t-esc="shortMoney(b.cleared)"/> of <t t-esc="shortMoney(b.opening)"/> cleared
+                                        <t t-esc="this.shortMoney(b.cleared)"/> of <t t-esc="this.shortMoney(b.opening)"/> cleared
                                     </div>
                                 </div>
                             </t>
@@ -229,25 +229,25 @@
                     </div>
 
                     <!-- Where the open money is sitting, oldest first. -->
-                    <div class="o_coll_age_strip mb-2" t-if="state.data.ageing.total">
+                    <div class="o_coll_age_strip mb-2" t-if="this.state.data.ageing.total">
                         <div class="o_coll_age_title">Open receivable by age</div>
                         <div class="o_coll_age_bar">
-                            <t t-foreach="state.data.ageing.buckets" t-as="b" t-key="b.key">
+                            <t t-foreach="this.state.data.ageing.buckets" t-as="b" t-key="b.key">
                                 <div t-if="b.amount > 0"
-                                     t-att-class="'o_coll_age_seg ' + ageClass(b.key)"
+                                     t-att-class="'o_coll_age_seg ' + this.ageClass(b.key)"
                                      t-attf-style="width: {{ b.share }}%;"
-                                     t-attf-title="{{ b.label }}: {{ money(b.amount) }}"
+                                     t-attf-title="{{ b.label }}: {{ this.money(b.amount) }}"
                                      t-on-click="() => this.drill(b.key, null)">
                                     <span t-if="b.share > 8" t-esc="b.share"/><span t-if="b.share > 8">%</span>
                                 </div>
                             </t>
                         </div>
                         <div class="o_coll_age_legend">
-                            <t t-foreach="state.data.ageing.buckets" t-as="b" t-key="b.key">
+                            <t t-foreach="this.state.data.ageing.buckets" t-as="b" t-key="b.key">
                                 <span class="o_coll_age_key">
-                                    <i t-att-class="'o_coll_age_dot ' + ageClass(b.key)"/>
+                                    <i t-att-class="'o_coll_age_dot ' + this.ageClass(b.key)"/>
                                     <t t-esc="b.label"/>
-                                    <strong class="ms-1" t-esc="shortMoney(b.amount)"/>
+                                    <strong class="ms-1" t-esc="this.shortMoney(b.amount)"/>
                                 </span>
                             </t>
                         </div>
@@ -256,54 +256,54 @@
                     <!-- Where the receivable went over the receipts period. The two
                          bases the switch can read are the two ends of this line, so
                          it is the picture that reconciles them. -->
-                    <div class="o_coll_flow mb-2" t-if="movement">
+                    <div class="o_coll_flow mb-2" t-if="this.movement">
                         <div class="o_coll_flow_title">
                             Receivable movement ·
-                            <t t-esc="movement.from_date"/> – <t t-esc="movement.closing_date"/>
-                            <span t-if="state.data.scope_label" class="text-muted"> · whole lab</span>
+                            <t t-esc="this.movement.from_date"/> – <t t-esc="this.movement.closing_date"/>
+                            <span t-if="this.state.data.scope_label" class="text-muted"> · whole lab</span>
                         </div>
                         <div class="o_coll_flow_row">
                             <div class="o_coll_flow_cell o_coll_flow_open">
                                 <span class="o_coll_flow_l">Open at start</span>
-                                <span class="o_coll_flow_v" t-esc="shortMoney(movement.opening)"/>
-                                <span class="o_coll_flow_s">as of <t t-esc="movement.opening_date"/></span>
+                                <span class="o_coll_flow_v" t-esc="this.shortMoney(this.movement.opening)"/>
+                                <span class="o_coll_flow_s">as of <t t-esc="this.movement.opening_date"/></span>
                             </div>
                             <span class="o_coll_flow_op">+</span>
                             <div class="o_coll_flow_cell o_coll_flow_inv">
                                 <span class="o_coll_flow_l">Invoiced</span>
-                                <span class="o_coll_flow_v" t-esc="shortMoney(movement.billed)"/>
+                                <span class="o_coll_flow_v" t-esc="this.shortMoney(this.movement.billed)"/>
                                 <span class="o_coll_flow_s">in the receipts period</span>
                             </div>
                             <span class="o_coll_flow_op">−</span>
                             <div class="o_coll_flow_cell o_coll_flow_recv">
                                 <span class="o_coll_flow_l">Received</span>
-                                <span class="o_coll_flow_v o_coll_good" t-esc="shortMoney(movement.received)"/>
-                                <span class="o_coll_flow_s"><t t-esc="movement.receipts"/> receipts</span>
+                                <span class="o_coll_flow_v o_coll_good" t-esc="this.shortMoney(this.movement.received)"/>
+                                <span class="o_coll_flow_s"><t t-esc="this.movement.receipts"/> receipts</span>
                             </div>
-                            <t t-if="movement.other">
-                                <span class="o_coll_flow_op" t-esc="movement.other > 0 ? '+' : '−'"/>
+                            <t t-if="this.movement.other">
+                                <span class="o_coll_flow_op" t-esc="this.movement.other > 0 ? '+' : '−'"/>
                                 <div class="o_coll_flow_cell o_coll_flow_other"
                                      title="Movement that is neither an invoice nor a receipt: credit notes on plain entries, write-offs, opening entries, and clinics in credit. Reported rather than hidden - if it is large, somebody should look.">
                                     <span class="o_coll_flow_l">Other movements</span>
-                                    <span class="o_coll_flow_v" t-esc="shortMoney(abs(movement.other))"/>
+                                    <span class="o_coll_flow_v" t-esc="this.shortMoney(this.abs(this.movement.other))"/>
                                     <span class="o_coll_flow_s">adjustments</span>
                                 </div>
                             </t>
                             <span class="o_coll_flow_op">=</span>
                             <div class="o_coll_flow_cell o_coll_flow_close">
                                 <span class="o_coll_flow_l">Open at end</span>
-                                <span class="o_coll_flow_v" t-esc="shortMoney(movement.closing)"/>
+                                <span class="o_coll_flow_v" t-esc="this.shortMoney(this.movement.closing)"/>
                                 <span class="o_coll_flow_s">
-                                    <t t-if="movement.closing_is_today">today</t>
-                                    <t t-else="">as of <t t-esc="movement.closing_date"/></t>
+                                    <t t-if="this.movement.closing_is_today">today</t>
+                                    <t t-else="">as of <t t-esc="this.movement.closing_date"/></t>
                                 </span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Who wrote the most, who collected the most, who collects best. -->
-                    <div class="o_coll_boards mb-2" t-if="state.boards">
-                        <t t-foreach="boardRows" t-as="board" t-key="board.key">
+                    <div class="o_coll_boards mb-2" t-if="this.state.boards">
+                        <t t-foreach="this.boardRows" t-as="board" t-key="board.key">
                             <div class="o_coll_board">
                                 <div class="o_coll_board_head">
                                     <i t-attf-class="fa {{ board.icon }} me-2"/>
@@ -313,11 +313,11 @@
                                 <div class="o_coll_board_row o_coll_link"
                                      t-foreach="board.rows" t-as="entry" t-key="entry.key"
                                      t-on-click="() => this.drill(board.key === 'top_collectors' ? 'receipts' : 'invoices', entry, null, 'user_id')">
-                                    <span t-att-class="'o_coll_medal ' + medal(entry_index)"
+                                    <span t-att-class="'o_coll_medal ' + this.medal(entry_index)"
                                           t-esc="entry_index + 1"/>
                                     <span class="o_coll_board_name" t-esc="entry.label"/>
                                     <span class="o_coll_board_value">
-                                        <t t-if="board.money" t-esc="shortMoney(entry.value)"/>
+                                        <t t-if="board.money" t-esc="this.shortMoney(entry.value)"/>
                                         <t t-else=""><t t-esc="entry.value"/>%</t>
                                     </span>
                                 </div>
@@ -329,26 +329,26 @@
                     </div>
 
                     <div class="o_coll_boards_note mb-2"
-                         t-if="state.boards and (state.boards.excluded or []).length">
+                         t-if="this.state.boards and (this.state.boards.excluded or []).length">
                         <i class="fa fa-info-circle me-1"/>Not ranked on these boards:
-                        <t t-foreach="state.boards.excluded" t-as="ex" t-key="ex.key"><t t-if="ex_index"> · </t><span t-esc="ex.label"/></t>.
+                        <t t-foreach="this.state.boards.excluded" t-as="ex" t-key="ex.key"><t t-if="ex_index"> · </t><span t-esc="ex.label"/></t>.
                         Their invoices, receipts and open money still count in every total below.
                     </div>
 
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                         <div class="btn-group btn-group-sm" role="group">
                             <button class="btn"
-                                    t-att-class="state.tab === 'route' ? 'btn-primary' : 'btn-outline-primary'"
+                                    t-att-class="this.state.tab === 'route' ? 'btn-primary' : 'btn-outline-primary'"
                                     t-on-click="() => this.setTab('route')">By Sales Route</button>
                             <button class="btn"
-                                    t-att-class="state.tab === 'user' ? 'btn-primary' : 'btn-outline-primary'"
+                                    t-att-class="this.state.tab === 'user' ? 'btn-primary' : 'btn-outline-primary'"
                                     t-on-click="() => this.setTab('user')">By Salesperson</button>
                         </div>
                         <div class="o_coll_search">
                             <i class="fa fa-search"/>
                             <input type="text" class="form-control form-control-sm"
-                                   t-att-placeholder="state.tab === 'route' ? 'Find a route…' : 'Find a salesperson…'"
-                                   t-model="state.query"/>
+                                   t-att-placeholder="this.state.tab === 'route' ? 'Find a route…' : 'Find a salesperson…'"
+                                   t-custom-model="this.state.query"/>
                         </div>
                     </div>
 
@@ -356,62 +356,62 @@
                          until they lie: the table keeps its width and scrolls
                          sideways inside this box, the first column pinned. -->
                     <div class="o_coll_table_wrap">
-                    <table t-att-class="'table table-sm o_coll_table' + (isOpening ? ' o_coll_table_opening' : '')">
+                    <table t-att-class="'table table-sm o_coll_table' + (this.isOpening ? ' o_coll_table_opening' : '')">
                         <thead>
                             <tr>
                                 <th class="o_coll_sortable" t-on-click="() => this.sortBy('label')">
-                                    <t t-esc="state.tab === 'route' ? 'Sales Route' : 'Salesperson'"/>
-                                    <i t-att-class="sortIcon('label')"/>
+                                    <t t-esc="this.state.tab === 'route' ? 'Sales Route' : 'Salesperson'"/>
+                                    <i t-att-class="this.sortIcon('label')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('sales')">
-                                    Invoiced <i t-att-class="sortIcon('sales')"/>
+                                    Invoiced <i t-att-class="this.sortIcon('sales')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('opening')"
-                                    t-attf-title="Open on {{ state.data.opening_date }}, the day before the receipts period">
-                                    Open at start <i t-att-class="sortIcon('opening')"/>
+                                    t-attf-title="Open on {{ this.state.data.opening_date }}, the day before the receipts period">
+                                    Open at start <i t-att-class="this.sortIcon('opening')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('collected')">
-                                    Received <i t-att-class="sortIcon('collected')"/>
+                                    Received <i t-att-class="this.sortIcon('collected')"/>
                                 </th>
-                                <th class="text-end o_coll_sortable" t-if="isOpening"
+                                <th class="text-end o_coll_sortable" t-if="this.isOpening"
                                     t-on-click="() => this.sortBy('carried')"
                                     title="What is left of the opening money after the period's receipts, oldest first per clinic">
-                                    Carried fwd <i t-att-class="sortIcon('carried')"/>
+                                    Carried fwd <i t-att-class="this.sortIcon('carried')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('pending')"
-                                    t-att-title="shortfallTitle">
-                                    Shortfall <i t-att-class="sortIcon('pending')"/>
+                                    t-att-title="this.shortfallTitle">
+                                    Shortfall <i t-att-class="this.sortIcon('pending')"/>
                                 </th>
                                 <th class="o_coll_sortable" style="width:14%"
                                     t-on-click="() => this.sortBy('percent')">
-                                    Collection <i t-att-class="sortIcon('percent')"/>
+                                    Collection <i t-att-class="this.sortIcon('percent')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" style="width:7%"
                                     t-on-click="() => this.sortBy('target')">
-                                    Collect % <i t-att-class="sortIcon('target')"/>
+                                    Collect % <i t-att-class="this.sortIcon('target')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" style="width:9%"
                                     t-on-click="() => this.sortBy('sales_target')">
-                                    Sales target <i t-att-class="sortIcon('sales_target')"/>
+                                    Sales target <i t-att-class="this.sortIcon('sales_target')"/>
                                 </th>
                                 <th class="text-end o_coll_sortable" t-on-click="() => this.sortBy('overdue')">
-                                    Overdue <i t-att-class="sortIcon('overdue')"/>
+                                    Overdue <i t-att-class="this.sortIcon('overdue')"/>
                                 </th>
                                 <th class="text-center" style="width:7%"
-                                    t-if="state.tab === 'route'">Last 6 months</th>
+                                    t-if="this.state.tab === 'route'">Last 6 months</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <t t-foreach="rows" t-as="row" t-key="row.key">
+                            <t t-foreach="this.rows" t-as="row" t-key="row.key">
                                 <tr class="o_coll_row" t-on-click="() => this.toggleRow(row)"
-                                    t-att-class="{'o_coll_row_open': state.expanded === row.key,
+                                    t-att-class="{'o_coll_row_open': this.state.expanded === row.key,
                                                   'o_coll_row_excluded': row.excluded}">
                                     <td class="fw-bold">
-                                        <i t-att-class="state.expanded === row.key ? 'fa fa-caret-down me-2' : 'fa fa-caret-right me-2'"/>
+                                        <i t-att-class="this.state.expanded === row.key ? 'fa fa-caret-down me-2' : 'fa fa-caret-right me-2'"/>
                                         <t t-esc="row.label"/>
                                         <span t-if="row.excluded" class="o_coll_flag o_coll_flag_off"
                                               title="Left off the leaderboards. Every figure on this row still counts in the totals.">not ranked</span>
-                                        <button t-if="state.tab === 'user' and row.key and canRank"
+                                        <button t-if="this.state.tab === 'user' and row.key and this.canRank"
                                                 class="btn btn-link btn-sm o_coll_rank_btn"
                                                 t-att-title="row.excluded ? 'Not ranked — click to put back on the leaderboards' : 'Ranked — click to leave off the leaderboards'"
                                                 t-on-click="(ev) => this.toggleRanking(row, ev)">
@@ -420,26 +420,26 @@
                                     </td>
                                     <td class="text-end o_coll_link"
                                         t-on-click="(ev) => this.drill('invoices', row, ev)"
-                                        t-esc="money(row.sales)"/>
-                                    <td class="text-end o_coll_opening" t-esc="money(row.opening)"/>
+                                        t-esc="this.money(row.sales)"/>
+                                    <td class="text-end o_coll_opening" t-esc="this.money(row.opening)"/>
                                     <td class="text-end o_coll_link o_coll_good"
                                         t-on-click="(ev) => this.drill('receipts', row, ev)"
-                                        t-esc="money(row.collected)"/>
-                                    <td class="text-end" t-if="isOpening">
-                                        <t t-esc="money(row.carried)"/>
+                                        t-esc="this.money(row.collected)"/>
+                                    <td class="text-end" t-if="this.isOpening">
+                                        <t t-esc="this.money(row.carried)"/>
                                         <small t-if="row.cleared_pct !== null" class="ms-1 text-muted"
                                                title="Share of this row's opening money cleared in the period"><t t-esc="row.cleared_pct"/>%</small>
                                     </td>
                                     <td class="text-end"
                                         t-att-class="row.pending > 0 ? 'text-end text-danger' : 'text-end'"
-                                        t-esc="money(row.pending)"/>
+                                        t-esc="this.money(row.pending)"/>
                                     <td>
                                         <div class="o_coll_barcell">
                                         <div class="o_coll_bar_track">
-                                            <div t-att-class="'o_coll_bar ' + barClass(row.percent, row.target)"
-                                                 t-attf-style="width: {{ barWidth(row.percent) }}%;"/>
+                                            <div t-att-class="'o_coll_bar ' + this.barClass(row.percent, row.target)"
+                                                 t-attf-style="width: {{ this.barWidth(row.percent) }}%;"/>
                                             <span t-if="row.target" class="o_coll_bar_goal"
-                                                  t-attf-style="left: {{ targetMark(row.target) }}%;"
+                                                  t-attf-style="left: {{ this.targetMark(row.target) }}%;"
                                                   t-attf-title="Target {{ row.target }}%"/>
                                         </div>
                                         <small class="o_coll_barpct"><t t-esc="row.percent"/>%</small>
@@ -447,7 +447,7 @@
                                     </td>
                                     <td class="text-end o_coll_target_cell"
                                         t-on-click="(ev) => this.startEditTarget(row, ev)">
-                                        <input t-if="state.editingTarget === row.key"
+                                        <input t-if="this.state.editingTarget === row.key"
                                                type="number" min="0" max="100" step="1"
                                                class="form-control form-control-sm o_coll_target_input"
                                                t-ref="targetInput"
@@ -456,15 +456,15 @@
                                                t-on-blur="(ev) => this.saveTarget(row, ev)"
                                                t-on-keydown="(ev) => this.onTargetKey(ev)"/>
                                         <span t-else=""
-                                              t-att-class="row.own_target and canEditTargets ? 'o_coll_target_value o_coll_target_edit' : 'o_coll_target_value o_coll_inherited'"
-                                              t-att-title="row.own_target and canEditTargets ? 'Click to set this route\'s target' : (row.own_target ? 'Set by an Accounts Manager' : 'Follows the company target')">
+                                              t-att-class="row.own_target and this.canEditTargets ? 'o_coll_target_value o_coll_target_edit' : 'o_coll_target_value o_coll_inherited'"
+                                              t-att-title="row.own_target and this.canEditTargets ? 'Click to set this route\'s target' : (row.own_target ? 'Set by an Accounts Manager' : 'Follows the company target')">
                                             <t t-esc="row.target"/>%
-                                            <i t-if="row.own_target and canEditTargets" class="fa fa-pencil ms-1 o_coll_hint"/>
+                                            <i t-if="row.own_target and this.canEditTargets" class="fa fa-pencil ms-1 o_coll_hint"/>
                                         </span>
                                     </td>
                                     <td class="text-end o_coll_target_cell"
                                         t-on-click="(ev) => this.startEditSales(row, ev)">
-                                        <input t-if="state.editingSales === row.key"
+                                        <input t-if="this.state.editingSales === row.key"
                                                type="number" min="0" step="1000"
                                                class="form-control form-control-sm o_coll_target_input"
                                                t-att-value="row.sales_target"
@@ -474,15 +474,15 @@
                                                t-on-keydown="(ev) => this.onTargetKey(ev)"/>
                                         <t t-else="">
                                             <div t-if="row.sales_target"
-                                                 t-att-class="canEditTargets ? 'o_coll_target_value o_coll_target_edit' : 'o_coll_target_value'">
-                                                <t t-esc="shortMoney(row.sales_target)"/>
-                                                <i t-if="canEditTargets" class="fa fa-pencil ms-1 o_coll_hint"/>
+                                                 t-att-class="this.canEditTargets ? 'o_coll_target_value o_coll_target_edit' : 'o_coll_target_value'">
+                                                <t t-esc="this.shortMoney(row.sales_target)"/>
+                                                <i t-if="this.canEditTargets" class="fa fa-pencil ms-1 o_coll_hint"/>
                                             </div>
                                             <div t-else=""
-                                                 t-att-class="(canEditTargets ? 'o_coll_target_value o_coll_target_edit' : 'o_coll_target_value') + ' text-muted'">
-                                                not set <i t-if="canEditTargets" class="fa fa-pencil ms-1 o_coll_hint"/>
+                                                 t-att-class="(this.canEditTargets ? 'o_coll_target_value o_coll_target_edit' : 'o_coll_target_value') + ' text-muted'">
+                                                not set <i t-if="this.canEditTargets" class="fa fa-pencil ms-1 o_coll_hint"/>
                                             </div>
-                                            <small t-if="salesPct(row) !== null"
+                                            <small t-if="this.salesPct(row) !== null"
                                                    t-att-class="'o_coll_ach ' + (row.sales_pct >= 100 ? 'o_coll_ach_good' : (row.sales_pct >= 75 ? 'o_coll_ach_mid' : 'o_coll_ach_low'))">
                                                 <t t-esc="row.sales_pct"/>% of target
                                             </small>
@@ -491,27 +491,27 @@
                                     <td class="text-end o_coll_link"
                                         t-att-class="row.overdue > 0 ? 'text-end o_coll_link text-danger' : 'text-end o_coll_link'"
                                         t-on-click="(ev) => this.drill('overdue', row, ev)"
-                                        t-esc="money(row.overdue)"/>
-                                    <td class="text-center" t-if="state.tab === 'route'">
+                                        t-esc="this.money(row.overdue)"/>
+                                    <td class="text-center" t-if="this.state.tab === 'route'">
                                         <div class="o_coll_spark" t-if="row.trend.length">
                                             <t t-foreach="row.trend" t-as="pt" t-key="pt.label">
-                                                <span t-att-class="'o_coll_spark_bar ' + barClass(pt.percent, row.target)"
-                                                      t-attf-style="height: {{ sparkHeight(pt, row.trend) }}%;"
+                                                <span t-att-class="'o_coll_spark_bar ' + this.barClass(pt.percent, row.target)"
+                                                      t-attf-style="height: {{ this.sparkHeight(pt, row.trend) }}%;"
                                                       t-attf-title="{{ pt.label }}: {{ pt.percent }}% collected"/>
                                             </t>
                                         </div>
                                     </td>
                                 </tr>
-                                <tr t-if="state.expanded === row.key" class="o_coll_detail_row">
-                                    <td t-att-colspan="(state.tab === 'route' ? 10 : 9) + (isOpening ? 1 : 0)">
-                                        <t t-set="detail" t-value="detailFor(row.key)"/>
+                                <tr t-if="this.state.expanded === row.key" class="o_coll_detail_row">
+                                    <td t-att-colspan="(this.state.tab === 'route' ? 10 : 9) + (this.isOpening ? 1 : 0)">
+                                        <t t-set="detail" t-value="this.detailFor(row.key)"/>
                                         <div t-if="!detail" class="text-muted py-2">
                                             <i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the ledger…
                                         </div>
                                         <div t-else="" class="o_coll_detail">
                                             <!-- Salesperson review strip: where they
                                                  stand in the room, and what is stuck. -->
-                                            <t t-set="person" t-value="state.tab === 'user' ? personFor(row.key) : false"/>
+                                            <t t-set="person" t-value="this.state.tab === 'user' ? this.personFor(row.key) : false"/>
                                             <div t-if="person" class="o_coll_stats">
                                                 <div class="o_coll_stat">
                                                     <span class="o_coll_stat_label">Rank — invoiced</span>
@@ -552,14 +552,14 @@
                                                 <table class="o_coll_age_table">
                                                     <tr t-foreach="detail.ageing.buckets" t-as="b" t-key="b.key">
                                                         <td>
-                                                            <i t-att-class="'o_coll_age_dot ' + ageClass(b.key)"/>
+                                                            <i t-att-class="'o_coll_age_dot ' + this.ageClass(b.key)"/>
                                                             <t t-esc="b.label"/>
                                                         </td>
                                                         <td class="o_coll_age_track">
-                                                            <div t-att-class="'o_coll_age_fill ' + ageClass(b.key)"
+                                                            <div t-att-class="'o_coll_age_fill ' + this.ageClass(b.key)"
                                                                  t-attf-style="width: {{ b.share }}%;"/>
                                                         </td>
-                                                        <td class="text-end fw-bold" t-esc="money(b.amount)"/>
+                                                        <td class="text-end fw-bold" t-esc="this.money(b.amount)"/>
                                                     </tr>
                                                 </table>
                                                 <div class="mt-2 d-flex gap-2">
@@ -588,7 +588,7 @@
                                                             <t t-esc="d.name"/>
                                                             <small t-if="d.phone" class="text-muted ms-1" t-esc="d.phone"/>
                                                         </td>
-                                                        <td class="text-end fw-bold" t-esc="money(d.due)"/>
+                                                        <td class="text-end fw-bold" t-esc="this.money(d.due)"/>
                                                         <td class="text-end">
                                                             <span t-att-class="d.days > 90 ? 'o_coll_days o_coll_days_bad' : 'o_coll_days'">
                                                                 <t t-esc="d.days"/>d
@@ -598,7 +598,7 @@
                                                     <tr t-if="!detail.debtors.length">
                                                         <td class="text-muted py-2">
                                                             Nothing outstanding on this
-                                                            <t t-esc="state.tab === 'route' ? 'route' : 'salesperson'"/>.
+                                                            <t t-esc="this.state.tab === 'route' ? 'route' : 'salesperson'"/>.
                                                         </td>
                                                     </tr>
                                                 </table>
@@ -607,25 +607,25 @@
                                     </td>
                                 </tr>
                             </t>
-                            <tr t-if="!rows.length">
-                                <td t-att-colspan="(state.tab === 'route' ? 10 : 9) + (isOpening ? 1 : 0)" class="text-muted text-center py-4">
+                            <tr t-if="!this.rows.length">
+                                <td t-att-colspan="(this.state.tab === 'route' ? 10 : 9) + (this.isOpening ? 1 : 0)" class="text-muted text-center py-4">
                                     Nothing invoiced or collected in these periods.
                                 </td>
                             </tr>
                         </tbody>
-                        <tfoot t-if="rows.length">
+                        <tfoot t-if="this.rows.length">
                             <tr class="o_coll_total_row">
                                 <td class="fw-bold">Total</td>
-                                <td class="text-end fw-bold" t-esc="money(state.data.totals.sales)"/>
-                                <td class="text-end fw-bold" t-esc="money(state.data.totals.opening)"/>
-                                <td class="text-end fw-bold" t-esc="money(state.data.totals.collected)"/>
-                                <td class="text-end fw-bold" t-if="isOpening" t-esc="money(state.data.totals.carried)"/>
-                                <td class="text-end fw-bold" t-esc="money(state.data.totals.pending)"/>
-                                <td class="fw-bold"><t t-esc="state.data.totals.percent"/>%</td>
-                                <td class="text-end fw-bold"><t t-esc="state.data.totals.target"/>%</td>
-                                <td class="text-end fw-bold" t-esc="shortMoney(totalSalesTarget)"/>
-                                <td class="text-end fw-bold" t-esc="money(state.data.totals.overdue)"/>
-                                <td t-if="state.tab === 'route'"/>
+                                <td class="text-end fw-bold" t-esc="this.money(this.state.data.totals.sales)"/>
+                                <td class="text-end fw-bold" t-esc="this.money(this.state.data.totals.opening)"/>
+                                <td class="text-end fw-bold" t-esc="this.money(this.state.data.totals.collected)"/>
+                                <td class="text-end fw-bold" t-if="this.isOpening" t-esc="this.money(this.state.data.totals.carried)"/>
+                                <td class="text-end fw-bold" t-esc="this.money(this.state.data.totals.pending)"/>
+                                <td class="fw-bold"><t t-esc="this.state.data.totals.percent"/>%</td>
+                                <td class="text-end fw-bold"><t t-esc="this.state.data.totals.target"/>%</td>
+                                <td class="text-end fw-bold" t-esc="this.shortMoney(this.totalSalesTarget)"/>
+                                <td class="text-end fw-bold" t-esc="this.money(this.state.data.totals.overdue)"/>
+                                <td t-if="this.state.tab === 'route'"/>
                             </tr>
                         </tfoot>
                     </table>

@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy, usePlugin } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { useService } from "@web/core/utils/hooks";
 
 /**
@@ -24,8 +25,8 @@ export class TileImportDialog extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.notification = useService("notification");
-        this.state = useState({ payload: "", replace: false, busy: false, fileName: "" });
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({ payload: "", replace: false, busy: false, fileName: "" });
     }
 
     get canImport() {

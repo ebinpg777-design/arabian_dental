@@ -1,9 +1,11 @@
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
+import { useLayoutEffect, useRef } from "@web/owl2/utils";
 import { X2ManyField, x2ManyField } from "@web/views/fields/x2many/x2many_field";
 import { useService } from "@web/core/utils/hooks";
 
-import { markup, onWillStart, useEffect, useRef, useState } from "@odoo/owl";
+import { markup, onWillStart, proxy, usePlugin } from "@odoo/owl";
 
 /**
  * Element types offered by the "Add" menu, in the order a designer usually
@@ -68,12 +70,12 @@ export class LabelDesignerField extends X2ManyField {
     setup() {
         super.setup();
         this.orm = useService("orm");
-        this.notification = useService("notification");
+        this.notification = usePlugin(NotificationPlugin);
         this.canvasRef = useRef("canvas");
         this.palette = ELEMENT_PALETTE;
         this.paletteGroups = PALETTE_GROUPS;
         this.handles = HANDLES;
-        this.state = useState({
+        this.state = proxy({
             selectedIds: [],
             zoom: 0,          // 0 means "fit to the panel"
             snap: true,
@@ -102,7 +104,7 @@ export class LabelDesignerField extends X2ManyField {
         // Re-render whenever the element set or its geometry changes.  The
         // signature is cheap to build and stops a redraw from firing on every
         // unrelated keystroke in the form.
-        useEffect(
+        useLayoutEffect(
             () => {
                 this.scheduleRender();
             },

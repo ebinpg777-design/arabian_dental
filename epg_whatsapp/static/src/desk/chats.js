@@ -1,13 +1,16 @@
 /** @odoo-module **/
 
-import { Component, onWillDestroy, onWillStart, useEffect, useRef, useState } from "@odoo/owl";
+import { Component, onWillDestroy, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useBus, useService } from "@web/core/utils/hooks";
+import { useLayoutEffect, useRef } from "@web/owl2/utils";
 import { Layout } from "@web/search/layout";
 
 import { initials, waLines } from "./format";
 import { WaSendDialog } from "./send_dialog";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Chats: every conversation with a doctor, as a chat app shows it.
@@ -24,11 +27,11 @@ export class WaChats extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
+        this.action = usePlugin(ActionManagerPlugin);
         this.dialog = useService("dialog");
-        this.notification = useService("notification");
+        this.notification = usePlugin(NotificationPlugin);
         const params = (this.props.action && this.props.action.params) || {};
-        this.state = useState({
+        this.state = proxy({
             chats: [],
             loading: true,
             search: "",
@@ -48,7 +51,7 @@ export class WaChats extends Component {
         onWillStart(() => this.load(params.partner_id));
         useBus(this.env.bus, "EPG_WA:CHANGED", () => this.refresh());
         // The newest bubble is the one being looked for: keep the thread at the bottom.
-        useEffect(
+        useLayoutEffect(
             () => {
                 const el = this.threadRef.el;
                 if (el) {

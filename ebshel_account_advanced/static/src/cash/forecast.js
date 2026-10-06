@@ -1,9 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact, today } from "../common/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** Thirteen weeks of cash, with sliders for how customers will really behave. */
 export class CashForecast extends Component {
@@ -12,9 +14,9 @@ export class CashForecast extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
-        this.state = useState({ loading: true, data: null, busy: false, params: { weeks: null, collection_rate: null, delay_days: null, per_partner: true, include_draft: true },
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({ loading: true, data: null, busy: false, params: { weeks: null, collection_rate: null, delay_days: null, per_partner: true, include_draft: true },
                                 week: null, adding: false, item: {} });
         this.money = (v) => money(v, this.state.data && this.state.data.currency);
         this.compact = (v) => compact(v, this.state.data && this.state.data.currency);

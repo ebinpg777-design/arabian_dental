@@ -5,8 +5,8 @@
     <button type="button" class="btn btn-secondary o_wc_scan_btn ms-2"
             t-on-click="() => this.onScan()"
             title="Scan a station label to move this job">
-        <i t-att-class="canScan ? 'fa fa-qrcode' : 'fa fa-keyboard-o'"
-           t-att-title="canScan ? 'Scan' : 'Type the code'"/>
+        <i t-att-class="this.canScan ? 'fa fa-qrcode' : 'fa fa-keyboard-o'"
+           t-att-title="this.canScan ? 'Scan' : 'Type the code'"/>
         <span class="ms-2">Move by Scan</span>
     </button>
 </t>
@@ -19,7 +19,7 @@
             </p>
             <input type="text" class="form-control o_wc_prompt_input"
                    placeholder="WC-0001" autofocus="autofocus"
-                   t-on-input="onInput" t-on-keydown="onKeydown"/>
+                   t-on-input="this.onInput" t-on-keydown="this.onKeydown"/>
         </div>
         <t t-set-slot="footer">
             <button class="btn btn-primary" t-on-click="() => this.onConfirm()">

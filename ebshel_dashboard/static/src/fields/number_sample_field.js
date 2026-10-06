@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { formatFloat } from "@web/core/utils/numbers";
 import { registry } from "@web/core/registry";
 import { useRecordObserver } from "@web/model/relational_model/utils";
@@ -22,7 +22,7 @@ export class NumberSampleWidget extends Component {
     };
 
     setup() {
-        this.state = useState({ samples: [] });
+        this.state = proxy({ samples: [] });
         useRecordObserver((record) => {
             this.state.samples = this.build(record.data);
         });

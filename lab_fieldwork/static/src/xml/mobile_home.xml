@@ -12,7 +12,7 @@
             <button type="button" class="o_fw_mobile_btn o_fw_mobile_home"
                     t-att-title="currentApp.name" t-on-click="() => this.fwGoHome()">
                 <i class="fa fa-home me-1" aria-hidden="true"/>
-                <span class="o_fw_mobile_app" t-esc="currentApp.name"/>
+                <span class="o_fw_mobile_app" t-out="currentApp.name"/>
             </button>
         </div>
     </xpath>

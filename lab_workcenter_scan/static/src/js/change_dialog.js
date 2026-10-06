@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 
 /**
@@ -35,7 +35,7 @@ export class ChangeDialog extends Component {
     };
 
     setup() {
-        this.state = useState({
+        this.state = proxy({
             benchUserId: this.props.benchUserId || false,
             finisherUserId: this.props.finisherUserId || false,
             status: this.props.status,

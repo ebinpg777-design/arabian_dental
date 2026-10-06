@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, markup, useState } from "@odoo/owl";
+import { Component, markup, proxy } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
 import { waMarkup } from "@epg_whatsapp/desk/format";
@@ -24,7 +24,7 @@ export class EpgWaPreview extends Component {
     setup() {
         // Which of the texts is shown: the message, or what the second or third
         // send says instead.
-        this.state = useState({ stage: 1 });
+        this.state = proxy({ stage: 1 });
     }
 
     get data() {

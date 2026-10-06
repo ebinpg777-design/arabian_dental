@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillStart, onWillUnmount, useExternalListener, useRef, useState } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
 import { loadBundle } from "@web/core/assets";
 import { useHotkey } from "@web/core/hotkeys/hotkey_hook";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { useDebounced } from "@web/core/utils/timing";
@@ -17,6 +18,8 @@ import { markup } from "@odoo/owl";
 import { escape } from "@web/core/utils/strings";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { QuickFindDialog } from "./quick_find_dialog";
+import { useExternalListener, useRef } from "@web/owl2/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const GRID_GAP = 12; // must match the stylesheet
 const MIN_HEIGHT = 120;
@@ -98,13 +101,13 @@ export class DashboardBoardAction extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
+        this.action = usePlugin(ActionManagerPlugin);
         this.dialog = useService("dialog");
-        this.notification = useService("notification");
+        this.notification = usePlugin(NotificationPlugin);
         this.rootRef = useRef("root");
         this.moreRef = useRef("more");
         this.periodRef = useRef("period");
-        this.state = useState({
+        this.state = proxy({
             loading: true,
             board: null,
             items: [],

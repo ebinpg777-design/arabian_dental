@@ -1,10 +1,11 @@
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
+import { useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 import { CharField, charField } from "@web/views/fields/char/char_field";
 import { useService } from "@web/core/utils/hooks";
 
-import { Component, onWillStart, useRef, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy } from "@odoo/owl";
 
 /* ==========================================================================
  * Layout picker
@@ -139,7 +140,7 @@ export class FieldPathField extends CharField {
     setup() {
         super.setup();
         this.orm = useService("orm");
-        this.pickerState = useState({
+        this.pickerState = proxy({
             open: false,
             query: "",
             browsePath: "",

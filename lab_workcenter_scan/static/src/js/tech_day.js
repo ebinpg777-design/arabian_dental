@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The technician day: every person a row, every slot a cell.
@@ -26,9 +27,9 @@ export class LabTechDay extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
+        this.action = usePlugin(ActionManagerPlugin);
         const params = (this.props.action && this.props.action.params) || {};
-        this.state = useState({
+        this.state = proxy({
             day: params.day || null, slot: 60, view: "heat", stations: [], rostered: false, search: "",
             data: null, loading: true, drawer: null, stationMenu: false, sort: "activity",
         });

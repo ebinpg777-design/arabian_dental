@@ -13,9 +13,9 @@
  */
 import {patch} from "@web/core/utils/patch";
 import {registry} from "@web/core/registry";
-import {useService} from "@web/core/utils/hooks";
-import {useState} from "@odoo/owl";
+import { proxy, usePlugin } from "@odoo/owl";
 import {session} from "@web/session";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 import {HomeMenu} from "@zxs_entp_theme/webclient/home_menu/home_menu";
 
 /**
@@ -40,12 +40,12 @@ registry.category("services").add("lab_home_wallpaper", {
 patch(HomeMenu.prototype, {
     setup() {
         super.setup();
-        this.actionService = useService("action");
+        this.actionService = usePlugin(ActionManagerPlugin);
         this.homeAlerts = session.home_alerts || [];
         // Dismissal lasts as long as the page does. A backup that is failing is
         // still failing tomorrow, and this warning should come back rather than
         // be turned off once and forgotten.
-        this.alertState = useState({dismissed: false});
+        this.alertState = proxy({dismissed: false});
     },
 
     get visibleHomeAlerts() {

@@ -1,9 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { money } from "../common/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** Open items paired with a confidence score; bank lines matched to what they paid. */
 export class MatchDesk extends Component {
@@ -12,9 +14,9 @@ export class MatchDesk extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
-        this.state = useState({ loading: true, data: null, busy: false, kind: "receivable", search: "", minConf: 0,
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({ loading: true, data: null, busy: false, kind: "receivable", search: "", minConf: 0,
                                 partnerId: null, journalId: null, selected: {}, picks: {}, open: {} });
         this.money = (v) => money(v, this.state.data && this.state.data.currency);
         onWillStart(() => this.load());

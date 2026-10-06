@@ -4,15 +4,15 @@
     <t t-name="ebshel_dynamic_filter.FilterTilePreviewField">
         <div class="o_dft_preview">
             <div class="o_dft_preview_stage">
-                <div t-if="!modelName" class="o_dft_preview_placeholder">
+                <div t-if="!this.modelName" class="o_dft_preview_placeholder">
                     <i class="fa fa-hand-o-down me-2"/>
                     Choose a model to see the tile take shape.
                 </div>
                 <FilterTile t-else=""
-                            def="tileDef"
-                            data="state.data"
-                            total="state.total"
-                            loading="state.loading and !state.data"/>
+                            def="this.tileDef"
+                            data="this.state.data"
+                            total="this.state.total"
+                            loading="this.state.loading and !this.state.data"/>
             </div>
             <div class="o_dft_preview_caption">
                 <i class="fa fa-bolt me-1"/>

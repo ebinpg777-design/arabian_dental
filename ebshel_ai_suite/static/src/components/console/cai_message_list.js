@@ -1,8 +1,9 @@
-import { Component, onPatched, useRef } from "@odoo/owl";
+import { Component, onPatched, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
-import { useService } from "@web/core/utils/hooks";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { renderCaiMarkdown } from "../../core/cai_markdown";
 import { CaiActionDialogCard } from "./cai_action_card";
+import { useRef } from "@web/owl2/utils";
 
 /** Scrollable list of the visible messages of a conversation. */
 export class CaiMessageList extends Component {
@@ -21,7 +22,7 @@ export class CaiMessageList extends Component {
     };
 
     setup() {
-        this.notification = useService("notification");
+        this.notification = usePlugin(NotificationPlugin);
         this.scrollRef = useRef("scroll");
         onPatched(() => {
             const el = this.scrollRef.el;

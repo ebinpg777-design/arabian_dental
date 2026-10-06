@@ -1,4 +1,4 @@
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { CommunityAIConsole } from "./cai_console";
@@ -11,7 +11,7 @@ export class CommunityAIConsoleHost extends Component {
 
     setup() {
         this.bridge = useService("communityAiBridge");
-        this.state = useState(this.bridge.state);
+        this.state = proxy(this.bridge.state);
     }
 }
 

@@ -10,7 +10,7 @@
          t-attf-class, and hasclass() only sees a static class attribute - an xpath
          on it matches nothing and breaks every list view in the database.
          (client, 2026-08-28) -->
-    <xpath expr="//table[@t-ref='table']" position="after">
+    <xpath expr="//table[@t-custom-ref='table']" position="after">
         <div class="o_fw_more_sentinel" aria-hidden="true"/>
         <div t-if="fwCanAutoLoad" class="o_fw_more_note">
             <i class="fa fa-circle-o-notch fa-spin me-1" aria-hidden="true"/>

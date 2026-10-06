@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUnmount, useState } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const REFRESH_MS = 90000;
 
@@ -23,8 +24,8 @@ export class LabFlow extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.state = useState({
+        this.action = usePlugin(ActionManagerPlugin);
+        this.state = proxy({
             data: null,
             loading: true,
             refreshing: false,

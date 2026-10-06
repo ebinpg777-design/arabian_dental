@@ -1,9 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact, today, addDays } from "../common/utils";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** Every customer who owes money, what to do next, and the buttons that do it. */
 export class FollowupDesk extends Component {
@@ -12,9 +14,9 @@ export class FollowupDesk extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
-        this.state = useState({
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
+        this.state = proxy({
             loading: true, data: null, busy: false,
             filters: { state: [], responsible_id: false, search: "", sort: "overdue" },
             selected: {}, detail: null, modal: null, form: {},

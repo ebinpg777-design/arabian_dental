@@ -1,12 +1,15 @@
 /** @odoo-module **/
 
-import { Component, onPatched, onWillStart, useRef, useState } from "@odoo/owl";
+import { Component, onPatched, onWillStart, proxy, usePlugin } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { useRef } from "@web/owl2/utils";
 import { session } from "@web/session";
 import { formatMonetary } from "@web/views/fields/formatters";
 import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
+import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The executive's whole application.
@@ -20,12 +23,12 @@ export class LabMyDay extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = useService("action");
-        this.notification = useService("notification");
+        this.action = usePlugin(ActionManagerPlugin);
+        this.notification = usePlugin(NotificationPlugin);
         // Lives in the web client, not in this component: the watch has to
         // survive the executive walking off this screen into a visit form.
         this.tracker = useService("lab_live_track");
-        this.state = useState({
+        this.state = proxy({
             track: { open: false, rows: [], busy: false, query: "", more: false,
                      openId: null, details: {}, here: null, partnerId: null,
                      refreshing: null },
