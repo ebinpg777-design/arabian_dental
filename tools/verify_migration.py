@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
-"""Compare the migrated Odoo 19 database with its Odoo 17 source, figure by figure.
+"""Compare the migrated Odoo 20 database with its Odoo 17 source, figure by figure.
 
-    instances/arabian_dental/venv/bin/python projects/arabian_dental/tools/verify_migration.py adl_prod_v17 arabian_dental_live
+    instances/odoo20/venv/bin/python projects/arabian_dental/tools/verify_migration.py adl_prod_v17_1006 arabian_dental20
+
+The source lives on the PostgreSQL 14 server (:5432), the Odoo 20 target on the
+PostgreSQL 16 one (:5436); VERIFY_SRC_PORT / VERIFY_DST_PORT override.
 """
+import os
 import sys
 
 import psycopg2
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else 'adl_prod_v17'
-DST = sys.argv[2] if len(sys.argv) > 2 else 'arabian_dental_live'
+SRC = sys.argv[1] if len(sys.argv) > 1 else 'adl_prod_v17_1006'
+DST = sys.argv[2] if len(sys.argv) > 2 else 'arabian_dental20'
+SRC_PORT = int(os.environ.get('VERIFY_SRC_PORT', '5432'))
+DST_PORT = int(os.environ.get('VERIFY_DST_PORT', '5436'))
 
 
-def connect(db):
-    return psycopg2.connect(host='127.0.0.1', user='odoo', password='odoo', dbname=db).cursor()
+def connect(db, port):
+    return psycopg2.connect(host='127.0.0.1', port=port, user='odoo', password='odoo', dbname=db).cursor()
 
 
-s, d = connect(SRC), connect(DST)
+s, d = connect(SRC, SRC_PORT), connect(DST, DST_PORT)
 
 CHECKS = [
     # label, source SQL, target SQL
