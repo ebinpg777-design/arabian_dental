@@ -1,20 +1,20 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact } from "../common/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** The accounting app's home: profit and loss as a waterfall, the balance sheet as
  *  two stacks, twelve months of trend, ratios, and the work waiting on the team. */
 export class FinanceCockpit extends Component {
     static template = "ebshel_account_advanced.FinanceCockpit";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.state = proxy({ period: "month", data: null, loading: true, hover: null });
         this.money = (v) => money(v, this.state.data && this.state.data.currency);
         this.compact = (v) => compact(v, this.state.data && this.state.data.currency);

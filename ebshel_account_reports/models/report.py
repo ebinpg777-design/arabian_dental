@@ -104,7 +104,8 @@ class FinReport(models.Model):
     allow_partners = fields.Boolean(string='Partner filter', default=False)
     allow_analytic = fields.Boolean(string='Analytic filter', default=True)
     allow_accounts = fields.Boolean(string='Account search', default=False)
-    allow_hierarchy = fields.Boolean(string='Account groups', default=False)
+    allow_hierarchy = fields.Boolean(string='Parent accounts', default=False,
+                                     help="Offer to group the accounts under their parent accounts (Odoo 20's chart hierarchy).")
     allow_posted_toggle = fields.Boolean(string='Draft entries toggle', default=True)
     unfold_all_default = fields.Boolean(string='Unfold all by default', default=False)
     ledger_account_types = fields.Char(
@@ -313,7 +314,8 @@ class FinReport(models.Model):
             out.append({'id': pid, 'name': names[pid], 'count': count, 'amount': float(balance or 0),
                         'amount_text': engine.fmt(float(balance or 0), currency), 'active': True})
         if query and len(out) < limit:
-            for pid, name in self.env['res.partner'].sudo().name_search(query, limit=limit - len(out) + len(seen)):
+            # as the reader: a search as superuser offered the partners of companies the reader is not in
+            for pid, name in self.env['res.partner'].name_search(query, limit=limit - len(out) + len(seen)):
                 if pid not in seen:
                     out.append({'id': pid, 'name': name, 'count': 0, 'amount': 0.0, 'amount_text': '', 'active': False})
                     seen.add(pid)
@@ -361,8 +363,10 @@ class FinReport(models.Model):
                                    for c in self.env['res.partner.category'].sudo().search([], limit=200)],
             'salespeople': sorted(({'id': u.id, 'name': u.name} for u in Users.browse([r[0] for r in users]).exists()),
                                   key=lambda u: u['name'] or ''),
-            'product_categories': [{'id': c.id, 'name': c.complete_name or c.name}
-                                   for c in self.env['product.category'].sudo().search([], order='complete_name', limit=300)],
+            # complete_name is not stored in Odoo 20: it cannot order a search, so the names are sorted here
+            'product_categories': sorted(({'id': c.id, 'name': c.complete_name or c.name}
+                                          for c in self.env['product.category'].sudo().search([], limit=300)),
+                                         key=lambda c: c['name'].lower()),
             'teams': [],
             'units': [[1, _('Exact')], [1000, _('Thousands')], [100000, _('Lakhs')],
                       [1000000, _('Millions')], [10000000, _('Crores')]],
@@ -461,6 +465,8 @@ class FinReport(models.Model):
         else:
             p_from, p_to = engine.shift_period(d_from, d_to, 'previous', 1)
         mode = 'cumulative' if single else 'flow'
+        # both windows in one pass over the ledger, not one each
+        engine.preload_sums(options, [(mode, d_from, d_to), (mode, p_from, p_to)])
         now = engine.sums_by_account(options, mode, d_from, d_to)
         before = engine.sums_by_account(options, mode, p_from, p_to)
         accounts = engine.accounts(options)
@@ -508,6 +514,14 @@ class FinReport(models.Model):
             company.ebshel_fin_totals_last and not int(offset or 0) and kids
             and not any(l.get('kind') == 'total' and l.get('parent_id') == str(line_id) for l in kids))
         return res
+
+    def get_annotations(self):
+        """The notes on this report's lines. After a note was added or removed the screen
+        asked for the whole report again just to read them back - every figure recomputed
+        (a full general ledger) to redraw a speech bubble."""
+        self.ensure_one()
+        self._check_report_access()
+        return self.env['ebshel.fin.report.annotation'].for_report(self)
 
     def get_drill_action(self, options, line_id, column_key='p0'):
         """The journal items behind one figure, as a list."""

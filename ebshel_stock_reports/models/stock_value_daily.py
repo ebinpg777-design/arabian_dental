@@ -181,7 +181,7 @@ class StockValueDaily(models.Model):
         self.env['stock.move.line'].flush_model(
             ['quantity_product_uom', 'location_id', 'location_dest_id', 'owner_id', 'picked'])
         self.env.cr.execute(SQL("""
-            SELECT sm.id, sm.date, COALESCE(sm.value, 0), COALESCE(sm.quantity, 0),
+            SELECT sm.id, sm.date, COALESCE((CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END), 0), COALESCE(sm.quantity, 0),
                    COALESCE(SUM(CASE WHEN NOT ls_v AND ld_v THEN q ELSE 0 END), 0) AS in_qty,
                    COALESCE(SUM(CASE WHEN ls_v AND NOT ld_v THEN q ELSE 0 END), 0) AS out_qty,
                    sm.is_in, sm.is_out

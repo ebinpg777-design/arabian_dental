@@ -112,7 +112,7 @@ class ReportProductionAccount(models.TransientModel):
         self.env.cr.execute(SQL("""
             SELECT 'finished' AS kind, sm.id, mp.id, sm.product_id,
                    (sm.product_id <> mp.product_id OR sm.byproduct_id IS NOT NULL) AS byproduct,
-                   sm.value, SUM(sml.quantity_product_uom)
+                   (CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END) AS value, SUM(sml.quantity_product_uom)
               FROM mrp_production mp
               JOIN stock_move sm ON sm.production_id = mp.id
               JOIN stock_move_line sml ON sml.move_id = sm.id
@@ -122,7 +122,7 @@ class ReportProductionAccount(models.TransientModel):
                AND %(products)s
              GROUP BY sm.id, mp.id
             UNION ALL
-            SELECT 'material', sm.id, mp.id, sm.product_id, FALSE, sm.value, SUM(sml.quantity_product_uom)
+            SELECT 'material', sm.id, mp.id, sm.product_id, FALSE, (CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END) AS value, SUM(sml.quantity_product_uom)
               FROM mrp_production mp
               JOIN stock_move sm ON sm.raw_material_production_id = mp.id
               JOIN stock_move_line sml ON sml.move_id = sm.id

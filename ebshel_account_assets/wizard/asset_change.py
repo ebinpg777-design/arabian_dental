@@ -48,8 +48,13 @@ class AssetChange(models.TransientModel):
             if self.salvage_value < 0 or self.salvage_value > asset.book_value:
                 raise UserError(_("The salvage value must be between zero and the current book value."))
             done = len(asset.line_ids.filtered(lambda l: l.state == 'posted' and l.kind == 'depreciation'))
+            from_date = period_start(add_periods(self.date, asset.period, 1), asset.period)
+            # the periods counted from the change date include the one it falls in, which stays
+            # as planned (it is before from_date): the new schedule is the rest of them
+            kept = len(asset.line_ids.filtered(lambda l: l.state == 'draft' and l.kind == 'depreciation'
+                                               and l.date < from_date))
             asset.write({'salvage_value': self.salvage_value, 'duration': done + self.duration})
-            asset.build_schedule(from_date=period_start(add_periods(self.date, asset.period, 1), asset.period))
+            asset.build_schedule(from_date=from_date, periods=self.duration - kept)
             asset._log('modified', note=self.note, day=self.date)
         elif self.kind == 'increase':
             if self.amount <= 0:

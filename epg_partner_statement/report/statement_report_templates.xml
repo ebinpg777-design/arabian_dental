@@ -196,10 +196,10 @@
                                                 <thead><tr><th>Bank</th><th>A/c No.</th><th>Branch</th><th>IFSC / BIC</th></tr></thead>
                                                 <tbody>
                                                     <tr t-foreach="company.partner_id.bank_ids" t-as="b">
-                                                        <td><span t-field="b.bank_id.name"/></td>
-                                                        <td><span t-field="b.acc_number"/></td>
-                                                        <td><span t-field="b.bank_id.city"/></td>
-                                                        <td><span t-field="b.bank_id.bic"/></td>
+                                                        <td><span t-field="b.bank_name"/></td>
+                                                        <td><span t-field="b.account_number"/></td>
+                                                        <td><span t-field="b.city"/></td>
+                                                        <td><span t-field="b.bank_bic"/></td>
                                                     </tr>
                                                 </tbody>
                                             </table>

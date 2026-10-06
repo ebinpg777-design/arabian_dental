@@ -1,7 +1,7 @@
 # Part of Advanced Stock Reports. See LICENSE file for full copyright and licensing details.
 {
     'name': 'Advanced Stock Reports',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'summary': 'Stock ledger, aging, WIP, planned vs actual consumption, OTIF, purchase price '
                'variance, ABC/XYZ, MO cost analysis, GST registers - every figure reconciled to '
                'the Odoo valuation, exported to Excel and PDF.',
@@ -88,7 +88,7 @@ Compatibility
         'views/stock_scrap_views.xml',
         'views/product_category_views.xml',
         'wizard/stock_inventory_adjustment_name_views.xml',
-        'wizard/stock_return_picking_views.xml',
+        'views/stock_picking_views.xml',
         'wizard/report_stock_ledger_views.xml',
         'wizard/report_consumption_views.xml',
         'wizard/report_wip_views.xml',

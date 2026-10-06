@@ -171,7 +171,9 @@ class FinEngine(models.AbstractModel):
             start = date_from - relativedelta(months=months * steps)
             end = start + relativedelta(months=months) - timedelta(days=1)
             if mode == 'last_year':
-                end = date_to - relativedelta(years=steps)
+                # a whole month a year back ends on ITS last day: February 2025 against
+                # February 2024 read the 28th and dropped the 29th
+                end = date_utils.end_of(date_to - relativedelta(years=steps), 'month')
                 start = date_from - relativedelta(years=steps)
             return start, end
         if mode == 'last_year':
@@ -338,7 +340,7 @@ class FinEngine(models.AbstractModel):
             parts.append(SQL("%s IN %s", l('partner_id'), tuple(options['partners'])))
         if options.get('analytic'):
             keys = [str(i) for i in options['analytic']]
-            parts.append(SQL("%s ?| %s::text[]", l('analytic_distribution'), keys))
+            parts.append(SQL("%s && %s::text[]", self.analytic_ids_sql(alias), keys))
         if options.get('journal_types'):
             parts.append(SQL("%s IN (SELECT id FROM account_journal WHERE type IN %s)",
                              l('journal_id'), tuple(options['journal_types'])))
@@ -394,13 +396,25 @@ class FinEngine(models.AbstractModel):
         return dom
 
     @api.model
+    def analytic_ids_sql(self, alias='l'):
+        """Every analytic account a line's distribution names, as a text array.
+
+        With two analytic plans a distribution key is a COMBINATION, "3,7" (project 3 and
+        department 7, one share). Keys were compared whole, so filtering on 3 lost that line
+        while the list the figure opens (the ORM's own search, which splits the keys) kept
+        it. This is the ORM's expression, so the two can no longer disagree."""
+        return SQL(r"""regexp_split_to_array(jsonb_path_query_array(%s, '$.keyvalue()."key"')::text, '\D+')""",
+                   SQL.identifier(alias, 'analytic_distribution'))
+
+    @api.model
     def weight_sql(self, options, alias='l'):
-        """1, or the share of the line that belongs to the selected analytic accounts."""
+        """1, or the share of the line that belongs to the selected analytic accounts: the
+        shares of every key naming one of them ("3,7" counts for 3 and for 7)."""
         if not options.get('analytic'):
             return SQL("1")
         keys = [str(i) for i in options['analytic']]
         return SQL("""(SELECT COALESCE(SUM(v.value::numeric), 0) / 100.0
-                        FROM jsonb_each_text(%s) v WHERE v.key = ANY(%s::text[]))""",
+                        FROM jsonb_each_text(%s) v WHERE string_to_array(v.key, ',') && %s::text[])""",
                    SQL.identifier(alias, 'analytic_distribution'), keys)
 
     @api.model
@@ -425,8 +439,8 @@ class FinEngine(models.AbstractModel):
             fy_from = self.fiscal_year_start(date_from, company)
             return SQL("%s < %s AND (%s OR %s >= %s)", d, date_from,
                        self.carries_opening_sql(account_alias), d, fy_from)
-        if mode == 'ledger':
-            # a ledger's closing balance: its opening and the period together
+        if mode == 'closing':
+            # A ledger's closing balance: its opening (above) and the period together.
             fy_from = self.fiscal_year_start(date_from, company)
             return SQL("%s <= %s AND (%s OR %s >= %s)", d, date_to,
                        self.carries_opening_sql(account_alias), d, fy_from)
@@ -630,16 +644,16 @@ class FinEngine(models.AbstractModel):
         if memo is not None and key in memo:
             return memo[key]
         rows = self.env.execute_query(SQL("""
-            SELECT a.id, %s, %s, a.account_type, %s, a.active
+            SELECT a.id, %s, %s, a.account_type, %s, a.active, a.parent_id
               FROM account_account a
               JOIN account_account_res_company_rel r ON r.account_account_id = a.id
              WHERE r.res_company_id IN %s
              ORDER BY 2
         """, self.code_sql(options), self.name_sql(), self.carries_opening_sql('a'), tuple(options['companies'])))
         out = {}
-        for aid, code, name, atype, initial, active in rows:
+        for aid, code, name, atype, initial, active, parent in rows:
             out[aid] = {'id': aid, 'code': code or '', 'name': name or '', 'type': atype,
-                        'initial': bool(initial), 'active': bool(active)}
+                        'initial': bool(initial), 'active': bool(active), 'parent': parent}
         if memo is not None:
             memo[key] = out
         return out
@@ -668,9 +682,12 @@ class FinEngine(models.AbstractModel):
                 [('tag_ids', 'in', list(tag_ids))]).ids
             keep(tagged)
         if domain:
-            query = self.env['account.move.line'].with_context(active_test=False)._search(domain)
+            # not named `query`: that is the typed search below, and a Query object in its place
+            # was run for its truth (every matching item id fetched) and then had .lower() called
+            # on it - a designed line with a domain broke its whole report
+            items = self.env['account.move.line'].with_context(active_test=False)._search(domain)
             rows = self.env.execute_query(SQL("SELECT DISTINCT account_id FROM (%s) q",
-                                              query.select(SQL("account_move_line.account_id"))))
+                                              items.select(SQL("account_move_line.account_id"))))
             keep(r[0] for r in rows)
         if query:
             q = query.lower()
@@ -712,7 +729,7 @@ class FinEngine(models.AbstractModel):
             fy_from = self.fiscal_year_start(date_from, company)
             dom += [('date', '<', date_from), '|', ('account_id.account_type', 'not in', PL_ONLY_TYPES),
                     ('date', '>=', fy_from)]
-        elif mode == 'ledger':
+        elif mode == 'closing':
             fy_from = self.fiscal_year_start(date_from, company)
             dom += [('date', '<=', date_to), '|', ('account_id.account_type', 'not in', PL_ONLY_TYPES),
                     ('date', '>=', fy_from)]

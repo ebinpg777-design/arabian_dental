@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """What a customer owes, how they pay, and the reminders sent to them."""
-import base64
 from datetime import timedelta
 
 from markupsafe import Markup, escape
@@ -41,7 +40,14 @@ class ResPartner(models.Model):
         """Per customer (commercial partner): what is open, overdue, how old."""
         self.env['account.move.line'].flush_model()
         where = SQL("l.company_id = %s", company.id)
-        if partner_ids:
+        if partner_ids is not None:
+            # Only ids the database knows: a virtual id from an unsaved form cannot be
+            # adapted by psycopg2 and never matches a ledger row. Asking about nothing
+            # returns nothing - dropping the narrowing would widen the question to every
+            # customer of the company.
+            partner_ids = [i for i in partner_ids if isinstance(i, int)]
+            if not partner_ids:
+                return []
             where = SQL("%s AND COALESCE(p.commercial_partner_id, p.id) IN %s", where, tuple(partner_ids))
         rows = self.env.execute_query(SQL("""
             SELECT COALESCE(p.commercial_partner_id, p.id) AS partner,
@@ -65,10 +71,13 @@ class ResPartner(models.Model):
     @api.model
     def _ebshel_pay_habits(self, partner_ids, days=365):
         """How long each customer takes to pay, weighted by amount, over the last year."""
+        # only ids the database knows - see _ebshel_followup_rows
+        partner_ids = [i for i in (partner_ids or []) if isinstance(i, int)]
         if not partner_ids:
             return {}
         self.env['account.partial.reconcile'].flush_model()
         today = fields.Date.context_today(self)
+        # the current company's invoices only, like every other figure on the desk and the form
         rows = self.env.execute_query(SQL("""
             SELECT COALESCE(p.commercial_partner_id, p.id),
                    SUM(pr.amount * (pr.max_date - m.invoice_date)) / NULLIF(SUM(pr.amount), 0),
@@ -79,29 +88,32 @@ class ResPartner(models.Model):
               JOIN account_account a ON a.id = dl.account_id
               JOIN res_partner p ON p.id = dl.partner_id
              WHERE COALESCE(p.commercial_partner_id, p.id) IN %s AND a.account_type = 'asset_receivable'
+               AND dl.company_id = %s
                AND m.move_type = 'out_invoice' AND m.invoice_date IS NOT NULL AND pr.max_date >= %s
              GROUP BY 1
-        """, tuple(partner_ids), today - timedelta(days=days)))
+        """, tuple(partner_ids), self.env.company.id, today - timedelta(days=days)))
         return {r[0]: {'to_pay': round(float(r[1]), 1) if r[1] is not None else None,
                        'late': round(float(r[2]), 1) if r[2] is not None else None} for r in rows}
 
     def _ebshel_open_items(self):
         """The open receivable items of this customer's family."""
         self.ensure_one()
-        family = self.commercial_partner_id | self.commercial_partner_id.child_ids | self
+        # the whole family, as the ledger figures group it (contacts of contacts included)
         return self.env['account.move.line'].search([
-            ('partner_id', 'in', family.ids), ('account_id.account_type', '=', 'asset_receivable'),
+            ('partner_id.commercial_partner_id', '=', (self.commercial_partner_id or self).id),
+            ('account_id.account_type', '=', 'asset_receivable'),
             ('reconciled', '=', False), ('parent_state', '=', 'posted'), ('company_id', '=', self.env.company.id)],
             order='date_maturity, date, id')
 
     # ------------------------------------------------------------------ judgement
-    def _ebshel_judge(self, due, overdue, oldest, today):
-        """(state, level reached, days overdue) for one customer."""
+    def _ebshel_judge(self, due, overdue, oldest, today, levels=None):
+        """(state, level reached, days overdue) for one customer. `levels`: the company's
+        levels from Level._of_company(), when judging many customers in a row."""
         self.ensure_one()
         Level = self.env['ebshel.followup.level']
         company = self.env.company
         days = (today - oldest).days if oldest else 0
-        reached = Level._for_days(days, company) if overdue > 0 else Level
+        reached = Level._for_days(days, company, levels=levels) if overdue > 0 else Level
         if self.ebshel_followup_excluded:
             return 'excluded', reached, days
         if overdue <= 0.005:
@@ -122,13 +134,19 @@ class ResPartner(models.Model):
     @api.depends('ebshel_followup_level_id', 'ebshel_followup_next_date', 'ebshel_followup_excluded', 'ebshel_promise_date')
     def _compute_ebshel_followup(self):
         today = fields.Date.context_today(self)
+        # `_origin`, not `id`: on a form these records are virtual. A partner being edited
+        # carries the saved one as its origin, whose ledger is wanted; a partner being
+        # created has none (and no ledger), so it falls to the defaults. The virtual id
+        # used to reach psycopg2 ("can't adapt type 'NewId'") and took the form down.
         commercial = {p.id: (p.commercial_partner_id or p) for p in self}
-        ids = list({c.id for c in commercial.values()})
+        ids = list({c._origin.id for c in commercial.values() if c._origin})
         rows = {r['partner']: r for r in self._ebshel_followup_rows(self.env.company, today, ids)} if ids else {}
+        levels = self.env['ebshel.followup.level']._of_company(self.env.company)
         for partner in self:
             c = commercial[partner.id]
-            row = rows.get(c.id) or {}
-            state, reached, days = c._ebshel_judge(row.get('due', 0.0), row.get('overdue', 0.0), row.get('oldest'), today)
+            row = rows.get(c._origin.id) or {}
+            state, reached, days = c._ebshel_judge(row.get('due', 0.0), row.get('overdue', 0.0), row.get('oldest'), today,
+                                                   levels=levels)
             partner.ebshel_due_total = row.get('due', 0.0)
             partner.ebshel_overdue_total = row.get('overdue', 0.0)
             partner.ebshel_overdue_days = days
@@ -143,9 +161,10 @@ class ResPartner(models.Model):
         today = fields.Date.context_today(self)
         rows = self._ebshel_followup_rows(self.env.company, today)
         partners = self.browse([r['partner'] for r in rows])
+        levels = self.env['ebshel.followup.level']._of_company(self.env.company)
         matching, with_rows = [], [r['partner'] for r in rows]
         for partner, row in zip(partners, rows):
-            if partner._ebshel_judge(row['due'], row['overdue'], row['oldest'], today)[0] in wanted:
+            if partner._ebshel_judge(row['due'], row['overdue'], row['oldest'], today, levels=levels)[0] in wanted:
                 matching.append(partner.id)
         if 'none' in wanted:
             domain = ['|', ('id', 'in', matching), ('id', 'not in', with_rows)]
@@ -156,9 +175,11 @@ class ResPartner(models.Model):
         return domain
 
     def _compute_ebshel_pay_habits(self):
-        habits = self._ebshel_pay_habits([(p.commercial_partner_id or p).id for p in self])
+        # a virtual id must not reach the SQL - see _compute_ebshel_followup
+        habits = self._ebshel_pay_habits([(p.commercial_partner_id or p)._origin.id for p in self
+                                          if (p.commercial_partner_id or p)._origin])
         for partner in self:
-            h = habits.get((partner.commercial_partner_id or partner).id, {})
+            h = habits.get((partner.commercial_partner_id or partner)._origin.id, {})
             partner.ebshel_avg_days_to_pay = h.get('to_pay') or 0.0
             partner.ebshel_avg_days_late = h.get('late') or 0.0
 
@@ -197,6 +218,7 @@ class ResPartner(models.Model):
         Report = self.env['ir.actions.report']
         attachments = Attachment
         today = fields.Date.context_today(self)
+        # Odoo 20 drops `datas` on an attachment without a word: the file goes in as raw bytes
         if level.attach_statement:
             statement = self.env['ebshel.fin.report'].search([('key', '=', 'customer_statement')], limit=1)
             if statement:
@@ -208,7 +230,7 @@ class ResPartner(models.Model):
                                                     data={'options': options, 'report_id': statement.id})
                 attachments |= Attachment.create({
                     'name': _('Statement %s.%s', self.display_name, 'pdf' if kind == 'pdf' else 'html'),
-                    'datas': base64.b64encode(pdf).decode(), 'res_model': 'res.partner', 'res_id': self.id,
+                    'raw': pdf, 'res_model': 'res.partner', 'res_id': self.id,
                     'mimetype': 'application/pdf' if kind == 'pdf' else 'text/html'})
         if level.attach_invoices:
             invoices = items.mapped('move_id').filtered(lambda m: m.move_type == 'out_invoice')
@@ -216,7 +238,7 @@ class ResPartner(models.Model):
                 pdf, kind = Report._render_qweb_pdf('account.account_invoices', res_ids=invoices.ids)
                 attachments |= Attachment.create({
                     'name': _('Overdue invoices %s.%s', self.display_name, 'pdf' if kind == 'pdf' else 'html'),
-                    'datas': base64.b64encode(pdf).decode(), 'res_model': 'res.partner', 'res_id': self.id,
+                    'raw': pdf, 'res_model': 'res.partner', 'res_id': self.id,
                     'mimetype': 'application/pdf' if kind == 'pdf' else 'text/html'})
         return attachments
 
@@ -227,8 +249,12 @@ class ResPartner(models.Model):
         attachments = self._ebshel_attachments(level, items)
         company = self.env.company
         if level.template_id:
+            # the reminder goes to `email` and only there: a template that adds its default
+            # recipients (use_default_to - the shipped one does) would put the customer in
+            # recipient_ids as well, and mail.mail sends email_to and each recipient apart:
+            # the same reminder twice, or a failed send to a company without an address
             mail_id = level.template_id.with_context(ebshel_note=note or '', ebshel_level=level.name).send_mail(
-                self.id, force_send=False, email_values={'email_to': email, 'auto_delete': False})
+                self.id, force_send=False, email_values={'email_to': email, 'recipient_ids': [], 'auto_delete': False})
             mail = self.env['mail.mail'].browse(mail_id)
             if attachments:
                 mail.write({'attachment_ids': [(4, a.id) for a in attachments]})
@@ -296,6 +322,11 @@ class ResPartner(models.Model):
             if not items.filtered(lambda l: l.amount_residual > 0):
                 results['skipped'].append({'id': partner.id, 'name': partner.display_name, 'why': _('nothing open')})
                 continue
+            # a reminder says the invoices are past their due date: with nothing overdue it
+            # would go out with an empty table and a total of zero, and move the customer on
+            if not items.filtered(lambda l: l.amount_residual > 0 and (l.date_maturity or l.date) < today):
+                results['skipped'].append({'id': partner.id, 'name': partner.display_name, 'why': _('nothing overdue')})
+                continue
             if level.action in ('email', 'email_call'):
                 email = partner._ebshel_reminder_email()
                 if not email:
@@ -361,10 +392,12 @@ class ResPartner(models.Model):
             partner._ebshel_log('hold' if on_hold else 'release', None, note)
         return True
 
-    def action_ebshel_print_letter(self, level_id=None):
+    def action_ebshel_print_letter(self, level_id=None, log=True):
+        """The reminder letters as a PDF. log=False only prints them: the letters of a
+        reminder just sent, which already logged them and moved the customers on."""
         partners = self.mapped('commercial_partner_id') | self.filtered(lambda p: not p.commercial_partner_id)
         Level = self.env['ebshel.followup.level']
-        for partner in partners:
+        for partner in (partners if log else ()):
             level = Level.browse(level_id) if level_id else partner.ebshel_suggested_level_id
             partner._ebshel_log('letter', level or None, None, amount=partner.ebshel_overdue_total)
             if level:

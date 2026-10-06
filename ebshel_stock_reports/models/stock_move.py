@@ -4,8 +4,8 @@ from odoo.tools import SQL
 
 # A write of any of these on a done move changes a daily row (DESIGN.md §1.4 / §2.2).
 TRIGGER_FIELDS = frozenset({
-    'state', 'date', 'value', 'quantity', 'product_uom', 'location_id', 'location_dest_id',
-    'company_id', 'product_id', 'restrict_partner_id', 'scrap_id', 'is_inventory', 'picked',
+    'state', 'date', 'value', 'quantity', 'uom_id', 'location_id', 'location_dest_id',
+    'company_id', 'product_id', 'restrict_partner_id', 'is_scrap', 'is_inventory', 'picked',
 })
 
 
@@ -31,11 +31,26 @@ class StockMove(models.Model):
              "installed, not frozen at confirmation.")
 
     # ------------------------------------------------------------------
+    # Reasons: Odoo 20 scraps and returns without a stock.scrap record or a return wizard
+    # ------------------------------------------------------------------
+    def _prepare_scrap_move_vals(self):
+        # A scrap is the move itself in Odoo 20 (no stock.scrap): its first reason tag
+        # becomes the reason, as the scrap's tag did when stock.scrap made the move.
+        vals = super()._prepare_scrap_move_vals()
+        if self.scrap_reason_tag_ids and not self.asr_reason_id:
+            vals['asr_reason_id'] = self.scrap_reason_tag_ids[0].id
+        return vals
+
+    # ------------------------------------------------------------------
     # Dirty queue hooks
     # ------------------------------------------------------------------
     @api.model_create_multi
     def create(self, vals_list):
         moves = super().create(vals_list)
+        # a return line added to a return that already has its reason carries it too
+        for move in moves:
+            if move.origin_returned_move_id and not move.asr_reason_id and move.picking_id.asr_reason_id:
+                move.asr_reason_id = move.picking_id.asr_reason_id
         done = moves.filtered(lambda m: m.state == 'done')
         if done:
             self.env['asr.stock.dirty']._mark_moves(done)
@@ -66,9 +81,9 @@ class StockMove(models.Model):
             if not production or not move.bom_line_id or move.asr_bom_planned_qty_unit:
                 continue
             bom = move.bom_line_id.bom_id
-            bom_qty_in_product_uom = bom.product_uom_id._compute_quantity(
+            bom_qty_in_product_uom = bom.uom_id._compute_quantity(
                 bom.product_qty, production.product_id.uom_id, round=False) or 1.0
-            line_qty = move.bom_line_id.product_uom_id._compute_quantity(
+            line_qty = move.bom_line_id.uom_id._compute_quantity(
                 move.bom_line_id.product_qty, move.product_id.uom_id, round=False)
             move.asr_bom_planned_qty_unit = line_qty / bom_qty_in_product_uom
             move.asr_planned_estimated = False
@@ -90,16 +105,35 @@ class StockMove(models.Model):
               JOIN product_product ppf ON ppf.id = mo.product_id
               JOIN product_template ptf ON ptf.id = ppf.product_tmpl_id
               JOIN uom_uom upf ON upf.id = ptf.uom_id
-              JOIN uom_uom umo ON umo.id = mo.product_uom_id,
+              JOIN uom_uom umo ON umo.id = mo.uom_id,
                    uom_uom um, product_product pp, product_template pt, uom_uom up
              WHERE sm.raw_material_production_id = mo.id
-               AND um.id = sm.product_uom
+               AND um.id = sm.uom_id
                AND pp.id = sm.product_id AND pt.id = pp.product_tmpl_id AND up.id = pt.uom_id
                AND COALESCE(sm.asr_bom_planned_qty_unit, 0) = 0
                AND sm.state != 'cancel'
                AND mo.product_qty <> 0 AND umo.factor <> 0 AND upf.factor <> 0 AND up.factor <> 0
         """))
         self.invalidate_model(['asr_bom_planned_qty_unit', 'asr_planned_estimated'])
+
+
+class StockPicking(models.Model):
+    _inherit = 'stock.picking'
+
+    # Odoo 20 makes a return straight from the picking (no stock.return.picking wizard):
+    # the reason is chosen on the return itself and stored on each of its moves.
+    asr_reason_id = fields.Many2one(
+        'stock.scrap.reason.tag', string='Return Reason Tag', copy=False,
+        domain="[('asr_usage', 'in', ('return', 'any'))]",
+        help="Stored on every return move; used by the scrap and returns report.")
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'asr_reason_id' in vals:
+            for picking in self:
+                picking.move_ids.filtered('origin_returned_move_id').write(
+                    {'asr_reason_id': picking.asr_reason_id.id})
+        return res
 
 
 class StockMoveLine(models.Model):

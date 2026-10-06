@@ -32,7 +32,6 @@ class TestManufacturingReports(AdvancedStockReportsCase):
         })
         cls.bom = cls.env['mrp.bom'].create({
             'product_tmpl_id': cls.finished.product_tmpl_id.id, 'product_qty': 1.0, 'type': 'normal',
-            'consumption': 'flexible',
             'bom_line_ids': [Command.create({'product_id': cls.p_std.id, 'product_qty': 2.0})],
             'operation_ids': [Command.create({
                 'name': 'Assemble', 'workcenter_id': cls.workcenter.id, 'time_mode': 'manual',
@@ -41,7 +40,6 @@ class TestManufacturingReports(AdvancedStockReportsCase):
         })
         cls.bom2 = cls.env['mrp.bom'].create({
             'product_tmpl_id': cls.finished2.product_tmpl_id.id, 'product_qty': 1.0, 'type': 'normal',
-            'consumption': 'flexible',
             'bom_line_ids': [Command.create({'product_id': cls.p_avco.id, 'product_qty': 3.0})],
         })
 
@@ -226,6 +224,9 @@ class TestManufacturingReports(AdvancedStockReportsCase):
         _mo, backorder = self._produce_with_backorder()
         with Form(backorder) as bo_form:
             bo_form.qty_producing = 2.0
+        # Odoo 20's form sets the quantities without marking the components picked (19 did):
+        # issuing them is a separate step now
+        backorder.move_raw_ids.picked = True
         self.assertTrue(backorder.move_raw_ids.picked)
         self.assertAlmostEqual(backorder.move_raw_ids.quantity, 4.0)
         backorder.workorder_ids.duration = 15.0
@@ -257,6 +258,9 @@ class TestManufacturingReports(AdvancedStockReportsCase):
         _mo, backorder = self._produce_with_backorder()
         with Form(backorder) as bo_form:
             bo_form.qty_producing = 1.0
+        # Odoo 20's form sets the quantities without marking the components picked (19 did):
+        # issuing them is a separate step now
+        backorder.move_raw_ids.picked = True
         today = self.company._asr_local_day(fields.Datetime.now())
         yesterday = today - timedelta(days=1)
         # pretend the components were issued yesterday

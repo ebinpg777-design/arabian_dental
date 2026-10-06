@@ -53,8 +53,8 @@
               groups="ebshel_stock_reports.group_see_values"/>
     <menuitem id="menu_report_accrual" name="Inventory vs GL and Accruals" parent="menu_accounting" sequence="10"
               action="action_report_accrual"/>
-    <menuitem id="menu_stock_valuation_closing" name="Inventory Valuation (Odoo)" parent="menu_accounting" sequence="20"
-              action="stock_account.action_report_stock_valuation"/>
+    <!-- "Inventory Valuation (Odoo)" pointed at stock_account's valuation report, which Odoo 20
+         community no longer ships (stock_account.action_report_stock_valuation is gone). -->
     <menuitem id="menu_moves_valuation" name="Moves Analysis - Valuation (Odoo)" parent="menu_accounting" sequence="30"
               action="stock_account.stock_move_valuation_action"/>
 

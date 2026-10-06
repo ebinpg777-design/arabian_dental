@@ -197,7 +197,12 @@ class TestReportAbcXyz(AdvancedStockReportsCase):
     def _scenario(self):
         # issue values at cost 8e9 / 1.5e9 / 5e8 -> cumulative 80 % (A), 95 % (B), 100 % (C).
         # Big prices so that whatever demo data the database holds is noise in the shares.
-        self.p_std.standard_price = 1e8  # standard cost: issues are valued at the standard price
+        # standard cost: issues are valued at the standard price. Odoo 20 values a backdated
+        # issue at the standard price OF ITS DATE (a cost change is dated): the change is
+        # dated before the scenario, as setting it first meant in Odoo 19.
+        old_price = self.p_std.standard_price
+        self.p_std.with_context(disable_auto_revaluation=True).standard_price = 1e8
+        self.p_std._change_standard_price({self.p_std: old_price}, valuation_date=self._days_ago(61))
         self._in(self.p_std, 100, 1e8, date=self._days_ago(60))
         self._out(self.p_std, 40, date=self._days_ago(40))
         self._out(self.p_std, 40, date=self._days_ago(10))

@@ -124,7 +124,7 @@ class ReportPriceVariance(models.TransientModel):
         self.env.flush_all()
         self.env.cr.execute(SQL("""
             SELECT sm.id, sm.date, sm.reference, sm.purchase_line_id, pol.order_id, po.partner_id, sm.product_id,
-                   sm.value,
+                   (CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END) AS value,
                    (SELECT COALESCE(SUM(ml.quantity_product_uom), 0)
                       FROM stock_move_line ml
                       JOIN stock_location ls ON ls.id = ml.location_id

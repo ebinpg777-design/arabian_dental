@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component } from "@odoo/owl";
+import { Component, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
@@ -13,7 +13,7 @@ import { standardFieldProps } from "@web/views/fields/standard_field_props";
  */
 export class AssetLifecycle extends Component {
     static template = "ebshel_account_assets.Lifecycle";
-    static props = { ...standardFieldProps };
+    props = useProps(standardFieldProps);
 
     get data() {
         return this.props.record.data[this.props.name] || { events: [], curve: [] };

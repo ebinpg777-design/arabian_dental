@@ -310,7 +310,8 @@ class BankDesk(models.AbstractModel):
     def _quick_accounts(self, st):
         """Accounts this company usually writes bank lines off to: rules first, then the
         accounts that appear most on this bank's other entries."""
-        accounts = self.env['ebshel.bank.rule'].search([('account_id', '!=', False)]).mapped('account_id')
+        accounts = self.env['ebshel.bank.rule'].search([('account_id', '!=', False),
+                                                         ('company_id', '=', st.company_id.id)]).mapped('account_id')
         rows = self.env.execute_query(SQL("""
             SELECT l.account_id, COUNT(*) FROM account_move_line l
               JOIN account_move m ON m.id = l.move_id
@@ -559,6 +560,10 @@ class BankDesk(models.AbstractModel):
         result = {'ticked': 0, 'created': 0, 'duplicates': 0, 'ruled': 0, 'errors': []}
         used = set()
         created = StLine
+        # A statement can hold the same row twice (two equal transfers on one day): a row is a
+        # duplicate only while the earlier imports hold more copies of it than this paste has
+        # had so far - counted once per row, before this paste adds its own.
+        imported, seen = {}, {}
         for i, row in enumerate(rows or []):
             try:
                 day = fields.Date.to_date(row.get('date'))
@@ -570,12 +575,14 @@ class BankDesk(models.AbstractModel):
                 result['errors'].append(_('row %(n)d: no date or a zero amount', n=i + 1))
                 continue
             label = (row.get('label') or '').strip() or _('Bank line')
-            if StLine.search_count([('journal_id', '=', journal.id), ('date', '=', day), ('amount', '=', amount),
-                                    ('payment_ref', '=', label)]):
-                result['duplicates'] += 1
-                continue
-            if self.env['account.move.line'].search_count(self._book_domain(journal) + [
-                    ('ebshel_cleared_date', '=', day), ('ebshel_bank_ref', '=', label), ('balance', '=', amount)]):
+            key = (day, amount, label)
+            if key not in imported:
+                imported[key] = StLine.search_count([('journal_id', '=', journal.id), ('date', '=', day), ('amount', '=', amount),
+                                                     ('payment_ref', '=', label)]) + \
+                    self.env['account.move.line'].search_count(self._book_domain(journal) + [
+                        ('ebshel_cleared_date', '=', day), ('ebshel_bank_ref', '=', label), ('balance', '=', amount)])
+            seen[key] = seen.get(key, 0) + 1
+            if seen[key] <= imported[key]:
                 result['duplicates'] += 1
                 continue
             if tick:

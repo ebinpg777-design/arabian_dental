@@ -45,9 +45,17 @@ class AccountMove(models.Model):
             for line, cat in move._ebshel_asset_lines():
                 if auto and cat.bill_trigger == 'no':
                     continue
+                # the cost in the company's currency (a bill in dollars made an asset of as many
+                # rupees), and only what the line adds: a credit line (a discount on the asset
+                # account) made an asset of negative value, which refused - and so did the bill
+                cost = line.company_currency_id.round(line.balance)
+                if cost <= 0:
+                    continue
                 units = max(1, int(line.quantity)) if cat.one_per_unit and line.quantity >= 1 else 1
-                value = float_round(line.price_subtotal / units, 2)
+                each = line.company_currency_id.round(cost / units)
                 for i in range(units):
+                    # the last unit carries the rounding: three of 100.00 are 33.33, 33.33 and 33.34
+                    value = each if i < units - 1 else line.company_currency_id.round(cost - each * (units - 1))
                     name = line.name or line.product_id.display_name or move.name
                     if units > 1:
                         name = '%s (%d/%d)' % (name, i + 1, units)

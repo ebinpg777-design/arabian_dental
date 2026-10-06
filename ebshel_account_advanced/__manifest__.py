@@ -28,7 +28,7 @@ Everything the accounting team does after the entries are booked, on one set of 
 Every screen sits inside the Accounting app's own menus (Customers, Accounting, Reporting,
 Configuration) - there is no separate top-level menu.
 """,
-    'version': '19.0.1.2.0',
+    'version': '20.0.1.2.0',
     'category': 'Accounting/Accounting',
     'author': 'Ebshel Technologies',
     'website': 'https://ebshel.com',
@@ -65,7 +65,6 @@ Configuration) - there is no separate top-level menu.
         'web.assets_backend': [
             'ebshel_account_advanced/static/src/common/common.scss',
             'ebshel_account_advanced/static/src/common/*.js',
-            'ebshel_account_advanced/static/src/common/*.xml',
             'ebshel_account_advanced/static/src/followup/*',
             'ebshel_account_advanced/static/src/budget/*',
             'ebshel_account_advanced/static/src/matching/*',

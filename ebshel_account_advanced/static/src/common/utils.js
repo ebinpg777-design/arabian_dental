@@ -33,12 +33,18 @@ export function pct(value, digits = 1) {
     return `${Number(value || 0).toFixed(digits)}%`;
 }
 
+/** A date as YYYY-MM-DD in the user's own time zone (toISOString would give the UTC day,
+ *  which east of Greenwich is yesterday until the morning). */
+function localIso(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function today() {
-    return new Date().toISOString().slice(0, 10);
+    return localIso(new Date());
 }
 
 export function addDays(iso, days) {
     const d = new Date(iso + "T00:00:00");
     d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
+    return localIso(d);
 }

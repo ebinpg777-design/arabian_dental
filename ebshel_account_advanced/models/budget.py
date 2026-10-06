@@ -170,18 +170,29 @@ class BudgetLine(models.Model):
 
     def _amount(self, date_from, date_to, states=('posted',)):
         """Signed amount on the line's accounts in the window: expenses as debits, revenue as credits."""
+        return self._amounts([(date_from, date_to, states)])[0]
+
+    def _amounts(self, windows):
+        """_amount for several (date_from, date_to, states) windows, in one reading of the ledger."""
         self.ensure_one()
         accounts = self._account_ids()
-        if not accounts:
-            return 0.0
+        if not accounts or not windows:
+            return [0.0] * len(windows)
         self.env['account.move.line'].flush_model()
         sign = SQL("-1") if self.kind == 'revenue' else SQL("1")
+        columns = SQL(", ").join(
+            SQL("COALESCE(SUM(x.value) FILTER (WHERE x.date >= %s AND x.date <= %s AND x.state IN %s), 0)",
+                date_from, date_to, tuple(states))
+            for date_from, date_to, states in windows)
         row = self.env.execute_query(SQL("""
-            SELECT COALESCE(SUM(l.balance * %s * %s), 0) FROM account_move_line l
-             WHERE l.account_id IN %s AND l.company_id = %s AND l.parent_state IN %s
-               AND l.date >= %s AND l.date <= %s AND l.display_type NOT IN ('line_section', 'line_note')
-        """, sign, self._weight_sql(), tuple(accounts), self.company_id.id, tuple(states), date_from, date_to))[0]
-        return float(row[0] or 0.0)
+            SELECT %s FROM (
+                SELECT l.date, l.parent_state AS state, l.balance * %s * %s AS value FROM account_move_line l
+                 WHERE l.account_id IN %s AND l.company_id = %s AND l.parent_state IN %s
+                   AND l.date >= %s AND l.date <= %s AND l.display_type NOT IN ('line_section', 'line_note')) x
+        """, columns, sign, self._weight_sql(), tuple(accounts), self.company_id.id,
+            tuple({state for _f, _t, states in windows for state in states}),
+            min(w[0] for w in windows), max(w[1] for w in windows)))[0]
+        return [float(value or 0.0) for value in row]
 
     def _theoretical(self, today):
         self.ensure_one()
@@ -207,8 +218,8 @@ class BudgetLine(models.Model):
                 line.achieved_pct = 0.0
                 line.alert = 'ok'
                 continue
-            line.actual = line._amount(line.date_from, line.date_to)
-            line.committed = line._amount(line.date_from, line.date_to, states=('draft',))
+            line.actual, line.committed = line._amounts([(line.date_from, line.date_to, ('posted',)),
+                                                         (line.date_from, line.date_to, ('draft',))])
             line.theoretical = line._theoretical(today)
             line.available = line.planned - line.actual - line.committed
             line.achieved_pct = (line.actual / line.planned * 100.0) if line.planned else (100.0 if line.actual else 0.0)
@@ -259,8 +270,11 @@ class BudgetLine(models.Model):
 
     def action_view_actuals(self):
         self.ensure_one()
+        # `views` spelled out: the budget board opens this through orm.call, which does not
+        # expand view_mode, and the web client dies on an action without it
         return {'type': 'ir.actions.act_window', 'res_model': 'account.move.line', 'name': self.name,
-                'view_mode': 'list,pivot,form', 'domain': self._actual_domain(), 'context': {'create': False}}
+                'view_mode': 'list,pivot,form', 'views': [[False, 'list'], [False, 'pivot'], [False, 'form']],
+                'domain': self._actual_domain(), 'context': {'create': False}}
 
     def _month_series(self):
         """[{label, planned, actual}] per month of the budget."""
@@ -269,9 +283,10 @@ class BudgetLine(models.Model):
         phases = self.phase_ids.sorted('date_from')
         if not phases:
             return out
-        for p in phases:
+        actuals = self._amounts([(p.date_from, p.date_to, ('posted',)) for p in phases])
+        for p, actual in zip(phases, actuals):
             out.append({'label': p.name, 'from': fields.Date.to_string(p.date_from), 'planned': p.planned,
-                        'actual': self._amount(p.date_from, p.date_to)})
+                        'actual': actual})
         return out
 
 
@@ -289,8 +304,11 @@ class BudgetPhase(models.Model):
     actual = fields.Monetary(compute='_compute_actual')
 
     def _compute_actual(self):
-        for phase in self:
-            phase.actual = phase.line_id._amount(phase.date_from, phase.date_to) if phase.line_id.budget_id else 0.0
+        self.actual = 0.0
+        for line in self.line_id.filtered('budget_id'):
+            phases = self.filtered(lambda p: p.line_id == line and p.date_from and p.date_to)
+            for phase, actual in zip(phases, line._amounts([(p.date_from, p.date_to, ('posted',)) for p in phases])):
+                phase.actual = actual
 
 
 class BudgetBoard(models.AbstractModel):

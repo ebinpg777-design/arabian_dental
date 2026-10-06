@@ -1,19 +1,19 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** Assets at a glance: what they are worth, what they cost this year, what is
  *  due, what needs a decision. Every figure opens the list behind it. */
 export class AssetDashboard extends Component {
     static template = "ebshel_account_assets.Dashboard";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.state = proxy({ loading: true, data: null, busy: false });
         onWillStart(() => this.load());
     }

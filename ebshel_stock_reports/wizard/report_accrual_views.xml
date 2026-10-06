@@ -33,8 +33,7 @@
                     <button name="action_view" type="object" string="View" class="btn-primary"/>
                     <button name="action_xlsx" type="object" string="Excel" class="btn-secondary" icon="fa-file-excel-o"/>
                     <button name="action_pdf" type="object" string="PDF" class="btn-secondary" icon="fa-file-pdf-o"/>
-                    <button name="action_open_odoo_valuation" type="object" class="btn-secondary"
-                            string="Open Odoo's Inventory Valuation report" icon="fa-external-link"/>
+                    <!-- "Open Odoo's Inventory Valuation report": Odoo 20 community has no such report -->
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>

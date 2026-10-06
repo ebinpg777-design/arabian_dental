@@ -12,9 +12,9 @@
                 <input class="form-control form-control-sm" style="width:200px" placeholder="Search…" t-att-value="this.state.search" t-on-change="(ev) => { this.state.search = ev.target.value; this.load(); }"/>
                 <t t-if="this.state.kind !== 'bank'">
                     <label class="small text-muted ms-2">min. confidence <b t-out="this.state.minConf"/></label>
-                    <input type="range" min="0" max="100" step="5" t-att-value="this.state.minConf" t-on-change="(ev) => { this.state.minConf = this.Number(ev.target.value); this.load(); }"/>
+                    <input type="range" min="0" max="100" step="5" t-att-value="this.state.minConf" t-on-change="(ev) => { this.state.minConf = +ev.target.value; this.load(); }"/>
                 </t>
-                <select t-else="" class="form-select form-select-sm" style="width:auto" t-on-change="(ev) => { this.state.journalId = this.Number(ev.target.value) || null; this.load(); }">
+                <select t-else="" class="form-select form-select-sm" style="width:auto" t-on-change="(ev) => { this.state.journalId = +ev.target.value || null; this.load(); }">
                     <option value="">All bank journals</option>
                     <option t-foreach="(this.state.data and this.state.data.bank_journals) || []" t-as="j" t-key="j.id" t-att-value="j.id" t-out="j.name"/>
                 </select>
@@ -25,7 +25,9 @@
                 </div>
             </div>
             <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Pairing…</div>
-            <div t-elif="this.state.data and this.state.kind !== 'bank'" class="o_eaa_body">
+            <div t-elif="this.state.data and this.state.data.kind !== 'bank'" class="o_eaa_body">
+                <!-- the body follows the data on screen (data.kind), not the tab just clicked: until the
+                     new reading arrives the old one is still there, and its keys are not the new tab's -->
                 <div class="o_eaa_kpis">
                     <div class="o_eaa_kpi"><div class="o_eaa_kl">Open items</div><div class="o_eaa_kv" t-out="this.state.data.kpis.items"/><div class="o_eaa_ks"><t t-out="this.state.data.kpis.partners"/> partners</div></div>
                     <div class="o_eaa_kpi"><div class="o_eaa_kl"><t t-out="this.state.kind === 'receivable' ? 'Invoices open' : 'Bills open'"/></div><div class="o_eaa_kv" t-out="this.money(this.state.kind === 'receivable' ? this.state.data.kpis.debit : this.state.data.kpis.credit)"/></div>
@@ -71,7 +73,7 @@
                     </div>
                 </div>
             </div>
-            <div t-elif="this.state.data" class="o_eaa_body">
+            <div t-elif="this.state.data and this.state.data.kind === 'bank'" class="o_eaa_body">
                 <div class="o_eaa_kpis">
                     <div class="o_eaa_kpi"><div class="o_eaa_kl">Unmatched bank lines</div><div class="o_eaa_kv" t-out="this.state.data.kpis.lines"/></div>
                     <div class="o_eaa_kpi good"><div class="o_eaa_kl">Money in</div><div class="o_eaa_kv" t-out="this.money(this.state.data.kpis.inflow)"/></div>

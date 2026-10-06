@@ -27,8 +27,10 @@ class AssetScheduleHandler(models.AbstractModel):
         d_from = fields.Date.to_date(options['date']['from'])
         d_to = fields.Date.to_date(options['date']['to'])
         Asset = self.env['ebshel.asset']
+        # an asset disposed of before the period left the books before it: it was still listed,
+        # with its cost and the book value it had when it went, in every later year's totals
         domain = [('company_id', 'in', options['companies']), ('state', 'not in', ('draft', 'cancelled')),
-                  ('purchase_date', '<=', d_to)]
+                  ('purchase_date', '<=', d_to), '|', ('disposal_date', '=', False), ('disposal_date', '>=', d_from)]
         rows = []
         for asset in Asset.search(domain, order='category_id, purchase_date, id'):
             lines = asset.line_ids.filtered(lambda l: l.kind != 'disposal' and l.state != 'skipped')
@@ -78,7 +80,12 @@ class AssetScheduleHandler(models.AbstractModel):
         asset = self.env['ebshel.asset'].browse(int(line_id.split(':')[1]))
         d_from = fields.Date.to_date(options['date']['from'])
         d_to = fields.Date.to_date(options['date']['to'])
-        domain = [('move_id.ebshel_asset_id', '=', asset.id), ('parent_state', '=', 'posted')]
+        # the depreciation is what was credited to the accumulated depreciation account; the whole
+        # of each entry (both sides, and the disposal) added up to nothing, whatever the figure was
+        domain = [('move_id.ebshel_asset_id', '=', asset.id), ('parent_state', '=', 'posted'),
+                  ('account_id', '=', asset.depreciation_account_id.id)]
+        if asset.disposal_move_id:
+            domain.append(('move_id', '!=', asset.disposal_move_id.id))
         if column_key == 'period':
             domain += [('date', '>=', d_from), ('date', '<=', d_to)]
         else:

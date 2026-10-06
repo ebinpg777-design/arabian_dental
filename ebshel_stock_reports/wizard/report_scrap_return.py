@@ -1,10 +1,11 @@
 # Part of Advanced Stock Reports. See LICENSE file for full copyright and licensing details.
 """Report #14 - Scrap and returns by reason.
 
-Live from the move lines of done scrap moves (``stock.move.scrap_id``) and
-done return moves (``stock.move.origin_returned_move_id``). The reason is the
-move's ``asr_reason_id`` (set by the scrap, the return wizard or the count
-wizard), else the scrap's first reason tag. Values are the move value split
+Live from the move lines of done scrap moves (``stock.move.is_scrap``: Odoo 20
+scraps are moves, there is no stock.scrap) and done return moves
+(``stock.move.origin_returned_move_id``). The reason is the move's
+``asr_reason_id`` (set by the scrap, the return's reason or the count wizard),
+else the scrap move's first reason tag. Values are the move value split
 over the lines of the move: a scrap or vendor return at its out value, a
 customer return at its in value (DESIGN.md §2.1).
 """
@@ -79,10 +80,10 @@ class ReportScrapReturn(models.TransientModel):
 
     def _kind_sql(self):
         if self.kind == 'scrap':
-            return SQL("sm.scrap_id IS NOT NULL")
+            return SQL("sm.is_scrap IS TRUE")
         if self.kind == 'return':
             return SQL("sm.origin_returned_move_id IS NOT NULL")
-        return SQL("(sm.scrap_id IS NOT NULL OR sm.origin_returned_move_id IS NOT NULL)")
+        return SQL("(sm.is_scrap IS TRUE OR sm.origin_returned_move_id IS NOT NULL)")
 
     def _asr_rows(self):
         self.ensure_one()
@@ -104,17 +105,17 @@ class ReportScrapReturn(models.TransientModel):
         self.env.cr.execute(SQL("""
             WITH lines AS (
                 SELECT sml.id AS line_id, sm.id AS move_id, sm.date, sm.reference, sm.product_id, sml.lot_id,
-                       sm.value, sm.is_in, sm.is_out, sm.scrap_id,
+                       (CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END) AS value, sm.is_in, sm.is_out, sm.is_scrap IS TRUE AS is_scrap,
                        sml.location_id, sml.location_dest_id,
                        to_char((sm.date AT TIME ZONE 'UTC') AT TIME ZONE %(tz)s, 'YYYY-MM') AS month,
                        COALESCE(sp.partner_id, sm.partner_id) AS partner_id,
                        COALESCE(sm.asr_reason_id, (
                            SELECT rel.stock_scrap_reason_tag_id
-                             FROM stock_scrap_stock_scrap_reason_tag_rel rel
+                             FROM stock_move_stock_scrap_reason_tag_rel rel
                              JOIN stock_scrap_reason_tag t ON t.id = rel.stock_scrap_reason_tag_id
-                            WHERE rel.stock_scrap_id = sm.scrap_id
+                            WHERE rel.stock_move_id = sm.id
                             ORDER BY t.sequence, t.id LIMIT 1)) AS reason_id,
-                       CASE WHEN sm.scrap_id IS NOT NULL THEN 'scrap'
+                       CASE WHEN sm.is_scrap IS TRUE THEN 'scrap'
                             WHEN ls.usage = 'customer' THEN 'customer_return'
                             WHEN ld.usage = 'supplier' THEN 'vendor_return'
                             ELSE 'other_return' END AS kind,

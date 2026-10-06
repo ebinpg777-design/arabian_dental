@@ -129,8 +129,9 @@ class AssetCategory(models.Model):
                 raise ValidationError(_("The salvage percentage must be between 0 and 100."))
 
     def _compute_asset_count(self):
-        counts = {r['category_id'][0]: r['category_id_count'] for r in self.env['ebshel.asset'].read_group(
-            [('category_id', 'in', self.ids)], ['category_id'], ['category_id'])} if self.ids else {}
+        # Odoo 20's read_group is the old _read_group: (groupby values, aggregates) tuples
+        counts = {category.id: count for category, count in self.env['ebshel.asset']._read_group(
+            [('category_id', 'in', self.ids)], ['category_id'], ['__count'])} if self.ids else {}
         for cat in self:
             cat.asset_count = counts.get(cat.id, 0)
 
@@ -384,15 +385,21 @@ class Asset(models.Model):
         first_share = ((first_end - start).days + 1) / days_in_first if prorata == 'days' else 1.0
         per_rate = rate / 100.0 * (1.0 if period == 'year' else 1.0 / 12.0)
         out, left, day, n = [], total, first_end, 0
+        # what the declining rate is applied to: the book value at the start of each year.
+        # Monthly, it was applied to what was left each MONTH - compounding twelve times, so
+        # a 30% rate took 26.2% a year, not the 30% the rate says.
+        base = total
         # With a prorated first period the schedule runs one period longer, the tail
         # carrying what the first one did not take.
         slots = periods + (1 if first_share < 1.0 and prorata == 'days' else 0)
         while n < slots and left > rounding / 2:
             remaining_slots = slots - n
+            if period == 'year' or day.month == 1:
+                base = left
             if method == 'linear':
                 amount = total / periods
             else:
-                declining = left * per_rate
+                declining = base * per_rate
                 linear = left / remaining_slots
                 amount = max(declining, linear) if method == 'declining_linear' else declining
             if n == 0:
@@ -411,19 +418,39 @@ class Asset(models.Model):
             out[-1] = (d, float_round(a + left, precision_rounding=rounding))
         return out
 
-    def build_schedule(self, from_date=None):
+    def build_schedule(self, from_date=None, periods=None):
         """(Re)build the draft lines. Posted lines stay; the rest is replaced by a
         schedule for what is still to depreciate, from `from_date` (default: the
-        start date, or the period after the last posted line)."""
+        start date, or the period after the last posted line).
+
+        Draft lines dated before `from_date` stay as well: they are the periods before
+        the change, still to be posted as planned. They were deleted and never made
+        again - a change in June left that year (that month, monthly) with no
+        depreciation at all, its share pushed onto the later years.
+
+        `periods`: how many periods the new schedule runs. By default, from a date, as
+        many as the old schedule still had after it - the life does not change because
+        the value did (`duration` less what is done came out a period short whenever the
+        first period had been prorated) - otherwise what the duration leaves."""
         for asset in self:
             posted = asset.line_ids.filtered(lambda l: l.state == 'posted')
-            asset.line_ids.filtered(lambda l: l.state == 'draft').unlink()
+            drafts = asset.line_ids.filtered(lambda l: l.state == 'draft')
+            kept = drafts.filtered(lambda l: from_date and l.date < from_date)
+            replaced = drafts - kept
+            left_in_plan = len(replaced.filtered(lambda l: l.kind == 'depreciation'))
+            replaced.unlink()
+            booked = posted | kept
             total = asset.purchase_value - asset.salvage_value - asset.already_depreciated \
-                - sum(posted.filtered(lambda l: l.kind != 'disposal').mapped('amount'))
+                - sum(booked.filtered(lambda l: l.kind != 'disposal').mapped('amount'))
             if total <= 0:
                 continue
-            done = len(posted.filtered(lambda l: l.kind == 'depreciation'))
-            periods = max(asset.duration - done, 1)
+            done = len(booked.filtered(lambda l: l.kind == 'depreciation'))
+            if periods is not None:
+                count = max(periods, 1)
+            elif from_date and left_in_plan:
+                count = left_in_plan
+            else:
+                count = max(asset.duration - done, 1)
             if from_date:
                 start = from_date
             elif posted:
@@ -433,10 +460,10 @@ class Asset(models.Model):
             prorata = asset.prorata if not posted and not from_date else 'none'
             if from_date and from_date != period_start(from_date, asset.period):
                 prorata = 'days'
-            rows = asset._schedule_amounts(total, start, periods, asset.method, asset.declining_rate,
+            rows = asset._schedule_amounts(total, start, count, asset.method, asset.declining_rate,
                                            asset.period, prorata)
-            seq = len(posted)
-            cumulative = asset.already_depreciated + sum(posted.filtered(lambda l: l.kind != 'disposal').mapped('amount'))
+            seq = len(booked)
+            cumulative = asset.already_depreciated + sum(booked.filtered(lambda l: l.kind != 'disposal').mapped('amount'))
             vals = []
             for day, amount in rows:
                 seq += 1

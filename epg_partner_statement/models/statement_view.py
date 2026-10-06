@@ -7,7 +7,6 @@ disagree with each other or with the wizard. The screen carries that data in its
 own action params, so it outlives the transient wizard and survives a reload.
 (client, 2026-09-30)
 """
-import base64
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
@@ -154,7 +153,7 @@ class PartnerStatementView(models.AbstractModel):
             name = _('Statement %(name)s %(start)s to %(end)s.xlsx', name=partners.name,
                      start=options['date_from'], end=options['date_to'])
         attachment = self.env['ir.attachment'].create({
-            'name': name, 'type': 'binary', 'datas': base64.b64encode(content),
+            'name': name, 'type': 'binary', 'raw': content,
             'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         })
         return {'type': 'ir.actions.act_url', 'target': 'self',

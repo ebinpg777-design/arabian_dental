@@ -41,6 +41,10 @@ class AssetDispose(models.TransientModel):
         if rest:
             current = rest[0]
             start = period_start(current.date, asset.period)
+            if asset.prorata == 'days' and asset.start_date and asset.start_date > start:
+                # the first line already covers only the days from the start date: prorating
+                # it again over the whole period depreciated days the asset never had
+                start = asset.start_date
             if self.date >= start:
                 days = (period_end(current.date, asset.period) - start).days + 1
                 share = ((self.date - start).days + 1) / days

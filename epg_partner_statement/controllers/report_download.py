@@ -23,7 +23,8 @@ from werkzeug.urls import url_parse
 
 from odoo import _, http
 from odoo.addons.web.controllers.report import ReportController
-from odoo.http import content_disposition, request
+from odoo.http import request
+from odoo.http.stream import content_disposition
 
 _logger = logging.getLogger(__name__)
 

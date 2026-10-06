@@ -80,6 +80,7 @@ class FinReportExport(models.Model):
 
     @api.model
     def _pdf_cap(self):
+        # read as text: a value that is not a number falls back without a warning in the log
         try:
             cap = int(self.env['ir.config_parameter'].sudo().get_str('ebshel_account_reports.pdf_max_lines') or PDF_LINES)
         except ValueError:
@@ -201,6 +202,12 @@ class FinReportExport(models.Model):
                 'levels': [0] + [l.get('level') or 0 for l in lines]}
 
     # ------------------------------------------------------------------ the workbook
+    @api.model
+    def _footer_text(self, text):
+        """Text for a header or footer, where & starts a code: "R&D" printed the date in place
+        of the D. A literal & is written &&."""
+        return str(text or '').replace('&', '&&')
+
     def _workbook(self):
         try:
             import xlsxwriter
@@ -242,7 +249,7 @@ class FinReportExport(models.Model):
             return
         try:
             from PIL import Image
-            raw = base64.b64decode(logo)
+            raw = logo.content                  # Odoo 20 reads a binary field as its bytes, not base64
             width, height = Image.open(io.BytesIO(raw)).size
             scale = 44.0 / max(height, 1)
             if width * scale > 150:
@@ -377,7 +384,7 @@ class FinReportExport(models.Model):
         sheet.fit_to_pages(1, 0)
         sheet.repeat_rows(head_row)
         sheet.set_margins(left=0.4, right=0.4, top=0.5, bottom=0.6)
-        sheet.set_footer('&L&8%s · %s&R&8%s &P / &N' % (self.name, facts[0][1], _('Page')))
+        sheet.set_footer('&L&8%s · %s&R&8%s &P / &N' % (self._footer_text(self.name), self._footer_text(facts[0][1]), _('Page')))
 
         flat = [dict(n, line_key=key) for key, items in notes.items() for n in items]
         if flat:
@@ -492,7 +499,7 @@ class FinReportExport(models.Model):
         sheet.fit_to_pages(1, 0)
         sheet.repeat_rows(head_row)
         sheet.set_margins(left=0.4, right=0.4, top=0.5, bottom=0.6)
-        sheet.set_footer('&L&8%s&R&8%s &P / &N' % (title or self.name, _('Page')))
+        sheet.set_footer('&L&8%s&R&8%s &P / &N' % (self._footer_text(title or self.name), _('Page')))
         book.close()
         safe = ''.join(ch if ch.isalnum() or ch in ' -_.' else ' ' for ch in (title or self.name)).strip()[:80]
         return {
@@ -519,8 +526,10 @@ class FinReportExport(models.Model):
     def get_pdf_action(self, options, layout=None):
         self.ensure_one()
         self._check_report_access()
-        action = self.env.ref('ebshel_account_reports.action_fin_report_pdf').read()[0]
-        action['data'] = {'options': options, 'report_id': self.id,
-                          'layout': self._export_layout(layout) if layout else False}
+        # not read(): in Odoo 20 reading the whole action computes its linked_view_ids, a search
+        # on ir.ui.view that an accountant may not make - the PDF failed for everyone but admin
+        action = self.env.ref('ebshel_account_reports.action_fin_report_pdf').report_action(
+            self, data={'options': options, 'report_id': self.id,
+                        'layout': self._export_layout(layout) if layout else False}, config=False)
         action['context'] = {'active_ids': [self.id]}
         return action

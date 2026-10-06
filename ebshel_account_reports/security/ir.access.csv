@@ -1,14 +1,20 @@
 id,name,model_id,group_id/id,operation,domain
 access_fin_report_read,fin report read,ebshel.fin.report,account.group_account_readonly,r,
 access_fin_report_manager,fin report manager,ebshel.fin.report,account.group_account_manager,crud,
+access_fin_report_billing_read,fin report billing read,ebshel.fin.report,account.group_account_invoice,r,
 access_fin_report_line_read,fin report line read,ebshel.fin.report.line,account.group_account_readonly,r,
 access_fin_report_line_manager,fin report line manager,ebshel.fin.report.line,account.group_account_manager,crud,
+access_fin_report_line_billing_read,fin report line billing read,ebshel.fin.report.line,account.group_account_invoice,r,
 access_fin_annotation_read,fin annotation read,ebshel.fin.report.annotation,account.group_account_readonly,r,
-access_fin_annotation_user,fin annotation user,ebshel.fin.report.annotation,account.group_account_invoice,crud,
+access_fin_annotation_user,fin annotation user,ebshel.fin.report.annotation,account.group_account_invoice,r,
+access_fin_annotation_user_own,"fin annotation user: write, change or remove my own",ebshel.fin.report.annotation,account.group_account_invoice,cud,"[('user_id', '=', user.id)]"
+access_fin_annotation_manager,fin annotation manager,ebshel.fin.report.annotation,account.group_account_manager,crud,
 rule_report_annotation_company,Report notes: own company,ebshel.fin.report.annotation,,crud,"[('company_id', 'in', company_ids)]"
-rule_report_view_own_or_shared,"Saved report views: mine, or shared with me",ebshel.fin.report.view,account.group_account_readonly,crud,"['|', ('user_id', '=', user.id), ('shared', '=', True)]"
+rule_report_view_own_or_shared,"Saved report views: mine, or shared with me",ebshel.fin.report.view,account.group_account_readonly,r,"['|', ('user_id', '=', user.id), ('shared', '=', True)]"
+access_fin_report_view_own,"Saved report views: save, change or remove my own",ebshel.fin.report.view,account.group_account_readonly,cud,"[('user_id', '=', user.id)]"
 rule_report_view_manager,Saved report views: managers see all,ebshel.fin.report.view,account.group_account_manager,crud,
-access_ebshel_fin_report_view_billing_read,ebshel_fin_report_view billing read,ebshel.fin.report.view,account.group_account_invoice,r,
+access_ebshel_fin_report_view_billing_read,ebshel_fin_report_view billing read,ebshel.fin.report.view,account.group_account_invoice,r,"['|', ('user_id', '=', user.id), ('shared', '=', True)]"
+access_fin_report_view_billing_own,"Saved report views: save, change or remove my own (invoicing)",ebshel.fin.report.view,account.group_account_invoice,cud,"[('user_id', '=', user.id)]"
 access_fin_schedule_read,fin schedule read,ebshel.fin.report.schedule,account.group_account_readonly,r,
 access_fin_schedule_manager,fin schedule manager,ebshel.fin.report.schedule,account.group_account_manager,crud,
 rule_report_schedule_company,Report schedules: own company,ebshel.fin.report.schedule,,crud,"[('company_id', 'in', company_ids)]"

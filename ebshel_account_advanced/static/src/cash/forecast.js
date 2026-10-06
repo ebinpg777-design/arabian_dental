@@ -1,20 +1,20 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact, today } from "../common/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** Thirteen weeks of cash, with sliders for how customers will really behave. */
 export class CashForecast extends Component {
     static template = "ebshel_account_advanced.CashForecast";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         this.state = proxy({ loading: true, data: null, busy: false, params: { weeks: null, collection_rate: null, delay_days: null, per_partner: true, include_draft: true },
                                 week: null, adding: false, item: {} });

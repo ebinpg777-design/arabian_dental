@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
@@ -160,11 +159,17 @@ class PartnerStatementWizard(models.TransientModel):
             partners = self._partners_with_ledger(partners)
         return partners
 
+    @api.model
+    def _route_of(self, partner):
+        """The clinic's route, else its company's. `res.partner.team_id` is the lab's own
+        field (sale_custom), not a dependency of this module: without it there are no routes."""
+        if 'team_id' not in partner._fields:
+            return self.env['crm.team']
+        return partner.team_id or partner.commercial_partner_id.team_id
+
     def _sorted_by_route(self, partners):
         """Route order, then clinic name: the run comes off the printer route by route."""
-        return partners.sorted(
-            key=lambda p: ((p.team_id.name or p.commercial_partner_id.team_id.name or '~'),
-                           (p.name or '')))
+        return partners.sorted(key=lambda p: ((self._route_of(p).name or '~'), (p.name or '')))
 
     def _above_threshold(self, partners):
         """Drop partners whose outstanding as of the end date is under the floor.
@@ -203,13 +208,13 @@ class PartnerStatementWizard(models.TransientModel):
             partners = self.env['res.partner'].browse(ids)
             if self.team_ids:
                 partners = partners.filtered(
-                    lambda p: (p.team_id or p.commercial_partner_id.team_id) in self.team_ids)
+                    lambda p: self._route_of(p) in self.team_ids)
             return self._sorted_by_route(self._above_threshold(partners))
         if self.partner_ids:
             partners = self.partner_ids
             if self.team_ids:      # both given: the ticked clinics that are on those routes
                 partners = partners.filtered(
-                    lambda p: (p.team_id or p.commercial_partner_id.team_id) in self.team_ids)
+                    lambda p: self._route_of(p) in self.team_ids)
             return self._sorted_by_route(self._above_threshold(partners))
         if self.team_ids:          # no clinic ticked: the whole route
             return self._sorted_by_route(self._above_threshold(self._route_partners()))
@@ -275,7 +280,7 @@ class PartnerStatementWizard(models.TransientModel):
             name = _('Statement %(name)s %(start)s to %(end)s.xlsx', name=partners.name,
                      start=options['date_from'], end=options['date_to'])
         attachment = self.env['ir.attachment'].create({
-            'name': name, 'type': 'binary', 'datas': base64.b64encode(content),
+            'name': name, 'type': 'binary', 'raw': content,
             'res_model': self._name, 'res_id': self.id,
             'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         })

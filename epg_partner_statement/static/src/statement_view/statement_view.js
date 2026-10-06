@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, useListener, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
@@ -8,8 +8,7 @@ import { useService } from "@web/core/utils/hooks";
 import { formatDate, deserializeDate } from "@web/core/l10n/dates";
 import { formatFloat } from "@web/core/utils/numbers";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
-import { useExternalListener } from "@web/owl2/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 /**
  * The statements on screen, from the wizard's filters. (client, 2026-09-30)
@@ -22,11 +21,11 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class StatementView extends Component {
     static template = "epg_partner_statement.StatementView";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         this.dialog = useService("dialog");
         const params = (this.props.action && this.props.action.params) || {};
@@ -38,7 +37,7 @@ export class StatementView extends Component {
             current: null, statement: null, stLoading: false,
             q: "", show: "all", sort: "route", busy: null, mobileDetail: false,
         });
-        useExternalListener(window, "keydown", (ev) => this.onKey(ev));
+        useListener(window, "keydown", (ev) => this.onKey(ev));
         onWillStart(() => this.load());
     }
 

@@ -56,6 +56,10 @@ class Deferral(models.Model):
 
     @api.depends('line_ids.state', 'line_ids.amount', 'total')
     def _compute_progress(self):
+        # one count for the whole list, not a search per deferral
+        saved = self._origin
+        moves = dict(self.env['account.move']._read_group([('ebshel_deferral_id', 'in', saved.ids)],
+                                                          ['ebshel_deferral_id'], ['__count'])) if saved else {}
         for d in self:
             posted = d.line_ids.filtered(lambda l: l.state == 'posted')
             d.recognised = sum(posted.mapped('amount'))
@@ -64,7 +68,7 @@ class Deferral(models.Model):
             drafts = d.line_ids.filtered(lambda l: l.state == 'draft').sorted('date')
             d.next_date = drafts[0].date if drafts else False
             d.line_count = len(d.line_ids)
-            d.move_count = len(d._moves())
+            d.move_count = moves.get(d._origin, 0)
 
     def _moves(self):
         return self.env['account.move'].search([('ebshel_deferral_id', 'in', self.ids)])
@@ -164,6 +168,13 @@ class Deferral(models.Model):
             d.line_ids.filtered(lambda l: l.state == 'draft').write({'state': 'skipped'})
             d.write({'state': 'cancelled'})
         return True
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_entries(self):
+        # deleting a running deferral orphans its entries: the months not yet recognised
+        # would sit on the balance sheet with nothing left to release them
+        if any(d.state in ('running', 'done') for d in self):
+            raise UserError(_("A deferral with posted entries cannot be deleted; cancel it instead."))
 
     def action_draft(self):
         for d in self:

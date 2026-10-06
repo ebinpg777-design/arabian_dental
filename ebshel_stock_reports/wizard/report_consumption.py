@@ -108,7 +108,7 @@ class ReportConsumption(models.TransientModel):
                    SUM(sm.asr_bom_planned_qty_unit),
                    SUM(CASE WHEN COALESCE(sm.asr_bom_planned_qty_unit, 0) = 0 THEN sm.product_qty ELSE 0 END),
                    BOOL_OR(COALESCE(sm.asr_planned_estimated, FALSE) OR COALESCE(sm.asr_bom_planned_qty_unit, 0) = 0),
-                   SUM(CASE WHEN sm.state = 'done' THEN COALESCE(sm.value, 0) ELSE 0 END)
+                   SUM(CASE WHEN sm.state = 'done' THEN COALESCE((CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END), 0) ELSE 0 END)
               FROM stock_move sm
              WHERE sm.raw_material_production_id IN %s
              GROUP BY sm.raw_material_production_id, sm.product_id
@@ -131,14 +131,18 @@ class ReportConsumption(models.TransientModel):
         return {(pid, cid): float(qty or 0) for pid, cid, qty in self.env.cr.fetchall()}
 
     def _scrap_qty(self, production_ids):
-        """{(production_id, component_id): scrapped quantity} from done scraps linked to the order."""
+        """{(production_id, component_id): scrapped quantity} from done scraps linked to the order.
+
+        Odoo 20 has no stock.scrap: a scrap is a move flagged is_scrap, tied to the order as
+        a component (raw_material_production_id) or a finished product (production_id)."""
         self.env.cr.execute(SQL("""
-            SELECT ss.production_id, sm.product_id, SUM(sml.quantity_product_uom)
-              FROM stock_scrap ss
-              JOIN stock_move sm ON sm.scrap_id = ss.id
+            SELECT COALESCE(sm.raw_material_production_id, sm.production_id), sm.product_id,
+                   SUM(sml.quantity_product_uom)
+              FROM stock_move sm
               JOIN stock_move_line sml ON sml.move_id = sm.id
-             WHERE ss.production_id IN %s AND ss.state = 'done' AND sm.state = 'done'
-             GROUP BY ss.production_id, sm.product_id
+             WHERE sm.is_scrap IS TRUE AND sm.state = 'done'
+               AND COALESCE(sm.raw_material_production_id, sm.production_id) IN %s
+             GROUP BY 1, sm.product_id
         """, tuple(production_ids)))
         return {(pid, cid): float(qty or 0) for pid, cid, qty in self.env.cr.fetchall()}
 

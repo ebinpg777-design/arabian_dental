@@ -20,7 +20,7 @@ offered directly:
 Same account.payment model, same posting flow, same journal entries - just a third
 way to say who the other side of the money is.
 """,
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Accounting/Accounting',
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',

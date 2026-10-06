@@ -91,7 +91,7 @@ class ReportOrderShortage(models.TransientModel):
               JOIN uom_uom lu ON lu.id = sol.product_uom_id
               JOIN uom_uom pu ON pu.id = pt.uom_id
               LEFT JOIN stock_move sm ON sm.sale_line_id = sol.id AND sm.state NOT IN ('done', 'cancel')
-              LEFT JOIN uom_uom mu ON mu.id = sm.product_uom
+              LEFT JOIN uom_uom mu ON mu.id = sm.uom_id
              WHERE so.company_id = %(company)s AND so.state = 'sale'
                AND pt.is_storable AND sol.display_type IS NULL
                AND sol.product_uom_qty - sol.qty_delivered > 0

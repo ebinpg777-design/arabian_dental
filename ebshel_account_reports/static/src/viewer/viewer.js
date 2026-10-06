@@ -1,15 +1,15 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, signal, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { useDebounced } from "@web/core/utils/timing";
 import { _t } from "@web/core/l10n/translation";
 import { DateTimeInput } from "@web/core/datetime/datetime_input";
 import { deserializeDate, serializeDate } from "@web/core/l10n/dates";
-import { useLayoutEffect, useRef } from "@web/owl2/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { useLayoutEffect } from "@web/owl2/utils";
 
 /**
  * The report viewer: one screen for every dynamic financial report.
@@ -28,13 +28,13 @@ const PAGE_OF_LINES = 300;
 export class FinReportViewer extends Component {
     static template = "ebshel_account_reports.Viewer";
     static components = { DateTimeInput };
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
-        this.tableRef = useRef("table");
+        this.tableRef = signal.ref();
         const params = (this.props.action && this.props.action.params) || {};
         this.reportKey = params.report_key;
         this.state = proxy({
@@ -351,7 +351,7 @@ export class FinReportViewer extends Component {
 
     /** The name column at `width` px, and remembered for this report on this browser. */
     applySplit(width, save) {
-        const table = this.tableRef.el;
+        const table = this.tableRef();
         if (!table) {
             return;
         }
@@ -379,7 +379,7 @@ export class FinReportViewer extends Component {
         ev.stopPropagation();
         const handle = ev.currentTarget;
         const head = handle.closest("th");
-        const table = this.tableRef.el;
+        const table = this.tableRef();
         const startX = ev.clientX;
         const startW = head.getBoundingClientRect().width;
         let last = startW;
@@ -406,7 +406,7 @@ export class FinReportViewer extends Component {
             ev.preventDefault();
             ev.stopPropagation();
         }
-        const table = this.tableRef.el;
+        const table = this.tableRef();
         if (!table) {
             return;
         }
@@ -439,7 +439,7 @@ export class FinReportViewer extends Component {
     }
 
     fitFirstColumn() {
-        const table = this.tableRef.el;
+        const table = this.tableRef();
         if (!table) {
             return;
         }
@@ -613,9 +613,12 @@ export class FinReportViewer extends Component {
             options: this.state.options, line_id: line.id, offset: 0,
         });
         const at = this.state.lines.indexOf(line);
+        // the next page starts after the entries shown: an opening row is not one of them, and not
+        // every heading has one - a journal or a day counted one too few and repeated an entry
         const extra = res.has_more
             ? [...res.lines, { id: line.id + ":more", parent_id: line.id, name: res.more_label || _t("Load more…"), level: line.level + 1,
-                              kind: "more", columns: [], unfoldable: false, offset: res.lines.length - 1 }]
+                              kind: "more", columns: [], unfoldable: false,
+                              offset: res.lines.filter((l) => l.kind !== "initial").length }]
             : res.lines;
         if (res.totals_last) {
             extra.push({ ...line, id: line.id + ":total", total_of: line.id, parent_id: line.id, name: _t("Total %s", line.name),
@@ -695,7 +698,8 @@ export class FinReportViewer extends Component {
     }
 
     /** Which figure the Items button opens: the line's total where it has one, else the first
-     *  figure that is not nothing - on an aged report the first bucket is usually empty. */
+     *  figure that is not nothing - on an aged report the first bucket is usually empty, and
+     *  a ledger's opening is what came before the period, not what happened in it. */
     firstDrillKey(line) {
         const cols = line.columns || [];
         const keyAt = (i) => (this.state.columns[i] || {}).key;
@@ -906,8 +910,8 @@ export class FinReportViewer extends Component {
     }
 
     async refreshNotes() {
-        const data = await this.orm.call("ebshel.fin.report", "get_report_data", [this.rid], { options: this.state.options });
-        this.state.annotations = data.annotations || {};
+        // only the notes: reading the whole report again recomputed every figure to redraw a bubble
+        this.state.annotations = (await this.orm.call("ebshel.fin.report", "get_annotations", [this.rid])) || {};
         return this.state.annotations;
     }
 
@@ -927,9 +931,17 @@ export class FinReportViewer extends Component {
         if (!m.name.trim()) {
             return;
         }
-        await this.orm.call("ebshel.fin.report.view", "save_view", [this.rid[0], m.name.trim(), this.state.options], {
+        const id = await this.orm.call("ebshel.fin.report.view", "save_view", [this.rid[0], m.name.trim(), this.state.options], {
             shared: m.shared, is_default: m.is_default,
         });
+        // the reload below is a lean one that does not send the saved views again: the new view
+        // is added here, or the Views menu kept saying "None yet" until the report was reopened
+        const options = { ...this.state.options };
+        delete options.expanded;
+        const views = this.state.savedViews.map((v) => (m.is_default && v.mine ? { ...v, is_default: false } : v));
+        views.push({ id, name: m.name.trim(), shared: !!m.shared, mine: true, is_default: !!m.is_default, options });
+        views.sort((a, b) => a.name.localeCompare(b.name));
+        this.state.savedViews = views;
         this.state.modal = null;
         this.notification.add(_t("View saved."), { type: "success" });
         await this.load();
@@ -1103,7 +1115,7 @@ export class FinReportViewer extends Component {
         }
         this.state.focus = id;
         requestAnimationFrame(() => {
-            const row = this.tableRef.el && this.tableRef.el.querySelector(`[data-line="${CSS.escape(id)}"]`);
+            const row = this.tableRef() && this.tableRef().querySelector(`[data-line="${CSS.escape(id)}"]`);
             if (row) {
                 row.scrollIntoView({ block: "center" });
             }
@@ -2207,7 +2219,7 @@ export class FinReportViewer extends Component {
         if (idx >= 0) {
             this.state.focus = lines[idx].id;
             ev.preventDefault();
-            const el = this.tableRef.el && this.tableRef.el.querySelector(`[data-line="${CSS.escape(lines[idx].id)}"]`);
+            const el = this.tableRef() && this.tableRef().querySelector(`[data-line="${CSS.escape(lines[idx].id)}"]`);
             if (el) {
                 el.scrollIntoView({ block: "nearest" });
             }

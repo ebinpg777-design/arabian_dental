@@ -24,7 +24,7 @@
                     </div>
                 </div>
                 <div class="o_efr_actions" t-if="this.state.report">
-                    <div class="o_efr_search"><i class="fa fa-search"/><input type="text" placeholder="Find a line  /" t-custom-model="this.state.search"/></div>
+                    <div class="o_efr_search"><i class="fa fa-search"/><input type="text" placeholder="Find a line  /" t-model.proxy="this.state.search"/></div>
                     <button t-att-class="'o_efr_tool' + (this.state.chart ? ' on' : '')" t-on-click="() => this.state.chart = !this.state.chart" title="Chart of the main lines">
                         <i class="fa fa-bar-chart"/><span>Chart</span></button>
                     <button t-att-class="'o_efr_tool' + (this.state.movers ? ' on' : '')" t-on-click="() => this.toggleMovers()" title="The accounts that moved most">
@@ -328,19 +328,19 @@
                                     <div class="o_efr_mf_l">Label, reference or entry contains</div>
                                     <div class="o_efr_mf_in">
                                         <i class="fa fa-search"/>
-                                        <input type="text" placeholder="e.g. rent, INV/2026" t-custom-model="this.state.draft.label"/>
+                                        <input type="text" placeholder="e.g. rent, INV/2026" t-model.proxy="this.state.draft.label"/>
                                         <button type="button" t-if="this.state.draft.label" class="o_efr_mf_inx" t-on-click="() => this.state.draft.label = ''" title="Clear"><i class="fa fa-times"/></button>
                                     </div>
                                     <div class="o_efr_mf_l">Amount of each item</div>
                                     <div class="o_efr_mf_range">
-                                        <input type="number" min="0" step="any" placeholder="from" t-custom-model="this.state.draft.amount_min"/>
+                                        <input type="number" min="0" step="any" placeholder="from" t-model.proxy="this.state.draft.amount_min"/>
                                         <span>to</span>
-                                        <input type="number" min="0" step="any" placeholder="no limit" t-custom-model="this.state.draft.amount_max"/>
+                                        <input type="number" min="0" step="any" placeholder="no limit" t-model.proxy="this.state.draft.amount_max"/>
                                     </div>
                                     <div class="o_efr_mf_sw">
-                                        <label class="o_efr_switch"><input type="checkbox" t-custom-model="this.state.draft.unreconciled"/><span/>Unreconciled items only</label>
-                                        <label class="o_efr_switch" t-if="this.state.report.allow_posted_toggle"><input type="checkbox" t-custom-model="this.state.draft.drafts"/><span/>Include draft entries</label>
-                                        <label class="o_efr_switch" t-if="this.state.report.allow_hierarchy"><input type="checkbox" t-custom-model="this.state.draft.hierarchy"/><span/>Group by account groups</label>
+                                        <label class="o_efr_switch"><input type="checkbox" t-model.proxy="this.state.draft.unreconciled"/><span/>Unreconciled items only</label>
+                                        <label class="o_efr_switch" t-if="this.state.report.allow_posted_toggle"><input type="checkbox" t-model.proxy="this.state.draft.drafts"/><span/>Include draft entries</label>
+                                        <label class="o_efr_switch" t-if="this.state.report.allow_hierarchy"><input type="checkbox" t-model.proxy="this.state.draft.hierarchy"/><span/>Group under parent accounts</label>
                                     </div>
                                 </div>
                                 <!-- one card per list: who sold it, on which route, which kind of partner, which kind of product -->
@@ -486,7 +486,7 @@
                             <button class="o_efr_seg" t-on-click="this.markSeen" title="Make the figures of now the ones to compare with"><i class="fa fa-check me-1"/>Seen</button>
                         </div>
                         <div class="o_efr_table_wrap" t-on-scroll="this.onTableScroll">
-                            <table class="o_efr_table" t-ref="table">
+                            <table class="o_efr_table" t-ref="this.tableRef">
                                 <thead>
                                     <tr>
                                         <th class="o_efr_th_name"><span t-if="this.state.unitLabel" class="o_efr_unitnote">figures in <t t-out="this.state.unitLabel"/></span>
@@ -811,7 +811,7 @@
                             <a href="#" t-if="n.mine" class="ms-2" t-on-click.prevent="(ev) => this.deleteNote(n, ev)">remove</a></div>
                     </div>
                 </div>
-                <textarea class="form-control" rows="3" placeholder="What the reader should know about this figure" t-custom-model="this.state.modal.text"/>
+                <textarea class="form-control" rows="3" placeholder="What the reader should know about this figure" t-model.proxy="this.state.modal.text"/>
                 <div class="d-flex justify-content-end gap-2 mt-2">
                     <button class="btn btn-secondary btn-sm" t-on-click="() => this.state.modal = null">Close</button>
                     <button class="btn btn-primary btn-sm" t-on-click="() => this.saveNote()">Add note</button>
@@ -819,9 +819,9 @@
             </div>
             <div t-if="this.state.modal and this.state.modal.kind === 'save'" class="o_efr_modal">
                 <div class="o_efr_modal_title">Save this view</div>
-                <input type="text" class="form-control" placeholder="e.g. Quarter vs last year, posted only" t-custom-model="this.state.modal.name"/>
-                <label class="o_efr_check mt-2"><input type="checkbox" t-custom-model="this.state.modal.shared"/> Share with the accounting team</label>
-                <label class="o_efr_check"><input type="checkbox" t-custom-model="this.state.modal.is_default"/> Open this report with it by default</label>
+                <input type="text" class="form-control" placeholder="e.g. Quarter vs last year, posted only" t-model.proxy="this.state.modal.name"/>
+                <label class="o_efr_check mt-2"><input type="checkbox" t-model.proxy="this.state.modal.shared"/> Share with the accounting team</label>
+                <label class="o_efr_check"><input type="checkbox" t-model.proxy="this.state.modal.is_default"/> Open this report with it by default</label>
                 <div class="d-flex justify-content-end gap-2 mt-2">
                     <button class="btn btn-secondary btn-sm" t-on-click="() => this.state.modal = null">Cancel</button>
                     <button class="btn btn-primary btn-sm" t-on-click="() => this.saveView()">Save</button>

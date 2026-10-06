@@ -7,8 +7,8 @@ received, delivered not yet invoiced ("invoices to be issued") and invoiced
 not yet delivered, each at the order price and at cost, grouped per partner.
 The summary mode gives one row per listing plus the company's stock value
 from the engine and the balance of the stock valuation accounts in the
-general ledger, with the difference. Odoo's own Inventory Valuation report
-(``stock_account.action_report_stock_valuation``) is one click away.
+general ledger, with the difference. (Odoo 19's Inventory Valuation report,
+one click away there, is not in Odoo 20 community.)
 """
 from collections import defaultdict
 
@@ -42,9 +42,6 @@ class ReportAccrual(models.TransientModel):
                                     "the end date. The summary adds the stock value and the general ledger "
                                     "balance of the stock valuation accounts at the end date.")
     line_ids = fields.One2many('asr.report.accrual.line', 'wizard_id')
-
-    def action_open_odoo_valuation(self):
-        return self.env['ir.actions.actions']._for_xml_id('stock_account.action_report_stock_valuation')
 
     # ------------------------------------------------------------------
     # Columns
@@ -114,7 +111,7 @@ class ReportAccrual(models.TransientModel):
         if not line_ids:
             return {}
         self.env.cr.execute(SQL("""
-            SELECT sm.%(link)s, SUM(sm.value), SUM(l.qty)
+            SELECT sm.%(link)s, SUM((CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END)), SUM(l.qty)
               FROM stock_move sm
               JOIN (SELECT move_id, SUM(quantity_product_uom) AS qty FROM stock_move_line GROUP BY move_id) l
                 ON l.move_id = sm.id
@@ -148,15 +145,15 @@ class ReportAccrual(models.TransientModel):
         lines = self.env['purchase.order.line'].browse([r[0] for r in self.env.cr.fetchall()])
         if not lines:
             return []
-        lines.fetch(['order_id', 'product_id', 'product_uom_id', 'product_qty', 'qty_received', 'qty_invoiced',
+        lines.fetch(['order_id', 'product_id', 'uom_id', 'product_qty', 'qty_received', 'qty_invoiced',
                      'date_planned', 'price_unit', 'discount', 'tax_ids'])
         unit_values = self._move_unit_values('purchase_line_id', lines.ids, incoming=True)
         rows = []
         for line in lines:
             product = line.product_id
             uom = product.uom_id
-            to_product_uom = (lambda q: line.product_uom_id._compute_quantity(q, uom, rounding_method='HALF-UP')) \
-                if line.product_uom_id != uom else (lambda q: q)
+            to_product_uom = (lambda q: line.uom_id._compute_quantity(q, uom, rounding_method='HALF-UP')) \
+                if line.uom_id != uom else (lambda q: q)
             qty_done = to_product_uom(line.qty_received)
             qty_invoiced = to_product_uom(line.qty_invoiced)
             qty_open = uom.round(qty_done - qty_invoiced if received_side else qty_invoiced - qty_done)
@@ -295,9 +292,13 @@ class ReportAccrual(models.TransientModel):
         if not accounts:
             return None, accounts
         date_to = self.date_to or fields.Date.context_today(self)
-        balances = self.company_id.sudo().stock_accounting_value(
-            accounts_by_product={account: {'valuation': account} for account in accounts}, at_date=date_to)
-        return sum(balances.values()), accounts
+        # Odoo 19's res.company.stock_accounting_value(), which Odoo 20 removed: the posted
+        # balance of the valuation accounts up to the date
+        groups = self.env['account.move.line'].sudo()._read_group(
+            [('account_id', 'in', accounts.ids), ('company_id', '=', self.company_id.id),
+             ('parent_state', '=', 'posted'), ('date', '<=', date_to)],
+            [], ['balance:sum'])
+        return groups[0][0] or 0.0, accounts
 
     def _rows_summary(self):
         rows = []

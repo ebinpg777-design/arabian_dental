@@ -17,7 +17,6 @@
         <field name="model">ebshel.fin.report</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">ebshel_account_reports.fin_report_pdf</field>
-        <field name="report_file">ebshel_account_reports.fin_report_pdf</field>
         <field name="paperformat_id" ref="paperformat_landscape"/>
         <field name="print_report_name">(object.name)</field>
         <field name="binding_model_id" eval="False"/>

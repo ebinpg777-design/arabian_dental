@@ -1,20 +1,20 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { money } from "../common/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** Open items paired with a confidence score; bank lines matched to what they paid. */
 export class MatchDesk extends Component {
     static template = "ebshel_account_advanced.MatchDesk";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         this.state = proxy({ loading: true, data: null, busy: false, kind: "receivable", search: "", minConf: 0,
                                 partnerId: null, journalId: null, selected: {}, picks: {}, open: {} });

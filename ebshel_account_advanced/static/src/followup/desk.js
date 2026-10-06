@@ -1,20 +1,20 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact, today, addDays } from "../common/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /** Every customer who owes money, what to do next, and the buttons that do it. */
 export class FollowupDesk extends Component {
     static template = "ebshel_account_advanced.FollowupDesk";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         this.state = proxy({
             loading: true, data: null, busy: false,
@@ -134,12 +134,15 @@ export class FollowupDesk extends Component {
     async submit() {
         const m = this.state.modal, f = this.state.form, Desk = "ebshel.followup.desk";
         if (m.kind === "send") {
-            await this.run(() => this.orm.call(Desk, "send", [m.ids, f.level_id || null, f.note || null]), (res) => {
+            // the <select> gives the level id as text
+            const levelId = Number(f.level_id) || null;
+            await this.run(() => this.orm.call(Desk, "send", [m.ids, levelId, f.note || null]), (res) => {
                 const skipped = res.skipped.map((s) => `${s.name} (${s.why})`).join(", ");
                 this.notification.add(`${res.sent.length} reminder(s) sent` + (skipped ? `; skipped: ${skipped}` : ""),
                                       { type: res.sent.length ? "success" : "warning" });
                 if (res.letters && res.letters.length) {
-                    this.printLetters(res.letters);
+                    // already logged and moved on by the send: only print them, at the level sent
+                    this.printLetters(res.letters, levelId, false);
                 }
             });
         } else if (m.kind === "call") {
@@ -157,8 +160,13 @@ export class FollowupDesk extends Component {
         await this.orm.call("ebshel.followup.desk", "set_responsible", [row.id, Number(ev.target.value) || false]);
         row.responsible_id = Number(ev.target.value) || false;
     }
-    async printLetters(ids) {
-        const act = await this.orm.call("ebshel.followup.desk", "letter", [ids || this.selectedIds, null]);
+    async printLetters(ids, levelId = null, log = true) {
+        ids = ids || this.selectedIds;
+        if (!ids.length) {
+            this.notification.add("Pick at least one customer first.", { type: "warning" });
+            return;
+        }
+        const act = await this.orm.call("ebshel.followup.desk", "letter", [ids, levelId, log]);
         if (act) {
             this.action.doAction(act);
         }

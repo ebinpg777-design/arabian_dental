@@ -246,7 +246,7 @@ class TestStatementDownloadName(HttpCase):
         response = self.url_open('/report/download', data={
             'data': json.dumps([url, 'qweb-pdf']),
             'context': '{}',
-            'csrf_token': http.Request.csrf_token(self),
+            'csrf_token': self.csrf_token(),
         })
         # RFC 5987: the header carries filename*=UTF-8''<percent-encoded>.
         raw = response.headers.get('Content-Disposition', '')

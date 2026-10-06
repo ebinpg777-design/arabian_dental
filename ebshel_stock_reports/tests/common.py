@@ -64,11 +64,11 @@ class AdvancedStockReportsCase(TransactionCase):
     # ------------------------------------------------------------------
     def _make_move(self, product, qty, src, dst, price_unit=None, date=None, **extra):
         vals = {
-            'product_id': product.id, 'product_uom': product.uom_id.id,
+            'product_id': product.id, 'uom_id': product.uom_id.id,
             'product_uom_qty': qty, 'location_id': src.id, 'location_dest_id': dst.id,
             'company_id': self.company.id, 'picked': True,
             'move_line_ids': [Command.create({
-                'product_id': product.id, 'product_uom_id': product.uom_id.id, 'quantity': qty,
+                'product_id': product.id, 'uom_id': product.uom_id.id, 'quantity': qty,
                 'location_id': src.id, 'location_dest_id': dst.id, 'company_id': self.company.id,
             })],
         }
@@ -83,6 +83,20 @@ class AdvancedStockReportsCase(TransactionCase):
             move.write({'date': date})
             move.move_line_ids.write({'date': date})
         return move
+
+    def _scrap_move(self, product, qty, location=None, reasons=None):
+        """A done scrap. Odoo 20 has no stock.scrap: the scrap is a stock.move flagged
+        is_scrap, its destination the company's scrap location, its reasons on the move."""
+        vals = {
+            'is_scrap': True, 'product_id': product.id, 'uom_id': product.uom_id.id, 'quantity': qty,
+            'location_id': (location or self.stock_location).id, 'company_id': self.company.id,
+        }
+        if reasons:
+            vals['scrap_reason_tag_ids'] = [Command.set(reasons.ids)]
+        scrap = self.env['stock.move'].create(vals)
+        scrap._action_scrap()
+        self.assertEqual(scrap.state, 'done')
+        return scrap
 
     def _in(self, product, qty, price, date=None, location=None):
         """Receipt valued at ``price`` per unit (through a manual value, like Adjust Valuation)."""

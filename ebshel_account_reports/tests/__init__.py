@@ -4,3 +4,4 @@ from . import test_filters
 from . import test_exports
 from . import test_speed
 from . import test_general_ledger
+from . import test_regressions

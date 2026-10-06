@@ -41,6 +41,15 @@ class TestFinReports(TransactionCase):
     def _val(self, data, code=None, name=None, col=0):
         return self._line(data, code, name)['columns'][col]['value'] or 0.0
 
+    def _col(self, data, line, key):
+        """A line's figure in the column of that key (ledgers: initial, debit, credit, balance)."""
+        return line['columns'][[c['key'] for c in data['columns']].index(key)]['value'] or 0.0
+
+    def _items_sum(self, key, options, line_id, column_key, field='balance'):
+        """What the journal items behind one figure add up to."""
+        _engine, _options, domain, _title, _other = self.Report.by_key(key)._items_domain(options, line_id, column_key)
+        return sum(self.env['account.move.line'].search(domain).mapped(field))
+
     # ------------------------------------------------------------ statements
     def test_the_balance_sheet_balances(self):
         data = self._data('balance_sheet', self.asof)
@@ -126,6 +135,57 @@ class TestFinReports(TransactionCase):
         self.assertAlmostEqual(gl_total[1]['value'], tb_total[2]['value'], 2)
         self.assertAlmostEqual(gl_total[2]['value'], tb_total[3]['value'], 2)
         self.assertAlmostEqual(gl_total[3]['value'], (tb_total[4]['value'] or 0) - (tb_total[5]['value'] or 0), 2)
+
+    def test_each_ledger_figure_opens_the_items_it_is_made_of(self):
+        """Opening, debit, credit and balance of an account each open the journal items
+        that add up to them. The balance used to open the period's items only: a balance
+        sheet account's balance did not match them, nor did a trial balance's end figure
+        on a profit and loss account (it opened every year's items)."""
+        Account = self.env['account.account']
+        expense = Account.create({'code': 'EFRD600', 'name': 'EFR drill expense', 'account_type': 'expense'})
+        liability = Account.create({'code': 'EFRD200', 'name': 'EFR drill liability', 'account_type': 'liability_current'})
+        journal = self.env['account.journal'].search([('type', '=', 'general'), ('company_id', '=', self.company.id)], limit=1)
+        for day, amount in ((self.fy_from - timedelta(days=10), 100.0), (self.today, 30.0)):
+            self.env['account.move'].create({'move_type': 'entry', 'journal_id': journal.id, 'date': day, 'line_ids': [
+                (0, 0, {'account_id': expense.id, 'debit': amount, 'name': 'probe'}),
+                (0, 0, {'account_id': liability.id, 'credit': amount, 'name': 'probe'})]}).action_post()
+        gl = self._data('general_ledger', self.year)
+        for account, opening, balance in ((liability, -100.0, -130.0), (expense, 0.0, 30.0)):
+            lid = 'ac:%d' % account.id
+            line = next(l for l in gl['lines'] if l['id'] == lid)
+            self.assertAlmostEqual(self._col(gl, line, 'opening'), opening, 2)
+            self.assertAlmostEqual(self._col(gl, line, 'balance'), balance, 2)
+            for key, field in (('opening', 'balance'), ('debit', 'debit'), ('credit', 'credit'), ('balance', 'balance')):
+                self.assertAlmostEqual(self._items_sum('general_ledger', self.year, lid, key, field),
+                                       self._col(gl, line, key), 2, '%s %s' % (account.code, key))
+        tb = self._data('trial_balance', self.year)
+        end_d = next(l for l in tb['lines'] if l['id'] == 'ac:%d' % expense.id)['columns'][4]['value']
+        self.assertAlmostEqual(end_d, 30.0, 2)
+        self.assertAlmostEqual(self._items_sum('trial_balance', self.year, 'ac:%d' % expense.id, 'end_d'), end_d, 2)
+
+    def test_the_hierarchy_groups_accounts_under_their_parent_account(self):
+        """Odoo 20 has no account groups: a chart hangs accounts under parent accounts. The
+        hierarchy read the account_group table, which no longer exists."""
+        Account = self.env['account.account']
+        parent = Account.create({'code': 'EFRP100', 'name': 'EFR parent', 'account_type': 'expense'})
+        child = Account.create({'code': 'EFRP110', 'name': 'EFR child', 'account_type': 'expense', 'parent_id': parent.id})
+        journal = self.env['account.journal'].search([('type', '=', 'general'), ('company_id', '=', self.company.id)], limit=1)
+        other = Account.search([('account_type', '=', 'liability_current'), ('company_ids', 'in', self.company.id)], limit=1)
+        move = self.env['account.move'].create({'move_type': 'entry', 'journal_id': journal.id, 'date': self.today, 'line_ids': [
+            (0, 0, {'account_id': child.id, 'debit': 70.0, 'name': 'probe'}),
+            (0, 0, {'account_id': other.id, 'credit': 70.0, 'name': 'probe'})]})
+        move.action_post()
+        flat = self._data('general_ledger', self.year)
+        tree = self._data('general_ledger', dict(self.year, hierarchy=True))
+        head = next(l for l in tree['lines'] if l['id'] == 'grp:%d' % parent.id)
+        row = next(l for l in tree['lines'] if l['id'] == 'ac:%d' % child.id)
+        self.assertEqual(row['parent_id'], head['id'])
+        self.assertAlmostEqual(self._col(tree, head, 'debit'), 70.0, 2)
+        self.assertIn('EFRP100', head['name'])
+        accounts = lambda data: {l['id'] for l in data['lines'] if l['kind'] == 'account'}   # noqa: E731
+        self.assertEqual(accounts(tree), accounts(flat), "an account under no parent still shows")
+        self.assertEqual(self._col(tree, self._line(tree, name='Total'), 'balance'),
+                         self._col(flat, self._line(flat, name='Total'), 'balance'))
 
     def test_an_account_unfolds_to_its_items_with_a_running_balance(self):
         gl = self._data('general_ledger', self.year)
@@ -289,6 +349,20 @@ class TestFinReports(TransactionCase):
         self.assertIn(vid, [v['id'] for v in views])
         self.assertEqual(next(v for v in views if v['id'] == vid)['options']['date']['from'], self.year['date']['from'])
 
+    def test_each_partner_gets_their_statement_with_the_file_in_it(self):
+        partner = self.env['res.partner'].create({'name': 'Statement Reader', 'email': 'statement@example.com'})
+        income = self.env['account.account'].search([('account_type', '=', 'income'), ('company_ids', 'in', self.company.id)], limit=1)
+        invoice = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': partner.id, 'invoice_date': self.today, 'invoice_payment_term_id': False,
+            'invoice_line_ids': [(0, 0, {'name': 'Probe', 'quantity': 1, 'price_unit': 321.0, 'account_id': income.id, 'tax_ids': [(6, 0, [])]})]})
+        invoice.action_post()
+        report = self.Report.by_key('customer_statement')
+        result = report.action_send_statements(dict(self.year, partners=[partner.id]))
+        self.assertEqual(result, {'sent': 1, 'skipped': 0})
+        mail = self.env['mail.mail'].search([('email_to', '=', 'statement@example.com')], order='id desc', limit=1)
+        self.assertEqual(len(mail.attachment_ids), 1)
+        self.assertTrue(mail.attachment_ids.file_size, "the statement itself, not an empty file")
+
     def test_a_schedule_sends_the_report_and_moves_on(self):
         partner = self.env['res.partner'].create({'name': 'Reader', 'email': 'reader@example.com'})
         schedule = self.env['ebshel.fin.report.schedule'].create({
@@ -299,6 +373,8 @@ class TestFinReports(TransactionCase):
         mail = self.env['mail.mail'].search([], order='id desc', limit=1)
         self.assertEqual(self.env['mail.mail'].search_count([]), before + 1)
         self.assertEqual(len(mail.attachment_ids), 2)
+        # Odoo 20 drops `datas` on an attachment: the files were created, and empty
+        self.assertTrue(all(a.file_size for a in mail.attachment_ids), mail.attachment_ids.mapped('file_size'))
         self.assertGreater(schedule.next_run, self.today)
         self.assertEqual(schedule.run_count, 1)
 
@@ -317,3 +393,19 @@ class TestFinReports(TransactionCase):
             data = self.Report.with_user(admin).by_key(key).get_report_data(self.year if key != 'aged_receivable' else self.asof)
             self.assertTrue(data['lines'])
         self.Report.with_user(admin).search([])          # the ORM's own access hook is intact
+
+    def test_an_invoicing_user_can_read_the_reports(self):
+        """The menus and the server's own check let the Invoicing role in, but the report
+        records had no access row for it: every report showed an access error instead."""
+        clerk = self.env['res.users'].create({'name': 'Rep Clerk', 'login': 'efr_clerk',
+                                              'group_ids': [(6, 0, [self.env.ref('base.group_user').id, self.env.ref('account.group_account_invoice').id])]})
+        report = self.Report.by_key('profit_loss')
+        View = self.env['ebshel.fin.report.view']
+        private = View.create({'report_id': report.id, 'name': 'Mine only', 'options': self.year, 'shared': False})
+        shared = View.create({'report_id': report.id, 'name': 'For everyone', 'options': self.year, 'shared': True})
+        for key in ('profit_loss', 'partner_ledger', 'aged_receivable'):
+            data = self.Report.with_user(clerk).by_key(key).get_report_data(self.year if key != 'aged_receivable' else self.asof)
+            self.assertTrue(data['lines'])
+        seen = {v['id'] for v in self.Report.with_user(clerk).by_key('profit_loss').get_report_data(self.year)['saved_views']}
+        self.assertIn(shared.id, seen)
+        self.assertNotIn(private.id, seen, "someone else's private view stays private")

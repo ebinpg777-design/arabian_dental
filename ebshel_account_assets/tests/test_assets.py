@@ -231,6 +231,28 @@ class TestAssets(TransactionCase):
         bill.action_post()
         self.assertFalse(bill.ebshel_asset_ids)
 
+    def test_an_invoicing_user_posts_vendor_bills(self):
+        """The Invoicing role alone posts bills. Posting looks for the asset categories, which
+        that role could not read: every vendor bill failed with an access error (seen on 20.0
+        with a real, non-superuser login)."""
+        clerk = self.env['res.users'].create({
+            'name': 'Bill Clerk', 'login': 'eaa_bill_clerk',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id, self.env.ref('account.group_account_invoice').id])]})
+        Move = self.env['account.move'].with_user(clerk)
+        other = self.env['account.account'].search([('account_type', '=', 'expense'), ('id', '!=', self.loss.id)], limit=1)
+        plain = Move.create({
+            'move_type': 'in_invoice', 'partner_id': self.supplier.id, 'invoice_date': date(2025, 5, 10),
+            'invoice_line_ids': [(0, 0, {'name': 'Gloves', 'quantity': 1, 'price_unit': 500.0,
+                                         'account_id': other.id, 'tax_ids': [(6, 0, [])]})]})
+        plain.action_post()
+        self.assertEqual(plain.state, 'posted')
+        on_asset = Move.create({
+            'move_type': 'in_invoice', 'partner_id': self.supplier.id, 'invoice_date': date(2025, 5, 10),
+            'invoice_line_ids': [(0, 0, {'name': 'Lathe', 'quantity': 1, 'price_unit': 9000.0,
+                                         'account_id': self.gross.id, 'tax_ids': [(6, 0, [])]})]})
+        on_asset.action_post()
+        self.assertEqual(len(on_asset.sudo().ebshel_asset_ids), 1, "the bill still makes its asset")
+
     # ------------------------------------------------------------ reports, lifecycle, simulator, dashboard
     def test_the_schedule_report_foots_to_the_assets(self):
         asset = self._asset(50000.0, prorata='none')
@@ -279,3 +301,119 @@ class TestAssets(TransactionCase):
             pdf, kind = self.env['ir.actions.report'].with_context(force_report_rendering=True)._render_qweb_pdf(ref, res_ids=[asset.id])
             self.assertEqual(kind, 'pdf')
             self.assertTrue(pdf.startswith(b'%PDF'))
+
+    # ------------------------------------------------------------ defects found and fixed
+    def test_monthly_declining_takes_the_yearly_rate_of_the_years_opening_value(self):
+        """The rate is applied to the book value at the start of each year, a twelfth a month.
+        It was applied to what was left each month, compounding: 30% took 26.2% a year."""
+        asset = self._asset(120000.0, method='declining', declining_rate=30.0, period='month', duration=60,
+                            prorata='none', purchase_date=date(2025, 1, 1), start_date=date(2025, 1, 1))
+        asset.action_confirm()
+        lines = asset.line_ids.sorted('date')
+        first_year = lines.filtered(lambda l: l.date.year == 2025)
+        self.assertEqual(len(first_year), 12)
+        self.assertTrue(all(abs(l.amount - 3000.0) < 0.01 for l in first_year), first_year.mapped('amount'))
+        second_year = lines.filtered(lambda l: l.date.year == 2026)
+        self.assertAlmostEqual(sum(second_year.mapped('amount')), 84000.0 * 0.30, 1)
+        self.assertAlmostEqual(sum(lines.mapped('amount')), 120000.0, 2)
+
+    def test_a_change_keeps_the_depreciation_of_the_period_it_falls_in(self):
+        """Modified or written down in June, the year's depreciation was deleted and never made
+        again: that year had none, the later years carried it."""
+        asset = self._asset(50000.0, prorata='none')
+        asset.action_confirm()
+        asset.line_ids[0].action_post()                       # 2025
+        self.env['ebshel.asset.change'].create({'asset_id': asset.id, 'kind': 'decrease', 'date': date(2026, 6, 30),
+                                                'amount': 4000.0, 'note': 'damaged'}).action_apply()
+        drafts = asset.line_ids.filtered(lambda l: l.state == 'draft').sorted('date')
+        self.assertEqual(drafts[0].date, date(2026, 12, 31), "2026 is still depreciated")
+        self.assertAlmostEqual(drafts[0].amount, 10000.0, 2)
+        self.assertEqual(drafts[-1].date, date(2029, 12, 31), "the life stays what it was")
+        self.assertAlmostEqual(sum(drafts.mapped('amount')), 36000.0, 2)
+        self.assertAlmostEqual(asset.book_value, 36000.0, 2)
+
+    def test_a_write_down_of_a_prorated_asset_keeps_its_last_period(self):
+        asset = self._asset(50000.0)                          # from April: six lines, 2025 to 2030
+        asset.action_confirm()
+        self.assertEqual(asset.line_ids.sorted('date')[-1].date, date(2030, 12, 31))
+        asset.line_ids.sorted('date')[:2].action_post()       # 2025 and 2026
+        self.env['ebshel.asset.change'].create({'asset_id': asset.id, 'kind': 'decrease', 'date': date(2027, 3, 31),
+                                                'amount': 1000.0, 'note': 'scratched'}).action_apply()
+        drafts = asset.line_ids.filtered(lambda l: l.state == 'draft').sorted('date')
+        self.assertEqual(drafts.mapped('date'), [date(2027, 12, 31), date(2028, 12, 31), date(2029, 12, 31), date(2030, 12, 31)])
+        self.assertAlmostEqual(asset.depreciated_value + sum(drafts.mapped('amount')), 50000.0, 2)
+
+    def test_disposing_in_the_first_prorated_period_counts_the_days_it_was_held(self):
+        """The first line already covers only July to December; it was prorated again over the
+        whole year, depreciating January to June that the asset never saw."""
+        asset = self._asset(36500.0, purchase_date=date(2025, 7, 2), start_date=date(2025, 7, 2))
+        asset.action_confirm()
+        first = asset.line_ids.sorted('date')[0].amount       # the disposal rewrites that line
+        self.assertAlmostEqual(first, round(7300.0 * 183 / 365, 2), 2)
+        self.env['ebshel.asset.dispose'].create({'asset_id': asset.id, 'kind': 'scrap', 'date': date(2025, 9, 30),
+                                                 'note': 'broken'}).action_apply()
+        posted = asset.line_ids.filtered(lambda l: l.state == 'posted' and l.kind == 'depreciation')
+        self.assertEqual(len(posted), 1)
+        self.assertAlmostEqual(posted.amount, round(first * 91 / 183, 2), 2)
+
+    def test_a_bill_in_another_currency_makes_an_asset_of_its_cost_here(self):
+        other = self.env.ref('base.EUR') if self.company.currency_id != self.env.ref('base.EUR') else self.env.ref('base.GBP')
+        other.active = True
+        self.env['res.currency.rate'].create({'currency_id': other.id, 'name': '2025-01-01', 'rate': 0.3,
+                                              'company_id': self.company.id})
+        self.category.write({'one_per_unit': True})
+        bill = self.env['account.move'].create({
+            'move_type': 'in_invoice', 'partner_id': self.supplier.id, 'invoice_date': date(2025, 5, 10),
+            'currency_id': other.id,
+            'invoice_line_ids': [
+                (0, 0, {'name': 'Stool', 'quantity': 3, 'price_unit': 10.0, 'account_id': self.gross.id, 'tax_ids': [(6, 0, [])]}),
+                (0, 0, {'name': 'Discount', 'quantity': 1, 'price_unit': -3.0, 'account_id': self.gross.id, 'tax_ids': [(6, 0, [])]}),
+            ]})
+        bill.action_post()                                    # the credit line made a negative asset: the bill refused
+        assets = bill.ebshel_asset_ids
+        stool = bill.invoice_line_ids.filtered(lambda l: l.name == 'Stool')
+        self.assertEqual(len(assets), 3)
+        self.assertAlmostEqual(stool.balance, 100.0, 2)
+        self.assertEqual(sorted(assets.mapped('purchase_value')), [33.33, 33.33, 33.34])
+
+    def test_the_schedule_report_leaves_out_what_left_before_the_period(self):
+        asset = self._asset(50000.0, prorata='none')
+        asset.action_confirm()
+        asset.line_ids.sorted('date')[0].action_post()
+        self.env['ebshel.asset.dispose'].create({'asset_id': asset.id, 'kind': 'sale', 'date': date(2026, 6, 30),
+                                                 'proceeds': 30000.0, 'note': 'sold'}).action_apply()
+        report = self.env['ebshel.fin.report'].by_key('asset_schedule')
+        later = report.get_report_data({'date': {'preset': 'custom', 'from': '2027-01-01', 'to': '2027-12-31'}, 'unfold_all': True})
+        self.assertFalse([l for l in later['lines'] if l.get('res_id') == asset.id and l.get('kind') == 'asset'])
+        year = {'date': {'preset': 'custom', 'from': '2026-01-01', 'to': '2026-12-31'}, 'unfold_all': True}
+        data = report.get_report_data(year)
+        row = next(l for l in data['lines'] if l.get('res_id') == asset.id and l.get('kind') == 'asset')
+        period = row['columns'][2]['value']
+        self.assertAlmostEqual(period, round(10000.0 * 181 / 365, 2), 2)
+        _engine, _options, domain, _title, _other = report._items_domain(year, row['id'], 'period')
+        self.assertAlmostEqual(sum(self.env['account.move.line'].search(domain).mapped('credit')), period, 2)
+
+    def test_a_companys_depreciation_lines_stay_in_that_company(self):
+        elsewhere = self.env['res.company'].create({'name': 'EAA elsewhere'})
+        Account = self.env['account.account'].with_company(elsewhere)
+        accounts = {key: Account.create({'code': 'EAAX%d' % i, 'name': key, 'account_type': atype,
+                                         'company_ids': [(6, 0, [elsewhere.id])]})
+                    for i, (key, atype) in enumerate((('gross', 'asset_fixed'), ('accum', 'asset_fixed'),
+                                                       ('expense', 'expense_depreciation')))}
+        journal = self.env['account.journal'].create({'name': 'EAA misc', 'code': 'EAAX', 'type': 'general',
+                                                      'company_id': elsewhere.id})
+        Category = self.env['ebshel.asset.category'].with_company(elsewhere)
+        category = Category.create({
+            'name': 'Elsewhere', 'company_id': elsewhere.id, 'asset_account_id': accounts['gross'].id,
+            'depreciation_account_id': accounts['accum'].id, 'expense_account_id': accounts['expense'].id,
+            'journal_id': journal.id, 'period': 'year', 'duration': 3, 'prorata': 'none'})
+        asset = self.env['ebshel.asset'].with_company(elsewhere).create({
+            'name': 'Far away', 'category_id': category.id, 'company_id': elsewhere.id, 'purchase_value': 3000.0,
+            'purchase_date': date(2025, 1, 1), 'start_date': date(2025, 1, 1)})
+        asset.action_confirm()
+        self.assertTrue(asset.line_ids)
+        clerk = self.env['res.users'].create({
+            'name': 'EAA clerk', 'login': 'eaa_clerk_here',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id, self.env.ref('account.group_account_invoice').id])]})
+        self.assertFalse(self.env['ebshel.asset.line'].with_user(clerk).search([('asset_id', '=', asset.id)]))
+        self.assertFalse(self.env['ebshel.asset.event'].with_user(clerk).search([('asset_id', '=', asset.id)]))

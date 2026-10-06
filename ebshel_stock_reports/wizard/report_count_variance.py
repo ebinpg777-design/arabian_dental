@@ -78,7 +78,7 @@ class ReportCountVariance(models.TransientModel):
         self.env.cr.execute(SQL("""
             WITH lines AS (
                 SELECT sml.id AS line_id, sm.id AS move_id, sm.date, sm.reference, sm.product_id, sml.lot_id,
-                       sm.asr_reason_id, sm.asr_qty_before, sm.asr_qty_counted, sm.value, sm.is_in, sm.is_out,
+                       sm.asr_reason_id, sm.asr_qty_before, sm.asr_qty_counted, (CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END) AS value, sm.is_in, sm.is_out,
                        sml.quantity_product_uom AS qty,
                        (ld.company_id IS NOT NULL AND ld.usage IN ('internal', 'transit')) AS is_gain,
                        CASE WHEN ld.company_id IS NOT NULL AND ld.usage IN ('internal', 'transit')

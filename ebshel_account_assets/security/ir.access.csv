@@ -1,8 +1,10 @@
 id,name,model_id,group_id/id,operation,domain
 access_asset_group_read,asset group read,ebshel.asset.group,account.group_account_readonly,r,
 access_asset_group_manager,asset group manager,ebshel.asset.group,account.group_account_manager,crud,
+access_asset_group_billing_read,asset group billing read,ebshel.asset.group,account.group_account_invoice,r,
 access_asset_category_read,asset category read,ebshel.asset.category,account.group_account_readonly,r,
 access_asset_category_manager,asset category manager,ebshel.asset.category,account.group_account_manager,crud,
+access_asset_category_billing_read,asset category billing read,ebshel.asset.category,account.group_account_invoice,r,
 rule_asset_category_company,Asset categories: own companies,ebshel.asset.category,,crud,"[('company_id', 'in', company_ids)]"
 access_asset_read,asset read,ebshel.asset,account.group_account_readonly,r,
 access_asset_user,asset user,ebshel.asset,account.group_account_invoice,cru,
@@ -10,8 +12,10 @@ access_asset_manager,asset manager,ebshel.asset,account.group_account_manager,cr
 rule_asset_company,Assets: own companies,ebshel.asset,,crud,"[('company_id', 'in', company_ids)]"
 access_asset_line_read,asset line read,ebshel.asset.line,account.group_account_readonly,r,
 access_asset_line_user,asset line user,ebshel.asset.line,account.group_account_invoice,crud,
+rule_asset_line_company,Depreciation lines: own companies,ebshel.asset.line,,crud,"[('company_id', 'in', company_ids)]"
 access_asset_event_read,asset event read,ebshel.asset.event,account.group_account_readonly,r,
 access_asset_event_user,asset event user,ebshel.asset.event,account.group_account_invoice,cru,
+rule_asset_event_company,Asset events: own companies,ebshel.asset.event,,crud,"[('asset_id.company_id', 'in', company_ids)]"
 access_asset_change_user,asset change wizard,ebshel.asset.change,account.group_account_invoice,crud,
 access_asset_dispose_user,asset dispose wizard,ebshel.asset.dispose,account.group_account_invoice,crud,
 access_asset_simulate_user,asset simulate wizard,ebshel.asset.simulate,account.group_account_readonly,crud,

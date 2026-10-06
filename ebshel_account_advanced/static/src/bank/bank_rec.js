@@ -1,12 +1,12 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
-import { money } from "../common/utils";
+import { money, today } from "../common/utils";
 import { splitRows, guessMapping, buildRows } from "./parse";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Bank reconciliation in three tabs:
@@ -18,11 +18,11 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class BankRec extends Component {
     static template = "ebshel_account_advanced.BankRec";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         const params = (this.props.action && this.props.action.params) || {};
         this.state = proxy({
@@ -31,8 +31,8 @@ export class BankRec extends Component {
             lines: null, lineState: "open", search: "", selectedId: null, detail: null, parts: [], partnerId: null,
             itemSearch: "", itemKind: "open", itemResults: [], busy: false, ruleOffer: null,
             // tick
-            brs: null, brsDate: new Date().toISOString().slice(0, 10), brsShow: "uncleared", brsSearch: "", ticked: {},
-            clearDate: new Date().toISOString().slice(0, 10), bankBalance: "", baselineDate: "",
+            brs: null, brsDate: today(), brsShow: "uncleared", brsSearch: "", ticked: {},
+            clearDate: today(), bankBalance: "", baselineDate: "",
             // paste
             pasteText: "", parsed: null, map: null, tickOnImport: true, importResult: null,
         });

@@ -218,7 +218,7 @@ class ReportGstRegister(models.TransientModel):
                AND COALESCE(sml.picked, TRUE)
                AND NOT COALESCE(sm.is_dropship, FALSE)
                AND sml.location_id IN %(level)s AND sml.location_dest_id NOT IN %(level)s
-               AND (sm.scrap_id IS NOT NULL OR sm.is_inventory
+               AND (sm.is_scrap IS TRUE OR sm.is_inventory
                     OR (ld.usage NOT IN ('customer', 'supplier', 'production')
                         AND sml.location_dest_id NOT IN %(valued)s))
                AND %(products)s

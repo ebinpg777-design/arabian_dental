@@ -102,7 +102,7 @@ class ReportMoCost(models.TransientModel):
         """, tuple(production_ids)))
         produced = {pid: float(qty or 0) for pid, qty in self.env.cr.fetchall()}
         self.env.cr.execute(SQL("""
-            SELECT sm.raw_material_production_id, SUM(COALESCE(sm.value, 0))
+            SELECT sm.raw_material_production_id, SUM(COALESCE((CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END), 0))
               FROM stock_move sm
              WHERE sm.raw_material_production_id IN %s AND sm.state = 'done'
              GROUP BY sm.raw_material_production_id
@@ -135,11 +135,11 @@ class ReportMoCost(models.TransientModel):
         if not bom:
             return 0.0
         company = production.company_id
-        key = (bom.id, production.product_id.id, production.product_qty, production.product_uom_id.id)
+        key = (bom.id, production.product_id.id, production.product_qty, production.uom_id.id)
         if key in bom_cache:
             return bom_cache[key]
-        factor = production.product_uom_id._compute_quantity(
-            production.product_qty, bom.product_uom_id, round=False) / (bom.product_qty or 1.0)
+        factor = production.uom_id._compute_quantity(
+            production.product_qty, bom.uom_id, round=False) / (bom.product_qty or 1.0)
         _boms, lines = bom.explode(production.product_id, factor, picking_type=bom.picking_type_id,
                                    never_attribute_values=production.never_product_template_attribute_value_ids)
         cost = 0.0
@@ -147,13 +147,13 @@ class ReportMoCost(models.TransientModel):
             if bom_line.child_bom_id and bom_line.child_bom_id.type == 'phantom':
                 continue
             component = bom_line.product_id.with_company(company)
-            unit_cost = component.uom_id._compute_price(component.standard_price, bom_line.product_uom_id)
+            unit_cost = component.uom_id._compute_price(component.standard_price, bom_line.uom_id)
             cost += unit_cost * line_data['qty']
         for operation in bom.operation_ids:
             if operation._skip_operation_line(production.product_id):
                 continue
             cost += operation.with_context(product=production.product_id, quantity=production.product_qty,
-                                           unit=production.product_uom_id).cost
+                                           unit=production.uom_id).cost
         bom_cache[key] = cost
         return cost
 
@@ -167,7 +167,7 @@ class ReportMoCost(models.TransientModel):
         productions = self._asr_productions()
         if not productions:
             return []
-        productions.fetch(['name', 'product_id', 'product_qty', 'product_uom_id', 'bom_id', 'date_finished',
+        productions.fetch(['name', 'product_id', 'product_qty', 'uom_id', 'bom_id', 'date_finished',
                            'extra_cost', 'workorder_ids', 'never_product_template_attribute_value_ids'])
         produced, component_value, cost_share = self._move_sums(productions.ids)
         operation_cost = self._operation_cost(productions)
@@ -182,7 +182,7 @@ class ReportMoCost(models.TransientModel):
             share = cost_share.get(production.id, 0.0)
             cost_total = cost_component + cost_operation + cost_extra
             cost_finished = cost_total * (1 - share / 100.0)
-            mo_qty = production.product_uom_id._compute_quantity(production.product_qty, product.uom_id, round=False)
+            mo_qty = production.uom_id._compute_quantity(production.product_qty, product.uom_id, round=False)
             bom_cost_order = self._bom_cost(production, bom_cache)
             cost_bom = bom_cost_order * (qty_produced / mo_qty) if mo_qty else bom_cost_order
             variance = cost_finished - cost_bom

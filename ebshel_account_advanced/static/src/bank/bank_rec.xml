@@ -83,7 +83,7 @@
                             <div class="mt-2" t-if="this.state.ruleOffer">
                                 <div class="o_eaa_offer">
                                     <i class="fa fa-lightbulb-o me-1"/>Do this every time? Lines with
-                                    <input class="form-control form-control-sm d-inline-block" style="width: 200px" t-custom-model="this.state.ruleOffer.keywords"/>
+                                    <input class="form-control form-control-sm d-inline-block" style="width: 200px" t-model.proxy="this.state.ruleOffer.keywords"/>
                                     go to <b t-out="this.state.ruleOffer.account"/>.
                                     <button class="btn btn-sm btn-primary ms-1" t-on-click="this.makeRule">Save the rule</button>
                                     <button class="btn btn-sm btn-link" t-on-click="() => this.state.ruleOffer = null">No</button>
@@ -111,7 +111,7 @@
                                 <span t-att-class="'o_eaa_chip' + (this.state.itemKind === 'open' ? ' on' : '')" t-on-click="() => this.setItemKind('open')">open invoices and bills</span>
                                 <span t-att-class="'o_eaa_chip' + (this.state.itemKind === 'book' ? ' on' : '')" t-on-click="() => this.setItemKind('book')">items already in the books</span>
                             </div>
-                            <input class="form-control form-control-sm mb-1" placeholder="Number, reference, partner or amount" t-custom-model="this.state.itemSearch" t-on-change="this.searchItems"/>
+                            <input class="form-control form-control-sm mb-1" placeholder="Number, reference, partner or amount" t-model.proxy="this.state.itemSearch" t-on-change="this.searchItems"/>
                             <div class="o_eaa_results">
                                 <div t-foreach="this.state.itemResults" t-as="i" t-key="i.id" class="o_eaa_result">
                                     <div class="o_eaa_cand_main"><b t-out="i.name"/> <span class="text-muted" t-out="i.partner"/><div class="small text-muted"><t t-out="i.date"/><t t-if="i.ref"> · <t t-out="i.ref"/></t><t t-if="i.label and i.label !== i.name"> · <t t-out="i.label"/></t></div></div>
@@ -135,8 +135,8 @@
                                             <option value="">Account…</option>
                                             <option t-foreach="d.accounts" t-as="a" t-key="a.id" t-att-value="a.id" t-att-selected="p.account_id === a.id" t-out="a.name"/>
                                         </select>
-                                        <input class="form-control form-control-sm" t-custom-model="p.label" placeholder="Label"/>
-                                        <input class="form-control form-control-sm num" style="max-width: 110px" type="number" step="0.01" t-custom-model="p.amount"/>
+                                        <input class="form-control form-control-sm" t-model.proxy="p.label" placeholder="Label"/>
+                                        <input class="form-control form-control-sm num" style="max-width: 110px" type="number" step="0.01" t-model.proxy="p.amount"/>
                                     </t>
                                     <button class="btn btn-sm btn-link text-danger o_eaa_btn" t-on-click="() => this.removePart(p_index)"><i class="fa fa-times"/></button>
                                 </div>
@@ -167,7 +167,7 @@
                                 <tr><td>Less deposits not yet at the bank</td><td class="num" t-out="this.money(-b.numbers.deposits)"/></tr>
                                 <tr><td>Add payments not yet presented</td><td class="num" t-out="this.money(b.numbers.payments)"/></tr>
                                 <tr class="tot"><td>The bank should show</td><td class="num" t-out="this.money(b.numbers.bank_expected)"/></tr>
-                                <tr><td>The bank shows</td><td class="num"><input class="form-control form-control-sm num" type="number" step="0.01" t-custom-model="this.state.bankBalance" t-on-change="this.saveBalance" placeholder="from the statement"/></td></tr>
+                                <tr><td>The bank shows</td><td class="num"><input class="form-control form-control-sm num" type="number" step="0.01" t-model.proxy="this.state.bankBalance" t-on-change="this.saveBalance" placeholder="from the statement"/></td></tr>
                                 <tr t-if="this.difference !== null" t-att-class="'tot ' + (Math.abs(this.difference) &lt; 0.01 ? 'ok' : 'off')">
                                     <td><t t-if="Math.abs(this.difference) &lt; 0.01"><i class="fa fa-check-circle me-1"/>Reconciled</t><t t-else="">Still to explain</t></td>
                                     <td class="num" t-out="this.money(this.difference)"/>
@@ -177,7 +177,7 @@
                             <div class="o_eaa_baseline mt-3" t-if="b.can_write">
                                 <div class="o_eaa_ph">First time here?</div>
                                 <div class="small text-muted mb-1">Mark everything booked up to the day the bank last agreed with you as already seen.</div>
-                                <div class="d-flex gap-1"><input type="date" class="form-control form-control-sm" t-custom-model="this.state.baselineDate"/>
+                                <div class="d-flex gap-1"><input type="date" class="form-control form-control-sm" t-model.proxy="this.state.baselineDate"/>
                                     <button class="btn btn-sm btn-outline-secondary" t-on-click="this.baseline">Set the baseline</button></div>
                             </div>
                         </div>
@@ -190,7 +190,7 @@
                             </div>
                             <div class="o_eaa_toolbar" t-if="b.can_write">
                                 <span class="small">Selected <b t-out="this.tickedIds.length"/>:</span>
-                                <span class="small">cleared on</span><input type="date" class="form-control" t-custom-model="this.state.clearDate"/>
+                                <span class="small">cleared on</span><input type="date" class="form-control" t-model.proxy="this.state.clearDate"/>
                                 <button class="btn btn-sm btn-primary" t-on-click="() => this.clearSelected()"><i class="fa fa-check me-1"/>Tick</button>
                                 <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.clearSelected(false)">Untick</button>
                             </div>
@@ -221,11 +221,11 @@
                 <!-- ============================================ PASTE -->
                 <div t-if="this.state.tab === 'paste'" class="o_eaa_paste o_eaa_panel">
                     <div class="o_eaa_ph">Paste the statement from Excel, a PDF or the bank's website - or open its CSV</div>
-                    <textarea class="form-control o_eaa_pastebox" rows="8" t-custom-model="this.state.pasteText" t-on-input="this.parse"
+                    <textarea class="form-control o_eaa_pastebox" rows="8" t-model.proxy="this.state.pasteText" t-on-input="this.parse"
                               placeholder="01/09/2026&#9;NEFT-CLINIC PAYMENT INV/2026/0012&#9;&#9;15,000.00&#9;2,45,000.00"/>
                     <div class="d-flex gap-2 align-items-center mt-1">
                         <input type="file" accept=".csv,.txt,.tsv" class="form-control form-control-sm" style="max-width: 280px" t-on-change="this.onFile"/>
-                        <label class="small ms-auto"><input type="checkbox" t-custom-model="this.state.tickOnImport"/> tick rows the books already hold instead of adding them</label>
+                        <label class="small ms-auto"><input type="checkbox" t-model.proxy="this.state.tickOnImport"/> tick rows the books already hold instead of adding them</label>
                     </div>
                     <t t-if="this.state.parsed and this.state.map">
                         <div class="o_eaa_toolbar mt-2">
@@ -236,7 +236,7 @@
                                     <option t-foreach="this.columns" t-as="c" t-key="c" t-att-value="c" t-att-selected="this.state.map[k[0]] === c" t-out="this.colLabel(c)"/>
                                 </select>
                             </t>
-                            <label class="small"><input type="checkbox" t-custom-model="this.state.map.hasHeader"/> first row is a header</label>
+                            <label class="small"><input type="checkbox" t-model.proxy="this.state.map.hasHeader"/> first row is a header</label>
                         </div>
                         <table class="o_eaa_table mt-1">
                             <thead><tr><th>Date</th><th>Label</th><th class="num">Amount</th><th/></tr></thead>

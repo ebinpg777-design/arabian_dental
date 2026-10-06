@@ -8,7 +8,6 @@ the figure in the spreadsheet and on the portal.
 Data comes from posted ``account.move.line`` on receivable / payable accounts - the same
 lines behind Odoo's Partner Ledger - so the statement always agrees with the books.
 """
-import base64
 import io
 from collections import defaultdict
 from datetime import date, timedelta
@@ -500,7 +499,7 @@ class PartnerStatement(models.AbstractModel):
             fname = _('Statement %(name)s %(start)s to %(end)s.pdf', name=(partner.name or '').replace('/', '-'),
                       start=options['date_from'], end=options['date_to'])
             attachment = self.env['ir.attachment'].create({
-                'name': fname, 'type': 'binary', 'datas': base64.b64encode(pdf),
+                'name': fname, 'type': 'binary', 'raw': pdf,
                 'res_model': 'res.partner', 'res_id': partner.id, 'mimetype': 'application/pdf',
             })
             ctx = {

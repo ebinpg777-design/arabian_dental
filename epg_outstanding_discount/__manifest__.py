@@ -14,7 +14,7 @@ history) or over a Period (only what was billed inside a start/end window is kep
 open) - and each customer can carry their own standard discount percentage, offered
 as the starting point the moment they are picked.
 """,
-    'version': '19.0.1.3.0',
+    'version': '20.0.1.3.0',
     'category': 'Accounting',
     'author': 'EPG',
     'license': 'LGPL-3',

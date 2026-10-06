@@ -76,7 +76,7 @@ class TestReportAccounting(AdvancedStockReportsCase):
     def _manufacture(self, finished, component, qty_per_unit, qty):
         bom = self.env['mrp.bom'].create({
             'product_tmpl_id': finished.product_tmpl_id.id, 'product_id': finished.id,
-            'product_qty': 1.0, 'type': 'normal', 'consumption': 'flexible',
+            'product_qty': 1.0, 'type': 'normal',
             'bom_line_ids': [Command.create({'product_id': component.id, 'product_qty': qty_per_unit})],
         })
         mo = self.env['mrp.production'].create({
@@ -88,13 +88,7 @@ class TestReportAccounting(AdvancedStockReportsCase):
         return mo
 
     def _scrap(self, product, qty, reason):
-        scrap = self.env['stock.scrap'].create({
-            'product_id': product.id, 'product_uom_id': product.uom_id.id, 'scrap_qty': qty,
-            'location_id': self.stock_location.id, 'company_id': self.company.id,
-            'scrap_reason_tag_ids': [Command.set(reason.ids)],
-        })
-        scrap.do_scrap()
-        return scrap
+        return self._scrap_move(product, qty, reasons=reason)
 
     @staticmethod
     def _rows(wizard):
@@ -185,7 +179,6 @@ class TestReportAccounting(AdvancedStockReportsCase):
         self.assertEqual(listing.line_ids.mapped('qty_open'), [10.0])
         self.assertTrue(listing._asr_xlsx())
         self.assertEqual(listing.action_pdf()['type'], 'ir.actions.report')
-        self.assertEqual(summary.action_open_odoo_valuation()['type'], 'ir.actions.client')
 
     # ------------------------------------------------------------------
     # #19 GST stock register
@@ -231,11 +224,7 @@ class TestReportAccounting(AdvancedStockReportsCase):
             self._assert_reconciled(product)
 
         # a scrap without any reason lands in "other loss"
-        scrap = self.env['stock.scrap'].create({
-            'product_id': self.p_fifo.id, 'product_uom_id': self.uom_unit.id, 'scrap_qty': 1,
-            'location_id': self.stock_location.id, 'company_id': self.company.id,
-        })
-        scrap.do_scrap()
+        self._scrap_move(self.p_fifo, 1)
         self._process()
         row = {r['product_id']: r for r in self._rows(wizard)}[self.p_fifo]
         self.assertEqual((row['qty_other_loss'], row['qty_closing']), (1, 2))
@@ -300,7 +289,8 @@ class TestReportAccounting(AdvancedStockReportsCase):
 
         m = materials[0]
         self.assertEqual((m['qty_consumed'], m['qty_produced'], m['mo_count']), (6, 0, 1))
-        self.assertAlmostEqual(m['value_consumption'], sum(mo.move_raw_ids.mapped('value')), places=2)
+        # Odoo 20 books an outgoing move's value negative: the report keeps the consumption positive
+        self.assertAlmostEqual(m['value_consumption'], -sum(mo.move_raw_ids.mapped('value')), places=2)
         self.assertAlmostEqual(m['value_consumption'], 60.0, places=2)
         self.assertEqual(m['qty_closing'], 3)
         for row in rows:

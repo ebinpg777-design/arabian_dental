@@ -2,7 +2,6 @@
 from . import report_print
 from . import report_mixin
 from . import stock_inventory_adjustment_name
-from . import stock_return_picking
 from . import report_stock_ledger
 from . import report_consumption
 from . import report_wip

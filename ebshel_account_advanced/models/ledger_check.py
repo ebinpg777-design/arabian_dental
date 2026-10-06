@@ -55,8 +55,11 @@ class LedgerFinding(models.Model):
         self.ensure_one()
         if not self.model:
             return False
+        # `views` spelled out: Ledger Health opens this through orm.call, which does not
+        # expand view_mode, and the web client dies on an action without it
         return {'type': 'ir.actions.act_window', 'res_model': self.model, 'name': self.name,
-                'view_mode': 'list,form', 'domain': [('id', 'in', self.res_ids or [])], 'context': {'create': False}}
+                'view_mode': 'list,form', 'views': [[False, 'list'], [False, 'form']],
+                'domain': [('id', 'in', self.res_ids or [])], 'context': {'create': False}}
 
     def action_resolve(self):
         self.write({'state': 'resolved', 'resolved_on': fields.Datetime.now(), 'user_id': self.env.user.id})
@@ -149,8 +152,9 @@ class LedgerScanner(models.AbstractModel):
                               moves.ids, amount=sum(moves.mapped('amount_total')), extra='all')] if moves else []
 
     def _c_payments_unmatched(self, company, today):
+        # Odoo 20's posted payments are `paid` or (bank line matched) `reconciled`; see the close check
         payments = self.env['account.payment'].search([('company_id', '=', company.id), ('is_reconciled', '=', False),
-                                                       ('state', 'in', ('in_process', 'paid', 'posted')),
+                                                       ('state', 'in', ('paid', 'reconciled')), ('move_id', '!=', False),
                                                        ('date', '<', today - timedelta(days=60))])
         return [self._finding('payments_unmatched', 'warn', _('%d payments not reconciled after 60 days', len(payments)),
                               'account.payment', payments.ids, amount=sum(payments.mapped('amount')), extra='all')] if payments else []
@@ -285,7 +289,7 @@ class LedgerScanner(models.AbstractModel):
                  'count': f.count, 'amount': f.amount, 'model': f.model, 'found_on': fields.Datetime.to_string(f.found_on),
                  'state': f.state} for f in findings]
         recent = self.env['ebshel.ledger.finding'].search([('company_id', '=', company.id), ('state', '!=', 'open')], limit=20)
-        last = self.env['ir.config_parameter'].sudo().get_str('ebshel_account_advanced.last_scan.%d' % company.id)
+        last = self.env['ir.config_parameter'].sudo().get_str('ebshel_account_advanced.last_scan.%d' % company.id) or False
         return {
             'score': max(100 - penalty, 0), 'last_scan': last,
             'counts': {s: sum(1 for f in findings if f.severity == s) for s in ('error', 'warn', 'info')},

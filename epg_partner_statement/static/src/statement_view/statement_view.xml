@@ -41,7 +41,7 @@
                 <!-- ═══════ who ═══════ -->
                 <aside class="o_esv_list">
                     <div class="o_esv_search"><i class="fa fa-search"/>
-                        <input type="text" placeholder="Find a partner, route or town…" t-custom-model="this.state.q"/></div>
+                        <input type="text" placeholder="Find a partner, route or town…" t-model.proxy="this.state.q"/></div>
                     <div class="o_esv_chips">
                         <button t-foreach="[['all', 'All'], ['due', 'Owing'], ['overdue', 'Overdue'], ['quiet', 'No activity'], ['noemail', 'No e-mail']]" t-as="f" t-key="f[0]"
                                 t-if="f[0] === 'all' or this.counts[f[0]]"
@@ -51,7 +51,7 @@
                         </button>
                     </div>
                     <div class="o_esv_sortrow">
-                        <select t-custom-model="this.state.sort">
+                        <select t-model.proxy="this.state.sort">
                             <option value="route">Route order (as printed)</option>
                             <option value="due">Most owed first</option>
                             <option value="overdue">Most overdue first</option>

@@ -15,9 +15,9 @@
             </div>
             <div t-if="this.state.creating" class="o_eaa_body pb-0">
                 <div class="o_eaa_panel d-flex flex-wrap gap-2 align-items-end">
-                    <div><label class="small text-muted">Name</label><input class="form-control form-control-sm" t-custom-model="this.state.form.name"/></div>
-                    <div><label class="small text-muted">From</label><input type="date" class="form-control form-control-sm" t-custom-model="this.state.form.from"/></div>
-                    <div><label class="small text-muted">To</label><input type="date" class="form-control form-control-sm" t-custom-model="this.state.form.to"/></div>
+                    <div><label class="small text-muted">Name</label><input class="form-control form-control-sm" t-model.proxy="this.state.form.name"/></div>
+                    <div><label class="small text-muted">From</label><input type="date" class="form-control form-control-sm" t-model.proxy="this.state.form.from"/></div>
+                    <div><label class="small text-muted">To</label><input type="date" class="form-control form-control-sm" t-model.proxy="this.state.form.to"/></div>
                     <button class="btn btn-sm btn-primary" t-on-click="this.create">Create with the checklist</button>
                     <button class="btn btn-sm btn-secondary" t-on-click="() => this.state.creating = false">Cancel</button>
                 </div>
@@ -55,7 +55,7 @@
                                 <div class="ic"><i t-att-class="'fa ' + (t.state === 'done' ? 'fa-check' : t.state === 'skipped' ? 'fa-forward' : t.blocking ? 'fa-exclamation' : 'fa-circle-o')"/></div>
                                 <div class="nm"><t t-out="t.name"/>
                                     <span t-if="t.count" t-att-class="'o_eaa_badge ms-1 ' + (t.state === 'todo' ? 'bad' : 'muted')"><t t-out="t.count"/><t t-if="t.amount"> · <t t-out="this.money(t.amount)"/></t></span>
-                                    <div t-if="this.state.noteFor === t.id" class="mt-1"><input class="form-control form-control-sm" placeholder="Why it is skipped / a note" t-custom-model="this.state.note"/></div>
+                                    <div t-if="this.state.noteFor === t.id" class="mt-1"><input class="form-control form-control-sm" placeholder="Why it is skipped / a note" t-model.proxy="this.state.note"/></div>
                                     <div t-elif="t.note" class="small text-muted" t-out="t.note"/>
                                 </div>
                                 <div class="acts">
@@ -72,7 +72,7 @@
                             <div t-foreach="this.manual" t-as="t" t-key="t.id" t-att-class="'o_eaa_check ' + t.state">
                                 <div class="ic"><i t-att-class="'fa ' + (t.state === 'done' ? 'fa-check' : t.state === 'skipped' ? 'fa-forward' : 'fa-circle-o')"/></div>
                                 <div class="nm"><t t-out="t.name"/>
-                                    <div t-if="this.state.noteFor === t.id" class="mt-1"><input class="form-control form-control-sm" placeholder="Note" t-custom-model="this.state.note"/></div>
+                                    <div t-if="this.state.noteFor === t.id" class="mt-1"><input class="form-control form-control-sm" placeholder="Note" t-model.proxy="this.state.note"/></div>
                                     <div t-elif="t.note" class="small text-muted" t-out="t.note"/>
                                     <div t-if="t.done_by" class="small text-muted"><t t-out="t.state"/> by <t t-out="t.done_by"/> on <t t-out="t.done_on"/></div>
                                 </div>

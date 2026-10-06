@@ -162,7 +162,7 @@ class ReportAging(models.TransientModel):
         self.env.cr.execute(SQL("""
             WITH targets(product_id, target) AS (VALUES %(targets)s),
             moves AS (
-                SELECT sm.id, sm.product_id, sm.date, COALESCE(sm.value, 0) AS value,
+                SELECT sm.id, sm.product_id, sm.date, COALESCE((CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END), 0) AS value,
                        COALESCE(SUM(lines.q), 0) AS in_qty
                   FROM stock_move sm
                   JOIN targets t ON t.product_id = sm.product_id

@@ -2,6 +2,7 @@
 """Every desk against a small, known ledger: collections, budgets, deferrals,
 matching, the close, the cash forecast and the scanner."""
 from datetime import timedelta
+from unittest.mock import patch
 
 from odoo import fields
 from odoo.exceptions import UserError
@@ -87,6 +88,7 @@ class TestAdvanced(TransactionCase):
         self.assertTrue(mail and mail.email_to == 'clinic@example.com')
         self.assertIn('1,000', mail.body_html.replace('\xa0', ' '))
         self.assertGreaterEqual(len(mail.attachment_ids), 1, "the statement (and invoices) ride along")
+        self.assertTrue(all(a.file_size for a in mail.attachment_ids), "with their content, not empty files")
         self.assertEqual(self.customer.ebshel_followup_level_id, self.l2)
         self.assertEqual(self.customer.ebshel_followup_next_date, self.today + timedelta(days=24))
         self.customer.invalidate_recordset()
@@ -307,7 +309,9 @@ class TestAdvanced(TransactionCase):
         self.assertIn(inv.payment_state, ('paid', 'in_payment'))
         liquidity, suspense, other = st._seek_for_lines()
         self.assertFalse(suspense)
-        self.assertEqual(other.account_id, self.receivable)
+        # the invoice's own receivable: Odoo 20 sorts accounts by code path, so "the first
+        # receivable account" is now the PoS one (101300) and no longer the customer's
+        self.assertEqual(other.account_id, self._ar(inv).account_id)
 
     def test_a_partial_bank_line_leaves_the_rest_on_suspense(self):
         inv = self._invoice(self.customer, 1000.0, self.today - timedelta(days=20), due=self.today - timedelta(days=5))
@@ -342,7 +346,11 @@ class TestAdvanced(TransactionCase):
         for t in period.task_ids.filtered(lambda t: t.state == 'todo'):
             t.action_skip()
         self.assertAlmostEqual(period.progress_pct, 100.0, 1)
-        period.action_close()
+        # Odoo refuses a lock date while ANY bank line before it is unreconciled; a demo ledger
+        # carries nine of them, which are not this checklist's business
+        Company = type(self.env['res.company'])
+        with patch.object(Company, '_get_unreconciled_statement_lines_domain', lambda company, day: [('id', '=', 0)]):
+            period.action_close()
         self.assertEqual(period.state, 'closed')
         self.assertEqual(self.company.fiscalyear_lock_date, fields.Date.to_date('2031-01-31'))
         cockpit = self.env['ebshel.close.cockpit'].get_data(period.id)

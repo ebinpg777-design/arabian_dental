@@ -6,13 +6,13 @@
                 <h2><i class="fa fa-line-chart me-2"/>Cash forecast</h2>
                 <span class="o_eaa_sub" t-if="this.state.data">from <t t-out="this.state.data.today"/></span>
                 <div class="ms-auto d-flex gap-2 align-items-center flex-wrap" t-if="this.state.data">
-                    <select class="form-select form-select-sm" style="width:auto" t-on-change="(ev) => this.set('weeks', this.Number(ev.target.value))">
+                    <select class="form-select form-select-sm" style="width:auto" t-on-change="(ev) => this.set('weeks', +ev.target.value)">
                         <option t-foreach="[8, 13, 26]" t-as="w" t-key="w" t-att-value="w" t-att-selected="this.state.params.weeks === w"><t t-out="w"/> weeks</option>
                     </select>
                     <label class="small text-muted">collect <b t-out="this.state.params.collection_rate"/>%</label>
-                    <input type="range" min="40" max="100" step="5" t-att-value="this.state.params.collection_rate" t-on-change="(ev) => this.set('collection_rate', this.Number(ev.target.value))"/>
+                    <input type="range" min="40" max="100" step="5" t-att-value="this.state.params.collection_rate" t-on-change="(ev) => this.set('collection_rate', +ev.target.value)"/>
                     <label class="small text-muted" title="Blank: each customer's own habit">late by</label>
-                    <input type="number" class="form-control form-control-sm" style="width:70px" placeholder="habit" t-att-value="this.state.params.delay_days" t-on-change="(ev) => this.set('delay_days', ev.target.value === '' ? null : this.Number(ev.target.value))"/>
+                    <input type="number" class="form-control form-control-sm" style="width:70px" placeholder="habit" t-att-value="this.state.params.delay_days" t-on-change="(ev) => this.set('delay_days', ev.target.value === '' ? null : +ev.target.value)"/>
                     <label class="small text-muted"><input type="checkbox" t-att-checked="this.state.params.include_draft" t-on-change="(ev) => this.set('include_draft', ev.target.checked)"/> drafts</label>
                     <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
                 </div>
@@ -78,14 +78,14 @@
                             <div class="o_eaa_ph">Planned items <span class="text-muted">— not in the ledger yet</span>
                                 <button class="btn btn-sm btn-outline-secondary o_eaa_btn ms-auto" t-if="this.state.data.can_write and !this.state.adding" t-on-click="this.startAdd"><i class="fa fa-plus"/></button></div>
                             <div t-if="this.state.adding" class="mb-2 d-flex flex-column gap-1">
-                                <input class="form-control form-control-sm" placeholder="Name (e.g. payroll)" t-custom-model="this.state.item.name"/>
+                                <input class="form-control form-control-sm" placeholder="Name (e.g. payroll)" t-model.proxy="this.state.item.name"/>
                                 <div class="d-flex gap-1">
-                                    <select class="form-select form-select-sm" t-custom-model="this.state.item.kind"><option value="out">out</option><option value="in">in</option></select>
-                                    <input type="number" class="form-control form-control-sm" placeholder="amount" t-custom-model="this.state.item.amount"/>
+                                    <select class="form-select form-select-sm" t-model.proxy="this.state.item.kind"><option value="out">out</option><option value="in">in</option></select>
+                                    <input type="number" class="form-control form-control-sm" placeholder="amount" t-model.proxy="this.state.item.amount"/>
                                 </div>
                                 <div class="d-flex gap-1">
-                                    <input type="date" class="form-control form-control-sm" t-custom-model="this.state.item.date"/>
-                                    <select class="form-select form-select-sm" t-custom-model="this.state.item.frequency"><option value="once">once</option><option value="weekly">weekly</option><option value="monthly">monthly</option><option value="quarterly">quarterly</option></select>
+                                    <input type="date" class="form-control form-control-sm" t-model.proxy="this.state.item.date"/>
+                                    <select class="form-select form-select-sm" t-model.proxy="this.state.item.frequency"><option value="once">once</option><option value="weekly">weekly</option><option value="monthly">monthly</option><option value="quarterly">quarterly</option></select>
                                 </div>
                                 <div class="d-flex gap-1"><button class="btn btn-sm btn-primary" t-on-click="this.saveItem">Save</button><button class="btn btn-sm btn-secondary" t-on-click="() => this.state.adding = false">Cancel</button></div>
                             </div>

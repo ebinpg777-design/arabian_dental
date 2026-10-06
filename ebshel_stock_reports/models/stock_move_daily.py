@@ -107,12 +107,12 @@ class StockMoveDaily(models.Model):
                        sm.product_id,
                        pt.categ_id,
                        ((sm.date AT TIME ZONE 'UTC') AT TIME ZONE %(tz)s)::date AS day,
-                       sm.value,
+                       (CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END) AS value,
                        sm.is_in,
                        sm.is_out,
                        sm.is_dropship,
                        sm.is_inventory,
-                       sm.scrap_id,
+                       sm.is_scrap IS TRUE AS is_scrap,
                        sml.quantity_product_uom AS qty,
                        sml.location_id AS src_id,
                        sml.location_dest_id AS dst_id,
@@ -167,7 +167,7 @@ class StockMoveDaily(models.Model):
                 UNION ALL
                 -- outgoing from a valued location
                 SELECT company_id, day, product_id, categ_id, src_id, src_wh,
-                       CASE WHEN scrap_id IS NOT NULL THEN 'scrap'
+                       CASE WHEN is_scrap THEN 'scrap'
                             WHEN is_inventory THEN 'count_loss'
                             WHEN dst_usage = 'customer' THEN 'delivery'
                             WHEN dst_usage = 'supplier' THEN 'vendor_return'

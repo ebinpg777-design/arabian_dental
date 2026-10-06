@@ -1,11 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { money } from "../common/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Journal entries typed like a spreadsheet. Tab across, Enter for a new line,
@@ -15,11 +15,11 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class EntryStudio extends Component {
     static template = "ebshel_account_advanced.EntryStudio";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         this.state = proxy({
             setup: null, journal_id: null, date: null, ref: "", lines: [], template_id: null, template_amount: "",

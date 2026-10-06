@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
+    <!-- Odoo 20 shows no costing method on the category form any more (the stock_account
+         view this extended is gone): the GST class goes under the parent category. -->
     <record id="product_category_form_view" model="ir.ui.view">
         <field name="name">product.category.form.asr</field>
         <field name="model">product.category</field>
-        <field name="inherit_id" ref="stock_account.view_category_property_form_stock"/>
+        <field name="inherit_id" ref="product.product_category_form_view"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='property_cost_method']" position="after">
+            <xpath expr="//group[@name='first']/field[@name='parent_id']" position="after">
                 <field name="asr_gst_stock_class"/>
             </xpath>
         </field>

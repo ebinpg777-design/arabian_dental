@@ -53,12 +53,22 @@ class FollowupLevel(models.Model):
     _days_positive = models.Constraint('CHECK(days >= 0)', 'Days overdue cannot be negative.')
 
     def _compute_partner_count(self):
+        counts = dict(self.env['res.partner']._read_group([('ebshel_followup_level_id', 'in', self.ids)],
+                                                          ['ebshel_followup_level_id'], ['__count']))
         for level in self:
-            level.partner_count = self.env['res.partner'].search_count([('ebshel_followup_level_id', '=', level.id)])
+            level.partner_count = counts.get(level, 0)
 
     @api.model
-    def _for_days(self, days_overdue, company):
+    def _of_company(self, company):
+        """The company's levels, highest first - read once to judge many customers."""
+        return self.search([('company_id', '=', company.id)], order='days desc, id desc')
+
+    @api.model
+    def _for_days(self, days_overdue, company, levels=None):
         """The level reached after this many days overdue: the highest one at or below."""
+        if levels is not None:
+            days = max(days_overdue, 0)
+            return next((level for level in levels if level.days <= days), self.browse())
         return self.search([('company_id', '=', company.id), ('days', '<=', max(days_overdue, 0))],
                            order='days desc, id desc', limit=1)
 
@@ -155,16 +165,22 @@ class FollowupDesk(models.AbstractModel):
         rows = Partner._ebshel_followup_rows(company, today)
         partners = Partner.browse([r['partner'] for r in rows])
         habits = Partner._ebshel_pay_habits(partners.ids)
+        levels = self.env['ebshel.followup.level']._of_company(company)
+        # the latest action of each customer only - not every action ever logged
         Action = self.env['ebshel.followup.action']
-        last = {}
-        for act in Action.search([('partner_id', 'in', partners.ids)], order='date desc, id desc'):
-            last.setdefault(act.partner_id.id, act)
+        latest = []
+        if partners:
+            query = Action._search([('partner_id', 'in', partners.ids)])
+            table = query.table
+            query.order = SQL("%s, %s DESC, %s DESC", table.partner_id, table.date, table.id)
+            latest = [r[0] for r in self.env.execute_query(query.select(SQL("DISTINCT ON (%s) %s", table.partner_id, table.id)))]
+        last = {act.partner_id.id: act for act in Action.browse(latest)}
         wanted = set(options.get('state') or [])
         responsible = options.get('responsible_id')
         search = (options.get('search') or '').strip().lower()
         out, kpis = [], {'receivable': 0.0, 'overdue': 0.0, 'action': 0, 'promised': 0.0, 'on_hold': 0, 'unallocated': 0.0}
         for partner, row in zip(partners, rows):
-            state, suggested, days = partner._ebshel_judge(row['due'], row['overdue'], row['oldest'], today)
+            state, suggested, days = partner._ebshel_judge(row['due'], row['overdue'], row['oldest'], today, levels=levels)
             kpis['receivable'] += row['due']
             kpis['overdue'] += row['overdue']
             kpis['unallocated'] += row['unallocated']
@@ -253,7 +269,9 @@ class FollowupDesk(models.AbstractModel):
     @api.model
     def send(self, partner_ids, level_id=None, note=None):
         self._check(write=True)
-        return self.env['res.partner'].browse(partner_ids).action_ebshel_send_reminder(level_id=level_id, note=note)
+        # a <select> hands the id over as text, and browse('12') would read levels 1 and 2
+        return self.env['res.partner'].browse(partner_ids).action_ebshel_send_reminder(
+            level_id=int(level_id) if level_id else None, note=note)
 
     @api.model
     def log_call(self, partner_id, note, next_date=None):
@@ -293,9 +311,10 @@ class FollowupDesk(models.AbstractModel):
         return True
 
     @api.model
-    def letter(self, partner_ids, level_id=None):
+    def letter(self, partner_ids, level_id=None, log=True):
         self._check(write=True)
-        return self.env['res.partner'].browse(partner_ids).action_ebshel_print_letter(level_id=level_id)
+        return self.env['res.partner'].browse(partner_ids).action_ebshel_print_letter(
+            level_id=int(level_id) if level_id else None, log=log)
 
     # ------------------------------------------------------------------ cron
     @api.model
@@ -305,9 +324,10 @@ class FollowupDesk(models.AbstractModel):
         for company in self.env['res.company'].search([('ebshel_followup_auto', '=', True)]):
             Partner = self.env['res.partner'].with_company(company)
             rows = Partner._ebshel_followup_rows(company, today)
+            levels = self.env['ebshel.followup.level']._of_company(company)
             for row in rows:
                 partner = Partner.browse(row['partner'])
-                state, level, _days = partner._ebshel_judge(row['due'], row['overdue'], row['oldest'], today)
+                state, level, _days = partner._ebshel_judge(row['due'], row['overdue'], row['oldest'], today, levels=levels)
                 if state != 'action' or not level or not level.auto or level.action not in ('email', 'email_call'):
                     continue
                 try:

@@ -56,7 +56,7 @@ class StockDirtyBenchmark(models.AbstractModel):
               FROM generate_series(1, %(n)s) g
         """, pids=products.ids, np=n_products, days=days, n=n_moves))
         cr.execute(SQL("""
-            INSERT INTO stock_move (company_id, product_id, product_uom, product_uom_qty, quantity, location_id,
+            INSERT INTO stock_move (company_id, product_id, uom_id, product_uom_qty, quantity, location_id,
                                     location_dest_id, procure_method, date, state, picked, is_in, is_out,
                                     is_dropship, value, reference, priority,
                                     create_uid, create_date, write_uid, write_date)
@@ -64,14 +64,14 @@ class StockDirtyBenchmark(models.AbstractModel):
                    CASE WHEN b.is_receipt THEN %(supplier)s ELSE %(stock)s END,
                    CASE WHEN b.is_receipt THEN %(stock)s ELSE %(customer)s END,
                    'make_to_stock', b.date, 'done', TRUE, b.is_receipt, NOT b.is_receipt, FALSE,
-                   b.qty * b.price, 'BENCH/' || b.n, '0', 1, now(), 1, now()
+                   CASE WHEN b.is_receipt THEN b.qty * b.price ELSE -b.qty * b.price END, 'BENCH/' || b.n, '0', 1, now(), 1, now()
               FROM asr_bench b
         """, company=company.id, uom=uom.id, supplier=supplier.id, stock=stock.id, customer=customer.id))
         cr.execute(SQL("""
-            INSERT INTO stock_move_line (company_id, move_id, product_id, product_uom_id, quantity,
+            INSERT INTO stock_move_line (company_id, move_id, product_id, uom_id, quantity,
                                          quantity_product_uom, location_id, location_dest_id, date, state, picked,
                                          create_uid, create_date, write_uid, write_date)
-            SELECT sm.company_id, sm.id, sm.product_id, sm.product_uom, sm.quantity, sm.quantity,
+            SELECT sm.company_id, sm.id, sm.product_id, sm.uom_id, sm.quantity, sm.quantity,
                    sm.location_id, sm.location_dest_id, sm.date, 'done', TRUE, 1, now(), 1, now()
               FROM stock_move sm
              WHERE sm.reference LIKE 'BENCH/%%' AND sm.company_id = %s

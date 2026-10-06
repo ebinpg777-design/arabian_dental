@@ -111,13 +111,8 @@ class TestEngine(AdvancedStockReportsCase):
 
     def test_scrap_and_count_types(self):
         self._in(self.p_std, 10, 10.0, date=self._days_ago(2))
-        scrap = self.env['stock.scrap'].create({
-            'product_id': self.p_std.id, 'product_uom_id': self.uom_unit.id, 'scrap_qty': 1,
-            'location_id': self.stock_location.id, 'company_id': self.company.id,
-            'scrap_reason_tag_ids': [(6, 0, self.env.ref('ebshel_stock_reports.reason_damaged').ids)],
-        })
-        scrap.do_scrap()
-        self.assertEqual(scrap.move_ids.asr_reason_id, self.env.ref('ebshel_stock_reports.reason_damaged'))
+        scrap = self._scrap_move(self.p_std, 1, reasons=self.env.ref('ebshel_stock_reports.reason_damaged'))
+        self.assertEqual(scrap.asr_reason_id, self.env.ref('ebshel_stock_reports.reason_damaged'))
         quant = self.env['stock.quant'].with_context(inventory_mode=True).create({
             'product_id': self.p_std.id, 'location_id': self.stock_location.id, 'inventory_quantity': 7,
         })

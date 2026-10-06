@@ -6,6 +6,7 @@ import logging
 from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta
+from markupsafe import escape
 
 from odoo.modules import module as odoo_module
 from odoo import api, fields, models, _
@@ -158,10 +159,12 @@ class FinReportSchedule(models.Model):
             raise UserError(_("'%s' has nobody to send to.", self.name))
         attachments, period = self._attachments()
         values = {'report': self.report_id.name, 'period': period}
-        subject = (self.subject or '{report} — {period}').format(**values)
-        body = (self.body or '').format(**values)
+        subject = self._fill(self.subject or '{report} — {period}', values)
+        # the body is HTML: what goes into it is escaped
+        body = self._fill(self.body or '', {k: str(escape(v)) for k, v in values.items()})
+        # Odoo 20 ignores `datas` on an attachment (it is gone): the file goes in as raw bytes
         att_ids = self.env['ir.attachment'].sudo().create([{
-            'name': name, 'datas': content, 'res_model': self._name, 'res_id': self.id,
+            'name': name, 'raw': base64.b64decode(content), 'res_model': self._name, 'res_id': self.id,
         } for name, content in attachments]).ids
         self.env['mail.mail'].sudo().create({
             'subject': subject, 'body_html': body, 'email_to': ', '.join(recipients),
@@ -169,6 +172,17 @@ class FinReportSchedule(models.Model):
             'author_id': self.user_id.partner_id.id,
         }).send()
         self.write({'last_run': fields.Datetime.now(), 'run_count': self.run_count + 1})
+
+    @api.model
+    def _fill(self, text, values):
+        """{report} and {period} replaced, and nothing else read as a placeholder: with
+        str.format a brace anywhere in a subject or a body - "{draft}", a style - raised,
+        and the schedule never sent again. Plain text in, plain text out (an Html value is
+        Markup, whose replace() would escape what is put in a second time)."""
+        text = str(text or '')
+        for key, value in values.items():
+            text = text.replace('{%s}' % key, str(value))
+        return text
 
     def _advance(self):
         self.ensure_one()
@@ -192,7 +206,11 @@ class FinReportSchedule(models.Model):
         today = fields.Date.context_today(self)
         for schedule in self.search([('next_run', '<=', today)]):
             try:
-                schedule._send()
+                # a savepoint: a failure inside the database (a report's SQL, a mail) left the
+                # transaction aborted, so moving the schedule on failed too, the whole job rolled
+                # back - and the same schedule failed first again every night, starving the rest
+                with self.env.cr.savepoint():
+                    schedule._send()
             except Exception:                                          # noqa: BLE001
                 _logger.exception("report schedule %s failed", schedule.name)
             schedule._advance()

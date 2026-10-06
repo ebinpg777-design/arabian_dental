@@ -19,7 +19,7 @@ period) and the average ``purchase.report.days_to_arrival``.
 from collections import defaultdict
 
 from odoo import fields, models
-from odoo.tools import SQL, float_compare
+from odoo.tools import SQL
 
 from .report_mixin import col
 
@@ -107,13 +107,38 @@ class ReportVendorOtif(models.TransientModel):
         for partner, on_time, total in delay:
             rate = (100.0 * (on_time or 0.0) / total) if total else None
             figures[partner.id] = [rate, None]
-        arrival = self.env['purchase.report'].sudo().with_company(self.company_id)._read_group(
-            [('partner_id', 'in', partner_ids), ('company_id', '=', self.company_id.id),
-             ('state', 'in', ('purchase', 'done')), ('effective_date', '>=', start), ('effective_date', '<=', end)],
-            ['partner_id'], ['days_to_arrival:avg'])
-        for partner, days in arrival:
-            figures.setdefault(partner.id, [None, None])[1] = days
+        # purchase.report's own days_to_arrival, read straight from the orders: Odoo 20
+        # community's purchase.report cannot be read at all ("purchase_order_line__current.rate
+        # must appear in the GROUP BY clause" - its consolidation rate is not grouped), which
+        # took the whole Vendor OTIF report down.
+        arrival = self._days_to_arrival(partner_ids, start, end)
+        for partner_id, days in arrival:
+            figures.setdefault(partner_id, [None, None])[1] = days
         return figures
+
+    def _days_to_arrival(self, partner_ids, start, end):
+        """[(partner_id, average days to arrival)] as purchase.report's ``days_to_arrival``:
+        from the order date to the first done receipt (else the planned date), per order line."""
+        self.env.cr.execute(SQL("""
+            SELECT po.partner_id,
+                   AVG(EXTRACT(epoch FROM AGE(COALESCE(eff.date_done, pol.date_planned), po.date_order))
+                       / (24 * 60 * 60))
+              FROM purchase_order_line pol
+              JOIN purchase_order po ON po.id = pol.order_id
+              LEFT JOIN (
+                   SELECT pol2.order_id, MIN(sp.date_done) AS date_done
+                     FROM purchase_order_line pol2
+                     JOIN stock_move sm ON sm.purchase_line_id = pol2.id
+                     JOIN stock_picking sp ON sp.id = sm.picking_id
+                     JOIN stock_location ld ON ld.id = sp.location_dest_id
+                    WHERE sp.state = 'done' AND ld.usage != 'supplier' AND sp.date_done IS NOT NULL
+                    GROUP BY pol2.order_id) eff ON eff.order_id = po.id
+             WHERE pol.display_type IS NULL AND po.partner_id IN %(partners)s
+               AND po.company_id = %(company)s AND po.state IN ('purchase', 'done')
+               AND po.effective_date >= %(start)s AND po.effective_date <= %(end)s
+             GROUP BY po.partner_id
+        """, partners=tuple(partner_ids), company=self.company_id.id, start=start, end=end))
+        return [(pid, float(days) if days is not None else None) for pid, days in self.env.cr.fetchall()]
 
     def _line_rows(self):
         company = self.company_id.sudo()
@@ -142,7 +167,7 @@ class ReportVendorOtif(models.TransientModel):
               JOIN purchase_order po ON po.id = pol.order_id
               JOIN product_product pp ON pp.id = pol.product_id
               JOIN product_template pt ON pt.id = pp.product_tmpl_id
-              JOIN uom_uom lu ON lu.id = pol.product_uom_id
+              JOIN uom_uom lu ON lu.id = pol.uom_id
               JOIN uom_uom pu ON pu.id = pt.uom_id
               JOIN stock_move sm ON sm.purchase_line_id = pol.id
               JOIN stock_location ls ON ls.id = sm.location_id
@@ -173,8 +198,7 @@ class ReportVendorOtif(models.TransientModel):
             qty_ordered = float(qty_ordered or 0.0)
             qty_received = float(qty_received or 0.0)
             on_time = bool(promised and received <= promised)
-            in_full = float_compare(qty_received, qty_ordered * (1.0 - tolerance),
-                                    precision_rounding=product.uom_id.rounding) >= 0
+            in_full = product.uom_id.compare(qty_received, qty_ordered * (1.0 - tolerance)) >= 0
             otif = on_time and in_full
             figures = odoo.get(partner_id, [None, None])
             rows.append({

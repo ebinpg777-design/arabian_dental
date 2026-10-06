@@ -36,7 +36,7 @@
                 </div>
                 <div class="o_eaa_toolbar">
                     <span t-foreach="this.state.data.states" t-as="s" t-key="s.key" t-att-class="'o_eaa_chip' + (this.state.filters.state.includes(s.key) ? ' on' : '')" t-on-click="() => this.toggleState(s.key)" t-out="s.label"/>
-                    <select class="form-select" t-on-change="(ev) => this.setFilter('responsible_id', this.Number(ev.target.value) || false)">
+                    <select class="form-select" t-on-change="(ev) => this.setFilter('responsible_id', +ev.target.value || false)">
                         <option value="">Any responsible</option>
                         <option t-foreach="this.state.data.users" t-as="u" t-key="u.id" t-att-value="u.id" t-att-selected="this.state.filters.responsible_id === u.id" t-out="u.name"/>
                     </select>
@@ -111,7 +111,7 @@
                         </tbody>
                     </table>
                     <div class="o_eaa_ph">Notes for the next call</div>
-                    <textarea class="form-control form-control-sm mb-1" rows="3" t-custom-model="this.state.detail.note"/>
+                    <textarea class="form-control form-control-sm mb-1" rows="3" t-model.proxy="this.state.detail.note"/>
                     <button class="btn btn-sm btn-outline-secondary mb-3" t-on-click="this.saveNote" t-if="this.state.data.can_write">Save note</button>
                     <div class="o_eaa_ph">History</div>
                     <div class="o_eaa_timeline">
@@ -130,30 +130,30 @@
                     <t t-if="this.state.modal.kind === 'send'">
                         <h5>Send a reminder to <t t-out="this.state.modal.ids.length"/> customer(s)</h5>
                         <label>Level</label>
-                        <select class="form-select form-select-sm" t-custom-model="this.state.form.level_id">
+                        <select class="form-select form-select-sm" t-model.proxy="this.state.form.level_id">
                             <option value="">the level each customer has reached</option>
                             <option t-foreach="this.state.data.levels" t-as="l" t-key="l.id" t-att-value="l.id"><t t-out="l.name"/> (<t t-out="l.days"/> days, <t t-out="l.action"/>)</option>
                         </select>
                         <label>Add a line</label>
-                        <textarea class="form-control form-control-sm" rows="2" t-custom-model="this.state.form.note"/>
+                        <textarea class="form-control form-control-sm" rows="2" t-model.proxy="this.state.form.note"/>
                     </t>
                     <t t-if="this.state.modal.kind === 'call'">
                         <h5>Log a call with <t t-out="this.state.modal.row.name"/></h5>
                         <label>What was said</label>
-                        <textarea class="form-control form-control-sm" rows="3" t-custom-model="this.state.form.note"/>
+                        <textarea class="form-control form-control-sm" rows="3" t-model.proxy="this.state.form.note"/>
                         <label>Follow up again on</label>
-                        <input type="date" class="form-control form-control-sm" t-custom-model="this.state.form.next_date"/>
+                        <input type="date" class="form-control form-control-sm" t-model.proxy="this.state.form.next_date"/>
                     </t>
                     <t t-if="this.state.modal.kind === 'promise'">
                         <h5><t t-out="this.state.modal.row.name"/> promises to pay</h5>
-                        <label>On</label><input type="date" class="form-control form-control-sm" t-custom-model="this.state.form.date"/>
-                        <label>Amount</label><input type="number" step="0.01" class="form-control form-control-sm" t-custom-model="this.state.form.amount"/>
-                        <label>Note</label><input class="form-control form-control-sm" t-custom-model="this.state.form.note"/>
+                        <label>On</label><input type="date" class="form-control form-control-sm" t-model.proxy="this.state.form.date"/>
+                        <label>Amount</label><input type="number" step="0.01" class="form-control form-control-sm" t-model.proxy="this.state.form.amount"/>
+                        <label>Note</label><input class="form-control form-control-sm" t-model.proxy="this.state.form.note"/>
                     </t>
                     <t t-if="this.state.modal.kind === 'snooze'">
                         <h5>Snooze <t t-out="this.state.modal.row.name"/></h5>
-                        <label>Days</label><input type="number" class="form-control form-control-sm" t-custom-model="this.state.form.days"/>
-                        <label>Why</label><input class="form-control form-control-sm" t-custom-model="this.state.form.note"/>
+                        <label>Days</label><input type="number" class="form-control form-control-sm" t-model.proxy="this.state.form.days"/>
+                        <label>Why</label><input class="form-control form-control-sm" t-model.proxy="this.state.form.note"/>
                     </t>
                     <div class="d-flex justify-content-end gap-2 mt-3">
                         <button class="btn btn-sm btn-secondary" t-on-click="this.close">Cancel</button>

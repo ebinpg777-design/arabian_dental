@@ -12,11 +12,12 @@ from ast import literal_eval
 from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta
+from markupsafe import Markup
 
 from odoo import api, fields, models, _
 from odoo.tools import SQL, date_utils
 
-from .engine import PL_TYPES, BS_TYPES, LIQUIDITY_TYPES
+from .engine import LIQUIDITY_TYPES
 from .report import evaluate_formula
 
 PAGE = 80
@@ -143,7 +144,8 @@ class FinHandler(models.AbstractModel):
     def _move_line_rows(self, options, where, order_dates, offset, limit, running_start=0.0,
                         parent_id=None, level=2, extra_select=None, prefetched=None, lead_blanks=0):
         """Journal items as detail rows with a running balance. `prefetched` are the rows
-        of this heading when they were read together with every other open heading's."""
+        of this heading when they were read together with every other open heading's;
+        `lead_blanks` blank cells come before the debit/credit/balance ones."""
         w = self.engine.weight_sql(options)
         base = SQL(" AND ").join([self.engine.base_where(options)] + list(where))
         if offset:
@@ -466,12 +468,21 @@ class LedgerBase(models.AbstractModel):
         return sorted(chosen)
 
     def _groups(self, options):
-        """{group_id: {name, parent, start, end, level}} for the hierarchy."""
+        """{account_id: {name, parent, start, end, level}} for the hierarchy.
+
+        Odoo 20 has no account groups any more: a chart hangs its accounts under parent
+        accounts (`account.account.parent_id`, the old groups became archived accounts).
+        A heading here is every account another account of the companies hangs under."""
+        accounts = self.engine.accounts(options)
+        parent_ids = {m['parent'] for m in accounts.values() if m.get('parent')}
+        if not parent_ids:
+            return {}
         rows = self.env.execute_query(SQL("""
-            SELECT g.id, %s, g.parent_id, g.code_prefix_start, g.code_prefix_end
-              FROM account_group g WHERE g.company_id IN %s ORDER BY g.code_prefix_start
-        """, self.engine.name_sql('g'), tuple({self.env['res.company'].browse(c).root_id.id for c in options['companies']})))
-        groups = {r[0]: {'id': r[0], 'name': r[1] or '', 'parent': r[2], 'start': r[3] or '', 'end': r[4] or r[3] or ''} for r in rows}
+            SELECT p.id, %s, %s, p.parent_id
+              FROM account_account p WHERE p.id IN %s
+        """, self.engine.code_sql(options, 'p'), self.engine.name_sql('p'), tuple(parent_ids)))
+        groups = {r[0]: {'id': r[0], 'start': r[1] or '', 'end': r[1] or '', 'name': r[2] or '', 'parent': r[3]}
+                  for r in rows}
         for g in groups.values():
             level, p = 0, g['parent']
             while p and p in groups and level < 10:
@@ -479,14 +490,10 @@ class LedgerBase(models.AbstractModel):
             g['level'] = level
         return groups
 
-    def _group_of(self, code, groups):
-        best = None
-        for g in groups.values():
-            n = len(g['start'])
-            if n and g['start'] <= code[:n] <= g['end']:
-                if best is None or n > len(groups[best]['start']):
-                    best = g['id']
-        return best
+    def _group_of(self, meta, groups):
+        """The heading an account sits under: its parent account."""
+        parent = meta.get('parent')
+        return parent if parent in groups else None
 
 
 class GeneralLedgerHandler(models.AbstractModel):
@@ -496,7 +503,7 @@ class GeneralLedgerHandler(models.AbstractModel):
     _kind_label = 'General ledger'
 
     # the figure a column opens: what the account started with, what moved, where it ended
-    MODE_OF_COLUMN = {'opening': 'initial', 'balance': 'ledger'}
+    MODE_OF_COLUMN = {'opening': 'initial', 'balance': 'closing'}
 
     def columns(self, report, options):
         # Opening + Debit - Credit = Balance, on every account line. With the opening left
@@ -548,7 +555,7 @@ class GeneralLedgerHandler(models.AbstractModel):
         return tree
 
     def _tree_by_groups(self, tree, groups, accounts, ids):
-        group_of = {aid: self._group_of(accounts[aid]['code'], groups) for aid in ids}
+        group_of = {aid: self._group_of(accounts[aid], groups) for aid in ids}
         used = set()
         for gid in group_of.values():
             while gid and gid in groups and gid not in used:
@@ -705,13 +712,23 @@ class GeneralLedgerHandler(models.AbstractModel):
                                bold=True, kind='total'))
         return rows
 
+    @api.model
+    def _undistributed_ids(self, accounts, wanted):
+        """The accounts whose earlier years are on no account's opening: every account that
+        starts again each year - the profit and loss ones AND the current year earnings
+        account. Only the first were counted: an opening entry or a closing booked to
+        the earnings account in an earlier year was on no line at all, and the ledger and
+        the trial balance stopped footing. The figure and the items it opens are one set,
+        narrowed by the account filter the same way."""
+        return [a for a, m in accounts.items() if not m['initial'] and (wanted is None or a in wanted)]
+
     def _undistributed(self, options, accounts, wanted):
         """Profit and loss of the years before the period's fiscal year: not on
         any account's initial balance (those restart each year) yet part of what
         the ledger must foot to."""
-        pl_ids = [a for a, m in accounts.items() if m['type'] in PL_TYPES and (wanted is None or a in wanted)]
         d_from, d_to = self._period(options)
-        sums = self.engine.sums_by_account(options, 'earnings_previous', d_from, d_from, account_ids=pl_ids)
+        sums = self.engine.sums_by_account(options, 'earnings_previous', d_from, d_from,
+                                           account_ids=self._undistributed_ids(accounts, wanted))
         return sum(v['balance'] for v in sums.values())
 
     def _detail(self, options, account_id, initial, parent_lid, level, offset, limit=None, prefetched=None):
@@ -773,8 +790,8 @@ class GeneralLedgerHandler(models.AbstractModel):
             mode = {'opening': 'opening', 'balance': 'cumulative'}.get(column_key, 'flow')
             return self.engine.domain(options, mode, d_from, d_to, self._account_filter(options, accounts)), _('All journal items')
         if line_id == 'unalloc':
-            pl_ids = [a for a, m in accounts.items() if m['type'] in PL_TYPES]
-            return self.engine.domain(options, 'earnings_previous', d_from, d_from, pl_ids), _("Previous years' profit and loss")
+            ids = self._undistributed_ids(accounts, self._account_filter(options, accounts))
+            return self.engine.domain(options, 'earnings_previous', d_from, d_from, ids), _("Previous years' profit and loss")
         return None
 
     def explain(self, report, options, columns, line_id, column_key):
@@ -853,7 +870,7 @@ class TrialBalanceHandler(models.AbstractModel):
         d_from, d_to = self._period(options)
         if line_id.startswith('ac:'):
             aid = int(line_id.split(':')[1])
-            mode = 'initial' if column_key in ('ini_d', 'ini_c') else 'cumulative' if column_key in ('end_d', 'end_c') else 'flow'
+            mode = 'initial' if column_key in ('ini_d', 'ini_c') else 'closing' if column_key in ('end_d', 'end_c') else 'flow'
             accounts = self.engine.accounts(options)
             return self.engine.domain(options, mode, d_from, d_to, [aid]), '%s %s' % (
                 accounts.get(aid, {}).get('code', ''), accounts.get(aid, {}).get('name', ''))
@@ -861,8 +878,9 @@ class TrialBalanceHandler(models.AbstractModel):
             return self.engine.domain(options, 'flow', d_from, d_to, None), _('All journal items')
         if line_id == 'unalloc':
             accounts = self.engine.accounts(options)
-            pl_ids = [a for a, m in accounts.items() if m['type'] in PL_TYPES]
-            return self.engine.domain(options, 'earnings_previous', d_from, d_from, pl_ids), _("Previous years' profit and loss")
+            ids = self.env['ebshel.fin.handler.general_ledger']._undistributed_ids(
+                accounts, self._account_filter(options, accounts))
+            return self.engine.domain(options, 'earnings_previous', d_from, d_from, ids), _("Previous years' profit and loss")
         return None
 
     def explain(self, report, options, columns, line_id, column_key):
@@ -980,7 +998,7 @@ class PartnerLedgerHandler(models.AbstractModel):
         acc = self._ledger_accounts(report, options)
         if line_id.startswith('pa:'):
             pid = int(line_id.split(':')[1]) or None
-            mode = 'initial' if line_id.endswith(':ini') else 'flow'
+            mode = 'initial' if line_id.endswith(':ini') else 'closing' if column_key == 'balance' else 'flow'
             domain = self.engine.domain(options, mode, d_from, d_to, acc)
             domain.append(('partner_id', '=', pid) if pid else ('partner_id', '=', False))
             name = self.env['res.partner'].browse(pid).display_name if pid else _('Unknown partner')
@@ -994,7 +1012,9 @@ class PartnerLedgerHandler(models.AbstractModel):
             return {}
         pid = int(line_id.split(':')[1]) or None
         d_from, d_to = self._period(options)
-        out = self._explain_sets(options, 'flow', d_from, d_to, self._ledger_accounts(report, options),
+        # the balance is broken down like its drill: what came before the period too
+        mode = 'closing' if column_key == 'balance' else 'flow'
+        out = self._explain_sets(options, mode, d_from, d_to, self._ledger_accounts(report, options),
                                  partner_ids=[pid] if pid else None)
         out['title'] = self.env['res.partner'].browse(pid).display_name if pid else _('Unknown partner')
         return out
@@ -1285,17 +1305,22 @@ class JournalHandler(models.AbstractModel):
         engine = self.engine
         currency = engine.currency(options)
         d_from, d_to = self._period(options)
-        rows_sql = engine.sums_by(options, SQL("l.journal_id"), 'flow', d_from, d_to)
-        moves = {r[0]: r[1] for r in self.env.execute_query(SQL("""
-            SELECT l.journal_id, COUNT(DISTINCT l.move_id) FROM account_move_line l
+        # the sums and the number of entries of each journal in ONE pass (it was two scans)
+        w = engine.weight_sql(options)
+        rows_sql = self.env.execute_query(SQL("""
+            SELECT l.journal_id, SUM(l.debit * %s), SUM(l.credit * %s), COUNT(DISTINCT l.move_id)
+              FROM account_move_line l
               JOIN account_account a ON a.id = l.account_id
-             WHERE %s AND %s GROUP BY l.journal_id""", engine.base_where(options),
-            engine.date_where('flow', d_from, d_to, options)))}
+             WHERE %s AND %s GROUP BY l.journal_id""", w, w, engine.base_where(options),
+            engine.date_where('flow', d_from, d_to, options)))
         journals = {j.id: j for j in self.env['account.journal'].sudo().browse([r[0] for r in rows_sql])}
         rows, td, tc, tn = [], 0.0, 0.0, 0
-        for jid, bal, d, c, n in sorted(rows_sql, key=lambda r: (journals[r[0]].sequence, journals[r[0]].code or '')):
+        limit = PAGE if not for_export else 5000
+        opened = [r[0] for r in rows_sql if self._is_open(options, 'jn:%d' % r[0])]
+        together = self._entry_rows(options, opened, 0, limit) if len(opened) > 1 else None
+        for jid, d, c, n in sorted(rows_sql, key=lambda r: (journals[r[0]].sequence, journals[r[0]].code or '')):
             j = journals[jid]
-            d, c, n = float(d or 0), float(c or 0), moves.get(jid, 0)
+            d, c, n = float(d or 0), float(c or 0), n or 0
             td, tc, tn = td + d, tc + c, tn + n
             lid = 'jn:%d' % jid
             unfolded = self._is_open(options, lid)
@@ -1304,7 +1329,8 @@ class JournalHandler(models.AbstractModel):
                                     self._cell(float(n), currency, 'count', drill=True)],
                                    unfoldable=True, unfolded=unfolded, kind='journal', journal_id=jid))
             if unfolded:
-                detail, has_more = self._entries(options, jid, lid, 0, limit=PAGE if not for_export else 5000)
+                detail, has_more = self._entries(options, jid, lid, 0, limit=limit,
+                                                 prefetched=None if together is None else together.get(jid, []))
                 rows.extend(detail)
                 if has_more:
                     rows.append(self._line(lid + ':more', _('Load more…'), 1, [self._blank()] * 3, parent_id=lid,
@@ -1313,21 +1339,34 @@ class JournalHandler(models.AbstractModel):
                                                         self._cell(float(tn), currency, 'count')], bold=True, kind='total'))
         return rows
 
-    def _entries(self, options, jid, parent_lid, offset, limit=PAGE):
+    def _entry_rows(self, options, journal_ids, offset, limit):
+        """{journal: its entries from `offset`, `limit` + 1 of them} for several journals in
+        one query - each journal's entries numbered side by side, as the ledgers do."""
         d_from, d_to = self._period(options)
-        currency = self.engine.currency(options)
         w = self.engine.weight_sql(options)
         rows = self.env.execute_query(SQL("""
-            SELECT m.id, m.date, m.name, p.name, m.ref, SUM(l.debit * %s), SUM(l.credit * %s), m.move_type
-              FROM account_move_line l
-              JOIN account_move m ON m.id = l.move_id
-              JOIN account_account a ON a.id = l.account_id
-              LEFT JOIN res_partner p ON p.id = m.partner_id
-             WHERE %s AND %s AND l.journal_id = %s
-             GROUP BY m.id, m.date, m.name, p.name, m.ref, m.move_type
-             ORDER BY m.date, m.name LIMIT %s OFFSET %s
+            SELECT * FROM (
+                SELECT m.id, m.date, m.name AS move_name, p.name AS partner, m.ref,
+                       SUM(l.debit * %s) AS debit, SUM(l.credit * %s) AS credit, m.move_type, l.journal_id AS grp,
+                       ROW_NUMBER() OVER (PARTITION BY l.journal_id ORDER BY m.date, m.name, m.id) AS rn
+                  FROM account_move_line l
+                  JOIN account_move m ON m.id = l.move_id
+                  JOIN account_account a ON a.id = l.account_id
+                  LEFT JOIN res_partner p ON p.id = m.partner_id
+                 WHERE %s AND %s AND l.journal_id IN %s
+                 GROUP BY m.id, m.date, m.name, p.name, m.ref, m.move_type, l.journal_id) s
+             WHERE s.rn > %s AND s.rn <= %s
+             ORDER BY s.grp, s.rn
         """, w, w, self.engine.base_where(options), self.engine.date_where('flow', d_from, d_to, options),
-             jid, limit + 1, offset))
+             tuple(journal_ids), offset, offset + limit + 1))
+        table = {}
+        for row in rows:
+            table.setdefault(row[8], []).append(row[:8])
+        return table
+
+    def _entries(self, options, jid, parent_lid, offset, limit=PAGE, prefetched=None):
+        currency = self.engine.currency(options)
+        rows = prefetched if prefetched is not None else self._entry_rows(options, [jid], offset, limit).get(jid, [])
         out = []
         for mid, day, name, partner, ref, d, c, mtype in rows[:limit]:
             parts = {'date': fields.Date.to_string(day), 'move': name or '', 'partner': partner or '',
@@ -1360,24 +1399,49 @@ class AnalyticHandler(models.AbstractModel):
     _description = 'Financial report engine: analytic'
     _kind_label = 'Analytic report'
 
-    def _where(self, options, d_from, d_to):
-        parts = [SQL("al.company_id IN %s", tuple(options['companies'])),
-                 SQL("al.date >= %s AND al.date <= %s", d_from, d_to)]
+    def _plan_columns(self):
+        """The columns an analytic line names its accounts in: one per root plan since Odoo 17
+        (`account_id` is the project plan's, `x_plan<id>_id` every other one's). Only the first
+        was read, so every account of a second plan - departments, cost centres - was missing."""
+        return self.env['account.analytic.line']._get_plan_fnames()
+
+    def _column_of(self, aid):
+        """The column an analytic account's lines carry it in."""
+        column = self.env['account.analytic.account'].sudo().browse(aid).plan_id._column_name()
+        return column if column in self._plan_columns() else 'account_id'
+
+    def _where(self, options, d_from=None, d_to=None):
+        parts = [SQL("al.company_id IN %s", tuple(options['companies']))]
+        if d_from and d_to:
+            parts.append(SQL("al.date >= %s AND al.date <= %s", d_from, d_to))
         if options.get('partners'):
             parts.append(SQL("al.partner_id IN %s", tuple(options['partners'])))
         if options.get('analytic'):
-            parts.append(SQL("al.account_id IN %s", tuple(options['analytic'])))
+            parts.append(SQL("(%s)", SQL(" OR ").join(
+                SQL("%s IN %s", SQL.identifier('al', column), tuple(options['analytic']))
+                for column in self._plan_columns())))
         return SQL(" AND ").join(parts)
 
     def lines(self, report, options, columns, for_export=False):
         currency = self.engine.currency(options)
         amount_cols = [c for c in columns if c['type'] == 'amount']
-        per_col = {}
-        for col in amount_cols:
-            d_from, d_to = self._dates(col)
-            per_col[col['key']] = {r[0]: float(r[1] or 0) for r in self.env.execute_query(SQL("""
-                SELECT al.account_id, SUM(al.amount) FROM account_analytic_line al
-                 WHERE %s GROUP BY al.account_id""", self._where(options, d_from, d_to)))}
+        per_col = {col['key']: {} for col in amount_cols}
+        if amount_cols:
+            # every period side by side in one pass, each account of each plan its own row
+            windows = [SQL("al.date >= %s AND al.date <= %s", *self._dates(col)) for col in amount_cols]
+            rows = self.env.execute_query(SQL("""
+                SELECT v.account, %s
+                  FROM account_analytic_line al
+                 CROSS JOIN LATERAL (VALUES %s) v(account)
+                 WHERE v.account IS NOT NULL AND %s AND (%s)
+                 GROUP BY v.account""",
+                SQL(", ").join(SQL("SUM(al.amount) FILTER (WHERE %s)", w) for w in windows),
+                SQL(", ").join(SQL("(%s)", SQL.identifier('al', column)) for column in self._plan_columns()),
+                self._where(options), SQL(" OR ").join(SQL("(%s)", w) for w in windows)))
+            for row in rows:
+                for i, col in enumerate(amount_cols):
+                    if row[1 + i] is not None:
+                        per_col[col['key']][row[0]] = float(row[1 + i])
         ids = set().union(*[set(v) for v in per_col.values()]) if per_col else set()
         accounts = self.env['account.analytic.account'].sudo().with_context(active_test=False).browse(list(ids)).exists()
         rows = []
@@ -1398,6 +1462,10 @@ class AnalyticHandler(models.AbstractModel):
                 if unfolded:
                     detail, has_more = self._detail(options, columns, acc.id, lid, 0, limit=PAGE if not for_export else 5000)
                     rows.extend(detail)
+                    if has_more:
+                        # the account opened with its first page and nothing said the rest was there
+                        rows.append(self._line(lid + ':more', _('Load more…'), 2, [self._blank()] * len(columns),
+                                               parent_id=lid, kind='more', offset=len(detail)))
         return rows
 
     def _detail(self, options, columns, aid, parent_lid, offset, limit=PAGE):
@@ -1411,9 +1479,10 @@ class AnalyticHandler(models.AbstractModel):
               LEFT JOIN account_account a ON a.id = al.general_account_id
               LEFT JOIN account_move_line l ON l.id = al.move_line_id
               LEFT JOIN account_move m ON m.id = l.move_id
-             WHERE %s AND al.account_id = %s
+             WHERE %s AND %s = %s
              ORDER BY al.date, al.id LIMIT %s OFFSET %s
-        """, self.engine.code_sql(options), self._where(options, d_from, d_to), aid, limit + 1, offset))
+        """, self.engine.code_sql(options), self._where(options, d_from, d_to),
+            SQL.identifier('al', self._column_of(aid)), aid, limit + 1, offset))
         out = []
         for lid, day, name, partner, acode, amount, ml, mname, mid in rows[:limit]:
             parts = {'date': fields.Date.to_string(day), 'move': mname or '', 'partner': partner or '',
@@ -1436,8 +1505,15 @@ class AnalyticHandler(models.AbstractModel):
         aid = int(line_id.split(':')[1])
         col = next((c for c in columns if c['key'] == column_key and c['type'] == 'amount'), columns[0])
         d_from, d_to = self._dates(col)
-        domain = [('account_id', '=', aid), ('date', '>=', d_from), ('date', '<=', d_to),
+        # the same lines the figure sums: the account in its own plan's column, and the
+        # partner and analytic filters of the report (the list opened every line of the account)
+        domain = [(self._column_of(aid), '=', aid), ('date', '>=', d_from), ('date', '<=', d_to),
                   ('company_id', 'in', options['companies'])]
+        if options.get('partners'):
+            domain.append(('partner_id', 'in', options['partners']))
+        if options.get('analytic'):
+            domain += ['|'] * (len(self._plan_columns()) - 1) + [
+                (column, 'in', options['analytic']) for column in self._plan_columns()]
         return {'type': 'ir.actions.act_window', 'name': self.env['account.analytic.account'].browse(aid).name,
                 'res_model': 'account.analytic.line', 'view_mode': 'list,pivot,graph',
                 'views': [(False, 'list'), (False, 'pivot'), (False, 'graph')], 'domain': domain,
@@ -1530,14 +1606,17 @@ class StatementOfAccountHandler(models.AbstractModel):
             pdf, _kind = self.env['ir.actions.report']._render_qweb_pdf(
                 'ebshel_account_reports.action_fin_report_pdf', res_ids=[report.id],
                 data={'options': single, 'report_id': report.id})
-            import base64
-            att = self.env['ir.attachment'].create({
-                'name': '%s - %s.pdf' % (report.name, partner.name), 'datas': base64.b64encode(pdf).decode(),
+            # the statement is read as the reader (above); the file and the mail are written as the
+            # system, as a scheduled report's are: only Settings may create a mail.mail, so every
+            # accountant who pressed the button got an access error
+            att = self.env['ir.attachment'].sudo().create({        # `datas` is gone in Odoo 20: raw bytes
+                'name': '%s - %s.pdf' % (report.name, partner.name), 'raw': pdf,
                 'res_model': 'res.partner', 'res_id': partner.id})
-            self.env['mail.mail'].create({
+            self.env['mail.mail'].sudo().create({
                 'subject': _('%(report)s — %(from)s to %(to)s', report=report.name,
                              **{'from': options['date']['from'], 'to': options['date']['to']}),
-                'body_html': _('<p>Dear %s,</p><p>Please find your statement of account attached.</p>', partner.name),
+                # the name is escaped: a partner called "<b>Acme</b>" (or worse) is text in the mail, not markup
+                'body_html': Markup(_('<p>Dear %s,</p><p>Please find your statement of account attached.</p>')) % partner.name,
                 'email_to': partner.email, 'recipient_ids': [(4, partner.id)],
                 'attachment_ids': [(4, att.id)],
             }).send()
@@ -1570,6 +1649,13 @@ class DayBookHandler(models.AbstractModel):
              WHERE %s AND %s GROUP BY l.date ORDER BY l.date
         """, w, w, engine.base_where(options), engine.date_where('flow', d_from, d_to, options)))
         rows, td, tc, tn = [], 0.0, 0.0, 0
+        limit = PAGE if not for_export else 5000
+        # the entries of every open day in ONE query: a day a query was 150 of them (a third
+        # of a second) to unfold a five-month day book
+        opened = [day for day, *_rest in rows_sql if self._is_open(options, 'dt:%s' % fields.Date.to_string(day))]
+        together = None
+        if len(opened) > 3:
+            together = self._prefetch_details(options, [SQL("l.date IN %s", tuple(opened))], SQL("l.date"), limit)
         for day, d, c, n in rows_sql:
             d, c = float(d or 0), float(c or 0)
             td, tc, tn = td + d, tc + c, tn + n
@@ -1581,7 +1667,8 @@ class DayBookHandler(models.AbstractModel):
                                    unfoldable=True, unfolded=unfolded, kind='day', day=fields.Date.to_string(day)))
             if unfolded:
                 detail, has_more, _r = self._move_line_rows(
-                    options, [SQL("l.date = %s", day)], None, 0, PAGE if not for_export else 5000, parent_id=lid, level=1)
+                    options, [SQL("l.date = %s", day)], None, 0, limit, parent_id=lid, level=1,
+                    prefetched=None if together is None else together.get(day, []))
                 for r in detail:
                     r['columns'][2] = self._blank()
                 rows.extend(detail)
@@ -1700,6 +1787,7 @@ class CashBookHandler(models.AbstractModel):
             return None
         aid = int(line_id.split(':')[1])
         d_from, d_to = self._period(options)
-        mode = 'opening' if line_id.endswith(':ini') else 'flow'
+        # the balance is the opening AND the period: it opened only the period's items
+        mode = 'opening' if line_id.endswith(':ini') else 'cumulative' if column_key == 'balance' else 'flow'
         accounts = self.engine.accounts(options)
         return self.engine.domain(options, mode, d_from, d_to, [aid]), '%s %s' % (accounts[aid]['code'], accounts[aid]['name'])

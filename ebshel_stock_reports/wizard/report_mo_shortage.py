@@ -113,7 +113,7 @@ class ReportMoShortage(models.TransientModel):
         productions.fetch(['name', 'product_id', 'state', 'date_start', 'picking_type_id', 'location_src_id',
                            'move_raw_ids'])
         moves = productions.move_raw_ids.filtered(lambda m: m.state not in ('done', 'cancel'))
-        moves.fetch(['product_id', 'product_uom', 'product_uom_qty', 'product_qty', 'quantity', 'state',
+        moves.fetch(['product_id', 'uom_id', 'product_uom_qty', 'product_qty', 'quantity', 'state',
                      'raw_material_production_id'])
         products = moves.product_id
         products.fetch(['display_name', 'uom_id', 'is_storable', 'default_code'])
@@ -126,8 +126,8 @@ class ReportMoShortage(models.TransientModel):
                 if move.state in ('done', 'cancel') or not move.product_id.is_storable:
                     continue
                 product_uom = move.product_id.uom_id
-                required = move.product_uom._compute_quantity(move.product_uom_qty, product_uom, round=False)
-                reserved = move.product_uom._compute_quantity(move.quantity, product_uom, round=False)
+                required = move.uom_id._compute_quantity(move.product_uom_qty, product_uom, round=False)
+                reserved = move.uom_id._compute_quantity(move.quantity, product_uom, round=False)
                 if product_uom.compare(required - reserved, 0.0) <= 0:
                     continue
                 demand.append((production, move, required, min(reserved, required), warehouse))

@@ -18,7 +18,7 @@ The customer mode aggregates the same lines per customer (counts and rates).
 from collections import defaultdict
 
 from odoo import fields, models
-from odoo.tools import SQL, float_compare
+from odoo.tools import SQL
 
 from .report_mixin import col
 
@@ -159,8 +159,7 @@ class ReportCustomerOtif(models.TransientModel):
             qty_ordered = float(qty_ordered or 0.0)
             qty_delivered = float(qty_delivered or 0.0)
             on_time = bool(delivered and promised and delivered <= promised)
-            in_full = float_compare(qty_delivered, qty_ordered * (1.0 - tolerance),
-                                    precision_rounding=product.uom_id.rounding) >= 0
+            in_full = product.uom_id.compare(qty_delivered, qty_ordered * (1.0 - tolerance)) >= 0
             otif = on_time and in_full
             if delivered and promised:
                 days_late = (delivered - promised).days

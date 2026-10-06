@@ -165,8 +165,11 @@ class TestGeneralLedger(TransactionCase):
         return False
 
     def test_a_chart_without_account_groups_groups_by_type(self):
-        """Neither the lab's chart nor Ortho's has one account group: the switch changed nothing."""
-        self.env['account.group'].search([]).unlink()
+        """Neither the lab's chart nor Ortho's has one account group: the switch changed nothing.
+        Odoo 20 has no account groups at all - a chart hangs accounts under parent accounts -
+        so a chart without them is one where no account has a parent."""
+        self.env['account.account'].with_context(active_test=False).search(
+            [('parent_id', '!=', False)]).write({'parent_id': False})
         grouped, by_id = self._grouped(self.year)
         till = by_id['ac:%d' % self.till.id]
         self.assertEqual(till['parent_id'], 'ty:asset_current')
@@ -177,8 +180,9 @@ class TestGeneralLedger(TransactionCase):
         self.assertTrue(all(k['level'] == till['level'] + 1 for k in kids), "an account's entries sit one step in")
 
     def test_account_groups_hold_their_accounts_and_add_up(self):
-        group = self.env['account.group'].create({'name': 'EFG group', 'code_prefix_start': 'EFG',
-                                                  'company_id': self.env.company.id})
+        # Odoo 20: the heading is the parent account the accounts hang under (no account.group)
+        group = self.env['account.account'].create({'name': 'EFG group', 'code': 'EFG', 'account_type': 'asset_current'})
+        (self.till | self.loan).write({'parent_id': group.id})
         grouped, by_id = self._grouped(self.only)
         gid = 'grp:%d' % group.id
         self.assertEqual(by_id['ac:%d' % self.till.id]['parent_id'], gid)

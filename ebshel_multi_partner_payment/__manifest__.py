@@ -20,7 +20,7 @@
 ##############################################################################
 {
     'name': 'Payments for Multiple Vendors & Customers',
-    'version': '19.0.0.0.3',
+    'version': '20.0.0.0.3',
     'category': 'Accounting/Accounting',
     'summary': 'Create one payment and allocate it across multiple customers or vendors.',
     'description': """

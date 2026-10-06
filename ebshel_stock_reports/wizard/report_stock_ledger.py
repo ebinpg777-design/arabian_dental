@@ -311,7 +311,7 @@ class ReportStockLedger(models.TransientModel):
         self.env.cr.execute(SQL("""
             SELECT sml.id, sm.id, sm.product_id, sm.date, sm.reference, sm.partner_id,
                    sml.location_id, sml.location_dest_id,
-                   sml.quantity_product_uom, sm.value, sm.is_in, sm.is_out, sm.scrap_id, sm.is_inventory,
+                   sml.quantity_product_uom, (CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END) AS value, sm.is_in, sm.is_out, sm.is_scrap IS TRUE, sm.is_inventory,
                    ls.usage, ld.usage,
                    (sml.location_id IN %(level)s) AS from_level,
                    (sml.location_dest_id IN %(level)s) AS to_level,

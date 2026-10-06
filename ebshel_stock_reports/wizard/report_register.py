@@ -121,7 +121,7 @@ class ReportRegister(models.TransientModel):
                        spt.warehouse_id AS pt_warehouse_id, ls.warehouse_id AS src_warehouse_id,
                        ld.warehouse_id AS dst_warehouse_id,
                        sml.quantity_product_uom AS qty,
-                       sm.value, (sm.is_in OR sm.is_out OR sm.is_dropship) AS valued,
+                       (CASE WHEN sm.is_out THEN -sm.value ELSE sm.value END) AS value, (sm.is_in OR sm.is_out OR sm.is_dropship) AS valued,
                        (sml.owner_id IS NOT NULL AND sml.owner_id <> %(partner)s) AS excluded,
                        SUM(CASE WHEN sml.owner_id IS NULL OR sml.owner_id = %(partner)s
                                 THEN sml.quantity_product_uom ELSE 0 END)

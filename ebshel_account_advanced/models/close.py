@@ -174,8 +174,11 @@ class CloseTask(models.Model):
         self.ensure_one()
         if not self.model:
             return False
+        # `views` spelled out: the cockpit opens this through orm.call, which (unlike a form
+        # button) does not expand view_mode, and the web client dies on an action without it
         return {'type': 'ir.actions.act_window', 'res_model': self.model, 'name': self.name,
-                'view_mode': 'list,form', 'domain': [('id', 'in', self.res_ids or [])], 'context': {'create': False}}
+                'view_mode': 'list,form', 'views': [[False, 'list'], [False, 'form']],
+                'domain': [('id', 'in', self.res_ids or [])], 'context': {'create': False}}
 
 
 class CloseChecks(models.AbstractModel):
@@ -219,8 +222,12 @@ class CloseChecks(models.AbstractModel):
         return 'account.move.line', lines, sum(lines.mapped('balance'))
 
     def _check_payments_unmatched(self, period):
-        payments = self.env['account.payment'].search([('company_id', '=', period.company_id.id), ('state', 'in', ('in_process', 'paid', 'posted')),
-                                                       ('is_reconciled', '=', False), ('date', '<=', period.date_to)])
+        # Odoo 20: a posted payment is `paid`, or `reconciled` once its bank line is matched -
+        # which says nothing about the invoices it should settle (`is_reconciled`). A payment
+        # without a journal entry has nothing to reconcile.
+        payments = self.env['account.payment'].search([('company_id', '=', period.company_id.id), ('state', 'in', ('paid', 'reconciled')),
+                                                       ('move_id', '!=', False), ('is_reconciled', '=', False),
+                                                       ('date', '<=', period.date_to)])
         return 'account.payment', payments, sum(payments.mapped('amount'))
 
     def _check_no_partner(self, period):
@@ -277,7 +284,10 @@ class CloseCockpit(models.AbstractModel):
         Period = self.env['ebshel.close.period']
         periods = Period.search([('company_id', '=', company.id)], limit=24)
         period = Period.browse(period_id) if period_id else (periods.filtered(lambda p: p.state != 'closed')[:1] or periods[:1])
-        if period and period.state != 'closed':
+        can_write = self.env.su or self.env.user.has_groups('account.group_account_user,account.group_account_manager')
+        # running the checks writes their counts on the tasks: a reader (who may only look)
+        # sees the counts of the last run instead of an access error
+        if period and period.state != 'closed' and can_write:
             period.action_refresh()
         tasks = []
         for t in (period.task_ids if period else []):
@@ -302,7 +312,7 @@ class CloseCockpit(models.AbstractModel):
                       'purchase': fields.Date.to_string(company.purchase_lock_date) if company.purchase_lock_date else None},
             'users': [{'id': u.id, 'name': u.name} for u in self.env['res.users'].search([('share', '=', False)], order='name', limit=80)],
             'currency': {'symbol': company.currency_id.symbol, 'position': company.currency_id.position, 'decimals': company.currency_id.decimal_places},
-            'can_write': self.env.su or self.env.user.has_groups('account.group_account_user,account.group_account_manager'),
+            'can_write': can_write,
             'can_lock': self.env.su or self.env.user.has_group('account.group_account_manager'),
         }
 

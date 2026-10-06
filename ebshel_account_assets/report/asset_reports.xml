@@ -16,7 +16,6 @@
         <field name="model">ebshel.asset</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">ebshel_account_assets.asset_labels</field>
-        <field name="report_file">ebshel_account_assets.asset_labels</field>
         <field name="paperformat_id" ref="paperformat_labels"/>
         <field name="binding_model_id" ref="model_ebshel_asset"/>
         <field name="binding_type">report</field>
@@ -47,7 +46,6 @@
         <field name="model">ebshel.asset</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">ebshel_account_assets.asset_register</field>
-        <field name="report_file">ebshel_account_assets.asset_register</field>
         <field name="paperformat_id" ref="ebshel_account_reports.paperformat_landscape"/>
         <field name="binding_model_id" ref="model_ebshel_asset"/>
         <field name="binding_type">report</field>

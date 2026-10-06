@@ -7,7 +7,7 @@
         <field name="inherit_id" ref="stock.view_move_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='date_deadline']" position="after">
-                <field name="asr_reason_id" invisible="not scrap_id and not origin_returned_move_id and not is_inventory"/>
+                <field name="asr_reason_id" invisible="not is_scrap and not origin_returned_move_id and not is_inventory"/>
                 <field name="asr_qty_before" invisible="not is_inventory"/>
                 <field name="asr_qty_counted" invisible="not is_inventory"/>
                 <field name="asr_bom_planned_qty_unit" invisible="not raw_material_production_id"/>

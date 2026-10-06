@@ -13,8 +13,8 @@ GST_CATEGORIES = [
 
 
 class StockScrapReasonTag(models.Model):
-    """Odoo 19 already has reason tags on scraps; the module reuses them as the
-    single reason master for scraps, returns and count adjustments."""
+    """Odoo already has reason tags on scraps (in Odoo 20 on the scrap move itself); the
+    module reuses them as the single reason master for scraps, returns and count adjustments."""
     _inherit = 'stock.scrap.reason.tag'
 
     asr_gst_category = fields.Selection(
@@ -30,12 +30,3 @@ class StockScrapReasonTag(models.Model):
         help="Where this reason is offered: on scraps only, on returns only, on count adjustments only, or everywhere.")
     asr_description = fields.Char(string='Description')
 
-
-class StockScrap(models.Model):
-    _inherit = 'stock.scrap'
-
-    def _prepare_move_values(self):
-        vals = super()._prepare_move_values()
-        if self.scrap_reason_tag_ids:
-            vals['asr_reason_id'] = self.scrap_reason_tag_ids[0].id
-        return vals

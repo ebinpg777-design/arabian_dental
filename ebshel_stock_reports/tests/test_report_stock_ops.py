@@ -27,12 +27,7 @@ class TestReportStockOps(AdvancedStockReportsCase):
         self.receipt = self._in(self.p_std, 20, 10.0, date=self._days_ago(4))
 
         # Scrap 2 with a reason
-        self.scrap = self.env['stock.scrap'].create({
-            'product_id': self.p_std.id, 'product_uom_id': self.uom_unit.id, 'scrap_qty': 2,
-            'location_id': self.stock_location.id, 'company_id': self.company.id,
-            'scrap_reason_tag_ids': [Command.set(self.reason_damaged.ids)],
-        })
-        self.scrap.do_scrap()
+        self.scrap = self._scrap_move(self.p_std, 2, reasons=self.reason_damaged)
 
         # Deliver 5 through the demo delivery type, then return 2 through the return wizard
         self.delivery = self.env['stock.picking'].create({
@@ -42,7 +37,7 @@ class TestReportStockOps(AdvancedStockReportsCase):
             'partner_id': self.partner.id,
             'origin': 'ASR-SO-1',
             'move_ids': [Command.create({
-                'product_id': self.p_std.id, 'product_uom': self.uom_unit.id, 'product_uom_qty': 5,
+                'product_id': self.p_std.id, 'uom_id': self.uom_unit.id, 'product_uom_qty': 5,
                 'location_id': self.stock_location.id, 'location_dest_id': self.customer_location.id,
             })],
         })
@@ -51,13 +46,11 @@ class TestReportStockOps(AdvancedStockReportsCase):
         self.delivery.move_ids.write({'quantity': 5, 'picked': True})
         self.delivery.button_validate()
         self.assertEqual(self.delivery.state, 'done')
-        wizard = self.env['stock.return.picking'].with_context(
-            active_id=self.delivery.id, active_ids=self.delivery.ids, active_model='stock.picking',
-        ).create({'asr_reason_id': self.reason_quality.id})
-        wizard.product_return_moves.write({'quantity': 2})
-        result = wizard.action_create_returns()
-        self.return_picking = self.env['stock.picking'].browse(result['res_id'])
-        self.return_picking.move_ids.write({'quantity': 2, 'picked': True})
+        # Odoo 20: no return wizard - the return is a draft transfer made from the delivery,
+        # and its reason is set on it
+        self.return_picking = self.delivery._create_return()
+        self.return_picking.asr_reason_id = self.reason_quality
+        self.return_picking.move_ids.write({'product_uom_qty': 2, 'quantity': 2, 'picked': True})
         self.return_picking.button_validate()
         self.assertEqual(self.return_picking.state, 'done')
 
@@ -111,7 +104,7 @@ class TestReportStockOps(AdvancedStockReportsCase):
     # Scenario checks on the new fields
     # ------------------------------------------------------------------
     def test_scenario_fields(self):
-        self.assertEqual(self.scrap.move_ids.asr_reason_id, self.reason_damaged)
+        self.assertEqual(self.scrap.asr_reason_id, self.reason_damaged)
         return_move = self.return_picking.move_ids
         self.assertEqual(len(return_move), 1)
         self.assertEqual(return_move.origin_returned_move_id, self.delivery.move_ids)
@@ -201,14 +194,14 @@ class TestReportStockOps(AdvancedStockReportsCase):
         self.assertEqual(all_rows[1]['kind_code'], 'scrap')
         scrap, ret = rows
         self.assertEqual(scrap['kind'], 'Scrap')
-        self.assertEqual(scrap['reference'], self.scrap.name)
+        self.assertEqual(scrap['reference'], self.scrap.reference)
         self.assertEqual(scrap['reason_id'], self.reason_damaged)
         self.assertEqual(scrap['gst_category'], 'destroyed')
         self.assertEqual(scrap['product_id'], self.p_std)
         self.assertAlmostEqual(scrap['quantity'], 2.0)
         self.assertAlmostEqual(scrap['value'], 20.0, places=2)
         self.assertEqual(scrap['location_id'], self.stock_location)
-        self.assertEqual(scrap['location_dest_id'], self.scrap.scrap_location_id)
+        self.assertEqual(scrap['location_dest_id'], self.scrap.location_dest_id)
         self.assertEqual(ret['kind_code'], 'customer_return')
         self.assertEqual(ret['reference'], self.return_picking.name)
         self.assertEqual(ret['reason_id'], self.reason_quality)
