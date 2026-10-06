@@ -100,7 +100,7 @@ class LabCaseCost(models.AbstractModel):
                     'id': product.id,
                     'name': product.display_name,
                     'qty': line.product_qty,
-                    'uom': line.product_uom_id.name or product.uom_id.name,
+                    'uom': line.uom_id.name or product.uom_id.name,
                     'rate': product.standard_price,
                     'cost': cost,
                     'department': department.name or '',

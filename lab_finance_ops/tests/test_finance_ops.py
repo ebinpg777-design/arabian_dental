@@ -108,7 +108,7 @@ class TestLabFinanceOps(TransactionCase):
         cheque.action_clear()
         invoice.invalidate_recordset()
         self.assertEqual(cheque.state, 'cleared')
-        self.assertIn(cheque.payment_id.state, ('paid', 'in_process'))
+        self.assertIn(cheque.payment_id.state, ('paid', 'reconciled'))
         self.assertEqual(cheque.payment_id.cheque_id, cheque)
         self.assertIn(invoice.payment_state, ('paid', 'in_payment'))
         self.assertEqual(invoice.amount_residual, 0.0)
@@ -174,7 +174,7 @@ class TestLabFinanceOps(TransactionCase):
         payment = self._payment(500.0)
         self.assertEqual(payment.approval_state, 'not_required')
         payment.action_post()
-        self.assertIn(payment.state, ('paid', 'in_process'))
+        self.assertIn(payment.state, ('paid', 'reconciled'))
 
     def test_payment_above_threshold_is_held_until_approved(self):
         self._require_approval('1000')
@@ -184,7 +184,7 @@ class TestLabFinanceOps(TransactionCase):
             payment.action_post()
         payment.action_approve_payment()
         payment.action_post()
-        self.assertIn(payment.state, ('paid', 'in_process'))
+        self.assertIn(payment.state, ('paid', 'reconciled'))
 
     def test_refusing_a_payment_requires_a_remark(self):
         self._require_approval('0')
@@ -204,7 +204,7 @@ class TestLabFinanceOps(TransactionCase):
         cheque.action_deposit()
         cheque.action_clear()
         self.assertEqual(cheque.payment_id.approval_state, 'not_required')
-        self.assertIn(cheque.payment_id.state, ('paid', 'in_process'))
+        self.assertIn(cheque.payment_id.state, ('paid', 'reconciled'))
 
     def test_editing_an_approved_payment_sends_it_back_for_approval(self):
         self._require_approval('1000')

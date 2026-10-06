@@ -44,7 +44,7 @@
                         <group>
                             <field name="partner_id"/>
                             <field name="amount"/>
-                            <field name="bank_id"/>
+                            <field name="bank_name"/>
                             <field name="branch"/>
                             <field name="currency_id" invisible="1"/>
                         </group>
@@ -106,7 +106,7 @@
                   decoration-muted="state == 'cancel'">
                 <field name="cheque_number"/>
                 <field name="partner_id"/>
-                <field name="bank_id" optional="show"/>
+                <field name="bank_name" optional="show"/>
                 <field name="cheque_date"/>
                 <field name="received_date" optional="hide"/>
                 <field name="deposit_date" optional="hide"/>
@@ -133,7 +133,7 @@
             <search>
                 <field name="cheque_number"/>
                 <field name="partner_id"/>
-                <field name="bank_id"/>
+                <field name="bank_name"/>
                 <filter name="in_hand" string="In Hand" domain="[('state', '=', 'received')]"/>
                 <filter name="deposited" string="Deposited" domain="[('state', '=', 'deposited')]"/>
                 <filter name="bounced" string="Bounced" domain="[('state', '=', 'bounced')]"/>
@@ -148,7 +148,7 @@
                 <group>
                     <filter name="group_partner" string="Clinic" context="{'group_by': 'partner_id'}"/>
                     <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
-                    <filter name="group_bank" string="Drawee Bank" context="{'group_by': 'bank_id'}"/>
+                    <filter name="group_bank" string="Drawee Bank" context="{'group_by': 'bank_name'}"/>
                     <filter name="group_cheque_date" string="Cheque Date" context="{'group_by': 'cheque_date'}"/>
                 </group>
             </search>

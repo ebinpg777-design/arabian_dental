@@ -124,9 +124,11 @@ class LabEodReport(models.TransientModel):
         self.credit_note_count = len(refunds)
         self.credit_note_amount = sum(refunds.mapped('amount_total'))
 
+        # Every posted receipt. Odoo 20 renamed the states: 19's in_process/paid
+        # are 20's paid/reconciled.
         payments = self.env['account.payment'].search(base_company + [
             ('payment_type', '=', 'inbound'), ('partner_type', '=', 'customer'),
-            ('state', 'in', ('in_process', 'paid')), ('date', '=', self.date)])
+            ('state', 'in', ('paid', 'reconciled')), ('date', '=', self.date)])
         self.collection_total = sum(payments.mapped('amount'))
         cash = payments.filtered(lambda p: p.journal_id.type == 'cash')
         self.collection_cash = sum(cash.mapped('amount'))

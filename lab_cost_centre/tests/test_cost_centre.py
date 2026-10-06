@@ -109,7 +109,6 @@ class TestCostCentre(TransactionCase):
         workorder = self.env['mrp.workorder'].create({
             'name': 'Glazing', 'production_id': production.id,
             'workcenter_id': bench.id,
-            'product_uom_id': self.product.uom_id.id,
         })
         self.assertEqual(workorder.department_id, self.ceramic,
                          "a work order's department is a fact, not a derivation")

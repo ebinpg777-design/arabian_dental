@@ -34,7 +34,9 @@ class LabCheque(models.Model):
     partner_id = fields.Many2one(
         'res.partner', string='Received From', required=True, index=True, tracking=True,
         domain="[]")
-    bank_id = fields.Many2one('res.bank', string='Drawee Bank', tracking=True)
+    # Odoo 20 has no res.bank master (bank details live on res.partner.bank), so the
+    # drawee bank is the name written on the cheque.
+    bank_name = fields.Char('Drawee Bank', tracking=True)
     branch = fields.Char('Drawee Branch')
 
     cheque_date = fields.Date(
@@ -200,7 +202,7 @@ class LabCheque(models.Model):
             'journal_id': self.journal_id.id,
             'payment_method_line_id': method_line.id,
             'memo': _('Cheque %(num)s / %(bank)s',
-                      num=self.cheque_number, bank=self.bank_id.name or '-'),
+                      num=self.cheque_number, bank=self.bank_name or '-'),
             'company_id': self.company_id.id,
         })
 

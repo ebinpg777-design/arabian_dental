@@ -186,6 +186,13 @@ class LabMastersLoader(models.AbstractModel):
             routes |= mto
             if not mto.active:
                 mto.sudo().active = True
+        # Odoo 20 refuses to link a route the product form cannot offer
+        # (route_ids is limited to product_selectable routes, enforced on
+        # write even as superuser). Manufacture is not product-selectable: it
+        # reaches these products through the warehouse instead, which carries
+        # it while "Manufacture to resupply" is on, so the MTO pull still ends
+        # in a manufacturing order.
+        routes = routes.filtered('product_selectable')
         changed = self.env['product.template']
         for xmlid in ANCHOR_PRODUCTS:
             product = self.env.ref('lab_masters.%s' % xmlid, raise_if_not_found=False)

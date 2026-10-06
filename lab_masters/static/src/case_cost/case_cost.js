@@ -11,11 +11,11 @@
  * overhead the lab's own sheet absorbs, and what remains. It is the one picture
  * that answers "are we making money on this" without arithmetic.
  */
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
 import {registry} from "@web/core/registry";
 import {useService} from "@web/core/utils/hooks";
 import {formatMonetary} from "@web/views/fields/formatters";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 const SORTS = [
     {key: "volume", label: "By volume"},
@@ -26,11 +26,11 @@ const SORTS = [
 
 export class CaseCostExplorer extends Component {
     static template = "lab_masters.CaseCostExplorer";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.state = proxy({
             loading: true,
             sort: "volume",

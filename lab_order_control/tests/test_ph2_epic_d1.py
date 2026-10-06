@@ -63,9 +63,9 @@ class TestCaseDoctorCallHandover(TransactionCase):
     """
 
     def test_a_case_needing_a_call_sets_the_flag_on_its_order(self):
-        case = self.env['lab.case']
         if 'lab.case' not in self.env:
             self.skipTest("lab_fieldwork not installed")
+        case = self.env['lab.case']
         vals_fn = getattr(case, '_order_vals', None)
         if not vals_fn:
             self.skipTest("case does not expose _order_vals")
