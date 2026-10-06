@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Migration (Odoo 17 → 19 data sync)',
-    'version': '19.0.2.1.0',
+    'version': '20.0.2.1.0',
     'category': 'Technical',
-    'summary': 'Sync master data + opening balances from an Odoo 17 database into Odoo 19',
+    'summary': 'Sync master data + opening balances from an Odoo 17 database into Odoo 20',
     'description': """
 Odoo 17 → Odoo 19 data bridge
 =============================
@@ -25,6 +25,7 @@ technicians, districts → tags, doctors → contacts).
         'sale_custom',
         'lab_reports',
         'lab_finance_ops',
+        'mail_tracking',  # Odoo 20 keeps structured tracking values (the chatter phase) here
         'account',
         'stock',
         'mrp',

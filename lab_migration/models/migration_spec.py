@@ -293,7 +293,7 @@ ENTITY_SPECS = [
                     'active': 'active', 'ready_to_produce': 'ready_to_produce'},
         'm2o': {'product_tmpl_id': ('product_tmpl_id', 'product.template'),
                 'product_id': ('product_id', 'product.product'),
-                'product_uom_id': ('product_uom_id', 'uom.uom')},
+                'uom_id': ('product_uom_id', 'uom.uom')},  # Odoo 20 rename
     },
     {
         'key': 'bom_line', 'name': 'BoM Lines', 'src': 'mrp_bom_line', 'dst': 'mrp.bom.line',
@@ -301,7 +301,7 @@ ENTITY_SPECS = [
         'scalars': {'product_qty': 'product_qty', 'sequence': 'sequence'},
         'm2o': {'bom_id': ('bom_id', 'mrp.bom'),
                 'product_id': ('product_id', 'product.product'),
-                'product_uom_id': ('product_uom_id', 'uom.uom')},
+                'uom_id': ('product_uom_id', 'uom.uom')},  # Odoo 20 rename
     },
 ]
 

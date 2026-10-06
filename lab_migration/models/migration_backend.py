@@ -241,6 +241,14 @@ class MigrationBackend(models.Model):
         can_create = spec.get('create', True)
         hook = getattr(self, '_hook_%s' % spec['key'], None)
         m2m_data = self._load_m2m(cur, spec)
+        if spec['key'] == 'account':
+            # Odoo 20's l10n_in chart carries NO account codes, so the v17 chart can no
+            # longer be adopted by code. Both charts come from the same template ids
+            # (v17 `account.1_p10040`, v20 `account.<company>_p10040`), so the template
+            # id is what matches them; the lab's code is then written onto the account.
+            cur.execute("SELECT res_id, name FROM ir_model_data "
+                        "WHERE model = 'account.account' AND module = 'account'")
+            cache['_acc_xmlid_'] = {r['res_id']: r['name'] for r in cur.fetchall()}
         c = {'created': 0, 'updated': 0, 'adopted': 0, 'skipped': 0, 'failed': 0}
         for row in rows:
             try:
@@ -929,67 +937,55 @@ class MigrationBackend(models.Model):
 
     # ------------------------------------------------------------------ bank accounts
     def _sync_banks(self, cur, cache, stats):
-        """Sync res.bank + res.partner.bank. The company bank account must attach to
-        the v19 COMPANY's partner (company.partner_id) so it shows in the invoice
-        footer's bank-details table; the generic partner sync would otherwise map the
-        v17 company partner to a duplicate res.partner, not company.partner_id."""
-        Bank = self.env['res.bank'].with_context(active_test=False)
-        n_bank = 0
-        for r in self._fetch(cur, 'res_bank') or []:
-            if not r.get('name'):
-                continue
-            vals = {k: self._coerce(r.get(k)) for k in
-                    ('name', 'bic', 'street', 'street2', 'city', 'zip', 'phone', 'email')
-                    if r.get(k) is not None}
-            if r.get('active') is not None:
-                vals['active'] = bool(r['active'])
-            vals['x_src_id'] = r['id']
-            try:
-                with self.env.cr.savepoint():
-                    rec = Bank.search([('x_src_id', '=', r['id'])], limit=1)
-                    if not rec and r.get('bic'):
-                        rec = Bank.search([('bic', '=', r['bic'])], limit=1)
-                    if not rec:
-                        rec = Bank.search([('name', '=', r['name'])], limit=1)
-                    if rec:
-                        rec.write(vals)
-                    else:
-                        rec = Bank.create(vals)
-                self._put(cache, 'res.bank', r['id'], rec.id)
-                n_bank += 1
-            except Exception as e:
-                _logger.warning("res.bank %s: %s", r.get('name'), e)
+        """Sync the v17 res.bank + res.partner.bank into Odoo 20 bank accounts.
 
-        # v17 company-partner id -> v19 company.partner_id
+        Odoo 20 has no res.bank: an account carries its bank's name, BIC and address
+        itself (res.partner.bank.bank_name / bank_bic / street / city / zip). The v17
+        banks are read once and folded into every account that pointed at them; the
+        map of v17 bank id -> {name, bic, ...} is kept in the cache for the cheques
+        (lab.cheque keeps the drawee bank's name).
+
+        The company bank account must attach to the v20 COMPANY's partner
+        (company.partner_id) so it shows in the invoice footer's bank-details table;
+        the generic partner sync would otherwise map the v17 company partner to a
+        duplicate res.partner, not company.partner_id."""
+        banks = {}
+        for r in self._fetch(cur, 'res_bank') or []:
+            if r.get('name'):
+                banks[r['id']] = {
+                    'bank_name': self._coerce(r['name']),
+                    'bank_bic': self._coerce(r.get('bic')) or False,
+                    'street': self._coerce(r.get('street')) or False,
+                    'city': self._coerce(r.get('city')) or False,
+                    'zip': self._coerce(r.get('zip')) or False,
+                }
+        cache['_banks_'] = banks
+
+        # v17 company-partner id -> v20 company.partner_id
         comp_partner = {}
         for r in self._fetch(cur, 'res_company') or []:
-            v19c = self._resolve(cache, 'res.company', r['id'])
-            if v19c and r.get('partner_id'):
-                comp_partner[r['partner_id']] = self.env['res.company'].browse(v19c).partner_id.id
+            v20c = self._resolve(cache, 'res.company', r['id'])
+            if v20c and r.get('partner_id'):
+                comp_partner[r['partner_id']] = self.env['res.company'].browse(v20c).partner_id.id
 
         PB = self.env['res.partner.bank'].with_context(active_test=False)
         n_pb = skipped = 0
         # The company's own account, kept as text on res_company in the source.
         for r in self._fetch(cur, 'res_company') or []:
             acc = (r.get('acc_number') or '').strip()
-            v19c = self._resolve(cache, 'res.company', r['id'])
-            if not acc or not v19c:
+            v20c = self._resolve(cache, 'res.company', r['id'])
+            if not acc or not v20c:
                 continue
-            company = self.env['res.company'].browse(v19c)
+            company = self.env['res.company'].browse(v20c)
             try:
                 with self.env.cr.savepoint():
-                    bank = False
-                    if r.get('acc_bank_name'):
-                        bank = Bank.search([('name', '=', r['acc_bank_name'])], limit=1) \
-                            or Bank.create({'name': r['acc_bank_name'],
-                                            'bic': r.get('swift_code') or False,
-                                            'street': r.get('bank_branch') or False})
-                    pb = PB.search([('acc_number', '=', acc),
+                    pb = PB.search([('account_number', '=', acc),
                                     ('partner_id', '=', company.partner_id.id)], limit=1)
-                    pvals = {'acc_number': acc, 'partner_id': company.partner_id.id,
+                    pvals = {'account_number': acc, 'partner_id': company.partner_id.id,
                              'company_id': company.id}
-                    if bank:
-                        pvals['bank_id'] = bank.id
+                    if r.get('acc_bank_name'):
+                        pvals.update(bank_name=r['acc_bank_name'], bank_bic=r.get('swift_code') or False,
+                                     street=r.get('bank_branch') or False)
                     if pb:
                         pb.write(pvals)
                     else:
@@ -1004,16 +1000,19 @@ class MigrationBackend(models.Model):
             if not acc or not partner_id:
                 skipped += 1
                 continue
-            vals = {'acc_number': acc, 'partner_id': partner_id, 'x_src_id': r['id']}
-            bank_id = self._resolve(cache, 'res.bank', r.get('bank_id'))
-            if bank_id:
-                vals['bank_id'] = bank_id
+            vals = {'account_number': acc, 'partner_id': partner_id, 'x_src_id': r['id']}
+            vals.update(banks.get(r.get('bank_id')) or {})
+            if r.get('acc_holder_name'):
+                vals['holder_name'] = r['acc_holder_name']
             if r.get('sequence') is not None:
                 vals['sequence'] = r['sequence']
+            if r.get('active') is not None:
+                vals['active'] = bool(r['active'])
             try:
                 with self.env.cr.savepoint():
                     rec = PB.search([('x_src_id', '=', r['id'])], limit=1) \
-                        or PB.search([('acc_number', '=', acc), ('partner_id', '=', partner_id)], limit=1)
+                        or PB.search([('account_number', '=', acc), ('partner_id', '=', partner_id)], limit=1)
+                    vals = self._valid(PB, vals)
                     if rec:
                         rec.write(vals)
                     else:
@@ -1023,8 +1022,8 @@ class MigrationBackend(models.Model):
             except Exception as e:
                 skipped += 1
                 _logger.warning("res.partner.bank %s: %s", acc, e)
-        stats.append("Bank accounts          : %d banks, %d partner accounts, %d skipped"
-                     % (n_bank, n_pb, skipped))
+        stats.append("Bank accounts          : %d banks folded in, %d partner accounts, %d skipped"
+                     % (len(banks), n_pb, skipped))
 
     # ------------------------------------------------------------------ orchestration
     def _migration_env(self):
@@ -1592,12 +1591,16 @@ class MigrationBackend(models.Model):
     # ------------------------------------------------------------------ per-entity hooks
     def _hook_account(self, row, vals, phase, is_new, cache):
         if phase == 'normalize':
-            # v19 account codes must be alphanumeric + dots — and the match is on
+            # account codes must be alphanumeric + dots — and the match is on
             # the cleaned code, or the same account is created twice.
             code = vals.get('code') or ''
             clean = re.sub(r'[^A-Za-z0-9.]', '', code)
             if clean:
                 vals['code'] = clean
+            # Odoo 20 has no `deprecated`: an account that may no longer be used is archived
+            if 'deprecated' in vals:
+                vals['active'] = not vals.pop('deprecated')
+            self._adopt_chart_account(row, cache)
             return
         if phase != 'scalars':
             return
@@ -1611,6 +1614,26 @@ class MigrationBackend(models.Model):
             # receivable/payable-must-reconcile constraint.
             vals.pop('account_type', None)
             vals.pop('reconcile', None)
+
+    def _adopt_chart_account(self, row, cache):
+        """Map a v17 chart account onto the v20 account made from the same template.
+
+        v17 names it ``<company>_<template id>`` (``1_p10040``); v20 the same, with the
+        target company's id. Accounts created by hand in v17 (no xmlid) and the ones
+        Odoo names after a journal (``1_cash_journal_default_account_76``) are left to
+        the code match / creation as before."""
+        if self._resolve(cache, 'account.account', row['id']):
+            return
+        name = cache.get('_acc_xmlid_', {}).get(row['id']) or ''
+        prefix, _sep, template = name.partition('_')
+        if not (prefix.isdigit() and template) or 'journal' in template:
+            return
+        company = self._resolve(cache, 'res.company', row.get('company_id'))
+        if not company:
+            return
+        account = self.env.ref('account.%s_%s' % (company, template), raise_if_not_found=False)
+        if account and account._name == 'account.account':
+            self._put(cache, 'account.account', row['id'], account.id)
 
     def _hook_uom(self, row, vals, phase, is_new, cache):
         Uom = self.env['uom.uom'].with_context(active_test=False)
@@ -1812,6 +1835,10 @@ class MigrationBackend(models.Model):
                 vals['type'] = 'service'
             else:
                 vals['type'], vals['is_storable'] = 'consu', False
+            # Odoo 20 dropped tracking 'none': a storable product tracked by quantity
+            # only has tracking False (store_by 'quantity')
+            if vals.get('tracking') == 'none' or not vals.get('is_storable'):
+                vals.pop('tracking', None)
         elif phase == 'relations':
             # Force the tax lists to EXACTLY the v17 set, empty included.
             # _relation_vals only emits a field when something resolved, so a

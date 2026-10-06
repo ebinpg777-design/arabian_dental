@@ -33,6 +33,7 @@ dental_sale's fields land on the suite's own:
   line.quad1..4 / t_no / quarter         -> line.teeth (FDI numbers)
   the same on invoice lines              -> account.move.line.patient / ul / teeth
 """
+import base64
 import logging
 import mimetypes
 import os
@@ -1030,7 +1031,7 @@ class MigrationBackend(models.Model):
                         vals['picking_type_id'] = pt
                     uom = self._resolve(cache, 'uom.uom', row.get('product_uom_id'))
                     if uom:
-                        vals['product_uom_id'] = uom
+                        vals['uom_id'] = uom          # Odoo 20: mrp.production.uom_id
                     bom = self._resolve(cache, 'mrp.bom', row.get('bom_id'))
                     if bom:
                         vals['bom_id'] = bom
@@ -1185,7 +1186,7 @@ class MigrationBackend(models.Model):
                                 m[dst] = target
                         uom = self._resolve(cache, 'uom.uom', mv.get('product_uom'))
                         if uom:
-                            m['product_uom'] = uom
+                            m['uom_id'] = uom          # Odoo 20: stock.move.uom_id
                         m['location_id'] = self._resolve(cache, 'stock.location', mv.get('location_id')) or src
                         m['location_dest_id'] = self._resolve(cache, 'stock.location', mv.get('location_dest_id')) or dest
                         move_vals.append((0, 0, self._valid(self.env['stock.move'], m)))
@@ -1328,7 +1329,7 @@ class MigrationBackend(models.Model):
                     }
                     uom = self._resolve(cache, 'uom.uom', mv.get('product_uom'))
                     if uom:
-                        vals['product_uom'] = uom
+                        vals['uom_id'] = uom          # Odoo 20: stock.move.uom_id
                     move = Move.with_company(cid).create(self._valid(Move, vals))
                     batch.append((mv['id'], move.id))
                     states.setdefault(mv['state'], []).append(move.id)
@@ -1415,7 +1416,7 @@ class MigrationBackend(models.Model):
                     }
                     uom = self._resolve(cache, 'uom.uom', ln.get('product_uom_id'))
                     if uom:
-                        vals['product_uom_id'] = uom
+                        vals['uom_id'] = uom          # Odoo 20: stock.move.line.uom_id
                     line = Line.with_company(move.company_id).create(self._valid(Line, vals))
                     if line.date != ln.get('date') and ln.get('date'):
                         self.env.cr.execute("UPDATE stock_move_line SET date=%s WHERE id=%s",
@@ -1569,7 +1570,7 @@ class MigrationBackend(models.Model):
                         }
                         uom = self._resolve(cache, 'uom.uom', ln.get('product_uom'))
                         if uom:
-                            lv['product_uom_id'] = uom
+                            lv['uom_id'] = uom          # Odoo 20: purchase.order.line.uom_id
                         line_vals.append((0, 0, self._valid(self.env['purchase.order.line'], lv)))
                     vals = {
                         'name': row.get('name') or '/',
@@ -2091,7 +2092,7 @@ class MigrationBackend(models.Model):
                         rec = Model.browse(target).exists()
                         if rec and 'image_1920' in rec._fields and not rec.image_1920:
                             with open(path, 'rb') as fh:
-                                rec.write({'image_1920': fh.read()})
+                                rec.write({'image_1920': base64.b64encode(fh.read()).decode()})  # Odoo 20 Binary rejects bytes
                             counts['images'] += 1
                         else:
                             counts['already'] += 1

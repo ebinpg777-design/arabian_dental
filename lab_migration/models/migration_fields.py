@@ -40,7 +40,7 @@ def _xref(model_name):
 
 # Master-data models that receive an Odoo 17 reference.
 XREF_MODELS = [
-    'res.company', 'res.partner', 'res.partner.bank', 'res.bank', 'res.users',
+    'res.company', 'res.partner', 'res.partner.bank', 'res.users',
     'uom.uom',
     'account.account', 'account.journal', 'account.tax', 'account.tax.group',
     'account.payment.term', 'account.fiscal.position',
