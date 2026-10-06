@@ -256,25 +256,27 @@
                 </table>
 
                 <!-- ── bank details ──────────────────────────────────────── -->
+                <!-- Odoo 20 removed res.bank: the bank's name, branch city and IFSC
+                     (bank_bic) now live on the account itself; acc_number is account_number. -->
                 <t t-if="o.company_id.partner_id.bank_ids">
                     <div class="oi-section">Bank Details</div>
                     <table class="oi-bank">
                         <tr t-foreach="o.company_id.partner_id.bank_ids" t-as="b">
                             <td style="width:25%;">
                                 <div class="oi-label">Bank name</div>
-                                <div class="oi-bankval"><span t-field="b.bank_id.name"/></div>
+                                <div class="oi-bankval"><span t-field="b.bank_name"/></div>
                             </td>
                             <td style="width:28%;">
                                 <div class="oi-label">Account number</div>
-                                <div class="oi-bankval"><span t-field="b.acc_number"/></div>
+                                <div class="oi-bankval"><span t-field="b.account_number"/></div>
                             </td>
                             <td style="width:24%;">
                                 <div class="oi-label">Branch</div>
-                                <div class="oi-bankval"><span t-field="b.bank_id.city"/></div>
+                                <div class="oi-bankval"><span t-field="b.city"/></div>
                             </td>
                             <td>
                                 <div class="oi-label">IFSC code</div>
-                                <div class="oi-bankval"><span t-field="b.bank_id.bic"/></div>
+                                <div class="oi-bankval"><span t-field="b.bank_bic"/></div>
                             </td>
                         </tr>
                     </table>

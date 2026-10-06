@@ -5,7 +5,6 @@
         <field name="model">petty.cash.allocation</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">petty_cash.report_petty_cash_statement</field>
-        <field name="report_file">petty_cash.report_petty_cash_statement</field>
         <field name="binding_model_id" ref="model_petty_cash_allocation"/>
         <field name="binding_type">report</field>
         <field name="print_report_name">'Petty Cash Statement - %s' % object.name</field>

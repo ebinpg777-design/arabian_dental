@@ -29,8 +29,9 @@ from urllib.parse import urlencode
 
 import werkzeug.exceptions
 
-from odoo import http, models
+from odoo import models
 from odoo.http import request
+from odoo.http.session import session_store
 
 _logger = logging.getLogger(__name__)
 
@@ -39,16 +40,16 @@ class IrHttp(models.AbstractModel):
     _inherit = 'ir.http'
 
     @classmethod
-    def _authenticate_explicit(cls, auth):
+    def _authenticate_explicit(cls, routing):
         had_user = request.session.uid is not None
         try:
-            super()._authenticate_explicit(auth)
+            super()._authenticate_explicit(routing)
         finally:
             session = request.session
             if had_user and session.uid is None and session.should_rotate and session.can_save:
                 # exactly what `_save_session` would do at the end of the request,
                 # done before anything is rendered with the old id
-                http.root.session_store.rotate(session, request.env)
+                session_store().rotate(session, request.env)
 
     @classmethod
     def _is_dead_sign_in_form(cls, exception):

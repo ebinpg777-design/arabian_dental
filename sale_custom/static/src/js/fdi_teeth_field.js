@@ -1,10 +1,9 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUnmount, proxy } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy, signal, t, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { usePopover } from "@web/core/popover/popover_hook";
-import { useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
 /**
@@ -68,12 +67,12 @@ export function formatTeeth(teeth, extras = []) {
 
 export class FdiTeethChart extends Component {
     static template = "sale_custom.FdiTeethChart";
-    static props = {
-        value: { type: String, optional: true },
-        readonly: { type: Boolean, optional: true },
-        onChange: Function,
-        close: Function,
-    };
+    props = useProps({
+        value: t.string().optional(),
+        readonly: t.boolean().optional(),
+        onChange: t.function(),
+        close: t.function(),
+    });
 
     setup() {
         const parsed = parseTeeth(this.props.value);
@@ -166,21 +165,21 @@ export class FdiTeethChart extends Component {
 
 export class FdiTeethField extends Component {
     static template = "sale_custom.FdiTeethField";
-    static props = { ...standardFieldProps, placeholder: { type: String, optional: true } };
+    props = useProps({ ...standardFieldProps, placeholder: t.string().optional() });
+    rootRef = signal.ref();
+    inputRef = signal.ref();
 
     setup() {
         this.popover = usePopover(FdiTeethChart, {
             position: "bottom-start",
             onClose: () => this.chartClosed(),
         });
-        this.rootRef = useRef("root");
-        this.inputRef = useRef("input");
         this.handingBack = false;
         onWillUnmount(() => clearTimeout(this.handBackTimer));
         // Entering the cell is entering the mouth: when the list puts the row in
         // edition and hands this field the focus, the chart is already open.
         onMounted(() => {
-            if (!this.props.readonly && this.inputRef.el && document.activeElement === this.inputRef.el) {
+            if (!this.props.readonly && this.inputRef() && document.activeElement === this.inputRef()) {
                 this.openChart();
             }
         });
@@ -239,10 +238,10 @@ export class FdiTeethField extends Component {
     }
 
     openChart() {
-        if (this.props.readonly || this.popover.isOpen || !this.rootRef.el) {
+        if (this.props.readonly || this.popover.isOpen || !this.rootRef()) {
             return;
         }
-        this.popover.open(this.rootRef.el, {
+        this.popover.open(this.rootRef(), {
             value: this.value,
             readonly: this.props.readonly,
             onChange: (value) => this.update(value),

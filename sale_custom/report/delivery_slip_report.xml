@@ -52,7 +52,7 @@
                         <tr t-foreach="o.move_ids.filtered(lambda m: m.state != 'cancel')" t-as="move">
                             <td><span t-field="move.product_id.display_name"/></td>
                             <td class="text-end"><span t-field="move.quantity"/></td>
-                            <td><span t-field="move.product_uom.name"/></td>
+                            <td><span t-field="move.uom_id.name"/></td>
                         </tr>
                     </tbody>
                 </table>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Barcode Rendering Fallback',
-    'version': '19.0.1.2.0',
+    'version': '20.0.1.2.0',
     'summary': "Draw barcodes and QR codes without reportlab's cairo backend",
     'description': """
 Barcode Rendering Fallback

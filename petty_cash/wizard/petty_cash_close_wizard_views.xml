@@ -6,7 +6,7 @@
             <form string="Close / Return">
                 <sheet>
                     <!-- ── Mode toggle ─────────────────────────────────── -->
-                    <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3">
+                    <div role="status" class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3">
                         <i class="fa fa-info-circle fa-lg"/>
                         <span invisible="is_closing">
                             <b>Partial Return</b> — The allocation stays active after this return.
@@ -68,19 +68,19 @@
                     </group>
 
                     <!-- ── After-return balance indicator ─────────────── -->
-                    <div class="alert alert-success py-2 mt-2"
+                    <div role="status" class="alert alert-success py-2 mt-2"
                          invisible="remaining_after != 0 or not is_closing">
                         <i class="fa fa-check-circle me-2" title="Fully recovered"/>
                         Full balance will be recovered. Allocation will be <b>closed</b> on confirm.
                     </div>
-                    <div class="alert alert-warning py-2 mt-2"
+                    <div role="status" class="alert alert-warning py-2 mt-2"
                          invisible="remaining_after == 0 or not is_closing or use_write_off">
                         <i class="fa fa-exclamation-triangle me-2" title="Remainder"/>
                         <b><field name="remaining_after" readonly="1" nolabel="1" class="oe_inline"/></b>
                         will remain unrecovered. Enable <b>Write Off Remainder</b> to absorb it,
                         or reduce the return amount.
                     </div>
-                    <div class="alert alert-info py-2 mt-2"
+                    <div role="status" class="alert alert-info py-2 mt-2"
                          invisible="is_closing">
                         <i class="fa fa-info-circle me-2"/>
                         Remaining balance after this return:

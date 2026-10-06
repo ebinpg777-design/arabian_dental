@@ -35,7 +35,7 @@ class WizardPrintJobCard(models.TransientModel):
                 worksheet.set_default_row(24)
                 if self.company_id.excel_logo:
                     worksheet.insert_image(0, 0, "image.png", {
-                        'image_data': io.BytesIO(base64.b64decode(self.company_id.excel_logo))})
+                        'image_data': io.BytesIO(bytes(self.company_id.excel_logo))})
                 worksheet.merge_range(0, 0, 1, 1, '', f['title'])
                 worksheet.merge_range(0, 2, 1, 5, 'LAB CREATION DENTAL LAB', f['main'])
                 worksheet.merge_range(0, 6, 1, 8, '', f['common'])
@@ -86,7 +86,7 @@ class WizardPrintJobCard(models.TransientModel):
                     bom_line_ids = mrp.bom_id.bom_line_ids.filtered(
                         lambda l: l.operation_id.workcenter_id == workcenter)
                     materials = ', '.join(
-                        '%s(%s %s)' % (bl.product_id.name, bl.product_qty, bl.product_uom_id.name)
+                        '%s(%s %s)' % (bl.product_id.name, bl.product_qty, bl.uom_id.name)
                         for bl in bom_line_ids)
                     worksheet.merge_range(row_no, 3, row_no, 8, materials or '', f['common'])
                     row_no += 1
@@ -105,7 +105,7 @@ class WizardPrintJobCard(models.TransientModel):
                     row_no += 2
         workbook.close()
         file_data.seek(0)
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()),
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(),
                     'name': 'Job Card.xlsx'})
         file_data.close()
         return self._xlsx_download()

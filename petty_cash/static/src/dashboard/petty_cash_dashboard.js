@@ -2,16 +2,14 @@
 
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { Component, onWillStart, proxy } from "@odoo/owl";
 
 export class PettyCashDashboard extends Component {
     static template = "petty_cash.PettyCashDashboard";
-    static props = ["*"];
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.state = proxy({ data: null, period: "all", loading: true });
         onWillStart(() => this.load());
     }

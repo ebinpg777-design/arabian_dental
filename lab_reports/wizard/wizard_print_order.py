@@ -26,7 +26,7 @@ class WizardPrintOrder(models.TransientModel):
     def _logo(self, worksheet):
         if self.company_id.excel_logo:
             worksheet.insert_image(0, 0, "image.png", {
-                'image_data': io.BytesIO(base64.b64decode(self.company_id.excel_logo))})
+                'image_data': io.BytesIO(bytes(self.company_id.excel_logo))})
 
     def print_bill_of_material(self):
         self.ensure_one()
@@ -66,7 +66,7 @@ class WizardPrintOrder(models.TransientModel):
                     for bom_line in bom.bom_line_ids:
                         worksheet.write(row, 2, bom_line.product_id.name or '', f['common'])
                         worksheet.write(row, 3, str(bom_line.product_qty), f['common'])
-                        worksheet.write(row, 4, bom_line.product_uom_id.name or '', f['common'])
+                        worksheet.write(row, 4, bom_line.uom_id.name or '', f['common'])
                         row += 1
                 if row_start >= row - 1:
                     worksheet.write(row_start, 1, line.product_id.display_name or '', f['vcenter'])
@@ -84,7 +84,7 @@ class WizardPrintOrder(models.TransientModel):
                 worksheet.merge_range(row_order_start, 7, row - 1, 7, '', f['vcenter'])
         workbook.close()
         file_data.seek(0)
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()),
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(),
                     'name': 'Bill of Material.xlsx'})
         file_data.close()
         return self._xlsx_download()
@@ -119,7 +119,7 @@ class WizardPrintOrder(models.TransientModel):
             for bom_line in bom.bom_line_ids:
                 worksheet.write(row, 2, bom_line.product_id.name or '', f['common'])
                 worksheet.write(row, 3, str(bom_line.product_qty), f['common'])
-                worksheet.write(row, 4, bom_line.product_uom_id.name or '', f['common'])
+                worksheet.write(row, 4, bom_line.uom_id.name or '', f['common'])
                 row += 1
             if row_start >= row - 1:
                 worksheet.write(row_start, 1, bom.product_tmpl_id.display_name or '', f['vcenter'])
@@ -136,7 +136,7 @@ class WizardPrintOrder(models.TransientModel):
             sl_no += 1
         workbook.close()
         file_data.seek(0)
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()),
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(),
                     'name': 'Bill of Material.xlsx'})
         file_data.close()
         return self._xlsx_download()
@@ -180,6 +180,6 @@ class WizardPrintOrder(models.TransientModel):
         workbook.close()
         file_data.seek(0)
         report_name = 'Daily Production Report-' + str(self.workcenter_id.name or '') + '.xlsx'
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()), 'name': report_name})
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(), 'name': report_name})
         file_data.close()
         return self._xlsx_download()

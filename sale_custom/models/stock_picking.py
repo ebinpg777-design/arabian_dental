@@ -38,7 +38,7 @@ class StockPicking(models.Model):
             if picking.state == 'draft':
                 picking.action_confirm()
             for move in picking.move_ids.filtered(lambda m: m.state not in ('done', 'cancel')):
-                if move.product_uom.compare(move.quantity, move.product_uom_qty) != 0:
+                if move.uom_id.compare(move.quantity, move.product_uom_qty) != 0:
                     move.quantity = move.product_uom_qty
                 if not move.picked:
                     move.picked = True

@@ -19,9 +19,6 @@
         <field name="group_ids" eval="[(6, 0, [ref('base.group_system')])]"/>
     </record>
 
-    <!-- The base "Tests" root is a developer fixture; stock Odoo keeps it out of the
-         way behind Technical Features, and it should never greet an ordinary user. -->
-    <record id="base.menu_tests" model="ir.ui.menu">
-        <field name="group_ids" eval="[(6, 0, [ref('base.group_no_one')])]"/>
-    </record>
+    <!-- Odoo 19 also hid the base "Tests" root (base.menu_tests) behind Technical
+         Features here; Odoo 20 no longer ships that menu, so there is nothing to hide. -->
 </odoo>

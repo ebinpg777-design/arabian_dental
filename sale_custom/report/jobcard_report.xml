@@ -75,7 +75,7 @@
                                 <div class="col-4">
                                     <strong>Qty:</strong>
                                     <span t-field="o.product_qty"/>
-                                    <span t-field="o.product_uom_id.name"/>
+                                    <span t-field="o.uom_id.name"/>
                                 </div>
                                 <div class="col-5">
                                     <strong>Colour:</strong>

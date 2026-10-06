@@ -5,7 +5,6 @@
         <field name="model">material.request</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">material_request.report_material_request</field>
-        <field name="report_file">material_request.report_material_request</field>
         <field name="print_report_name">'Requisition %s' % object.name</field>
         <field name="binding_model_id" ref="model_material_request"/>
         <field name="binding_type">report</field>

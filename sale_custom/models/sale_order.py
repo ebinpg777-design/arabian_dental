@@ -741,12 +741,13 @@ class SaleOrder(models.Model):
         }
 
 
-    def _create_invoices(self, grouped=False, final=False, date=None):
+    def _create_invoices(self, final=False, grouped=False):
         """Resolve every line's work number once, then invoice as usual."""
+        # Odoo 20 dropped the `date` argument of _create_invoices.
         work_numbers = self.env['sale.order.line']._lab_work_numbers(self.order_line)
         return super(SaleOrder, self.with_context(
             lab_work_numbers=work_numbers))._create_invoices(
-                grouped=grouped, final=final, date=date)
+                final=final, grouped=grouped)
 
 
 class SaleOrderLine(models.Model):

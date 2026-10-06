@@ -136,12 +136,12 @@ class PettyCashAllocation(models.Model):
             return
         today = fields.Date.context_today(self)
         month_start = today.replace(day=1)
-        groups = self.env['petty.cash.transaction'].read_group(
+        groups = self.env['petty.cash.transaction']._read_group(
             [('allocation_id', 'in', self.ids),
              ('type', '=', 'expense'), ('state', '=', 'posted'),
              ('date', '>=', fields.Date.to_string(month_start))],
-            ['amount:sum'], ['allocation_id'])
-        spend_by_alloc = {g['allocation_id'][0]: g['amount'] or 0.0 for g in groups}
+            ['allocation_id'], ['amount:sum'])
+        spend_by_alloc = {alloc.id: amount or 0.0 for alloc, amount in groups}
         for rec in self:
             rec.amount_spent_this_month = spend_by_alloc.get(rec.id, 0.0)
 
@@ -489,13 +489,13 @@ class PettyCashAllocation(models.Model):
 
         # Top spend by product (visible expense lines)
         Line = self.env['petty.cash.expense.line']
-        spend = Line.read_group(
+        spend = Line._read_group(
             [('expense_id.state', 'in', ('approved', 'bill_created', 'paid'))],
-            ['amount:sum'], ['product_id'], orderby='amount desc', limit=6)
+            ['product_id'], ['amount:sum'], order='amount:sum desc', limit=6)
         top_spend = [{
-            'name': g['product_id'][1] if g.get('product_id') else _('Uncategorized'),
-            'amount': g['amount'] or 0.0, 'amount_str': money(g['amount'] or 0.0),
-        } for g in spend if (g.get('amount') or 0.0) > 0]
+            'name': product.display_name if product else _('Uncategorized'),
+            'amount': amount or 0.0, 'amount_str': money(amount or 0.0),
+        } for product, amount in spend if (amount or 0.0) > 0]
 
         is_manager = self.env.user.has_group('petty_cash.group_petty_cash_officer')
         pending_alloc = pending_exp = pending_ret = 0

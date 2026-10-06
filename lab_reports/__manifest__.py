@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Reports',
-    'version': '19.0.1.2.0',
+    'version': '20.0.1.2.0',
     'category': 'Reporting',
     'summary': 'Dental lab QC/registration Excel reports, job cards, production-order labels',
     'description': """

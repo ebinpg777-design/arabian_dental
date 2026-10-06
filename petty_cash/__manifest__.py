@@ -1,6 +1,6 @@
 {
     'name': 'Petty Cash Management',
-    'version': '19.0.1.4.0',
+    'version': '20.0.1.4.0',
     'summary': 'Petty cash floats, requests, approvals, payments and settlement',
     'category': 'Accounting/Accounting',
     'author': 'Ebin P G',

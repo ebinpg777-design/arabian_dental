@@ -15,7 +15,7 @@ native output rather than leaving the lab on a substitute for ever.
 import io
 import logging
 
-from odoo import _, api, models, tools
+from odoo import _, api, models
 from odoo.exceptions import UserError
 from odoo.tools.barcode import check_barcode_encoding
 
@@ -59,7 +59,7 @@ class IrActionsReport(models.Model):
     _inherit = 'ir.actions.report'
 
     @api.model
-    @tools.ormcache()
+    @api.ormcache()
     def _renderpm_works(self):
         """Can reportlab actually rasterise? Asked once, then cached.
 

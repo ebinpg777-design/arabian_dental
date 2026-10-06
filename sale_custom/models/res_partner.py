@@ -97,7 +97,7 @@ class ResCompany(models.Model):
     def _default_payment_qr(self):
         try:
             with tools.file_open('sale_custom/static/src/img/payment.png', 'rb') as f:
-                return base64.b64encode(f.read())
+                return base64.b64encode(f.read()).decode()
         except (OSError, IOError):
             return False
     company_warning = fields.Boolean('Company Warning', copy=False)

@@ -217,7 +217,6 @@
         <field name="model">mrp.production</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sale_custom.report_production_slips_mo</field>
-        <field name="report_file">sale_custom.report_production_slips_mo</field>
         <field name="print_report_name">'Production Slips'</field>
         <field name="binding_model_id" ref="mrp.model_mrp_production"/>
         <field name="binding_type">report</field>
@@ -232,7 +231,6 @@
         <field name="model">sale.order</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sale_custom.report_production_slips_sale</field>
-        <field name="report_file">sale_custom.report_production_slips_sale</field>
         <field name="print_report_name">'Production Slips'</field>
         <field name="binding_model_id" eval="False"/>
         <field name="paperformat_id" ref="paperformat_lab_slips"/>

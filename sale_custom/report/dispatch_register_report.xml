@@ -104,7 +104,6 @@
         <field name="model">dental.dispatch.register</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sale_custom.report_dispatch_register</field>
-        <field name="report_file">sale_custom.report_dispatch_register</field>
         <field name="print_report_name">'Dispatch Register %s' % (object.date or '')</field>
         <field name="paperformat_id" ref="paperformat_lab_invoice"/>
     </record>

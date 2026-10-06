@@ -22,7 +22,7 @@ class WizardPrintPartner(models.TransientModel):
     def _logo(self, worksheet):
         if self.company_id.excel_logo:
             worksheet.insert_image(0, 0, "image.png", {
-                'image_data': io.BytesIO(base64.b64decode(self.company_id.excel_logo))})
+                'image_data': io.BytesIO(bytes(self.company_id.excel_logo))})
 
     def print_customer(self):
         self.ensure_one()
@@ -57,7 +57,7 @@ class WizardPrintPartner(models.TransientModel):
             sl_no += 1
         workbook.close()
         file_data.seek(0)
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()),
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(),
                     'name': 'Customer Details.xlsx'})
         file_data.close()
         return self._xlsx_download()
@@ -98,7 +98,7 @@ class WizardPrintPartner(models.TransientModel):
             worksheet.merge_range(12, 2, 12, 3, partner.sourced_by.name or '', f['common'])
         workbook.close()
         file_data.seek(0)
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()),
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(),
                     'name': 'Customer Registration.xlsx'})
         file_data.close()
         return self._xlsx_download()
@@ -128,7 +128,7 @@ class WizardPrintPartner(models.TransientModel):
             products = ",".join(supplierinfo.mapped('product_tmpl_id.name'))
             worksheet.write(row, 0, partner.vendor_code or '', f['common'])
             worksheet.write(row, 1, partner.name or '', f['common'])
-            worksheet.write(row, 2, partner._display_address(without_company=True) or '', f['common'])
+            worksheet.write(row, 2, partner._display_address(without_name=True) or '', f['common'])
             worksheet.write(row, 3, partner.contact_person or '', f['common'])
             worksheet.write(row, 4, partner.phone or '', f['common'])
             worksheet.write(row, 5, partner.email or '', f['common'])
@@ -142,7 +142,7 @@ class WizardPrintPartner(models.TransientModel):
             row += 1
         workbook.close()
         file_data.seek(0)
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()),
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(),
                     'name': 'Vendor Details.xlsx'})
         file_data.close()
         return self._xlsx_download()
@@ -194,7 +194,7 @@ class WizardPrintPartner(models.TransientModel):
             worksheet.merge_range(16, 2, 16, 3, partner.approved_by or '', f['common'])
         workbook.close()
         file_data.seek(0)
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()),
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(),
                     'name': 'Vendor Registration.xlsx'})
         file_data.close()
         return self._xlsx_download()
@@ -245,7 +245,7 @@ class WizardPrintPartner(models.TransientModel):
             worksheet.merge_range(15, 2, 15, 3, partner.approved_by or '', f['common'])
         workbook.close()
         file_data.seek(0)
-        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()),
+        self.write({'state': 'done', 'report_data': base64.b64encode(file_data.read()).decode(),
                     'name': 'Vendor Evaluation.xlsx'})
         file_data.close()
         return self._xlsx_download()

@@ -179,7 +179,7 @@ class StockMovementReportWizard(models.TransientModel):
         workbook.close()
         file_data.seek(0)
         self.write({
-            'report_data': base64.b64encode(file_data.read()),
+            'report_data': base64.b64encode(file_data.read()).decode(),
             'report_name': 'Stock Movement Summary.xlsx',
         })
         file_data.close()

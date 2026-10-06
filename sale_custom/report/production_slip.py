@@ -121,7 +121,7 @@ def _slip_from_mo(mo):
         'colour': (_colour(line.color_scheme) if line else '') or _colour(mo.color_scheme),
         'route': order.team_id.name if order else '',
         'qty': mo.product_qty,
-        'uom': mo.product_uom_id.name or '',
+        'uom': mo.uom_id.name or '',
         # 'urgent' / 'emergency' / '' - the bench must see this before it sees
         # anything else on the slip; lab_order_control's priority field is
         # what the dispatch board and the delay grace already read.

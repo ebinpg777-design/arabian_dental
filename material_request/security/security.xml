@@ -2,7 +2,7 @@
     <data noupdate="0">
         <record id="privilege_material_request" model="res.groups.privilege">
             <field name="name">Material Requests</field>
-            <field name="category_id" ref="base.module_category_inventory_inventory"/>
+            <field name="category_id" ref="base.module_category_supply_chain"/>
             <field name="sequence">30</field>
         </record>
 

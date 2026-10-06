@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Material Requests',
-    'version': '19.0.2.0.0',
+    'version': '20.0.2.0.0',
     'summary': 'Department stores ask the main store for consumables; the store approves, '
                'picks and delivers, and everyone can see what is short and what has arrived.',
     'description': """

@@ -24,6 +24,9 @@ class TestOrderListProductionPrint(TransactionCase):
         cls.product = cls.env['product.product'].create({
             'name': 'Order List Appliance', 'type': 'consu', 'list_price': 100.0})
         cls.Wizard = cls.env['sale.order.list.report']
+        # A company with no document layout makes report_action() hand an admin the
+        # layout configurator instead of the report (fresh demo databases have none).
+        cls.env.company.external_report_layout_id = cls.env.ref('web.external_layout_standard')
 
     def _order(self, partner=None, state='sale', date_order=None):
         order = self.env['sale.order'].create({
@@ -67,7 +70,8 @@ class TestOrderListProductionPrint(TransactionCase):
 
     def test_cancelled_orders_are_never_printed(self):
         self._order(state='cancel')
-        wiz = self._wizard()
+        # this clinic only: demo data carries confirmed orders of its own
+        wiz = self._wizard(partner_ids=[(6, 0, self.clinic.ids)])
         with self.assertRaises(UserError):
             wiz.action_print_production_orders()
 

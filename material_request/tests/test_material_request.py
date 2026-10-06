@@ -64,7 +64,8 @@ class TestMaterialRequest(TransactionCase):
         self.assertEqual(request.state, 'approved')
         self.assertEqual(request.approver_id, self.store_keeper)
         self.assertEqual(mask.qty_approved, 20, "left untouched, approved for what was asked")
-        picking = request.picking_ids
+        # the requester has no Inventory rights: Odoo 20 shows them no transfers
+        picking = request.sudo().picking_ids
         self.assertEqual(len(picking), 1)
         self.assertEqual(picking.location_id, self.store)
         self.assertEqual(picking.location_dest_id, self.dept)
@@ -78,7 +79,7 @@ class TestMaterialRequest(TransactionCase):
         mask, wax = request.line_ids.sorted('id')
         wax.write({'qty_approved': 0, 'qty_approved_set': True})
         request.with_user(self.store_keeper).action_approve()
-        self.assertEqual(request.picking_ids.move_ids.product_id, self.mask)
+        self.assertEqual(request.sudo().picking_ids.move_ids.product_id, self.mask)
 
     def test_validating_the_transfer_delivers_the_request(self):
         request = self._request(lines=[(self.mask, 10)])

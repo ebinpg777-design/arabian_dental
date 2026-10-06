@@ -169,8 +169,10 @@
                  The order_line field holds <form>, <list> and <kanban> sub-views, and an
                  xpath is applied to its FIRST match only. `//field[@name='product_uom_qty']`
                  therefore lands in the line pop-up form (unlabelled, next to Qty) and never
-                 in the editable list. Target each sub-view explicitly. -->
-            <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="before">
+                 in the editable list. Target each sub-view explicitly. Odoo 20 wraps the
+                 list's quantity in <column name="sol_qty"> (with the section quantity),
+                 so the new columns go before that column. -->
+            <xpath expr="//field[@name='order_line']/list/column[@name='sol_qty']" position="before">
                 <field name="ul" optional="show"/>
                 <field name="teeth" optional="show" widget="fdi_teeth"/>
                 <field name="cast" optional="show"/>

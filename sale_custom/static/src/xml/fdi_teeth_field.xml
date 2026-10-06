@@ -3,7 +3,7 @@
 
     <t t-name="sale_custom.FdiTeethField">
         <div class="o_fdi_field d-flex align-items-center gap-1 flex-wrap" t-att-class="{ o_fdi_readonly: this.props.readonly }"
-             t-custom-ref="root" t-on-click="this.openChart" t-on-focusin="this.onFocusIn">
+             t-ref="this.rootRef" t-on-click="this.openChart" t-on-focusin="this.onFocusIn">
             <t t-if="this.props.readonly">
                 <span t-if="!this.chips.length" class="text-muted">—</span>
                 <span t-foreach="this.chips" t-as="chip" t-key="chip" class="o_fdi_chip"><t t-out="chip"/></span>
@@ -17,7 +17,7 @@
                 </span>
                 <!-- the box ADDS teeth (typed, then Enter or Tab) and empties itself: the
                      chips are the value, so repeating it in a text box only cluttered the cell -->
-                <input type="text" class="o_fdi_input o_input" value="" t-custom-ref="input"
+                <input type="text" class="o_fdi_input o_input" value="" t-ref="this.inputRef"
                        t-att-placeholder="this.chips.length ? '+' : (this.props.placeholder || 'e.g. 11, 21')"
                        t-on-change="this.onInputChange" t-on-keydown="this.onInputKeydown"/>
             </t>

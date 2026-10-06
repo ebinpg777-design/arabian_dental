@@ -101,7 +101,7 @@
                     <div class="oe_title"><h1><field name="name"/></h1></div>
 
                     <!-- ── Available balance banner ── -->
-                    <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3"
+                    <div role="status" class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3"
                          invisible="state != 'draft' or not allocation_id">
                         <i class="fa fa-info-circle fa-lg text-primary"/>
                         <span>
@@ -111,14 +111,14 @@
                     </div>
 
                     <!-- ── Warning when total exceeds balance ── -->
-                    <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-3"
+                    <div role="status" class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-3"
                          invisible="total_amount == 0 or balance_available == 0 or total_amount &lt;= balance_available or state != 'draft'">
                         <i class="fa fa-exclamation-triangle fa-lg"/>
                         <span>Expense total exceeds the available allocation balance.</span>
                     </div>
 
                     <!-- ── Duplicate suspect banner ── -->
-                    <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3"
+                    <div role="status" class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3"
                          invisible="not is_duplicate_suspect"
                          groups="petty_cash.group_petty_cash_officer">
                         <i class="fa fa-clone fa-lg mt-1" title="Possible duplicate"/>
@@ -129,7 +129,7 @@
                     </div>
 
                     <!-- ── Category budget warning banner ── -->
-                    <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-3"
+                    <div role="status" class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-3"
                          invisible="not category_budget_warning"
                          groups="petty_cash.group_petty_cash_officer">
                         <i class="fa fa-exclamation-circle fa-lg mt-1" title="Budget warning"/>

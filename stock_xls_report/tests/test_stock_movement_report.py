@@ -24,7 +24,7 @@ class TestStockMovementReport(TransactionCase):
     def _receive(self, qty, when):
         move = self.env['stock.move'].create({
             'product_id': self.product.id, 'product_uom_qty': qty,
-            'product_uom': self.product.uom_id.id,
+            'uom_id': self.product.uom_id.id,
             'location_id': self.supplier.id, 'location_dest_id': self.stock.id})
         move._action_confirm()
         move.quantity = qty

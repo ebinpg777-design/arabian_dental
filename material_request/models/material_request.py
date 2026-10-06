@@ -226,7 +226,7 @@ class MaterialRequest(models.Model):
                 moves.append((0, 0, {
                     'product_id': line.product_id.id,
                     'product_uom_qty': line.qty_approved,
-                    'product_uom': line.product_uom_id.id,
+                    'uom_id': line.product_uom_id.id,
                     'description_picking': line.product_id.display_name,
                     'location_id': source.id,
                     'location_dest_id': request.location_id.id,
@@ -270,9 +270,20 @@ class MaterialRequest(models.Model):
             request.activity_feedback(['mail.mail_activity_data_todo'])
             request.message_post(body=_("Rejected: %s", reason))
 
+    def _transfers(self):
+        """The request's transfers, whoever is asking.
+
+        Odoo 20 reads a One2many through the reader's own rights, so a requester with
+        no Inventory access sees NO transfers at all - and every guard below would wave
+        a delivered request through. The guards read them as superuser; whatever is
+        then done to them (cancel) still runs with the caller's own rights.
+        """
+        self.ensure_one()
+        return self.sudo().picking_ids.with_env(self.env)
+
     def action_cancel(self):
         for request in self:
-            live = request.picking_ids.filtered(lambda p: p.state not in ('cancel', 'draft'))
+            live = request._transfers().filtered(lambda p: p.state not in ('cancel', 'draft'))
             if live.filtered(lambda p: p.state == 'done'):
                 raise UserError(_("%s has been delivered; it cannot be cancelled.", request.name))
             live.action_cancel()
@@ -282,9 +293,9 @@ class MaterialRequest(models.Model):
 
     def action_draft(self):
         for request in self:
-            if request.picking_ids.filtered(lambda p: p.state == 'done'):
+            if request._transfers().filtered(lambda p: p.state == 'done'):
                 raise UserError(_("%s has deliveries against it.", request.name))
-            request.picking_ids.filtered(lambda p: p.state != 'cancel').action_cancel()
+            request._transfers().filtered(lambda p: p.state != 'cancel').action_cancel()
             request.write({'state': 'draft', 'approver_id': False, 'date_approved': False,
                            'rejection_reason': False})
         return True

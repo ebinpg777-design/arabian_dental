@@ -76,12 +76,12 @@ class PettyCashExpense(models.Model):
         for alloc_id, recs in alloc_map.items():
             alloc = recs[0].allocation_id
             rec_ids = {r.id for r in recs}
-            groups = self.env['petty.cash.expense'].read_group(
+            [(reserved,)] = self.env['petty.cash.expense']._read_group(
                 [('allocation_id', '=', alloc_id),
                  ('state', 'in', ('approved', 'bill_created')),
                  ('id', 'not in', list(rec_ids))],
-                ['total_amount:sum'], [])
-            reserved = groups[0]['total_amount'] or 0.0 if groups else 0.0
+                aggregates=['total_amount:sum'])
+            reserved = reserved or 0.0
             this_total = sum(r.total_amount for r in recs)
             if this_total + reserved > alloc.amount_balance:
                 raise ValidationError(_('Expense amount cannot exceed the available petty cash balance.'))

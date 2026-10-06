@@ -5,7 +5,6 @@
         <field name="model">sale.order</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">epg_sticker_print.report_sticker</field>
-        <field name="report_file">epg_sticker_print.report_sticker</field>
         <field name="print_report_name">'Stickers'</field>
         <!-- paper format comes from the chosen sticker format (see ir_actions_report.py) -->
     </record>
