@@ -1117,7 +1117,9 @@ class LabDesk(models.AbstractModel):
                  ('partner_id', '!=', False)],
                 ['partner_id'], ['amount_total:sum'])}
         if not value_by_partner:
-            return {'total': 0, 'rows': [], 'quiet_days': quiet_days}
+            # the same keys as a full answer: the desk's "see all" reads ids and
+            # outstanding_total, and a book with no recent order raised KeyError
+            return {'total': 0, 'rows': [], 'quiet_days': quiet_days, 'ids': [], 'outstanding_total': 0.0}
         visited_ids = set(self.env['lab.visit'].sudo().search(
             [('date', '>=', today - timedelta(days=quiet_days))]
         ).mapped('partner_id').ids)
