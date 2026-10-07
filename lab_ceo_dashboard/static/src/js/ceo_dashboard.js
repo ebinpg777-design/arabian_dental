@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { browser } from "@web/core/browser/browser";
+import { user } from "@web/core/user";
 import { evaluateExpr } from "@web/core/py_js/py";
 import { ErrorHandler } from "@web/core/utils/components";
 import { View } from "@web/views/view";
@@ -11,7 +12,6 @@ import { getCurrency } from "@web/core/currency";
 import { formatMonetary, formatFloat } from "@web/views/fields/formatters";
 
 import { shortINR } from "@lab_ceo_dashboard/js/inr";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const REMEMBER = "lab_ceo_hub.active";
 
@@ -27,11 +27,11 @@ const REMEMBER = "lab_ceo_hub.active";
 export class LabCeoDashboard extends Component {
     static template = "lab_ceo_dashboard.CeoDashboard";
     static components = { View, ErrorHandler };
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.state = proxy({ launchers: [], loading: true, active: null, failed: {} });
         onWillStart(() => this.loadLaunchers());
         this.onKey = (ev) => {
@@ -117,7 +117,7 @@ export class LabCeoDashboard extends Component {
     }
 
     viewProps(launcher) {
-        const evalCtx = { uid: this.env.services.user?.userId, context_today: () => luxon.DateTime.local() };
+        const evalCtx = { uid: user.userId, context_today: () => luxon.DateTime.local() };
         let domain = [];
         let context = {};
         try {

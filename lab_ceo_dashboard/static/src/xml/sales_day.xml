@@ -42,7 +42,7 @@
 
         <!-- The fortnight as a rail: a picker that is also a chart. Tomorrow sits
              at the end, drawn as a promise rather than a bar. -->
-        <div class="o_sd_rail" role="tablist" t-custom-ref="rail">
+        <div class="o_sd_rail" role="tablist" t-ref="this.rail">
             <button t-foreach="dd.rail" t-as="r" t-key="r.day" role="tab"
                     class="o_sd_day"
                     t-att-class="{ o_sd_day_on: r.day === dd.day, o_sd_day_today: r.is_today,

@@ -348,7 +348,7 @@
                             <i class="fa fa-search"/>
                             <input type="text" class="form-control form-control-sm"
                                    t-att-placeholder="this.state.tab === 'route' ? 'Find a route…' : 'Find a salesperson…'"
-                                   t-custom-model="this.state.query"/>
+                                   t-model.proxy="this.state.query"/>
                         </div>
                     </div>
 
@@ -450,7 +450,7 @@
                                         <input t-if="this.state.editingTarget === row.key"
                                                type="number" min="0" max="100" step="1"
                                                class="form-control form-control-sm o_coll_target_input"
-                                               t-ref="targetInput"
+                                               t-ref="this.targetInput"
                                                t-att-value="row.target"
                                                t-on-click="(ev) => ev.stopPropagation()"
                                                t-on-blur="(ev) => this.saveTarget(row, ev)"
@@ -468,7 +468,7 @@
                                                type="number" min="0" step="1000"
                                                class="form-control form-control-sm o_coll_target_input"
                                                t-att-value="row.sales_target"
-                                               t-ref="targetInput"
+                                               t-ref="this.targetInput"
                                                t-on-click="(ev) => ev.stopPropagation()"
                                                t-on-blur="(ev) => this.saveSalesTarget(row, ev)"
                                                t-on-keydown="(ev) => this.onTargetKey(ev)"/>

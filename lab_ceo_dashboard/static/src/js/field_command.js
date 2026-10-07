@@ -1,11 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { registry } from "@web/core/registry";
 import { ErrorHandler } from "@web/core/utils/components";
 import { useService } from "@web/core/utils/hooks";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const REMEMBER = "lab_field_command.screen";
 
@@ -24,10 +23,10 @@ const REMEMBER = "lab_field_command.screen";
 export class LabFieldCommand extends Component {
     static template = "lab_ceo_dashboard.FieldCommand";
     static components = { ErrorHandler };
-    static props = ["*"];
+    props = useProps();
 
     setup() {
-        this.actionService = usePlugin(ActionManagerPlugin);
+        this.actionService = useService("action");
         this.orm = useService("orm");
         this.state = proxy({ screens: [], active: null, loading: true, failed: {} });
         onWillStart(() => this.load());

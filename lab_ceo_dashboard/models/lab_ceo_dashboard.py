@@ -286,7 +286,6 @@ class LabCeoDashboard(models.AbstractModel):
         """
         if not self.env.user.has_group('lab_ceo_dashboard.group_lab_executive'):
             raise AccessError(_("The Management hub is for whoever runs the lab."))
-        access = self.env['ir.model.access']
         out = []
         money_keys = {'collections', 'money'}
         for index, (key, name, icon, xmlid, hint) in enumerate(self.LAUNCHERS):
@@ -304,8 +303,9 @@ class LabCeoDashboard(models.AbstractModel):
             if not action:
                 continue
             action = action.sudo()
-            if action._name == 'ir.actions.act_window' \
-                    and not access.check(action.res_model, 'read', False):
+            if action._name == 'ir.actions.act_window' and (
+                    action.res_model not in self.env
+                    or not self.env[action.res_model].has_access('read')):
                 continue
             value, unit = self._launcher_figure(key)
             row = {

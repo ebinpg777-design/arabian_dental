@@ -51,7 +51,10 @@ class PartnerStatementWizard(models.TransientModel):
         self.ensure_one()
         Perf = self.env['lab.collection.performance']
         Perf._check_collections_access()
-        outside = partners.filtered(
+        # Elevated: a clinic off the round is one this person cannot even read
+        # (Odoo 20 confines an executive on res.partner), and the refusal has to
+        # name it rather than die on the read.
+        outside = partners.sudo().filtered(
             lambda p: not Perf._partner_in_viewer_scope(p.commercial_partner_id))
         if outside:
             raise AccessError(_("Not on your round: %s.",
@@ -69,9 +72,13 @@ class PartnerStatementWizard(models.TransientModel):
         through `_partners()`, which asks the ledger questions this person may not
         put to it."""
         self.ensure_one()
-        if not self.partner_ids:
+        # Read elevated: as the executive, the many2many silently drops the
+        # clinics their partner restriction hides (Odoo 20), so a widened
+        # selection would print the visible part instead of being refused.
+        partners = self.sudo().partner_ids.with_env(self.env)
+        if not partners:
             raise UserError(_("Nothing to print: the clinic is missing."))
-        return self._scope_partners(self.partner_ids)
+        return self._scope_partners(partners)
 
     def action_print(self):
         if not self._elevated():

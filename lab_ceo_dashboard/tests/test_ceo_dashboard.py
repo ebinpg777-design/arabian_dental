@@ -5,6 +5,17 @@ from odoo import fields, tools
 from odoo.tests import TransactionCase, tagged
 
 
+def admin_runs_the_lab(env):
+    """The administrator these tests open the hub as must hold the CEO group.
+
+    The database the suite was written against had it granted by hand; a fresh
+    one (every Odoo 20 test database) does not, and the hub refuses anybody
+    without it. (20.0 port)
+    """
+    env.ref('base.user_admin').group_ids = [
+        (4, env.ref('lab_ceo_dashboard.group_lab_executive').id)]
+
+
 @tagged('post_install', '-at_install')
 class TestTheManagementApp(TransactionCase):
     """The app opens on the hub and its bar carries only the incentive screens.
@@ -69,6 +80,11 @@ class TestTheManagementApp(TransactionCase):
 class TestManagementDashboards(TransactionCase):
     """The Management menu's own boards, replacing four configured on a third-party
     tile engine that was uninstalled. (client, 2026-08-27)"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        admin_runs_the_lab(cls.env)
 
     DASHBOARDS = (
         ('lab_ceo_dashboard.action_mgmt_sales', 'sale.report'),
@@ -156,6 +172,7 @@ class TestLaunchers(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Dash = cls.env['lab.ceo.dashboard']
+        admin_runs_the_lab(cls.env)
 
     def test_every_management_screen_is_offered_to_an_administrator(self):
         names = [r['name'] for r in self.Dash.with_user(
@@ -252,6 +269,7 @@ class TestFieldCommand(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Dash = cls.env['lab.ceo.dashboard']
+        admin_runs_the_lab(cls.env)
         base = [cls.env.ref('base.group_user').id,
                 cls.env.ref('lab_ceo_dashboard.group_lab_executive').id]
         cls.reader = cls.env['res.users'].create({

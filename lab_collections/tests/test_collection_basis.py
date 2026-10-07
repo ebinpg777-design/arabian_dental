@@ -370,6 +370,11 @@ class TestCollectionBasis(TransactionCase):
         self.assertNotIn(self.clinic.id, action['domain'][0][2])
 
     def test_the_effectiveness_index_reads_from_the_parts_it_shows(self):
+        # Something collectable in the window whatever the ledger holds: the
+        # index is undefined (None) on a book with no movement in Jan-Feb 2026,
+        # which is every fresh database. (20.0 port)
+        self._invoice(500.0, '2026-01-15')
+        self._journal_receipt(200.0, '2026-02-10')
         data = self._book()
         book = data['opening_book']
         movement = data['movement']

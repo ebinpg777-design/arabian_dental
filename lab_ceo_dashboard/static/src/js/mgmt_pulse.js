@@ -1,14 +1,12 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, signal, useLayoutEffect, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { useLayoutEffect, useRef } from "@web/owl2/utils";
 import { formatMonetary } from "@web/views/fields/formatters";
 
 import { shortINR } from "@lab_ceo_dashboard/js/inr";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The Management menu's Sales & Cases / Field Force / Money screens.
@@ -20,11 +18,11 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class LabMgmtPulse extends Component {
     static template = "lab_ceo_dashboard.MgmtPulse";
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         const params = (this.props.action && this.props.action.params) || {};
         this.state = proxy({
             lens: "orders",
@@ -43,10 +41,10 @@ export class LabMgmtPulse extends Component {
         onWillStart(() => this.load());
         // The rail runs oldest to newest, so on a phone today and tomorrow start
         // off-screen: bring the chosen day into view whenever the day changes.
-        this.rail = useRef("rail");
+        this.rail = signal.ref();
         useLayoutEffect(
             (day) => {
-                const el = this.rail.el;
+                const el = this.rail();
                 const on = el && el.querySelector(".o_sd_day_on");
                 if (day && on) {
                     el.scrollLeft = on.offsetLeft - el.clientWidth / 2 + on.offsetWidth / 2;

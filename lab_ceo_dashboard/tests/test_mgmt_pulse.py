@@ -13,6 +13,8 @@ from odoo import fields
 from ..models.mgmt_pulse import TOP_ROWS
 from odoo.tests import TransactionCase, tagged
 
+from .test_ceo_dashboard import admin_runs_the_lab
+
 
 @tagged('post_install', '-at_install')
 class TestMgmtPulse(TransactionCase):
@@ -22,6 +24,7 @@ class TestMgmtPulse(TransactionCase):
         super().setUpClass()
         cls.Pulse = cls.env['lab.mgmt.pulse']
         cls.today = fields.Date.context_today(cls.env['res.users'])
+        admin_runs_the_lab(cls.env)
 
     def test_the_whole_page_comes_back_in_one_call(self):
         data = self.Pulse.get_pulse()

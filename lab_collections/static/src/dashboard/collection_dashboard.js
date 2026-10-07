@@ -2,11 +2,9 @@
 
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, signal, useLayoutEffect, useProps } from "@odoo/owl";
 import { DateTimeInput } from "@web/core/datetime/datetime_input";
 import { deserializeDate, serializeDate } from "@web/core/l10n/dates";
-import { useLayoutEffect, useRef } from "@web/owl2/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Collections: what was invoiced against what has actually come in.
@@ -22,7 +20,7 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 export class CollectionDashboard extends Component {
     static template = "lab_collections.CollectionDashboard";
     static components = { DateTimeInput };
-    static props = ["*"];
+    props = useProps();
 
     // The client asked for dd/mm/yyyy: a native <input type="date"> follows the
     // BROWSER's locale and cannot be told otherwise, so the period pickers are
@@ -33,10 +31,10 @@ export class CollectionDashboard extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.loadToken = 0;
         this.cancelTarget = false;
-        this.targetInput = useRef("targetInput");
+        this.targetInput = signal.ref();
         // A freshly inserted <input> does not honour the autofocus attribute -
         // browsers apply that only on page load - so focus it when it appears.
         useLayoutEffect(
@@ -46,7 +44,7 @@ export class CollectionDashboard extends Component {
                     el.select();
                 }
             },
-            () => [this.targetInput.el]
+            () => [this.targetInput()]
         );
         this.state = proxy({
             data: null,
@@ -601,7 +599,6 @@ export class CollectionDashboard extends Component {
             type: "ir.actions.report",
             report_type: "qweb-pdf",
             report_name: "lab_collections.report_collection",
-            report_file: "lab_collections.report_collection",
             data: { options: this.state.options, tab: this.state.tab },
         });
     }

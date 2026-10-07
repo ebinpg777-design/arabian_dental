@@ -186,7 +186,6 @@
         <field name="model">lab.collection.performance</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">lab_collections.report_collection</field>
-        <field name="report_file">lab_collections.report_collection</field>
         <field name="paperformat_id" ref="sale_custom.paperformat_lab_invoice"/>
     </record>
 </odoo>
