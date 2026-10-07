@@ -318,6 +318,13 @@ class MigrationBackend(models.Model):
                         tag = {'x_src_id': row['id']}
                         if 'company_ids' in company_val:
                             tag['company_ids'] = company_val['company_ids']
+                        # what the lab decided about a built-in must survive the
+                        # adoption: Odoo 20's l10n_in loads most taxes ARCHIVED, and an
+                        # archived child silently drops out of its group - the lab's
+                        # 5% GST group then computed no tax on 58,018 orders
+                        for f in spec.get('adopt_write', ()):
+                            if f in vals:
+                                tag[f] = vals[f]
                         rec.write(tag)
                         c['adopted'] += 1
                     elif rec:
@@ -1610,19 +1617,52 @@ class MigrationBackend(models.Model):
             if 'deprecated' in vals:
                 vals['active'] = not vals.pop('deprecated')
             self._adopt_chart_account(row, cache)
+            self._free_code_from_spare(row, vals, cache)
             return
         if phase != 'scalars':
             return
+        mine = self._resolve(cache, 'account.account', row['id'])
         if is_new:
             at = vals.get('account_type') or 'asset_current'
             vals['reconcile'] = (True if at in ('asset_receivable', 'liability_payable')
                                  else bool(row.get('reconcile')))
+        elif mine and not self.env['account.move.line'].sudo().search_count(
+                [('account_id', '=', mine)], limit=1):
+            # A chart account adopted before any entry exists takes the lab's type:
+            # Odoo 20's template types some differently (the lab's Opening Balance
+            # Control Account is an asset, the template's an expense).
+            at = vals.get('account_type')
+            vals['reconcile'] = (True if at in ('asset_receivable', 'liability_payable')
+                                 else bool(row.get('reconcile')))
         else:
-            # On re-sync, never overwrite the account_type/reconcile of an existing
-            # (possibly adopted l10n_in) account — that could violate the
+            # On re-sync, never overwrite the account_type/reconcile of an account
+            # that already carries entries - that could violate the
             # receivable/payable-must-reconcile constraint.
             vals.pop('account_type', None)
             vals.pop('reconcile', None)
+
+    def _free_code_from_spare(self, row, vals, cache):
+        """Odoo 20 generates its own bank suspense / outstanding receipts and payments
+        accounts and numbers them 100201, 100202, 100203 - the codes the lab's Federal
+        Bank, Bank Suspense and Outstanding Receipts carry. Matched by code, the lab's
+        bank account landed on Odoo's suspense account (2.8M off the bank balance).
+
+        Runs BEFORE the code match: a target account the migration has not mapped
+        that holds this code but is a different account (other type or name) moves
+        aside under ``<code>.<id>``, so the lab's own account takes the code."""
+        code = vals.get('code')
+        company = self._resolve(cache, 'res.company', row.get('company_id'))
+        if not (code and company):
+            return
+        mine = self._resolve(cache, 'account.account', row['id'])
+        Account = self.env['account.account'].with_context(active_test=False).with_company(company)
+        for holder in Account.search([('code', '=', code), ('company_ids', 'in', company)]):
+            if holder.id == mine or holder.x_src_id:
+                continue
+            same = holder.account_type == vals.get('account_type') and \
+                (holder.name or '').strip().lower() == (vals.get('name') or '').strip().lower()
+            if not same:
+                holder.code = '%s.%s' % (code, holder.id)
 
     def _adopt_chart_account(self, row, cache):
         """Map a v17 chart account onto the v20 account made from the same template.
@@ -1635,7 +1675,10 @@ class MigrationBackend(models.Model):
             return
         name = cache.get('_acc_xmlid_', {}).get(row['id']) or ''
         prefix, _sep, template = name.partition('_')
-        if not (prefix.isdigit() and template) or 'journal' in template:
+        # `1_bank_journal_default_account_75` ends with a SOURCE record id and names
+        # nothing on the target; `1_account_journal_suspense_account_id` names the
+        # company's suspense account on both sides and is adopted like a template
+        if not (prefix.isdigit() and template) or re.search(r'_\d+$', template):
             return
         company = self._resolve(cache, 'res.company', row.get('company_id'))
         if not company:

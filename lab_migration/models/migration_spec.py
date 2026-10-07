@@ -89,6 +89,8 @@ ENTITY_SPECS = [
         # is 'purchase' there, 'none' here), and the name carries the rate anyway.
         'key': 'tax', 'name': 'Taxes', 'src': 'account_tax', 'dst': 'account.tax',
         'company_field': 'company_id', 'match': ['name'],
+        # an adopted l10n_in tax takes the lab's active flag and price inclusion
+        'adopt_write': ['active', 'price_include_override'],
         'scalars': {'name': 'name', 'amount': 'amount', 'amount_type': 'amount_type',
                     'type_tax_use': 'type_tax_use', 'price_include': 'price_include',
                     'active': 'active', 'sequence': 'sequence', 'description': 'description',
