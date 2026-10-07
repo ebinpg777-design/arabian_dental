@@ -642,7 +642,7 @@ class LabCaseLine(models.Model):
     colour_id = fields.Many2one('product.colour', string='Colour')
     # Which teeth, the way the lab writes them (FDI: "14, 13, 46"), and which cast came
     # with the case. The order line has both; the slip picked them off nothing.
-    teeth = fields.Char('Teeth (FDI)', size=64,
+    teeth = fields.Char('Teeth (FDI)',  # no size: 19 silently cut it at 64 characters
                         help="Tooth numbers in FDI notation, e.g. 14, 13, 46, 47.")
     cast = fields.Selection(UL, string='Cast',
                             help="The cast received for this work: upper, lower, or both.")

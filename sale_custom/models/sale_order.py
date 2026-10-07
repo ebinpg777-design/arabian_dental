@@ -771,7 +771,7 @@ class SaleOrderLine(models.Model):
     # suite this was forked from only needed the arch. One free-text field, the
     # way the lab already wrote it. (migration, 2026-09-23)
     teeth = fields.Char(
-        'Teeth (FDI)', size=64,
+        'Teeth (FDI)',  # no size: Odoo 19 cut longer notes at 64 characters without a word
         help="Tooth numbers in FDI notation, e.g. 14, 13, 46, 47.")
 
     @api.model
