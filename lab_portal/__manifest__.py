@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Customer Portal',
-    'version': '19.0.1.1.0',
+    'version': '20.0.1.1.0',
     'summary': 'Doctors track their cases and see where each one is in the lab',
     'description': """
 Customer Portal
@@ -25,6 +25,7 @@ can tell at a glance where each one is without ringing the lab.
                 'ebshel_dynamic_filter', 'lab_fieldwork'],
     'data': [
         'data/ir_sequence.xml',
+        'data/portal_entry_data.xml',
         'views/case_request_views.xml',
         'views/portal_templates.xml',
         'data/filter_tiles.xml',

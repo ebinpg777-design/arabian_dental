@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Doctor Call Desk',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Sales/Sales',
     'summary': 'A case that needs the doctor raises a ticket; a desk of its own takes it, '
                'calls, records the answer - and the order waits until it is closed',

@@ -9,7 +9,7 @@
             <field name="model_id" ref="lab_portal.model_lab_case_request"/>
             <field name="domain">[('state','=','new')]</field>
             <field name="color">amber</field>
-            <field name="icon">fa-inbox</field>
+            <field name="icon">inbox</field>
         </record>
 
         <record id="tile_case_request_reviewed" model="filter.tile">
@@ -19,7 +19,7 @@
             <field name="model_id" ref="lab_portal.model_lab_case_request"/>
             <field name="domain">[('state','=','reviewed')]</field>
             <field name="color">teal</field>
-            <field name="icon">fa-eye</field>
+            <field name="icon">visibility</field>
         </record>
 
         <record id="tile_case_request_converted" model="filter.tile">
@@ -29,7 +29,7 @@
             <field name="model_id" ref="lab_portal.model_lab_case_request"/>
             <field name="domain">[('state','=','converted')]</field>
             <field name="color">emerald</field>
-            <field name="icon">fa-check-circle</field>
+            <field name="icon">check_circle</field>
         </record>
         <record id="row_case_request_1" model="filter.tile.row">
             <field name="model_id" ref="lab_portal.model_lab_case_request"/><field name="number">1</field><field name="name">Digital Rx</field>

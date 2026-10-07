@@ -50,7 +50,7 @@
                         <span class="o_ddk_knob"/><t t-if="this.state.data.me.at_desk">At the desk</t><t t-else="">Away</t>
                     </button>
                     <div class="o_ddk_search"><i class="fa fa-search"/>
-                        <input type="text" placeholder="Clinic, patient, order…  /" t-custom-model="this.state.search"/></div>
+                        <input type="text" placeholder="Clinic, patient, order…  /" t-model.proxy="this.state.search"/></div>
                     <button class="o_ddk_tool" t-on-click="() => this.load()" title="Refresh"><i class="fa fa-refresh"/></button>
                     <button class="o_ddk_tool" t-on-click="this.openList" title="Every ticket, as a list"><i class="fa fa-list"/><span>All tickets</span></button>
                 </t>
@@ -204,13 +204,13 @@
                                             t-on-click="() => this.state.form.outcome = o[0]" t-out="o[1]"/>
                                 </div>
                                 <div class="o_ddk_sec">What the doctor said</div>
-                                <textarea rows="3" t-custom-model="this.state.form.answer" placeholder="In the doctor's words: shade A2 on 21, keep the clasp on 16…"/>
+                                <textarea rows="3" t-model.proxy="this.state.form.answer" placeholder="In the doctor's words: shade A2 on 21, keep the clasp on 16…"/>
                                 <div class="o_ddk_sec">Answered by</div>
                                 <div class="o_ddk_picks">
                                     <button t-foreach="this.state.data.channels" t-as="c" t-key="c[0]" t-att-class="'o_ddk_pick' + (this.state.form.channel === c[0] ? ' on' : '')"
                                             t-on-click="() => this.state.form.channel = c[0]" t-out="c[1]"/>
                                 </div>
-                                <label class="o_ddk_tick" t-if="this.state.form.outcome !== 'cancel'"><input type="checkbox" t-custom-model="this.state.form.tell"/> Put the answer on the job card</label>
+                                <label class="o_ddk_tick" t-if="this.state.form.outcome !== 'cancel'"><input type="checkbox" t-model.proxy="this.state.form.tell"/> Put the answer on the job card</label>
                                 <div class="o_ddk_form_f">
                                     <span t-if="this.alsoIds.length" class="o_ddk_hint">Closes <t t-out="this.alsoIds.length + 1"/> tickets.</span>
                                     <button class="o_ddk_go o_ddk_a_green" t-on-click="this.saveAnswer" t-att-disabled="this.state.busy">
@@ -228,8 +228,8 @@
                                     <button t-foreach="this.waits" t-as="w" t-key="w.minutes" t-att-class="'o_ddk_pick' + (this.state.form.wait === w.minutes ? ' on' : '')"
                                             t-on-click="() => this.state.form.wait = w.minutes" t-out="w.name"/>
                                 </div>
-                                <input t-if="this.state.form.wait === 'custom'" type="datetime-local" t-custom-model="this.state.form.custom"/>
-                                <input type="text" t-custom-model="this.state.form.remarks" placeholder="Who picked up, what they said (optional)"/>
+                                <input t-if="this.state.form.wait === 'custom'" type="datetime-local" t-model.proxy="this.state.form.custom"/>
+                                <input type="text" t-model.proxy="this.state.form.remarks" placeholder="Who picked up, what they said (optional)"/>
                                 <div class="o_ddk_form_f">
                                     <button class="o_ddk_go o_ddk_a_amber" t-on-click="this.saveAttempt" t-att-disabled="this.state.busy">
                                         <i t-att-class="'fa ' + (this.state.busy ? 'fa-circle-o-notch fa-spin' : 'fa-clock-o')"/> Save, and wait</button>
@@ -237,18 +237,18 @@
                             </div>
                             <div class="o_ddk_form o_ddk_form_teal" t-if="this.state.form and this.state.form.kind === 'field'">
                                 <div class="o_ddk_sec">To be asked at the clinic<t t-if="t.field_candidate"> by <t t-out="t.field_candidate"/></t></div>
-                                <input type="text" t-custom-model="this.state.form.note" placeholder="Anything the executive should know (optional)"/>
+                                <input type="text" t-model.proxy="this.state.form.note" placeholder="Anything the executive should know (optional)"/>
                                 <div class="o_ddk_hint">The executive is told, sees the question on their case, and answers from the clinic.</div>
                                 <div class="o_ddk_form_f"><button class="o_ddk_go o_ddk_a_teal" t-on-click="this.saveField" t-att-disabled="this.state.busy"><i class="fa fa-share"/> Hand over</button></div>
                             </div>
                             <div class="o_ddk_form o_ddk_form_red" t-if="this.state.form and this.state.form.kind === 'escalate'">
                                 <div class="o_ddk_sec">Why the desk lead is needed</div>
-                                <input type="text" t-custom-model="this.state.form.note" placeholder="e.g. the clinic says the doctor is abroad until the 12th"/>
+                                <input type="text" t-model.proxy="this.state.form.note" placeholder="e.g. the clinic says the doctor is abroad until the 12th"/>
                                 <div class="o_ddk_form_f"><button class="o_ddk_go o_ddk_a_red" t-on-click="this.saveEscalation" t-att-disabled="this.state.busy"><i class="fa fa-level-up"/> Escalate</button></div>
                             </div>
                             <div class="o_ddk_form o_ddk_form_slate" t-if="this.state.form and this.state.form.kind === 'assign'">
                                 <div class="o_ddk_sec">Give this ticket to</div>
-                                <select t-custom-model="this.state.form.user">
+                                <select t-model.proxy="this.state.form.user">
                                     <option value="">Choose…</option>
                                     <option t-foreach="this.state.data.agents" t-as="a" t-key="a.id" t-att-value="a.id">
                                         <t t-out="a.name"/> · <t t-out="a.open"/> open<t t-if="!a.at_desk"> · away</t></option>
@@ -257,13 +257,13 @@
                             </div>
                             <div class="o_ddk_form o_ddk_form_slate" t-if="this.state.form and this.state.form.kind === 'unreached'">
                                 <div class="o_ddk_sec">Going ahead without the doctor's answer</div>
-                                <textarea rows="2" t-custom-model="this.state.form.answer" placeholder="Why, and what the lab will do: e.g. three days without an answer, made as written"/>
+                                <textarea rows="2" t-model.proxy="this.state.form.answer" placeholder="Why, and what the lab will do: e.g. three days without an answer, made as written"/>
                                 <div class="o_ddk_hint">The ticket closes and the order can be confirmed. It is written on the order who decided.</div>
                                 <div class="o_ddk_form_f"><button class="o_ddk_go o_ddk_a_slate" t-on-click="this.saveUnreached" t-att-disabled="this.state.busy"><i class="fa fa-ban"/> Close without an answer</button></div>
                             </div>
                             <div class="o_ddk_form o_ddk_form_slate" t-if="this.state.form and this.state.form.kind === 'withdraw'">
                                 <div class="o_ddk_sec">The question is no longer a question</div>
-                                <input type="text" t-custom-model="this.state.form.note" placeholder="Why: e.g. raised twice, the doctor wrote it on the slip"/>
+                                <input type="text" t-model.proxy="this.state.form.note" placeholder="Why: e.g. raised twice, the doctor wrote it on the slip"/>
                                 <div class="o_ddk_form_f"><button class="o_ddk_go o_ddk_a_slate" t-on-click="this.saveWithdraw" t-att-disabled="this.state.busy"><i class="fa fa-times-circle-o"/> Withdraw</button></div>
                             </div>
 

@@ -87,7 +87,7 @@ class DoctorTicket(models.Model):
     first_call_on = fields.Datetime(readonly=True, copy=False)
 
     call_ids = fields.One2many('lab.doctor.call.log', 'ticket_id', string='Attempts')
-    attempts = fields.Integer(compute='_compute_attempts', store=True)
+    attempts = fields.Integer('Number of Attempts', compute='_compute_attempts', store=True)
     unanswered = fields.Integer(compute='_compute_attempts', store=True)
     last_response = fields.Selection(RESPONSES, compute='_compute_attempts', store=True)
 

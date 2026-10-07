@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
 import math
 
 from odoo import http, _
@@ -17,13 +16,12 @@ class LabCustomerPortal(CustomerPortal):
     quotation list with a status column bolted on.
     """
 
-    def _prepare_home_portal_values(self, counters):
-        values = super()._prepare_home_portal_values(counters)
-        if 'case_count' in counters:
-            partner = request.env.user.partner_id
-            values['case_count'] = request.env['sale.order'].search_count(
-                self._case_domain(partner)) if partner else 0
-        return values
+    def _prepare_portal_counter_values(self, counter):
+        # Odoo 20: the home card is the portal.entry `portal_entry_cases`; its badge
+        # asks for `case_count` here (model, domain, access needed).
+        if counter == 'case_count':
+            return 'sale.order', self._case_domain(request.env.user.partner_id), 'read'
+        return super()._prepare_portal_counter_values(counter)
 
     def _case_domain(self, partner):
         """Every case belonging to this doctor's practice.
@@ -245,7 +243,8 @@ class LabCustomerPortal(CustomerPortal):
                 continue
             ids.append(attachments.create({
                 'name': upload.filename,
-                'datas': base64.b64encode(upload.read()),
+                # Odoo 20 drops `datas` on create (with only a warning): `raw`.
+                'raw': upload.read(),
                 'res_model': 'lab.case.request',
                 'res_id': rx.id,
             }).id)

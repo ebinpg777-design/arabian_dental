@@ -1,11 +1,10 @@
 /** @odoo-module **/
-import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
 import { serializeDateTime } from "@web/core/l10n/dates";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const { DateTime } = luxon;
 
@@ -31,11 +30,11 @@ const COLUMNS = [
 
 export class DoctorDesk extends Component {
     static template = "lab_doctor_desk.Desk";
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         const params = (this.props.action && this.props.action.params) || {};
         this.columns = COLUMNS;

@@ -196,5 +196,6 @@ class TestDigitalRx(TransactionCase):
         carried = self.env['ir.attachment'].search([
             ('res_model', '=', 'sale.order'), ('res_id', '=', request.sale_order_id.id)])
         self.assertEqual(carried.mapped('name'), ['upper.stl'])
-        self.assertEqual(carried.raw, b'solid scan\nendsolid')
+        # Odoo 20: a binary read is a BinaryValue; its bytes are .content
+        self.assertEqual(carried.raw.content, b'solid scan\nendsolid')
         self.assertTrue(request.attachment_ids, "the request keeps its own copy")

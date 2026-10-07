@@ -6,7 +6,7 @@
  * offline once loaded, and is honest about its scope: it narrows the page you are
  * looking at, which is what the count on each tile refers to.
  */
-document.addEventListener("DOMContentLoaded", () => {
+function setupCaseFilter() {
     const list = document.querySelector(".o_case_list");
     if (!list) {
         return;
@@ -46,4 +46,12 @@ document.addEventListener("DOMContentLoaded", () => {
             apply(active ? "" : tile.dataset.stage);
         })
     );
-});
+}
+
+// Odoo 20 loads the frontend bundle after the document is parsed, so
+// DOMContentLoaded has usually fired already: run now when it has.
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupCaseFilter);
+} else {
+    setupCaseFilter();
+}

@@ -2,6 +2,7 @@ id,name,model_id,group_id/id,operation,domain
 rule_doctor_ticket_own,"Doctor ticket: the ones I raised, sold or was asked to ask",lab.doctor.ticket,base.group_user,r,"['|', '|', ('raised_by_id', '=', user.id), ('salesperson_id', '=', user.id), ('field_user_id', '=', user.id)]"
 rule_doctor_ticket_desk,Doctor ticket: the desk sees all,lab.doctor.ticket,lab_doctor_desk.group_doctor_desk_agent,ru,
 rule_doctor_ticket_desk_1,Doctor ticket: the desk sees all,lab.doctor.ticket,lab_doctor_desk.group_doctor_desk_lead,crud,
+rule_doctor_ticket_checker,Doctor ticket: whoever checks orders sees all,lab.doctor.ticket,lab_order_control.group_lab_order_checker,r,
 rule_doctor_ticket_company,Doctor ticket: own companies,lab.doctor.ticket,,crud,"[('company_id', 'in', company_ids)]"
 access_doctor_call_desk,doctor call desk,lab.doctor.call.log,lab_doctor_desk.group_doctor_desk_agent,cru,
 access_doctor_ticket_answer,doctor ticket answer,lab.doctor.ticket.answer,base.group_user,crud,

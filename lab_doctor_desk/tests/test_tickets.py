@@ -605,6 +605,34 @@ class TestDoctorDesk(TransactionCase):
         with self.assertRaises(AccessError):
             desk.with_user(self.nobody).set_at_desk(False)
 
+    def test_a_desk_user_toggles_the_switch_on_their_own_record(self):
+        """Odoo 20 ignores SELF_WRITEABLE_FIELDS: the field is user_writeable, so the
+        preferences form (a plain write on one's own user, no sudo) can change it."""
+        self.env.invalidate_all()
+        me = self.env['res.users'].with_user(self.agent).browse(self.agent.id)
+        me.write({'at_doctor_desk': False})
+        self.env.invalidate_all()
+        self.assertFalse(self.agent.at_doctor_desk)
+        me.write({'at_doctor_desk': True})
+        self.env.invalidate_all()
+        self.assertTrue(self.agent.at_doctor_desk)
+        self.assertTrue(me.read(['at_doctor_desk'])[0]['at_doctor_desk'])
+        # somebody else's switch is not theirs to flip
+        with self.assertRaises(AccessError):
+            self.env['res.users'].with_user(self.agent).browse(self.agent2.id).write({'at_doctor_desk': False})
+
+    def test_whoever_checks_orders_reads_every_ticket(self):
+        order, ticket = self._ticket()
+        ticket.write({'raised_by_id': self.nobody.id, 'salesperson_id': False})
+        checker = self.env['res.users'].with_context(no_reset_password=True).create({
+            'name': 'Checker Cini', 'login': 'ddk_checker',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id,
+                                  self.env.ref('lab_order_control.group_lab_order_checker').id])]})
+        self.env.invalidate_all()
+        self.assertEqual(self.Ticket.with_user(checker).search([('id', '=', ticket.id)]), ticket)
+        with self.assertRaises(AccessError):
+            ticket.with_user(checker).write({'question': 'changed by hand'})
+
     # ------------------------------------------------------------------ what is known about the doctor
     def test_when_a_practice_picks_up_is_learnt_from_its_calls(self):
         order, ticket = self._ticket()

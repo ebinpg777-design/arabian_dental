@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- The card on the portal home (Odoo 20: a portal.entry; its count comes from
+         LabCustomerPortal._prepare_portal_counter_values('case_count')). -->
+    <record id="portal_entry_cases" model="portal.entry">
+        <field name="name">Cases</field>
+        <field name="description">Where every case you sent us has got to</field>
+        <field name="url">/my/cases</field>
+        <field name="image" type="bytes" file="lab_portal/static/description/icon.png"/>
+        <field name="placeholder_count">case_count</field>
+        <field name="category">client_category</field>
+        <field name="sequence" eval="10"/>
+    </record>
+</odoo>
