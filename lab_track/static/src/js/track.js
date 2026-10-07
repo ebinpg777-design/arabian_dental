@@ -1,12 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, signal, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { useRef } from "@web/owl2/utils";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
+import { ActionPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * Track a Work — one box, one screen, everything.
@@ -18,15 +17,15 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class LabTrack extends Component {
     static template = "lab_track.Track";
-    static props = ["*"];
+    props = useProps();
     // The Station Board's tracker: every name is plain text, nothing opens a record.
     static readonly = false;
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = usePlugin(ActionPlugin);
         this.notification = usePlugin(NotificationPlugin);
-        this.input = useRef("search");
+        this.input = signal.ref();
         this.state = proxy({
             ref: "",
             data: null,
@@ -287,8 +286,8 @@ export class LabTrack extends Component {
         this.state.data = null;
         this.state.matches = null;
         this.state.searched = false;
-        if (this.input.el) {
-            this.input.el.focus();
+        if (this.input()) {
+            this.input().focus();
         }
     }
 

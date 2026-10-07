@@ -25,11 +25,6 @@ access_courier_event_wizard_checker,courier event wizard checker,lab.courier.eve
 access_delivery_receive_wizard_mgr,receive wizard mgr,lab.delivery.receive.wizard,lab_fieldwork.group_fieldwork_manager,crud,
 access_delivery_receive_wizard_checker,receive wizard checker,lab.delivery.receive.wizard,lab_order_control.group_lab_order_checker,crud,
 access_delivery_receive_wizard_exec,receive wizard exec,lab.delivery.receive.wizard,lab_fieldwork.group_fieldwork_executive,crud,
-rule_partner_executive_carried,Executives: clinics they carry work to,base.model_res_partner,lab_fieldwork.group_fieldwork_executive,r,"['|', '|', '|',
-            ('delivery_ids.executive_id', '=', user.id),
-            ('delivery_ids.create_uid', '=', user.id),
-            ('parent_id.delivery_ids.executive_id', '=', user.id),
-            ('parent_id.delivery_ids.create_uid', '=', user.id)]"
-rule_sale_order_executive_carried,Executives: orders they carry,sale.model_sale_order,lab_fieldwork.group_fieldwork_executive,r,"['|',
+rule_sale_order_executive_carried,Executives: orders they carry,sale.order,lab_fieldwork.group_fieldwork_executive,r,"['|',
             ('delivery_ids.executive_id', '=', user.id),
             ('delivery_ids.create_uid', '=', user.id)]"

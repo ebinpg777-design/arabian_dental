@@ -98,4 +98,4 @@ class TestFloorTrack(TransactionCase):
                    or el.get('href') or el.get('t-att-href')]
         self.assertTrue(opening)
         for el in opening:
-            self.assertIn('!readonly', el.get('t-if') or '', etree.tostring(el)[:120])
+            self.assertIn('!this.readonly', el.get('t-if') or '', etree.tostring(el)[:120])

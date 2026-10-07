@@ -1,11 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy, signal, t, usePlugin, useProps } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { useService } from "@web/core/utils/hooks";
-import { useRef } from "@web/owl2/utils";
 import { session } from "@web/session";
 import { isBarcodeScannerSupported } from "@web/core/barcode/barcode_video_scanner";
 import {
@@ -14,7 +13,6 @@ import {
     readCodesFromPhoto,
     toCanvas as toCanvasFromBlob,
 } from "@lab_delivery/js/photo_barcode";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The Scan Station: a full-screen hand-over counter, not a prompt.
@@ -40,13 +38,13 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 export class ScanStation extends Component {
     static template = "lab_delivery.ScanStation";
     static components = { Dialog };
-    static props = {
-        close: Function,
-    };
+    props = useProps({
+        close: t.function(),
+    });
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         // A phone the lab has excused from scanning gets the keyboard and
         // nothing else: the invoice number is typed. (client, 2026-09-28)
@@ -74,9 +72,9 @@ export class ScanStation extends Component {
             run: [],
             moved: 0,
         });
-        this.fileRef = useRef("file");
-        this.manualRef = useRef("manual");
-        this.videoRef = useRef("video");
+        this.fileRef = signal.ref();
+        this.manualRef = signal.ref();
+        this.videoRef = signal.ref();
         this.stream = null;
         this.cameraTimer = null;
         this.cameraMisses = 0;
@@ -117,7 +115,7 @@ export class ScanStation extends Component {
             if (this.state.mode === "camera") {
                 this.startCamera();
             } else if (this.state.mode === "type") {
-                setTimeout(() => this.manualRef.el && this.manualRef.el.focus(), 80);
+                setTimeout(() => this.manualRef() && this.manualRef().focus(), 80);
             }
         });
         onWillUnmount(() => {
@@ -161,7 +159,7 @@ export class ScanStation extends Component {
             this.onCameraError(error);
             return;
         }
-        const el = this.videoRef.el;
+        const el = this.videoRef();
         if (!el) {
             this.stopCamera();
             return;
@@ -508,7 +506,7 @@ export class ScanStation extends Component {
     }
 
     grabFrame() {
-        const video = this.videoRef.el;
+        const video = this.videoRef();
         if (!video || !video.videoWidth) {
             return null;
         }
@@ -651,7 +649,7 @@ export class ScanStation extends Component {
         }
         if (mode === "type") {
             // after the click has settled, so the keyboard opens on the field
-            setTimeout(() => this.manualRef.el && this.manualRef.el.focus(), 80);
+            setTimeout(() => this.manualRef() && this.manualRef().focus(), 80);
         }
     }
 
@@ -675,8 +673,8 @@ export class ScanStation extends Component {
     }
 
     takePhoto() {
-        if (this.fileRef.el) {
-            this.fileRef.el.click();
+        if (this.fileRef()) {
+            this.fileRef().click();
         }
     }
 
@@ -739,6 +737,12 @@ export class ScanStation extends Component {
             return;
         }
         this.state.manual = "";
+        // OWL 3's t-model only writes the box when the value it last RENDERED
+        // changes: a wedge scanner types and presses Enter inside one frame, so
+        // "" -> code -> "" never re-renders and the old code stayed in the box.
+        if (this.manualRef()) {
+            this.manualRef().value = "";
+        }
         this.handleCode(code, "typed");
     }
 

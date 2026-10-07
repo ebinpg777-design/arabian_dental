@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Track a Work',
-    'version': '19.0.1.3.0',
+    'version': '20.0.1.3.0',
     'summary': "Type a case number, see everything about it on one screen (R18)",
     'description': """
 Track a Work

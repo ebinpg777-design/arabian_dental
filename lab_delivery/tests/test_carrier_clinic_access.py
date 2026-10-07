@@ -55,6 +55,71 @@ class TestCarrierSeesTheClinic(TransactionCase):
         self.assertTrue(self._can_read(self.doctor))
         self.assertFalse(self._can_read(self.stranger))
 
+    def test_a_box_they_raised_for_a_colleague_keeps_the_clinic_open(self):
+        """The second half of the carried clause: the executive who RAISED the
+        delivery and handed it to a colleague still reads where it went."""
+        colleague = self.env['res.users'].create({
+            'name': 'Colleague Executive', 'login': 'colleague_exec',
+            'group_ids': [(6, 0, [
+                self.env.ref('base.group_user').id,
+                self.env.ref('lab_fieldwork.group_fieldwork_executive').id])]})
+        order = self.env['sale.order'].create({
+            'partner_id': self.clinic.id,
+            'order_line': [(0, 0, {'product_id': self.product.id, 'product_uom_qty': 1})]})
+        delivery = self.env['lab.delivery'].create({
+            'sale_order_id': order.id, 'executive_id': colleague.id,
+            'scheduled_date': fields.Datetime.now()})
+        self.assertFalse(self._can_read(self.clinic))
+        self.env.cr.execute("UPDATE lab_delivery SET create_uid = %s WHERE id = %s",
+                            [self.carrier.id, delivery.id])
+        self.env.invalidate_all()
+        self.assertTrue(self._can_read(self.clinic))
+        self.assertTrue(self._can_read(self.doctor))
+        self.assertFalse(self._can_read(self.stranger))
+
+    def test_the_restriction_still_confines_the_carrier_in_a_search(self):
+        """Odoo 20: the carried clause widens lab_fieldwork's one partner
+        restriction (`fw_reachable`); a search as the carrier returns the clinic
+        they carry to and never the one they do not."""
+        order = self.env['sale.order'].create({
+            'partner_id': self.clinic.id,
+            'order_line': [(0, 0, {'product_id': self.product.id, 'product_uom_qty': 1})]})
+        self.env['lab.delivery'].create({
+            'sale_order_id': order.id, 'executive_id': self.carrier.id,
+            'scheduled_date': fields.Datetime.now()})
+        self.env.flush_all()
+        found = self.env['res.partner'].with_user(self.carrier).search(
+            [('id', 'in', (self.clinic | self.doctor | self.stranger).ids)])
+        self.assertEqual(found, self.clinic | self.doctor)
+
+    def test_the_delivery_form_opens_for_the_carrier_with_every_field(self):
+        """The production fault of 2026-09-15 was a FORM: the clinic on the
+        delivery refused. Open the real form view as the carrier, the way the web
+        client does (every field of the view, sub-views included), off their
+        route."""
+        order = self.env['sale.order'].create({
+            'partner_id': self.doctor.id,
+            'order_line': [(0, 0, {'product_id': self.product.id, 'product_uom_qty': 1})]})
+        order.write({'state': 'sale'})
+        delivery = self.env['lab.delivery'].create({
+            'sale_order_id': order.id, 'executive_id': self.carrier.id,
+            'scheduled_date': fields.Datetime.now()})
+        self.env.flush_all()
+        self.env.invalidate_all()
+        mine = delivery.with_user(self.carrier)
+        form = Form(mine)
+        self.assertEqual(form.sale_order_id, order)
+        self.assertEqual(form.partner_id, self.doctor)
+        # web_read of every field the form names, as the browser asks for them
+        view = mine.get_views([(False, 'form')])
+        names = view['models']['lab.delivery']['fields']
+        spec = {name: ({'fields': {'display_name': {}}}
+                       if mine._fields[name].relational else {})
+                for name in names}
+        values = mine.web_read(spec)[0]
+        self.assertEqual(values['partner_id']['display_name'], self.doctor.display_name)
+        self.assertTrue(values['sale_order_id'])
+
     def test_a_visit_there_opens_the_clinic_on_the_visit_form(self):
         visit = self.env['lab.visit'].create({
             'partner_id': self.clinic.id, 'contact_id': self.doctor.id,

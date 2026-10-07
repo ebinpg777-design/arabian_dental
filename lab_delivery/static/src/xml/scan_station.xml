@@ -26,7 +26,7 @@
             <div class="o_fws_stage">
                 <t t-if="this.state.mode === 'camera'">
                     <div class="o_fws_viewport">
-                        <video t-ref="video" muted="muted" autoplay="autoplay"
+                        <video t-ref="this.videoRef" muted="muted" autoplay="autoplay"
                                playsinline="playsinline"
                                t-att-class="this.state.mirror ? 'o_fws_mirror' : ''"/>
                         <div class="o_fws_frame">
@@ -94,7 +94,7 @@
                     </div>
                 </t>
                 <t t-elif="this.state.mode === 'photo'">
-                    <input type="file" class="d-none" t-ref="file"
+                    <input type="file" class="d-none" t-ref="this.fileRef"
                            accept="image/*" capture="environment" t-on-change="this.onPhoto"/>
                     <button class="o_fws_shutter" t-att-disabled="this.state.busy"
                             t-on-click="() => this.takePhoto()">
@@ -110,8 +110,8 @@
                 </t>
                 <t t-else="">
                     <div class="o_fws_typebox">
-                        <input type="text" class="o_fws_manual" t-ref="manual"
-                               t-custom-model="this.state.manual"
+                        <input type="text" class="o_fws_manual" t-ref="this.manualRef"
+                               t-model.proxy="this.state.manual"
                                inputmode="text" autocomplete="off"
                                autocapitalize="characters" spellcheck="false"
                                t-att-placeholder="this.cameraExempt ? 'Invoice number' : 'Invoice / order / delivery no.'"

@@ -6,7 +6,6 @@ which courier took it, and the number on the receipt in the sender's hand. Every
 downstream — the tracking link, the stalled check, what the doctor is told — is built
 from those two.
 """
-import base64
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
@@ -100,7 +99,7 @@ class LabCourierDispatchWizard(models.TransientModel):
             delivery.message_post(
                 body=_("Courier receipt for consignment %s.", awb),
                 attachments=[('courier-receipt-%s.jpg' % awb,
-                              base64.b64decode(self.receipt_image))])
+                              self.receipt_image.content)])
         # The booking is itself a checkpoint: without it the stalled check has no
         # starting point and the tracking page opens onto an empty history.
         delivery.record_event('booked', when=self.dispatched_at,

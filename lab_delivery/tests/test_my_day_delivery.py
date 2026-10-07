@@ -321,24 +321,42 @@ class TestMyDayDeliveryBrowser(HttpCase):
 
     A broken t-inherit xpath is invisible to every server-side check and fatal in the
     client — this is the only test that can see it.
+
+    Odoo 20: run AS a field executive (internal user + Executive, nothing else,
+    as the lab's are), not as the administrator - a fresh 20 database gives the
+    administrator no Field Work role, and the executive is who reads this screen.
+    The clinic is off the executive's route, so the screen also proves the
+    contact restriction lets them reach where they carry work.
     """
 
+    def _executive(self):
+        user = self.env['res.users'].create({
+            'name': 'Browser Executive', 'login': 'browser_exec',
+            'password': 'browser_exec', 'tz': 'Asia/Kolkata',
+            'group_ids': [(6, 0, [
+                self.env.ref('base.group_user').id,
+                self.env.ref('lab_fieldwork.group_fieldwork_executive').id])]})
+        self.env['crm.team'].create({'name': 'Browser Home Route', 'user_id': user.id})
+        return user
+
     def test_my_day_renders_with_the_delivery_section(self):
+        executive = self._executive()
+        away = self.env['crm.team'].create({'name': 'Browser Colleague Route'})
         clinic = self.env['res.partner'].create({
-            'name': 'Browser Clinic', 'is_clinic': True, 'phone': '9961577735'})
+            'name': 'Browser Clinic', 'is_clinic': True, 'phone': '9961577735',
+            'is_company': True, 'team_id': away.id})
         product = self.env['product.product'].create({
             'name': 'Browser Appliance', 'type': 'consu', 'list_price': 500.0})
         order = self.env['sale.order'].create({
             'partner_id': clinic.id, 'patient': 'Browser Patient',
             'order_line': [(0, 0, {'product_id': product.id, 'product_uom_qty': 1})]})
         order.action_confirm()
-        admin = self.env.ref('base.user_admin')
         self.env['lab.visit'].create({
-            'partner_id': clinic.id, 'user_id': admin.id})
+            'partner_id': clinic.id, 'user_id': executive.id})
         # 'out', so the card's single button reads Delivered — the other route into
         # the action service, and the one that opens the handover wizard.
         self.env['lab.delivery'].create({
-            'sale_order_id': order.id, 'executive_id': admin.id,
+            'sale_order_id': order.id, 'executive_id': executive.id,
             'state': 'out'})
 
         self.browser_js(
@@ -401,16 +419,17 @@ class TestMyDayDeliveryBrowser(HttpCase):
                 console.log('test successful');
             })();
             """,
-            login="admin", ready=READY, timeout=120)
+            login="browser_exec", ready=READY, timeout=120)
 
     def test_the_mobile_save_bar_appears_once_a_form_is_dirty(self):
         """The bar must track the stock indicator exactly — it is the same control."""
+        executive = self._executive()
         clinic = self.env['res.partner'].create({
             'name': 'Savebar Clinic', 'is_clinic': True})
         # 'open', not the default 'planned': the notebook holding the free-text field
         # is hidden until the executive has checked in.
         visit = self.env['lab.visit'].create({
-            'partner_id': clinic.id, 'user_id': self.env.ref('base.user_admin').id,
+            'partner_id': clinic.id, 'user_id': executive.id,
             'state': 'open'})
 
         self.browser_js(
@@ -453,6 +472,6 @@ class TestMyDayDeliveryBrowser(HttpCase):
                 console.log('test successful');
             })();
             """,
-            login="admin",
+            login="browser_exec",
             ready="document.querySelector('.o_form_view') !== null",
             timeout=120)

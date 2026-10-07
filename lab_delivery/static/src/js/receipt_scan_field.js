@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy, usePlugin } from "@odoo/owl";
+import { Component, proxy, t, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
@@ -9,6 +9,7 @@ import { toCanvas, decodeBarcodes, JPEG_QUALITY } from "@lab_delivery/js/photo_b
 import { scanBarcode } from "@web/core/barcode/barcode_dialog";
 import { isBarcodeScannerSupported } from "@web/core/barcode/barcode_video_scanner";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
+import { imageUrl } from "@web/core/utils/urls";
 
 /**
  * Photograph (or upload) a courier receipt and fill the consignment number and
@@ -20,14 +21,14 @@ import { standardFieldProps } from "@web/views/fields/standard_field_props";
  */
 export class CourierReceiptScanField extends Component {
     static template = "lab_delivery.CourierReceiptScanField";
-    static props = {
+    props = useProps({
         ...standardFieldProps,
-        awbField: { type: String, optional: true },
-        courierField: { type: String, optional: true },
-        courierNameField: { type: String, optional: true },
-        sourceField: { type: String, optional: true },
-        dispatchedField: { type: String, optional: true },
-    };
+        awbField: t.string().optional(),
+        courierField: t.string().optional(),
+        courierNameField: t.string().optional(),
+        sourceField: t.string().optional(),
+        dispatchedField: t.string().optional(),
+    });
 
     setup() {
         this.orm = useService("orm");
@@ -35,7 +36,8 @@ export class CourierReceiptScanField extends Component {
         this.state = proxy({
             busy: false,
             stage: "",
-            preview: this.props.record.data[this.props.name] || "",
+            // A freshly taken photo, as a data: URL. A stored one is fetched by URL.
+            preview: "",
             candidates: [],
             applied: "",
             courier: null,
@@ -46,12 +48,25 @@ export class CourierReceiptScanField extends Component {
         this.cameraScan = isBarcodeScannerSupported();
     }
 
+    /**
+     * Odoo 20: a binary field's value is `{size, checksum}` once saved (no
+     * bytes) and `{filename, content}` while it is a fresh upload, never the
+     * base64 string 19 handed over.
+     */
     get previewSrc() {
-        const value = this.state.preview;
+        if (this.state.preview) {
+            return this.state.preview;
+        }
+        const value = this.props.record.data[this.props.name];
         if (!value) {
             return "";
         }
-        return value.startsWith("data:") ? value : `data:image/jpeg;base64,${value}`;
+        const content = typeof value === "object" ? value.content : value;
+        if (content) {
+            return content.startsWith("data:") ? content : `data:image/jpeg;base64,${content}`;
+        }
+        return imageUrl(this.props.record.resModel, this.props.record.resId, this.props.name,
+            { unique: value.checksum || this.props.record.data.write_date });
     }
 
     get chosenCourierId() {
@@ -73,7 +88,9 @@ export class CourierReceiptScanField extends Component {
             const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
             const b64 = dataUrl.split(",")[1];
             this.state.preview = dataUrl;
-            await this.props.record.update({ [this.props.name]: b64 });
+            await this.props.record.update({
+                [this.props.name]: { filename: file.name || "receipt.jpg", content: b64 },
+            });
 
             this.state.stage = _t("Reading the barcode…");
             const barcodes = await decodeBarcodes(canvas, { budgetMs: 4000 });

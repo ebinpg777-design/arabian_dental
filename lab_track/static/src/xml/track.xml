@@ -16,10 +16,10 @@
                     <i class="fa fa-arrow-left"/>
                 </button>
                 <i class="fa fa-search o_trk_search_icon"/>
-                <input type="text" t-ref="search" autofocus="autofocus"
+                <input type="text" t-ref="this.input" autofocus="autofocus"
                        class="o_trk_input"
                        placeholder="Case, invoice, delivery or consignment number — or a patient or doctor"
-                       t-custom-model="this.state.ref" t-on-keydown="this.onKeydown"
+                       t-model.proxy="this.state.ref" t-on-keydown="this.onKeydown"
                        t-on-input="() => this.onInput()"/>
                 <button t-if="this.state.ref" class="o_trk_clear" t-on-click="() => this.clear()"
                         title="Clear">

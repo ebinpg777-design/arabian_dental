@@ -10,9 +10,7 @@ So this is one round trip. The screen makes no further requests: everything belo
 gathered here and sent at once, because a second query per section is a second thing to
 wait for on a bad connection.
 """
-from datetime import datetime, time, timedelta
-
-import pytz
+from datetime import datetime, time, timedelta, timezone
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
@@ -474,7 +472,7 @@ class LabTrack(models.AbstractModel):
             'lines': [{
                 'product': m.product_id.display_name,
                 'quantity': m.quantity,
-                'uom': m.product_uom.name or '',
+                'uom': m.uom_id.name or '',
             } for m in p.move_ids[:8]],
         } for p in pickings]
 
@@ -820,10 +818,12 @@ class LabTrack(models.AbstractModel):
         yesterday's.
         """
         reader = self._tz_reader()
-        start = reader.env.tz.localize(datetime.combine(
-            fields.Date.context_today(reader), time.min))
-        return (start.astimezone(pytz.utc).replace(tzinfo=None),
-                (start + timedelta(days=1)).astimezone(pytz.utc).replace(tzinfo=None))
+        # Odoo 20: env.tz is a zoneinfo zone (no pytz `localize`).
+        today = fields.Date.context_today(reader)
+        start, end = (datetime.combine(day, time.min, tzinfo=reader.env.tz)
+                      for day in (today, today + timedelta(days=1)))
+        return (start.astimezone(timezone.utc).replace(tzinfo=None),
+                end.astimezone(timezone.utc).replace(tzinfo=None))
 
     @api.model
     def _floor_row(self, wo, waiting):

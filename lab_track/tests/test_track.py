@@ -227,7 +227,7 @@ class TestTrackNamesAndRefresh(TransactionCase):
             'name': 'Names Bench', 'is_finisher': True})
         cls.wo = cls.env['mrp.workorder'].create({
             'name': 'Polish', 'production_id': cls.mo.id,
-            'workcenter_id': cls.bench.id, 'product_uom_id': cls.product.uom_id.id})
+            'workcenter_id': cls.bench.id})
         cls.wo.write({'bench_user_id': cls.maker.id,
                       'finisher_user_id': cls.finisher.id})
 
@@ -297,8 +297,7 @@ class TestFloorNow(TransactionCase):
         # 'second step' below uses, which made the second step the first.
         wo = self.env['mrp.workorder'].create({
             'name': name, 'production_id': self.mo.id,
-            'workcenter_id': self.bench.id, 'sequence': sequence,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.bench.id, 'sequence': sequence})
         if accepted:
             wo.write({'accepted_at': fields.Datetime.now(),
                       'bench_user_id': self.tech.id})
@@ -319,8 +318,7 @@ class TestFloorNow(TransactionCase):
         self._step('First step')
         self.env['mrp.workorder'].create({
             'name': 'Second step', 'production_id': self.mo.id,
-            'workcenter_id': later.id, 'sequence': 20,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': later.id, 'sequence': 20})
         # Per station, not from the page's top twelve: this runs on a live floor
         # where a bench with one test job is nowhere near the busiest.
         here = [r['id'] for r in self.Track.station_jobs(self.bench.id)]
@@ -405,8 +403,7 @@ class TestFloorNow(TransactionCase):
         mo.action_confirm()
         wo = self.env['mrp.workorder'].create({
             'name': 'Their step', 'production_id': mo.id,
-            'workcenter_id': self.bench.id, 'sequence': 10,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.bench.id, 'sequence': 10})
         return other, wo
 
     def test_a_reader_only_sees_the_jobs_of_orders_they_can_open(self):
@@ -427,11 +424,12 @@ class TestFloorNow(TransactionCase):
         (self.order | other).user_id = reader
         # A route rule of the kind the executives carry, pinned here so the test
         # does not depend on which of the database's own rules are switched on.
-        self.env['ir.rule'].create({
+        # Odoo 20: a no-group ir.access row is a restriction, as a global rule was.
+        self.env['ir.access'].create({
             'name': 'Floor test: not that order',
             'model_id': self.env['ir.model']._get_id('sale.order'),
-            'domain_force': "[('id', '!=', %d)]" % other.id,
-            'perm_read': True})
+            'domain': "[('id', '!=', %d)]" % other.id,
+            'operation': 'r'})
         self.assertTrue(self.order.with_user(reader).has_access('read'))
         self.assertFalse(other.with_user(reader).has_access('read'))
 
@@ -552,8 +550,7 @@ class TestTrackClock(TransactionCase):
         mo.action_confirm()
         wo = self.env['mrp.workorder'].create({
             'name': 'Clock step', 'production_id': mo.id,
-            'workcenter_id': bench.id, 'sequence': 10,
-            'product_uom_id': product.uom_id.id})
+            'workcenter_id': bench.id, 'sequence': 10})
         # Written straight to the columns: MRP plans a confirmed job, and the
         # planner recomputed date_finished to the next working morning the
         # moment this test wrote it. The stamps are the subject here, so they
@@ -649,8 +646,7 @@ class TestTrackArch(TransactionCase):
         for arch in ('upper', 'lower'):
             wo = self.env['mrp.workorder'].create({
                 'name': 'Bend', 'production_id': mo.id,
-                'workcenter_id': self.bench.id,
-                'product_uom_id': self.product.uom_id.id})
+                'workcenter_id': self.bench.id})
             if 'arch' not in wo._fields:
                 self.skipTest("this build has no arch on work orders")
             wo.arch = arch
@@ -662,8 +658,7 @@ class TestTrackArch(TransactionCase):
         order, mo = self._case('upper')
         self.env['mrp.workorder'].create({
             'name': 'Bend', 'production_id': mo.id,
-            'workcenter_id': self.bench.id,
-            'product_uom_id': self.product.uom_id.id})
+            'workcenter_id': self.bench.id})
         steps = self._job(order, mo)['workorders']
         self.assertEqual([s['arch'] for s in steps], [''],
                          "nothing to tell apart, so nothing to say")
