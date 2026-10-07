@@ -15,3 +15,4 @@ from . import test_case_picker
 from . import test_case_lab_fields
 from . import test_repeated_press
 from . import test_cash_in_route
+from . import test_partner_access

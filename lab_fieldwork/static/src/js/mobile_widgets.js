@@ -1,14 +1,12 @@
 /** @odoo-module **/
 
-import { Component, proxy, usePlugin } from "@odoo/owl";
+import { Component, proxy, signal, t, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
-import { useRef } from "@web/owl2/utils";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
 import { formatMonetary } from "@web/views/fields/formatters";
-import { isBinarySize } from "@web/core/utils/binary";
 import { imageUrl } from "@web/core/utils/urls";
 import { fileTypeMagicWordMap } from "@web/views/fields/image/image_field";
 import { getFieldDomain } from "@web/model/relational_model/utils";
@@ -29,7 +27,7 @@ import { useSpecialData } from "@web/views/fields/relational_utils";
 // ---------------------------------------------------------------------------
 export class FwChoice extends Component {
     static template = "lab_fieldwork.FwChoice";
-    static props = { ...standardFieldProps, colors: { type: Object, optional: true } };
+    props = useProps({ ...standardFieldProps, colors: t.object().optional() });
 
     /** The colour class of one option: `options="{'colors': {'urgent': 'amber'}}"`. */
     tone(value) {
@@ -77,7 +75,11 @@ registry.category("fields").add("fw_choice", fwChoice);
 // ---------------------------------------------------------------------------
 export class FwChoiceMulti extends Component {
     static template = "lab_fieldwork.FwChoiceMulti";
-    static props = { ...standardFieldProps, domain: { type: [Array, Function], optional: true } };
+    props = useProps({
+        ...standardFieldProps,
+        domain: t.or([t.array(), t.function()]).optional(),
+        context: t.object().optional(),
+    });
 
     setup() {
         this.specialData = useSpecialData((orm, props) => {
@@ -128,11 +130,8 @@ registry.category("fields").add("fw_choice_multi", {
 // ---------------------------------------------------------------------------
 export class FwAmount extends Component {
     static template = "lab_fieldwork.FwAmount";
-    static props = { ...standardFieldProps };
-
-    setup() {
-        this.input = useRef("input");
-    }
+    props = useProps({ ...standardFieldProps });
+    input = signal.ref();
 
     get value() {
         return this.props.record.data[this.props.name] || 0;
@@ -186,7 +185,7 @@ registry.category("fields").add("fw_amount", fwAmount);
 // ---------------------------------------------------------------------------
 export class FwCamera extends Component {
     static template = "lab_fieldwork.FwCamera";
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     setup() {
         this.notification = usePlugin(NotificationPlugin);
@@ -200,36 +199,34 @@ export class FwCamera extends Component {
     /**
      * Where the picture actually lives.
      *
-     * A saved binary field does NOT hand back its bytes: Odoo returns a SIZE string
-     * ("12.50 Kb") under bin_size, so treating the value as base64 produced
-     * `data:image/png;base64,12.50 Kb` and a broken image on every stored photo — while
-     * a freshly captured one, which really is base64, displayed perfectly. That is why
-     * this only failed after saving.
-     *
-     * So: a size string means the bytes are on the server, and the image is fetched by
-     * URL; anything else is the raw base64 still sitting in the browser. `write_date` is
-     * the cache key, or the old photo survives a retake.
+     * A saved binary field does NOT hand back its bytes: Odoo 20 sends
+     * `{size, checksum}` and no `content`, so a stored photo is fetched by URL,
+     * while a freshly captured one carries its base64 `content` and is shown from
+     * the browser. (In 19 the stored value was a SIZE string, "12.50 Kb", and
+     * reading it as base64 broke every saved photo - the same rule, new shape.)
+     * The checksum is the cache key, or the old photo survives a retake.
      */
     get src() {
         const value = this.value;
         if (!value) {
             return "";
         }
-        if (isBinarySize(value)) {
+        const content = typeof value === "object" ? value.content : value;
+        if (!content) {
             return imageUrl(
                 this.props.record.resModel,
                 this.props.record.resId,
                 this.props.name,
-                { unique: this.props.record.data.write_date }
+                { unique: value.checksum || this.props.record.data.write_date }
             );
         }
-        if (typeof value === "string" && value.startsWith("data:")) {
-            return value;
+        if (content.startsWith("data:")) {
+            return content;
         }
         // The magic word: the first base64 character identifies the format, so a JPEG
         // straight off a phone camera is not mislabelled as a PNG.
-        const magic = fileTypeMagicWordMap[value[0]] || "png";
-        return `data:image/${magic};base64,${value}`;
+        const magic = fileTypeMagicWordMap[content[0]] || "png";
+        return `data:image/${magic};base64,${content}`;
     }
 
     async onFile(ev) {
@@ -245,7 +242,10 @@ export class FwCamera extends Component {
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
-            await this.props.record.update({ [this.props.name]: data });
+            // Odoo 20: a binary is set as {filename, content}, as core's image field does.
+            await this.props.record.update({
+                [this.props.name]: { filename: file.name || "", content: data },
+            });
         } catch {
             this.notification.add(_t("That photo could not be read. Try again."), {
                 type: "warning",
@@ -274,7 +274,7 @@ registry.category("fields").add("fw_camera", fwCamera);
 // ---------------------------------------------------------------------------
 export class FwContactBar extends Component {
     static template = "lab_fieldwork.FwContactBar";
-    static props = { ...standardWidgetProps };
+    props = useProps({ ...standardWidgetProps });
 
     get data() {
         return this.props.record.data;
@@ -310,7 +310,7 @@ registry.category("view_widgets").add("fw_contact_bar", fwContactBar);
 // ---------------------------------------------------------------------------
 export class FwArch extends Component {
     static template = "lab_fieldwork.FwArch";
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     get value() {
         return this.props.record.data[this.props.name];
@@ -367,7 +367,7 @@ registry.category("fields").add("fw_arch", fwArch);
 // ---------------------------------------------------------------------------
 export class FwStepper extends Component {
     static template = "lab_fieldwork.FwStepper";
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     get value() {
         return this.props.record.data[this.props.name] || 0;
@@ -422,11 +422,11 @@ registry.category("fields").add("fw_stepper", fwStepper);
 // ---------------------------------------------------------------------------
 export class FwToggles extends Component {
     static template = "lab_fieldwork.FwToggles";
-    static props = {
+    props = useProps({
         ...standardWidgetProps,
-        fieldNames: { type: Array },
-        colors: { type: Array, optional: true },
-    };
+        fieldNames: t.array(),
+        colors: t.array().optional(),
+    });
 
     get items() {
         const record = this.props.record;
@@ -464,7 +464,7 @@ registry.category("view_widgets").add("fw_toggles", fwToggles);
 // ---------------------------------------------------------------------------
 export class FwFlag extends Component {
     static template = "lab_fieldwork.FwFlag";
-    static props = { ...standardFieldProps, icon: { type: String, optional: true } };
+    props = useProps({ ...standardFieldProps, icon: t.string().optional() });
 
     get on() {
         return !!this.props.record.data[this.props.name];

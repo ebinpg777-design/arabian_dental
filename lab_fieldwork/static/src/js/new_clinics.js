@@ -1,10 +1,9 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { formatMonetary } from "@web/views/fields/formatters";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * New clinics, a month at a time.
@@ -15,11 +14,11 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class LabNewClinics extends Component {
     static template = "lab_fieldwork.NewClinics";
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.state = proxy({ month: false, data: null, loading: true });
         onWillStart(() => this.load());
     }

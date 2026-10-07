@@ -45,7 +45,9 @@ def _defined_names(source):
     return names
 
 # Things a component inherits or that are not component methods at all.
-ALLOWED = {'state', 'props', 'env', 'render', 'el'}
+ALLOWED = {'state', 'props', 'env', 'render', 'el',
+           # inherited from web.FormStatusIndicator by the mobile save bar
+           'save', 'discard'}
 
 
 @tagged('post_install', '-at_install')
@@ -97,6 +99,9 @@ class TestTemplateHandlers(TransactionCase):
         Checked in both directions because the first version of this test only
         looked for orphaned t-refs, which is precisely NOT the half that breaks
         the scroll - removing the t-ref made it pass.
+
+        Odoo 20 / OWL 3: a ref is `this.x = signal.ref()` (or a class field
+        `x = signal.ref()`) and the template names the member, `t-ref="this.x"`.
         """
         if not os.path.isdir(XML_DIR):
             self.skipTest('no client templates')
@@ -107,7 +112,7 @@ class TestTemplateHandlers(TransactionCase):
                     continue
                 with open(os.path.join(root, name), encoding='utf-8') as fh:
                     for lineno, line in enumerate(fh, 1):
-                        for ref in re.findall(r't-ref\s*=\s*"([^"{}]+)"', line):
+                        for ref in re.findall(r't-ref\s*=\s*"this\.([^"{}]+)"', line):
                             declared.setdefault(ref, '%s:%s' % (name, lineno))
         used = {}
         for root, _dirs, files in os.walk(JS_DIR):
@@ -116,10 +121,10 @@ class TestTemplateHandlers(TransactionCase):
                     continue
                 with open(os.path.join(root, name), encoding='utf-8') as fh:
                     for lineno, line in enumerate(fh, 1):
-                        for ref in re.findall(r'useRef\(\s*["\']([^"\']+)["\']', line):
+                        for ref in re.findall(r'(?:this\.)?(\w+)\s*=\s*signal\.ref\(\)', line):
                             used.setdefault(ref, '%s:%s' % (name, lineno))
-        broken = ['%s  useRef("%s") - no t-ref declares it' % (where, ref)
+        broken = ['%s  %s = signal.ref() - no t-ref declares it' % (where, ref)
                   for ref, where in sorted(used.items()) if ref not in declared]
-        broken += ['%s  t-ref="%s" - no useRef reads it' % (where, ref)
+        broken += ['%s  t-ref="this.%s" - no signal.ref() reads it' % (where, ref)
                    for ref, where in sorted(declared.items()) if ref not in used]
         self.assertFalse(broken, "refs wired on one side only:\n  " + "\n  ".join(broken))

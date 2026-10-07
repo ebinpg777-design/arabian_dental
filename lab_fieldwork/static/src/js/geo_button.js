@@ -1,13 +1,12 @@
 /** @odoo-module **/
 
-import { Component, proxy, usePlugin } from "@odoo/owl";
+import { Component, proxy, t, usePlugin, useProps } from "@odoo/owl";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { session } from "@web/session";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
 import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * A header button that captures the browser's location before calling its method.
@@ -27,17 +26,17 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class FwGeoButton extends Component {
     static template = "lab_fieldwork.GeoButton";
-    static props = {
+    props = useProps({
         ...standardWidgetProps,
-        method: { type: String },
-        label: { type: String, optional: true },
-        icon: { type: String, optional: true },
-        btn_class: { type: String, optional: true },
-    };
+        method: t.string(),
+        label: t.string().optional(),
+        icon: t.string().optional(),
+        btn_class: t.string().optional(),
+    });
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         // While the browser looks for a position - which includes the time Chrome's
         // "Allow location?" question is on screen - the button is off. Every extra tap

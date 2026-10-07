@@ -10,23 +10,23 @@
          t-attf-class, and hasclass() only sees a static class attribute - an xpath
          on it matches nothing and breaks every list view in the database.
          (client, 2026-08-28) -->
-    <xpath expr="//table[@t-custom-ref='table']" position="after">
+    <xpath expr="//table[@t-ref='this.tableRef']" position="after">
         <div class="o_fw_more_sentinel" aria-hidden="true"/>
-        <div t-if="fwCanAutoLoad" class="o_fw_more_note">
+        <div t-if="this.fwCanAutoLoad" class="o_fw_more_note">
             <i class="fa fa-circle-o-notch fa-spin me-1" aria-hidden="true"/>
-            Loading <t t-out="fwRemaining"/> more…
+            Loading <t t-out="this.fwRemaining"/> more…
         </div>
     </xpath>
 </t>
 
 <t t-name="lab_fieldwork.KanbanRenderer" t-inherit="web.KanbanRenderer"
    t-inherit-mode="extension">
-    <xpath expr="//t[@t-if='showNoContentHelper']" position="before">
-        <div t-if="!props.list.isGrouped" class="o_fw_more_sentinel w-100"
+    <xpath expr="//t[@t-if='this.showNoContentHelper']" position="before">
+        <div t-if="!this.props.list.isGrouped" class="o_fw_more_sentinel w-100"
              aria-hidden="true"/>
-        <div t-if="fwCanAutoLoad" class="o_fw_more_note w-100">
+        <div t-if="this.fwCanAutoLoad" class="o_fw_more_note w-100">
             <i class="fa fa-circle-o-notch fa-spin me-1" aria-hidden="true"/>
-            Loading <t t-out="fwRemaining"/> more…
+            Loading <t t-out="this.fwRemaining"/> more…
         </div>
     </xpath>
 </t>

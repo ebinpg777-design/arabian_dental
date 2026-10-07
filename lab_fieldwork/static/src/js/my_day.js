@@ -1,15 +1,14 @@
 /** @odoo-module **/
 
-import { Component, onPatched, onWillStart, proxy, usePlugin } from "@odoo/owl";
+import { Component, onPatched, onWillStart, proxy, signal, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { useRef } from "@web/owl2/utils";
 import { session } from "@web/session";
+import { user } from "@web/core/user";
 import { formatMonetary } from "@web/views/fields/formatters";
 import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The executive's whole application.
@@ -19,11 +18,11 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class LabMyDay extends Component {
     static template = "lab_fieldwork.MyDay";
-    static props = ["*"];
+    props = useProps();
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         // Lives in the web client, not in this component: the watch has to
         // survive the executive walking off this screen into a visit form.
@@ -41,22 +40,22 @@ export class LabMyDay extends Component {
         // looked like it had done nothing at all. The scroll has to wait for the
         // panel to exist, so it is armed here and spent on the next patch.
         // (client, 2026-09-12)
-        this.clinicsPanel = useRef("clinicsPanel");
+        this.clinicsPanel = signal.ref();
         // Track order had the same fault: its panel opened below the day's work
         // and the tap looked like nothing. Same answer, and the cursor goes into
         // the search box. (client, 2026-09-15)
-        this.trackPanel = useRef("trackPanel");
-        this.trackInput = useRef("trackInput");
+        this.trackPanel = signal.ref();
+        this.trackInput = signal.ref();
         onPatched(() => {
             if (this._scrollToClinics) {
                 this._scrollToClinics = false;
-                this.clinicsPanel.el?.scrollIntoView(
+                this.clinicsPanel()?.scrollIntoView(
                     { behavior: "smooth", block: "start" });
             }
             if (this._scrollToTrack) {
                 this._scrollToTrack = false;
-                this.trackPanel.el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                this.trackInput.el?.focus({ preventScroll: true });
+                this.trackPanel()?.scrollIntoView({ behavior: "smooth", block: "start" });
+                this.trackInput()?.focus({ preventScroll: true });
             }
         });
         onWillStart(() => this.load());
@@ -323,7 +322,7 @@ export class LabMyDay extends Component {
         moves to "waiting to be counted" the moment it is declared. */
     handOverCash() {
         this.action.doAction("lab_fieldwork.action_cash_handover_new", {
-            additionalContext: { default_user_id: this.env.services.user?.userId },
+            additionalContext: { default_user_id: user.userId },
             onClose: () => this.load(),
         });
     }

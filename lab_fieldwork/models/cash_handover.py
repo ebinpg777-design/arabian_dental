@@ -150,7 +150,8 @@ class CashHandover(models.Model):
             try:
                 png = Report.barcode('QR', rec._deep_link(), width=240, height=240,
                                      humanreadable=0)
-                rec.qr_image = base64.b64encode(png)
+                # Odoo 20: a Binary takes a base64 str (or BinaryBytes), not bytes.
+                rec.qr_image = base64.b64encode(png).decode()
             except Exception:  # noqa: BLE001 - a missing renderer must not break the form
                 rec.qr_image = False
 

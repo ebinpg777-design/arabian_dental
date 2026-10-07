@@ -241,7 +241,7 @@
                  what it owes, what is still open - and a star that is theirs
                  alone. No form view: res.partner opens on accounting fields an
                  executive cannot read. (client, 2026-09-02) -->
-            <div class="o_fw_clinics" t-if="this.state.clinics.open" t-custom-ref="clinicsPanel">
+            <div class="o_fw_clinics" t-if="this.state.clinics.open" t-ref="this.clinicsPanel">
                 <div class="o_fw_track_bar">
                     <i class="fa fa-hospital-o"/>
                     <input type="search" class="o_fw_track_input"
@@ -357,10 +357,10 @@
             <!-- Track a work: the question asked at the clinic door. Only work that
                  is still open appears - an invoiced case is finished with - and only
                  on this person's own routes. (client, 2026-08-24) -->
-            <div class="o_fw_track" t-if="this.state.track.open" t-custom-ref="trackPanel">
+            <div class="o_fw_track" t-if="this.state.track.open" t-ref="this.trackPanel">
                 <div class="o_fw_track_bar">
                     <i class="fa fa-search"/>
-                    <input type="text" t-custom-ref="trackInput"
+                    <input type="text" t-ref="this.trackInput"
                            placeholder="Patient, clinic or order number"
                            t-on-input="(ev) => this.onTrackInput(ev)"/>
                     <button class="o_fw_track_close" t-on-click="() => this.toggleTrack()">

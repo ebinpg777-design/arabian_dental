@@ -33,16 +33,9 @@ access_quick_entry,quick entry,lab.case.quick.entry,lab_fieldwork.group_fieldwor
 access_quick_entry_mgr,quick entry mgr,lab.case.quick.entry,lab_fieldwork.group_fieldwork_manager,crud,
 access_quick_entry_line,quick entry line,lab.case.quick.entry.line,lab_fieldwork.group_fieldwork_executive,crud,
 access_quick_entry_line_mgr,quick entry line mgr,lab.case.quick.entry.line,lab_fieldwork.group_fieldwork_manager,crud,
-access_res_partner_fw_executive,res.partner field executive create,base.model_res_partner,lab_fieldwork.group_fieldwork_executive,c,
-rule_partner_executive_route,Executives: clinics on their own route,base.model_res_partner,lab_fieldwork.group_fieldwork_executive,r,"['|','|','|','|',
-                ('team_id', 'in', user.fw_route_ids.ids),
-                ('commercial_partner_id.team_id', 'in', user.fw_route_ids.ids),
-                ('id', '=', user.partner_id.id),
-                ('partner_share', '=', False),
-                ('id', 'in', user.company_ids.partner_id.ids)]"
-rule_partner_executive_visited,Executives: clinics they have visited,base.model_res_partner,lab_fieldwork.group_fieldwork_executive,r,"['|',
-                ('visit_ids.user_id', '=', user.id),
-                ('parent_id.visit_ids.user_id', '=', user.id)]"
+access_res_partner_fw_executive,res.partner field executive create,res.partner,lab_fieldwork.group_fieldwork_executive,c,
+rule_partner_executive_confined,Executives: clinics on their round only,res.partner,,r,"[(1, '=', 1)] if not user.has_group('lab_fieldwork.group_fieldwork_executive') or user.has_group('lab_fieldwork.group_fieldwork_manager') or user.has_group('base.group_system') or user.has_group('base.group_erp_manager') else [('fw_reachable', '=', True)]"
+rule_menu_executive_fieldwork_only,Executives: the Field Work menu only,ir.ui.menu,,r,"[(1, '=', 1)] if not user.has_group('lab_fieldwork.group_fieldwork_executive') or user.has_group('lab_fieldwork.group_fieldwork_manager') or user.has_group('base.group_system') or user.has_group('base.group_erp_manager') else [('id', 'in', user.fw_menu_ids.ids)]"
 rule_daily_update_own,Day sheet: own,lab.daily.update,lab_fieldwork.group_fieldwork_executive,cru,"[('user_id', '=', user.id)]"
 rule_daily_update_all,Day sheet: all,lab.daily.update,lab_fieldwork.group_fieldwork_manager,crud,
 rule_daily_update_company,Day sheet: company,lab.daily.update,,crud,"[('company_id', 'in', company_ids)]"
@@ -52,18 +45,18 @@ rule_desk_cover_own,Desk cover: mine,lab.desk.cover,lab_fieldwork.group_fieldwor
                                              ('delegate_id', '=', user.id)]"
 rule_desk_cover_all,Desk cover: all,lab.desk.cover,lab_fieldwork.group_fieldwork_admin,crud,
 rule_desk_cover_company,Desk cover: company,lab.desk.cover,,crud,"[('company_id', 'in', company_ids)]"
-rule_hr_attendance_fw_manager,Attendance: field work managers read all,hr_attendance.model_hr_attendance,lab_fieldwork.group_fieldwork_manager,r,
+rule_hr_attendance_fw_manager,Attendance: field work managers read all,hr.attendance,lab_fieldwork.group_fieldwork_manager,r,
 rule_clinic_fav_own,Favourite clinics: your own,lab.clinic.favourite,lab_fieldwork.group_fieldwork_executive,crud,"[('user_id', '=', user.id)]"
 rule_clinic_fav_own_1,Favourite clinics: your own,lab.clinic.favourite,lab_fieldwork.group_fieldwork_manager,crud,"[('user_id', '=', user.id)]"
-rule_sale_order_executive_read,Field executives read confirmed orders,sale.model_sale_order,lab_fieldwork.group_fieldwork_executive,r,"['|',
+rule_sale_order_executive_read,Field executives read confirmed orders,sale.order,lab_fieldwork.group_fieldwork_executive,r,"[(1, '=', 1)] if user.has_group('base.group_system') or user.has_group('base.group_erp_manager') else ['|',
                 ('create_uid', '=', user.id),
                 '&', ('state','in',('sale','done')),
                     '|', ('partner_id.team_id', 'in', user.fw_route_ids.ids),
                          ('partner_id.commercial_partner_id.team_id', 'in', user.fw_route_ids.ids)]"
-rule_sale_order_executive_visited,Field executives read confirmed orders of clinics they visited,sale.model_sale_order,lab_fieldwork.group_fieldwork_executive,r,"['&', ('state', 'in', ('sale', 'done')),
+rule_sale_order_executive_visited,Field executives read confirmed orders of clinics they visited,sale.order,lab_fieldwork.group_fieldwork_executive,r,"['&', ('state', 'in', ('sale', 'done')),
                 '|', ('partner_id.visit_ids.user_id', '=', user.id),
                      ('partner_id.commercial_partner_id.visit_ids.user_id', '=', user.id)]"
-rule_sale_order_manager_all,Field managers read every order,sale.model_sale_order,lab_fieldwork.group_fieldwork_manager,r,
+rule_sale_order_manager_all,Field managers read every order,sale.order,lab_fieldwork.group_fieldwork_manager,r,
 access_collect_cash_exec,record cash collected executive,lab.collect.cash,lab_fieldwork.group_fieldwork_executive,cru,
 access_collect_cash_mgr,record cash collected manager,lab.collect.cash,lab_fieldwork.group_fieldwork_manager,cru,
 rule_cash_collection_own,Cash collection: own,lab.cash.collection,lab_fieldwork.group_fieldwork_executive,cru,"[('user_id', '=', user.id)]"

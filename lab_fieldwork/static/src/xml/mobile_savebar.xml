@@ -18,21 +18,21 @@
    t-inherit="web.FormStatusIndicator" t-inherit-mode="extension">
     <xpath expr="//div[hasclass('o_form_status_indicator')]" position="inside">
         <div class="o_fw_savebar"
-             t-att-class="{ o_fw_savebar_shown: props.model.root.isNew or displayButtons }">
+             t-att-class="{ o_fw_savebar_shown: this.props.isNew or this.displayButtons }">
             <button type="button"
                     class="o_fw_savebar_discard"
-                    t-on-click.stop="discard"
+                    t-on-click.stop="this.discard"
                     aria-label="Discard all changes">
                 <i class="fa fa-undo me-2" title="Discard"/>
                 <span>Discard</span>
             </button>
             <button type="button"
                     class="o_fw_savebar_save"
-                    t-att-disabled="indicatorMode === 'invalid' and !props.model.root.isNew"
-                    t-on-click.stop="save"
+                    t-att-disabled="this.indicatorMode === 'invalid' and !this.props.isNew"
+                    t-on-click.stop="this.save"
                     aria-label="Save">
                 <i class="fa fa-check me-2" title="Save"/>
-                <span t-if="indicatorMode === 'invalid'">Check the form</span>
+                <span t-if="this.indicatorMode === 'invalid'">Check the form</span>
                 <span t-else="">Save</span>
             </button>
         </div>

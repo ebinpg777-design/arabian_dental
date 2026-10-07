@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component } from "@odoo/owl";
+import { Component, t, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
@@ -12,11 +12,10 @@ import { standardFieldProps } from "@web/views/fields/standard_field_props";
  */
 export class CountField extends Component {
     static template = "lab_fieldwork.CountField";
-    static props = {
+    props = useProps({
         ...standardFieldProps,
-        max: { type: Number, optional: true },
-    };
-    static defaultProps = { max: 999 };
+        max: t.number().optional(999),
+    });
 
     get value() {
         return this.props.record.data[this.props.name] || 0;

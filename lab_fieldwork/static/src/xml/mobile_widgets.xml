@@ -49,7 +49,7 @@
                 </button>
             </div>
             <!-- inputmode gives the phone a number pad instead of a full keyboard. -->
-            <input type="text" inputmode="decimal" t-custom-ref="input"
+            <input type="text" inputmode="decimal" t-ref="this.input"
                    class="o_fw_amount_input" placeholder="or type the exact amount"
                    t-att-value="this.value or ''" t-on-change="this.onInput"/>
         </t>

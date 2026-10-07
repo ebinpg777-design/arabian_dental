@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy, usePlugin } from "@odoo/owl";
+import { Component, proxy, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
@@ -36,7 +36,7 @@ const LOWER_FRONT = ["43", "42", "41", "31", "32", "33"];
 
 export class FwCaseItems extends Component {
     static template = "lab_fieldwork.FwCaseItems";
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     setup() {
         this.orm = useService("orm");

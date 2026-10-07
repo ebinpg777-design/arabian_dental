@@ -447,7 +447,7 @@
         </div>
 
         <div t-if="this.state.nudging and this.state.nudging.id === row.id" class="o_fwd_sendback">
-            <textarea rows="2" t-custom-model="this.state.nudging.text"
+            <textarea rows="2" t-model.proxy="this.state.nudging.text"
                       placeholder="Type your question. It will be sent to them."/>
             <div class="o_fwd_actions">
                 <button class="o_fwd_btn o_fwd_btn_go" t-att-disabled="this.state.busy"
@@ -459,7 +459,7 @@
 
         <div t-if="this.state.sendback and this.state.sendback.id === row.id" class="o_fwd_sendback">
             <textarea rows="2" placeholder="Write what must be fixed…"
-                      t-custom-model="this.state.sendback.reason"/>
+                      t-model.proxy="this.state.sendback.reason"/>
             <div class="o_fwd_actions">
                 <button class="o_fwd_btn o_fwd_btn_warn" t-att-disabled="this.state.busy"
                         t-on-click="() => this.confirmSendBack()">Send it back</button>

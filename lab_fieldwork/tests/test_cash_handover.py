@@ -87,7 +87,8 @@ class TestCashHandover(TransactionCase):
         walk caught it; the unit tests had all set the key. (2026-09-18)"""
         params = self.env['ir.config_parameter'].sudo()
         params.search([('key', '=', 'lab_fieldwork.auto_float')]).unlink()
-        self.assertIs(params.get_str('lab_fieldwork.auto_float'), False)
+        # Odoo 20: get_str answers '' (not False) for a key never saved.
+        self.assertFalse(params.get_str('lab_fieldwork.auto_float'))
         v = self._cash_visit(300.0)
         self.assertTrue(v.cash_banked, "the default is on")
 

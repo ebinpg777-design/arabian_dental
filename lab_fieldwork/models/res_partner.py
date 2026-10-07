@@ -2,6 +2,7 @@
 import logging
 
 from odoo import _, api, fields, models
+from odoo.fields import Domain
 from odoo.exceptions import AccessError, UserError
 
 _logger = logging.getLogger(__name__)
@@ -106,6 +107,65 @@ class ResPartner(models.Model):
                   '&', ('team_id', '=', False),
                        ('commercial_partner_id.team_id', 'in', routes)]
         return domain if wanted else ['!'] + domain
+
+    # ------------------------------------------------------- what an executive reads
+    # Odoo 20: the two Executive-group record rules that confined a field executive
+    # to their round (own route, clinics they visited) became ONE restriction in
+    # security/ir.access.csv (`rule_partner_executive_confined`). In 19 a group rule
+    # restricted that group's users; in 20 a row with a group is a PERMISSION, OR-ed
+    # with base's "internal users read every contact", so the converted rows
+    # confined nobody. A restriction (no group) is AND-ed for everyone, and its
+    # domain bites only for a plain executive - not a field manager, nor a system or
+    # user administrator who also holds the Executive role (the 19 "all" twins).
+    #
+    # The restriction reads this field so that what an executive may reach is
+    # written once, in Python, and other modules can widen it: lab_delivery adds
+    # the clinics an executive carries work to by extending
+    # `_fw_reachable_domain`. (A permission row cannot widen a restriction.)
+    fw_reachable = fields.Boolean(
+        string='Within My Round', compute='_compute_fw_reachable',
+        search='_search_fw_reachable', compute_sudo=True,
+        help="For a field-work Executive: a clinic on their own route, one they "
+             "have visited (with its doctors), an internal user, or the company "
+             "itself - what the partner restriction lets them read.")
+
+    @api.model
+    def _fw_reachable_domain(self):
+        """The partners the CURRENT user reaches as a field executive."""
+        user = self.env.user
+        # Searched, not read off the cached `user.fw_route_ids`: a route handed
+        # over moves its clinics on the very next read.
+        routes = self._lab_my_route_ids()
+        # Beyond the route: the people the SYSTEM speaks as. Every chatter message
+        # has an author - a colleague, OdooBot, the company - and the mail layer
+        # reads those partners on every screen load. (2026-08-24)
+        # The clinics they have been to: a visit can be off their own route
+        # (covering a colleague), and the visit form must still show its clinic.
+        # (client, 2026-09-15)
+        return Domain.OR([
+            [('team_id', 'in', routes)],
+            [('commercial_partner_id.team_id', 'in', routes)],
+            [('id', '=', user.partner_id.id)],
+            [('partner_share', '=', False)],
+            [('id', 'in', user.company_ids.partner_id.ids)],
+            [('visit_ids.user_id', '=', user.id)],
+            [('parent_id.visit_ids.user_id', '=', user.id)],
+        ])
+
+    def _compute_fw_reachable(self):
+        reachable = set()
+        if self.ids:
+            reachable = set(self.with_context(active_test=False).search(
+                Domain('id', 'in', self.ids) & self._fw_reachable_domain()).ids)
+        for partner in self:
+            partner.fw_reachable = partner.id in reachable
+
+    def _search_fw_reachable(self, operator, value):
+        if operator not in ('in', 'not in'):
+            return NotImplemented
+        positive = (operator == 'in') == (True in value)
+        domain = self._fw_reachable_domain()
+        return domain if positive else ~domain
 
     @api.depends('partner_latitude', 'partner_longitude')
     def _compute_is_geolocated(self):

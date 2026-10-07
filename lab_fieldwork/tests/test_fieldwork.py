@@ -958,8 +958,13 @@ class TestFieldwork(TransactionCase):
     def test_my_day_suggests_clinics_from_the_executives_own_beat(self):
         """Coverage is only worth measuring if the person who can act on it is offered
         the action, and that person is standing outside a clinic."""
+        # On the executive's own sales route, as a beat's clinics are: an executive
+        # reads only the contacts of their round, and a beat clinic off it is
+        # hidden from them by the contact restriction (Odoo 20 ir.access).
+        route = self.env['crm.team'].create({
+            'name': 'Quiet Route', 'user_id': self.exec_user.id})
         quiet = self.env['res.partner'].create({
-            'name': 'Quiet Clinic', 'is_clinic': True})
+            'name': 'Quiet Clinic', 'is_clinic': True, 'team_id': route.id})
         self.env['lab.beat'].create({
             'name': 'Test Round', 'user_id': self.exec_user.id, 'weekday': '0',
             'partner_ids': [(6, 0, [quiet.id])]})
@@ -1931,10 +1936,11 @@ class TestFieldwork(TransactionCase):
     def test_a_saved_photo_is_a_size_string_not_its_bytes(self):
         """The contract the camera widget depends on.
 
-        Under bin_size — which is what the web client uses — a stored binary field hands
-        back "73.12 Kb", NOT base64. Treating it as base64 produced
-        `data:image/png;base64,73.12 Kb` and a broken image on every saved photo, while a
-        freshly captured one displayed perfectly, so it only failed after saving.
+        The web client does not receive a stored photo's bytes. In 19 it got a SIZE
+        string ("73.12 Kb") under bin_size; Odoo 20 sends `{size, checksum}` and no
+        `content`. Treating what arrives as base64 produced
+        `data:image/png;base64,73.12 Kb` and a broken image on every saved photo, while
+        a freshly captured one displayed perfectly, so it only failed after saving.
 
         Pinned here so nobody "simplifies" the widget back to reading the value directly.
         """
@@ -1945,19 +1951,19 @@ class TestFieldwork(TransactionCase):
         # so a handful of PNG-looking bytes is rejected outright.
         buf = io.BytesIO()
         Image.new('RGB', (24, 24), (200, 40, 90)).save(buf, format='PNG')
-        png = base64.b64encode(buf.getvalue())
+        # Odoo 20: a Binary is written as a base64 str, not bytes.
+        png = base64.b64encode(buf.getvalue()).decode()
         trip = self.env['lab.trip'].create({
             'user_id': self.exec_user.id, 'photo_start': png})
 
-        sized = trip.with_context(bin_size=True).read(['photo_start'])[0]['photo_start']
-        # "91.00 bytes" for a small image, "73.12 Kb" for a photo — the UNIT varies, so
-        # the assertion is on the shape (a number and a unit), not on one spelling.
-        self.assertRegex(sized.decode() if isinstance(sized, bytes) else sized,
-                         r'^[\d.]+\s*\w+$',
-                         "the client receives a SIZE, not the bytes")
+        sent = trip.web_read({'photo_start': {}})[0]['photo_start']
+        self.assertIsInstance(sent, dict, "the client receives a description")
+        self.assertNotIn('content', sent, "the client receives a SIZE, not the bytes")
+        self.assertGreater(sent.get('size', 0), 0)
+        self.assertTrue(sent.get('checksum'), "the widget's cache key")
 
-        raw = trip.with_context(bin_size=False).read(['photo_start'])[0]['photo_start']
-        self.assertGreater(len(raw), 100, "the bytes are still there, fetched by URL")
+        self.assertGreater(len(trip.photo_start.content), 50,
+                           "the bytes are still there, fetched by URL")
 
     # ------------------------------------------------------- end of day
     def _at_hour(self, hour):
@@ -3099,6 +3105,8 @@ class TestTrackRefresh(TransactionCase):
 
     def test_the_panel_names_who_made_it_and_who_finished_it(self):
         """Two separate fields, two separate people. (client, 2026-09-09)"""
+        if 'bench_user_id' not in self.env['mrp.workorder']._fields:
+            self.skipTest("lab_workcenter_scan (bench and finisher) is not installed here")
         maker = self.env['res.users'].create({
             'name': 'Bench Maker', 'login': 'track_maker'})
         finisher = self.env['res.users'].create({
@@ -3110,8 +3118,7 @@ class TestTrackRefresh(TransactionCase):
         mo.write({'sale_id': self.order.id} if 'sale_id' in mo._fields else {})
         wc = self.env['mrp.workcenter'].create({'name': 'Track Bench'})
         wo = self.env['mrp.workorder'].create({
-            'name': 'Polish', 'production_id': mo.id, 'workcenter_id': wc.id,
-            'product_uom_id': product.uom_id.id})
+            'name': 'Polish', 'production_id': mo.id, 'workcenter_id': wc.id})
         wo.write({'bench_user_id': maker.id, 'finisher_user_id': finisher.id})
 
         people = self.env['lab.my.day']._track_people(mo)
@@ -3127,8 +3134,7 @@ class TestTrackRefresh(TransactionCase):
             'product_id': product.id, 'product_qty': 1.0})
         wc = self.env['mrp.workcenter'].create({'name': 'Empty Bench'})
         self.env['mrp.workorder'].create({
-            'name': 'Nobody', 'production_id': mo.id, 'workcenter_id': wc.id,
-            'product_uom_id': product.uom_id.id})
+            'name': 'Nobody', 'production_id': mo.id, 'workcenter_id': wc.id})
         self.assertEqual(self.env['lab.my.day']._track_people(mo), [],
                          "a step with no name says nothing")
 

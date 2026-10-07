@@ -15,7 +15,7 @@
                     <a t-if="this.state.track.route_state === 'failed'" href="#"
                        class="ms-2" t-on-click.prevent="this.redraw">try the routing again</a>
                 </div>
-                <div class="o_fw_daymap_canvas" t-custom-ref="map"/>
+                <div class="o_fw_daymap_canvas" t-ref="this.mapRef"/>
                 <div class="o_fw_daymap_key">
                     <span><i style="background:#0f9d58"/>at the door</span>
                     <span><i style="background:#dc3545"/>away from the clinic</span>

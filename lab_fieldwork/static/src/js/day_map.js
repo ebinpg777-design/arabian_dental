@@ -1,11 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, proxy, signal, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { useLayoutEffect, useRef } from "@web/owl2/utils";
+import { useLayoutEffect } from "@web/owl2/utils";
 import { standardWidgetProps } from "@web/views/widgets/standard_widget_props";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 /**
  * The day's track, on a map, inside the day sheet.
@@ -26,12 +25,12 @@ import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
  */
 export class FwDayMap extends Component {
     static template = "lab_fieldwork.DayMap";
-    static props = { ...standardWidgetProps };
+    props = useProps({ ...standardWidgetProps });
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
-        this.mapRef = useRef("map");
+        this.action = useService("action");
+        this.mapRef = signal.ref();
         this.state = proxy({ track: null, error: null, loading: true });
         this.map = null;
 
@@ -41,12 +40,12 @@ export class FwDayMap extends Component {
         // record changes under us (Previous day / Next day keep the same widget).
         useLayoutEffect(
             () => {
-                if (this.state.track && this.mapRef.el) {
+                if (this.state.track && this.mapRef()) {
                     this.draw();
                 }
                 return () => this.destroyMap();
             },
-            () => [this.state.track, this.mapRef.el]
+            () => [this.state.track, this.mapRef()]
         );
 
         onWillUnmount(() => this.destroyMap());
@@ -142,11 +141,11 @@ export class FwDayMap extends Component {
         const L = window.L;
         const track = this.state.track;
         this.destroyMap();
-        if (!L || !this.mapRef.el || !this.hasPoints) {
+        if (!L || !this.mapRef() || !this.hasPoints) {
             return;
         }
 
-        const map = L.map(this.mapRef.el, {
+        const map = L.map(this.mapRef(), {
             scrollWheelZoom: true,      // asked for: the wheel zooms while over the map
             dragging: true,
             keyboard: true,
@@ -279,7 +278,7 @@ export class FwDayMap extends Component {
                 this.map.invalidateSize({ animate: false });
                 this.fitToDay();
             });
-            this.resizeObserver.observe(this.mapRef.el);
+            this.resizeObserver.observe(this.mapRef());
         } else {
             setTimeout(() => {
                 if (this.map) {

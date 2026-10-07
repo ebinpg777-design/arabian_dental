@@ -867,6 +867,8 @@ class TestSheetVerification(DailyFlowCase):
         act = sheet.action_open_cash_visits()
         self.assertIn(visit, self.env['lab.visit'].search(act['domain']))
         # No dispatches today: count zero, and the domain opens nothing.
+        if 'lab.delivery' not in self.env:
+            self.skipTest("lab_delivery is not installed here")
         self.assertEqual(sheet.dispatch_count,
                          self.env['lab.delivery'].sudo().search_count(
                              sheet._dispatch_domain(*sheet._day_bounds_utc())))
@@ -1127,6 +1129,8 @@ class TestBusinessCommandCenter(DailyFlowCase):
                          "one visit takes the door off the neglect list")
 
     def test_receivables_come_from_the_countback(self):
+        if 'lab.collection.performance' not in self.env:
+            self.skipTest("lab_collections is not installed here")
         data = self.env['lab.desk']._open_receivables()
         self.assertTrue(data, "lab_collections is installed here")
         summary = self.env['lab.collection.performance'].outstanding_summary()
@@ -1166,6 +1170,8 @@ class TestClinicMoneyFacts(DailyFlowCase):
         self.assertTrue(mine['last_so'], "the order just placed must date it")
 
     def test_outstanding_agrees_with_the_countback(self):
+        if 'lab.collection.performance' not in self.env:
+            self.skipTest("lab_collections is not installed here")
         Perf = self.env['lab.collection.performance'].sudo()
         debits = Perf._open_debits(self.env.company)
         with_debt = next((d['partner_id'] for d in debits if d['open'] > 0),
@@ -1188,6 +1194,9 @@ class TestClinicMoneyFacts(DailyFlowCase):
         for row in rescue:
             self.assertIn('outstanding', row)
         recv = self.env['lab.desk']._open_receivables()
+        if 'lab.collection.performance' not in self.env:
+            self.assertFalse(recv, "no Collections, no receivables panel")
+            return
         for row in recv['debtors']:
             self.assertIn('last_pay', row)
 
@@ -1376,6 +1385,8 @@ class TestSeeAllAndWithdraw(DailyFlowCase):
         kinds = list(Desk._see_all_specs(self.today))
         self.assertIn('rescue', kinds)
         for kind in kinds:
+            if kind == 'undelivered' and 'lab.delivery' not in self.env:
+                continue        # lab_delivery's own list; not installed here
             action = Desk.action_see_all(kind)
             self.assertEqual(action['type'], 'ir.actions.act_window', kind)
             self.assertIn(action['res_model'], self.env, kind)

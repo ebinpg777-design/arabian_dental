@@ -1,12 +1,11 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onPatched, onWillStart, onWillUnmount, proxy, usePlugin } from "@odoo/owl";
+import { Component, onMounted, onPatched, onWillStart, onWillUnmount, proxy, usePlugin, useProps } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { formatMonetary } from "@web/views/fields/formatters";
-import { ActionManagerPlugin } from "@web/webclient/actions/action_plugin";
 
 const LIVE_MS = 60000;
 
@@ -19,7 +18,7 @@ const LIVE_MS = 60000;
  * differences (what is on screen, how live it is) live in the subclasses.
  */
 class DeskBase extends Component {
-    static props = ["*"];
+    props = useProps();
     static payloadMethod = null;
     static live = false;
     /** Which guarded approval this desk's cards and bulk bar call. */
@@ -27,7 +26,7 @@ class DeskBase extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.action = usePlugin(ActionManagerPlugin);
+        this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         this.state = proxy({
             data: null, loading: true, busy: false,
