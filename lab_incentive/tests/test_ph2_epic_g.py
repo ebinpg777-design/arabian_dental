@@ -11,7 +11,7 @@ import pytz
 from psycopg2 import IntegrityError
 
 from odoo import fields
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import TransactionCase, tagged
 from odoo.tools import mute_logger
 
@@ -256,8 +256,10 @@ class TestEpicGIncentive(TransactionCase):
                         'credit': invoice.amount_total}),
             ]})
         receipt.action_post()
-        self.assertNotEqual(invoice.payment_state, 'paid',
-                            "fixture: the receipt is not reconciled")
+        # Odoo 20 renamed the states: 19 'paid' is 20 'reconciled', and 20 'paid'
+        # is 19 'in_process' (paid, not yet matched). Neither may hold here.
+        self.assertNotIn(invoice.payment_state, ('paid', 'reconciled'),
+                         "fixture: the receipt is not reconciled")
         sheet.action_compute()
         self.assertEqual(sheet.line_ids.sale_order_id, order)
 
@@ -294,6 +296,33 @@ class TestEpicGIncentive(TransactionCase):
         self.assertFalse(theirs.line_ids & visible)
         self.assertTrue(theirs.line_ids <= Line.with_user(self.manager).search([]))
 
+    def test_an_executive_reads_only_their_own_sheet_and_changes_none(self):
+        """The sheet fence, proven as the executive (Odoo 20 ir.access: the
+        executive's read permission carries the own-sheet domain)."""
+        colleague = self.env['res.users'].create({
+            'name': 'Incentive Colleague 2', 'login': 'epicg_colleague2',
+            'group_ids': [(6, 0, [
+                self.env.ref('lab_fieldwork.group_fieldwork_executive').id])]})
+        mine = self._sheet()
+        theirs = self._sheet(executive=colleague)
+        Sheet = self.env['lab.incentive.sheet']
+        self.assertEqual(Sheet.with_user(self.executive).search([]), mine)
+        self.assertEqual(Sheet.with_user(self.manager).search(
+            [('id', 'in', (mine | theirs).ids)]), mine | theirs)
+        # Cache is per transaction: drop what root already read, or the read below
+        # is served without the access check.
+        self.env.invalidate_all()
+        with self.assertRaises(AccessError):
+            theirs.with_user(self.executive).read(['incentive_amount'])
+        self.assertTrue(mine.with_user(self.executive).read(['incentive_amount']))
+        with self.assertRaises(AccessError):
+            mine.with_user(self.executive).write({'paid_reference': 'SELF'})
+        with self.assertRaises(AccessError):
+            Sheet.with_user(self.executive).create({
+                'executive_id': self.executive.id, 'period': '2020-01-01'})
+        with self.assertRaises(AccessError):
+            self.rule.with_user(self.executive).write({'name': 'Mine now'})
+
     # ------------------------------------------------------------------ widget data
     def test_the_slab_widget_data_reflects_the_active_rule(self):
         self._visit_order(self.plain, qty=8)
@@ -302,3 +331,14 @@ class TestEpicGIncentive(TransactionCase):
         data = sheet.slab_widget_data
         self.assertEqual(len(data['slabs']), 2)
         self.assertTrue(any(s['current'] for s in data['slabs']))
+
+    def test_the_executive_sees_the_slabs_on_their_own_sheet(self):
+        """The executive reads the rule but not the slab model; the widget must
+        still show the slabs that produced their figure."""
+        self._visit_order(self.plain, qty=8)
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.env.invalidate_all()
+        data = sheet.with_user(self.executive).slab_widget_data
+        self.assertEqual(len(data['slabs']), 2)
+        self.assertEqual(data['amount'], 400.0)

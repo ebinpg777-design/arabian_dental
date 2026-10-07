@@ -17,7 +17,11 @@ class LabIncentiveSheet(models.Model):
     @api.depends('rule_id', 'total_base', 'incentive_amount')
     def _compute_slab_widget_data(self):
         for sheet in self:
-            rule = sheet.rule_id
+            # The slabs are read elevated: an executive may read the rule but not
+            # the slab model (manager-only ACL). On Odoo 20 an unreadable one2many
+            # reads back EMPTY, so the executive's own sheet said "No incentive
+            # rule is active" while showing the amount that rule produced.
+            rule = sheet.rule_id.sudo()
             if not rule or not rule.slab_ids:
                 sheet.slab_widget_data = {'slabs': [], 'base': 0.0, 'currency': ''}
                 continue

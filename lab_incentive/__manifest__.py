@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Incentive',
-    'version': '19.0.1.4.0',
+    'version': '20.0.1.4.0',
     'summary': "Monthly executive incentives: calculate, approve, disburse (R19/R20)",
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',
@@ -9,8 +9,10 @@
     'license': 'LGPL-3',
     # lab_collections: the 'paid' basis asks its countback - payment_state never
     # reaches 'paid' on a ledger whose receipts are never reconciled.
+    # lab_ceo_dashboard: the manager menus hang under its root (undeclared on 19.0,
+    # where the two were always installed together).
     'depends': ['lab_fieldwork', 'lab_delivery', 'ebshel_dynamic_filter',
-                'lab_collections'],
+                'lab_collections', 'lab_ceo_dashboard'],
     'data': [
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
