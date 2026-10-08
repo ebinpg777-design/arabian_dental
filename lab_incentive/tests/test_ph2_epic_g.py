@@ -51,22 +51,26 @@ class TestEpicGIncentive(TransactionCase):
         ])
         cls.rule = rule
 
-    def _visit_order(self, product, qty=1, user=None):
-        """A field order, taken all the way to confirmed the way a real one goes.
+    def _order(self, product, qty=1, user=None, visit_user=None):
+        """An order sold by `user` (the executive unless given), taken all the way to
+        confirmed the way a real one goes.
 
-        It must be verified first: this order carries a `visit_id`, so the
-        origin rule (client, 2026-08-09) requires a second person to check it before
-        it can be confirmed. Short-cutting that here would test an incentive on work
-        that could never have reached production.
+        The salesperson is what an incentive follows (client, 2026-10-08). No visit
+        unless `visit_user` asks for one, because no lab order carries one; an order
+        that does must be verified first - the origin rule (client, 2026-08-09) wants
+        a second person to check it - and short-cutting that here would test an
+        incentive on work that could never have reached production.
         """
-        visit = self.env['lab.visit'].create({
-            'partner_id': self.clinic.id, 'user_id': (user or self.executive).id})
-        order = self.env['sale.order'].create({
-            'partner_id': self.clinic.id, 'visit_id': visit.id,
-            'order_line': [(0, 0, {'product_id': product.id,
-                                   'product_uom_qty': qty})]})
-        order.action_submit_for_verification()
-        order.with_user(self.manager).action_verify()
+        vals = {'partner_id': self.clinic.id, 'user_id': (user or self.executive).id,
+                'order_line': [(0, 0, {'product_id': product.id,
+                                       'product_uom_qty': qty})]}
+        if visit_user:
+            vals['visit_id'] = self.env['lab.visit'].create({
+                'partner_id': self.clinic.id, 'user_id': visit_user.id}).id
+        order = self.env['sale.order'].create(vals)
+        if order._verification_required():
+            order.action_submit_for_verification()
+            order.with_user(self.manager).action_verify()
         order.action_confirm()
         return order
 
@@ -86,9 +90,52 @@ class TestEpicGIncentive(TransactionCase):
             'executive_id': (executive or self.executive).id,
             'period': self._this_month()}, **vals))
 
+    # ------------------------------------------------------------------ whose order it is
+    def test_an_order_counts_for_its_salesperson_without_a_visit(self):
+        """The lab's orders carry no field visit at all; the Salesperson is who sold it."""
+        order = self._order(self.plain)
+        self.assertFalse(order.visit_id)
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertEqual(sheet.line_ids.sale_order_id, order)
+
+    def test_the_salesperson_wins_over_the_visit(self):
+        """An order taken on a colleague's visit but sold by the executive is the
+        executive's, and not the colleague's as well."""
+        colleague = self.env['res.users'].create({
+            'name': 'Visit Colleague', 'login': 'epicg_visit_colleague',
+            'group_ids': [(6, 0, [
+                self.env.ref('lab_fieldwork.group_fieldwork_executive').id])]})
+        order = self._order(self.plain, visit_user=colleague)
+        mine = self._sheet()
+        mine.action_compute()
+        self.assertEqual(mine.line_ids.sale_order_id, order)
+        theirs = self._sheet(executive=colleague)
+        theirs.action_compute()
+        self.assertFalse(theirs.line_ids)
+
+    def test_month_end_makes_a_sheet_for_every_salesperson_who_sold(self):
+        """Not only the Field Work executives: nobody on the lab's book holds that
+        group, and month-end generated no sheet at all."""
+        seller = self.env['res.users'].create({
+            'name': 'Office Seller', 'login': 'epicg_office_seller',
+            'group_ids': [(6, 0, [self.env.ref('sales_team.group_sale_salesman').id])]})
+        idle = self.env['res.users'].create({
+            'name': 'Idle Seller', 'login': 'epicg_idle_seller',
+            'group_ids': [(6, 0, [self.env.ref('sales_team.group_sale_salesman').id])]})
+        self._order(self.plain, user=seller)
+        action = self.env['lab.incentive.generate.wizard'].with_user(self.manager).create(
+            {'period': self._this_month()}).action_generate()
+        sheets = self.env['lab.incentive.sheet'].search(action['domain'])
+        self.assertIn(seller, sheets.executive_id)
+        self.assertNotIn(idle, sheets.executive_id, "nothing sold, no sheet")
+        sheet = sheets.filtered(lambda s: s.executive_id == seller)
+        self.assertEqual(sheet.state, 'computed')
+        self.assertEqual(len(sheet.line_ids), 1)
+
     # ------------------------------------------------------------------ R20 — incentive price
     def test_a_product_with_an_incentive_price_uses_it_not_the_sale_price(self):
-        self._visit_order(self.costly)
+        self._order(self.costly)
         sheet = self._sheet()
         sheet.action_compute()
         line = sheet.line_ids[0]
@@ -98,7 +145,7 @@ class TestEpicGIncentive(TransactionCase):
         self.assertTrue(line.used_incentive_price)
 
     def test_a_plain_product_uses_its_actual_sale_price(self):
-        self._visit_order(self.plain)
+        self._order(self.plain)
         sheet = self._sheet()
         sheet.action_compute()
         line = sheet.line_ids[0]
@@ -107,21 +154,21 @@ class TestEpicGIncentive(TransactionCase):
 
     def test_slab_math_flat_mode(self):
         # 1000 * 8 = 8000, inside the 0-10000 / 5% slab -> 400.
-        self._visit_order(self.plain, qty=8)
+        self._order(self.plain, qty=8)
         sheet = self._sheet()
         sheet.action_compute()
         self.assertEqual(sheet.incentive_amount, 400.0)
 
     def test_slab_math_crossing_into_the_higher_flat_slab(self):
         # 1000 * 12 = 12000 -> flat: the WHOLE base at the 10%-slab rate.
-        self._visit_order(self.plain, qty=12)
+        self._order(self.plain, qty=12)
         sheet = self._sheet()
         sheet.action_compute()
         self.assertEqual(sheet.incentive_amount, 1200.0)
 
     # ------------------------------------------------------------------ the three-step process
     def test_the_process_is_three_separate_deliberate_steps(self):
-        self._visit_order(self.plain)
+        self._order(self.plain)
         sheet = self._sheet()
         self.assertEqual(sheet.state, 'draft')
 
@@ -143,14 +190,14 @@ class TestEpicGIncentive(TransactionCase):
         self.assertEqual(sheet.state, 'paid')
 
     def test_only_a_manager_or_ceo_may_approve(self):
-        self._visit_order(self.plain)
+        self._order(self.plain)
         sheet = self._sheet()
         sheet.action_compute()
         with self.assertRaises(UserError):
             sheet.with_user(self.executive).action_approve()
 
     def test_a_paid_sheet_cannot_be_reset_or_recomputed(self):
-        self._visit_order(self.plain)
+        self._order(self.plain)
         sheet = self._sheet()
         sheet.action_compute()
         sheet.with_user(self.manager).action_approve()
@@ -163,7 +210,7 @@ class TestEpicGIncentive(TransactionCase):
 
     # ------------------------------------------------------------------ scope
     def test_reworks_never_count_towards_the_base(self):
-        order = self._visit_order(self.plain)
+        order = self._order(self.plain)
         order.is_rework = True
         sheet = self._sheet()
         sheet.action_compute()
@@ -197,7 +244,7 @@ class TestEpicGIncentive(TransactionCase):
         self.assertEqual(end, datetime(2026, 9, 30, 18, 30))
 
     def test_another_companys_sheet_does_not_take_this_companys_orders(self):
-        self._visit_order(self.plain)
+        self._order(self.plain)
         other = self.env['res.company'].create({'name': 'Epic G Other Co'})
         sheet = self._sheet(company_id=other.id)
         sheet.action_compute()
@@ -207,7 +254,7 @@ class TestEpicGIncentive(TransactionCase):
     # ------------------------------------------------------------------ basis
     def test_delivered_basis_waits_for_the_outgoing_transfer(self):
         self.params.set_str('lab_incentive.basis', 'delivered')
-        order = self._visit_order(self.plain)
+        order = self._order(self.plain)
         pickings = order.picking_ids.filtered(
             lambda p: p.picking_type_code == 'outgoing')
         self.assertTrue(pickings, "a confirmed goods order must raise a delivery")
@@ -228,7 +275,7 @@ class TestEpicGIncentive(TransactionCase):
         product = self.env['product.product'].create({
             'name': 'Paid Basis Appliance', 'type': 'service',
             'list_price': 700.0, 'invoice_policy': 'order'})
-        order = self._visit_order(product)
+        order = self._order(product)
         invoice = order._create_invoices()
         invoice.action_post()
         sheet = self._sheet()
@@ -265,12 +312,12 @@ class TestEpicGIncentive(TransactionCase):
 
     # ------------------------------------------------------------------ regeneration
     def test_regenerating_the_month_leaves_an_approved_sheet_alone(self):
-        self._visit_order(self.plain, qty=2)
+        self._order(self.plain, qty=2)
         sheet = self._sheet()
         sheet.action_compute()
         sheet.with_user(self.manager).action_approve()
         approved_amount = sheet.incentive_amount
-        self._visit_order(self.plain, qty=5)     # more work after sign-off
+        self._order(self.plain, qty=5)     # more work after sign-off
         self.env['lab.incentive.generate.wizard'].create(
             {'period': sheet.period}).action_generate()
         self.assertEqual(sheet.state, 'approved')
@@ -282,8 +329,8 @@ class TestEpicGIncentive(TransactionCase):
             'name': 'Incentive Colleague', 'login': 'epicg_colleague',
             'group_ids': [(6, 0, [
                 self.env.ref('lab_fieldwork.group_fieldwork_executive').id])]})
-        self._visit_order(self.plain)
-        self._visit_order(self.plain, user=colleague)
+        self._order(self.plain)
+        self._order(self.plain, user=colleague)
         mine = self._sheet()
         mine.action_compute()
         theirs = self._sheet(executive=colleague)
@@ -325,7 +372,7 @@ class TestEpicGIncentive(TransactionCase):
 
     # ------------------------------------------------------------------ widget data
     def test_the_slab_widget_data_reflects_the_active_rule(self):
-        self._visit_order(self.plain, qty=8)
+        self._order(self.plain, qty=8)
         sheet = self._sheet()
         sheet.action_compute()
         data = sheet.slab_widget_data
@@ -335,7 +382,7 @@ class TestEpicGIncentive(TransactionCase):
     def test_the_executive_sees_the_slabs_on_their_own_sheet(self):
         """The executive reads the rule but not the slab model; the widget must
         still show the slabs that produced their figure."""
-        self._visit_order(self.plain, qty=8)
+        self._order(self.plain, qty=8)
         sheet = self._sheet()
         sheet.action_compute()
         self.env.invalidate_all()

@@ -205,7 +205,10 @@ class LabIncentiveSheet(models.Model):
         self.ensure_one()
         start, end = self._month_window(self.period)
         domain = [
-            ('visit_id.user_id', '=', self.executive_id.id),
+            # The order's Salesperson, not its field visit: none of the lab's orders
+            # carries a visit (0 of 72,307 on the migrated book), so matching through
+            # visit_id paid nobody anything. (client, 2026-10-08)
+            ('user_id', '=', self.executive_id.id),
             ('date_order', '>=', start), ('date_order', '<', end),
             # A sheet is one company's promise: without this, company 2's orders
             # were paid under company 1's slabs.

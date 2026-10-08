@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Generate — the batch entry point for month-end: one sheet per executive who sold
+"""Generate — the batch entry point for month-end: one sheet per salesperson who sold
 anything, computed in the same pass so nobody opens each one by hand."""
 from odoo import _, fields, models
 
@@ -18,17 +18,18 @@ class LabIncentiveGenerateWizard(models.TransientModel):
         period = self.period.replace(day=1)
         Sheet = self.env['lab.incentive.sheet']
         start, end = Sheet._month_window(period)
-        exec_group = self.env.ref('lab_fieldwork.group_fieldwork_executive')
-        executives = exec_group.sudo().all_user_ids.filtered('active')
 
-        # Only executives who actually sold something this month, so month-end does
-        # not create a wall of empty zero sheets.
+        # Everyone who sold something this month, by the order's Salesperson - the
+        # field a sheet computes on - so month-end does not create a wall of empty
+        # zero sheets. Not through the field visit (no lab order carries one) and
+        # not limited to the Field Work executive group, which nobody on the lab's
+        # book holds: either way month-end generated nothing. (client, 2026-10-08)
         active_execs = self.env['sale.order'].search([
-            ('visit_id.user_id', 'in', executives.ids),
+            ('user_id', '!=', False),
             ('date_order', '>=', start), ('date_order', '<', end),
             ('company_id', '=', self.env.company.id),
             ('state', 'not in', ('draft', 'sent', 'cancel')),
-        ]).mapped('visit_id.user_id')
+        ]).mapped('user_id').filtered(lambda u: u.active and not u.share)
 
         sheets = Sheet.browse()
         for executive in active_execs:
