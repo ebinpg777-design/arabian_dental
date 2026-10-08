@@ -101,6 +101,9 @@ class LabIncentiveSheet(models.Model):
         return self.env['res.partner'].sudo().search([
             ('incentive_new_lead', '=', True),
             ('user_id', '=', self.executive_id.id),
+            # the clinic itself, not a doctor or an address filed under it: a ticked
+            # contact is not another clinic (2026-10-08)
+            ('parent_id', '=', False),
             ('create_date', '>=', start),
             ('create_date', '<', end),
             ('company_id', 'in', (False, self.company_id.id)),

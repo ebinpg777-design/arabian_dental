@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Incentive',
-    'version': '20.0.1.5.0',
+    'version': '20.0.1.5.1',
     'summary': "Monthly executive incentives: calculate, approve, disburse (R19/R20)",
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',

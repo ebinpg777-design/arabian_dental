@@ -38,7 +38,7 @@ class LabIncentiveGenerateWizard(models.TransientModel):
             ('sale_line_ids.order_id.user_id', '!=', False),
         ]).sale_line_ids.order_id.user_id
         leads = self.env['res.partner'].sudo().search([
-            ('incentive_new_lead', '=', True), ('user_id', '!=', False),
+            ('incentive_new_lead', '=', True), ('user_id', '!=', False), ('parent_id', '=', False),
             ('create_date', '>=', start), ('create_date', '<', end),
             ('company_id', 'in', (False, self.env.company.id)),
         ]).user_id

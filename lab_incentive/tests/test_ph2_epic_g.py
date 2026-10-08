@@ -370,6 +370,17 @@ class TestEpicGIncentive(TransactionCase):
         self.assertEqual(self.env['res.partner'].search(action['domain']), theirs_and_marked,
                          "the smart button lists the clinics the sheet counted")
 
+    def test_a_contact_under_a_clinic_is_not_another_clinic(self):
+        self.rule.new_clinic_bonus = 500.0
+        clinic = self._clinic('Parent Lead Clinic')
+        self.env['res.partner'].create({
+            'name': 'Dr. Under The Clinic', 'parent_id': clinic.id, 'type': 'contact',
+            'incentive_new_lead': True, 'user_id': self.executive.id})
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertEqual(sheet.new_clinic_ids, clinic)
+        self.assertEqual(sheet.new_clinic_amount, 500.0)
+
     def test_a_lead_marked_later_is_taken_by_recompute(self):
         self.rule.new_clinic_bonus = 500.0
         clinic = self._clinic('Late Lead Clinic', lead=False)
