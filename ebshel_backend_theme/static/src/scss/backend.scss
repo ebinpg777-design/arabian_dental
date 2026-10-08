@@ -1,0 +1,300 @@
+// Ebshel backend: the components. The colours come from primary_variables.scss
+// (Odoo's brand variables plus $ebshel-*); this file only shapes what Odoo draws
+// with them. Everything is written in Odoo's own colour variables and not in
+// hex, because the dark bundle compiles this same file again with dark values:
+// a hard-coded white card would stay white on a black page.
+
+$-line: $o-gray-200;
+$-canvas: mix($o-gray-200, $o-gray-100, 35%);
+$-surface: $o-view-background-color;
+$-shadow-xs: 0 1px 2px rgba(16, 24, 40, .06);
+$-shadow-card: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+$-shadow-pop: 0 4px 6px rgba(16, 24, 40, .05), 0 16px 36px rgba(16, 24, 40, .14);
+
+// the main button's gradient, from whatever $o-brand-primary is in this bundle
+$-primary-glow: lighten($o-brand-primary, 12%);
+$-primary-gradient: linear-gradient(135deg, lighten($o-brand-primary, 16%) 0%, lighten($o-brand-primary, 4%) 50%, darken($o-brand-primary, 4%) 100%);
+$-primary-gradient-hover: linear-gradient(135deg, lighten($o-brand-primary, 20%) 0%, lighten($o-brand-primary, 8%) 50%, $o-brand-primary 100%);
+$-primary-gradient-active: linear-gradient(135deg, darken($o-brand-primary, 2%) 0%, darken($o-brand-primary, 10%) 100%);
+
+// == Navbar: a thin line of the lab's red under it (not over the home menu,
+// where the navbar is transparent on the wallpaper)
+body:not(.o_home_menu_background) .o_main_navbar,
+.o_home_menu_background_custom .o_main_navbar,
+.o_in_studio .o_main_navbar {
+    box-shadow: inset 0 -2px 0 $ebshel-accent;
+}
+
+.o_main_navbar .o_menu_brand {
+    font-weight: 600;
+    letter-spacing: .01em;
+}
+
+// == Buttons
+.o_web_client {
+    .btn {
+        font-weight: 500;
+    }
+
+    // the main action: a soft gradient, a light edge on top and a glow
+    .btn-primary {
+        --#{$prefix}btn-border-color: transparent;
+        --#{$prefix}btn-hover-border-color: transparent;
+        --#{$prefix}btn-active-border-color: transparent;
+        --#{$prefix}btn-disabled-border-color: transparent;
+        --#{$prefix}btn-active-color: #{$white};
+        --#{$prefix}btn-active-bg: #{darken($o-brand-primary, 8%)};
+        background-image: $-primary-gradient;
+        background-origin: border-box;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, .18);
+        box-shadow: inset 0 1px 0 rgba($white, .25), 0 2px 4px rgba($-primary-glow, .22), 0 6px 14px -4px rgba($-primary-glow, .45);
+        transition: box-shadow .15s ease, filter .15s ease;
+
+        &:hover, &:focus-visible {
+            background-image: $-primary-gradient-hover;
+            box-shadow: inset 0 1px 0 rgba($white, .25), 0 3px 6px rgba($-primary-glow, .28), 0 10px 20px -6px rgba($-primary-glow, .55);
+        }
+
+        &:active, &.active {
+            background-image: $-primary-gradient-active;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, .2);
+        }
+
+        &:disabled, &.disabled {
+            background-image: $-primary-gradient;
+            box-shadow: none;
+        }
+    }
+
+    // the outlined variant answers with the same gradient
+    .btn-outline-primary {
+        --#{$prefix}btn-hover-border-color: transparent;
+        --#{$prefix}btn-active-border-color: transparent;
+        background-origin: border-box;
+
+        &:hover, &:active, &.active {
+            background-image: $-primary-gradient;
+            color: $white;
+        }
+    }
+
+    // everything else: the page's own surface with a hairline, instead of a flat
+    // grey block (not the status bar steps, which draw their own arrows)
+    .btn-secondary:not(.o_arrow_button) {
+        --#{$prefix}btn-bg: #{$-surface};
+        --#{$prefix}btn-border-color: #{$o-gray-300};
+        --#{$prefix}btn-color: #{$o-gray-900};
+        --#{$prefix}btn-hover-bg: #{$o-gray-100};
+        --#{$prefix}btn-hover-border-color: #{$o-gray-400};
+        --#{$prefix}btn-hover-color: #{$o-black};
+        --#{$prefix}btn-disabled-bg: #{$-surface};
+        --#{$prefix}btn-disabled-border-color: #{$-line};
+        box-shadow: $-shadow-xs;
+
+        &.active, &:active {
+            --#{$prefix}btn-active-bg: #{$o-component-active-bg};
+            --#{$prefix}btn-active-border-color: #{$o-component-active-border};
+            --#{$prefix}btn-active-color: #{$o-component-active-color};
+            box-shadow: none;
+        }
+    }
+
+    // the view switcher and the pager sit in groups: one outline, no shadow per button
+    .btn-group > .btn-secondary:not(.o_arrow_button) {
+        box-shadow: none;
+    }
+
+    .btn-link {
+        font-weight: 500;
+    }
+}
+
+// == WhatsApp buttons: every button that sends a WhatsApp carries the oi_whatsapp
+// icon - or the lab's Font Awesome one - whatever module adds it (orders, invoices,
+// statements, the composer, the chats desk), so they all take WhatsApp's
+// green-to-teal gradient, primary or not. Not the smart buttons (counters) and not
+// the icon-only links of list rows.
+.o_content, .modal {
+    .btn:has(> i[data-icon="oi_whatsapp"], > i.fa-whatsapp):not(.oe_stat_button):not(.btn-link) {
+        --#{$prefix}btn-color: #{$white};
+        --#{$prefix}btn-bg: #{$ebshel-whatsapp};
+        --#{$prefix}btn-border-color: transparent;
+        --#{$prefix}btn-hover-color: #{$white};
+        --#{$prefix}btn-hover-bg: #129A59;
+        --#{$prefix}btn-hover-border-color: transparent;
+        --#{$prefix}btn-active-color: #{$white};
+        --#{$prefix}btn-active-bg: #0E8250;
+        --#{$prefix}btn-active-border-color: transparent;
+        --#{$prefix}btn-disabled-color: #{$white};
+        --#{$prefix}btn-disabled-bg: #{$ebshel-whatsapp};
+        --#{$prefix}btn-disabled-border-color: transparent;
+        background-image: $ebshel-whatsapp-gradient;
+        background-origin: border-box;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, .2);
+        box-shadow: inset 0 1px 0 rgba(#FFF, .3), 0 2px 4px rgba(#128C7E, .22), 0 6px 14px -4px rgba($ebshel-whatsapp-glow, .45);
+        transition: box-shadow .15s ease;
+
+        &:hover, &:focus-visible {
+            background-image: $ebshel-whatsapp-gradient-hover;
+            box-shadow: inset 0 1px 0 rgba(#FFF, .3), 0 3px 6px rgba(#128C7E, .28), 0 10px 20px -6px rgba($ebshel-whatsapp-glow, .55);
+        }
+
+        &:active, &.active {
+            background-image: $ebshel-whatsapp-gradient-active;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, .22);
+        }
+
+        &:disabled, &.disabled {
+            background-image: $ebshel-whatsapp-gradient;
+            box-shadow: none;
+        }
+    }
+}
+
+// == Control panel
+.o_control_panel {
+    .o_breadcrumb .active, .o_last_breadcrumb_item {
+        font-weight: 600;
+    }
+}
+
+// == Status bar: the current step in charcoal, light text
+.o_field_statusbar > .o_statusbar_status .o_arrow_button.o_arrow_button_current:not(.d-none) {
+    --#{$prefix}btn-bg: #{$o-gray-800};
+    --#{$prefix}btn-color: #{$o-white};
+    --#{$prefix}btn-hover-bg: #{$o-gray-700};
+    --#{$prefix}btn-hover-color: #{$o-white};
+    --#{$prefix}btn-active-bg: #{$o-gray-700};
+    --#{$prefix}btn-active-color: #{$o-white};
+    --#{$prefix}btn-disabled-bg: #{$o-gray-800};
+    --#{$prefix}btn-disabled-color: #{$o-white};
+    font-weight: 600;
+}
+
+// == Form view: the sheet as a card on a soft canvas
+.o_form_view {
+    .o_form_sheet_bg {
+        background-color: $-canvas;
+    }
+
+    .o_form_sheet {
+        border-color: $-line;
+        border-radius: $o-border-radius-xl;
+        box-shadow: $-shadow-card;
+    }
+
+    .oe_title h1, .o_form_label.oe_edit_only + h1 {
+        font-weight: 700;
+    }
+
+    .oe_button_box .oe_stat_button {
+        border-radius: $o-border-radius-lg;
+    }
+}
+
+// == Notebook: underlined tabs instead of boxed ones. One step more specific than
+// the theme's own notebook rules (core/notebook), which the dark bundle loads last.
+.o_web_client .o_notebook {
+    --Notebook__link-border-color: transparent;
+    --Notebook__link-border-color--active: transparent;
+    --Notebook__link-border-top-color--active: transparent;
+    --Notebook__link-border-color--hover: transparent;
+    --Notebook__link-background-color: transparent;
+    --Notebook__link-background-color--hover: transparent;
+
+    > .o_notebook_headers .nav-tabs {
+        border-bottom: 1px solid $-line;
+    }
+
+    > .o_notebook_headers .nav-link {
+        color: $o-gray-700;
+        font-weight: 500;
+        border-radius: 0 !important;
+        transition: color .15s ease, box-shadow .15s ease;
+
+        &:hover {
+            color: $o-gray-900;
+            box-shadow: inset 0 -2px 0 $o-gray-300;
+        }
+
+        &.active {
+            // the theme's bar along the top of the open tab: the underline replaces it
+            &::after {
+                display: none;
+            }
+
+            &, &:hover, &:focus {
+                color: $o-gray-900;
+                font-weight: 600;
+                background-color: transparent;
+                box-shadow: inset 0 -3px 0 $ebshel-accent;
+            }
+        }
+    }
+}
+
+// == List view: a quiet header row, rows that answer the pointer
+.o_list_renderer .o_list_table {
+    thead th {
+        background-color: $o-gray-100;
+        color: $o-gray-700;
+        font-weight: 600;
+    }
+
+    tbody > tr.o_data_row:hover > td {
+        background-color: rgba($o-action, .05);
+    }
+}
+
+// == Kanban cards
+.o_kanban_renderer .o_kanban_record:not(.o_kanban_ghost) {
+    border-radius: $o-border-radius-lg;
+    transition: box-shadow .15s ease, border-color .15s ease;
+
+    &:hover {
+        border-color: $-line;
+        box-shadow: $-shadow-card;
+    }
+}
+
+// == Menus and dialogs: rounder, lifted
+.o-dropdown--menu.dropdown-menu, .o_popover.popover {
+    border-color: rgba(16, 24, 40, .08);
+    border-radius: $o-border-radius-lg;
+    box-shadow: $-shadow-pop;
+}
+
+.modal-content {
+    --#{$prefix}modal-border-radius: #{$o-border-radius-xl};
+    --#{$prefix}modal-inner-border-radius: calc(#{$o-border-radius-xl} - 1px);
+    border: 0;
+    box-shadow: 0 24px 60px rgba(16, 24, 40, .25);
+}
+
+// == The home menu greeting: the captions' colour, so it follows the wallpaper
+.o_home_menu .o_home_greeting {
+    margin: 1.5rem 0 .75rem;
+    text-align: center;
+    color: $o-gray-900;
+
+    &__hello {
+        font-size: 1.6rem;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -.01em;
+    }
+
+    &__date {
+        margin-top: .25rem;
+        font-size: .95rem;
+        opacity: .75;
+    }
+
+    @include media-breakpoint-down(md) {
+        margin-top: .5rem;
+
+        &__hello {
+            font-size: 1.3rem;
+        }
+    }
+}

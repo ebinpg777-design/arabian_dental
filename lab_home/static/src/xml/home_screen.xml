@@ -4,7 +4,7 @@
     <!-- The app grid every user lands on. It is the theme's home menu, not the
          stock one and not the responsive drawer, so this is where the strip has
          to go to be seen at all. -->
-    <t t-inherit="zxs_entp_theme.HomeMenu" t-inherit-mode="extension">
+    <t t-inherit="ebshel_backend_theme.HomeMenu" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('o_apps')]" position="before">
             <div t-if="this.visibleHomeAlerts.length" class="o_lab_home_alerts">
                 <div

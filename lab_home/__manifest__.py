@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Home Screen',
-    'version': '20.0.1.0.0',
+    'version': '20.0.1.0.1',
     'summary': "The lab's own home screen: wallpaper and the warnings that belong there",
     'description': """
 Home Screen
@@ -23,7 +23,7 @@ Only users who can act on a warning are shown it.
     'author': 'Arabian Dental Lab',
     'category': 'Technical',
     'license': 'LGPL-3',
-    'depends': ['web', 'zxs_entp_theme'],
+    'depends': ['web', 'ebshel_backend_theme'],
     # Odoo's own purple and teal are left alone on purpose (asked for,
     # 2026-09-24): the brand's red and grey are carried by the logo, the app
     # icons and the wallpaper, and turning every primary button red as well made

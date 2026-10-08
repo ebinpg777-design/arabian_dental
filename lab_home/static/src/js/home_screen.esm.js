@@ -16,7 +16,7 @@ import {registry} from "@web/core/registry";
 import { proxy } from "@odoo/owl";
 import {useService} from "@web/core/utils/hooks";
 import {session} from "@web/session";
-import {HomeMenu} from "@zxs_entp_theme/webclient/home_menu/home_menu";
+import {HomeMenu} from "@ebshel_backend_theme/webclient/home_menu/home_menu";
 
 /**
  * The wallpaper is a class on <body>, set once when the client starts rather

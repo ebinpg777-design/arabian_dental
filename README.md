@@ -18,7 +18,7 @@ they are separate codebases from here on.
 | Production | `lab_workcenter_scan`, `lab_reports`, `epg_sticker_print`, `epg_product_label`, `epg_barcode_fallback` |
 | Finance | `lab_finance_ops`, `petty_cash`, `epg_direct_payment`, `epg_outstanding_discount`, `epg_partner_statement`, `eh_account_*`, `excel_report_builder`, `stock_xls_report` |
 | Messaging | `epg_whatsapp`, `lab_whatsapp` |
-| Web | `lab_website`, `lab_pwa`, `lab_home`, `web_responsive`, `zxs_entp_theme`, `widget_preview_image`, `ebshel_dynamic_filter` |
+| Web | `lab_website`, `lab_pwa`, `lab_home`, `web_responsive`, `ebshel_backend_theme`, `widget_preview_image`, `ebshel_dynamic_filter` |
 | Ops | `lab_access_control`, `lab_migration`, `auto_odoo_db_and_file_backup`** |
 | Store | `material_request` — department requisitions from the main store (board, availability per line, partial approval, reject with reason, reorder, consumption analysis, slip) |
 
