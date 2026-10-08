@@ -112,6 +112,12 @@
              "2TH ...", "30 D...", "AAD..." down the whole page. Full share now.
              (client, 2026-09-29) -->
         <field name="first_column">1.0</field>
+        <!-- Eight columns of figures put the text at 9.5px, which the PDF engine prints
+             at about 6 points (client, 2026-10-08: "increase the font size"). Two fifths
+             larger, and the currency once in the heading instead of in front of each of
+             the eight figures on every row, which is the room the larger text needs. -->
+        <field name="print_font">1.4</field>
+        <field name="print_currency_once" eval="True"/>
         <field name="sequence">110</field>
         <field name="custom" eval="False"/>
         <field name="date_mode">single</field>
@@ -130,6 +136,12 @@
              "2TH ...", "30 D...", "AAD..." down the whole page. Full share now.
              (client, 2026-09-29) -->
         <field name="first_column">1.0</field>
+        <!-- Eight columns of figures put the text at 9.5px, which the PDF engine prints
+             at about 6 points (client, 2026-10-08: "increase the font size"). Two fifths
+             larger, and the currency once in the heading instead of in front of each of
+             the eight figures on every row, which is the room the larger text needs. -->
+        <field name="print_font">1.4</field>
+        <field name="print_currency_once" eval="True"/>
         <field name="sequence">120</field>
         <field name="custom" eval="False"/>
         <field name="date_mode">single</field>

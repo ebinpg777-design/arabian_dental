@@ -355,6 +355,85 @@ class TestFinReportExports(TransactionCase):
                 self.assertAlmostEqual(values['name_w'] + values['col_w'] * count, 100.0, 0)
         self.assertEqual(self.pl.first_column, 1.0)
 
+    def _pdf_values(self, report, options):
+        Pdf = self.env['report.ebshel_account_reports.fin_report_pdf']
+        return Pdf._get_report_values([report.id], {'options': options, 'report_id': report.id,
+                                                    'layout': {'scope': 'summary'}})
+
+    def _amount_texts(self, values):
+        return [c['text'] for sl in values['slices'] for l in sl for c in l['columns']
+                if c.get('display') == 'amount' and c.get('text')]
+
+    def test_the_aged_reports_print_larger_with_the_currency_in_the_heading(self):
+        """client, 2026-10-08: "increase the font size of the aged reports printouts" -
+        9.5px, which the PDF engine prints at about six points."""
+        Pdf = self.env['report.ebshel_account_reports.fin_report_pdf']
+        symbol = self.env.company.currency_id.symbol
+        for key in ('aged_receivable', 'aged_payable'):
+            with self.subTest(report=key):
+                report = self.Report.by_key(key)
+                self.assertAlmostEqual(report.print_font, 1.4, 3)
+                self.assertTrue(report.print_currency_once)
+                values = self._pdf_values(report, self.year)
+                plain = Pdf._column_plan(len(values['columns']), values['landscape'], False, report._first_column())
+                self.assertAlmostEqual(values['font'], round(plain[2] * 1.4, 1), 1)
+                self.assertEqual(values['unit_label'], symbol, "the heading says the currency once")
+                texts = self._amount_texts(values)
+                self.assertTrue(texts, "fixture: the report has figures")
+                self.assertFalse([t for t in texts if symbol in t], "and no figure repeats it")
+        # the others print as they did
+        values = self._pdf_values(self.pl, self.own)
+        plain = Pdf._column_plan(len(values['columns']), values['landscape'], False, self.pl._first_column())
+        self.assertEqual(values['font'], plain[2])
+        self.assertEqual(values['unit_label'], '')
+        self.assertTrue([t for t in self._amount_texts(values) if symbol in t])
+
+    def test_a_figure_without_its_sign_keeps_its_value_and_style(self):
+        report = self.Report.by_key('aged_receivable')
+        self.env.company.ebshel_fin_negative = 'brackets'
+        engine = self.engine.with_context(fin_negative='brackets', fin_unit=1)
+        currency = self.env.company.currency_id
+        Pdf = self.env['report.ebshel_account_reports.fin_report_pdf']
+        lines = [{'id': 'x', 'columns': [
+            {'display': 'amount', 'value': -1234.5, 'text': engine.fmt(-1234.5, currency)},
+            {'display': 'amount', 'value': -0.001, 'text': engine.fmt(-0.001, currency)},
+            {'display': 'percent', 'value': 12.0, 'text': '12.0%'},
+            {'display': 'amount', 'value': None, 'text': ''}]}]
+        out = Pdf._without_currency(engine, lines, currency)[0]['columns']
+        self.assertEqual(out[0]['text'], engine._writer(currency.decimal_places)(-1234.5))
+        self.assertTrue(out[0]['text'].startswith('(') and currency.symbol not in out[0]['text'])
+        self.assertNotIn('-', out[1]['text'], "nothing is never minus nothing")
+        self.assertEqual(out[2]['text'], '12.0%')
+        self.assertEqual(out[3]['text'], '')
+        self.assertIn(currency.symbol, lines[0]['columns'][0]['text'], "the screen's own lines are left alone")
+        self.assertTrue(report)
+
+    def test_a_larger_print_stops_where_the_widest_figure_would_be_cut(self):
+        """Measured on wkhtmltopdf 0.12.6.1 (2026-10-08): the lab's widest aged figure,
+        -13,341,235.00, prints whole at 13px in an eighth-of-the-page column."""
+        Pdf = self.env['report.ebshel_account_reports.fin_report_pdf']
+        row = lambda text: {'columns': [{'display': 'amount', 'text': text}]}
+        widest = [row('-13,341,235.00'), row('0.00')]
+        self.assertEqual(Pdf._fit_font(13.3, 9.5, 9.25, True, widest), 13.3, "the lab's aged print fits as asked")
+        capped = Pdf._fit_font(17.1, 9.5, 9.25, True, widest)
+        self.assertLess(capped, 17.1)
+        self.assertGreater(capped, 13.3)
+        self.assertEqual(Pdf._fit_font(17.1, 9.5, 9.25, True, [row('-1,234,567,890,123.00')]), 9.5,
+                         "never below the size the columns give")
+        self.assertEqual(Pdf._fit_font(9.5, 9.5, 9.25, True, widest), 9.5, "an unchanged size is not touched")
+        self.assertEqual(Pdf._fit_font(13.3, 9.5, 9.25, True, []), 13.3)
+
+    def test_figures_in_lakhs_keep_their_heading(self):
+        values = self._pdf_values(self.Report.by_key('aged_receivable'), dict(self.year, unit=100000))
+        self.assertEqual(values['unit_label'], 'lakhs')
+
+    def test_print_size_is_kept_inside_what_a_page_can_take(self):
+        report = self.Report.by_key('aged_receivable')
+        report.print_font = 9
+        self.assertEqual(report._print_font(), 1.8)
+        report.print_font = 0
+        self.assertEqual(report._print_font(), 1.0)
+
     def test_the_first_column_of_the_workbook_follows(self):
         report = self.Report.by_key('aged_receivable')
         report.first_column = 0.875

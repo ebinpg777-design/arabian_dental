@@ -97,6 +97,15 @@ class FinReport(models.Model):
         help="How wide the first column (the names) is, against its usual width: 1 is the "
              "usual width, 0.875 is seven eighths of it. What it gives up goes to the "
              "figures - on the screen, in the PDF and in the workbook alike.")
+    print_font = fields.Float(
+        string='Print text size', default=1.0,
+        help="How large the text of the PDF is, against the size its number of columns "
+             "gives: 1 is that size, 1.4 is two fifths larger. Never so large that a figure "
+             "is cut: the page itself steps the text back down until the widest one fits.")
+    print_currency_once = fields.Boolean(
+        string='Currency in the heading',
+        help="On paper, the figures print without the currency sign and the heading says "
+             "the currency once. The room it leaves goes to larger text.")
     share_code = fields.Char(string='Share of (line code)',
                              help="Common-size analysis: every amount can also be shown as a percentage of this line, "
                                   "e.g. REV on a profit and loss or ASSETS on a balance sheet.")
@@ -608,6 +617,11 @@ class FinReport(models.Model):
             waiting.append((level, total))
         close(0)
         return out
+
+    def _print_font(self):
+        """The print text size asked for, kept inside what a page can take."""
+        self.ensure_one()
+        return min(max(self.print_font or 1.0, 0.7), 1.8)
 
     def _first_column(self):
         """The width asked for the first column, kept inside what a table can take."""
