@@ -50,27 +50,43 @@ class LabIncentiveRule(models.Model):
 
     def compute_incentive(self, base):
         """The rupee amount a given base earns under this rule's slabs."""
+        return sum(step['result'] for step in self.explain(base) if step['applied'])
+
+    def explain(self, base):
+        """Every step the slabs take on `base`, in slab order - the amount and the
+        sheet's "How this was calculated" are both read from it, so they cannot
+        disagree.
+
+        Each step: the slab (`slab`), the part of the base it is applied to
+        (`amount`), what it gives (`result`), and whether it counts (`applied`).
+        Flat: the one slab the base reached, on the whole base. Telescopic: each band
+        on its own share - the first band at its rate, the next at the next rate on
+        what lies past the first, and so on; a band the base never reached is listed
+        with nothing in it, so the reader sees how far away it is.
+        """
         self.ensure_one()
         slabs = self.slab_ids.sorted('amount_from')
-        if not slabs or base <= 0:
-            return 0.0
+        if not slabs:
+            return []
+        base = max(base or 0.0, 0.0)
         if self.slab_mode == 'flat':
             hit = slabs.filtered(lambda s: s.amount_from <= base and
                                  (not s.amount_to or base <= s.amount_to))
-            slab = hit[-1:] or slabs.filtered(lambda s: s.amount_from <= base)[-1:]
-            if not slab:
-                return 0.0
-            return slab._apply(base)
-        # telescopic: walk every band the base actually reaches
-        total = 0.0
+            chosen = hit[-1:] or slabs.filtered(lambda s: s.amount_from <= base)[-1:]
+            if not base:
+                chosen = slabs.browse()
+            return [{'slab': slab, 'amount': base if slab == chosen else 0.0,
+                     'result': slab._apply(base) if slab == chosen else 0.0,
+                     'applied': slab == chosen}
+                    for slab in slabs]
+        steps = []
         for slab in slabs:
             top = slab.amount_to or base
-            if base <= slab.amount_from:
-                break
-            band = min(base, top) - slab.amount_from
-            if band > 0:
-                total += slab._apply(band)
-        return total
+            band = max(min(base, top) - slab.amount_from, 0.0)
+            steps.append({'slab': slab, 'amount': band,
+                          'result': slab._apply(band) if band > 0 else 0.0,
+                          'applied': band > 0})
+        return steps
 
 
 class LabIncentiveRuleSlab(models.Model):

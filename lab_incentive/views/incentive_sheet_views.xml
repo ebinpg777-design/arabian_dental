@@ -7,7 +7,12 @@
             <form string="Incentive Sheet">
                 <header>
                     <button name="action_compute" type="object" string="Compute"
-                            class="btn-primary" invisible="state == 'paid'"
+                            class="btn-primary" invisible="state != 'draft'"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <!-- after marking a clinic as a new lead, or a late invoice: read the
+                         month again. An approved sheet is Reset first. -->
+                    <button name="action_compute" type="object" string="Recompute"
+                            invisible="state != 'computed'"
                             groups="lab_fieldwork.group_fieldwork_manager"/>
                     <button name="action_approve" type="object" string="Approve"
                             class="btn-primary" invisible="state != 'computed'"
@@ -22,6 +27,13 @@
                            statusbar_visible="draft,computed,approved,paid"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_new_clinics" type="object"
+                                class="oe_stat_button" icon="fa-user-plus"
+                                invisible="state == 'draft'">
+                            <field name="new_clinic_count" widget="statinfo" string="New Clinics"/>
+                        </button>
+                    </div>
                     <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
                     <group>
                         <group>
@@ -34,16 +46,9 @@
                         <group>
                             <field name="total_sales" readonly="1"/>
                             <field name="total_base" readonly="1"/>
-                            <label for="new_clinic_count" string="New clinics"/>
-                            <div>
-                                <field name="new_clinic_count" readonly="1"
-                                       class="oe_inline"/>
-                                <button name="action_view_new_clinics" type="object"
-                                        class="btn-link oe_inline" string="see them"
-                                        invisible="new_clinic_count == 0"/>
-                                <field name="new_clinic_amount" readonly="1"
-                                       class="oe_inline ms-2" widget="monetary"/>
-                            </div>
+                            <field name="slab_amount" readonly="1"/>
+                            <field name="new_clinic_amount" readonly="1"
+                                   string="New Clinic Bonus"/>
                             <field name="incentive_amount" readonly="1"
                                    class="fw-bold"/>
                         </group>
@@ -63,14 +68,19 @@
                         <field name="paid_date" readonly="1"/>
                     </group>
 
+                    <!-- What was billed: one row per invoice line. No incentive per
+                         row - the slabs pay on the month's total, and a share per order
+                         read as if each order earned its own (client, 2026-10-08). -->
                     <field name="line_ids" readonly="1">
-                        <list>
+                        <list decoration-danger="sale_amount &lt; 0">
+                            <field name="invoice_date"/>
+                            <field name="invoice_id"/>
                             <field name="sale_order_id"/>
                             <field name="product_id"/>
+                            <field name="quantity" optional="show"/>
                             <field name="sale_amount" sum="Total"/>
                             <field name="incentive_base" sum="Total"/>
                             <field name="used_incentive_price" optional="show"/>
-                            <field name="incentive_amount" sum="Total"/>
                         </list>
                     </field>
                 </sheet>
@@ -143,7 +153,7 @@
                                    decoration-warning="state == 'confirmed'"/>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2">
-                            <span class="text-muted">Sales</span>
+                            <span class="text-muted">Billed</span>
                             <span><field name="total_sales" widget="monetary"/></span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">

@@ -40,17 +40,29 @@ class LabIncentiveSheet(models.Model):
         default='draft', required=True, tracking=True, copy=False)
 
     line_ids = fields.One2many('lab.incentive.sheet.line', 'sheet_id', readonly=True)
-    total_sales = fields.Monetary(compute='_compute_totals', store=True)
+    total_sales = fields.Monetary(
+        'Total Billed', compute='_compute_totals', store=True,
+        help="What was billed to the clinics in the month: the posted invoices of the "
+             "executive's orders, less their credit notes.")
     total_base = fields.Monetary(
         compute='_compute_totals', store=True,
         help="What the incentive was actually calculated on — differs from Total "
-             "Sales whenever a line's product carries its own incentive price.")
+             "Billed whenever a line's product carries its own incentive price.")
+    # What the slabs gave on the base - the whole of it, kept on the sheet: the lines
+    # no longer carry a share of it, which read as if each order earned its own.
+    # (client, 2026-10-08)
+    slab_amount = fields.Monetary('Slab Incentive', readonly=True, copy=False)
     incentive_amount = fields.Monetary(compute='_compute_totals', store=True)
     # The doors opened this month, and what they were worth. Stored on the sheet
     # rather than recomputed on read, so an approved sheet keeps the figure it was
     # approved on even if a clinic is later moved to another route.
     # (client, 2026-08-27)
     new_clinic_count = fields.Integer('New Clinics', readonly=True, copy=False)
+    # The clinics themselves, as counted: the smart button lists these and not a fresh
+    # search, so an approved sheet shows the clinics it was approved on.
+    new_clinic_ids = fields.Many2many(
+        'res.partner', 'lab_incentive_sheet_new_clinic_rel', 'sheet_id', 'partner_id',
+        string='New Clinic List', readonly=True, copy=False)
     new_clinic_amount = fields.Monetary('New Clinic Bonus', readonly=True, copy=False,
                                         currency_field='currency_id')
 
@@ -64,7 +76,7 @@ class LabIncentiveSheet(models.Model):
         'There is already an incentive sheet for this executive and month.')
 
     @api.depends('line_ids.sale_amount', 'line_ids.incentive_base',
-                 'line_ids.incentive_amount', 'new_clinic_amount')
+                 'slab_amount', 'new_clinic_amount')
     def _compute_totals(self):
         for sheet in self:
             sheet.total_sales = sum(sheet.line_ids.mapped('sale_amount'))
@@ -72,35 +84,35 @@ class LabIncentiveSheet(models.Model):
             # The clinic bonus rides on top of the slabs rather than into the base:
             # putting it into the base would let opening a door push the executive up a
             # sales slab, which is not what a sales slab measures.
-            sheet.incentive_amount = (sum(sheet.line_ids.mapped('incentive_amount'))
-                                      + (sheet.new_clinic_amount or 0.0))
+            sheet.incentive_amount = (sheet.slab_amount or 0.0) + (sheet.new_clinic_amount or 0.0)
 
     def _new_clinics(self):
-        """Clinics this executive registered on their own route, that month.
+        """The clinics this executive brought in that month: customers marked as a
+        new lead by their salesperson, whose Salesperson is this executive, registered
+        in the month.
 
-        Counted from `create_uid` and the clinic's route together: the person who
-        entered it, on a round that is theirs. Either alone is wrong — an office user
-        entering a clinic for a route is not the executive's door, and a clinic that
-        moved onto their route later was not opened by them.
+        The mark decides, not who typed the clinic in or on whose route it sits: the
+        office registers clinics as often as the field does, and nobody on the lab's
+        book has a route, so the old rule (creator + own route) counted nothing.
+        (client, 2026-10-08)
         """
         self.ensure_one()
         start, end = self._month_window(self.period)
-        routes = self.executive_id.fw_route_ids
-        if not routes:
-            return self.env['res.partner']
         return self.env['res.partner'].sudo().search([
-            ('create_uid', '=', self.executive_id.id),
-            ('team_id', 'in', routes.ids),
+            ('incentive_new_lead', '=', True),
+            ('user_id', '=', self.executive_id.id),
             ('create_date', '>=', start),
             ('create_date', '<', end),
+            ('company_id', 'in', (False, self.company_id.id)),
         ])
 
     def action_view_new_clinics(self):
         self.ensure_one()
         return {
-            'type': 'ir.actions.act_window', 'name': _('New clinics this month'),
+            'type': 'ir.actions.act_window', 'name': _('New clinics — %s', self.name),
             'res_model': 'res.partner', 'view_mode': 'list,form',
-            'domain': [('id', 'in', self._new_clinics().ids)],
+            'views': [(False, 'list'), (False, 'form')],
+            'domain': [('id', 'in', self.sudo().new_clinic_ids.ids)],
             'context': {'create': False},
         }
 
@@ -148,126 +160,103 @@ class LabIncentiveSheet(models.Model):
     # ------------------------------------------------------------------ basis
     @api.model
     def _incentive_basis(self):
-        return self.env['ir.config_parameter'].sudo().get_str(
-            'lab_incentive.basis', 'delivered')
+        """'invoiced' (billed) or 'paid' (billed and paid). Only billed amounts count
+        (client, 2026-10-08), so the older 'confirmed' and 'delivered' read as billed."""
+        basis = self.env['ir.config_parameter'].sudo().get_str('lab_incentive.basis')
+        return 'paid' if basis == 'paid' else 'invoiced'
 
     @api.model
-    def _shipped(self, orders):
-        """The orders whose goods actually left: an outgoing transfer done and none
-        still open.
-
-        Not lab.delivery's state: every one of its 18,007 rows on this database is
-        `draft`, shipped or not, so a basis read off it paid nobody anything. Same
-        rule as lab.delivery._live_ids - "has a done picking" alone would call the
-        second appliance of a two-line case delivered. Elevated because a manager
-        computing sheets need not hold inventory rights. (2026-09-15)
-        """
-        if not orders:
-            return orders
-        done, still_open = set(), set()
-        for order, state in self.env['stock.picking'].sudo()._read_group(
-                [('sale_id', 'in', orders.ids), ('state', '!=', 'cancel'),
-                 ('picking_type_code', '=', 'outgoing')],
-                ['sale_id', 'state']):
-            (done if state == 'done' else still_open).add(order.id)
-        return orders.filtered(lambda o: o.id in done and o.id not in still_open)
-
-    @api.model
-    def _paid(self, orders, company):
-        """The orders whose posted invoices the clinic's receipts have fully reached.
+    def _paid_invoices(self, invoices, company):
+        """The invoices the clinic's receipts have fully reached.
 
         `payment_state` never reaches 'paid' on this ledger - receipts are plain
         journal entries that are never reconciled - so the Collections countback is
         the only honest answer to "is this paid".
         """
-        invoices = orders.invoice_ids.filtered(
-            lambda m: m.state == 'posted' and m.move_type == 'out_invoice')
         if not invoices:
-            return orders.browse()
+            return invoices
         # The countback is raw SQL: what this transaction posted must be written first.
         self.env['account.move'].flush_model()
         self.env['account.move.line'].flush_model()
         open_moves = {d['move_id'] for d in self.env['lab.collection.performance']
                       .sudo()._open_debits(
                           company, partner_ids=invoices.commercial_partner_id.ids)}
-        return orders.filtered(lambda o: any(
-            m.state == 'posted' and m.move_type == 'out_invoice'
-            for m in o.invoice_ids) and not any(
-            m.id in open_moves for m in o.invoice_ids))
+        return invoices.filtered(lambda m: m.id not in open_moves)
 
-    def _qualifying_orders(self):
-        """Every order this executive's incentive is judged on for the month.
+    def _qualifying_lines(self):
+        """The billed lines this executive's incentive is judged on for the month:
+        every product line of a posted customer invoice or credit note dated in the
+        month, for an order whose Salesperson is the executive.
 
-        Basis is a setting because a lab paying on `delivered` (work that actually
-        reached the doctor) is a different promise than one paying on `confirmed`
-        (booked) — and which one is true has to be decided once, not line by line.
+        Billed, not ordered: an order counts for what was invoiced on it, a credit
+        note takes its amount back, and an order not yet invoiced counts in the month
+        it is. Elevated: a manager computing sheets need not hold accounting rights.
         """
         self.ensure_one()
-        start, end = self._month_window(self.period)
-        domain = [
-            # The order's Salesperson, not its field visit: none of the lab's orders
-            # carries a visit (0 of 72,307 on the migrated book), so matching through
-            # visit_id paid nobody anything. (client, 2026-10-08)
-            ('user_id', '=', self.executive_id.id),
-            ('date_order', '>=', start), ('date_order', '<', end),
+        first = fields.Date.to_date(self.period).replace(day=1)
+        lines = self.env['account.move.line'].sudo().search([
+            ('move_id.state', '=', 'posted'),
+            ('move_id.move_type', 'in', ('out_invoice', 'out_refund')),
+            ('move_id.invoice_date', '>=', first),
+            ('move_id.invoice_date', '<', first + relativedelta(months=1)),
             # A sheet is one company's promise: without this, company 2's orders
             # were paid under company 1's slabs.
-            ('company_id', '=', self.company_id.id),
-            ('state', 'not in', EXCLUDED_STATES),
-            ('is_rework', '=', False),
-        ]
-        basis = self._incentive_basis()
-        if basis in ('invoiced', 'paid'):
-            domain += [('invoice_ids.state', '=', 'posted')]
-        orders = self.env['sale.order'].search(domain)
-        if basis == 'paid':
-            orders = self._paid(orders, self.company_id)
-        elif basis == 'delivered':
-            # Outgoing transfers only: a pickup brings an impression IN, and money
-            # must not follow that. (2026-08-24)
-            orders = self._shipped(orders)
-        return orders
+            ('move_id.company_id', '=', self.company_id.id),
+            ('display_type', '=', 'product'),
+            ('sale_line_ids.order_id.user_id', '=', self.executive_id.id),
+            ('sale_line_ids.order_id.state', 'not in', EXCLUDED_STATES),
+            ('sale_line_ids.order_id.is_rework', '=', False),
+        ], order='date, move_id, id')
+        if self._incentive_basis() == 'paid':
+            invoices = lines.move_id.filtered(lambda m: m.move_type == 'out_invoice')
+            paid = self._paid_invoices(invoices, self.company_id)
+            # a credit note always counts: it takes back what its invoice billed
+            lines = lines.filtered(lambda l: l.move_id.move_type == 'out_refund'
+                                   or l.move_id in paid)
+        return lines
 
     def action_compute(self):
         for sheet in self:
             if sheet.state == 'paid':
                 raise UserError(_("%s is already paid — it cannot be recomputed.",
                                   sheet.name))
+            if sheet.state == 'approved':
+                raise UserError(_("%s is approved. Reset it before recomputing, so the "
+                                  "approval is not lost without anyone noticing.",
+                                  sheet.name))
             sheet.line_ids.unlink()
-            orders = sheet._qualifying_orders()
             lines = []
-            for order in orders:
-                for line in order.order_line.filtered(
-                        lambda l: not l.display_type and l.product_uom_qty):
-                    override = line.product_id.incentive_price
-                    base = (override * line.product_uom_qty) if override \
-                        else line.price_subtotal
-                    lines.append((0, 0, {
-                        'sale_order_id': order.id,
-                        'product_id': line.product_id.id,
-                        'sale_amount': line.price_subtotal,
-                        'incentive_base': base,
-                        'used_incentive_price': bool(override),
-                    }))
+            for aml in sheet._qualifying_lines():
+                # company currency, signed: a credit note is a negative bill
+                billed = -aml.balance
+                sign = -1 if billed < 0 else 1
+                override = aml.product_id.incentive_price
+                base = (override * abs(aml.quantity) * sign) if override else billed
+                lines.append((0, 0, {
+                    'sale_order_id': aml.sale_line_ids.order_id[:1].id,
+                    'invoice_id': aml.move_id.id,
+                    'invoice_date': aml.move_id.invoice_date,
+                    'product_id': aml.product_id.id,
+                    'quantity': abs(aml.quantity) * sign,
+                    'sale_amount': billed,
+                    'incentive_base': base,
+                    'used_incentive_price': bool(override),
+                }))
             rule = self.env['lab.incentive.rule']._active_rule(
                 sheet.company_id, sheet.period)
             clinics = sheet._new_clinics()
             bonus = len(clinics) * (rule.new_clinic_bonus or 0.0) if rule else 0.0
             sheet.write({'line_ids': lines, 'state': 'computed', 'rule_id': rule.id,
+                         'new_clinic_ids': [(6, 0, clinics.ids)],
                          'new_clinic_count': len(clinics),
                          'new_clinic_amount': bonus})
             if not rule:
+                sheet.slab_amount = 0.0
                 sheet.message_post(body=_(
                     "No incentive rule is active for %s — the incentive amount is "
                     "zero until one is configured.", sheet.period.strftime('%B %Y')))
                 continue
-            base_total = sum(sheet.line_ids.mapped('incentive_base'))
-            amount = rule.compute_incentive(base_total)
-            # Spread proportionally so each line shows its own contribution — useful
-            # for the executive to see, meaningless to change by hand.
-            for sheet_line in sheet.line_ids:
-                share = (sheet_line.incentive_base / base_total) if base_total else 0
-                sheet_line.incentive_amount = round(amount * share, 2)
+            sheet.slab_amount = rule.sudo().compute_incentive(sheet.total_base)
         return True
 
     def action_approve(self):
@@ -331,16 +320,17 @@ class LabIncentiveSheetLine(models.Model):
     sheet_id = fields.Many2one('lab.incentive.sheet', required=True,
                                ondelete='cascade')
     sale_order_id = fields.Many2one('sale.order', required=True)
+    invoice_id = fields.Many2one('account.move', string='Invoice', readonly=True)
+    invoice_date = fields.Date(readonly=True)
     product_id = fields.Many2one('product.product', required=True)
-    sale_amount = fields.Monetary(currency_field='currency_id')
+    quantity = fields.Float(digits='Product Unit', readonly=True)
+    sale_amount = fields.Monetary(
+        'Billed Amount', currency_field='currency_id',
+        help="What this invoice line billed, before tax; negative on a credit note.")
     incentive_base = fields.Monetary(
         currency_field='currency_id',
         help="What the incentive was actually computed on for this line.")
     used_incentive_price = fields.Boolean(
         help="This product carries its own incentive price, so the base above is not "
              "the same figure the doctor was charged.")
-    incentive_amount = fields.Monetary(
-        currency_field='currency_id', readonly=True,
-        help="This line's proportional share of the sheet's slab-based total — a "
-             "breakdown for transparency, not something to edit by hand.")
     currency_id = fields.Many2one(related='sheet_id.currency_id')

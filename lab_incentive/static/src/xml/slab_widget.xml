@@ -29,6 +29,55 @@
                         </div>
                     </div>
                 </div>
+                <!-- the working, step by step: which part of the base each slab
+                     paid on, at what rate, and what it gave -->
+                <div t-if="this.data.steps and this.data.steps.length" class="o_incentive_calc mt-3">
+                    <div class="text-muted small mb-1" t-out="this.data.mode_note"/>
+                    <!-- on a phone: Slab | Working | Incentive - the working already
+                         says what was paid on and at what rate -->
+                    <table class="table table-sm o_incentive_calc_table mb-1">
+                        <thead>
+                            <tr>
+                                <th>Slab</th>
+                                <th class="text-end d-none d-md-table-cell">Rate</th>
+                                <th class="text-end d-none d-md-table-cell">Paid on</th>
+                                <th>Working</th>
+                                <th class="text-end">Incentive</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="this.data.steps" t-as="step" t-key="step_index"
+                                t-att-class="step.applied ? '' : 'text-muted'">
+                                <td t-out="step.band"/>
+                                <td class="text-end d-none d-md-table-cell" t-out="step.rate"/>
+                                <td class="text-end d-none d-md-table-cell" t-out="step.amount"/>
+                                <td t-out="step.working"/>
+                                <td class="text-end" t-out="step.result"/>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td>Base <span class="d-md-none" t-out="this.data.base_text"/></td>
+                                <td class="d-none d-md-table-cell"/>
+                                <td class="text-end d-none d-md-table-cell" t-out="this.data.base_text"/>
+                                <td>Slab incentive</td>
+                                <td class="text-end fw-bold" t-out="this.data.slab_text"/>
+                            </tr>
+                            <tr t-if="this.data.clinics">
+                                <td/>
+                                <td class="d-none d-md-table-cell" colspan="2"/>
+                                <td>New clinics: <t t-out="this.data.clinics.count"/> × <t t-out="this.data.clinics.each"/></td>
+                                <td class="text-end" t-out="this.data.clinics.total"/>
+                            </tr>
+                            <tr class="o_incentive_calc_total">
+                                <td/>
+                                <td class="d-none d-md-table-cell" colspan="2"/>
+                                <td class="fw-bold">Incentive</td>
+                                <td class="text-end fw-bold" t-out="this.data.total_text"/>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
                 <div t-if="this.data.next_gap" class="o_incentive_slab_next text-muted small mt-1">
                     <i class="fa fa-arrow-up me-1"/>
                     <t t-out="this.data.currency_symbol"/><t t-out="Math.round(this.data.next_gap).toLocaleString()"/>

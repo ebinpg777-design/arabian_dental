@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Generate — the batch entry point for month-end: one sheet per salesperson who sold
+"""Generate — the batch entry point for month-end: one sheet per salesperson who billed
 anything, computed in the same pass so nobody opens each one by hand."""
+from dateutil.relativedelta import relativedelta
+
 from odoo import _, fields, models
 
 
@@ -19,17 +21,28 @@ class LabIncentiveGenerateWizard(models.TransientModel):
         Sheet = self.env['lab.incentive.sheet']
         start, end = Sheet._month_window(period)
 
-        # Everyone who sold something this month, by the order's Salesperson - the
-        # field a sheet computes on - so month-end does not create a wall of empty
-        # zero sheets. Not through the field visit (no lab order carries one) and
-        # not limited to the Field Work executive group, which nobody on the lab's
-        # book holds: either way month-end generated nothing. (client, 2026-10-08)
-        active_execs = self.env['sale.order'].search([
-            ('user_id', '!=', False),
-            ('date_order', '>=', start), ('date_order', '<', end),
-            ('company_id', '=', self.env.company.id),
-            ('state', 'not in', ('draft', 'sent', 'cancel')),
-        ]).mapped('user_id').filtered(lambda u: u.active and not u.share)
+        # Everyone billed something this month, by the Salesperson of the order the
+        # invoice came from - the line a sheet computes on - and everyone whose new
+        # lead was registered in it, so month-end does not create a wall of empty zero
+        # sheets. Not through the field visit (no lab order carries one) and not
+        # limited to the Field Work executive group, which nobody on the lab's book
+        # holds. (client, 2026-10-08)
+        first = period
+        billed = self.env['account.move.line'].sudo().search([
+            ('move_id.state', '=', 'posted'),
+            ('move_id.move_type', 'in', ('out_invoice', 'out_refund')),
+            ('move_id.invoice_date', '>=', first),
+            ('move_id.invoice_date', '<', first + relativedelta(months=1)),
+            ('move_id.company_id', '=', self.env.company.id),
+            ('display_type', '=', 'product'),
+            ('sale_line_ids.order_id.user_id', '!=', False),
+        ]).sale_line_ids.order_id.user_id
+        leads = self.env['res.partner'].sudo().search([
+            ('incentive_new_lead', '=', True), ('user_id', '!=', False),
+            ('create_date', '>=', start), ('create_date', '<', end),
+            ('company_id', 'in', (False, self.env.company.id)),
+        ]).user_id
+        active_execs = (billed | leads).filtered(lambda u: u.active and not u.share)
 
         sheets = Sheet.browse()
         for executive in active_execs:

@@ -11,7 +11,7 @@ import pytz
 from psycopg2 import IntegrityError
 
 from odoo import fields
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import TransactionCase, tagged
 from odoo.tools import mute_logger
 
@@ -23,7 +23,7 @@ class TestEpicGIncentive(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.params = cls.env['ir.config_parameter'].sudo()
-        cls.params.set_str('lab_incentive.basis', 'confirmed')
+        cls.params.set_str('lab_incentive.basis', 'invoiced')
         cls.manager = cls.env['res.users'].create({
             'name': 'Incentive Manager', 'login': 'epicg_mgr',
             'group_ids': [(6, 0, [
@@ -35,11 +35,13 @@ class TestEpicGIncentive(TransactionCase):
             'group_ids': [(6, 0, [
                 cls.env.ref('lab_fieldwork.group_fieldwork_executive').id])]})
         cls.clinic = cls.env['res.partner'].create({'name': 'Epic G Clinic'})
+        # billed on the order and without tax, so a figure here is the figure billed
         cls.plain = cls.env['product.product'].create({
-            'name': 'Plain Appliance', 'type': 'consu', 'list_price': 1000.0})
+            'name': 'Plain Appliance', 'type': 'consu', 'list_price': 1000.0,
+            'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
         cls.costly = cls.env['product.product'].create({
             'name': 'Costly Appliance', 'type': 'consu', 'list_price': 5000.0,
-            'incentive_price': 500.0})
+            'incentive_price': 500.0, 'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
 
         rule = cls.env['lab.incentive.rule'].create({
             'name': 'Test Rule', 'date_from': '2020-01-01', 'slab_mode': 'flat'})
@@ -51,7 +53,7 @@ class TestEpicGIncentive(TransactionCase):
         ])
         cls.rule = rule
 
-    def _order(self, product, qty=1, user=None, visit_user=None):
+    def _order(self, product, qty=1, user=None, visit_user=None, bill=True):
         """An order sold by `user` (the executive unless given), taken all the way to
         confirmed the way a real one goes.
 
@@ -72,6 +74,9 @@ class TestEpicGIncentive(TransactionCase):
             order.action_submit_for_verification()
             order.with_user(self.manager).action_verify()
         order.action_confirm()
+        if bill:
+            # only what is billed counts (client, 2026-10-08)
+            order._create_invoices().action_post()
         return order
 
     def _this_month(self):
@@ -252,32 +257,13 @@ class TestEpicGIncentive(TransactionCase):
                          "orders are paid under their own company's sheet only")
 
     # ------------------------------------------------------------------ basis
-    def test_delivered_basis_waits_for_the_outgoing_transfer(self):
-        self.params.set_str('lab_incentive.basis', 'delivered')
-        order = self._order(self.plain)
-        pickings = order.picking_ids.filtered(
-            lambda p: p.picking_type_code == 'outgoing')
-        self.assertTrue(pickings, "a confirmed goods order must raise a delivery")
-        sheet = self._sheet()
-        sheet.action_compute()
-        self.assertFalse(sheet.line_ids, "not shipped yet, so nothing to pay on")
-
-        for move in pickings.move_ids:
-            move.quantity = move.product_uom_qty
-            move.picked = True
-        pickings._action_done()
-        self.assertEqual(set(pickings.mapped('state')), {'done'})
-        sheet.action_compute()
-        self.assertEqual(sheet.line_ids.sale_order_id, order)
-
     def test_paid_basis_follows_the_countback_not_payment_state(self):
         self.params.set_str('lab_incentive.basis', 'paid')
         product = self.env['product.product'].create({
             'name': 'Paid Basis Appliance', 'type': 'service',
             'list_price': 700.0, 'invoice_policy': 'order'})
         order = self._order(product)
-        invoice = order._create_invoices()
-        invoice.action_post()
+        invoice = order.invoice_ids
         sheet = self._sheet()
         sheet.action_compute()
         self.assertFalse(sheet.line_ids, "billed, not yet paid")
@@ -309,6 +295,152 @@ class TestEpicGIncentive(TransactionCase):
                          "fixture: the receipt is not reconciled")
         sheet.action_compute()
         self.assertEqual(sheet.line_ids.sale_order_id, order)
+
+    # ------------------------------------------------------------------ billed only
+    def test_an_order_not_yet_billed_does_not_count(self):
+        self._order(self.plain, bill=False)
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertFalse(sheet.line_ids)
+
+    def test_only_what_was_billed_counts(self):
+        order = self._order(self.plain, qty=3, bill=False)
+        invoice = order._create_invoices()
+        invoice.invoice_line_ids.quantity = 2       # two of the three billed so far
+        invoice.action_post()
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertEqual(sheet.total_sales, 2000.0)
+        line = sheet.line_ids
+        self.assertEqual((line.invoice_id, line.sale_order_id), (invoice, order))
+        self.assertEqual(line.invoice_date, invoice.invoice_date)
+        self.assertEqual(line.quantity, 2)
+
+    def test_a_credit_note_takes_its_amount_back(self):
+        order = self._order(self.plain, qty=2)
+        refund = order.invoice_ids._reverse_moves()
+        refund.invoice_line_ids.quantity = 1
+        refund.action_post()
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertEqual(sheet.total_sales, 1000.0)
+        self.assertEqual(sorted(sheet.line_ids.mapped('sale_amount')), [-1000.0, 2000.0])
+        self.assertEqual(sheet.total_base, 1000.0, "and its incentive base with it")
+
+    def test_a_bill_dated_in_another_month_counts_there(self):
+        order = self._order(self.plain, bill=False)
+        invoice = order._create_invoices()
+        invoice.invoice_date = fields.Date.subtract(self._this_month(), months=1)
+        invoice.action_post()
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertFalse(sheet.line_ids)
+
+    def test_the_lines_carry_no_share_of_the_incentive(self):
+        """Each order's share of the slab total read as if it earned its own; the
+        sheet keeps the slab figure whole. (client, 2026-10-08)"""
+        self._order(self.plain, qty=8)
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertNotIn('incentive_amount', sheet.line_ids._fields)
+        self.assertEqual(sheet.slab_amount, 400.0)
+        self.assertEqual(sheet.incentive_amount, 400.0)
+
+    # ------------------------------------------------------------------ new clinics
+    def _clinic(self, name, user=None, lead=True):
+        return self.env['res.partner'].create({
+            'name': name, 'incentive_new_lead': lead,
+            'user_id': (user or self.executive).id if user is not False else False})
+
+    def test_only_a_clinic_marked_as_the_salespersons_lead_is_a_new_clinic(self):
+        self.rule.new_clinic_bonus = 500.0
+        colleague = self.env['res.users'].create({
+            'name': 'Lead Colleague', 'login': 'epicg_lead_colleague',
+            'group_ids': [(6, 0, [self.env.ref('sales_team.group_sale_salesman').id])]})
+        theirs_and_marked = self._clinic('Marked Lead Clinic')
+        self._clinic('Unmarked Clinic', lead=False)
+        self._clinic('Colleague Lead Clinic', user=colleague)
+        self._order(self.plain)
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertEqual(sheet.new_clinic_ids, theirs_and_marked)
+        self.assertEqual((sheet.new_clinic_count, sheet.new_clinic_amount), (1, 500.0))
+        self.assertEqual(sheet.incentive_amount, sheet.slab_amount + 500.0)
+        action = sheet.action_view_new_clinics()
+        self.assertEqual(self.env['res.partner'].search(action['domain']), theirs_and_marked,
+                         "the smart button lists the clinics the sheet counted")
+
+    def test_a_lead_marked_later_is_taken_by_recompute(self):
+        self.rule.new_clinic_bonus = 500.0
+        clinic = self._clinic('Late Lead Clinic', lead=False)
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertFalse(sheet.new_clinic_ids)
+        clinic.incentive_new_lead = True
+        sheet.action_compute()
+        self.assertEqual(sheet.new_clinic_ids, clinic)
+
+    def test_month_end_makes_a_sheet_for_a_salesperson_with_only_a_new_lead(self):
+        seller = self.env['res.users'].create({
+            'name': 'Lead Only Seller', 'login': 'epicg_lead_only',
+            'group_ids': [(6, 0, [self.env.ref('sales_team.group_sale_salesman').id])]})
+        self._clinic('Only A Lead Clinic', user=seller)
+        action = self.env['lab.incentive.generate.wizard'].with_user(self.manager).create(
+            {'period': self._this_month()}).action_generate()
+        sheets = self.env['lab.incentive.sheet'].search(action['domain'])
+        self.assertIn(seller, sheets.executive_id)
+        self.assertEqual(sheets.filtered(lambda s: s.executive_id == seller).new_clinic_count, 1)
+
+    def test_a_new_lead_names_its_salesperson(self):
+        with self.assertRaises(ValidationError):
+            self._clinic('Nobody Brought Me', user=False)
+
+    def test_an_approved_sheet_is_reset_before_it_is_recomputed(self):
+        self._order(self.plain)
+        sheet = self._sheet()
+        sheet.action_compute()
+        sheet.with_user(self.manager).action_approve()
+        with self.assertRaises(UserError):
+            sheet.action_compute()
+        sheet.action_reset_to_draft()
+        sheet.action_compute()
+        self.assertEqual(sheet.state, 'computed')
+
+    # ------------------------------------------------------------------ the working
+    def test_a_telescopic_figure_shows_each_band(self):
+        """client, 2026-10-08: a telescopic figure with only its slabs beside it
+        "makes confusion"."""
+        self.rule.slab_mode = 'telescopic'
+        self._order(self.plain, qty=12)            # 12,000
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.assertEqual(sheet.slab_amount, 700.0, "5% of the first 10,000 + 10% of the next 2,000")
+        steps = sheet.slab_widget_data['steps']
+        self.assertEqual([s['applied'] for s in steps], [True, True])
+        self.assertIn('10,000', steps[0]['amount'])
+        self.assertIn('500', steps[0]['result'])
+        self.assertIn('2,000', steps[1]['amount'])
+        self.assertIn('200', steps[1]['result'])
+        self.assertIn('×', steps[1]['working'])
+
+    def test_a_flat_figure_shows_the_one_slab_on_the_whole_base(self):
+        self._order(self.plain, qty=12)
+        sheet = self._sheet()
+        sheet.action_compute()
+        steps = sheet.slab_widget_data['steps']
+        self.assertEqual([s['applied'] for s in steps], [False, True])
+        self.assertIn('12,000', steps[1]['amount'])
+        self.assertIn('1,200', steps[1]['result'])
+        self.assertEqual(sum(s['applied'] for s in steps), 1)
+
+    def test_the_working_and_the_amount_never_disagree(self):
+        for mode in ('flat', 'telescopic'):
+            self.rule.slab_mode = mode
+            for base in (0, 1, 9999.99, 10000, 10000.01, 25000):
+                with self.subTest(mode=mode, base=base):
+                    steps = self.rule.explain(base)
+                    self.assertAlmostEqual(sum(s['result'] for s in steps if s['applied']),
+                                           self.rule.compute_incentive(base), 2)
 
     # ------------------------------------------------------------------ regeneration
     def test_regenerating_the_month_leaves_an_approved_sheet_alone(self):

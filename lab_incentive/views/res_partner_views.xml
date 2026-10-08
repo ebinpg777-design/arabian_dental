@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Beside the Salesperson it credits. -->
+    <record id="view_partner_form_incentive_lead" model="ir.ui.view">
+        <field name="name">res.partner.form.incentive.lead</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='sales_purchases']//group[@name='sale']/field[@name='user_id']" position="after">
+                <field name="incentive_new_lead"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_partner_search_incentive_lead" model="ir.ui.view">
+        <field name="name">res.partner.search.incentive.lead</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='inactive']" position="before">
+                <filter name="incentive_new_lead" string="New Leads by Salesperson"
+                        domain="[('incentive_new_lead', '=', True)]"/>
+                <separator/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

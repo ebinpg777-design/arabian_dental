@@ -1,5 +1,5 @@
 .o_incentive_slab_widget {
-    max-width: 520px;
+    max-width: 760px;
 
     .o_incentive_slab_summary {
         display: flex;
@@ -40,5 +40,22 @@
     }
     .o_incentive_slab_row.o_current .o_incentive_slab_fill {
         background: linear-gradient(90deg, #0f9d58, #0e7c86);
+    }
+}
+
+// the working table: scrolls on its own on a phone rather than widening the page
+.o_incentive_calc {
+    overflow-x: auto;
+
+    .o_incentive_calc_table {
+        font-size: .85rem;
+        white-space: nowrap;
+
+        @include media-breakpoint-down(md) {
+            white-space: normal;    // the slab names wrap rather than push the figures off
+        }
+
+        tfoot td { border-bottom: 0; }
+        .o_incentive_calc_total td { border-top: 2px solid currentColor; }
     }
 }

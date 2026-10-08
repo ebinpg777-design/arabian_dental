@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Incentive',
-    'version': '20.0.1.4.1',
+    'version': '20.0.1.5.0',
     'summary': "Monthly executive incentives: calculate, approve, disburse (R19/R20)",
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',
@@ -17,6 +17,7 @@
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
         'views/product_views.xml',
+        'views/res_partner_views.xml',
         'views/incentive_rule_views.xml',
         'views/incentive_sheet_views.xml',
         'wizard/generate_sheets_views.xml',
