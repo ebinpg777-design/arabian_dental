@@ -149,6 +149,17 @@ body.o_lab_wall_dark {
         }
     }
 
+    // The wordmark is fixed and the grid scrolls, so on a short screen the last
+    // row of apps slid under the plate - Employees and Attendances drawn through
+    // "Dental Lab" at 1280x690 once the greeting moved the grid down (client,
+    // 2026-10-08). The grid now scrolls in the screen ABOVE the wordmark's band
+    // (its bottom gap, its height and a little air): the wallpaper is on <body>,
+    // so the band shows the same picture, and an app can no longer reach the plate.
+    // `!important` against the template's h-100, which is a Bootstrap utility.
+    @include media-breakpoint-up(md) {
+        height: calc(100% - 2.25rem - 44px) !important;
+    }
+
     .o_app .o_caption {
         font-weight: 500;
     }
