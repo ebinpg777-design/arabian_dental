@@ -319,11 +319,74 @@ class SaleOrder(models.Model):
         self.message_post(body=body)
         return productions
 
+    # ------------------------------------------------- the invoice follows the order
+    def _lab_posted_invoices(self):
+        """The posted customer invoices and credit notes of these orders - a credit note
+        found by its lines or by the invoice it reverses: one left posted would owe the
+        clinic money for an order that no longer exists."""
+        moves = self.invoice_ids.filtered(
+            lambda m: m.state == 'posted' and m.move_type in ('out_invoice', 'out_refund'))
+        if moves:
+            moves |= self.env['account.move'].search([
+                ('reversed_entry_id', 'in', moves.ids), ('state', '=', 'posted'),
+                ('move_type', '=', 'out_refund')])
+        return moves
+
+    def _lab_check_invoices_can_follow(self):
+        """Refuse, before anything changes, to cancel an invoice that also bills an
+        order which stays.
+
+        Every lab invoice is posted the moment it is made, and core cancels only DRAFT
+        invoices with an order, so a cancelled order went on billing the clinic - 12
+        cancelled orders on the book still had a posted, paid invoice (client,
+        2026-10-08). A quarter of the invoices bill several orders, though, and
+        cancelling one of those would un-bill orders nobody cancelled: that one is
+        for accounts (a credit note for this order's lines), not for the Cancel button.
+        """
+        for move in self._lab_posted_invoices():
+            others = (move.sudo().line_ids.sale_line_ids.order_id - self).filtered(
+                lambda o: o.state != 'cancel')
+            if others:
+                raise UserError(_(
+                    "%(invoice)s also bills %(orders)s. Cancelling this order would cancel "
+                    "that invoice for %(orders)s too. Ask accounts to issue a credit note "
+                    "for this order's lines, or cancel %(orders)s with it.",
+                    invoice=move.name, orders=', '.join(others.mapped('name'))))
+
+    def _lab_cancel_invoices(self):
+        """Cancel the posted invoices of these orders, and say so on each order.
+
+        Core's own cancel: reset to draft, unmatch, cancel. A paid invoice's receipt is
+        not touched - it stays posted and becomes the clinic's credit, to be refunded or
+        set against another invoice, and the order says how much.
+        """
+        moves = self._lab_posted_invoices()
+        if not moves:
+            return moves
+        paid = {move.id: move.amount_total - move.amount_residual for move in moves}
+        moves.button_cancel()
+        for order in self:
+            mine = moves & order.invoice_ids
+            if not mine:
+                continue
+            body = _("Cancelled with the order: %s.", ', '.join(mine.mapped('name')))
+            received = [(m, paid[m.id]) for m in mine
+                        if m.move_type == 'out_invoice' and not m.currency_id.is_zero(paid[m.id])]
+            if received:
+                body += ' ' + _("Already paid: %s - that money is now the clinic's credit.",
+                                ', '.join('%s %s' % (m.name, m.currency_id.format(amount))
+                                          for m, amount in received))
+            order.message_post(body=body)
+        return moves
+
     def _action_cancel(self):
+        # The invoices are checked first: a refusal must find nothing stopped yet.
+        self._lab_check_invoices_can_follow()
         # Before the state changes: `mrp_production_ids` is computed, and reading it
         # after the order is cancelled finds nothing to stop.
         for order in self:
             order._lab_stop_productions()
+        self._lab_cancel_invoices()
         return super()._action_cancel()
 
     def action_draft(self):
