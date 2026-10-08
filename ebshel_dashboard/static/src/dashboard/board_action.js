@@ -705,12 +705,14 @@ export class DashboardBoardAction extends Component {
             this.state.board = data.board;
             this.state.items = data.items || [];
             this.state.boards = data.boards || [];
-            if (this.state.tab && !(data.board.tabs || []).some((tab) => tab.id === this.state.tab)) {
+            // no board at all (a fresh database has none yet) is the empty state, not a crash
+            const tabs = (data.board && data.board.tabs) || [];
+            if (this.state.tab && !tabs.some((tab) => tab.id === this.state.tab)) {
                 this.state.tab = null;
             }
-            if (this.state.tab === null && (data.board.tabs || []).length &&
+            if (this.state.tab === null && tabs.length &&
                     !this.state.items.some((item) => !item.tab_id)) {
-                this.state.tab = data.board.tabs[0].id;
+                this.state.tab = tabs[0].id;
             }
             this.state.periods = data.periods || [];
             this.state.period = data.board ? data.board.period : null;
