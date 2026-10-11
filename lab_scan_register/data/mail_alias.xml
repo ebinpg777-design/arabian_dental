@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- scans@<your alias domain>: anything mailed or forwarded here becomes a scan.
+         A mailbox fetched by Odoo (Settings > Technical > Incoming Mail Servers) with
+         "Create a New Record" set to Scan Request does the same without an alias. -->
+    <data noupdate="1">
+        <record id="alias_scan" model="mail.alias">
+            <field name="alias_name">scans</field>
+            <field name="alias_model_id" ref="model_lab_scan"/>
+            <field name="alias_contact">everyone</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The scanner clouds the lab already receives from, recognised by their sender.
+         Starting data: the lab renames, adds and removes as it likes. -->
+    <data noupdate="1">
+        <record id="channel_wetransfer" model="lab.scan.channel">
+            <field name="name">WeTransfer</field>
+            <field name="kind">transfer</field>
+            <field name="sender_match">wetransfer.com</field>
+            <field name="link_match">wetransfer.com</field>
+            <field name="link_validity_days">3</field>
+            <field name="note">Free links last three days. The register gives each scan its expiry and warns before one lapses with no files in.</field>
+        </record>
+        <record id="channel_google_drive" model="lab.scan.channel">
+            <field name="name">Google Drive</field>
+            <field name="kind">transfer</field>
+            <field name="link_match">drive.google.com</field>
+        </record>
+        <record id="channel_dropbox" model="lab.scan.channel">
+            <field name="name">Dropbox</field>
+            <field name="kind">transfer</field>
+            <field name="link_match">dropbox.com</field>
+        </record>
+        <record id="channel_alliedstar" model="lab.scan.channel">
+            <field name="name">Allied Star — AS Connect</field>
+            <field name="kind">email</field>
+            <field name="sender_match">allied-star.com</field>
+            <field name="link_match">allied-star.com</field>
+        </record>
+        <record id="channel_freqty" model="lab.scan.channel">
+            <field name="name">Freqty</field>
+            <field name="kind">email</field>
+            <field name="sender_match">freqtek.com</field>
+        </record>
+        <record id="channel_dexis" model="lab.scan.channel">
+            <field name="name">DEXIS IS Connect</field>
+            <field name="kind">email</field>
+            <field name="sender_match">dexis.com</field>
+            <field name="link_match">dexis.com</field>
+            <field name="link_validity_days">365</field>
+        </record>
+        <record id="channel_email_other" model="lab.scan.channel">
+            <field name="name">E-mail — other</field>
+            <field name="kind">email</field>
+            <field name="note">Where a notification lands when no channel recognises its sender.</field>
+        </record>
+    </data>
+</odoo>

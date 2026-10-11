@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="privilege_scan_register" model="res.groups.privilege">
+            <field name="name">Scan Register</field>
+            <field name="category_id" ref="base.module_category_sales_sales"/>
+            <field name="sequence">37</field>
+        </record>
+
+        <record id="group_scan_user" model="res.groups">
+            <field name="name">Registers scans</field>
+            <field name="privilege_id" ref="privilege_scan_register"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Registers scans as they arrive, confirms them and turns them into orders.</field>
+        </record>
+
+        <record id="group_scan_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="privilege_id" ref="privilege_scan_register"/>
+            <field name="implied_ids" eval="[(4, ref('group_scan_user'))]"/>
+            <field name="comment">Sets up the channels - WhatsApp groups, scanner clouds, folders - and may delete a scan.</field>
+        </record>
+
+        <!-- Whoever administers the system gets the manager role of this app, as with
+             every other app: a new module's groups are not handed out by themselves. -->
+        <record id="base.group_system" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('group_scan_manager'))]"/>
+        </record>
+    </data>
+
+</odoo>

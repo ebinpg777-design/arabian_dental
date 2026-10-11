@@ -1,0 +1,14 @@
+id,name,model_id,group_id/id,operation,domain
+access_scan_read,scan read,lab.scan,base.group_user,r,
+access_scan_user,scan register,lab.scan,group_scan_user,cru,
+access_scan_manager,scan manage,lab.scan,group_scan_manager,crud,
+access_scan_channel_read,scan channel read,lab.scan.channel,base.group_user,r,
+access_scan_channel_manager,scan channel manage,lab.scan.channel,group_scan_manager,crud,
+access_scan_member_read,scan member read,lab.scan.channel.member,base.group_user,r,
+access_scan_member_user,scan member register,lab.scan.channel.member,group_scan_user,cru,
+access_scan_member_manager,scan member manage,lab.scan.channel.member,group_scan_manager,crud,
+access_scan_paste_user,scan paste,lab.scan.paste,group_scan_user,crud,
+access_scan_paste_line_user,scan paste line,lab.scan.paste.line,group_scan_user,crud,
+rule_scan_company,Scan: own companies,lab.scan,,crud,"[('company_id', 'in', company_ids)]"
+rule_scan_member_company,Scan channel member: own companies,lab.scan.channel.member,,crud,"[('company_id', 'in', company_ids)]"
+rule_scan_channel_company,Scan channel: own companies,lab.scan.channel,,crud,"[('company_id', 'in', company_ids)]"

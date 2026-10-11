@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_scan" model="ir.ui.view">
+        <field name="name">res.partner.form.lab.scan</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_view_scans" type="object" class="oe_stat_button" icon="fa-cube"
+                        invisible="scan_count == 0" groups="lab_scan_register.group_scan_user">
+                    <field name="scan_count" widget="statinfo" string="Scans"/>
+                </button>
+            </div>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_scan_paste_form" model="ir.ui.view">
+        <field name="name">lab.scan.paste.form</field>
+        <field name="model">lab.scan.paste</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="read_done" invisible="1"/>
+                <group>
+                    <field name="channel_id" options="{'no_create': True}" readonly="read_done"/>
+                </group>
+                <div invisible="read_done">
+                    <p class="text-muted">
+                        In WhatsApp, select the messages (or export the chat), copy, and paste below.
+                        Each message becomes a line to check; chat and scans already registered are left unticked.
+                    </p>
+                    <field name="text" nolabel="1" placeholder="[12:36 pm, 11/10/2026] ANJALI MENON K: Patient name - Rahim VP&#10;Upper &amp; Lower Hawley's retainer&#10;Delivery -13-10-26&#10;[4:02 pm, 11/10/2026] +91 90000 12345: Patient name - Ayesha Nadia. P&#10;…"/>
+                </div>
+                <div invisible="not read_done">
+                    <p class="text-muted mb-2">
+                        <field name="line_count" class="oe_inline"/> message(s) found,
+                        <b><field name="selected_count" class="oe_inline"/></b> ticked to register.
+                        Fill in anything missing before registering.
+                    </p>
+                    <field name="line_ids" nolabel="1">
+                        <list editable="bottom" create="false" decoration-muted="not include">
+                            <field name="include" widget="boolean_toggle"/>
+                            <field name="received_on"/>
+                            <field name="posted_by"/>
+                            <field name="member_id" optional="hide"/>
+                            <field name="partner_id"/>
+                            <field name="patient"/>
+                            <field name="appliance"/>
+                            <field name="delivery_requested"/>
+                            <field name="files" optional="show"/>
+                            <field name="note" decoration-warning="note"/>
+                            <field name="posted_phone" column_invisible="1"/>
+                            <field name="existing_scan_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </div>
+                <footer>
+                    <button name="action_read" type="object" string="Read Messages" class="btn-primary"
+                            invisible="read_done" data-hotkey="q"/>
+                    <button name="action_register" type="object" class="btn-primary"
+                            invisible="not read_done" data-hotkey="q" string="Register Scans"/>
+                    <button special="cancel" string="Cancel" class="btn-secondary" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_scan_paste" model="ir.actions.act_window">
+        <field name="name">Paste WhatsApp Messages</field>
+        <field name="res_model">lab.scan.paste</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

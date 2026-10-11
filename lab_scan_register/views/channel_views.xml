@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_scan_channel_list" model="ir.ui.view">
+        <field name="name">lab.scan.channel.list</field>
+        <field name="model">lab.scan.channel</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="kind" widget="badge"
+                       decoration-success="kind == 'whatsapp'"
+                       decoration-info="kind == 'email'"
+                       decoration-warning="kind == 'transfer'"/>
+                <field name="partner_id"/>
+                <field name="member_count" string="Members" optional="show"/>
+                <field name="sender_match" optional="hide"/>
+                <field name="link_match" optional="hide"/>
+                <field name="link_validity_days" optional="hide"/>
+                <field name="user_id" optional="show"/>
+                <field name="scan_count" string="Scans"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_scan_channel_form" model="ir.ui.view">
+        <field name="name">lab.scan.channel.form</field>
+        <field name="model">lab.scan.channel</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_paste_messages" type="object" string="Paste Messages"
+                            class="btn-primary" icon="fa-whatsapp" invisible="kind != 'whatsapp' or not id"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_scans" type="object" class="oe_stat_button" icon="fa-cube">
+                            <field name="scan_count" widget="statinfo" string="Scans"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name" string="WhatsApp group" invisible="kind != 'whatsapp'"/>
+                        <label for="name" string="E-mail source" invisible="kind != 'email'"/>
+                        <label for="name" string="Platform" invisible="kind != 'transfer'"/>
+                        <h1><field name="name" placeholder="e.g. ARABIAN DENTAL CALICUT"/></h1>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <span class="o_form_label">Source</span>
+                        <field name="kind" widget="selection_badge" options="{'horizontal': true}"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="user_id"/>
+                            <field name="link" widget="url"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="sender_match" invisible="kind == 'whatsapp'"
+                                   placeholder="e.g. allied-star.com"/>
+                            <field name="link_match" invisible="kind == 'whatsapp'"
+                                   placeholder="e.g. wetransfer.com"/>
+                            <field name="link_validity_days" invisible="kind == 'whatsapp'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Members" name="members" invisible="kind != 'whatsapp'">
+                            <p class="text-muted mb-2">
+                                The people who post scans here. A member's clinic fills in the doctor on
+                                their scans — useful in a lab group carrying many clinics. Members are added
+                                as they post when messages are pasted; correct them here.
+                            </p>
+                            <field name="member_ids" context="{'default_channel_id': id}">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="phone" widget="phone"/>
+                                    <field name="role"/>
+                                    <field name="partner_id"/>
+                                    <field name="user_id" optional="hide"/>
+                                    <field name="scan_count" string="Scans"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="note" placeholder="Anything the person registering from here should know…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_scan_channel_search" model="ir.ui.view">
+        <field name="name">lab.scan.channel.search</field>
+        <field name="model">lab.scan.channel</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="member_ids" string="Member"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_kind" string="Source" context="{'group_by': 'kind'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_scan_channel_whatsapp" model="ir.actions.act_window">
+        <field name="name">WhatsApp Groups</field>
+        <field name="res_model">lab.scan.channel</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('kind', '=', 'whatsapp')]</field>
+        <field name="context">{'default_kind': 'whatsapp'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Add the WhatsApp groups scans arrive in</p>
+            <p>By the name the lab knows them by — "ARABIAN DENTAL CALICUT", "Dr Rajesh
+               Kozhikode lab". Tie a group to its clinic, and list who posts in it.</p>
+        </field>
+    </record>
+
+    <record id="action_scan_channel_email" model="ir.actions.act_window">
+        <field name="name">E-mail Sources</field>
+        <field name="res_model">lab.scan.channel</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('kind', '=', 'email')]</field>
+        <field name="context">{'default_kind': 'email'}</field>
+    </record>
+
+    <record id="action_scan_channel_transfer" model="ir.actions.act_window">
+        <field name="name">File Transfer Platforms</field>
+        <field name="res_model">lab.scan.channel</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('kind', '=', 'transfer')]</field>
+        <field name="context">{'default_kind': 'transfer'}</field>
+    </record>
+
+    <record id="view_scan_member_list" model="ir.ui.view">
+        <field name="name">lab.scan.channel.member.list</field>
+        <field name="model">lab.scan.channel.member</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="channel_id"/>
+                <field name="name"/>
+                <field name="phone" widget="phone"/>
+                <field name="role"/>
+                <field name="partner_id"/>
+                <field name="user_id" optional="hide"/>
+                <field name="scan_count" string="Scans"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_scan_member_search" model="ir.ui.view">
+        <field name="name">lab.scan.channel.member.search</field>
+        <field name="model">lab.scan.channel.member</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="channel_id"/>
+                <field name="partner_id"/>
+                <filter name="no_clinic" string="No clinic yet" domain="[('partner_id', '=', False), ('role', 'in', ('doctor', 'staff'))]"/>
+                <group>
+                    <filter name="group_channel" string="Group" context="{'group_by': 'channel_id'}"/>
+                    <filter name="group_role" string="Role" context="{'group_by': 'role'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_scan_member" model="ir.actions.act_window">
+        <field name="name">Group Members</field>
+        <field name="res_model">lab.scan.channel.member</field>
+        <field name="view_mode">list</field>
+    </record>
+</odoo>

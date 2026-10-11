@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_scan_root" name="Scans" sequence="22"
+              web_icon="lab_scan_register,static/description/icon.png"
+              groups="lab_scan_register.group_scan_user"/>
+    <menuitem id="menu_scan_register" name="Scan Register" parent="menu_scan_root"
+              action="action_scan" sequence="10"/>
+    <menuitem id="menu_scan_paste" name="Paste WhatsApp Messages" parent="menu_scan_root"
+              action="action_scan_paste" sequence="20"/>
+    <menuitem id="menu_scan_analysis" name="Analysis" parent="menu_scan_root"
+              action="action_scan_analysis" sequence="30"/>
+    <menuitem id="menu_scan_config" name="Configuration" parent="menu_scan_root" sequence="90"
+              groups="lab_scan_register.group_scan_manager"/>
+    <menuitem id="menu_scan_channel_whatsapp" name="WhatsApp Groups" parent="menu_scan_config"
+              action="action_scan_channel_whatsapp" sequence="10"/>
+    <menuitem id="menu_scan_member" name="Group Members" parent="menu_scan_config"
+              action="action_scan_member" sequence="15"/>
+    <menuitem id="menu_scan_channel_email" name="E-mail Sources" parent="menu_scan_config"
+              action="action_scan_channel_email" sequence="20"/>
+    <menuitem id="menu_scan_channel_transfer" name="File Transfer Platforms" parent="menu_scan_config"
+              action="action_scan_channel_transfer" sequence="30"/>
+</odoo>

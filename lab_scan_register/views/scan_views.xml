@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_scan_list" model="ir.ui.view">
+        <field name="name">lab.scan.list</field>
+        <field name="model">lab.scan</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="link_state == 'expired' and not files_received"
+                  decoration-warning="link_state == 'soon' and not files_received"
+                  decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="received_on"/>
+                <field name="source" widget="badge"
+                       decoration-success="source == 'whatsapp'"
+                       decoration-info="source == 'email'"
+                       decoration-warning="source == 'transfer'"/>
+                <field name="channel_id"/>
+                <field name="member_id" optional="hide"/>
+                <field name="partner_id"/>
+                <field name="patient"/>
+                <field name="appliance"/>
+                <field name="product_id" optional="show"/>
+                <field name="delivery_requested" optional="show"
+                       decoration-danger="delivery_at_risk"/>
+                <field name="file_count" string="Files"/>
+                <field name="link_state" optional="hide" widget="badge"
+                       decoration-success="link_state == 'ok'"
+                       decoration-warning="link_state == 'soon'"
+                       decoration-danger="link_state == 'expired'"/>
+                <field name="age_days" optional="hide"/>
+                <field name="sale_order_id" optional="show"/>
+                <field name="urgent" widget="boolean_favorite" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'new'"
+                       decoration-warning="state == 'confirmed'"
+                       decoration-success="state == 'ordered'"/>
+                <field name="files_received" column_invisible="1"/>
+                <field name="delivery_at_risk" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_scan_kanban" model="ir.ui.view">
+        <field name="name">lab.scan.kanban</field>
+        <field name="model">lab.scan</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" quick_create="false" records_draggable="0"
+                    class="o_kanban_small_column">
+                <field name="state"/>
+                <field name="source"/>
+                <field name="link_state"/>
+                <field name="files_received"/>
+                <field name="urgent"/>
+                <field name="delivery_at_risk"/>
+                <field name="delivery_in_days"/>
+                <field name="acknowledged_on"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex flex-column gap-1 p-2">
+                            <div class="d-flex justify-content-between align-items-center small">
+                                <span class="text-truncate">
+                                    <i t-if="record.source.raw_value == 'whatsapp'" class="fa fa-whatsapp text-success me-1" title="WhatsApp"/>
+                                    <i t-elif="record.source.raw_value == 'email'" class="fa fa-envelope-o text-primary me-1" title="E-mail"/>
+                                    <i t-else="" class="fa fa-cloud-download text-info me-1" title="File transfer"/>
+                                    <field name="channel_id"/>
+                                </span>
+                                <span class="text-muted ms-2 text-nowrap"><field name="name"/></span>
+                            </div>
+                            <strong class="fs-6 text-truncate"><field name="patient" placeholder="No patient yet"/></strong>
+                            <div class="text-truncate"><field name="appliance"/></div>
+                            <div class="small text-muted text-truncate">
+                                <field name="partner_id"/>
+                                <t t-if="!record.partner_id.raw_value and record.doctor_name.raw_value">
+                                    <field name="doctor_name"/>
+                                </t>
+                                <t t-if="record.member_id.raw_value"> · <field name="member_id"/></t>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1 align-items-center small mt-1">
+                                <span t-if="record.urgent.raw_value" class="badge rounded-pill text-bg-danger"><i class="fa fa-bolt"/> Urgent</span>
+                                <span t-if="record.files_received.raw_value" class="badge rounded-pill text-bg-success">
+                                    <i class="fa fa-paperclip"/> <field name="file_count"/>
+                                </span>
+                                <span t-elif="record.link_state.raw_value == 'expired'" class="badge rounded-pill text-bg-danger">Link expired</span>
+                                <span t-elif="record.link_state.raw_value == 'soon'" class="badge rounded-pill text-bg-warning">Link expiring</span>
+                                <span t-elif="record.link_state.raw_value == 'ok'" class="badge rounded-pill text-bg-info">Link</span>
+                                <span t-else="" class="badge rounded-pill text-bg-secondary">No files</span>
+                                <span t-if="record.acknowledged_on.raw_value" class="badge rounded-pill text-bg-light" title="Acknowledged on WhatsApp">
+                                    <i class="fa fa-check text-success"/> Ack
+                                </span>
+                                <span class="ms-auto text-muted"><field name="age_days"/>d</span>
+                            </div>
+                            <div t-if="record.delivery_requested.raw_value" class="small"
+                                 t-att-class="record.delivery_at_risk.raw_value ? 'text-danger fw-bold' : 'text-muted'">
+                                <i class="fa fa-truck me-1"/>
+                                <field name="delivery_requested"/>
+                                <t t-if="record.delivery_in_days.raw_value &lt; 0"> · overdue</t>
+                                <t t-elif="record.delivery_in_days.raw_value == 0"> · today</t>
+                                <t t-else=""> · in <t t-out="record.delivery_in_days.raw_value"/>d</t>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_scan_form" model="ir.ui.view">
+        <field name="name">lab.scan.form</field>
+        <field name="model">lab.scan</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" type="object" string="Confirm" class="btn-primary"
+                            invisible="state != 'new'" data-hotkey="v"/>
+                    <button name="action_create_order" type="object" string="Create Order"
+                            class="btn-primary" invisible="state != 'confirmed'" data-hotkey="o"/>
+                    <button name="action_acknowledge" type="object" string="Acknowledge on WhatsApp"
+                            icon="fa-whatsapp" invisible="not whatsapp_to or state == 'cancelled'"/>
+                    <button name="action_open_link" type="object" string="Open Download Link"
+                            invisible="not link" icon="fa-external-link"/>
+                    <button name="action_reset" type="object" string="Reset to Draft"
+                            invisible="state not in ('confirmed', 'cancelled')"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('ordered', 'cancelled')"
+                            confirm="Cancel this scan? It will not become an order."/>
+                    <field name="state" widget="statusbar" statusbar_visible="new,confirmed,ordered"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_files" type="object" class="oe_stat_button" icon="fa-paperclip">
+                            <field name="file_count" widget="statinfo" string="Files"/>
+                        </button>
+                        <button name="action_view_order" type="object" class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="not sale_order_id" string="Order"/>
+                        <button name="action_view_history" type="object" class="oe_stat_button" icon="fa-history"
+                                invisible="history_count == 0">
+                            <field name="history_count" widget="statinfo" string="Earlier orders"/>
+                        </button>
+                        <button name="action_view_duplicates" type="object" class="oe_stat_button" icon="fa-clone"
+                                invisible="duplicate_count == 0">
+                            <field name="duplicate_count" widget="statinfo" string="Also arrived"/>
+                        </button>
+                    </div>
+
+                    <div class="alert alert-warning mb-2" role="alert" invisible="duplicate_count == 0">
+                        <i class="fa fa-clone me-1"/><b>This patient arrived more than once this week.</b>
+                        The same scan often comes by WhatsApp and again by e-mail — check before making a second order.
+                    </div>
+                    <div class="alert alert-danger mb-2" role="alert"
+                         invisible="link_state != 'expired' or files_received">
+                        <i class="fa fa-chain-broken me-1"/><b>The download link has expired</b> and no files were attached.
+                        Ask the doctor to send it again.
+                    </div>
+                    <div class="alert alert-warning mb-2" role="alert"
+                         invisible="link_state != 'soon' or files_received">
+                        <i class="fa fa-hourglass-half me-1"/><b>The download link expires soon</b> and no files are attached
+                        yet — download them now and drop them into the chatter.
+                    </div>
+                    <div class="alert alert-danger mb-2" role="alert" invisible="not delivery_at_risk">
+                        <i class="fa fa-truck me-1"/><b>Delivery is asked for within two days</b> and this is not an order yet.
+                    </div>
+
+                    <!-- The patient is the headline: it is what the front desk and the doctor
+                         both call the case by. The number sits above it with its badges. -->
+                    <div class="oe_title mb-2">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <field name="name" readonly="1" class="text-muted fs-5 w-auto"/>
+                            <span class="badge rounded-pill text-bg-danger flex-shrink-0 text-nowrap"
+                                  invisible="not urgent"><i class="fa fa-bolt me-1"/>Urgent</span>
+                            <span class="badge rounded-pill text-bg-success flex-shrink-0 text-nowrap"
+                                  invisible="not acknowledged_on"><i class="fa fa-check me-1"/>Acknowledged</span>
+                        </div>
+                        <h1 class="mt-1">
+                            <field name="patient" readonly="state != 'new'" placeholder="Patient name"/>
+                        </h1>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-baseline gap-3 mb-3">
+                        <span class="o_form_label text-nowrap mb-0">Received by</span>
+                        <field name="source" widget="selection_badge" options="{'horizontal': true}"
+                               readonly="state != 'new'"/>
+                    </div>
+
+                    <group>
+                        <group string="Doctor and case" name="case">
+                            <field name="partner_id" readonly="state != 'new'" placeholder="Pick the clinic or doctor"/>
+                            <field name="doctor_name" readonly="state != 'new'" invisible="not doctor_name"/>
+                            <field name="clinic_name" readonly="state != 'new'" invisible="not clinic_name"/>
+                            <field name="appliance" readonly="state != 'new'" placeholder="As the doctor wrote it"/>
+                            <field name="product_id" readonly="state != 'new'" required="state != 'cancelled'"
+                                   placeholder="Required — what will be made"
+                                   options="{'no_quick_create': True}"/>
+                        </group>
+                        <group string="Delivery" name="delivery">
+                            <label for="delivery_requested"/>
+                            <div class="o_row">
+                                <field name="delivery_requested" readonly="state != 'new'"/>
+                                <span class="text-muted text-nowrap"
+                                      invisible="not delivery_requested or delivery_in_days &lt;= 0">
+                                    in <field name="delivery_in_days" class="oe_inline"/> days
+                                </span>
+                                <span class="text-warning fw-bold text-nowrap"
+                                      invisible="not delivery_requested or delivery_in_days != 0">today</span>
+                                <span class="text-danger fw-bold text-nowrap"
+                                      invisible="not delivery_requested or delivery_in_days &gt;= 0">overdue</span>
+                            </div>
+                            <field name="urgent" readonly="state != 'new'"/>
+                            <field name="external_ref" readonly="state != 'new'" placeholder="The platform's own case number"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Received" name="received">
+                            <label for="channel_id" string="WhatsApp group" invisible="source != 'whatsapp'"/>
+                            <label for="channel_id" string="E-mail source" invisible="source != 'email'"/>
+                            <label for="channel_id" string="Platform" invisible="source != 'transfer'"/>
+                            <div class="o_row">
+                                <field name="channel_id" readonly="state != 'new'" nolabel="1"
+                                       context="{'default_kind': source}"
+                                       options="{'no_quick_create': True}"/>
+                            </div>
+                            <field name="member_id" readonly="state != 'new'" invisible="source != 'whatsapp'"
+                                   context="{'default_channel_id': channel_id}"
+                                   options="{'no_quick_create': True}"/>
+                            <field name="posted_by" readonly="state != 'new'" invisible="source != 'whatsapp' or member_id"/>
+                            <field name="posted_phone" readonly="state != 'new'" widget="phone"
+                                   invisible="source != 'whatsapp' or member_id"/>
+                            <field name="doctor_email" readonly="state != 'new'" string="Sent by" widget="email"
+                                   invisible="source == 'whatsapp' or not doctor_email"/>
+                            <field name="email_from" string="Arrived from" invisible="not email_from"/>
+                            <field name="email_subject" string="Subject" invisible="not email_subject"/>
+                            <label for="received_on" string="Message sent" invisible="source != 'whatsapp'"/>
+                            <label for="received_on" string="Received" invisible="source == 'whatsapp'"/>
+                            <div class="o_row">
+                                <field name="received_on" readonly="state != 'new'" nolabel="1"/>
+                            </div>
+                        </group>
+                        <group string="The files" name="files">
+                            <label for="link"/>
+                            <div class="o_row">
+                                <field name="link" readonly="state != 'new'" widget="url" nolabel="1" placeholder="Paste the download link"/>
+                                <span class="badge rounded-pill text-bg-light text-nowrap" invisible="not link_platform_id">
+                                    <field name="link_platform_id" readonly="1" options="{'no_open': True}" class="oe_inline"/>
+                                </span>
+                            </div>
+                            <field name="link_expires" readonly="state != 'new'" invisible="not link"/>
+                            <field name="file_size" invisible="not file_count"/>
+                            <field name="user_id"/>
+                            <field name="confirmed_by_id" invisible="not confirmed_by_id"/>
+                            <field name="acknowledged_on" invisible="not acknowledged_on"/>
+                            <field name="company_id" readonly="state != 'new'" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Notes" name="notes">
+                            <field name="notes" readonly="state != 'new'" placeholder="Anything the doctor said about the case…"/>
+                        </page>
+                        <page string="WhatsApp message" name="paste"
+                              invisible="source != 'whatsapp' or state != 'new'">
+                            <p class="text-muted mb-2">
+                                Copy the message in WhatsApp and paste it here. The patient, what is asked
+                                for and the delivery date fill any field still empty; copied with WhatsApp's
+                                own header, the poster and the time come too.
+                            </p>
+                            <field name="pasted_message" readonly="state != 'new'" placeholder="[12:36 pm, 11/10/2026] ANJALI MENON K: Patient name - Rahim VP&#10;Upper &amp; Lower Hawley's retainer&#10;Delivery -13-10-26"/>
+                        </page>
+                    </notebook>
+                    <field name="link_state" invisible="1"/>
+                    <field name="files_received" invisible="1"/>
+                    <field name="delivery_at_risk" invisible="1"/>
+                    <field name="whatsapp_to" invisible="1"/>
+                    <field name="sale_order_id" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_scan_search" model="ir.ui.view">
+        <field name="name">lab.scan.search</field>
+        <field name="model">lab.scan</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="patient"/>
+                <field name="partner_id"/>
+                <field name="doctor_name"/>
+                <field name="appliance"/>
+                <field name="external_ref"/>
+                <field name="channel_id"/>
+                <field name="member_id"/>
+                <filter name="open" string="Open" domain="[('state', 'in', ('new', 'confirmed'))]"/>
+                <filter name="new" string="Draft" domain="[('state', '=', 'new')]"/>
+                <filter name="confirmed" string="Confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter name="ordered" string="Ordered" domain="[('state', '=', 'ordered')]"/>
+                <separator/>
+                <filter name="whatsapp" string="WhatsApp" domain="[('source', '=', 'whatsapp')]"/>
+                <filter name="email" string="E-mail" domain="[('source', '=', 'email')]"/>
+                <filter name="transfer" string="File transfer" domain="[('source', '=', 'transfer')]"/>
+                <separator/>
+                <filter name="delivery_at_risk" string="Delivery at risk" domain="[('delivery_at_risk', '=', True)]"/>
+                <filter name="no_files" string="No files yet"
+                        domain="[('files_received', '=', False), ('state', 'in', ('new', 'confirmed'))]"/>
+                <filter name="link_dying" string="Link expiring / expired"
+                        domain="[('link_state', 'in', ('soon', 'expired')),
+                                 ('files_received', '=', False), ('state', 'in', ('new', 'confirmed'))]"/>
+                <filter name="urgent" string="Urgent" domain="[('urgent', '=', True)]"/>
+                <filter name="unmatched" string="Doctor not matched"
+                        domain="[('partner_id', '=', False), ('state', 'in', ('new', 'confirmed'))]"/>
+                <filter name="not_acknowledged" string="Not acknowledged"
+                        domain="[('acknowledged_on', '=', False), ('source', '=', 'whatsapp'), ('state', '!=', 'cancelled')]"/>
+                <separator/>
+                <filter name="today" string="Received today"
+                        domain="[('received_on', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00'))]"/>
+                <group>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_source" string="Source" context="{'group_by': 'source'}"/>
+                    <filter name="group_channel" string="Channel" context="{'group_by': 'channel_id'}"/>
+                    <filter name="group_member" string="Posted by" context="{'group_by': 'member_id'}"/>
+                    <filter name="group_partner" string="Doctor / Clinic" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_received" string="Received" context="{'group_by': 'received_on:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_scan_pivot" model="ir.ui.view">
+        <field name="name">lab.scan.pivot</field>
+        <field name="model">lab.scan</field>
+        <field name="arch" type="xml">
+            <pivot string="Scans">
+                <field name="channel_id" type="row"/>
+                <field name="source" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_scan_graph" model="ir.ui.view">
+        <field name="name">lab.scan.graph</field>
+        <field name="model">lab.scan</field>
+        <field name="arch" type="xml">
+            <graph string="Scans" type="bar" stacked="1">
+                <field name="received_on" interval="day"/>
+                <field name="source"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_scan" model="ir.actions.act_window">
+        <field name="name">Scan Register</field>
+        <field name="res_model">lab.scan</field>
+        <field name="view_mode">kanban,list,form,pivot,graph,activity</field>
+        <field name="search_view_id" ref="view_scan_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No scans registered yet</p>
+            <p>Register one as it lands, paste a run of WhatsApp messages at once, or let the
+               scanner-cloud e-mails register themselves.</p>
+        </field>
+    </record>
+
+    <record id="action_scan_analysis" model="ir.actions.act_window">
+        <field name="name">Scan Analysis</field>
+        <field name="res_model">lab.scan</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="search_view_id" ref="view_scan_search"/>
+        <field name="context">{'search_default_group_source': 1}</field>
+    </record>
+</odoo>
