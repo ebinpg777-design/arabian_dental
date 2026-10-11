@@ -1,0 +1,3 @@
+id,name,model_id,group_id/id,operation,domain
+access_purchase_advance_bill_wizard_purchase_user,purchase.advance.bill.wizard purchase user,purchase.advance.bill.wizard,purchase.group_purchase_user,crud,
+access_purchase_advance_bill_wizard_account_user,purchase.advance.bill.wizard account user,purchase.advance.bill.wizard,account.group_account_invoice,crud,

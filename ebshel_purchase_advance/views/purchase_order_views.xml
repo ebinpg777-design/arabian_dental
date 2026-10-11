@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<record id="purchase_order_form_advance_bill" model="ir.ui.view">
+    <field name="name">purchase.order.form.advance.bill.inherit</field>
+    <field name="model">purchase.order</field>
+    <field name="inherit_id" ref="purchase.purchase_order_form"/>
+    <field name="priority" eval="100"/>
+    <field name="arch" type="xml">
+
+        <!-- ── Header button (before Cancel) ────────────────────────────── -->
+        <xpath expr="//header/button[@name='button_cancel']"
+               position="before">
+            <button name="action_create_advance_bill"
+                    type="object"
+                    string="Create Advance Bill"
+                    groups="account.group_account_invoice"
+                    invisible="state not in ('purchase', 'done')"
+                    class="btn-primary"
+                    icon="fa-file-text-o"
+                    data-hotkey="shift+a"/>
+        </xpath>
+
+        <!-- ── Smart button (advance bills) ─────────────────────────────── -->
+        <xpath expr="//div[@name='button_box']"
+               position="inside">
+            <button type="object"
+                    name="action_view_advance_bills"
+                    class="oe_stat_button"
+                    icon="fa-file-text-o"
+                    groups="account.group_account_invoice"
+                    invisible="advance_bill_count == 0">
+                <field name="advance_bill_count" widget="statinfo"
+                       string="Adv. Bills"/>
+            </button>
+        </xpath>
+
+        <!-- ── Advance summary banner (above notebook) ───────────────────── -->
+        <xpath expr="//notebook" position="before">
+
+            <!-- Hidden computed fields needed by the banner -->
+            <field name="advance_bill_status" invisible="1"/>
+            <field name="advance_bill_total" invisible="1"/>
+            <field name="advance_bill_paid" invisible="1"/>
+            <field name="advance_bill_pending" invisible="1"/>
+            <field name="advance_bill_deducted" invisible="1"/>
+            <field name="advance_bill_available" invisible="1"/>
+
+            <!-- Banner: only visible when advance bills exist -->
+            <div invisible="advance_bill_status == 'none' or not advance_bill_status">
+
+                <!-- Status bar -->
+                <div class="d-flex align-items-center justify-content-between
+                            border rounded-3 p-3 mb-2 bg-light shadow-sm">
+
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <!-- Badge -->
+                        <field name="advance_bill_status" widget="badge"
+                               decoration-secondary="advance_bill_status == 'draft'"
+                               decoration-warning="advance_bill_status == 'unpaid'"
+                               decoration-info="advance_bill_status == 'partial'"
+                               decoration-success="advance_bill_status in ('paid', 'deducted')"
+                               nolabel="1"/>
+
+                        <!-- Metrics -->
+                        <span class="small">
+                            <i class="fa fa-file-text-o text-muted me-1"/>
+                            Billed:
+                            <strong>
+                                <field name="advance_bill_total" nolabel="1" readonly="1"
+                                       widget="monetary" class="d-inline"/>
+                            </strong>
+                        </span>
+                        <span class="small">
+                            <i class="fa fa-check-circle text-success me-1"/>
+                            Paid:
+                            <strong class="text-success">
+                                <field name="advance_bill_paid" nolabel="1" readonly="1"
+                                       widget="monetary" class="d-inline"/>
+                            </strong>
+                        </span>
+                        <span class="small" invisible="advance_bill_pending == 0">
+                            <i class="fa fa-clock-o text-warning me-1"/>
+                            Pending:
+                            <strong class="text-warning">
+                                <field name="advance_bill_pending" nolabel="1" readonly="1"
+                                       widget="monetary" class="d-inline"/>
+                            </strong>
+                        </span>
+                        <span class="small" invisible="advance_bill_deducted == 0">
+                            <i class="fa fa-minus-circle text-muted me-1"/>
+                            Deducted:
+                            <strong>
+                                <field name="advance_bill_deducted" nolabel="1" readonly="1"
+                                       widget="monetary" class="d-inline"/>
+                            </strong>
+                        </span>
+                        <span class="small" invisible="advance_bill_available == 0">
+                            <i class="fa fa-arrow-right text-info me-1"/>
+                            Available:
+                            <strong class="text-info">
+                                <field name="advance_bill_available" nolabel="1" readonly="1"
+                                       widget="monetary" class="d-inline"/>
+                            </strong>
+                        </span>
+                    </div>
+
+                    <!-- Quick actions -->
+                    <div class="d-flex gap-2">
+                        <button name="action_view_advance_bills"
+                                type="object"
+                                string="View Bills"
+                                class="btn btn-sm btn-outline-secondary"
+                                invisible="advance_bill_count == 0"/>
+                        <button name="action_create_advance_bill"
+                                type="object"
+                                string="+ Add Advance"
+                                class="btn btn-sm btn-outline-primary"
+                                invisible="state not in ('purchase', 'done')"/>
+                    </div>
+                </div>
+            </div>
+
+        </xpath>
+
+    </field>
+</record>
+
+</odoo>

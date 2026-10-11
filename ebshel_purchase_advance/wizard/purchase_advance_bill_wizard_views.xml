@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<record id="view_purchase_advance_bill_wizard_form" model="ir.ui.view">
+    <field name="name">purchase.advance.bill.wizard.form</field>
+    <field name="model">purchase.advance.bill.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Create Purchase Advance Bill" class="o_purchase_advance_wizard">
+            <field name="currency_id" invisible="1"/>
+            <field name="company_id" invisible="1"/>
+            <field name="advance_bill_status" invisible="1"/>
+            <field name="purchase_order_state" invisible="1"/>
+            <field name="advance_bill_count" invisible="1"/>
+
+            <sheet class="pt-2 pb-2" style="background-color:#f6f7fb;">
+
+                <!-- ═══ COMPACT HEADER ═══════════════════════════════════════ -->
+                <div class="d-flex justify-content-between align-items-center
+                            pb-2 mb-3 border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-file-text-o fa-lg text-primary" title="Advance Bill"/>
+                        <div>
+                            <div class="fw-bold fs-5 lh-1">Create Advance Bill</div>
+                            <small class="text-muted d-flex align-items-center gap-1">
+                                <field name="partner_id" readonly="1" nolabel="1" no_open="True"
+                                       class="fw-semibold"/>
+                                <span>·</span>
+                                <field name="purchase_order_id" readonly="1" nolabel="1"/>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="text-end" invisible="advance_bill_count == 0">
+                        <field name="advance_bill_status" widget="badge"
+                               decoration-secondary="advance_bill_status == 'draft'"
+                               decoration-warning="advance_bill_status == 'unpaid'"
+                               decoration-info="advance_bill_status == 'partial'"
+                               decoration-success="advance_bill_status in ('paid', 'deducted')"
+                               nolabel="1"/>
+                    </div>
+                </div>
+
+                <!-- ═══ METRIC STRIP ═════════════════════════════════════════ -->
+                <div class="row g-2 mb-3">
+                    <div class="col-3">
+                        <div class="border rounded-3 px-3 py-2 h-100 bg-white">
+                            <div class="text-muted text-uppercase" style="font-size:11px;">
+                                <i class="fa fa-shopping-cart me-1"/>Order Total
+                            </div>
+                            <div class="fw-bold fs-5 text-dark lh-1 mt-1">
+                                <field name="order_total" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1"/>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:11px;">
+                                Net <field name="order_untaxed" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1" class="d-inline"/>
+                                + Tax <field name="order_tax_total" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1" class="d-inline"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="border rounded-3 px-3 py-2 h-100 bg-white">
+                            <div class="text-muted text-uppercase" style="font-size:11px;">
+                                <i class="fa fa-check-square-o me-1"/>Already Billed
+                            </div>
+                            <div class="fw-bold fs-5 text-success lh-1 mt-1">
+                                <field name="amount_invoiced" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1"/>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:11px;">
+                                Remaining <field name="amount_remaining_to_bill" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1" class="d-inline fw-semibold"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="border rounded-3 px-3 py-2 h-100 bg-white">
+                            <div class="text-muted text-uppercase" style="font-size:11px;">
+                                <i class="fa fa-money me-1"/>Advance Paid
+                            </div>
+                            <div class="fw-bold fs-5 text-success lh-1 mt-1">
+                                <field name="advance_bill_paid" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1"/>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:11px;">
+                                Pending <field name="advance_bill_pending" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1" class="d-inline text-warning fw-semibold"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="border rounded-3 px-3 py-2 h-100"
+                             style="background-color:#eaf6ec;">
+                            <div class="text-muted text-uppercase" style="font-size:11px;">
+                                <i class="fa fa-arrow-right me-1"/>Available to Deduct
+                            </div>
+                            <div class="fw-bold fs-5 text-success lh-1 mt-1">
+                                <field name="advance_bill_available" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1"/>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:11px;">
+                                Committed <field name="advance_bill_posted_total" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1" class="d-inline fw-semibold"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ TWO-COLUMN BODY ══════════════════════════════════════ -->
+                <div class="row g-3">
+
+                    <!-- LEFT: Define amount + bill details -->
+                    <div class="col-lg-5">
+                        <div class="border rounded-3 p-3 h-100 o_purchase_advance_wizard" style="background-color:#fcfcfe;">
+
+                            <!-- ── Step 1: choose how to compute the advance ── -->
+                            <div class="fw-bold text-uppercase text-primary mb-2"
+                                 style="font-size:11px; letter-spacing:.04em;">
+                                <i class="fa fa-calculator me-1"/>1 · How much to advance?
+                            </div>
+                            <div class="bg-white border rounded-2 px-2 py-2 mb-3">
+                                <field name="amount_type" widget="radio" nolabel="1"
+                                       options="{'horizontal': false}"/>
+
+                                <div class="mt-2 pt-2 border-top"
+                                     invisible="amount_type == 'remaining'">
+                                    <!-- Percentage inputs -->
+                                    <div invisible="amount_type != 'percentage'">
+                                        <label for="percentage_base"
+                                               class="d-block fw-semibold text-muted mb-1"
+                                               style="font-size:12px;">
+                                            Apply percentage on <span class="text-danger">*</span>
+                                        </label>
+                                        <field name="percentage_base" widget="radio" nolabel="1"
+                                               options="{'horizontal': true}"
+                                               class="mb-2"/>
+                                        <label for="percentage"
+                                               class="d-block fw-semibold text-muted mb-1"
+                                               style="font-size:12px;">
+                                            Percentage (%) <span class="text-danger">*</span>
+                                        </label>
+                                        <field name="percentage" nolabel="1"
+                                               class="w-100"
+                                               required="amount_type == 'percentage'"/>
+                                    </div>
+                                    <!-- Fixed amount input -->
+                                    <div invisible="amount_type != 'fixed'">
+                                        <label for="fixed_amount"
+                                               class="d-block fw-semibold text-muted mb-1"
+                                               style="font-size:12px;">
+                                            Fixed Amount to Advance <span class="text-danger">*</span>
+                                        </label>
+                                        <field name="fixed_amount" nolabel="1"
+                                               class="w-100"
+                                               required="amount_type == 'fixed'"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Computed amount (read-only display) -->
+                            <div class="rounded-3 p-2 mb-3 text-center bg-white"
+                                 style="border:2px solid #28a745;">
+                                <div class="text-muted text-uppercase d-flex align-items-center justify-content-center gap-1"
+                                     style="font-size:11px;">
+                                    <i class="fa fa-lock" title="Calculated"/>
+                                    Advance Bill Amount (auto-calculated)
+                                </div>
+                                <field name="advance_amount" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       nolabel="1" readonly="1"
+                                       class="fw-bolder text-success d-block"
+                                       style="font-size:1.7rem; line-height:1.2;"/>
+                            </div>
+
+                            <!-- ── Step 2: bill details ── -->
+                            <div class="fw-bold text-uppercase text-primary mb-2"
+                                 style="font-size:11px; letter-spacing:.04em;">
+                                <i class="fa fa-file-o me-1"/>2 · Bill details
+                            </div>
+
+                            <label for="bill_date"
+                                   class="d-block fw-semibold text-muted mb-1"
+                                   style="font-size:12px;">
+                                Bill Date <span class="text-danger">*</span>
+                            </label>
+                            <div class="bg-white border rounded-2 px-2 py-1 mb-2">
+                                <field name="bill_date" nolabel="1" required="1"
+                                       class="w-100"/>
+                            </div>
+
+                            <label for="bill_ref"
+                                   class="d-block fw-semibold text-muted mb-1"
+                                   style="font-size:12px;">
+                                Memo / Vendor Reference
+                            </label>
+                            <div class="bg-white border rounded-2 px-2 py-1 mb-2">
+                                <field name="bill_ref" nolabel="1" class="w-100"
+                                       placeholder="e.g. Advance – PO/2026/00001"/>
+                            </div>
+
+                            <label for="advance_account_id"
+                                   class="d-block fw-semibold text-muted mb-1"
+                                   style="font-size:12px;">
+                                Advance Account <span class="text-danger">*</span>
+                            </label>
+                            <div class="bg-white border rounded-2 px-2 py-1">
+                                <field name="advance_account_id" nolabel="1" required="1"
+                                       class="w-100"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Existing advance bills / order lines -->
+                    <div class="col-lg-7">
+                        <!-- Existing advance bills -->
+                        <div invisible="advance_bill_count == 0">
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="fw-semibold text-uppercase text-muted"
+                                      style="font-size:11px;">
+                                    <i class="fa fa-list-alt me-1"/>Existing Advance Bills
+                                </span>
+                            </div>
+                            <div style="max-height:210px; overflow-y:auto;"
+                                 class="border rounded-3">
+                                <field name="existing_advance_bill_ids" readonly="1" nolabel="1"
+                                       widget="many2many">
+                                    <list create="false" delete="false"
+                                          decoration-success="state == 'posted' and payment_state in ('paid', 'in_payment')"
+                                          decoration-warning="state == 'posted' and payment_state in ('not_paid', 'partial')"
+                                          decoration-muted="state == 'draft'">
+                                        <field name="name"/>
+                                        <field name="invoice_date" string="Date"/>
+                                        <field name="payment_state" widget="badge"
+                                               string="Payment"
+                                               decoration-success="payment_state in ('paid', 'in_payment')"
+                                               decoration-warning="payment_state == 'partial'"
+                                               decoration-danger="payment_state == 'not_paid'"/>
+                                        <field name="amount_total" widget="monetary"
+                                               options="{'currency_field': 'currency_id'}"/>
+                                        <field name="amount_residual" widget="monetary"
+                                               options="{'currency_field': 'currency_id'}"
+                                               string="Due"/>
+                                        <field name="state" column_invisible="True"/>
+                                        <field name="currency_id" column_invisible="True"/>
+                                    </list>
+                                </field>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:11px;">
+                                <i class="fa fa-info-circle me-1" title="Info"/>
+                                <strong>Posted</strong> advance bills are deducted in full from
+                                the main bill (keeps the books balanced); pay them normally.
+                            </div>
+                        </div>
+
+                        <!-- Order lines preview (when no advance bills yet) -->
+                        <div invisible="advance_bill_count != 0">
+                            <div class="fw-semibold text-uppercase text-muted mb-1"
+                                 style="font-size:11px;">
+                                <i class="fa fa-list me-1"/>Order Lines
+                            </div>
+                            <div style="max-height:230px; overflow-y:auto;"
+                                 class="border rounded-3 p-2 bg-white">
+                                <field name="order_lines_preview" widget="html"
+                                       readonly="1" nolabel="1"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- One-line info note -->
+                <div class="alert alert-info py-2 px-3 mt-3 mb-0 d-flex align-items-center gap-2"
+                     role="alert" style="font-size:13px;">
+                    <i class="fa fa-info-circle" title="Info"/>
+                    <span>
+                        Creates a <strong>draft</strong> vendor bill. Confirm &amp; pay it
+                        normally — the committed advance is auto-deducted when you create
+                        the main bill from this PO.
+                    </span>
+                </div>
+
+            </sheet>
+
+            <footer>
+                <button name="action_create_advance_bill" type="object"
+                        string="Create Advance Bill"
+                        class="btn-primary" data-hotkey="q"/>
+                <button string="Cancel" class="btn-secondary" special="cancel"
+                        data-hotkey="x"/>
+            </footer>
+
+        </form>
+    </field>
+</record>
+
+</odoo>

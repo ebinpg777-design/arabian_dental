@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     MAIN VENDOR BILL FORM – advance deduction panel
+════════════════════════════════════════════════════════════════════════════ -->
+<record id="view_move_form_advance_deduct" model="ir.ui.view">
+    <field name="name">account.move.form.advance.deduct.inherit</field>
+    <field name="model">account.move</field>
+    <field name="inherit_id" ref="account.view_move_form"/>
+    <field name="priority" eval="100"/>
+    <field name="arch" type="xml">
+
+        <!-- Header button: Deduct Advances (only for main vendor bills in draft with available advances) -->
+        <xpath expr="//header" position="inside">
+            <field name="is_purchase_advance_bill" invisible="1"/>
+            <field name="purchase_advance_deductible" invisible="1"/>
+
+            <!-- Manual deduction button (main bills only) -->
+            <button name="action_deduct_purchase_advances"
+                    type="object"
+                    string="Apply Advance Deductions"
+                    groups="account.group_account_invoice"
+                    invisible="is_purchase_advance_bill or move_type != 'in_invoice'
+                               or state != 'draft' or purchase_advance_deductible == 0"
+                    help="Add deduction lines for paid advance bills linked to the Purchase Order(s) on this bill."/>
+
+            <!-- Link to PO for advance bills -->
+            <button name="action_open_advance_purchase_order"
+                    type="object"
+                    string="View Purchase Order"
+                    groups="purchase.group_purchase_user"
+                    invisible="not is_purchase_advance_bill or not advance_purchase_order_id"/>
+        </xpath>
+
+        <!-- Advance deduction alert inside the bill form (above invoice lines) -->
+        <xpath expr="//field[@name='invoice_line_ids']" position="before">
+            <field name="advance_purchase_order_id" readonly="1"
+                   invisible="not is_purchase_advance_bill or not advance_purchase_order_id"
+                   widget="many2one_avatar"
+                   string="Advance for PO"/>
+
+            <!-- Info banner for advance bills -->
+            <div class="alert alert-warning d-flex gap-2 align-items-start"
+                 invisible="not is_purchase_advance_bill"
+                 role="alert">
+                <i class="fa fa-exclamation-triangle fs-5 mt-1 flex-shrink-0" title="Warning"/>
+                <div>
+                    <strong>This is a Purchase Advance Bill.</strong>
+                    It is linked to
+                    <field name="advance_purchase_order_id" readonly="1" nolabel="1"
+                           class="d-inline fw-semibold" no_open="False"/>
+                    and uses the advance account instead of regular expense accounts.
+                    Once paid, the advance will be automatically deducted from the
+                    main vendor bill created from that Purchase Order.
+                </div>
+            </div>
+
+            <!-- Deductible advance info for main bills (draft only) -->
+            <div class="alert alert-info d-flex justify-content-between align-items-center"
+                 invisible="is_purchase_advance_bill or move_type != 'in_invoice'
+                            or state != 'draft' or purchase_advance_deductible == 0"
+                 role="alert">
+                <div>
+                    <i class="fa fa-info-circle me-2" title="Info"/>
+                    <strong>
+                        <field name="purchase_advance_deductible" widget="monetary"
+                               nolabel="1" readonly="1" class="d-inline"/>
+                    </strong>
+                    of posted advance is available for deduction from this bill
+                    (one line per advance bill).
+                    Click <em>Apply Advance Deductions</em> in the header — it is also
+                    applied automatically when the bill is created from the PO.
+                </div>
+                <button name="action_deduct_purchase_advances"
+                        type="object"
+                        string="Apply Now"
+                        class="btn btn-sm btn-primary ms-3"/>
+            </div>
+        </xpath>
+
+    </field>
+</record>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     ADVANCE BILL LIST VIEW – add PO column to vendor bill list
+════════════════════════════════════════════════════════════════════════════ -->
+<record id="view_account_move_advance_bill_list" model="ir.ui.view">
+    <field name="name">account.move.advance.bill.list</field>
+    <field name="model">account.move</field>
+    <field name="inherit_id" ref="account.view_invoice_tree"/>
+    <field name="priority" eval="100"/>
+    <field name="arch" type="xml">
+        <field name="invoice_origin" position="after">
+            <field name="advance_purchase_order_id" optional="show"
+                   string="Advance for PO"/>
+        </field>
+    </field>
+</record>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SEARCH VIEW – filter advance bills
+════════════════════════════════════════════════════════════════════════════ -->
+<record id="view_account_move_advance_bill_search" model="ir.ui.view">
+    <field name="name">account.move.advance.bill.search.inherit</field>
+    <field name="model">account.move</field>
+    <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+    <field name="arch" type="xml">
+        <filter name="myinvoices" position="before">
+            <filter name="filter_purchase_advance_bill"
+                    string="Purchase Advance Bills"
+                    domain="[('is_purchase_advance_bill', '=', True)]"/>
+            <separator/>
+        </filter>
+    </field>
+</record>
+
+</odoo>

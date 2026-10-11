@@ -1,0 +1,93 @@
+// ════════════════════════════════════════════════════════════════════
+//  Purchase Advance Bill wizard – make editable fields obviously editable
+// ════════════════════════════════════════════════════════════════════
+.o_purchase_advance_wizard {
+
+    // Section heading chips
+    .o_pa_section {
+        font-size: 11px;
+        letter-spacing: .04em;
+    }
+
+    // Wrapper around every editable field → render as a clear input box
+    .o_pa_field {
+        margin-bottom: .65rem;
+
+        > label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: .15rem;
+        }
+
+        // The actual widget (text / monetary / date / many2one)
+        .o_field_widget {
+            width: 100%;
+
+            input,
+            .o_input,
+            .o_input_dropdown > .o_input {
+                width: 100%;
+                border: 1px solid #ced4da !important;
+                border-radius: .375rem;
+                padding: .35rem .55rem;
+                min-height: 34px;
+                background-color: #fff;
+                transition: border-color .15s ease, box-shadow .15s ease;
+            }
+
+            // Many2one / date pickers keep the dropdown affordance
+            .o_input_dropdown,
+            .o_datetime_input {
+                width: 100%;
+            }
+
+            input:hover,
+            .o_input:hover {
+                border-color: #adb5bd !important;
+            }
+
+            input:focus,
+            .o_input:focus {
+                border-color: #714B67 !important;
+                box-shadow: 0 0 0 .15rem rgba(113, 75, 103, .15) !important;
+                outline: none;
+            }
+        }
+
+        // Required marker
+        &.o_pa_required > label::after {
+            content: " *";
+            color: #dc3545;
+            font-weight: 700;
+        }
+    }
+
+    // The radio "advance type" selector – give it room
+    .o_pa_radio .o_field_widget {
+        .o_radio_item {
+            margin-bottom: .25rem;
+        }
+    }
+
+    // Hero amount box (read-only display, not an input)
+    .o_pa_amount_box {
+        background-color: #fff;
+        border: 2px solid #28a745 !important;
+        border-radius: .5rem;
+
+        .o_field_widget {
+            input {
+                border: none !important;
+                background: transparent !important;
+                text-align: center;
+                font-size: 1.7rem;
+                font-weight: 800;
+                color: #1e7e34 !important;
+                padding: 0;
+                min-height: auto;
+            }
+        }
+    }
+}

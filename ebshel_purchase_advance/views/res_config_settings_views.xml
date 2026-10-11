@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<record id="res_config_settings_view_form_purchase_advance" model="ir.ui.view">
+    <field name="name">res.config.settings.form.purchase.advance.inherit</field>
+    <field name="model">res.config.settings</field>
+    <field name="inherit_id" ref="purchase.res_config_settings_view_form_purchase"/>
+    <field name="arch" type="xml">
+        <xpath expr="//block[@name='invoicing_settings_container']" position="after">
+            <block title="Purchase Advance Bills" id="purchase_advance_bill_settings">
+                <setting id="purchase_advance_auto_deduct_setting"
+                         string="Auto-Deduct Advances When Billing"
+                         help="Automatically add advance deduction lines to vendor bills
+                               created from a PO that has paid advance bills.">
+                    <field name="purchase_advance_auto_deduct"/>
+                </setting>
+                <setting id="purchase_advance_limit_setting"
+                         string="Limit Advance to Order Total"
+                         help="Prevent creating advance bills that exceed the Purchase Order total.">
+                    <field name="purchase_advance_limit_to_order"/>
+                </setting>
+                <setting id="purchase_advance_account_setting"
+                         string="Default Purchase Advance Account"
+                         help="Company-level asset/prepayment account used as the bridge for
+                               advance bills. Debited on the advance bill, credited when the
+                               main bill deducts it. A product category's own Purchase Advance
+                               Account takes precedence over this default.">
+                    <field name="purchase_advance_account_id"
+                           domain="[('company_ids', 'in', [company_id])]"/>
+                </setting>
+            </block>
+        </xpath>
+    </field>
+</record>
+
+</odoo>
