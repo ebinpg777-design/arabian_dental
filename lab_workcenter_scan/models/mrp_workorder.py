@@ -184,10 +184,12 @@ class MrpWorkorderHandover(models.Model):
     _inherit = 'mrp.workorder'
 
     accepted_by_id = fields.Many2one('res.users', 'Accepted By', readonly=True, copy=False)
-    accepted_at = fields.Datetime('Accepted', readonly=True, copy=False)
+    # Indexed: every board and report asks "taken / handed on between these two times",
+    # and without an index each such count read all 128k work orders (2026-10-14).
+    accepted_at = fields.Datetime('Accepted', readonly=True, copy=False, index='btree_not_null')
     handed_over_by_id = fields.Many2one('res.users', 'Handed Over By', readonly=True,
                                         copy=False)
-    handed_over_at = fields.Datetime('Handed Over', readonly=True, copy=False)
+    handed_over_at = fields.Datetime('Handed Over', readonly=True, copy=False, index='btree_not_null')
 
     next_workorder_id = fields.Many2one(
         'mrp.workorder', compute='_compute_next_workorder', string='Goes To')
@@ -330,7 +332,7 @@ class MrpWorkorderResponsibility(models.Model):
     # When the lead gave it out, and who did. Without these, "the job sat for two days"
     # cannot be split into the part the lead is answerable for (nobody was given it) and
     # the part the technician is (they had it and did not start).
-    bench_assigned_at = fields.Datetime('Given Out', readonly=True, copy=False)
+    bench_assigned_at = fields.Datetime('Given Out', readonly=True, copy=False, index='btree_not_null')
     bench_assigned_by_id = fields.Many2one(
         'res.users', string='Given Out By', readonly=True, copy=False)
     # Who FINISHED it, where that is a different person from who made it - polishing

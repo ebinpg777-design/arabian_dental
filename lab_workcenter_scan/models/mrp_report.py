@@ -87,6 +87,7 @@ class LabMrpReport(models.AbstractModel):
         # UTC for a user with none - while the windows are the lab's. One zone
         # for both, or a Monday-morning finish lands in last week's bar.
         self = self.with_context(tz=self.env['lab.station']._lab_tz().zone)
+        self = self.env['report.lab.floor']._remember_live(self)
         weeks = max(1, min(int(weeks or WEEKS), 26))
         today = self.env['lab.station']._lab_today()
         first = self._week_start(today) - timedelta(weeks=weeks - 1)

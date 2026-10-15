@@ -57,6 +57,8 @@ class LabFlow(models.AbstractModel):
         it - taken, finished, by whom, when, how long - which is what a
         manager reading back a day actually wants.
         """
+        # the live set once for the whole board, not once per count
+        self = self.env['report.lab.floor']._remember_live(self)
         Workorder = self.env['mrp.workorder']
         now = fields.Datetime.now()
         today = self.env['lab.station']._lab_today()
@@ -178,8 +180,7 @@ class LabFlow(models.AbstractModel):
             # The 21,099 finished-but-open orders are not the floor's work,
             # but they are the floor's DEBT: until the office closes them,
             # every report on this database needs a live-set carve-out.
-            'closeout': self.env['mrp.production'].sudo().search_count(
-                self.env['report.lab.floor']._closeout_domain()),
+            'closeout': self.env['report.lab.floor']._closeout_count(),
             # The day being read back. (client, 2026-09-09)
             'day': self._day(day_date, day_start, day_end, is_today, now),
             'people': people,

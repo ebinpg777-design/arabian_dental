@@ -1,25 +1,32 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, proxy, usePlugin, useProps } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, usePlugin, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { ActionPlugin } from "@web/webclient/actions/action_plugin";
 
+const REFRESH_MS = 60000;
+const LATE_MIN = 15;
+
 /**
  * The technician day: every person a row, every slot a cell.
  *
+ *   Gantt     the day as bars, one lane per job so "seven at once" reads as seven
+ *             bars: the roster's shift along the top of the lane with the lunch
+ *             hatched, attendance behind, jobs on top coloured by station and
+ *             labelled with the sale order and the patient, every idle period of
+ *             five minutes or more as a block (orange when work waited at the
+ *             person's stations), the accept and hand-on marks, and a time-use bar
+ *             per person (on jobs / idle while work waited / free / lunch).
  *   Heatmap   how full each slot was (hands on a job), how many jobs were handed on
- *             in it, and whether the person stood idle while work waited at their
- *             stations - the one pattern a lead can fix today.
- *   Gantt     the same day as bars, one lane per job so "seven at once" reads as
- *             seven bars: attendance behind, jobs on top coloured by station and
- *             labelled with the sale order and the patient, the accept and hand-on
- *             marks, and a time-use bar per person (on jobs / idle while work
- *             waited / present with nothing on the bench).
+ *             in it, and whether the person stood idle while work waited.
  *   Floor     the whole floor per slot: people busy, jobs handed on, work waiting.
  *
- * Minutes arrive counted from the lab's local midnight, so nothing here does
- * timezone arithmetic.
+ * Today redraws itself every minute. (The "Right now" panel that sat above it was
+ * taken off the screen; who stands free while work waits is in the insights.)
+ *
+ * The rows are the technicians named on a work centre. Minutes arrive counted from
+ * the lab's local midnight, so nothing here does timezone arithmetic.
  */
 export class LabTechDay extends Component {
     static template = "lab_workcenter_scan.TechDay";
@@ -30,21 +37,53 @@ export class LabTechDay extends Component {
         this.action = usePlugin(ActionPlugin);
         const params = (this.props.action && this.props.action.params) || {};
         this.state = proxy({
-            day: params.day || null, slot: 60, view: "heat", stations: [], rostered: false, search: "",
-            data: null, loading: true, drawer: null, stationMenu: false, sort: "activity",
+            day: params.day || null, slot: 60, view: "line", stations: [], people: "roster", search: "",
+            data: null, loading: true, drawer: null, stationMenu: false, sort: "activity", showAbsent: false,
         });
+        this.loadSeq = 0;
         onWillStart(() => this.load());
+        // today redraws itself every minute, so the screen can stay up on the floor
+        onMounted(() => {
+            this.timer = setInterval(() => {
+                if (this.state.data && this.state.data.is_today && !document.hidden && !this.state.loading) {
+                    this.load(true);
+                }
+            }, REFRESH_MS);
+        });
+        onWillUnmount(() => clearInterval(this.timer));
     }
 
-    async load() {
-        this.state.loading = true;
+    /**
+     * Every request carries a ticket; only the newest answer is drawn. A refresh
+     * that comes back after the lead changed the day, the slot, the stations or the
+     * people would otherwise put the old view back.
+     */
+    async load(quiet = false) {
+        const ticket = ++this.loadSeq;
+        if (!quiet) {
+            this.state.loading = true;
+        }
         try {
-            this.state.data = await this.orm.call("lab.tech.day", "get_day", [], {
-                day: this.state.day, slot: this.state.slot, station_ids: this.state.stations, rostered: this.state.rostered,
+            const data = await this.orm.call("lab.tech.day", "get_day", [], {
+                day: this.state.day, slot: this.state.slot, station_ids: this.state.stations, people: this.state.people,
             });
-            this.state.day = this.state.data.day;
+            if (ticket !== this.loadSeq) {
+                return;
+            }
+            this.state.data = data;
+            this.state.day = data.day;
+        } catch (error) {
+            if (!quiet) {
+                throw error;
+            }
+            // a background refresh that fails - the session expired overnight on the
+            // floor screen, the server restarting - waits for the next minute rather
+            // than opening an error dialog every minute
+            console.warn("Technician day: refresh failed", error);
         } finally {
-            this.state.loading = false;
+            if (ticket === this.loadSeq) {
+                this.state.loading = false;
+            }
         }
     }
 
@@ -86,9 +125,11 @@ export class LabTechDay extends Component {
         this.state.stations.splice(0);
         this.load();
     }
-    toggleRostered() {
-        this.state.rostered = !this.state.rostered;
-        this.load();
+    setPeople(p) {
+        if (this.state.people !== p) {
+            this.state.people = p;
+            this.load();
+        }
     }
 
     // ------------------------------------------------------------ formatting
@@ -107,15 +148,28 @@ export class LabTechDay extends Component {
         return h ? `${h}h ${String(mm).padStart(2, "0")}m` : `${mm}m`;
     }
     stationName(id) {
-        const s = (this.state.data.stations || []).find((x) => x.id === id);
+        const s = (this.state.data.stations || []).find((x) => x.id === Number(id));
         return s ? s.name : "";
     }
+    stationNames(ids) {
+        return (ids || []).map((id) => this.stationName(id)).filter(Boolean).join(", ");
+    }
     hue(id) {
-        const s = (this.state.data.stations || []).find((x) => x.id === id);
+        const s = (this.state.data.stations || []).find((x) => x.id === Number(id));
         return s ? s.hue : 210;
     }
     stationColor(id, light) {
         return light ? `hsl(${this.hue(id)}, 55%, 85%)` : `hsl(${this.hue(id)}, 55%, 42%)`;
+    }
+    rowOf(uid) {
+        return (this.state.data.rows || []).find((r) => r.id === uid) || null;
+    }
+    shiftText(shift) {
+        if (!shift) {
+            return "";
+        }
+        const lunch = shift.breaks.map((b) => `${this.hm(b[0])}–${this.hm(b[1])}`).join(", ");
+        return `${this.hm(shift.a)}–${this.hm(shift.b)}` + (lunch ? ` · lunch ${lunch}` : "");
     }
 
     get stripTop() {
@@ -128,13 +182,21 @@ export class LabTechDay extends Component {
         return ":" + String(m % 60).padStart(2, "0");
     }
     openInsight(insight) {
+        if (insight.people) {
+            this.setPeople(insight.people);
+            return;
+        }
         if (!insight.user_id) {
             return;
         }
-        const row = this.state.data.rows.find((r) => r.id === insight.user_id);
+        const row = this.rowOf(insight.user_id);
         if (row) {
             this.openPerson(row);
         }
+    }
+    get absentShown() {
+        const a = this.state.data.absent || [];
+        return this.state.showAbsent || a.length <= 8 ? a : a.slice(0, 8);
     }
 
     // ------------------------------------------------------------ rows
@@ -150,7 +212,11 @@ export class LabTechDay extends Component {
         } else if (key === "handed") {
             rows = [...rows].sort((a, b) => b.handed - a.handed);
         } else if (key === "idle") {
-            rows = [...rows].sort((a, b) => b.idle_wait - a.idle_wait);
+            rows = [...rows].sort((a, b) => b.idle_wait - a.idle_wait || b.idle - a.idle);
+        } else if (key === "idle_total") {
+            rows = [...rows].sort((a, b) => b.idle - a.idle);
+        } else if (key === "late") {
+            rows = [...rows].sort((a, b) => b.late - a.late || b.early - a.early);
         } else if (key === "util") {
             rows = [...rows].sort((a, b) => (b.utilisation || 0) - (a.utilisation || 0));
         }
@@ -218,6 +284,12 @@ export class LabTechDay extends Component {
         const r = 11, c = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct || 0));
         return { r, c, off: c * (1 - p / 100), color: p >= 70 ? "#067647" : p >= 40 ? "#1f6f8b" : "#b45309" };
     }
+    isLate(r) {
+        return r.late >= LATE_MIN;
+    }
+    isEarly(r) {
+        return r.early >= LATE_MIN;
+    }
 
     // ------------------------------------------------------------ timeline geometry
     get axis() {
@@ -238,8 +310,10 @@ export class LabTechDay extends Component {
 
     // ------------------------------------------------------------ gantt
     /**
-     * One lane per job. A bench span and the timer runs inside it are ONE job, drawn
-     * as one bar with the runs inset; carried-in work collapses into a single hatched
+     * One lane per job. The work order's Start -> End and the Time Tracking runs
+     * inside it are ONE job, drawn as one bar with the runs inset; a running job
+     * carries its End Date (when it is due) as a dashed outline ahead of it, or as
+     * hatching over the part past it. Carried-in work collapses into a single hatched
      * band per person, because a hundred forgotten clocks are one fact, not a hundred
      * lanes. Everything else is packed greedily, earliest first.
      */
@@ -286,6 +360,8 @@ export class LabTechDay extends Component {
                 j.inner = j.bench ? j.runs : [];
                 j.timed = j.runs.filter((t) => t.kind === "timer").reduce((m, t) => m + (t.b - t.a), 0);
                 j.rush = j.seg.priority === "emergency" || j.seg.priority === "urgent";
+                j.due = j.bench && j.open && j.bench.due !== null && j.bench.due !== undefined ? j.bench.due : null;
+                j.clockBy = [...new Set(j.runs.map((t) => t.by).filter((by) => by && by !== r.id))];
             }
             const laneOf = {};
             for (const j of list) {
@@ -319,9 +395,16 @@ export class LabTechDay extends Component {
         if (who) {
             lines.push(who);
         }
-        lines.push(`${this.stationName(s.station_id)} · ${this.hm(j.a)}–${j.open ? "open" : this.hm(j.b)} (${this.dur(j.b - j.a)})`);
+        const from = s.started || this.hm(j.a);
+        const to = j.open ? "running" : s.finished || this.hm(j.b);
+        lines.push(`${this.stationName(s.station_id)} · ${from} → ${to} (${this.dur(j.b - j.a)})`);
+        if (j.due !== null) {
+            lines.push(j.due > j.b
+                ? `due ${s.due_label} - ${this.dur(j.due - j.b)} to go`
+                : `past its End Date ${s.due_label} by ${this.dur(j.b - j.due)}`);
+        }
         if (j.inner.length) {
-            lines.push(`timer ${this.dur(j.timed)} in ${j.inner.length} run(s)`);
+            lines.push(`time tracked ${this.dur(j.timed)} in ${j.inner.length} run(s)`);
         }
         if (s.expected) {
             lines.push(`costed ${this.dur(s.expected)}`);
@@ -331,12 +414,45 @@ export class LabTechDay extends Component {
         }
         return lines.join("\n");
     }
-    /** How the person's presence was spent: on jobs, idle while work waited, present with nothing on the bench. */
+    idleTitle(r, p) {
+        const lines = [`${r.name} idle ${this.hm(p.a)}–${this.hm(p.b)} (${this.dur(p.b - p.a)})`];
+        lines.push(p.wait ? `work waited at their stations for ${this.dur(p.wait)} of it` : "nothing waiting at their stations");
+        lines.push("click for what was waiting");
+        return lines.join("\n");
+    }
+    shiftTitle(r) {
+        const s = r.shift;
+        const lines = [`On the roster ${this.shiftText(s)}`];
+        if (this.isLate(r)) {
+            lines.push(`started ${this.hm(r.first_present)}: ${this.dur(r.late)} late`);
+        }
+        if (this.isEarly(r)) {
+            lines.push(`left ${this.hm(r.last_present)}: ${this.dur(r.early)} early`);
+        }
+        return lines.join("\n");
+    }
+    /** How the person's presence was spent: on jobs, idle while work waited, free, at lunch, the rest (blocked). */
     use(r) {
-        const present = Math.max(r.present, r.busy + r.idle_wait);
-        const free = Math.max(0, present - r.busy - r.idle_wait);
+        const brk = r.break_min || 0;
+        const present = Math.max(r.present, r.busy + r.idle + brk);
+        const other = Math.max(0, present - r.busy - r.idle - brk);
         const pct = (m) => (present ? (m / present) * 100 : 0);
-        return { present, busy: r.busy, idle: r.idle_wait, free, pb: pct(r.busy), pi: pct(r.idle_wait), pf: pct(free) };
+        return {
+            present, busy: r.busy, wait: r.idle_wait, free: r.idle_free, brk, other,
+            pb: pct(r.busy), pw: pct(r.idle_wait), pf: pct(r.idle_free), pk: pct(brk), po: pct(other),
+        };
+    }
+    useTitle(r) {
+        const u = this.use(r);
+        const parts = [`On jobs ${this.dur(u.busy)}`, `idle while work waited ${this.dur(u.wait)}`, `free, nothing waiting ${this.dur(u.free)}`];
+        if (u.brk) {
+            parts.push(`lunch ${this.dur(u.brk)}`);
+        }
+        if (u.other) {
+            parts.push(`blocked ${this.dur(u.other)}`);
+        }
+        parts.push(`present ${this.dur(u.present)}`);
+        return parts.join(" · ");
     }
     /** The stations that appear on the chart, so the colours are explained. */
     get stationLegend() {
@@ -400,7 +516,7 @@ export class LabTechDay extends Component {
         const story = [];
         for (const at of row.attendance) {
             story.push({ m: at.a, icon: "fa-sign-in", text: "Checked in", cls: "muted" });
-            if (at.b < 1440) {
+            if (at.b < 1440 && !at.open) {
                 story.push({ m: at.b, icon: "fa-sign-out", text: "Checked out", cls: "muted" });
             }
         }
@@ -416,8 +532,13 @@ export class LabTechDay extends Component {
                 story.push({ m: e.m, icon: "fa-inbox", text: `Given ${what || "a job"} at ${this.stationName(e.station_id)}`, cls: "muted", wo: e.wo });
             }
         }
-        if (row.longest_gap) {
-            story.push({ m: row.longest_gap.m, icon: "fa-pause", text: `Longest break from jobs: ${this.dur(row.longest_gap.len)}`, cls: "warn" });
+        for (const p of row.idle_periods) {
+            if (p.b - p.a >= 30) {
+                story.push({ m: p.a, icon: "fa-pause", text: `Idle ${this.dur(p.b - p.a)}` + (p.wait ? ` while work waited ${this.dur(p.wait)} of it` : ""), cls: p.wait ? "warn" : "muted", idle: p });
+            }
+        }
+        if (this.isLate(row)) {
+            story.push({ m: row.first_present, icon: "fa-clock-o", text: `Started ${this.dur(row.late)} after the roster's ${this.hm(row.shift.a)}`, cls: "warn" });
         }
         story.sort((p, q) => p.m - q.m);
         const slot = this.state.data.slot;
@@ -438,6 +559,23 @@ export class LabTechDay extends Component {
     openBar(row, j) {
         this.state.drawer = { kind: "job", row, job: j, seg: j.seg, doctor: this.state.data.partners[j.seg.partner_id] || "" };
     }
+    /** An idle block: what waited at the person's stations meanwhile, and the jobs either side of it. */
+    openIdle(row, p) {
+        const d = this.state.data;
+        const waited = [];
+        for (const wc of row.stations) {
+            for (const j of d.queue[wc] || []) {
+                if (j.a < p.b && j.b > p.a) {
+                    waited.push({ ...j, station_id: wc, overlap: Math.min(j.b, p.b) - Math.max(j.a, p.a) });
+                }
+            }
+        }
+        waited.sort((u, v) => v.overlap - u.overlap || u.a - v.a);
+        const worked = row.segments.filter((s) => s.kind !== "carried");
+        const before = worked.filter((s) => s.b <= p.a).sort((u, v) => v.b - u.b)[0] || null;
+        const after = worked.filter((s) => s.a >= p.b).sort((u, v) => u.a - v.a)[0] || null;
+        this.state.drawer = { kind: "idle", row, period: p, waited, before, after };
+    }
     closeDrawer() {
         this.state.drawer = null;
     }
@@ -450,21 +588,34 @@ export class LabTechDay extends Component {
     openStationFilter() {
         this.state.stationMenu = !this.state.stationMenu;
     }
+    openStoryItem(st) {
+        if (st.idle) {
+            this.openIdle(this.state.drawer.row, st.idle);
+        } else if (st.wo) {
+            this.openJob(st.wo);
+        }
+    }
 
     // ------------------------------------------------------------ export
     exportCsv() {
         const d = this.state.data;
-        const head = ["Technician", "Busy (min)", "Present (min)", "Utilisation %", "Handed on", "Picked up", "Idle while work waited (min)", "Earned (min)"];
+        const head = ["Technician", "Stations", "Shift", "Checked in", "Checked out", "Late (min)", "Busy (min)", "Present (min)", "Utilisation %",
+            "Handed on", "Picked up", "Idle (min)", "Idle while work waited (min)", "Idle, nothing waiting (min)", "Lunch (min)", "Longest idle (min)", "Earned (min)"];
         for (const m of d.slots) {
             head.push(`${this.hm(m)} busy`, `${this.hm(m)} handed`);
         }
         const lines = [head];
         for (const r of this.rows) {
-            const line = [r.name, r.busy, r.present, r.utilisation ?? "", r.handed, r.accepted, r.idle_wait, r.earned];
+            const line = [r.name, this.stationNames(r.stations), this.shiftText(r.shift), this.hm(r.first_present), this.hm(r.last_present), r.late,
+                r.busy, r.present, r.utilisation ?? "", r.handed, r.accepted, r.idle, r.idle_wait, r.idle_free, r.break_min,
+                Math.max(0, ...r.idle_periods.map((p) => p.b - p.a)), r.earned];
             for (const c of r.cells) {
                 line.push(c.busy, c.handed);
             }
             lines.push(line);
+        }
+        for (const a of d.absent || []) {
+            lines.push([a.name, this.stationNames(a.stations), this.shiftText(a.shift), "not in"]);
         }
         const csv = lines.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });

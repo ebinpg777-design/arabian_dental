@@ -89,7 +89,8 @@ $td-bad: #b42318;
     tfoot .o_td_person { border-top: 1px solid $td-line; }
     .o_td_legend { display: flex; flex-wrap: wrap; gap: .9rem; font-size: .7rem; color: $td-muted; margin-top: .45rem; align-items: center; }
     .o_td_lg { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: .2rem; border: 1px solid rgba(0,0,0,.05);
-        &.o_td_lg_ev { width: 8px; height: 8px; border-radius: 50%; &.accept { background: #fff; border: 2px solid $td-navy; } &.handed { background: $td-good; } } }
+        &.o_td_lg_ev { width: 8px; height: 8px; border-radius: 50%; &.accept { background: #fff; border: 2px solid $td-navy; } &.handed { background: $td-good; }
+        &.given { width: 6px; height: 6px; background: $td-muted; } } }
 
     // gantt
     .o_td_line { overflow-x: auto; }
@@ -99,15 +100,30 @@ $td-bad: #b42318;
     .o_td_ltrack { position: relative; flex: 1 1 auto; height: 40px; }
     .o_td_lhead .o_td_ltrack { height: 20px; }
     .o_td_use { display: flex; height: 6px; width: 160px; border-radius: 3px; overflow: hidden; background: #f1f3f6; margin-top: .25rem;
-        span { display: block; height: 100%; } .busy { background: $td-navy; } .idle { background: #f7c98b; } .free { background: #dff3e4; } }
+        span { display: block; height: 100%; } .busy { background: $td-navy; } .wait { background: #f7c98b; } .free { background: #dff3e4; }
+        .brk { background: #d9dde3; } .other { background: #f4b5b0; } }
+    .o_td_idletxt.warn { color: $td-warn; font-weight: 600; }
     .o_td_barlbl { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .64rem; font-weight: 600; color: #fff; padding: 0 .3rem; line-height: 18px; text-shadow: 0 0 2px rgba(0,0,0,.25); }
     .o_td_fbar { position: absolute; bottom: 2px; background: #cfe0ef; border-radius: 2px 2px 0 0; margin-left: 1px;
         b { position: absolute; top: -13px; left: 0; right: 0; text-align: center; font-size: .6rem; color: $td-teal; } }
     .o_td_stlegend { margin-top: .2rem; }
     .o_td_tick { position: absolute; top: 2px; transform: translateX(-50%); font-size: .62rem; color: $td-muted; }
     .o_td_grid { position: absolute; top: 0; bottom: 0; width: 1px; background: #eef1f5; }
-    .o_td_att { position: absolute; top: 4px; bottom: 4px; background: #dff3e4; border-radius: 6px; }
-    .o_td_waitmark { position: absolute; bottom: 2px; height: 5px; background: #f7c98b; border-radius: 3px; }
+    .o_td_att { position: absolute; top: 4px; bottom: 4px; background: #dff3e4; border-radius: 6px;
+        &.derived { background: transparent; border: 1px dashed #b7e0c4; } }
+    // the roster on the lane: the expected hours as a line along the top, the lunch
+    // hatched behind everything, a late start or early finish dotted red
+    .o_td_shift { position: absolute; top: 0; height: 2px; background: $td-navy; opacity: .45; border-radius: 1px; }
+    .o_td_break { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(107,114,128,.18) 0 4px, transparent 4px 8px);
+        border-left: 1px dashed #c3c9d3; border-right: 1px dashed #c3c9d3; pointer-events: none; }
+    .o_td_late { position: absolute; top: 0; height: 3px; background: repeating-linear-gradient(90deg, $td-bad 0 3px, transparent 3px 6px); }
+    // an idle period: a dashed block the bars sit on top of; orange where work waited
+    .o_td_idle { position: absolute; top: 5px; bottom: 5px; border-radius: 5px; background: rgba(107,114,128,.12); border: 1px dashed #c3c9d3; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+        &.wait { background: repeating-linear-gradient(135deg, #fde7c8 0 5px, #fff4e3 5px 10px); border-color: #f3c58a; }
+        .o_td_idlelbl { font-size: .6rem; color: $td-muted; white-space: nowrap; }
+        &.wait .o_td_idlelbl { color: $td-warn; font-weight: 600; }
+        &:hover { filter: brightness(.96); } }
     .o_td_bar { position: absolute; height: 18px; border-radius: 4px; background: var(--c); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
         &.span { opacity: .88; }
         // the timer runs: a strip along the foot of the bar, so the label stays readable
@@ -119,9 +135,19 @@ $td-bad: #b42318;
         &.open { border-right: 3px dashed #fff; }
         &.rush { box-shadow: inset 0 -3px 0 $td-bad; }
         &:hover { filter: brightness(1.1); z-index: 2; } }
+    // a running job's End Date: a dashed outline still to come, hatching once it is gone by
+    .o_td_due { position: absolute; height: 18px; border: 1.5px dashed var(--c); border-left: 0; border-radius: 0 4px 4px 0; opacity: .7; pointer-events: none; }
+    .o_td_over { position: absolute; height: 18px; border-radius: 0 4px 4px 0; pointer-events: none; z-index: 1;
+        background: repeating-linear-gradient(135deg, rgba(220,38,38,.55) 0 3px, transparent 3px 7px); }
     .o_td_ev { position: absolute; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; z-index: 3; pointer-events: auto;
         &.accept { background: #fff; border: 2px solid $td-navy; } &.handed { background: $td-good; border: 2px solid #fff; } &.given { width: 6px; height: 6px; margin-left: -3px; background: $td-muted; } }
     .o_td_now { position: absolute; top: 0; bottom: 0; width: 2px; background: $td-bad; z-index: 4; }
+
+
+    // the roster's absentees
+    .o_td_absent { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; font-size: .74rem; margin-top: .5rem; color: $td-muted; }
+    .o_td_absentlbl { font-weight: 600; margin-right: .2rem; }
+    .o_td_chip { background: #fff; border: 1px solid $td-line; border-radius: 999px; padding: .05rem .5rem; color: $td-navy; }
 
     // floor
     .o_td_svg { width: 100%; height: 200px; }
@@ -130,7 +156,10 @@ $td-bad: #b42318;
     .o_td_ftable { width: 100%; font-size: .78rem; margin-top: .5rem; border-collapse: collapse;
         th { font-size: .64rem; text-transform: uppercase; color: $td-muted; font-weight: 600; border-bottom: 1px solid $td-line; padding: .25rem .4rem; }
         td { padding: .25rem .4rem; border-bottom: 1px solid #f3f5f8; }
-        tr.now { background: #fff5f4; } }
+        tr.now { background: #fff5f4; } tr.behind td { background: #fff8ec; } }
+    .o_td_twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+    .o_td_pass { display: flex; gap: .5rem; font-size: .78rem; padding: .25rem 0; border-bottom: 1px solid #f1f3f6; color: $td-navy; align-items: baseline;
+        .o_td_stt { font-variant-numeric: tabular-nums; color: $td-muted; font-size: .72rem; flex: 0 0 2.8rem; } a { color: $td-teal; } }
     .o_td_minibar { display: inline-block; width: 80px; height: 7px; background: #eef1f5; border-radius: 4px; vertical-align: middle; overflow: hidden;
         span { display: block; height: 100%; background: $td-good; } }
 
@@ -156,14 +185,16 @@ $td-bad: #b42318;
             b { color: $td-navy; overflow: hidden; text-overflow: ellipsis; } } }
     .o_td_run { display: flex; align-items: baseline; gap: .5rem; font-size: .78rem; padding: .15rem 0; border-bottom: 1px solid #f1f3f6;
         .o_td_stt { font-variant-numeric: tabular-nums; color: $td-muted; font-size: .72rem; } }
+    .o_td_idlerow { cursor: pointer; &:hover { background: #f6f8fa; } &.warn b { color: $td-warn; } }
     .o_td_actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: 1rem; }
     .o_td_story { border-left: 2px solid $td-line; margin-left: .4rem; }
     .o_td_st { display: flex; align-items: baseline; gap: .45rem; font-size: .78rem; padding: .22rem 0 .22rem .6rem; cursor: default; color: $td-navy;
         .o_td_stt { font-variant-numeric: tabular-nums; color: $td-muted; font-size: .72rem; width: 2.8rem; flex: 0 0 auto; }
         i { color: $td-teal; width: 1rem; text-align: center; }
-        &.good i { color: $td-good; } &.warn i, &.warn { color: $td-warn; } &.muted { color: $td-muted; } }
+        &.good i { color: $td-good; } &.warn i, &.warn { color: $td-warn; } &.muted { color: $td-muted; } &.link { cursor: pointer; &:hover { background: #f6f8fa; } } }
 }
 html .o_web_client > .o_action_manager > .o_action.o_td { overflow-y: auto; min-height: 0; }
 @media (max-width: 767px) {
-    .o_td { padding: .5rem .5rem 2rem; .o_td_controls { margin-left: 0; } .o_td_search { width: 120px; } }
+    .o_td { padding: .5rem .5rem 2rem; .o_td_controls { margin-left: 0; } .o_td_search { width: 120px; }
+        .o_td_twocol { grid-template-columns: 1fr; } }
 }

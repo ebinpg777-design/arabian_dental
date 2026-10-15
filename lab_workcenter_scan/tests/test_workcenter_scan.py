@@ -455,6 +455,10 @@ class TestBenchUserMenus(TransactionCase):
                       "the person who fixes access must still be able to reach it")
 
 
+# post_install like its siblings: at install the registry has not loaded lab_incentive
+# yet, whose required product field (incentive_basis, NOT NULL) rejects the product this
+# class creates (2026-10-14)
+@tagged('post_install', '-at_install')
 class TestStationBoard(TransactionCase):
     """Accepting a job, and passing it on."""
 

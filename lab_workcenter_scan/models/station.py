@@ -87,6 +87,8 @@ class LabStation(models.AbstractModel):
     @api.model
     def get_station(self, workcenter_id=None, person_id=None, done_day=None,
                     query=None, sort=None):
+        # read-only from here: the live set once for the whole board
+        self = self.env['report.lab.floor']._remember_live(self)
         Workcenter = self.env['mrp.workcenter']
         stations = self._my_stations()
         workcenter = Workcenter.browse(int(workcenter_id)) if workcenter_id \

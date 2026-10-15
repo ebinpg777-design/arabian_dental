@@ -19,7 +19,7 @@
             </div>
             <div class="o_td_controls" t-if="this.state.data">
                 <div class="o_td_seg" role="tablist">
-                    <button t-foreach="[['heat', 'fa-th', 'Heatmap'], ['line', 'fa-align-left', 'Gantt'], ['floor', 'fa-bar-chart', 'Floor']]" t-as="v" t-key="v[0]"
+                    <button t-foreach="[['line', 'fa-align-left', 'Gantt'], ['heat', 'fa-th', 'Heatmap'], ['floor', 'fa-bar-chart', 'Floor']]" t-as="v" t-key="v[0]"
                             t-att-class="'o_td_segbtn' + (this.state.view === v[0] ? ' on' : '')" t-on-click="() => this.state.view = v[0]">
                         <i t-att-class="'fa ' + v[1] + ' me-1'"/><t t-out="v[2]"/>
                     </button>
@@ -28,6 +28,11 @@
                     <button t-foreach="[15, 30, 60, 120]" t-as="s" t-key="s" t-att-class="'o_td_segbtn' + (this.state.slot === s ? ' on' : '')" t-on-click="() => this.setSlot(s)">
                         <t t-out="s &lt; 60 ? s + 'm' : (s / 60) + 'h'"/>
                     </button>
+                </div>
+                <!-- who the rows are: the technicians named on a work centre, or everyone with a job or a check-in -->
+                <div class="o_td_seg" title="Technicians: the people named on a work centre's technician list. Everyone: anybody with a job, a timer or a check-in on the day.">
+                    <button t-att-class="'o_td_segbtn' + (this.state.people === 'roster' ? ' on' : '')" t-on-click="() => this.setPeople('roster')"><i class="fa fa-wrench me-1"/>Technicians</button>
+                    <button t-att-class="'o_td_segbtn' + (this.state.people === 'everyone' ? ' on' : '')" t-on-click="() => this.setPeople('everyone')"><i class="fa fa-users me-1"/>Everyone</button>
                 </div>
                 <div class="o_td_menuwrap">
                     <button class="o_td_btn o_td_btn_text" t-on-click="this.openStationFilter">
@@ -41,7 +46,6 @@
                         </div>
                     </div>
                 </div>
-                <label class="o_td_check"><input type="checkbox" t-att-checked="this.state.rostered" t-on-change="this.toggleRostered"/> everyone on the roster</label>
                 <input class="o_td_search" placeholder="Find a technician…" t-model.proxy="this.state.search"/>
                 <button class="o_td_btn" t-on-click="this.exportCsv" title="Download the grid as CSV"><i class="fa fa-download"/></button>
                 <button class="o_td_btn" t-on-click="() => this.load()" title="Refresh"><i t-att-class="'fa fa-refresh' + (this.state.loading ? ' fa-spin' : '')"/></button>
@@ -62,30 +66,160 @@
             </div>
 
             <div class="o_td_kpis">
-                <div class="o_td_kpi"><div class="o_td_kl">At work</div><div class="o_td_kv"><t t-out="d.kpis.people"/><small t-if="d.kpis.rostered"> / <t t-out="d.kpis.rostered"/></small></div><div class="o_td_ks">technicians on jobs</div></div>
+                <div class="o_td_kpi"><div class="o_td_kl">At work</div><div class="o_td_kv"><t t-out="d.kpis.people"/><small t-if="d.kpis.rostered"> / <t t-out="d.kpis.rostered"/></small></div>
+                    <div class="o_td_ks"><t t-if="d.kpis.absent"><t t-out="d.kpis.absent"/> on the roster not in</t><t t-else="">technicians on jobs</t></div></div>
                 <div class="o_td_kpi good"><div class="o_td_kl">Handed on</div><div class="o_td_kv" t-out="d.kpis.handed"/><div class="o_td_ks"><t t-out="d.kpis.accepted"/> picked up · <t t-out="d.kpis.arrived"/> arrived</div></div>
                 <div class="o_td_kpi"><div class="o_td_kl">On a job</div><div class="o_td_kv"><t t-out="d.kpis.busy_h"/>h</div><div class="o_td_ks">of <t t-out="d.kpis.present_h"/>h present</div></div>
                 <div t-att-class="'o_td_kpi ' + (d.kpis.utilisation === null ? '' : d.kpis.utilisation >= 70 ? 'good' : d.kpis.utilisation >= 40 ? '' : 'warn')"><div class="o_td_kl">Utilisation</div><div class="o_td_kv"><t t-out="d.kpis.utilisation === null ? '–' : d.kpis.utilisation + '%'"/></div><div class="o_td_ks">on a job ÷ present</div></div>
+                <div t-att-class="'o_td_kpi ' + (d.kpis.idle_wait_h >= 1 ? 'bad' : d.kpis.idle_h >= 2 ? 'warn' : '')"><div class="o_td_kl">Idle</div><div class="o_td_kv"><t t-out="d.kpis.idle_h"/>h</div>
+                    <div class="o_td_ks" t-att-title="'Idle: present, no job, not at lunch. ' + d.kpis.idle_wait_h + 'h of it while work waited at their stations' + (d.kpis.idle_own_h ? ', ' + d.kpis.idle_own_h + 'h with a job already given to them' : '')">
+                        <t t-out="d.kpis.idle_wait_h"/>h while work waited<t t-if="d.kpis.idle_own_h"> · <t t-out="d.kpis.idle_own_h"/>h with a job in hand</t></div></div>
                 <div class="o_td_kpi"><div class="o_td_kl">Earned</div><div class="o_td_kv"><t t-out="d.kpis.earned_h"/>h</div><div class="o_td_ks"><t t-if="d.kpis.efficiency">costed time = <t t-out="d.kpis.efficiency"/>% of time spent</t><t t-else="">costed minutes of jobs handed on</t></div></div>
-                <div t-att-class="'o_td_kpi ' + (d.kpis.idle_wait_h >= 1 ? 'bad' : '')"><div class="o_td_kl">Idle, work waiting</div><div class="o_td_kv"><t t-out="d.kpis.idle_wait_h"/>h</div><div class="o_td_ks">present, no job, queue at their station</div></div>
                 <div class="o_td_kpi"><div class="o_td_kl">Peak</div><div class="o_td_kv"><t t-out="d.kpis.peak ? this.hm(d.kpis.peak.m) : '–'"/></div><div class="o_td_ks"><t t-if="d.kpis.peak"><t t-out="d.kpis.peak.handed"/> handed on in the slot</t><t t-else="">no hand-overs</t></div></div>
-                <div t-att-class="'o_td_kpi ' + (d.kpis.carried ? 'warn' : '')" t-if="d.kpis.carried"><div class="o_td_kl">Carried in</div><div class="o_td_kv" t-out="d.kpis.carried"/><div class="o_td_ks">jobs still on a bench from an earlier day</div></div>
+                <div class="o_td_kpi warn" t-if="d.kpis.late"><div class="o_td_kl">Late starts</div><div class="o_td_kv" t-out="d.kpis.late"/><div class="o_td_ks">in 15+ min after the roster hour</div></div>
+                <div class="o_td_kpi bad" t-if="d.kpis.passed_over"><div class="o_td_kl">Rush passed over</div><div class="o_td_kv" t-out="d.kpis.passed_over"/><div class="o_td_ks">pick-ups while an urgent case waited</div></div>
+                <div t-att-class="'o_td_kpi ' + (d.kpis.carried ? 'warn' : '')" t-if="d.kpis.carried"><div class="o_td_kl">Carried in</div><div class="o_td_kv" t-out="d.kpis.carried"/><div class="o_td_ks">jobs started on an earlier day - held, not counted as work</div></div>
             </div>
 
             <div class="o_td_insights" t-if="d.insights.length">
                 <div t-foreach="d.insights" t-as="i" t-key="i_index" t-att-class="'o_td_insight ' + i.kind"
-                     t-on-click="() => this.openInsight(i)" t-att-style="i.user_id ? 'cursor:pointer' : ''">
+                     t-on-click="() => this.openInsight(i)" t-att-style="i.user_id or i.people ? 'cursor:pointer' : ''">
                     <i t-att-class="'fa ' + (i.kind === 'warn' ? 'fa-exclamation-triangle' : i.kind === 'good' ? 'fa-thumbs-up' : 'fa-lightbulb-o')"/>
                     <span t-out="i.text"/>
+                    <i t-if="i.people" class="fa fa-users ms-1" title="Show everyone"/>
                 </div>
             </div>
 
             <div t-if="!d.rows.length" class="o_td_empty">
                 <i class="fa fa-clock-o fa-2x mb-2"/>
-                <div><b>Nobody scanned a job on this day.</b></div>
-                <div class="text-muted small">The grid fills from the station board: a technician picking a job up and handing it on,
-                    Odoo's work-order timer, and the attendance check-in where the lab records it. Try another day on the strip above,
-                    or tick "everyone on the roster" to see who was expected.</div>
+                <div><b t-if="this.state.people === 'roster'">No technician on a station's list had a job, a timer or a check-in on this day.</b>
+                     <b t-else="">Nobody had a job, a timer or a check-in on this day.</b></div>
+                <div class="text-muted small">The chart fills from the station board: a technician picking a job up and handing it on,
+                    Odoo's work-order timer, and the attendance check-in where the lab records it. Try another day on the strip above.</div>
+                <div t-if="this.state.people === 'roster' and d.hidden.length" class="mt-2">
+                    <button class="o_td_btn o_td_btn_text" t-on-click="() => this.setPeople('everyone')"><i class="fa fa-users me-1"/>Show everyone (<t t-out="d.hidden.length"/> worked but are on no station's list)</button>
+                </div>
+                <div t-if="d.absent.length" class="text-muted small mt-2"><t t-out="d.absent.length"/> technician(s) on the roster were not in.</div>
+            </div>
+
+            <!-- ====================================================== GANTT -->
+            <div t-if="d.rows.length and this.state.view === 'line'" class="o_td_panel">
+                <div class="o_td_line">
+                    <div class="o_td_lrow o_td_lhead">
+                        <div class="o_td_lname">
+                            <select class="o_td_sort" t-model.proxy="this.state.sort">
+                                <option value="activity">Most active first</option>
+                                <option value="handed">Most handed on</option>
+                                <option value="util">Highest utilisation</option>
+                                <option value="idle_total">Most idle</option>
+                                <option value="idle">Most idle while work waited</option>
+                                <option value="late">Latest start</option>
+                                <option value="name">By name</option>
+                            </select>
+                        </div>
+                        <div class="o_td_ltrack" style="height: 20px">
+                            <span t-foreach="this.axis.hours" t-as="h" t-key="h" class="o_td_tick" t-attf-style="left: {{ this.x(h) }}%" t-out="this.hm(h)"/>
+                        </div>
+                    </div>
+                    <div t-foreach="this.gantt" t-as="g" t-key="g.row.id" class="o_td_lrow">
+                        <t t-set="r" t-value="g.row"/>
+                        <t t-set="u" t-value="this.use(r)"/>
+                        <div class="o_td_lname" t-on-click="() => this.openPerson(r)">
+                            <div class="o_td_pn">
+                                <span t-out="r.name"/>
+                                <span t-if="this.isLate(r)" class="o_td_flag warn" t-att-title="this.shiftTitle(r)"><i class="fa fa-clock-o"/> <t t-out="this.dur(r.late)"/> late</span>
+                                <span t-if="this.isEarly(r)" class="o_td_flag muted" t-att-title="this.shiftTitle(r)">left <t t-out="this.dur(r.early)"/> early</span>
+                                <span t-foreach="r.flags" t-as="f" t-key="f_index" t-att-class="'o_td_flag ' + (f.kind === 'burst' ? 'muted' : 'bad')"
+                                      t-att-title="f.kind === 'burst' ? f.n + ' hand-overs within 3 minutes at ' + this.hm(f.m) + ' - scanned as a batch? The idle before it is hidden.' : f.n + ' job(s) picked up after they were handed on - a stamp out of order'">
+                                    <t t-if="f.kind === 'burst'">batch scan? <t t-out="f.n"/> at <t t-out="this.hm(f.m)"/></t><t t-else="">stamps out of order</t>
+                                </span>
+                            </div>
+                            <div class="o_td_ps"><t t-out="r.handed"/> handed on · <t t-out="this.dur(r.busy)"/> on jobs<t t-if="r.utilisation !== null"> · <t t-out="r.utilisation"/>%</t></div>
+                            <div class="o_td_ps">
+                                <span t-att-class="r.idle_wait >= 15 ? 'o_td_idletxt warn' : 'o_td_idletxt'">idle <t t-out="this.dur(r.idle)"/></span>
+                                <t t-if="r.idle_wait"> · <t t-out="this.dur(r.idle_wait)"/> while work waited</t>
+                                <t t-if="r.idle_own"> (<t t-out="this.dur(r.idle_own)"/> with a job in hand)</t>
+                            </div>
+                            <!-- the person's presence, split: what a lead wants to know at a glance -->
+                            <div class="o_td_use" t-att-title="this.useTitle(r)">
+                                <span class="busy" t-attf-style="width: {{ u.pb }}%"/><span class="wait" t-attf-style="width: {{ u.pw }}%"/><span class="free" t-attf-style="width: {{ u.pf }}%"/><span class="brk" t-attf-style="width: {{ u.pk }}%"/><span class="other" t-attf-style="width: {{ u.po }}%"/>
+                            </div>
+                        </div>
+                        <div class="o_td_ltrack" t-attf-style="height: {{ this.trackHeight(g) }}px">
+                            <span t-foreach="this.axis.hours" t-as="h" t-key="h" class="o_td_grid" t-attf-style="left: {{ this.x(h) }}%"/>
+                            <!-- the roster: the expected hours as a line along the top, the lunch hatched, a late start or early finish dotted red -->
+                            <t t-if="r.shift">
+                                <span class="o_td_shift" t-attf-style="left: {{ this.x(r.shift.a) }}%; width: {{ this.w(r.shift.a, r.shift.b) }}%" t-att-title="this.shiftTitle(r)"/>
+                                <span t-if="this.isLate(r)" class="o_td_late" t-attf-style="left: {{ this.x(r.shift.a) }}%; width: {{ this.w(r.shift.a, r.first_present) }}%" t-att-title="this.shiftTitle(r)"/>
+                                <span t-if="this.isEarly(r)" class="o_td_late" t-attf-style="left: {{ this.x(r.last_present) }}%; width: {{ this.w(r.last_present, r.shift.b) }}%" t-att-title="this.shiftTitle(r)"/>
+                            </t>
+                            <span t-foreach="r.attendance" t-as="at" t-key="at_index" class="o_td_att" t-attf-style="left: {{ this.x(at.a) }}%; width: {{ this.w(at.a, at.b) }}%" t-att-title="'Present ' + this.hm(at.a) + '–' + this.hm(at.b)"/>
+                            <span t-foreach="r.shift ? r.shift.breaks : []" t-as="bk" t-key="bk_index" class="o_td_break" t-attf-style="left: {{ this.x(bk[0]) }}%; width: {{ this.w(bk[0], bk[1]) }}%" t-att-title="'Lunch on the roster ' + this.hm(bk[0]) + '–' + this.hm(bk[1])"/>
+                            <span t-if="!r.has_attendance and r.first_present !== null" class="o_td_att derived" t-attf-style="left: {{ this.x(r.first_present) }}%; width: {{ this.w(r.first_present, r.last_present) }}%"
+                                  t-att-title="'No attendance record: present from the first scan ' + this.hm(r.first_present) + ' to the last ' + this.hm(r.last_present)"/>
+                            <!-- every idle period of five minutes or more: orange when work waited at the person's stations -->
+                            <span t-foreach="r.idle_periods" t-as="p" t-key="p_index" t-att-class="'o_td_idle' + (p.wait ? ' wait' : '')"
+                                  t-attf-style="left: {{ this.x(p.a) }}%; width: {{ this.w(p.a, p.b) }}%" t-att-title="this.idleTitle(r, p)" t-on-click="() => this.openIdle(r, p)">
+                                <span t-if="this.w(p.a, p.b) >= 4" class="o_td_idlelbl"><t t-out="this.dur(p.b - p.a)"/><t t-if="p.wait and this.w(p.a, p.b) >= 8"> · work waiting</t></span>
+                            </span>
+                            <t t-foreach="g.jobs" t-as="j" t-key="j.wo">
+                                <span t-foreach="j.spans" t-as="sp" t-key="sp_index"
+                                      t-att-class="'o_td_bar span' + (j.open ? ' open' : '') + (j.rush ? ' rush' : '') + (this.w(sp.a, sp.b) &lt; 6 ? ' narrow' : '')"
+                                      t-attf-style="left: {{ this.x(sp.a) }}%; width: {{ this.w(sp.a, sp.b) }}%; top: {{ this.laneTop(j.lane) }}px; --c: {{ this.stationColor(j.seg.station_id) }}; --cl: {{ this.stationColor(j.seg.station_id, true) }}"
+                                      t-att-title="this.barTitle(j)" t-on-click="() => this.openBar(r, j)">
+                                    <span t-if="sp_index === 0" class="o_td_barlbl" t-out="this.barLabel(j)"/>
+                                </span>
+                                <span t-foreach="j.inner" t-as="t" t-key="t_index" t-att-class="'o_td_bar inner ' + t.kind"
+                                      t-attf-style="left: {{ this.x(t.a) }}%; width: {{ this.w(t.a, t.b) }}%; top: {{ this.laneTop(j.lane) + 13 }}px; --c: {{ this.stationColor(t.station_id) }}"/>
+                                <!-- a running job's End Date on its work order: still to come, or gone by -->
+                                <span t-if="j.due !== null and j.due > j.b" class="o_td_due"
+                                      t-attf-style="left: {{ this.x(j.b) }}%; width: {{ this.w(j.b, j.due) }}%; top: {{ this.laneTop(j.lane) }}px; --c: {{ this.stationColor(j.seg.station_id) }}"/>
+                                <span t-if="j.due !== null and j.due &lt; j.b" class="o_td_over"
+                                      t-attf-style="left: {{ this.x(j.due) }}%; width: {{ this.w(j.due, j.b) }}%; top: {{ this.laneTop(j.lane) }}px"/>
+                            </t>
+                            <span t-if="g.band" class="o_td_bar span carried" t-attf-style="left: {{ this.x(g.band.a) }}%; width: {{ this.w(g.band.a, g.band.b) }}%; top: {{ this.laneTop(g.bandLane) }}px"
+                                  t-att-title="g.band.n + ' job(s) carried in from an earlier day - on the bench, not worked'">
+                                <span class="o_td_barlbl" t-out="g.band.n + ' carried in'"/>
+                            </span>
+                            <span t-foreach="g.events" t-as="e" t-key="e_index" t-att-class="'o_td_ev ' + e.kind" t-attf-style="left: {{ this.x(e.m) }}%; top: {{ this.laneTop(e.lane) + (e.kind === 'given' ? 1 : 4) }}px"
+                                  t-att-title="(e.kind === 'handed' ? 'Handed on ' : e.kind === 'accept' ? 'Picked up ' : 'Given ') + (e.label || '') + ' at ' + this.hm(e.m)"/>
+                            <span t-if="d.now !== null" class="o_td_now" t-attf-style="left: {{ this.x(d.now) }}%"/>
+                        </div>
+                    </div>
+                    <!-- the floor under everybody: how many were on a job, slot by slot -->
+                    <div class="o_td_lrow o_td_lfloor">
+                        <div class="o_td_lname"><div class="o_td_pn">Floor</div><div class="o_td_ps">people on a job · handed on</div></div>
+                        <div class="o_td_ltrack" style="height: 36px">
+                            <span t-foreach="d.floor" t-as="f" t-key="f.m" class="o_td_fbar"
+                                  t-attf-style="left: {{ this.x(f.m) }}%; width: {{ this.w(f.m, f.m + d.slot) }}%; height: {{ Math.max(2, Math.round(f.busy_people / Math.max(d.kpis.people, 1) * 22)) }}px"
+                                  t-att-title="this.hm(f.m) + '–' + this.hm(f.m + d.slot) + ': ' + f.busy_people + ' on a job · ' + f.handed + ' handed on · ' + f.waiting + ' waiting at the end'">
+                                <b t-if="f.handed" t-out="f.handed"/>
+                            </span>
+                            <span t-if="d.now !== null" class="o_td_now" t-attf-style="left: {{ this.x(d.now) }}%"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="o_td_legend">
+                    <span><i class="o_td_lg" style="background:#dff3e4"/> present</span>
+                    <span><i class="o_td_lg" style="background:#fff; border-top: 2px solid #1f3a5f; height: 4px"/> on the roster</span>
+                    <span><i class="o_td_lg" style="background: repeating-linear-gradient(135deg, rgba(107,114,128,.18) 0 3px, transparent 3px 6px)"/> lunch</span>
+                    <span><i class="o_td_lg" style="background: repeating-linear-gradient(90deg, #b42318 0 2px, transparent 2px 4px); height: 4px"/> late start / early finish</span>
+                    <span><i class="o_td_lg" style="background:hsl(200,55%,42%); opacity:.85"/> work order start → end (colour = station)</span>
+                    <span><i class="o_td_lg" style="background:hsl(200,55%,42%); height: 6px"/> time tracked</span>
+                    <span><i class="o_td_lg" style="background: repeating-linear-gradient(45deg, #cfd6df 0 3px, #fff 3px 6px)"/> carried in</span>
+                    <span><i class="o_td_lg" style="border: 1.5px dashed #5b6b80; background: transparent"/> due (End Date)</span>
+                    <span><i class="o_td_lg" style="background: repeating-linear-gradient(135deg, rgba(220,38,38,.55) 0 3px, transparent 3px 6px)"/> past its End Date</span>
+                    <span><i class="o_td_lg" style="background: rgba(107,114,128,.12); border: 1px dashed #c3c9d3"/> idle</span>
+                    <span><i class="o_td_lg" style="background: repeating-linear-gradient(135deg, #fde7c8 0 4px, #fff4e3 4px 8px); border: 1px dashed #f3c58a"/> idle while work waited</span>
+                    <span><i class="o_td_lg o_td_lg_ev accept"/> picked up</span>
+                    <span><i class="o_td_lg o_td_lg_ev handed"/> handed on</span>
+                    <span><i class="o_td_lg o_td_lg_ev given"/> given out by the lead</span>
+                    <span><i class="o_td_lg" style="background: linear-gradient(90deg, #1f3a5f 0 40%, #f7c98b 40% 55%, #dff3e4 55% 72%, #d9dde3 72% 86%, #f4b5b0 86%)"/> time use: on jobs · idle, work waiting · free · lunch · blocked</span>
+                </div>
+                <div class="o_td_legend o_td_stlegend" t-if="this.stationLegend.length">
+                    <span class="text-muted">Stations:</span>
+                    <span t-foreach="this.stationLegend" t-as="st" t-key="st.id"><span class="o_td_swatch" t-attf-style="background: {{ st.color }}"/> <t t-out="st.name"/></span>
+                </div>
             </div>
 
             <!-- ====================================================== HEATMAP -->
@@ -99,7 +233,9 @@
                                     <option value="activity">Most active first</option>
                                     <option value="handed">Most handed on</option>
                                     <option value="util">Highest utilisation</option>
+                                    <option value="idle_total">Most idle</option>
                                     <option value="idle">Most idle while work waited</option>
+                                    <option value="late">Latest start</option>
                                     <option value="name">By name</option>
                                 </select>
                             </th>
@@ -121,8 +257,9 @@
                                 <div class="o_td_pname">
                                     <div class="o_td_pn" t-out="r.name"/>
                                     <div class="o_td_ps">
-                                        <t t-out="this.dur(r.busy)"/> on jobs<t t-if="r.utilisation !== null"> · <t t-out="r.utilisation"/>%</t>
+                                        <t t-out="this.dur(r.busy)"/> on jobs<t t-if="r.utilisation !== null"> · <t t-out="r.utilisation"/>%</t> · idle <t t-out="this.dur(r.idle)"/>
                                         <span t-if="r.idle_wait >= 15" class="o_td_flag warn" t-att-title="this.dur(r.idle_wait) + ' idle while work waited'"><i class="fa fa-hourglass-half"/> <t t-out="this.dur(r.idle_wait)"/></span>
+                                        <span t-if="this.isLate(r)" class="o_td_flag warn" t-att-title="this.shiftTitle(r)"><i class="fa fa-clock-o"/> <t t-out="this.dur(r.late)"/> late</span>
                                         <span t-if="!r.has_attendance and r.present" class="o_td_flag muted" title="No attendance record: presence is first to last scan">~</span>
                                     </div>
                                 </div>
@@ -161,86 +298,12 @@
                 </div>
             </div>
 
-            <!-- ====================================================== GANTT -->
-            <div t-if="d.rows.length and this.state.view === 'line'" class="o_td_panel">
-                <div class="o_td_line">
-                    <div class="o_td_lrow o_td_lhead">
-                        <div class="o_td_lname">
-                            <select class="o_td_sort" t-model.proxy="this.state.sort">
-                                <option value="activity">Most active first</option>
-                                <option value="handed">Most handed on</option>
-                                <option value="util">Highest utilisation</option>
-                                <option value="idle">Most idle while work waited</option>
-                                <option value="name">By name</option>
-                            </select>
-                        </div>
-                        <div class="o_td_ltrack" style="height: 20px">
-                            <span t-foreach="this.axis.hours" t-as="h" t-key="h" class="o_td_tick" t-attf-style="left: {{ this.x(h) }}%" t-out="this.hm(h)"/>
-                        </div>
-                    </div>
-                    <div t-foreach="this.gantt" t-as="g" t-key="g.row.id" class="o_td_lrow">
-                        <t t-set="r" t-value="g.row"/>
-                        <t t-set="u" t-value="this.use(r)"/>
-                        <div class="o_td_lname" t-on-click="() => this.openPerson(r)">
-                            <div class="o_td_pn" t-out="r.name"/>
-                            <div class="o_td_ps"><t t-out="r.handed"/> handed on · <t t-out="this.dur(r.busy)"/> on jobs<t t-if="r.utilisation !== null"> · <t t-out="r.utilisation"/>%</t></div>
-                            <!-- the person's presence, split: what a lead wants to know at a glance -->
-                            <div class="o_td_use" t-att-title="'On jobs ' + this.dur(u.busy) + ' · idle while work waited ' + this.dur(u.idle) + ' · present, nothing on the bench ' + this.dur(u.free) + ' · present ' + this.dur(u.present)">
-                                <span class="busy" t-attf-style="width: {{ u.pb }}%"/><span class="idle" t-attf-style="width: {{ u.pi }}%"/><span class="free" t-attf-style="width: {{ u.pf }}%"/>
-                            </div>
-                        </div>
-                        <div class="o_td_ltrack" t-attf-style="height: {{ this.trackHeight(g) }}px">
-                            <span t-foreach="this.axis.hours" t-as="h" t-key="h" class="o_td_grid" t-attf-style="left: {{ this.x(h) }}%"/>
-                            <span t-foreach="r.attendance" t-as="at" t-key="at_index" class="o_td_att" t-attf-style="left: {{ this.x(at.a) }}%; width: {{ this.w(at.a, at.b) }}%" t-att-title="'Present ' + this.hm(at.a) + '–' + this.hm(at.b)"/>
-                            <t t-foreach="r.cells" t-as="c" t-key="c.m">
-                                <span t-if="c.idle_wait" class="o_td_waitmark" t-attf-style="left: {{ this.x(c.m) }}%; width: {{ this.w(c.m, c.m + d.slot) }}%" t-att-title="this.dur(c.idle_wait) + ' idle while work waited'"/>
-                            </t>
-                            <t t-foreach="g.jobs" t-as="j" t-key="j.wo">
-                                <span t-foreach="j.spans" t-as="sp" t-key="sp_index"
-                                      t-att-class="'o_td_bar span' + (j.open ? ' open' : '') + (j.rush ? ' rush' : '') + (this.w(sp.a, sp.b) &lt; 6 ? ' narrow' : '')"
-                                      t-attf-style="left: {{ this.x(sp.a) }}%; width: {{ this.w(sp.a, sp.b) }}%; top: {{ this.laneTop(j.lane) }}px; --c: {{ this.stationColor(j.seg.station_id) }}; --cl: {{ this.stationColor(j.seg.station_id, true) }}"
-                                      t-att-title="this.barTitle(j)" t-on-click="() => this.openBar(r, j)">
-                                    <span t-if="sp_index === 0" class="o_td_barlbl" t-out="this.barLabel(j)"/>
-                                </span>
-                                <span t-foreach="j.inner" t-as="t" t-key="t_index" t-att-class="'o_td_bar inner ' + t.kind"
-                                      t-attf-style="left: {{ this.x(t.a) }}%; width: {{ this.w(t.a, t.b) }}%; top: {{ this.laneTop(j.lane) + 13 }}px; --c: {{ this.stationColor(t.station_id) }}"/>
-                            </t>
-                            <span t-if="g.band" class="o_td_bar span carried" t-attf-style="left: {{ this.x(g.band.a) }}%; width: {{ this.w(g.band.a, g.band.b) }}%; top: {{ this.laneTop(g.bandLane) }}px"
-                                  t-att-title="g.band.n + ' job(s) carried in from an earlier day - on the bench, not worked'">
-                                <span class="o_td_barlbl" t-out="g.band.n + ' carried in'"/>
-                            </span>
-                            <span t-foreach="g.events" t-as="e" t-key="e_index" t-att-class="'o_td_ev ' + e.kind" t-attf-style="left: {{ this.x(e.m) }}%; top: {{ this.laneTop(e.lane) + (e.kind === 'given' ? 1 : 4) }}px"
-                                  t-att-title="(e.kind === 'handed' ? 'Handed on ' : e.kind === 'accept' ? 'Picked up ' : 'Given ') + (e.label || '') + ' at ' + this.hm(e.m)"/>
-                            <span t-if="d.now !== null" class="o_td_now" t-attf-style="left: {{ this.x(d.now) }}%"/>
-                        </div>
-                    </div>
-                    <!-- the floor under everybody: how many were on a job, slot by slot -->
-                    <div class="o_td_lrow o_td_lfloor">
-                        <div class="o_td_lname"><div class="o_td_pn">Floor</div><div class="o_td_ps">people on a job · handed on</div></div>
-                        <div class="o_td_ltrack" style="height: 36px">
-                            <span t-foreach="d.floor" t-as="f" t-key="f.m" class="o_td_fbar"
-                                  t-attf-style="left: {{ this.x(f.m) }}%; width: {{ this.w(f.m, f.m + d.slot) }}%; height: {{ Math.max(2, Math.round(f.busy_people / Math.max(d.kpis.people, 1) * 22)) }}px"
-                                  t-att-title="this.hm(f.m) + '–' + this.hm(f.m + d.slot) + ': ' + f.busy_people + ' on a job · ' + f.handed + ' handed on'">
-                                <b t-if="f.handed" t-out="f.handed"/>
-                            </span>
-                            <span t-if="d.now !== null" class="o_td_now" t-attf-style="left: {{ this.x(d.now) }}%"/>
-                        </div>
-                    </div>
-                </div>
-                <div class="o_td_legend">
-                    <span><i class="o_td_lg" style="background:#dff3e4"/> present</span>
-                    <span><i class="o_td_lg" style="background:hsl(200,55%,42%); opacity:.85"/> on the bench (colour = station)</span>
-                    <span><i class="o_td_lg" style="background:hsl(200,55%,42%); height: 6px"/> timer running</span>
-                    <span><i class="o_td_lg" style="background: repeating-linear-gradient(45deg, #cfd6df 0 3px, #fff 3px 6px)"/> carried in</span>
-                    <span><i class="o_td_lg o_td_lg_ev accept"/> picked up</span>
-                    <span><i class="o_td_lg o_td_lg_ev handed"/> handed on</span>
-                    <span><i class="o_td_lg" style="background:#f7c98b"/> idle while work waited</span>
-                    <span><i class="o_td_lg" style="background: linear-gradient(90deg, #1f3a5f 0 55%, #f7c98b 55% 75%, #dff3e4 75%)"/> time use: on jobs · idle, work waiting · present, no job</span>
-                </div>
-                <div class="o_td_legend o_td_stlegend" t-if="this.stationLegend.length">
-                    <span class="text-muted">Stations:</span>
-                    <span t-foreach="this.stationLegend" t-as="st" t-key="st.id"><span class="o_td_swatch" t-attf-style="background: {{ st.color }}"/> <t t-out="st.name"/></span>
-                </div>
+            <!-- the technicians on the roster who had nothing on the day: a name, not an empty lane -->
+            <div class="o_td_absent" t-if="d.absent.length and this.state.view !== 'floor'">
+                <span class="o_td_absentlbl"><i class="fa fa-user-times me-1"/>Not in <t t-out="d.is_today ? 'today' : 'on this day'"/> (<t t-out="d.absent.length"/>):</span>
+                <span t-foreach="this.absentShown" t-as="a" t-key="a.id" class="o_td_chip"
+                      t-att-title="(this.stationNames(a.stations) || 'on a station list') + (a.shift ? ' · roster ' + this.shiftText(a.shift) : '')"><t t-out="a.name"/></span>
+                <button t-if="d.absent.length > 8" class="o_td_btn o_td_btn_text" t-on-click="() => this.state.showAbsent = !this.state.showAbsent"><t t-out="this.state.showAbsent ? 'fewer' : '+' + (d.absent.length - 8) + ' more'"/></button>
             </div>
 
             <!-- ====================================================== FLOOR -->
@@ -267,6 +330,55 @@
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- the day per station: which one fell behind, by how much, and who was there for it -->
+                <div class="o_td_ph mt-4">The stations <span class="text-muted">— what arrived, what left, what the queue did; the one that fell behind first</span></div>
+                <div t-if="!d.station_day.length" class="text-muted small">No station had work arrive or a job scanned on this day.</div>
+                <table class="o_td_ftable" t-if="d.station_day.length">
+                    <thead><tr><th>Station</th><th>Arrived</th><th>Picked up</th><th>Handed on</th><th>Queue start → end</th><th>Longest wait</th><th>Waited, list all busy</th><th>On its list in</th><th>Bench time</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="d.station_day" t-as="sd" t-key="sd.station_id" t-att-class="sd.queue_end - sd.queue_start >= 3 ? 'behind' : ''">
+                            <td><span class="o_td_swatch" t-attf-style="background: {{ this.stationColor(sd.station_id) }}"/> <b t-out="sd.name"/></td>
+                            <td t-out="sd.arrived"/><td t-out="sd.picked"/><td t-out="sd.handed"/>
+                            <td><t t-out="sd.queue_start"/> → <b t-att-class="sd.queue_end > sd.queue_start ? 'text-danger' : ''" t-out="sd.queue_end"/></td>
+                            <td t-out="sd.longest_wait ? this.dur(sd.longest_wait) : ''"/>
+                            <td t-att-class="sd.uncovered >= 60 ? 'text-danger fw-bold' : ''" t-out="sd.uncovered ? this.dur(sd.uncovered) : ''"/>
+                            <td><t t-out="sd.present"/> / <t t-out="sd.rostered"/></td>
+                            <td t-out="sd.bench_min ? this.dur(sd.bench_min) : ''"/>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="o_td_twocol mt-4">
+                    <div>
+                        <div class="o_td_ph">Rush cases passed over <span class="text-muted">— a normal job picked up while an urgent one waited at the same station</span></div>
+                        <div t-if="!d.passed_over.length" class="text-muted small">None: every pick-up took the most urgent case waiting.</div>
+                        <div t-foreach="d.passed_over" t-as="p" t-key="p_index" class="o_td_pass">
+                            <span class="o_td_stt" t-out="this.hm(p.m)"/>
+                            <div>
+                                <b t-out="d.names[p.user_id] || 'Someone'"/> picked up <a href="#" t-on-click.prevent="() => this.openJob(p.wo)"><t t-out="p.so || 'a job'"/></a>
+                                at <t t-out="this.stationName(p.station_id)"/> while
+                                <t t-foreach="p.skipped" t-as="sk" t-key="sk.wo"><a href="#" t-on-click.prevent="() => this.openJob(sk.wo)" class="fw-bold text-danger"><t t-out="sk.so || 'a rush case'"/></a> (<t t-out="sk.priority"/>, waiting <t t-out="this.dur(sk.waited)"/>)<t t-if="!sk_last">, </t></t>
+                                stood waiting.
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="o_td_ph">The hand-out <span class="text-muted">— jobs given out by the lead before pick-up</span></div>
+                        <div t-if="!d.handout.n" class="text-muted small">No job was given out on this day: the technicians picked their own work up.</div>
+                        <t t-else="">
+                            <div class="o_td_minikpis">
+                                <div><b t-out="d.handout.n"/><span>jobs given out</span></div>
+                                <div><b t-out="this.dur(d.handout.median)"/><span>median wait before given out</span></div>
+                                <div t-att-class="d.handout.late.length ? 'warn' : ''"><b t-out="d.handout.late.length"/><span>given after 15+ min idle</span></div>
+                            </div>
+                            <div t-foreach="d.handout.late" t-as="l" t-key="l_index" class="o_td_pass">
+                                <span class="o_td_stt" t-out="this.hm(l.m)"/>
+                                <div><a href="#" t-on-click.prevent="() => this.openJob(l.wo)"><t t-out="l.so || 'A job'"/></a> given to <b t-out="d.names[l.user_id] || 'someone'"/> at <t t-out="this.stationName(l.station_id)"/>, who had stood idle since before <t t-out="this.hm(l.m - 15)"/>; it had waited since <t t-out="this.hm(l.a)"/>.</div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
             </div>
         </t>
 
@@ -276,6 +388,7 @@
             <div class="o_td_drawer_h">
                 <div>
                     <div class="o_td_eyebrow" t-if="dr.kind === 'cell'"><t t-out="this.hm(dr.a)"/>–<t t-out="this.hm(dr.b)"/></div>
+                    <div class="o_td_eyebrow" t-elif="dr.kind === 'idle'">Idle <t t-out="this.hm(dr.period.a)"/>–<t t-out="this.hm(dr.period.b)"/></div>
                     <div class="o_td_eyebrow" t-else=""><t t-out="this.state.data.weekday"/> <t t-out="this.state.data.day"/></div>
                     <h4 t-out="dr.row.name"/>
                 </div>
@@ -308,10 +421,10 @@
                     <t t-set="s" t-value="dr.seg"/>
                     <t t-set="j" t-value="dr.job"/>
                     <div class="o_td_minikpis">
-                        <div><b t-out="this.dur(j.b - j.a)"/><span>on the bench</span></div>
-                        <div><b t-out="j.timed ? this.dur(j.timed) : '–'"/><span>timer running</span></div>
+                        <div><b t-out="this.dur(j.b - j.a)"/><span>start to end</span></div>
+                        <div><b t-out="j.timed ? this.dur(j.timed) : '–'"/><span>time tracked</span></div>
                         <div><b t-out="s.expected ? this.dur(s.expected) : '–'"/><span>costed</span></div>
-                        <div><b><t t-out="this.hm(j.a)"/>–<t t-out="j.open ? 'open' : this.hm(j.b)"/></b><span>picked up – handed on</span></div>
+                        <div><b><t t-out="s.started || this.hm(j.a)"/> – <t t-out="j.open ? 'running' : s.finished || this.hm(j.b)"/></b><span>work order start – end</span></div>
                     </div>
                     <div class="o_td_ph">The case</div>
                     <div class="o_td_facts">
@@ -323,6 +436,10 @@
                         <div t-if="dr.doctor"><span>Doctor</span><b t-out="dr.doctor"/></div>
                         <div t-if="j.rush"><span>Priority</span><b class="text-danger text-uppercase" t-out="s.priority"/></div>
                         <div><span>Technician</span><b t-out="dr.row.name"/></div>
+                        <div t-if="j.due !== null"><span>Due (End Date)</span>
+                            <b t-att-class="j.due &lt; j.b ? 'text-danger' : ''"><t t-out="s.due_label"/>
+                                <t t-if="j.due &lt; j.b"> · over by <t t-out="this.dur(j.b - j.due)"/></t></b></div>
+                        <div t-if="j.clockBy.length"><span>Clock run by</span><b t-out="j.clockBy.map((u) => this.state.data.names[u] || 'someone').join(', ')"/></div>
                     </div>
                     <t t-if="j.inner.length">
                         <div class="o_td_ph mt-3">Timer runs</div>
@@ -336,6 +453,33 @@
                         <button class="o_td_btn o_td_btn_text" t-if="s.so_id" t-on-click="() => this.openSale(s.so_id)"><i class="fa fa-file-text-o me-1"/>Open sale order</button>
                     </div>
                 </t>
+                <t t-elif="dr.kind === 'idle'">
+                    <t t-set="p" t-value="dr.period"/>
+                    <div class="o_td_minikpis">
+                        <div><b t-out="this.dur(p.b - p.a)"/><span>idle</span></div>
+                        <div t-att-class="p.wait ? 'warn' : ''"><b t-out="this.dur(p.wait)"/><span>of it with work waiting</span></div>
+                        <div><b t-out="dr.waited.length"/><span>job(s) waited at their stations</span></div>
+                    </div>
+                    <div class="o_td_ph">Either side of it</div>
+                    <div class="o_td_facts">
+                        <div><span>Before</span><b t-if="dr.before"><t t-out="dr.before.so || dr.before.mo || 'a job'"/> · until <t t-out="this.hm(dr.before.b)"/></b><b t-else="">nothing yet that day</b></div>
+                        <div><span>After</span><b t-if="dr.after"><t t-out="dr.after.so || dr.after.mo || 'a job'"/> · from <t t-out="this.hm(dr.after.a)"/></b><b t-else="">nothing more that day</b></div>
+                    </div>
+                    <div class="o_td_ph mt-3">What was waiting at their stations <span class="text-muted">— <t t-out="this.stationNames(dr.row.stations) || 'none named'"/></span></div>
+                    <div t-if="!dr.waited.length" class="text-muted small">Nothing: this was free time, not a missed job.</div>
+                    <div t-foreach="dr.waited" t-as="j" t-key="j.wo" class="o_td_job" t-on-click="() => this.openJob(j.wo)">
+                        <span class="o_td_swatch" t-attf-style="background: {{ this.stationColor(j.station_id) }}"/>
+                        <div class="o_td_jobmain">
+                            <div><b t-out="j.so || j.mo || 'Job'"/><span t-if="j.patient" class="text-muted"> · <t t-out="j.patient"/></span>
+                                <span t-if="j.priority === 'emergency' or j.priority === 'urgent'" class="o_td_flag bad" t-out="j.priority"/>
+                                <span t-if="j.given_to === dr.row.id" class="o_td_flag warn">given to them<t t-if="j.given_at !== null"> at <t t-out="this.hm(j.given_at)"/></t></span>
+                                <span t-elif="j.given_to" class="o_td_flag muted">given to <t t-out="this.state.data.names[j.given_to] || 'someone else'"/></span>
+                                <span t-else="" class="o_td_flag muted">not handed out</span></div>
+                            <div class="small text-muted"><t t-out="this.stationName(j.station_id)"/> · arrived <t t-out="j.arrived_label"/> · <t t-out="j.open ? 'still waiting' : 'picked up ' + this.hm(j.b)"/></div>
+                        </div>
+                        <div class="text-end small"><div><b t-out="this.dur(j.overlap)"/></div><div class="text-muted">of this idle</div></div>
+                    </div>
+                </t>
                 <t t-else="">
                     <t t-set="rw" t-value="dr.row"/>
                     <div class="o_td_minikpis">
@@ -344,9 +488,11 @@
                         <div><b t-out="rw.handed"/><span>handed on<t t-if="rw.usual_handed"> (usual <t t-out="rw.usual_handed"/>)</t></span></div>
                         <div><b t-out="rw.avg_job ? this.dur(rw.avg_job) : '–'"/><span>per job</span></div>
                         <div><b t-out="rw.efficiency ? rw.efficiency + '%' : '–'"/><span>earned ÷ spent</span></div>
-                        <div t-att-class="rw.idle_wait ? 'warn' : ''"><b t-out="this.dur(rw.idle_wait)"/><span>idle, work waiting</span></div>
+                        <div t-att-class="rw.idle_wait >= 15 ? 'warn' : ''"><b t-out="this.dur(rw.idle)"/><span>idle<t t-if="rw.idle_wait">, <t t-out="this.dur(rw.idle_wait)"/> with work waiting</t></span></div>
+                        <div t-if="rw.idle_own" class="warn"><b t-out="this.dur(rw.idle_own)"/><span>idle with a job in hand</span></div>
                         <div><b t-out="rw.switches"/><span>station changes</span></div>
-                        <div><b><t t-out="this.hm(rw.first)"/>–<t t-out="this.hm(rw.last)"/></b><span>first to last scan</span></div>
+                        <div><b><t t-out="this.hm(rw.first_present)"/>–<t t-out="this.hm(rw.last_present)"/></b><span><t t-out="rw.has_attendance ? 'checked in – out' : 'first to last scan'"/></span></div>
+                        <div t-if="rw.shift" t-att-class="this.isLate(rw) ? 'warn' : ''"><b t-out="this.shiftText(rw.shift).split(' · ')[0]"/><span>on the roster<t t-if="this.isLate(rw)"> · <t t-out="this.dur(rw.late)"/> late</t><t t-if="this.isEarly(rw)"> · left <t t-out="this.dur(rw.early)"/> early</t></span></div>
                     </div>
                     <div class="o_td_ph">Hand-overs per slot <span class="text-muted">— today (dark) against the usual for this weekday (light)</span></div>
                     <div class="o_td_profile">
@@ -362,10 +508,17 @@
                     <div class="o_td_mixlegend" t-if="dr.stationMix.length">
                         <span t-foreach="dr.stationMix" t-as="s" t-key="s.id"><span class="o_td_swatch" t-attf-style="background: {{ this.stationColor(s.id) }}"/> <t t-out="this.stationName(s.id)"/> <b t-out="this.dur(s.m)"/></span>
                     </div>
+                    <div class="o_td_ph mt-2" t-if="rw.idle_periods.length">Idle periods <span class="text-muted">— click one for what was waiting</span></div>
+                    <div t-foreach="rw.idle_periods" t-as="p" t-key="p_index" t-att-class="'o_td_run o_td_idlerow' + (p.wait ? ' warn' : '')" t-on-click="() => this.openIdle(rw, p)">
+                        <span class="o_td_stt"><t t-out="this.hm(p.a)"/>–<t t-out="this.hm(p.b)"/></span>
+                        <b t-out="this.dur(p.b - p.a)"/>
+                        <span t-if="p.wait" class="o_td_flag warn">work waiting <t t-out="this.dur(p.wait)"/></span>
+                        <span t-else="" class="o_td_flag muted">nothing waiting</span>
+                    </div>
                     <div class="o_td_ph mt-2">The day</div>
                     <div class="o_td_story">
                         <div t-if="!dr.story.length" class="text-muted small">Nothing recorded.</div>
-                        <div t-foreach="dr.story" t-as="st" t-key="st_index" t-att-class="'o_td_st ' + st.cls" t-on-click="() => st.wo and this.openJob(st.wo)">
+                        <div t-foreach="dr.story" t-as="st" t-key="st_index" t-att-class="'o_td_st ' + st.cls + (st.wo or st.idle ? ' link' : '')" t-on-click="() => this.openStoryItem(st)">
                             <span class="o_td_stt" t-out="this.hm(st.m)"/>
                             <i t-att-class="'fa ' + st.icon"/>
                             <span t-out="st.text"/>

@@ -6,7 +6,12 @@
         <field name="inherit_id" ref="mrp.mrp_production_workorder_form_view_inherit"/>
         <field name="arch" type="xml">
             <field name="workcenter_id" position="after">
-                <widget name="wc_scan_button"/>
+                <!-- A whole row. In a form group a field fills two cells - its label
+                     and its value - and anything else ONE, unless it says otherwise:
+                     this button in one cell pushed every label after it out of line,
+                     the Technician's name landing under the button and its label
+                     beside nothing. (client screenshot, 2026-10-14) -->
+                <widget name="wc_scan_button" colspan="2"/>
                 <!-- Both names, where the bench records both: who did the work
                      and who finished it. Hidden at a work centre that does not
                      ask - most of them. (client, 2026-09-09) -->
@@ -17,6 +22,12 @@
                        readonly="state in ('done', 'cancel')"
                        options="{'no_create': True}"/>
             </field>
+            <!-- The superseded technician (sale_custom) only where it says something the
+                 Technician does not: the same name twice read as two people. Not the
+                 time-tracking list's User column, hence the ancestor test. -->
+            <xpath expr="//field[@name='user_id'][not(ancestor::field)]" position="attributes">
+                <attribute name="invisible">not user_id or user_id == bench_user_id</attribute>
+            </xpath>
         </field>
     </record>
     <!--
