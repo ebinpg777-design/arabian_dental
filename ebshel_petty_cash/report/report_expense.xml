@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="report_expense_document">
+        <t t-call="web.external_layout">
+            <t t-set="doc" t-value="doc.with_context(lang=doc.requested_by_id.lang or user.lang)"/>
+            <div class="page">
+                <h2>Petty Cash Voucher <span t-field="doc.name"/></h2>
+                <div class="row mt-3 mb-3">
+                    <div class="col-6">
+                        <strong>Fund:</strong> <span t-field="doc.fund_id"/><br/>
+                        <strong>Description:</strong> <span t-field="doc.description"/><br/>
+                        <t t-if="doc.partner_id"><strong>Payee:</strong> <span t-field="doc.partner_id"/><br/></t>
+                        <t t-if="doc.reference"><strong>Receipt:</strong> <span t-field="doc.reference"/><br/></t>
+                        <t t-if="doc.advance_id"><strong>Against advance:</strong> <span t-field="doc.advance_id"/></t>
+                    </div>
+                    <div class="col-6 text-end">
+                        <strong>Date:</strong> <span t-field="doc.date"/><br/>
+                        <strong>Status:</strong> <span t-field="doc.state"/><br/>
+                        <t t-if="doc.paid_date"><strong>Paid:</strong> <span t-field="doc.paid_date" t-options="{'widget': 'date'}"/></t>
+                    </div>
+                </div>
+                <table class="table table-sm o_main_table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th class="text-end">Untaxed</th>
+                            <th class="text-end">Tax</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="doc.line_ids" t-as="line">
+                            <td><span t-out="line.category_id.name or line.bill_id.name"/></td>
+                            <td><span t-field="line.name"/></td>
+                            <td class="text-end"><span t-field="line.amount_untaxed"/></td>
+                            <td class="text-end"><span t-field="line.amount_tax"/></td>
+                            <td class="text-end"><span t-field="line.amount_total"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="row">
+                    <div class="col-5 ms-auto">
+                        <table class="table table-sm">
+                            <tr><td>Untaxed</td><td class="text-end"><span t-field="doc.amount_untaxed"/></td></tr>
+                            <tr><td>Taxes</td><td class="text-end"><span t-field="doc.amount_tax"/></td></tr>
+                            <tr class="fw-bold"><td>Total</td><td class="text-end"><span t-field="doc.amount_total"/></td></tr>
+                        </table>
+                    </div>
+                </div>
+                <p>Amount in words: <span t-out="doc.currency_id.amount_to_text(doc.amount_total)"/></p>
+                <t t-call="ebshel_petty_cash.report_approval_trail"/>
+                <t t-set="signatures" t-value="['Requested by', 'Approved by', 'Paid by (custodian)', 'Received by']"/>
+                <t t-call="ebshel_petty_cash.report_signatures"/>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_expense">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="ebshel_petty_cash.report_expense_document"/>
+            </t>
+        </t>
+    </template>
+
+</odoo>

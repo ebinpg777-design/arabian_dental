@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="lab_scan_register.SliceUploadField">
+        <div class="o_slice_upload d-flex flex-column gap-1 w-100">
+            <input type="file" class="d-none" t-ref="this.input" t-on-change="this.onFile"/>
+            <t t-if="this.state.busy">
+                <div class="small">
+                    <i class="fa fa-circle-o-notch fa-spin me-1"/>Sending <b t-out="this.state.name"/> —
+                    <t t-out="this.humanSize(this.state.sent) || '0 B'"/> of <t t-out="this.humanSize(this.state.total)"/> (<t t-out="this.pct"/>%)
+                </div>
+                <div class="progress" style="height: 6px">
+                    <div class="progress-bar" role="progressbar" t-attf-style="width: {{ this.pct }}%"/>
+                </div>
+                <button type="button" class="btn btn-link btn-sm p-0 text-danger align-self-start" t-on-click="this.cancel">Stop</button>
+            </t>
+            <t t-elif="this.value">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <i class="fa fa-file-o text-muted" title="Sliced file"/>
+                    <a t-if="this.props.record.resId" t-att-href="this.downloadUrl" class="fw-bold text-break"
+                       title="Download the sliced file"><t t-out="this.value.display_name"/></a>
+                    <b t-else="" class="text-break" t-out="this.value.display_name"/>
+                    <span t-if="this.state.size" class="text-muted small" t-out="this.humanSize(this.state.size)"/>
+                    <t t-if="!this.props.readonly">
+                        <button type="button" class="btn btn-sm btn-secondary" t-on-click="this.pick"
+                                title="Upload a new sliced file in its place"><i class="fa fa-refresh me-1"/>Replace</button>
+                        <button type="button" class="btn btn-sm btn-link text-danger px-1" t-on-click="this.remove"
+                                title="Take the sliced file off"><i class="fa fa-trash"/></button>
+                    </t>
+                </div>
+            </t>
+            <t t-else="">
+                <button t-if="!this.props.readonly" type="button" class="btn btn-sm btn-secondary align-self-start" t-on-click="this.pick">
+                    <i class="fa fa-upload me-1"/>Upload the ChituBox file
+                </button>
+                <span t-else="" class="text-muted">no file kept</span>
+            </t>
+        </div>
+    </t>
+</templates>

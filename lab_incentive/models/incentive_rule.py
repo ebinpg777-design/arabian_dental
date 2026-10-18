@@ -40,6 +40,24 @@ class LabIncentiveRule(models.Model):
              "month, on top of whatever the sales slabs give. A clinic counts once, in "
              "the month it was registered.")
 
+    # Most bought-in items at a given lab keep roughly the same share, and typing a
+    # number on every one of them is not a plan. The product's own margin wins; this
+    # answers "and everything else?". It sits on the rule, not on the company,
+    # because a margin that changes next year should change with the scheme.
+    # (Ortho, 2026-10-08)
+    default_margin_pct = fields.Float(
+        'Default Margin %',
+        help="Used for a product set to 'Margin %' that carries no margin of its "
+             "own. Set the ones that differ on the product itself.")
+
+    @api.constrains('default_margin_pct')
+    def _check_default_margin_pct(self):
+        for rule in self:
+            if not 0 <= rule.default_margin_pct <= 100:
+                raise ValidationError(_(
+                    "The default margin is a percentage of the sale value, so it "
+                    "must be between 0 and 100 (%s).", rule.name))
+
     @api.model
     def _active_rule(self, company, on_date):
         return self.search([

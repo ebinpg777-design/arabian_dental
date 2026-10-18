@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_refuse_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.refuse.wizard.form</field>
+        <field name="model">ebshel.petty.cash.refuse.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="reason" placeholder="Why is this request refused?"/>
+                <footer>
+                    <button name="action_refuse" type="object" string="Refuse" class="btn-primary" data-hotkey="q"/>
+                    <button special="cancel" string="Discard" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

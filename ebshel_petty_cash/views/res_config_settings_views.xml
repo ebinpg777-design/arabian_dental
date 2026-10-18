@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.petty.cash</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="95"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Petty Cash" string="Petty Cash" name="ebshel_petty_cash"
+                     groups="ebshel_petty_cash.group_petty_cash_manager">
+                    <block title="Approval" name="petty_cash_approval">
+                        <setting string="Second Approval" company_dependent="1"
+                                 help="Vouchers and advances from this amount up need a petty cash manager's approval too.">
+                            <field name="petty_cash_double_validation"/>
+                            <div class="content-group" invisible="not petty_cash_double_validation">
+                                <div class="mt8">
+                                    <label for="petty_cash_double_validation_amount" string="From" class="o_light_label me-2"/>
+                                    <field name="petty_cash_double_validation_amount"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Self-Approval" company_dependent="1"
+                                 help="Approvers may approve the requests they raised themselves.">
+                            <field name="petty_cash_self_approval"/>
+                        </setting>
+                        <setting string="Approve Replenishments" company_dependent="1"
+                                 help="Top-ups and returns to the bank wait for a petty cash manager's approval.">
+                            <field name="petty_cash_replenish_approval"/>
+                        </setting>
+                    </block>
+                    <block title="Controls" name="petty_cash_controls">
+                        <setting string="Duplicate Vouchers" company_dependent="1"
+                                 help="Warn about vouchers with the same amount and payee or receipt reference within this many days (0: off).">
+                            <field name="petty_cash_duplicate_days"/>
+                        </setting>
+                        <setting string="Advance Settlement" company_dependent="1"
+                                 help="Days an advance holder has to settle; overdue holders cannot get a new advance.">
+                            <field name="petty_cash_advance_due_days"/>
+                        </setting>
+                        <setting string="Advance Account" company_dependent="1"
+                                 help="Receivable account holding the advances until settled (created on first use when empty).">
+                            <field name="petty_cash_advance_account_id"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_petty_cash_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module': 'ebshel_petty_cash'}</field>
+    </record>
+
+</odoo>

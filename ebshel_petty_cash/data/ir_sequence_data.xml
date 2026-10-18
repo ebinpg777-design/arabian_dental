@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <record id="seq_expense" model="ir.sequence">
+        <field name="name">Petty Cash Voucher</field>
+        <field name="code">ebshel.petty.cash.expense</field>
+        <field name="prefix">PCV/%(range_year)s/</field>
+        <field name="padding">5</field>
+        <field name="use_date_range" eval="True"/>
+        <field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_advance" model="ir.sequence">
+        <field name="name">Petty Cash Advance</field>
+        <field name="code">ebshel.petty.cash.advance</field>
+        <field name="prefix">PCA/%(range_year)s/</field>
+        <field name="padding">5</field>
+        <field name="use_date_range" eval="True"/>
+        <field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_replenishment" model="ir.sequence">
+        <field name="name">Petty Cash Replenishment</field>
+        <field name="code">ebshel.petty.cash.replenishment</field>
+        <field name="prefix">PCR/%(range_year)s/</field>
+        <field name="padding">5</field>
+        <field name="use_date_range" eval="True"/>
+        <field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_transfer" model="ir.sequence">
+        <field name="name">Petty Cash Transfer</field>
+        <field name="code">ebshel.petty.cash.transfer</field>
+        <field name="prefix">PCT/%(range_year)s/</field>
+        <field name="padding">5</field>
+        <field name="use_date_range" eval="True"/>
+        <field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_count" model="ir.sequence">
+        <field name="name">Petty Cash Count</field>
+        <field name="code">ebshel.petty.cash.count</field>
+        <field name="prefix">PCC/%(range_year)s/</field>
+        <field name="padding">5</field>
+        <field name="use_date_range" eval="True"/>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

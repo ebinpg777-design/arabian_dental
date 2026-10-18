@@ -16,8 +16,9 @@ from odoo.tests.common import TransactionCase, tagged
 from odoo.tools import mute_logger
 
 
-@tagged('post_install', '-at_install')
-class TestEpicGIncentive(TransactionCase):
+class IncentiveCommon(TransactionCase):
+    """The fixture the incentive tests share; holds no tests of its own, so a class
+    built on it does not run the others' tests a second time."""
 
     @classmethod
     def setUpClass(cls):
@@ -41,8 +42,13 @@ class TestEpicGIncentive(TransactionCase):
             'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
         cls.costly = cls.env['product.product'].create({
             'name': 'Costly Appliance', 'type': 'consu', 'list_price': 5000.0,
-            'incentive_price': 500.0, 'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
+            'incentive_basis': 'price', 'incentive_price': 500.0,
+            'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
 
+        # _active_rule takes the latest date_from, so a rule the lab has actually
+        # configured would outrank a fixture dated 2020 and every slab assertion
+        # below would measure the lab's scheme instead of this one.
+        cls.env['lab.incentive.rule'].search([]).write({'active': False})
         rule = cls.env['lab.incentive.rule'].create({
             'name': 'Test Rule', 'date_from': '2020-01-01', 'slab_mode': 'flat'})
         cls.env['lab.incentive.rule.slab'].create([
@@ -94,6 +100,10 @@ class TestEpicGIncentive(TransactionCase):
         return self.env['lab.incentive.sheet'].create(dict({
             'executive_id': (executive or self.executive).id,
             'period': self._this_month()}, **vals))
+
+
+@tagged('post_install', '-at_install')
+class TestEpicGIncentive(IncentiveCommon):
 
     # ------------------------------------------------------------------ whose order it is
     def test_an_order_counts_for_its_salesperson_without_a_visit(self):
@@ -532,3 +542,324 @@ class TestEpicGIncentive(TransactionCase):
         data = sheet.with_user(self.executive).slab_widget_data
         self.assertEqual(len(data['slabs']), 2)
         self.assertEqual(data['amount'], 400.0)
+
+
+@tagged('post_install', '-at_install')
+class TestIncentiveOnMargin(IncentiveCommon):
+    """Items the lab does not manufacture earn on margin. (Ortho client, 2026-10-08)
+
+    The lab buys these in and resells them, so the sale price is mostly the
+    supplier's money; paying a percentage of it rewards turnover the lab never
+    earned. Fitted into the billed basis: a sheet line is an invoice line, and its
+    incentive base is taken from the product's basis on what that line billed.
+    """
+
+    def _rule(self, **vals):
+        """Replace the fixture's rule with one of our own."""
+        self.env['lab.incentive.rule'].search([]).write({'active': False})
+        return self.env['lab.incentive.rule'].create(dict({
+            'name': 'Margin scheme', 'date_from': self._this_month(),
+            'slab_mode': 'telescopic',
+            'slab_ids': [(0, 0, {'amount_from': 0, 'incentive_type': 'percent',
+                                 'value': 100})],
+        }, **vals))
+
+    def _traded(self, name, price, **vals):
+        """A bought-in item, billed on the order and without tax."""
+        return self.env['product.product'].create(dict({
+            'name': name, 'type': 'consu', 'list_price': price,
+            'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]}, **vals))
+
+    def _computed(self):
+        sheet = self._sheet()
+        sheet.action_compute()
+        return sheet
+
+    def _base_of(self, product):
+        return sum(self._computed().line_ids.filtered(
+            lambda l: l.product_id == product).mapped('incentive_base'))
+
+    # ------------------------------------------------------------------ the bases
+    def test_a_margin_percent_counts_only_that_share_of_the_bill(self):
+        self._rule()
+        traded = self._traded('Bought-in bracket kit', 2000.0,
+                              incentive_basis='margin_pct', incentive_margin_pct=30.0)
+        self._order(traded, qty=2)
+        self.assertEqual(self._base_of(traded), 1200.0,
+                         "30% of the 4,000 billed, not the 4,000")
+
+    def test_a_margin_per_unit_counts_that_much_a_unit(self):
+        self._rule()
+        traded = self._traded('Bought-in wire', 800.0, incentive_basis='margin_amount',
+                              incentive_margin_amount=150.0)
+        self._order(traded, qty=3)
+        self.assertEqual(self._base_of(traded), 450.0, "150 on each of 3 units")
+
+    def test_a_margin_product_with_no_margin_falls_back_to_the_rule(self):
+        self._rule(default_margin_pct=25.0)
+        traded = self._traded('Bought-in, unconfigured', 1000.0, incentive_basis='margin_pct')
+        self._order(traded)
+        self.assertEqual(self._base_of(traded), 250.0,
+                         "the rule's default answers for a product nobody set")
+
+    def test_the_products_own_margin_beats_the_rules_default(self):
+        self._rule(default_margin_pct=25.0)
+        traded = self._traded('Bought-in, special', 1000.0,
+                              incentive_basis='margin_pct', incentive_margin_pct=60.0)
+        self._order(traded)
+        self.assertEqual(self._base_of(traded), 600.0)
+
+    def test_a_manufactured_product_is_untouched_by_any_of_this(self):
+        self._rule(default_margin_pct=25.0)
+        self._order(self.plain)
+        self.assertEqual(self._base_of(self.plain), 1000.0,
+                         "a default margin must not leak onto products on sale value")
+
+    def test_the_line_records_which_basis_was_used(self):
+        self._rule()
+        traded = self._traded('Bought-in, labelled', 500.0,
+                              incentive_basis='margin_pct', incentive_margin_pct=40.0)
+        self._order(traded)
+        self._order(self.plain)
+        sheet = self._computed()
+        line = sheet.line_ids.filtered(lambda l: l.product_id == traded)
+        self.assertEqual(line.incentive_basis, 'margin_pct')
+        self.assertTrue(line.used_incentive_price, "the base is not the amount billed")
+        plain = sheet.line_ids.filtered(lambda l: l.product_id == self.plain)
+        self.assertEqual(plain.incentive_basis, 'sale')
+        self.assertFalse(plain.used_incentive_price)
+
+    def test_a_computed_line_keeps_the_basis_it_was_computed_on(self):
+        """The line's basis is written at compute time, not read through from the
+        product: an approved sheet must still say why its base is what it is."""
+        self._rule()
+        traded = self._traded('Bought-in, changed later', 1000.0,
+                              incentive_basis='margin_pct', incentive_margin_pct=20.0)
+        self._order(traded)
+        sheet = self._computed()
+        traded.incentive_basis = 'sale'
+        self.env.flush_all()
+        sheet.invalidate_recordset()
+        sheet.line_ids.invalidate_recordset()
+        self.assertEqual(sheet.line_ids.incentive_basis, 'margin_pct')
+        self.assertEqual(sheet.total_base, 200.0)
+
+    # ------------------------------------------------------------------ credit notes
+    def test_a_credit_note_takes_back_the_margin_it_gave(self):
+        self._rule()
+        traded = self._traded('Bought-in, returned', 2000.0,
+                              incentive_basis='margin_pct', incentive_margin_pct=30.0)
+        order = self._order(traded, qty=2)
+        refund = order.invoice_ids._reverse_moves()
+        refund.invoice_line_ids.quantity = 1
+        refund.action_post()
+        sheet = self._computed()
+        self.assertEqual(sorted(sheet.line_ids.mapped('incentive_base')), [-600.0, 1200.0])
+        self.assertEqual(sheet.total_sales, 2000.0)
+        self.assertEqual(sheet.total_base, 600.0, "30% of what stayed billed")
+
+    def test_a_credit_note_takes_back_a_per_unit_margin_by_the_unit(self):
+        self._rule()
+        traded = self._traded('Bought-in, one back', 800.0, incentive_basis='margin_amount',
+                              incentive_margin_amount=150.0)
+        order = self._order(traded, qty=3)
+        refund = order.invoice_ids._reverse_moves()
+        refund.invoice_line_ids.quantity = 1
+        refund.action_post()
+        sheet = self._computed()
+        self.assertEqual(sorted(sheet.line_ids.mapped('incentive_base')), [-150.0, 450.0])
+        self.assertEqual(sorted(sheet.line_ids.mapped('quantity')), [-1.0, 3.0])
+        self.assertEqual(sheet.total_base, 300.0)
+
+    # ------------------------------------------------------------------ the scheme
+    def test_a_threshold_is_a_zero_percent_first_slab(self):
+        """(total sales - 100,000) x 5%, as a telescopic rule."""
+        rule = self._rule(slab_ids=[
+            (0, 0, {'amount_from': 0, 'amount_to': 100000,
+                    'incentive_type': 'percent', 'value': 0}),
+            (0, 0, {'amount_from': 100000, 'incentive_type': 'percent', 'value': 5}),
+        ])
+        for sales, expected in ((0, 0), (99999, 0), (100000, 0),
+                                (250000, 7500), (500000, 20000)):
+            with self.subTest(sales=sales):
+                self.assertAlmostEqual(rule.compute_incentive(sales), expected, 2)
+
+    def test_a_margin_keeps_an_executive_under_the_threshold(self):
+        """1.2 lakh of bought-in goods at a 20% margin is 24,000 of base, which
+        earns nothing, where the billed amount would have paid."""
+        rule = self._rule(default_margin_pct=20.0, slab_ids=[
+            (0, 0, {'amount_from': 0, 'amount_to': 100000,
+                    'incentive_type': 'percent', 'value': 0}),
+            (0, 0, {'amount_from': 100000, 'incentive_type': 'percent', 'value': 5}),
+        ])
+        traded = self._traded('Bought-in, bulk', 120000.0, incentive_basis='margin_pct')
+        self._order(traded)
+        sheet = self._computed()
+        self.assertEqual(sheet.total_sales, 120000.0)
+        self.assertEqual(sheet.total_base, 24000.0)
+        self.assertEqual(rule.compute_incentive(120000.0), 1000.0,
+                         "on the billed amount it would have paid 1,000")
+        self.assertEqual((sheet.slab_amount, sheet.incentive_amount), (0.0, 0.0),
+                         "on margin it pays nothing")
+
+    def test_the_working_says_why_the_base_is_not_the_bill(self):
+        self._rule()
+        traded = self._traded('Bought-in, explained', 1000.0,
+                              incentive_basis='margin_pct', incentive_margin_pct=30.0)
+        self._order(traded)
+        self._order(self.plain)
+        data = self._computed().slab_widget_data
+        self.assertIn('2,000', data['base_note'], "what was billed")
+        self.assertIn('1,300', data['base_note'], "what the base is")
+        self.assertIn('margin %', data['base_note'])
+
+    def test_no_note_when_the_base_is_the_bill(self):
+        self._rule()
+        self._order(self.plain)
+        self.assertFalse(self._computed().slab_widget_data['base_note'])
+
+    # ------------------------------------------------------------------ guard rails
+    def test_a_margin_over_100_percent_is_refused(self):
+        with self.assertRaises(ValidationError):
+            self._traded('Impossible', 100.0, incentive_basis='margin_pct',
+                         incentive_margin_pct=140.0)
+        with self.assertRaises(ValidationError):
+            self._rule(default_margin_pct=140.0)
+
+    def test_a_per_unit_margin_of_zero_is_refused(self):
+        """There is no default to fall back on, so zero is not 'unset' - it is
+        'this product earns nobody anything', quietly, forever."""
+        with self.assertRaises(ValidationError):
+            self._traded('Bought-in, forgotten', 900.0, incentive_basis='margin_amount')
+
+    def test_the_upgrade_puts_an_incentive_price_on_its_basis(self):
+        """An incentive price used to apply just by being set; after the upgrade it
+        needs the 'price' basis, or the product quietly earns on the full bill."""
+        import importlib.util
+        import os
+        path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                            'migrations', '20.0.1.6.0', 'post-migrate.py')
+        spec = importlib.util.spec_from_file_location('lab_incentive_migrate_1_6', path)
+        migration = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(migration)
+        priced = self.env['product.template'].create({
+            'name': 'Priced before the basis existed', 'list_price': 3000.0,
+            'incentive_price': 300.0})
+        unpriced = self.env['product.template'].create({
+            'name': 'Never priced', 'list_price': 3000.0})
+        self.assertEqual(priced.incentive_basis, 'sale', "fixture: the pre-upgrade state")
+        migration.migrate(self.env.cr, '20.0.1.5.1')
+        (priced | unpriced).invalidate_recordset()
+        self.assertEqual(priced.incentive_basis, 'price')
+        self.assertEqual(unpriced.incentive_basis, 'sale')
+
+
+@tagged('post_install', '-at_install')
+class TestAccountingCanRunIncentives(IncentiveCommon):
+    """Accounting pays these, so the screens are on the Accounting menu too.
+    (Ortho client, 2026-10-08)
+
+    Run as a user holding only the accounting administrator group: as admin every
+    one of these passes whether the rights exist or not. The cache is per
+    transaction, so it is dropped before each read the accountant makes.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.accountant = cls.env['res.users'].create({
+            'name': 'Accounts Manager', 'login': 'incentive_accounts_mgr',
+            'group_ids': [(6, 0, [cls.env.ref('base.group_user').id,
+                                  cls.env.ref('account.group_account_manager').id])]})
+
+    def test_the_accountant_is_not_a_field_work_manager(self):
+        """If this ever becomes true the rest of the class proves nothing."""
+        self.assertFalse(self.accountant.has_group('lab_fieldwork.group_fieldwork_manager'))
+        self.assertFalse(self.accountant.has_group('lab_fieldwork.group_fieldwork_executive'))
+        self.assertFalse(self.accountant.has_group('sales_team.group_sale_salesman'))
+
+    def test_the_three_menus_are_served(self):
+        visible = self.env['ir.ui.menu'].with_user(self.accountant)._visible_menu_ids()
+        for xmlid in ('menu_incentive_account_root', 'menu_incentive_account_sheets',
+                      'menu_incentive_account_generate', 'menu_incentive_account_rules'):
+            with self.subTest(menu=xmlid):
+                self.assertIn(self.env.ref('lab_incentive.' + xmlid).id, visible)
+        self.assertEqual(self.env.ref('lab_incentive.menu_incentive_account_root').parent_id,
+                         self.env.ref('account.menu_finance'))
+
+    def test_generate_then_open_the_sheet_its_lines_and_the_rule(self):
+        """Month-end as the accountant: the generator, then the sheet form with its
+        lines and working, then the rule behind it."""
+        # an internal salesperson: the generator leaves out share (non-internal)
+        # users, and the fixture's executive holds no base group of its own
+        seller = self.env['res.users'].create({
+            'name': 'Accounts Probe Seller', 'login': 'epicg_acct_seller',
+            'group_ids': [(6, 0, [self.env.ref('sales_team.group_sale_salesman').id,
+                                  self.env.ref('lab_fieldwork.group_fieldwork_executive').id])]})
+        order = self._order(self.plain, qty=8, user=seller)
+        self.env.invalidate_all()
+        wizard = self.env['lab.incentive.generate.wizard'].with_user(self.accountant).create(
+            {'period': self._this_month()})
+        action = wizard.action_generate()
+        self.assertEqual(action['res_model'], 'lab.incentive.sheet')
+
+        self.env.invalidate_all()
+        Sheet = self.env['lab.incentive.sheet'].with_user(self.accountant)
+        sheet = Sheet.search(action['domain'] + [('executive_id', '=', seller.id)])
+        self.assertEqual(len(sheet), 1, "the accountant reads the sheet it generated")
+        self.env.invalidate_all()
+        data = sheet.web_read({
+            'name': {}, 'state': {}, 'total_sales': {}, 'total_base': {},
+            'slab_amount': {}, 'incentive_amount': {}, 'slab_widget_data': {},
+            'executive_id': {'fields': {'display_name': {}}},
+            'rule_id': {'fields': {'display_name': {}}},
+            'new_clinic_count': {},
+            'line_ids': {'fields': {
+                'invoice_date': {}, 'quantity': {}, 'sale_amount': {},
+                'incentive_base': {}, 'incentive_basis': {}, 'used_incentive_price': {},
+                'invoice_id': {'fields': {'display_name': {}}},
+                'sale_order_id': {'fields': {'display_name': {}}},
+                'product_id': {'fields': {'display_name': {}}}}},
+        })[0]
+        self.assertEqual(data['state'], 'computed')
+        self.assertEqual(data['incentive_amount'], 400.0)
+        self.assertEqual(len(data['line_ids']), 1,
+                         "the lines read back - Odoo 20 hides an unreadable one2many silently")
+        self.assertEqual(data['line_ids'][0]['sale_order_id']['id'], order.id)
+        self.assertTrue(data['slab_widget_data']['steps'], "the working is shown")
+
+        self.env.invalidate_all()
+        Line = self.env['lab.incentive.sheet.line'].with_user(self.accountant)
+        self.assertEqual(Line.search([('sheet_id', '=', sheet.id)]).sale_amount, 8000.0)
+
+        self.env.invalidate_all()
+        rule = self.env['lab.incentive.rule'].with_user(self.accountant).search(
+            [('id', '=', self.rule.id)])
+        self.assertEqual(rule, self.rule)
+        self.assertEqual(len(rule.slab_ids), 2, "the slabs read back too")
+
+    def test_the_accountant_recomputes_a_sheet(self):
+        self._order(self.plain, qty=8)
+        sheet = self._sheet()
+        self.env.invalidate_all()
+        sheet.with_user(self.accountant).action_compute()
+        self.assertEqual(sheet.state, 'computed')
+        self.assertEqual(sheet.incentive_amount, 400.0)
+
+    def test_the_accountant_keeps_the_rules(self):
+        self.env.invalidate_all()
+        rule = self.env['lab.incentive.rule'].with_user(self.accountant).create({
+            'name': 'Accounts scheme', 'date_from': '2021-01-01',
+            'slab_mode': 'telescopic', 'default_margin_pct': 20.0,
+            'slab_ids': [(0, 0, {'amount_from': 0, 'incentive_type': 'percent', 'value': 3})]})
+        rule.slab_ids.write({'value': 4})
+        self.assertEqual(rule.compute_incentive(1000.0), 40.0)
+
+    def test_approving_is_still_field_works_to_do(self):
+        """Accounting prepares the figure; sign-off stays where it was."""
+        self._order(self.plain)
+        sheet = self._sheet()
+        sheet.action_compute()
+        self.env.invalidate_all()
+        with self.assertRaises(UserError):
+            sheet.with_user(self.accountant).action_approve()

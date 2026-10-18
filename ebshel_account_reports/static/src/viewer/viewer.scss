@@ -122,6 +122,19 @@ $efr-tones: (
     .o_efr_prow_n { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; overflow: hidden;
         em { font-style: normal; font-size: .7rem; color: var(--efr-muted); font-weight: 400; } }
     .o_efr_prow_a { flex: 0 0 auto; font-size: .76rem; color: #475569; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    // a list that is left out: the switch above it, and the ticks turned to crosses in red
+    .o_efr_mode { display: flex; gap: .25rem; margin: 0 .75rem .45rem; padding: .2rem; border-radius: .55rem; background: #f1f4f8;
+        > button { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; border: 0; background: transparent;
+            border-radius: .4rem; padding: .3rem .4rem; font-size: .76rem; font-weight: 600; color: var(--efr-muted); min-height: 1.9rem;
+            &:hover { color: var(--efr-ink); }
+            &.on { background: #fff; color: var(--pt); box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
+            &.ex.on { color: #b91c1c; } } }
+    .o_efr_mode_sm { margin: 0 0 .45rem; }
+    .o_efr_prow.on.ex { background: #fdecec; .o_efr_box { background: #dc2626; border-color: #dc2626; } }
+    .o_efr_pk.on.ex { background: #fdecec; color: #b91c1c; .o_efr_pk_box { background: #dc2626; border-color: #dc2626; &::after { content: "\f00d"; } } }
+    .o_efr_mf_n.ex { background: #dc2626; }
+    .o_efr_f .o_efr_count.o_efr_count_ex, .o_efr_f.on .o_efr_count.o_efr_count_ex { background: #dc2626; color: #fff; }
+    .o_efr_achip.ex { text-decoration: none; border-color: #f5b5b5; background: #fdecec; color: #b91c1c; }
     .o_efr_prow_use { border: 1.5px dashed var(--pt); margin-bottom: .2rem; .o_efr_box { border: 0; background: transparent; color: var(--pt); font-size: .8rem; } }
     .o_efr_prow .o_efr_code { min-width: 3.4rem; color: var(--pt); font-weight: 700; }
 

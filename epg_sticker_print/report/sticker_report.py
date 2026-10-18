@@ -32,6 +32,9 @@ class ReportSticker(models.AbstractModel):
             stickers = (Engine.build_from_partners(partners, options, fmt=fmt)
                        if partners and options.get('mode') != 'order' else [])
             doc_ids, doc_model, docs = partners.ids, 'res.partner', partners
+        if data.get('limit'):
+            # the wizard's preview: the first few stickers of the run, rendered the real way
+            stickers = stickers[:max(int(data['limit']), 1)]
         layout = Engine.layout_vars(fmt)
         per_page = layout['per_page']
         pages = [stickers[i:i + per_page] for i in range(0, len(stickers), per_page)] or [[]]

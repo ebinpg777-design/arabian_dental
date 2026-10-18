@@ -12,6 +12,8 @@ from dateutil.relativedelta import relativedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
+from .product_template import INCENTIVE_BASES
+
 EXCLUDED_STATES = ('draft', 'sent', 'cancel')
 
 
@@ -47,7 +49,8 @@ class LabIncentiveSheet(models.Model):
     total_base = fields.Monetary(
         compute='_compute_totals', store=True,
         help="What the incentive was actually calculated on — differs from Total "
-             "Billed whenever a line's product carries its own incentive price.")
+             "Billed whenever a line's product is counted on its own incentive price "
+             "or on the lab's margin.")
     # What the slabs gave on the base - the whole of it, kept on the sheet: the lines
     # no longer carry a share of it, which read as if each order earned its own.
     # (client, 2026-10-08)
@@ -228,25 +231,33 @@ class LabIncentiveSheet(models.Model):
                                   "approval is not lost without anyone noticing.",
                                   sheet.name))
             sheet.line_ids.unlink()
+            # the rule first: a product on a margin basis needs the period's fallback
+            rule = self.env['lab.incentive.rule']._active_rule(
+                sheet.company_id, sheet.period)
+            default_margin = rule.default_margin_pct if rule else 0.0
             lines = []
             for aml in sheet._qualifying_lines():
                 # company currency, signed: a credit note is a negative bill
                 billed = -aml.balance
                 sign = -1 if billed < 0 else 1
-                override = aml.product_id.incentive_price
-                base = (override * abs(aml.quantity) * sign) if override else billed
+                quantity = abs(aml.quantity) * sign
+                product = aml.product_id
+                # What the product is counted on (Ortho, 2026-10-08): the billed
+                # amount, its incentive price, or the lab's margin on it - signed
+                # like the bill, so a credit note takes back the base it gave.
+                base = (product._incentive_base(billed, quantity, default_margin)
+                        if product else billed)
                 lines.append((0, 0, {
                     'sale_order_id': aml.sale_line_ids.order_id[:1].id,
                     'invoice_id': aml.move_id.id,
                     'invoice_date': aml.move_id.invoice_date,
-                    'product_id': aml.product_id.id,
-                    'quantity': abs(aml.quantity) * sign,
+                    'product_id': product.id,
+                    'quantity': quantity,
                     'sale_amount': billed,
                     'incentive_base': base,
-                    'used_incentive_price': bool(override),
+                    'incentive_basis': product.incentive_basis or 'sale',
+                    'used_incentive_price': bool(product) and product._uses_own_incentive_base(),
                 }))
-            rule = self.env['lab.incentive.rule']._active_rule(
-                sheet.company_id, sheet.period)
             clinics = sheet._new_clinics()
             bonus = len(clinics) * (rule.new_clinic_bonus or 0.0) if rule else 0.0
             sheet.write({'line_ids': lines, 'state': 'computed', 'rule_id': rule.id,
@@ -333,7 +344,13 @@ class LabIncentiveSheetLine(models.Model):
     incentive_base = fields.Monetary(
         currency_field='currency_id',
         help="What the incentive was actually computed on for this line.")
+    # Written when the sheet is computed, not related to the product: an approved
+    # sheet keeps the basis it was approved on if the product is changed later.
+    incentive_basis = fields.Selection(
+        INCENTIVE_BASES, string='Counted On', readonly=True,
+        help="What this product's base was taken from when the sheet was computed.")
     used_incentive_price = fields.Boolean(
-        help="This product carries its own incentive price, so the base above is not "
-             "the same figure the doctor was charged.")
+        string='Own Base',
+        help="This product carries its own incentive base — a fixed price or a "
+             "margin — so the base above is not what the doctor was charged.")
     currency_id = fields.Many2one(related='sheet_id.currency_id')

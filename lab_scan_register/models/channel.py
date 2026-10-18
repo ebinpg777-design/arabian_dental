@@ -30,6 +30,12 @@ def digits(value):
     return re.sub(r'\D', '', value or '')
 
 
+def patterns(value):
+    """The patterns of a recognise-rule, lower-cased: commas, semicolons or new
+    lines separate them."""
+    return [p.strip().lower() for p in re.split(r'[,;\n]', value or '') if p.strip()]
+
+
 class ScanChannel(models.Model):
     _name = 'lab.scan.channel'
     _description = 'Scan Channel'
@@ -48,17 +54,32 @@ class ScanChannel(models.Model):
     member_count = fields.Integer(compute='_compute_member_count')
     sender_match = fields.Char(
         'Recognise e-mails from',
-        help="A piece of the sender's address, such as 'allied-star.com'. A "
-             "notification whose sender contains it is registered here by itself.")
+        help="A piece of the sender's address, such as 'allied-star.com', or a "
+             "whole address. Several can be given, separated by commas. An e-mail "
+             "whose sender contains one is registered here by itself.")
+    subject_match = fields.Char(
+        'Recognise subjects containing',
+        help="Words from the e-mail's subject, such as 'New case' or 'Scan'. "
+             "Several can be given, separated by commas. An e-mail whose subject "
+             "contains one is registered here, when no sender rule took it first.")
     link_match = fields.Char(
         'Recognise links containing',
-        help="A piece of the download link, such as 'wetransfer.com'. A scan whose "
-             "link contains it is known to be on this platform.")
+        help="A piece of the download link, such as 'wetransfer.com/downloads'. A scan "
+             "whose link contains it is known to be on this platform; and an e-mail no "
+             "sender or subject rule recognises is still registered here when it carries "
+             "such a link. Make it the share part of the address "
+             "('drive.google.com/drive/folders', not 'google.com'), so the platform's own "
+             "newsletters are not taken for scans. Several can be given, separated by commas.")
     link_validity_days = fields.Integer(
         'Links live for (days)',
         help="How long this platform keeps a download. A scan with such a link and "
              "no expiry date is given one counted from when it arrived. 0 = never expires.")
-    link = fields.Char('Invite link / address')
+    # Anybody holding a group's invite link can join it, and these groups carry
+    # doctors and their patients: the link is for the people who register scans.
+    link = fields.Char('Invite Link', groups='lab_scan_register.group_scan_user',
+                       help="For a WhatsApp group: its invite link (in WhatsApp, Group info > "
+                            "Invite via link > Copy link). The WhatsApp button opens the group "
+                            "from it. For a folder or platform: its address.")
     note = fields.Text()
     active = fields.Boolean(default=True)
     color = fields.Integer()
@@ -81,18 +102,28 @@ class ScanChannel(models.Model):
 
     # ------------------------------------------------------------------ recognising
     @api.model
-    def _match_email(self, sender, text, company=None):
-        """The channel whose sender pattern appears in the sender or in the forwarded
-        'From:' line; the longest pattern wins. Any source: a WeTransfer notice
-        arrives by mail but the scan is a file transfer."""
+    def _match_email(self, sender, text, company=None, subject=''):
+        """The channel an incoming e-mail belongs to.
+
+        Sender rules first - a pattern found in the sender or in the forwarded
+        'From:' line - then subject rules, a pattern found in the subject. Each
+        rule may hold several patterns separated by commas; the longest pattern
+        that matches wins. Any source: a WeTransfer notice arrives by mail but the
+        scan is a file transfer. (client, 2026-10-13)"""
         company = company or self.env.company
-        hay = ' '.join((sender or '', text or '')).lower()
-        best = self.browse()
-        for channel in self.search([('sender_match', '!=', False), ('company_id', '=', company.id)]):
-            needle = channel.sender_match.strip().lower()
-            if needle and needle in hay and len(needle) > len(best.sender_match or ''):
-                best = channel
-        return best
+        channels = self.search(['|', ('sender_match', '!=', False), ('subject_match', '!=', False),
+                                ('company_id', '=', company.id)])
+        for field, hay in (('sender_match', ' '.join((sender or '', text or ''))),
+                           ('subject_match', subject or '')):
+            hay = hay.lower()
+            best, best_len = self.browse(), 0
+            for channel in channels:
+                for needle in patterns(channel[field]):
+                    if needle in hay and len(needle) > best_len:
+                        best, best_len = channel, len(needle)
+            if best:
+                return best
+        return self.browse()
 
     @api.model
     def _match_link(self, link, company=None):
@@ -101,11 +132,11 @@ class ScanChannel(models.Model):
             return self.browse()
         company = company or self.env.company
         hay = link.lower()
-        best = self.browse()
+        best, best_len = self.browse(), 0
         for channel in self.search([('link_match', '!=', False), ('company_id', '=', company.id)]):
-            needle = channel.link_match.strip().lower()
-            if needle and needle in hay and len(needle) > len(best.link_match or ''):
-                best = channel
+            for needle in patterns(channel.link_match):
+                if needle in hay and len(needle) > best_len:
+                    best, best_len = channel, len(needle)
         return best
 
     def _match_member(self, poster, phone=''):

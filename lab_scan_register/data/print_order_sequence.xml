@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- PRINT/2026/0012: the number on the plate ticket and in the slice file's name -->
+        <record id="seq_scan_print_order" model="ir.sequence">
+            <field name="name">Print order</field>
+            <field name="code">lab.scan.print.order</field>
+            <field name="prefix">PRINT/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

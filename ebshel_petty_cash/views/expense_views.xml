@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_expense_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.form</field>
+        <field name="model">ebshel.petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" type="object" string="Submit" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary"
+                            invisible="not can_approve"/>
+                    <button name="action_post" type="object" string="Pay" class="btn-primary"
+                            invisible="not can_pay"/>
+                    <button name="action_refuse" type="object" string="Refuse"
+                            invisible="state not in ('to_approve', 'approved')"
+                            groups="ebshel_petty_cash.group_petty_cash_approver"/>
+                    <button name="action_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('to_approve', 'refused', 'cancelled')"/>
+                    <button name="%(action_report_petty_cash_expense)d" type="action" string="Print"
+                            invisible="state in ('draft', 'refused', 'cancelled')"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('refused', 'cancelled')"
+                            confirm="Cancel this voucher? A paid voucher is reversed in the books."/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_attachments" type="object" class="oe_stat_button" icon="attach_file">
+                            <field name="attachment_count" widget="statinfo" string="Receipts"/>
+                        </button>
+                        <button name="action_view_move" type="object" class="oe_stat_button" icon="book"
+                                invisible="not move_id" groups="account.group_account_readonly" string="Journal Entry"/>
+                    </div>
+                    <field name="can_approve" invisible="1"/>
+                    <field name="can_pay" invisible="1"/>
+                    <field name="is_duplicate" invisible="1"/>
+                    <field name="needs_second_approval" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                    <div class="alert alert-warning mb-2" role="alert" invisible="not is_duplicate or state in ('posted', 'cancelled', 'refused')">
+                        A voucher with the same amount and payee or receipt reference exists.
+                        <button name="action_view_duplicates" type="object" class="btn btn-link p-0 align-baseline" string="See it"/>
+                    </div>
+                    <div class="alert alert-info mb-2" role="status" invisible="state != 'to_approve' or not first_approver_id">
+                        First approval by <field name="first_approver_id" class="d-inline" readonly="1"/>; waiting for a petty cash manager.
+                    </div>
+                    <div class="alert alert-danger mb-2" role="alert" invisible="state != 'refused'">
+                        <strong>Refused:</strong> <field name="refuse_reason" class="d-inline"/>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="fund_id" readonly="state not in ('draft', 'to_approve')" options="{'no_create': True}"/>
+                            <field name="description" placeholder="e.g. Office supplies"/>
+                            <field name="partner_id" readonly="state not in ('draft', 'to_approve')"/>
+                            <field name="reference" placeholder="Receipt or invoice number"/>
+                            <field name="advance_id" readonly="state not in ('draft', 'to_approve')"
+                                   options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="date" readonly="state not in ('draft', 'to_approve')"/>
+                            <field name="requested_by_id" widget="many2one_avatar_user"
+                                   readonly="state != 'draft'"/>
+                            <field name="price_mode" widget="radio" options="{'horizontal': true}"
+                                   readonly="state not in ('draft', 'to_approve')"/>
+                            <field name="custodian_id" widget="many2one_avatar_user"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Lines" name="lines">
+                            <field name="line_ids" readonly="state not in ('draft', 'to_approve')">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="company_id" column_invisible="True"/>
+                                    <field name="category_id" options="{'no_create': True}" required="not bill_id"/>
+                                    <field name="bill_id" optional="show" options="{'no_create': True}"
+                                           groups="account.group_account_invoice"/>
+                                    <field name="name"/>
+                                    <field name="account_id" optional="hide" groups="account.group_account_readonly"/>
+                                    <field name="analytic_distribution" widget="analytic_distribution" optional="show"
+                                           groups="analytic.group_analytic_accounting"/>
+                                    <field name="tax_ids" widget="many2many_tags" optional="show" readonly="bill_id"/>
+                                    <field name="amount"/>
+                                    <field name="amount_tax" optional="show"/>
+                                    <field name="amount_total" optional="hide"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="amount_untaxed"/>
+                                <field name="amount_tax"/>
+                                <field name="amount_total" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                        <page string="Approval and Payment" name="approval">
+                            <group>
+                                <group string="Approval">
+                                    <field name="first_approver_id" invisible="not first_approver_id"/>
+                                    <field name="approver_id"/>
+                                    <field name="approval_date"/>
+                                </group>
+                                <group string="Payment">
+                                    <field name="paid_by_id"/>
+                                    <field name="paid_date"/>
+                                    <field name="move_id" groups="account.group_account_readonly"/>
+                                    <field name="replenishment_id"/>
+                                    <field name="amount_total_company" groups="base.group_multi_currency"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_expense_list" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.list</field>
+        <field name="model">ebshel.petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state in ('cancelled', 'refused')" decoration-info="state == 'to_approve'"
+                  sample="1">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="fund_id"/>
+                <field name="description"/>
+                <field name="partner_id" optional="show"/>
+                <field name="requested_by_id" widget="many2one_avatar_user" optional="show"/>
+                <field name="advance_id" optional="hide"/>
+                <field name="reference" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="amount_untaxed" sum="Total" optional="hide"/>
+                <field name="amount_tax" sum="Total" optional="hide"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'to_approve'" decoration-warning="state == 'approved'"
+                       decoration-success="state == 'posted'" decoration-danger="state == 'refused'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_expense_search" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.search</field>
+        <field name="model">ebshel.petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" filter_domain="['|', '|', ('name', 'ilike', self), ('description', 'ilike', self), ('reference', 'ilike', self)]"/>
+                <field name="fund_id"/>
+                <field name="partner_id"/>
+                <field name="requested_by_id"/>
+                <field name="advance_id"/>
+                <field name="line_ids" string="Category" filter_domain="[('line_ids.category_id', 'ilike', self)]"/>
+                <filter name="my_vouchers" string="My Vouchers" domain="[('requested_by_id', '=', uid)]"/>
+                <filter name="my_funds" string="My Funds" domain="[('fund_id.custodian_id', '=', uid)]"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="to_approve" string="To Approve" domain="[('state', '=', 'to_approve')]"/>
+                <filter name="to_pay" string="To Pay" domain="[('state', '=', 'approved')]"/>
+                <filter name="paid" string="Paid" domain="[('state', '=', 'posted')]"/>
+                <separator/>
+                <filter name="not_replenished" string="Not Replenished"
+                        domain="[('state', '=', 'posted'), ('advance_id', '=', False), ('replenishment_id', '=', False)]"/>
+                <separator/>
+                <filter name="date" string="Date" date="date"/>
+                <group>
+                    <filter name="group_fund" string="Fund" context="{'group_by': 'fund_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_partner" string="Payee" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_requester" string="Requested By" context="{'group_by': 'requested_by_id'}"/>
+                    <filter name="group_date" string="Date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_expense_pivot" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.pivot</field>
+        <field name="model">ebshel.petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <pivot sample="1">
+                <field name="fund_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="amount_total_company" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_expense_graph" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.graph</field>
+        <field name="model">ebshel.petty.cash.expense</field>
+        <field name="arch" type="xml">
+            <graph type="bar" sample="1">
+                <field name="date" interval="month"/>
+                <field name="fund_id"/>
+                <field name="amount_total_company" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_expense" model="ir.actions.act_window">
+        <field name="name">Vouchers</field>
+        <field name="res_model">ebshel.petty.cash.expense</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Record a petty cash voucher</p>
+            <p>Enter what was bought, attach the receipt and submit it for approval.</p>
+        </field>
+    </record>
+
+    <record id="action_expense_my" model="ir.actions.act_window">
+        <field name="name">My Vouchers</field>
+        <field name="res_model">ebshel.petty.cash.expense</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_my_vouchers': 1}</field>
+    </record>
+
+    <record id="action_expense_to_approve" model="ir.actions.act_window">
+        <field name="name">Vouchers to Approve</field>
+        <field name="res_model">ebshel.petty.cash.expense</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_to_approve': 1}</field>
+    </record>
+
+    <record id="action_expense_to_pay" model="ir.actions.act_window">
+        <field name="name">Vouchers to Pay</field>
+        <field name="res_model">ebshel.petty.cash.expense</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_to_pay': 1}</field>
+    </record>
+
+    <!-- Expense analysis (per line: category, account, analytic) -->
+    <record id="view_expense_line_list" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.line.list</field>
+        <field name="model">ebshel.petty.cash.expense.line</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false">
+                <field name="date"/>
+                <field name="expense_id"/>
+                <field name="fund_id"/>
+                <field name="category_id"/>
+                <field name="name"/>
+                <field name="partner_id" optional="show"/>
+                <field name="account_id" optional="hide" groups="account.group_account_readonly"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="company_currency_id" column_invisible="True"/>
+                <field name="amount_untaxed" sum="Total" optional="show"/>
+                <field name="amount_tax" sum="Total" optional="show"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="amount_total_company" sum="Total" optional="hide"/>
+                <field name="state" widget="badge" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_expense_line_search" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.line.search</field>
+        <field name="model">ebshel.petty.cash.expense.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="expense_id"/>
+                <field name="fund_id"/>
+                <field name="category_id"/>
+                <field name="partner_id"/>
+                <filter name="paid" string="Paid" domain="[('state', '=', 'posted')]"/>
+                <filter name="committed" string="Approved or Paid" domain="[('state', 'in', ('approved', 'posted'))]"/>
+                <separator/>
+                <filter name="date" string="Date" date="date"/>
+                <group>
+                    <filter name="group_fund" string="Fund" context="{'group_by': 'fund_id'}"/>
+                    <filter name="group_category" string="Category" context="{'group_by': 'category_id'}"/>
+                    <filter name="group_partner" string="Payee" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_date" string="Month" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_expense_line_pivot" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.line.pivot</field>
+        <field name="model">ebshel.petty.cash.expense.line</field>
+        <field name="arch" type="xml">
+            <pivot sample="1">
+                <field name="category_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="amount_total_company" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_expense_line_graph" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.expense.line.graph</field>
+        <field name="model">ebshel.petty.cash.expense.line</field>
+        <field name="arch" type="xml">
+            <graph type="pie" sample="1">
+                <field name="category_id"/>
+                <field name="amount_total_company" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_expense_analysis" model="ir.actions.act_window">
+        <field name="name">Spending Analysis</field>
+        <field name="res_model">ebshel.petty.cash.expense.line</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_paid': 1}</field>
+    </record>
+
+</odoo>

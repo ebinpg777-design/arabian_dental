@@ -7,3 +7,8 @@ rule_incentive_sheet_mgr,Managers see every sheet,lab.incentive.sheet,lab_fieldw
 rule_incentive_sheet_line_own,Executives see only their own sheet lines,lab.incentive.sheet.line,lab_fieldwork.group_fieldwork_executive,r,"[('sheet_id.executive_id','=',user.id)]"
 rule_incentive_sheet_line_mgr,Managers see every sheet line,lab.incentive.sheet.line,lab_fieldwork.group_fieldwork_manager,crud,
 access_incentive_generate_wizard,generate wizard,lab.incentive.generate.wizard,lab_fieldwork.group_fieldwork_manager,crud,
+access_incentive_rule_acct,rule manage (accounting),lab.incentive.rule,account.group_account_manager,crud,
+access_incentive_rule_slab_acct,slab manage (accounting),lab.incentive.rule.slab,account.group_account_manager,crud,
+rule_incentive_sheet_acct,Accounting sees every sheet,lab.incentive.sheet,account.group_account_manager,crud,
+rule_incentive_sheet_line_acct,Accounting sees every sheet line,lab.incentive.sheet.line,account.group_account_manager,crud,
+access_incentive_generate_wizard_acct,generate wizard (accounting),lab.incentive.generate.wizard,account.group_account_manager,crud,

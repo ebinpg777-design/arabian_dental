@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_scan_register.ScanDashboard">
+    <div class="o_sd o_action">
+        <!-- ==================================================== header -->
+        <div class="o_sd_head">
+            <div class="o_sd_titles">
+                <div class="o_sd_eyebrow">Scan Register</div>
+                <h2 class="o_sd_h">Dashboard</h2>
+            </div>
+            <div class="o_sd_tabs" role="tablist">
+                <button t-foreach="this.periods" t-as="p" t-key="p[0]" role="tab" class="o_sd_tab"
+                        t-att-class="{ o_sd_tab_on: this.state.period === p[0] }"
+                        t-on-click="() => this.setPeriod(p[0])">
+                    <i t-if="p[0] === 'today'" class="fa fa-circle o_sd_live_dot me-1"/><t t-out="p[1]"/>
+                </button>
+            </div>
+            <span t-if="this.state.data" class="o_sd_range">
+                <t t-out="this.rangeText"/>
+                <t t-if="this.state.data.is_today"> · live, updated <t t-out="this.state.updated"/></t>
+            </span>
+            <div class="o_sd_head_actions">
+                <button class="o_sd_iconbtn" title="Refresh" t-on-click="() => this.load()">
+                    <i t-att-class="'fa fa-refresh' + (this.state.loading ? ' fa-spin' : '')"/>
+                </button>
+                <button class="o_sd_full" t-on-click="() => this.openFull()">
+                    Full analysis <i class="fa fa-external-link ms-1"/>
+                </button>
+            </div>
+        </div>
+
+        <div t-if="this.state.loading and !this.state.data" class="text-center text-muted py-5">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+
+        <t t-if="this.state.data">
+            <t t-set="d" t-value="this.state.data"/>
+            <t t-set="h" t-value="d.headline"/>
+            <div class="o_sd_body" t-att-class="{ o_sd_dim: this.state.loading }">
+
+            <!-- ================================================ needs attention, first -->
+            <div class="o_sd_alerts" t-att-class="{ o_sd_alerts_clear: !this.alerts.length }">
+                <span class="o_sd_alerts_l">
+                    <i t-att-class="'fa me-1 ' + (this.alerts.length ? 'fa-bell' : 'fa-check-circle')"/>
+                    <t t-if="this.alerts.length">Needs attention</t><t t-else="">All clear</t>
+                </span>
+                <button t-foreach="this.alerts" t-as="a" t-key="a.key" class="o_sd_alert" t-att-class="'o_sd_tone_' + a.tone"
+                        t-on-click="() => this.open(a.domain, a.label, a.model)">
+                    <i t-att-class="'fa fa-fw ' + a.icon"/> <t t-out="a.label"/> <b t-out="a.count"/>
+                </button>
+                <button class="o_sd_alerts_more" t-if="this.clearChecks.length" t-on-click="() => this.state.showClear = !this.state.showClear">
+                    <t t-out="this.clearChecks.length"/> checks clear <i t-att-class="'fa ms-1 ' + (this.state.showClear ? 'fa-chevron-up' : 'fa-chevron-down')"/>
+                </button>
+                <div t-if="this.state.showClear" class="o_sd_alerts_clearlist">
+                    <span t-foreach="this.clearChecks" t-as="a" t-key="a.key"><i t-att-class="'fa fa-fw text-success ' + a.icon"/> <t t-out="a.label"/></span>
+                </div>
+            </div>
+
+            <!-- ================================================ headline: the scans -->
+            <div class="o_sd_group_l"><i class="fa fa-inbox me-1"/>Scans</div>
+            <div class="o_sd_cards">
+                <div class="o_sd_card o_sd_click o_sd_accent_scan" t-on-click="() => this.open(d.window_domain, 'Registers received')">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Registers received</span><i class="fa fa-inbox o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.received"/></div>
+                    <t t-set="dl" t-value="this.delta(h.received, h.received_prev)"/>
+                    <div t-if="dl !== null" class="o_sd_delta" t-att-class="{ o_sd_up: dl &gt;= 0, o_sd_down: dl &lt; 0 }">
+                        <i t-att-class="'fa ' + (dl &gt;= 0 ? 'fa-arrow-up' : 'fa-arrow-down')"/> <t t-out="Math.abs(dl)"/>% <span class="o_sd_vs">vs <t t-out="d.is_today ? 'yesterday so far' : 'the period before'"/></span>
+                    </div>
+                    <div t-else="" class="o_sd_sub"><t t-out="h.received_prev"/> the period before</div>
+                </div>
+                <div class="o_sd_card o_sd_accent_scan">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Patients</span><i class="fa fa-user-o o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.patients"/></div>
+                    <t t-set="dp" t-value="this.delta(h.patients, h.patients_prev)"/>
+                    <div t-if="dp !== null" class="o_sd_delta" t-att-class="{ o_sd_up: dp &gt;= 0, o_sd_down: dp &lt; 0 }">
+                        <i t-att-class="'fa ' + (dp &gt;= 0 ? 'fa-arrow-up' : 'fa-arrow-down')"/> <t t-out="Math.abs(dp)"/>% <span class="o_sd_vs">vs before</span>
+                    </div>
+                    <div t-else="" class="o_sd_sub"><t t-out="h.patients_prev"/> the period before</div>
+                </div>
+                <div class="o_sd_card o_sd_accent_scan">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Turned into orders</span><i class="fa fa-shopping-cart o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.conversion === null ? '—' : h.conversion + '%'"/></div>
+                    <div class="o_sd_meter"><span t-attf-style="width: {{ h.conversion || 0 }}%"/></div>
+                    <div class="o_sd_sub"><t t-out="h.ordered_patients"/> of <t t-out="h.patients"/> patients</div>
+                </div>
+                <div class="o_sd_card o_sd_accent_scan">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Scan to order</span><i class="fa fa-clock-o o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="this.duration(h.turnaround_hours)"/></div>
+                    <div class="o_sd_sub" t-if="h.turnaround_count">on average, over <t t-out="h.turnaround_count"/> ordered</div>
+                    <div class="o_sd_sub" t-else="">nothing ordered in the period</div>
+                </div>
+                <div class="o_sd_card o_sd_click o_sd_accent_scan" t-on-click="() => this.open(d.open_domain, 'Open registers')">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Open right now</span><i class="fa fa-folder-open-o o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.open"/></div>
+                    <div class="o_sd_sub">registers not yet ordered</div>
+                </div>
+                <div class="o_sd_card o_sd_click o_sd_accent_scan" t-att-class="{ o_sd_alarm: h.at_risk }"
+                     t-on-click="() => this.open(d.attention[0].domain, 'Delivery at risk')">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Delivery at risk</span><i class="fa fa-truck o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.at_risk"/></div>
+                    <div class="o_sd_sub">due soon, not ready</div>
+                </div>
+            </div>
+
+            <!-- ================================================ headline: the printing room -->
+            <div class="o_sd_group_l"><i class="fa fa-print me-1"/>Printing room</div>
+            <div class="o_sd_cards">
+                <div class="o_sd_card o_sd_click o_sd_accent_print" t-on-click="() => this.open(d.plates_domain, 'Plates', d.plates_model)">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Plates off the machine</span><i class="fa fa-th o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.plates"/></div>
+                    <div class="o_sd_sub"><t t-out="this.flowCount('printed')"/> printed · <t t-out="this.flowCount('failed')"/> failed</div>
+                    <t t-set="dpl" t-value="this.delta(h.plates, h.plates_prev)"/>
+                    <div t-if="dpl !== null" class="o_sd_delta" t-att-class="{ o_sd_up: dpl &gt;= 0, o_sd_down: dpl &lt; 0 }">
+                        <i t-att-class="'fa ' + (dpl &gt;= 0 ? 'fa-arrow-up' : 'fa-arrow-down')"/> <t t-out="Math.abs(dpl)"/>% <span class="o_sd_vs">vs before</span>
+                    </div>
+                </div>
+                <div class="o_sd_card o_sd_click o_sd_accent_print" t-on-click="() => this.open(d.models_printed_domain, 'Models printed', d.models_printed_model)">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Models printed</span><i class="fa fa-cubes o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.models_printed"/></div>
+                    <div class="o_sd_sub" t-if="h.avg_models_per_plate !== null"><t t-out="h.avg_models_per_plate"/> a plate<t t-if="h.resin_ml !== null"> · <t t-out="h.resin_ml"/> mL resin</t></div>
+                    <div class="o_sd_sub" t-else=""><t t-out="h.models_printed_prev"/> the period before</div>
+                </div>
+                <div class="o_sd_card o_sd_click o_sd_accent_print" t-att-class="{ o_sd_alarm: h.models_failed }"
+                     t-on-click="() => this.open(d.models_failed_domain, 'Failed models', d.models_failed_model)">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Failure rate</span><i class="fa fa-exclamation-triangle o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.model_failure_rate === null ? '—' : h.model_failure_rate + '%'"/></div>
+                    <t t-set="dfr" t-value="this.points(h.model_failure_rate, h.model_failure_rate_prev)"/>
+                    <div t-if="dfr !== null and dfr !== 0" class="o_sd_delta" t-att-class="{ o_sd_down: dfr &gt; 0, o_sd_up: dfr &lt; 0 }">
+                        <i t-att-class="'fa ' + (dfr &gt; 0 ? 'fa-arrow-up' : 'fa-arrow-down')"/> <t t-out="Math.abs(dfr)"/> pts <span class="o_sd_vs">vs before</span>
+                    </div>
+                    <div class="o_sd_sub" t-else=""><t t-out="h.models_failed"/> of <t t-out="h.models_printed + h.models_failed"/> models failed</div>
+                </div>
+                <div class="o_sd_card o_sd_accent_print">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Machines printing</span><i class="fa fa-print o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="h.machines_busy"/><small> / <t t-out="h.machines_ready"/></small></div>
+                    <div class="o_sd_meter"><span t-attf-style="width: {{ h.fleet_utilisation || 0 }}%"/></div>
+                    <div class="o_sd_sub"><t t-if="h.fleet_utilisation !== null"><t t-out="h.fleet_utilisation"/>% busy over the period</t><t t-else="">no machine in service</t></div>
+                </div>
+                <div class="o_sd_card o_sd_accent_print">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Printing time</span><i class="fa fa-hourglass-half o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="this.hm(h.printing_hours)"/></div>
+                    <div class="o_sd_sub" t-if="h.estimate_accuracy !== null">plates ran <t t-out="h.estimate_accuracy"/>% of the file's estimate</div>
+                    <div class="o_sd_sub" t-else="">on all machines in the period</div>
+                </div>
+                <div class="o_sd_card o_sd_click o_sd_accent_print" t-on-click="() => this.open(d.forecast.domain, 'Waiting for a plate', d.forecast.model)">
+                    <div class="o_sd_card_top"><span class="o_sd_card_l">Waiting for a plate</span><i class="fa fa-pause-circle-o o_sd_card_i"/></div>
+                    <div class="o_sd_card_v"><t t-out="d.forecast.patients"/></div>
+                    <div class="o_sd_sub" t-if="d.forecast.clears_at">all printed by <b t-out="this.stamp(d.forecast.clears_at)"/></div>
+                    <div class="o_sd_sub" t-else=""><t t-out="d.forecast.models"/> models</div>
+                </div>
+            </div>
+
+            <!-- ======================================================================== SCANS -->
+            <div class="o_sd_section_h"><i class="fa fa-inbox"/> Scans</div>
+            <div class="o_sd_panel">
+                <div class="o_sd_title">Where the scans are now</div>
+                <div class="o_sd_pipe">
+                    <t t-foreach="d.pipeline" t-as="step" t-key="step.state">
+                        <div class="o_sd_step o_sd_click" t-att-class="'o_sd_step_' + step.state"
+                             t-on-click="() => this.open(step.domain, step.label)">
+                            <div class="o_sd_step_l"><t t-out="step.label"/></div>
+                            <div class="o_sd_step_v"><t t-out="step.count"/></div>
+                            <div class="o_sd_step_s">
+                                <t t-out="step.patients"/> patients
+                                <t t-if="step.oldest_days !== null"> · oldest <t t-out="step.oldest_days"/>d</t>
+                            </div>
+                        </div>
+                        <i t-if="!step_last" class="fa fa-angle-right o_sd_arrow"/>
+                    </t>
+                </div>
+            </div>
+
+            <div class="o_sd_grid">
+                <div class="o_sd_panel">
+                    <div class="o_sd_title"><i class="fa fa-clock-o"/> How long each step takes</div>
+                    <t t-set="stageHours" t-value="d.stages.map((s) => s.hours || 0)"/>
+                    <div t-foreach="d.stages" t-as="st" t-key="st.key" class="o_sd_bar">
+                        <span class="o_sd_bar_l">
+                            <t t-out="st.label"/>
+                            <span t-if="st.slowest" class="badge rounded-pill text-bg-warning ms-1">slowest</span>
+                        </span>
+                        <span class="o_sd_bar_track">
+                            <span class="o_sd_bar_fill" t-att-class="st.slowest ? 'o_sd_fill_warn' : 'o_sd_fill_main'"
+                                  t-attf-style="width: {{ this.share(st.hours, stageHours) }}%"/>
+                        </span>
+                        <span class="o_sd_bar_v"><t t-out="this.duration(st.hours)"/> <span class="text-muted small" t-if="st.count"><t t-out="st.count"/>×</span></span>
+                    </div>
+                </div>
+
+                <div class="o_sd_panel">
+                    <div class="o_sd_title"><i class="fa fa-random"/> How they arrived</div>
+                    <t t-set="srcCounts" t-value="d.sources.map((s) => s.count)"/>
+                    <div t-foreach="d.sources" t-as="src" t-key="src.key" class="o_sd_bar o_sd_click"
+                         t-on-click="() => this.open(src.domain, src.label)">
+                        <span class="o_sd_bar_l">
+                            <i t-att-class="'fa me-1 ' + this.sourceIcon[src.key]"/><t t-out="src.label"/>
+                        </span>
+                        <span class="o_sd_bar_track">
+                            <span class="o_sd_bar_fill" t-att-class="'o_sd_src_' + src.key"
+                                  t-att-style="'width:' + this.share(src.count, srcCounts) + '%'"/>
+                        </span>
+                        <span class="o_sd_bar_v">
+                            <t t-out="src.count"/>
+                            <span class="text-muted" t-if="this.sourceTotal">
+                                (<t t-out="Math.round(src.count * 100 / this.sourceTotal)"/>%)
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_sd_panel">
+                <div class="o_sd_title">
+                    <span><i class="fa fa-bar-chart"/> Registers received, by <t t-out="d.trend_granularity"/></span>
+                    <span class="o_sd_legend">
+                        <span class="o_sd_key o_sd_src_whatsapp"/>WhatsApp
+                        <span class="o_sd_key o_sd_src_email"/>E-mail
+                        <span class="o_sd_key o_sd_src_transfer"/>File transfer
+                    </span>
+                </div>
+                <div class="o_sd_trend">
+                    <div t-foreach="d.trend" t-as="pt" t-key="pt.date" class="o_sd_col"
+                         t-att-title="pt.date + ': ' + pt.total" t-on-click="() => pt.total and this.open(pt.domain, pt.date)">
+                        <div class="o_sd_col_stack" t-att-style="'height:' + (this.trendMax ? Math.round(pt.total * 100 / this.trendMax) : 0) + '%'">
+                            <div class="o_sd_col_v" t-if="pt.total"><t t-out="pt.total"/></div>
+                            <span t-foreach="['transfer', 'email', 'whatsapp']" t-as="k" t-key="k"
+                                  t-if="pt.by_source[k]" t-att-class="'o_sd_src_' + k"
+                                  t-att-style="'flex-grow:' + pt.by_source[k]"/>
+                        </div>
+                        <div class="o_sd_col_l"><t t-out="pt.label"/></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_sd_grid">
+                <div class="o_sd_panel">
+                    <div class="o_sd_title"><i class="fa fa-user-md"/> Who sends the most</div>
+                    <div t-if="!d.clinics.length" class="o_sd_empty">No registers with a matched doctor in this period.</div>
+                    <t t-set="clinicPts" t-value="d.clinics.map((c) => c.patients)"/>
+                    <div t-foreach="d.clinics" t-as="c" t-key="c.id" class="o_sd_bar o_sd_click"
+                         t-on-click="() => this.open(c.domain, c.name)">
+                        <span class="o_sd_bar_l text-truncate" t-att-title="c.name"><span class="o_sd_rank" t-out="c_index + 1"/><t t-out="c.name"/></span>
+                        <span class="o_sd_bar_track">
+                            <span class="o_sd_bar_fill o_sd_fill_main" t-att-style="'width:' + this.share(c.patients, clinicPts) + '%'"/>
+                        </span>
+                        <span class="o_sd_bar_v"><t t-out="c.patients"/> <span class="text-muted">pts</span></span>
+                    </div>
+                </div>
+                <div class="o_sd_panel">
+                    <div class="o_sd_title"><i class="fa fa-comments-o"/> Busiest channels</div>
+                    <t t-set="chanPts" t-value="d.channels.map((c) => c.patients)"/>
+                    <div t-foreach="d.channels" t-as="ch" t-key="ch.id" class="o_sd_bar o_sd_click"
+                         t-on-click="() => this.open(ch.domain, ch.name)">
+                        <span class="o_sd_bar_l text-truncate" t-att-title="ch.name"><t t-out="ch.name"/></span>
+                        <span class="o_sd_bar_track">
+                            <span class="o_sd_bar_fill o_sd_fill_soft" t-att-style="'width:' + this.share(ch.patients, chanPts) + '%'"/>
+                        </span>
+                        <span class="o_sd_bar_v"><t t-out="ch.count"/> <span class="text-muted">· <t t-out="ch.patients"/> pts</span></span>
+                    </div>
+                    <div t-if="!d.channels.length" class="o_sd_empty">Nothing received in this period.</div>
+                </div>
+            </div>
+
+            <!-- ================================================================== PRINTING ROOM -->
+            <div class="o_sd_section_h">
+                <i class="fa fa-print"/> Printing room
+                <span t-if="d.unplanned_ready" class="o_sd_pill o_sd_pill_good o_sd_click"
+                      title="Plated and ready, no machine yet: a free machine takes them with Start Next Plate"
+                      t-on-click="() => this.open(d.unplanned_domain, 'Plates waiting for a machine', d.plates_model)">
+                    <i class="fa fa-th"/> <t t-out="d.unplanned_ready"/> ready for any machine</span>
+            </div>
+
+            <!-- the plates, from Plating to off the machine -->
+            <div class="o_sd_flow">
+                <t t-foreach="d.plate_flow" t-as="f" t-key="f.key">
+                    <div class="o_sd_flowstep o_sd_click" t-att-class="'o_sd_flow_' + f.key + (f.period ? ' o_sd_flow_period' : '')"
+                         t-on-click="() => this.open(f.domain, f.label, f.model)">
+                        <div class="o_sd_flow_top"><i t-att-class="'fa ' + f.icon"/> <t t-out="f.label"/></div>
+                        <div class="o_sd_flow_v"><t t-out="f.count"/> <small>plate<t t-if="f.count !== 1">s</t></small></div>
+                        <div class="o_sd_flow_s">
+                            <t t-out="f.models"/> models
+                            <t t-if="f.key === 'draft'">
+                                <span t-if="f.ready" class="o_sd_pill o_sd_pill_good"><t t-out="f.ready"/> ready</span>
+                                <span t-if="f.files" class="o_sd_pill o_sd_pill_bad"><t t-out="f.files"/> need files</span>
+                                <span t-if="f.unplanned" class="o_sd_pill"><t t-out="f.unplanned"/> no machine yet</span>
+                            </t>
+                            <span t-if="f.key === 'printing' and f.late" class="o_sd_pill o_sd_pill_bad"><t t-out="f.late"/> due off</span>
+                            <span t-if="f.key === 'washing' and f.oldest_hours !== null" class="o_sd_pill" t-att-class="{ o_sd_pill_warn: f.oldest_hours &gt;= 2 }">oldest <t t-out="this.hm(f.oldest_hours)"/></span>
+                        </div>
+                    </div>
+                    <i t-if="f.key === 'washing'" class="o_sd_flow_sep"/>
+                    <i t-elif="!f_last and !f.period" class="fa fa-angle-right o_sd_arrow"/>
+                </t>
+            </div>
+
+            <!-- the machines -->
+            <div t-if="!d.printers.length" class="o_sd_panel o_sd_empty">
+                No machine yet — add the printers under 3D Printing → Machines and print their stickers.
+            </div>
+            <div class="o_sd_machines">
+                <div t-foreach="d.printers" t-as="pr" t-key="pr.id" class="o_sd_mc"
+                     t-att-class="'o_sd_mc_c' + pr.color + ' o_sd_mc_' + this.machineState(pr)[0]">
+                    <div class="o_sd_mc_head">
+                        <span class="o_sd_mc_code" t-out="pr.code"/>
+                        <span class="o_sd_mc_name text-truncate" t-att-title="pr.name" t-out="pr.name"/>
+                        <span class="o_sd_mc_state"><i class="fa fa-circle"/> <t t-out="this.machineState(pr)[1]"/></span>
+                    </div>
+                    <!-- what it is doing now -->
+                    <div t-if="pr.running_order" class="o_sd_mc_now o_sd_click" t-on-click="() => this.openPlate(pr.running_order.id)">
+                        <div class="o_sd_mc_now_l">
+                            <b t-out="pr.running_order.name"/>
+                            <span class="text-muted"> · <t t-out="pr.running_order.patients"/> patients · <t t-out="pr.running_order.models"/> models</span>
+                            <span t-if="pr.running_order.running_long or pr.running_order.due_off" class="o_sd_pill o_sd_pill_bad">due off</span>
+                        </div>
+                        <div class="o_sd_mc_bar"><span t-attf-style="width: {{ pr.running_order.progress_pct }}%"/></div>
+                        <div class="o_sd_mc_now_s">
+                            <t t-out="this.hm(pr.running_order.elapsed_hours)"/> of <t t-out="this.hm(pr.running_order.estimated_hours)"/>
+                            <t t-if="pr.running_order.expected_end"> · off at <b t-out="this.clock(pr.running_order.expected_end)"/></t>
+                        </div>
+                    </div>
+                    <div t-elif="pr.state === 'ready'" class="o_sd_mc_now o_sd_mc_idle">
+                        <div class="o_sd_mc_now_l">
+                            <i class="fa fa-pause-circle-o me-1"/>
+                            <t t-if="pr.idle_since">Free for <b t-out="this.since(pr.idle_since)"/></t><t t-else="">Free</t>
+                        </div>
+                        <div t-if="pr.next_plate" class="o_sd_mc_now_s o_sd_click" t-on-click="() => this.openPlate(pr.next_plate.id)">
+                            next: <b t-out="pr.next_plate.name"/> <span class="text-muted">(<t t-out="pr.next_plate.planned ? 'planned here' : 'ready, no machine yet'"/>)</span>
+                        </div>
+                        <div t-else="" class="o_sd_mc_now_s text-muted">nothing plated for it</div>
+                    </div>
+                    <div t-else="" class="o_sd_mc_now o_sd_mc_idle text-muted">
+                        <i class="fa fa-wrench me-1"/><t t-out="pr.state === 'retired' ? 'Retired' : 'Under maintenance'"/>
+                    </div>
+                    <!-- the period -->
+                    <div class="o_sd_mc_body">
+                        <t t-set="rg" t-value="this.ring(pr.utilisation)"/>
+                        <div class="o_sd_mc_ring" t-att-title="(pr.utilisation === null ? '—' : pr.utilisation + '%') + ' of the period printing (' + this.hm(pr.busy_hours) + ')'">
+                            <svg viewBox="0 0 36 36">
+                                <circle cx="18" cy="18" t-att-r="rg.r" class="o_sd_ring_bg"/>
+                                <circle cx="18" cy="18" t-att-r="rg.r" class="o_sd_ring_fg" t-att-stroke-dasharray="rg.c"
+                                        t-att-stroke-dashoffset="rg.off" transform="rotate(-90 18 18)"/>
+                            </svg>
+                            <span class="o_sd_mc_ring_v"><t t-out="pr.utilisation === null ? '—' : pr.utilisation + '%'"/></span>
+                            <span class="o_sd_mc_ring_l">busy</span>
+                        </div>
+                        <div class="o_sd_mc_stats o_sd_click" t-on-click="() => this.open(pr.models_domain, pr.name + ' — models', pr.models_model)">
+                            <div class="o_sd_click" t-on-click.stop="() => this.open(pr.domain, pr.name + ' — plates', pr.model)">
+                                <b t-out="pr.plates"/><span>plates</span></div>
+                            <div><b t-out="pr.models_done"/><span>printed</span></div>
+                            <div><b t-att-class="{ 'text-danger': pr.models_failed }" t-out="pr.models_failed"/><span>failed</span></div>
+                            <div><b t-out="pr.failure_rate === null ? '—' : pr.failure_rate + '%'"/><span>failure</span></div>
+                            <div><b t-out="this.duration(pr.avg_hours)"/><span>a plate</span></div>
+                            <div><b t-out="pr.estimate_accuracy === null ? '—' : pr.estimate_accuracy + '%'"/><span>of estimate</span></div>
+                        </div>
+                    </div>
+                    <div class="o_sd_mc_foot">
+                        <span t-if="pr.queued" class="o_sd_click" t-on-click="() => this.open(pr.queue_domain, pr.name + ' — planned', pr.queue_model)">
+                            <i class="fa fa-list-ol me-1"/><t t-out="pr.queued"/> planned</span>
+                        <span t-if="pr.resin_ml"><i class="fa fa-flask me-1"/><t t-out="pr.resin_ml"/> mL</span>
+                        <span t-if="pr.last_failure" class="o_sd_mc_fail" t-att-title="'Last failure on ' + pr.last_failure.order">
+                            <i class="fa fa-exclamation-triangle me-1"/><t t-out="pr.last_failure.reason"/> · <t t-out="this.stamp(pr.last_failure.when)"/></span>
+                        <span t-if="!pr.queued and !pr.resin_ml and !pr.last_failure" class="text-muted">no failures on record</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- the machines over the period: the day by hour (with the queue carried forward), or day by day -->
+            <div class="o_sd_panel" t-if="d.timeline.lanes.length">
+                <t t-set="tl" t-value="d.timeline"/>
+                <div class="o_sd_title">
+                    <span t-if="tl.mode === 'hours'"><i class="fa fa-align-left"/> The machines today — and the queue carried forward</span>
+                    <span t-else=""><i class="fa fa-calendar"/> The machines, day by day — hours printing</span>
+                    <span class="o_sd_legend" t-if="tl.mode === 'hours'">
+                        <span class="o_sd_key o_sd_seg_done"/>printed
+                        <span class="o_sd_key o_sd_seg_failed"/>failed
+                        <span class="o_sd_key o_sd_seg_projected"/>to finish
+                        <span class="o_sd_key o_sd_seg_planned"/>planned
+                        <span class="o_sd_key o_sd_seg_suggested"/>ready, would go here
+                        <span class="o_sd_key o_sd_seg_patients"/>patients waiting
+                    </span>
+                </div>
+                <div t-if="tl.mode === 'hours'" class="o_sd_tl">
+                    <div class="o_sd_tl_row o_sd_tl_axis">
+                        <div class="o_sd_tl_name"/>
+                        <div class="o_sd_tl_track">
+                            <span t-foreach="this.axis.hours" t-as="m" t-key="m" class="o_sd_tl_tick" t-attf-style="left: {{ this.x(m) }}%" t-out="this.hhmm(m)"/>
+                        </div>
+                    </div>
+                    <div t-foreach="tl.lanes" t-as="lane" t-key="lane.id" class="o_sd_tl_row" t-att-class="'o_sd_mc_c' + lane.color">
+                        <div class="o_sd_tl_name">
+                            <span class="o_sd_mc_code" t-out="lane.code"/>
+                            <span class="o_sd_tl_meta"><t t-out="this.hm(lane.busy_hours)"/> printing<t t-if="lane.utilisation !== null"> · <t t-out="lane.utilisation"/>%</t></span>
+                        </div>
+                        <div class="o_sd_tl_track">
+                            <span t-foreach="this.axis.hours" t-as="m" t-key="m" class="o_sd_tl_grid" t-attf-style="left: {{ this.x(m) }}%"/>
+                            <span t-foreach="lane.segments" t-as="seg" t-key="seg_index" t-att-class="'o_sd_seg o_sd_seg_' + seg.kind + (this.w(seg.a, seg.b) &lt; 7 ? ' o_sd_seg_narrow' : '')"
+                                  t-attf-style="left: {{ this.x(seg.a) }}%; width: {{ this.w(seg.a, seg.b) }}%"
+                                  t-att-title="this.segTitle(seg)" t-on-click="() => this.openPlate(seg.order_id)">
+                                <span class="o_sd_seg_l"><t t-out="seg.name"/><t t-if="seg.failed"> · <t t-out="seg.failed"/> failed</t></span>
+                            </span>
+                            <span class="o_sd_tl_now" t-attf-style="left: {{ this.x(tl.now) }}%"/>
+                        </div>
+                    </div>
+                </div>
+                <div t-else="" class="o_sd_heat">
+                    <div class="o_sd_heat_row o_sd_heat_head">
+                        <div class="o_sd_tl_name"/>
+                        <div class="o_sd_heat_cells">
+                            <span t-foreach="tl.days" t-as="dd" t-key="dd.date" class="o_sd_heat_day" t-att-class="{ o_sd_heat_sun: dd.dow === 'Sun' }" t-att-title="dd.date">
+                                <t t-out="dd.day"/>
+                            </span>
+                        </div>
+                    </div>
+                    <div t-foreach="tl.lanes" t-as="lane" t-key="lane.id" class="o_sd_heat_row" t-att-class="'o_sd_mc_c' + lane.color">
+                        <div class="o_sd_tl_name">
+                            <span class="o_sd_mc_code" t-out="lane.code"/>
+                            <span class="o_sd_tl_meta"><t t-out="this.hm(lane.busy_hours)"/><t t-if="lane.utilisation !== null"> · <t t-out="lane.utilisation"/>%</t></span>
+                        </div>
+                        <div class="o_sd_heat_cells">
+                            <span t-foreach="lane.cells" t-as="cell" t-key="cell.date" class="o_sd_heat_cell"
+                                  t-att-class="{ o_sd_click: cell.plates, o_sd_heat_zero: !cell.hours }"
+                                  t-attf-style="--a: {{ this.heat(cell) }}%"
+                                  t-att-title="this.day(cell.date) + ': ' + this.hm(cell.hours) + ' printing, ' + cell.plates + ' plate(s) started'"
+                                  t-on-click="() => cell.plates and this.open(cell.domain, lane.code + ' — ' + cell.date, 'lab.scan.print.order')"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="o_sd_grid">
+                <!-- the queue and when it will be printed -->
+                <div class="o_sd_panel">
+                    <t t-set="fc" t-value="d.forecast"/>
+                    <div class="o_sd_title"><i class="fa fa-hourglass-half"/> The queue</div>
+                    <div class="o_sd_fc">
+                        <div class="o_sd_fc_big o_sd_click" t-on-click="() => this.open(fc.domain, 'Waiting for a plate', fc.model)">
+                            <b t-out="fc.patients"/> patients · <b t-out="fc.models"/> models waiting for a plate
+                        </div>
+                        <div class="o_sd_fc_s">
+                            about <b t-out="fc.plates_needed"/> plate(s) of <t t-out="fc.capacity"/>
+                            <t t-if="fc.plated"> + <b t-out="fc.plated"/> already plated</t>
+                            · <t t-out="this.hm(fc.print_hours)"/> of printing at <t t-out="this.hm(fc.pace_hours)"/> a plate
+                        </div>
+                        <div t-if="fc.clears_at" class="o_sd_fc_eta">
+                            <i class="fa fa-flag-checkered me-1"/>All printed by about <b t-out="this.stamp(fc.clears_at)"/>
+                            on <t t-out="fc.machines"/> machine(s) in service
+                        </div>
+                        <div t-elif="!fc.machines and (fc.patients or fc.plated)" class="o_sd_fc_eta o_sd_fc_bad">
+                            <i class="fa fa-exclamation-circle me-1"/>No machine is in service to print them.
+                        </div>
+                        <div class="o_sd_fc_chips">
+                            <span t-if="fc.urgent" class="o_sd_pill o_sd_pill_bad"><i class="fa fa-bolt"/> <t t-out="fc.urgent"/> urgent</span>
+                            <span t-if="fc.replates" class="o_sd_pill o_sd_pill_warn"><i class="fa fa-repeat"/> <t t-out="fc.replates"/> re-plate</span>
+                            <span t-if="fc.due_soon" class="o_sd_pill o_sd_pill_warn"><i class="fa fa-truck"/> <t t-out="fc.due_soon"/> due by tomorrow</span>
+                        </div>
+                    </div>
+                    <div class="o_sd_title mt-3"><i class="fa fa-sort-amount-asc"/> Plate next</div>
+                    <div t-if="!d.print_next.length" class="o_sd_empty">Nobody is waiting for a plate.</div>
+                    <div t-foreach="d.print_next" t-as="pn" t-key="pn.id" class="o_sd_next o_sd_click"
+                         t-on-click="() => this.openRecord('lab.scan', pn.scan_id)">
+                        <span class="o_sd_next_i">
+                            <i t-if="pn.replate" class="fa fa-repeat text-warning" title="Re-plate of a failed model"/>
+                            <i t-elif="pn.urgent" class="fa fa-bolt text-danger" title="Urgent"/>
+                            <span t-else="" class="o_sd_rank" t-out="pn_index + 1"/>
+                        </span>
+                        <span class="o_sd_next_main">
+                            <b t-out="pn.patient || 'Patient'"/>
+                            <span class="text-muted"> · <t t-out="pn.arch"/> · <t t-out="pn.doctor || pn.scan"/></span>
+                        </span>
+                        <span t-if="pn.delivery" class="o_sd_next_due" t-att-class="{ 'text-danger fw-bold': pn.late }">
+                            <i class="fa fa-truck me-1"/><t t-out="this.day(pn.delivery)"/></span>
+                        <span class="o_sd_next_since text-muted" t-if="pn.since">waiting <t t-out="this.since(pn.since)"/></span>
+                    </div>
+                </div>
+
+                <!-- why models fail, and the plate's times -->
+                <div class="o_sd_panel">
+                    <div class="o_sd_title"><i class="fa fa-exclamation-triangle"/> Why models failed</div>
+                    <div t-if="!d.failure_reasons.length" class="o_sd_empty o_sd_good"><i class="fa fa-check-circle me-1"/>No model failed in this period.</div>
+                    <t t-set="reasonCounts" t-value="d.failure_reasons.map((r) => r.count)"/>
+                    <div t-foreach="d.failure_reasons" t-as="r" t-key="r.key" class="o_sd_bar o_sd_click"
+                         t-on-click="() => this.open(r.domain, 'Failed: ' + r.label, d.models_failed_model)">
+                        <span class="o_sd_bar_l" t-att-title="r.label"><t t-out="r.label"/></span>
+                        <span class="o_sd_bar_track"><span class="o_sd_bar_fill o_sd_fill_bad" t-attf-style="width: {{ this.share(r.count, reasonCounts) }}%"/></span>
+                        <span class="o_sd_bar_v"><t t-out="r.count"/> <span class="text-muted">(<t t-out="r.pct"/>%)</span></span>
+                    </div>
+                    <div t-if="d.failed_parts.length" class="o_sd_fc_chips mt-2">
+                        <span class="text-muted small me-1">Which arch:</span>
+                        <span t-foreach="d.failed_parts" t-as="fp" t-key="fp.key" class="o_sd_pill o_sd_click"
+                              t-on-click="() => this.open(fp.domain, 'Failed: ' + fp.label, d.models_failed_model)">
+                            <t t-out="fp.label"/> <b t-out="fp.count"/></span>
+                    </div>
+                    <div class="o_sd_title mt-3"><i class="fa fa-stopwatch fa-clock-o"/> On the plate</div>
+                    <div t-foreach="d.plate_stages" t-as="ps" t-key="ps.key" class="o_sd_row">
+                        <span class="o_sd_row_l">
+                            <t t-out="ps.label"/>
+                            <span t-if="ps.estimated" class="text-muted small ms-1">(the file said <t t-out="this.hm(ps.estimated)"/>)</span>
+                        </span>
+                        <span class="o_sd_row_v"><t t-out="ps.hours === null ? '—' : this.hm(ps.hours)"/></span>
+                        <span class="o_sd_row_n text-muted"><t t-if="ps.count"><t t-out="ps.count"/>×</t></span>
+                    </div>
+                    <div t-if="h.estimate_accuracy !== null" class="text-muted small mt-1">
+                        Plates ran <t t-out="h.estimate_accuracy"/>% of ChituBox's estimate.
+                    </div>
+                </div>
+            </div>
+
+            <!-- the latest plates -->
+            <div class="o_sd_panel" t-if="d.recent_plates.length">
+                <div class="o_sd_title"><i class="fa fa-list"/> The latest plates</div>
+                <div class="o_sd_tablewrap">
+                    <table class="o_sd_table">
+                        <thead><tr><th>Plate</th><th>Machine</th><th>Status</th><th class="text-end">Patients</th><th class="text-end">Models</th><th>Started</th><th>Time</th><th>Result</th></tr></thead>
+                        <tbody>
+                            <tr t-foreach="d.recent_plates" t-as="rp" t-key="rp.id" class="o_sd_click" t-on-click="() => this.openPlate(rp.id)">
+                                <td><i t-if="rp.urgent" class="fa fa-bolt text-danger me-1" title="Urgent"/><b t-out="rp.name"/></td>
+                                <td>
+                                    <span t-if="rp.printer" class="o_sd_mc_code" t-att-class="'o_sd_mc_c' + rp.printer.color" t-att-title="rp.printer.name" t-out="rp.printer.code"/>
+                                    <span t-else="" class="text-muted small">at Start</span>
+                                </td>
+                                <td><span class="o_sd_state" t-att-class="'o_sd_state_' + rp.state" t-out="rp.state_label"/></td>
+                                <td class="text-end" t-out="rp.patients"/>
+                                <td class="text-end" t-out="rp.models"/>
+                                <td class="text-muted" t-out="rp.started ? this.stamp(rp.started) : '—'"/>
+                                <td>
+                                    <t t-if="rp.hours !== null"><t t-out="this.hm(rp.hours)"/><span class="text-muted small" t-if="rp.estimated"> / <t t-out="this.hm(rp.estimated)"/></span></t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td>
+                                    <span t-if="rp.state === 'printing'" class="o_sd_minibar" t-att-class="{ o_sd_minibar_late: rp.late }"><span t-attf-style="width: {{ rp.progress }}%"/></span>
+                                    <span t-elif="rp.state === 'draft' and rp.files_missing" class="o_sd_pill o_sd_pill_bad"><t t-out="rp.files_missing"/> need files</span>
+                                    <span t-elif="rp.state === 'draft' and rp.ready" class="o_sd_pill o_sd_pill_good">ready</span>
+                                    <span t-elif="rp.state === 'draft'" class="o_sd_pill">plating</span>
+                                    <span t-elif="rp.failed" class="o_sd_pill o_sd_pill_bad"><t t-out="rp.failed"/> failed</span>
+                                    <span t-else="" class="o_sd_pill o_sd_pill_good"><i class="fa fa-check"/> clean</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_scan_register.ScanTimerField">
+    <span class="o_scan_timer" t-att-title="this.props.record.data[this.props.name] ? 'Running since ' + this.props.record.data[this.props.name].toFormat('dd MMM HH:mm') : ''">
+        <i class="fa fa-clock-o me-1" t-if="this.state.text"/><t t-out="this.state.text"/>
+    </span>
+</t>
+
+</templates>

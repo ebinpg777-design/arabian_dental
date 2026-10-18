@@ -85,6 +85,104 @@ class TestFinReportFilters(TransactionCase):
                 data, rev = self._rev(options)
                 self.assertAlmostEqual(rev['columns'][0]['value'], self._items_total(options, rev), 2)
 
+    # ------------------------------------------------------------ leaving out
+    # ("add filter in accounting reports to exclude partner or sales route", Ortho 8311b94)
+    def test_leaving_a_partner_out_takes_away_exactly_their_entries(self):
+        everything = self._rev(self.year)[1]['columns'][0]['value']
+        options = dict(self.year, partners=[self.partner.id], partners_exclude=True)
+        _data, rev = self._rev(options)
+        self.assertAlmostEqual(rev['columns'][0]['value'], everything - AMOUNT, 2)
+        self.assertAlmostEqual(self._items_total(options, rev), rev['columns'][0]['value'], 2)
+
+    def test_leaving_out_needs_a_list(self):
+        options = self.engine.normalize(self.pl, dict(self.year, partners_exclude=True, teams_exclude=True))
+        self.assertFalse(options['partners_exclude'] or options['teams_exclude'], "nothing chosen leaves nothing out")
+
+    def _entry(self, partner, amount):
+        """A journal entry crediting the probe income - a receipt-like move with no route of its own."""
+        company = self.env.company
+        other = self.env['account.account'].search([('company_ids', 'in', company.id), ('account_type', '=', 'asset_current')], limit=1)
+        journal = self.env['account.journal'].search([('type', '=', 'general'), ('company_id', '=', company.id)], limit=1)
+        move = self.env['account.move'].create({
+            'move_type': 'entry', 'journal_id': journal.id, 'date': self.today,
+            'line_ids': [(0, 0, {'account_id': self.income.id, 'credit': amount, 'partner_id': partner.id if partner else False, 'name': PROBE}),
+                         (0, 0, {'account_id': other.id, 'debit': amount, 'name': PROBE})]})
+        move.action_post()
+        if 'team_id' in move._fields:
+            self.env.flush_all()
+            self.env.cr.execute("UPDATE account_move SET team_id = NULL WHERE id = %s", (move.id,))
+            move.invalidate_recordset()
+        return move
+
+    def test_leaving_a_route_out_takes_its_invoices_and_its_clinics_receipts(self):
+        # The lab's Sales Route is the clinic's crm.team (sale_custom's res.partner.team_id) and the
+        # invoice's own team_id. Without sale_custom the partner has no route and this cannot run.
+        if 'team_id' not in self.env['account.move']._fields or 'team_id' not in self.env['res.partner']._fields:
+            self.skipTest("no sales routes on this database")
+        route = self.env['crm.team'].create({'name': 'EFR probe route'})
+        clinic = self.env['res.partner'].create({'name': 'EFR Route Clinic', 'team_id': route.id})
+        invoice = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': clinic.id, 'invoice_date': self.today, 'team_id': route.id,
+            'invoice_payment_term_id': False,
+            'invoice_line_ids': [(0, 0, {'product_id': self.product.id, 'name': PROBE, 'quantity': 1, 'price_unit': 500.0,
+                                         'account_id': self.income.id, 'tax_ids': [(5, 0, 0)]})]})
+        invoice.action_post()
+        self.assertEqual(invoice.team_id, route)
+        self._entry(clinic, 70.0)          # no route of its own: it takes its clinic's
+        self._entry(None, 30.0)            # nobody's: there is no route to leave it out by
+        everything = self._rev(self.year)[1]['columns'][0]['value']
+        only = dict(self.year, teams=[route.id])
+        _data, rev = self._rev(only)
+        self.assertAlmostEqual(rev['columns'][0]['value'], 570.0, 2, "the route's invoice AND its clinic's receipt")
+        self.assertAlmostEqual(self._items_total(only, rev), 570.0, 2)
+        out = dict(self.year, teams=[route.id], teams_exclude=True)
+        _data, rev = self._rev(out)
+        self.assertAlmostEqual(rev['columns'][0]['value'], everything - 570.0, 2)
+        self.assertAlmostEqual(self._items_total(out, rev), rev['columns'][0]['value'], 2)
+
+    def test_the_workbook_says_what_is_left_out(self):
+        options = self.engine.normalize(self.pl, dict(self.year, partners=[self.partner.id], partners_exclude=True))
+        self.assertIn('excluding 1 partner(s)', self.pl._options_summary(options))
+        options = self.engine.normalize(self.pl, dict(self.year, teams=[self.env['crm.team'].search([], limit=1).id],
+                                                      teams_exclude=True))
+        if options['teams']:
+            self.assertIn('excluding 1 sales team(s)', self.pl._options_summary(options))
+
+    def test_statements_sent_with_a_partner_left_out_are_each_partners_own(self):
+        """Sending statements with a list left out goes to everybody else - and each
+        statement is that partner's alone, not "everyone but the ones left out"."""
+        from unittest.mock import patch
+        report = self.Report.by_key('customer_statement')
+        if not report:
+            self.skipTest("no statement of account report")
+        receivable = self.env['account.account'].search([('company_ids', 'in', self.env.company.id),
+                                                         ('account_type', '=', 'asset_receivable')], limit=1)
+        other = self.env['res.partner'].create({'name': 'EFR Other Clinic', 'email': 'other@example.com'})
+        self.partner.email = 'probe@example.com'
+        for partner in (self.partner, other):
+            self.env['account.move'].create({
+                'move_type': 'out_invoice', 'partner_id': partner.id, 'invoice_date': self.today,
+                'invoice_payment_term_id': False,
+                'invoice_line_ids': [(0, 0, {'product_id': self.product.id, 'name': PROBE, 'quantity': 1,
+                                             'price_unit': 10.0, 'account_id': self.income.id, 'tax_ids': [(5, 0, 0)]})],
+            }).action_post()
+        self.assertTrue(receivable)
+        seen = []
+        Report = type(self.env['ir.actions.report'])
+
+        def fake(this, report_ref, res_ids=None, data=None):
+            seen.append(data['options'])
+            return b'%PDF-1.4 probe', 'pdf'
+
+        with patch.object(Report, '_render_qweb_pdf', fake):
+            report.action_send_statements(dict(self.year, partners=[self.partner.id], partners_exclude=True))
+        sent_to = [o['partners'][0] for o in seen]
+        self.assertIn(other.id, sent_to)
+        self.assertNotIn(self.partner.id, sent_to, "the partner left out gets no statement")
+        for o in seen:
+            self.assertEqual(len(o['partners']), 1)
+            self.assertFalse(o.get('partners_exclude'), "a statement reads its own partner, not everyone else")
+
     def test_the_amount_band_keeps_and_drops_the_entry(self):
         base = dict(self.year, partner_categories=[self.tag.id])
         self.assertAlmostEqual(self._rev(dict(base, amount_min=1000, amount_max=2000))[1]['columns'][0]['value'], AMOUNT, 2)

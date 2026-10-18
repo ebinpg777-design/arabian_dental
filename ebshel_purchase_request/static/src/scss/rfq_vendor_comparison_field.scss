@@ -1,0 +1,461 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  RFQ Vendor Comparison Field Widget (embedded in RFQ form)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The Odoo field wrapper must span the full page width, otherwise the card
+// grid collapses to a single narrow column.
+.o_field_rfq_vendor_comparison {
+    width:   100%;
+    display: block;
+}
+
+.rvc-widget {
+    --rvc-card:    #ffffff;
+    --rvc-border:  #e2e8f0;
+    --rvc-radius:  14px;
+    --rvc-green:   #16a34a;
+    --rvc-gold:    #f59e0b;
+    --rvc-blue:    #2563eb;
+    --rvc-danger:  #dc2626;
+
+    width: 100%;
+    padding: 4px 0;
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.rvc-empty {
+    text-align: center;
+    padding:    40px 20px;
+    color:      #94a3b8;
+
+    .rvc-empty-icon  { font-size: 44px; margin-bottom: 10px; }
+    .rvc-empty-title { font-size: 15px; font-weight: 700; color: #475569; }
+    .rvc-empty-sub   { font-size: 13px; margin-top: 4px; }
+}
+
+// ── Savings strip ─────────────────────────────────────────────────────────────
+.rvc-savings {
+    display:       flex;
+    align-items:   center;
+    gap:           10px;
+    padding:       10px 16px;
+    margin-bottom: 16px;
+    background:    linear-gradient(90deg, #f0fdf4, #ecfdf5);
+    border:        1px solid #bbf7d0;
+    border-left:   4px solid var(--rvc-green);
+    border-radius: 8px;
+    font-size:     13px;
+    color:         #166534;
+
+    .rvc-savings-icon   { font-size: 18px; }
+    .rvc-savings-amount { color: var(--rvc-green); font-weight: 800; }
+    .rvc-savings-count  {
+        margin-left: auto;
+        font-size:   11px;
+        color:       #64748b;
+        white-space: nowrap;
+    }
+}
+
+// ── Grid of cards ─────────────────────────────────────────────────────────────
+.rvc-grid {
+    display:               grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap:                   18px;
+    align-items:           stretch;   // equal-height cards across the row
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+.rvc-card {
+    position:        relative;
+    display:         flex;
+    flex-direction:  column;
+    height:          100%;
+    background:      var(--rvc-card);
+    border:          1px solid var(--rvc-border);
+    border-radius:   var(--rvc-radius);
+    padding:         18px 16px 14px;
+    overflow:        hidden;
+    box-shadow:      0 1px 3px rgba(15, 23, 42, 0.06);
+    transition:      transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+
+    // Decorative top accent strip — neutral by default, themed per state.
+    &::before {
+        content:    "";
+        position:   absolute;
+        top:        0; left: 0; right: 0;
+        height:     4px;
+        background: linear-gradient(90deg, #cbd5e1, #e2e8f0);
+    }
+
+    &--best {
+        border-color: rgba(22, 163, 74, 0.45);
+        background:   linear-gradient(165deg, #ffffff 55%, #f0fdf4);
+        &::before { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    }
+
+    &--winner {
+        border-color: var(--rvc-gold);
+        box-shadow:   0 0 0 3px rgba(245, 158, 11, 0.18);
+        background:   linear-gradient(165deg, #ffffff 45%, #fffbeb);
+        padding-top:  34px;   // room for crown banner
+        &::before { display: none; }   // crown banner replaces the accent strip
+    }
+
+    &--new::before { background: linear-gradient(90deg, #fb923c, #f97316); }
+
+    &--hover {
+        transform:  translateY(-4px);
+        box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+    }
+
+    &--rejected {
+        opacity: 0.62;
+        filter:  grayscale(0.3);
+    }
+
+    &--new {
+        background: linear-gradient(165deg, #ffffff 55%, #fff7ed);
+    }
+}
+
+// Winner crown banner
+.rvc-crown {
+    position:       absolute;
+    top:            0;
+    left:           0;
+    right:          0;
+    background:     linear-gradient(90deg, var(--rvc-gold), #ea580c);
+    color:          #fff;
+    font-size:      11px;
+    font-weight:    800;
+    letter-spacing: 1.5px;
+    text-align:     center;
+    padding:        5px;
+    animation:      rvc-shine 2.5s linear infinite;
+    background-size: 200% auto;
+}
+
+@keyframes rvc-shine {
+    to { background-position: 200% center; }
+}
+
+// Rank medal
+.rvc-rank {
+    position:   absolute;
+    top:        10px;
+    right:      12px;
+    font-size:  22px;
+    line-height: 1;
+}
+
+// New flag
+.rvc-new-flag {
+    position:      absolute;
+    top:           12px;
+    left:          12px;
+    background:    #f97316;
+    color:         #fff;
+    font-size:     9px;
+    font-weight:   800;
+    letter-spacing: 1px;
+    padding:       2px 6px;
+    border-radius: 4px;
+}
+
+// Vendor name — prominent card header with an icon chip
+.rvc-vendor {
+    display:       flex;
+    align-items:   center;
+    gap:           9px;
+    margin-bottom: 12px;
+    padding-right: 34px;   // keep clear of the rank medal / new flag
+
+    .rvc-vendor-icon {
+        font-size:       15px;
+        width:           32px;
+        height:          32px;
+        flex-shrink:     0;
+        display:         inline-flex;
+        align-items:     center;
+        justify-content: center;
+        background:      #f1f5f9;
+        border-radius:   9px;
+    }
+    .rvc-vendor-name {
+        font-size:     15px;
+        font-weight:   800;
+        color:         #0f172a;
+        line-height:   1.2;
+        word-break:    break-word;
+    }
+}
+
+// Total
+.rvc-total {
+    font-size:      24px;
+    font-weight:    800;
+    color:          #0f172a;
+    line-height:    1.1;
+    letter-spacing: -0.5px;
+
+    .rvc-card--best & { color: var(--rvc-green); }
+}
+
+.rvc-untaxed {
+    font-size:  11px;
+    color:      #94a3b8;
+    margin-top: 2px;
+}
+
+// Price bar
+.rvc-pricebar-track {
+    height:        6px;
+    background:    #f1f5f9;
+    border-radius: 3px;
+    overflow:      hidden;
+    margin:        10px 0;
+}
+
+.rvc-pricebar-fill {
+    height:        100%;
+    background:    linear-gradient(90deg, #f59e0b, #ef4444);
+    border-radius: 3px;
+    transition:    width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &--best {
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+    }
+}
+
+// Badges
+.rvc-badges {
+    display:   flex;
+    flex-wrap: wrap;
+    gap:       5px;
+    margin:    8px 0;
+    min-height: 4px;
+}
+
+.rvc-badge {
+    display:       inline-flex;
+    align-items:   center;
+    gap:           3px;
+    padding:       2px 8px;
+    border-radius: 20px;
+    font-size:     10px;
+    font-weight:   700;
+
+    &--price { background: #dcfce7; color: #166534; }
+    &--delta { background: #fef2f2; color: var(--rvc-danger); border: 1px solid #fecaca; }
+    &--fast  { background: #dbeafe; color: #1d4ed8; }
+    &--score { background: #fef3c7; color: #92400e; }
+}
+
+// Metrics
+.rvc-metrics {
+    display:               grid;
+    grid-template-columns: 1fr 1fr;
+    gap:                   8px;
+    padding:               8px 0;
+    border-top:            1px solid #f1f5f9;
+}
+
+.rvc-metric {
+    display:        flex;
+    flex-direction: column;
+    gap:            2px;
+
+    .rvc-metric-label {
+        font-size:      10px;
+        color:          #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .rvc-metric-value {
+        font-size:     12px;
+        font-weight:   600;
+        color:         #334155;
+        overflow:      hidden;
+        text-overflow: ellipsis;
+        white-space:   nowrap;
+    }
+}
+
+// Score gauge
+.rvc-score-row {
+    display:     flex;
+    align-items: center;
+    gap:         8px;
+    margin-top:  6px;
+
+    .rvc-score-label { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
+    .rvc-score-num   { font-size: 12px; font-weight: 700; color: #334155; flex-shrink: 0; }
+}
+
+.rvc-score-track {
+    flex:          1;
+    height:        6px;
+    background:    #f1f5f9;
+    border-radius: 3px;
+    overflow:      hidden;
+}
+
+.rvc-score-fill {
+    height:        100%;
+    background:    linear-gradient(90deg, #3b82f6, #8b5cf6);
+    border-radius: 3px;
+    transition:    width 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
+}
+
+// Justification (shown for winner)
+.rvc-justify-shown {
+    display:       flex;
+    gap:           6px;
+    margin-top:    10px;
+    padding:       8px 10px;
+    background:    #fffbeb;
+    border-left:   3px solid var(--rvc-gold);
+    border-radius: 0 6px 6px 0;
+    font-size:     11px;
+    color:         #92400e;
+
+    .rvc-justify-icon { flex-shrink: 0; }
+    em { font-style: italic; }
+}
+
+// Actions — pinned to the card bottom so buttons line up across equal-height cards
+.rvc-actions {
+    display:        flex;
+    flex-direction: column;
+    gap:            7px;
+    margin-top:     auto;
+    padding-top:    12px;
+    border-top:     1px solid #f1f5f9;
+}
+
+.rvc-justify-input {
+    width:         100%;
+    padding:       7px 10px;
+    border:        1px solid #c7d2fe;
+    border-radius: 6px;
+    font-size:     12px;
+    resize:        vertical;
+    outline:       none;
+    font-family:   inherit;
+
+    &:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15); }
+}
+
+.rvc-justify-btns {
+    display: flex;
+    gap:     6px;
+}
+
+.rvc-btn {
+    flex:          1;
+    min-width:     0;
+    max-width:     100%;
+    padding:       8px 12px;
+    border:        none;
+    border-radius: 6px;
+    font-size:     12px;
+    font-weight:   700;
+    cursor:        pointer;
+    transition:    all 0.15s;
+    white-space:   nowrap;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+
+    &--crown {
+        background: linear-gradient(135deg, var(--rvc-gold), #ea580c);
+        color:      #fff;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+
+        &:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(245, 158, 11, 0.45); }
+        &[disabled] { opacity: 0.5; cursor: not-allowed; }
+    }
+
+    &--ghost {
+        flex:       0 0 auto;
+        background: transparent;
+        border:     1px solid var(--rvc-border);
+        color:      #64748b;
+
+        &:hover { background: #f8fafc; color: #1e293b; }
+    }
+
+    &--order {
+        background: linear-gradient(135deg, var(--rvc-green), #15803d);
+        color:      #fff;
+        box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+
+        &:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.45); }
+        &[disabled] { opacity: 0.5; cursor: not-allowed; }
+    }
+
+    &--po {
+        flex:       0 0 auto;
+        background: linear-gradient(135deg, var(--rvc-blue), #1d4ed8);
+        color:      #fff;
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+
+        &:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.45); }
+        &[disabled] { opacity: 0.5; cursor: not-allowed; }
+    }
+}
+
+// Crown / Award & Order buttons inside a card footer. Stacked vertically so the
+// labels never overflow the (narrow) vendor card, regardless of translation/zoom.
+.rvc-award-btns {
+    display:        flex;
+    flex-direction: column;
+    gap:            6px;
+    width:          100%;
+
+    .rvc-btn {
+        flex:  0 0 auto;
+        width: 100%;
+    }
+}
+
+// ── Status toolbar (award / order banner above the cards) ─────────────────────
+.rvc-toolbar {
+    display:        flex;
+    align-items:    center;
+    gap:            12px;
+    flex-wrap:      wrap;
+    padding:        12px 16px;
+    margin-bottom:  16px;
+    background:     linear-gradient(90deg, #eff6ff, #f0f9ff);
+    border:         1px solid #bfdbfe;
+    border-left:    4px solid var(--rvc-blue);
+    border-radius:  10px;
+
+    .rvc-status {
+        font-size:   14px;
+        font-weight: 600;
+        color:       #1e3a8a;
+
+        &--po  { color: #166534; }
+        &--won { color: #92400e; }
+    }
+
+    .rvc-btn--po { margin-left: auto; }
+}
+
+.rvc-winner-tag {
+    flex:          1;
+    text-align:    center;
+    padding:       8px;
+    background:    #dcfce7;
+    color:         #166534;
+    border-radius: 6px;
+    font-size:     12px;
+    font-weight:   700;
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 600px) {
+    .rvc-grid { grid-template-columns: 1fr; }
+}

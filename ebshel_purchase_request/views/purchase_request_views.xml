@@ -1,0 +1,932 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE REQUEST – Form View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_request_form" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.form</field>
+        <field name="model">ebshel.purchase.request</field>
+        <field name="arch" type="xml">
+            <form string="Purchase Request">
+                <header>
+                    <field name="budget_approval_required" invisible="1"/>
+                    <field name="budget_approval_blocked" invisible="1"/>
+                    <field name="budget_approval_state" invisible="1"/>
+                    <field name="pr_for_amount_exceed_budget" invisible="1"/>
+                    <button name="action_submit" string="Submit for Approval"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft' or budget_approval_required or budget_approval_blocked"/>
+                    <button name="action_request_budget_approval"
+                            string="Request Budget Approval"
+                            type="object" class="btn-warning"
+                            invisible="state != 'draft' or not budget_approval_required or budget_approval_state == 'pending'"/>
+                    <button name="action_budget_approve" string="Approve Budget"
+                            type="object" class="btn-success"
+                            invisible="budget_approval_state != 'pending'"
+                            groups="ebshel_purchase_request.group_pr_admin"/>
+                    <button name="action_budget_reject" string="Reject Budget"
+                            type="object" class="btn-danger"
+                            invisible="budget_approval_state != 'pending'"
+                            groups="ebshel_purchase_request.group_pr_admin"/>
+                    <button name="action_approve" string="Approve"
+                            type="object" class="btn-success"
+                            invisible="state != 'submitted'"
+                            groups="ebshel_purchase_request.group_pr_approver"/>
+                    <button name="action_reject" string="Reject"
+                            type="object" class="btn-danger"
+                            invisible="state != 'submitted'"
+                            groups="ebshel_purchase_request.group_pr_approver"/>
+                    <field name="company_allow_product_change" invisible="1"/>
+                    <field name="has_product_change_line" invisible="1"/>
+                    <button name="action_open_product_change" string="Alter Product"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'submitted' or not company_allow_product_change or not has_product_change_line"
+                            groups="ebshel_purchase_request.group_pr_approver"/>
+                    <button name="action_create_rfq" string="Create RFQ"
+                            type="object" class="btn-primary"
+                            invisible="state != 'approved'"
+                            groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+                    <field name="allow_approved_qty_edit" invisible="1"/>
+                    <button name="action_open_edit_qty" string="Update Quantities"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'approved' or not allow_approved_qty_edit"
+                            groups="ebshel_purchase_request.group_pr_manager"/>
+                    <button name="action_reset_to_draft" string="Reset to Draft"
+                            type="object"
+                            invisible="state not in ('rejected', 'cancelled')"/>
+                    <button name="action_cancel" string="Cancel"
+                            type="object"
+                            invisible="state in ('cancelled', 'closed','approved')"
+                            groups="ebshel_purchase_request.group_pr_manager"/>
+                    <button name="action_close" string="Close"
+                            type="object"
+                            invisible="state != 'approved'"
+                            groups="ebshel_purchase_request.group_pr_manager"/>
+                    <button name="action_department_insight" string="📊 Department Insight"
+                            type="object" class="btn-secondary"
+                            invisible="analytic_account_id == False"
+                            groups="ebshel_purchase_request.group_pr_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,approved,closed"/>
+                </header>
+                <sheet>
+                    <!-- Status ribbon -->
+                    <widget name="web_ribbon" title="Approved" bg_color="text-bg-success"
+                            invisible="state != 'approved'"/>
+                    <widget name="web_ribbon" title="Closed" bg_color="text-bg-secondary"
+                            invisible="state != 'closed'"/>
+                    <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger"
+                            invisible="state != 'rejected'"/>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-secondary"
+                            invisible="state != 'cancelled'"/>
+                    <!-- Smart buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_rfqs" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="rfq_count == 0">
+                            <field name="rfq_count" string="RFQs" widget="statinfo"/>
+                        </button>
+                        <button name="action_view_quotations" type="object"
+                                class="oe_stat_button" icon="fa-list-alt"
+                                invisible="quotation_count == 0">
+                            <field name="quotation_count" string="Quotations" widget="statinfo"/>
+                        </button>
+                        <button name="action_view_purchase_orders" type="object"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="po_count == 0">
+                            <field name="po_count" string="POs" widget="statinfo"/>
+                        </button>
+                        <button name="action_view_stock_moves" type="object"
+                                class="oe_stat_button" icon="fa-truck"
+                                invisible="move_count == 0">
+                            <field name="move_count" string="Receipts" widget="statinfo"/>
+                        </button>
+                        <button name="action_view_allocations" type="object"
+                                class="oe_stat_button" icon="fa-sitemap"
+                                invisible="allocation_count == 0">
+                            <field name="allocation_count" string="Allocations" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <!-- Rejection banner -->
+                    <div class="alert alert-danger" role="alert"
+                         invisible="state != 'rejected'">
+                        <strong>Rejected:</strong>
+                        <field name="rejection_reason" readonly="1" nolabel="1"/>
+                    </div>
+                    <!-- Approval progress banner -->
+                    <div class="alert alert-info d-flex align-items-center" role="alert"
+                         invisible="state != 'submitted'">
+                        <span class="me-2" style="font-size:18px;">⏳</span>
+                        <div>
+                            <strong>Awaiting approval.</strong>
+                            <span invisible="not pending_approver_ids"> Pending approver(s): </span>
+                            <field name="pending_approver_ids" widget="many2many_tags"
+                                   readonly="1" nolabel="1" class="d-inline-block align-middle" force_save="1"/>
+                            <field name="current_approval_level" invisible="1" force_save="1"/>
+                        </div>
+                    </div>
+
+                    <!-- ══ PR Cockpit — live, data-driven insight band ═══════════ -->
+                    <field name="required_state" invisible="1"/>
+                    <field name="dept_has_budget" invisible="1"/>
+                    <field name="dept_over_budget" invisible="1"/>
+                    <div class="d-flex flex-wrap gap-2 mb-3 mt-2"
+                         invisible="state in ('rejected', 'cancelled')">
+
+                        <!-- Workflow progress -->
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-flag-checkered me-1"/>Progress
+                            </div>
+                            <field name="progress_pct" widget="progressbar" readonly="1" nolabel="1"/>
+                        </div>
+
+                        <!-- Estimated value -->
+                        <div class="flex-grow-1 border rounded-3 p-2 bg-light" style="min-width:160px">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-money me-1"/>Estimated Value
+                            </div>
+                            <div class="fs-5 fw-bold text-primary">
+                                <field name="amount_total" readonly="1" class="oe_inline"/>
+                            </div>
+                            <small class="text-muted">
+                                <field name="line_count" readonly="1" class="oe_inline"/> line(s)
+                            </small>
+                        </div>
+
+                        <!-- Required-by countdown -->
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
+                             invisible="required_state == 'none'">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-calendar me-1"/>Required By
+                            </div>
+                            <div>
+                                <field name="date_required" readonly="1" class="oe_inline"/>
+                            </div>
+                            <span class="badge text-bg-danger" invisible="required_state != 'overdue'">
+                                <i class="fa fa-exclamation-circle me-1"/>Overdue
+                            </span>
+                            <span class="badge text-bg-danger" invisible="required_state != 'today'">Due today</span>
+                            <span class="badge text-bg-warning" invisible="required_state != 'soon'">
+                                <field name="days_to_required" readonly="1" class="oe_inline"/> day(s) left
+                            </span>
+                            <span class="badge text-bg-success" invisible="required_state != 'ok'">
+                                <field name="days_to_required" readonly="1" class="oe_inline"/> days left
+                            </span>
+                        </div>
+
+                        <!-- Fulfilment -->
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
+                             invisible="po_count == 0">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-truck me-1"/>Received
+                            </div>
+                            <field name="fulfilment_pct" widget="progressbar" readonly="1" nolabel="1"/>
+                            <small class="text-muted">of ordered quantity</small>
+                        </div>
+
+                        <!-- Department / cost-centre budget (current period) -->
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:200px"
+                             invisible="not dept_has_budget">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-pie-chart me-1"/>Dept Budget
+                            </div>
+                            <field name="dept_budget_usage_pct" widget="progressbar"
+                                   readonly="1" nolabel="1"/>
+                            <small class="d-block">
+                                <field name="dept_budget_available" readonly="1" class="oe_inline fw-bold"/>
+                                <span class="text-muted"> left of </span>
+                                <field name="dept_budget_amount" readonly="1" class="oe_inline"/>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Over-budget: company forbids over-budget requests (hard block) -->
+                    <div class="alert alert-danger d-flex align-items-center mb-2" role="alert"
+                         invisible="not budget_approval_blocked or state in ('rejected', 'cancelled', 'closed')">
+                        <i class="fa fa-exclamation-triangle fa-lg me-2"/>
+                        <span>This request
+                            (<field name="amount_total" readonly="1" class="oe_inline fw-bold"/>)
+                            exceeds the budget still available for
+                            <field name="analytic_account_id" readonly="1" class="oe_inline fw-bold"/>
+                            (<field name="dept_budget_available" readonly="1" class="oe_inline fw-bold"/>).
+                            Over-budget purchase requests are not allowed — reduce the total to within budget.
+                        </span>
+                    </div>
+                    <!-- Over-budget: needs administrator budget approval before submitting -->
+                    <div class="alert alert-warning d-flex align-items-center mb-2" role="alert"
+                         invisible="not budget_approval_required or budget_approval_state == 'pending' or state != 'draft'">
+                        <i class="fa fa-exclamation-triangle fa-lg me-2"/>
+                        <span>This request
+                            (<field name="amount_total" readonly="1" class="oe_inline fw-bold"/>)
+                            exceeds the available budget for
+                            <field name="analytic_account_id" readonly="1" class="oe_inline fw-bold"/>
+                            (<field name="dept_budget_available" readonly="1" class="oe_inline fw-bold"/>)
+                            and requires administrator approval. Click <b>Request Budget Approval</b> to send it for review.
+                        </span>
+                    </div>
+                    <!-- Over-budget: awaiting administrator budget approval -->
+                    <div class="alert alert-info d-flex align-items-center mb-2" role="alert"
+                         invisible="budget_approval_state != 'pending'">
+                        <span class="me-2" style="font-size:18px;">⏳</span>
+                        <span>Awaiting administrator <b>budget approval</b> — this request exceeds the department budget.</span>
+                    </div>
+                    <!-- Over-budget: budget approved, may now submit -->
+                    <div class="alert alert-success d-flex align-items-center mb-2" role="alert"
+                         invisible="budget_approval_state != 'approved' or not dept_over_budget or state != 'draft' or budget_approval_required">
+                        <i class="fa fa-check-circle fa-lg me-2"/>
+                        <span>Budget exceed <b>approved</b>
+                            <span invisible="not budget_approved_by">by <field name="budget_approved_by" readonly="1" class="oe_inline fw-bold"/></span>.
+                            You may now submit this request for approval.
+                        </span>
+                    </div>
+                    <!-- Over-budget: budget rejected -->
+                    <div class="alert alert-danger d-flex align-items-center mb-2" role="alert"
+                         invisible="budget_approval_state != 'rejected' or state != 'draft'">
+                        <i class="fa fa-ban fa-lg me-2"/>
+                        <span>Budget exceed <b>rejected</b>. Reduce the request total to within the department budget before submitting.</span>
+                    </div>
+
+                    <group>
+                        <group string="Request Details" >
+                            <field name="description" readonly="state != 'draft'"/>
+                            <field name="priority" widget="priority" readonly="state != 'draft'"/>
+                            <field name="source" readonly="state != 'draft'"/>
+                            <field name="origin" placeholder="e.g. JC-2025/0089"
+                                   invisible="source == 'manual'" readonly="state != 'draft'"/>
+                            <field name="requester_id" readonly="state != 'draft'" options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="analytic_account_id" readonly="state != 'draft'" options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="product_category_id" readonly="state != 'draft'"
+                                   options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Dates">
+                            <field name="date_request" readonly="state != 'draft'"/>
+                            <field name="date_required" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Product Lines" name="lines">
+                            <field name="line_ids" widget="one2many" readonly="state != 'draft'">
+                                <list editable="bottom" optional="show"
+                                      decoration-muted="cancelled == True">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="cancelled" column_invisible="True"/>
+                                    <field name="product_id"
+                                           domain="[('purchase_ok', '=', True)] + ([('categ_id', 'child_of', parent.product_category_id)] if parent.product_category_id else [])"
+                                           options="{'no_create': True, 'no_edit': True}"/>
+                                    <field name="name" optional="show"/>
+                                    <field name="qty"/>
+                                    <field name="uom_id" options="{'no_create': True, 'no_edit': True}"/>
+                                    <field name="price_unit"/>
+                                    <field name="estimated_total" sum="Total"/>
+                                    <field name="purchased_qty" optional="show"
+                                           string="Ordered"/>
+                                    <field name="qty_done" optional="show"
+                                           string="Received"/>
+                                    <field name="qty_invoiced" optional="show"
+                                           string="Billed"/>
+                                    <field name="pending_qty_to_receive" optional="show"
+                                           string="Pending"
+                                           decoration-warning="pending_qty_to_receive &gt; 0"/>
+                                    <field name="date_required"/>
+                                    <field name="allow_product_change" optional="show"
+                                           string="Allow Product Alter"/>
+                                    <field name="suggested_product_id" optional="show"
+                                           readonly="1" string="Suggested Product"
+                                           decoration-warning="suggested_product_id != False"/>
+                                    <field name="analytic_account_id" optional="hide" options="{'no_create': True, 'no_edit': True}"/>
+                                    <field name="analytic_distribution" optional="show"
+                                           widget="analytic_distribution"/>
+                                    <field name="remarks" optional="hide"/>
+                                    <field name="purchase_state" widget="badge" optional="show"
+                                           decoration-info="purchase_state in ('draft','sent')"
+                                           decoration-warning="purchase_state == 'to approve'"
+                                           decoration-success="purchase_state in ('purchase','done')"
+                                           decoration-danger="purchase_state == 'cancel'"/>
+                                    <field name="reception_status" widget="badge" optional="show"
+                                           decoration-muted="reception_status == 'nothing'"
+                                           decoration-warning="reception_status == 'partial'"
+                                           decoration-success="reception_status == 'full'"/>
+                                    <field name="billing_status" widget="badge" optional="show"
+                                           decoration-muted="billing_status == 'nothing'"
+                                           decoration-warning="billing_status == 'partial'"
+                                           decoration-success="billing_status == 'full'"/>
+                                    <field name="state" optional="hide"/>
+                                    <button name="do_cancel" type="object" icon="fa-times"
+                                            title="Cancel line"
+                                            invisible="cancelled == True or parent.state in ('approved', 'closed')"/>
+                                    <button name="do_uncancel" type="object" icon="fa-undo"
+                                            title="Restore line"
+                                            invisible="cancelled == False or parent.state in ('approved', 'closed')"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                                <form string="Request Line">
+                                    <div class="oe_button_box" name="button_box">
+                                        <button name="action_view_rfqs" type="object"
+                                                class="oe_stat_button" icon="fa-file-text-o"
+                                                invisible="rfq_count == 0">
+                                            <field name="rfq_count" string="RFQs" widget="statinfo"/>
+                                        </button>
+                                        <button name="action_view_purchase_orders" type="object"
+                                                class="oe_stat_button" icon="fa-shopping-cart"
+                                                invisible="po_count == 0">
+                                            <field name="po_count" string="POs" widget="statinfo"/>
+                                        </button>
+                                        <button name="action_view_allocations" type="object"
+                                                class="oe_stat_button" icon="fa-sitemap"
+                                                invisible="allocation_count == 0">
+                                            <field name="allocation_count" string="Allocations" widget="statinfo"/>
+                                        </button>
+                                    </div>
+                                    <group>
+                                        <group string="Product">
+                                            <field name="product_id"
+                                                   domain="[('purchase_ok', '=', True)] + ([('categ_id', 'child_of', parent.product_category_id)] if parent.product_category_id else [])"/>
+                                            <field name="name"/>
+                                            <field name="qty"/>
+                                            <field name="uom_id"/>
+                                            <field name="allow_product_change"/>
+                                            <field name="suggested_product_id" readonly="1"
+                                                   invisible="not suggested_product_id"/>
+                                        </group>
+                                        <group string="Estimates">
+                                            <field name="price_unit"/>
+                                            <field name="estimated_total"/>
+                                            <field name="currency_id" invisible="1"/>
+                                            <field name="date_required"/>
+                                        </group>
+                                    </group>
+                                    <group>
+                                        <group string="Classification">
+                                            <field name="analytic_account_id"/>
+                                            <field name="analytic_distribution"
+                                                   widget="analytic_distribution"/>
+                                        </group>
+                                        <group string="Additional">
+                                            <field name="remarks"/>
+                                            <field name="state" readonly="1"/>
+                                        </group>
+                                    </group>
+                                    <group string="Specifications">
+                                        <field name="specifications" nolabel="1"
+                                               placeholder="Detailed specs, brand, model…"/>
+                                    </group>
+                                    <group string="Fulfilment" invisible="po_line_id == False and rfq_count == 0">
+                                        <field name="po_line_id" readonly="1"/>
+                                        <field name="purchased_qty" readonly="1"/>
+                                        <field name="qty_done" readonly="1"/>
+                                        <field name="pending_qty_to_receive" readonly="1"/>
+                                        <field name="purchase_state" readonly="1"/>
+                                        <field name="rfq_count" readonly="1"/>
+                                    </group>
+                                </form>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="amount_total" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                        <page string="Fulfilment" name="fulfilment"
+                              invisible="move_count == 0 and po_count == 0">
+                            <field name="line_ids" mode="list" readonly="1" nolabel="1">
+                                <list string="Fulfilment" create="false" delete="false"
+                                      decoration-success="pending_qty_to_receive == 0 and purchased_qty &gt; 0"
+                                      decoration-warning="pending_qty_to_receive &gt; 0 and purchased_qty &gt; 0">
+                                    <field name="product_id"/>
+                                    <field name="qty" string="Requested"/>
+                                    <field name="purchased_qty" string="Ordered"/>
+                                    <field name="qty_in_progress" string="In Transit"/>
+                                    <field name="qty_done" string="Received"/>
+                                    <field name="qty_invoiced" string="Billed"/>
+                                    <field name="pending_qty_to_receive" string="Pending"/>
+                                    <field name="uom_id"/>
+                                    <field name="purchase_state" widget="badge" string="PO"
+                                           decoration-info="purchase_state in ('draft','sent')"
+                                           decoration-warning="purchase_state == 'to approve'"
+                                           decoration-success="purchase_state in ('purchase','done')"
+                                           decoration-danger="purchase_state == 'cancel'"/>
+                                    <field name="reception_status" widget="badge"
+                                           decoration-muted="reception_status == 'nothing'"
+                                           decoration-warning="reception_status == 'partial'"
+                                           decoration-success="reception_status == 'full'"/>
+                                    <field name="billing_status" widget="badge"
+                                           decoration-muted="billing_status == 'nothing'"
+                                           decoration-warning="billing_status == 'partial'"
+                                           decoration-success="billing_status == 'full'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Approval History" name="approval_log">
+                            <field name="approval_log_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="approver_id"/>
+                                    <field name="action"/>
+                                    <field name="level_name"/>
+                                    <field name="comments"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes" placeholder="Internal notes…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE REQUEST – List View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_request_list" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.list</field>
+        <field name="model">ebshel.purchase.request</field>
+        <field name="arch" type="xml">
+            <list string="Purchase Requests" js_class="pr_dashboard_list"
+                  decoration-danger="priority == '2'"
+                  decoration-warning="priority == '1'"
+                  decoration-muted="state in ('cancelled', 'closed')">
+                <header>
+                    <button name="action_open_create_rfq_wizard" type="object"
+                            string="Create RFQ" class="btn-primary" data-hotkey="q"
+                            groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+                </header>
+                <field name="name"/>
+                <field name="description"/>
+                <field name="source" widget="badge" optional="show"
+                       decoration-info="source == 'auto_reorder'"
+                       decoration-warning="source == 'job_card'"
+                       decoration-success="source == 'oem'"/>
+                <field name="requester_id"/>
+                <field name="analytic_account_id" optional="show"/>
+                <field name="pending_approver_ids" widget="many2many_tags"
+                       string="Awaiting" optional="hide"/>
+                <field name="date_request"/>
+                <field name="date_required" optional="show"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="rfq_count" optional="show"/>
+                <field name="po_count" optional="show"/>
+                <field name="priority" widget="priority" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state in ('approved', 'closed')"
+                       decoration-danger="state in ('rejected', 'cancelled')"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE REQUEST – Kanban View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_request_kanban" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.kanban</field>
+        <field name="model">ebshel.purchase.request</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_mobile"
+                    quick_create="false">
+                <field name="name"/>
+                <field name="state"/>
+                <field name="priority"/>
+                <field name="requester_id"/>
+                <field name="analytic_account_id"/>
+                <field name="amount_total"/>
+                <field name="currency_id"/>
+                <field name="date_required"/>
+                <field name="rfq_count"/>
+                <field name="po_count"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="name"/>
+                                    </strong>
+                                </div>
+                                <field name="priority" widget="priority"/>
+                            </div>
+                            <div>
+                                <field name="description" class="text-muted"/>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <field name="requester_id" widget="many2one_avatar_user"/>
+                                </div>
+                                <div class="oe_kanban_bottom_right text-end">
+                                    <field name="amount_total" widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE REQUEST – Search View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_request_search" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.search</field>
+        <field name="model">ebshel.purchase.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Purchase Requests">
+                <field name="name" string="Reference"/>
+                <field name="description"/>
+                <field name="requester_id"/>
+                <field name="analytic_account_id"/>
+                <!-- Filters -->
+                <filter name="my_requests" string="My Requests"
+                        domain="[('requester_id', '=', uid)]"/>
+                <separator/>
+                <filter name="draft" string="Draft"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="submitted" string="Submitted"
+                        domain="[('state', '=', 'submitted')]"/>
+                <filter name="approved" string="Approved"
+                        domain="[('state', '=', 'approved')]"/>
+                <filter name="rejected" string="Rejected"
+                        domain="[('state', '=', 'rejected')]"/>
+                <filter name="closed" string="Closed"
+                        domain="[('state', '=', 'closed')]"/>
+                <filter name="pending_approval" string="Pending My Approval"
+                        domain="[('state', '=', 'submitted'), ('pending_approver_ids', 'in', [uid])]"/>
+                <filter name="urgent" string="Urgent"
+                        domain="[('priority', 'in', ['1', '2'])]"/>
+                <separator/>
+                <filter name="src_manual" string="Manual"
+                        domain="[('source', '=', 'manual')]"/>
+                <filter name="src_auto" string="Auto-Reorder"
+                        domain="[('source', '=', 'auto_reorder')]"/>
+                <filter name="src_job" string="Job Card"
+                        domain="[('source', '=', 'job_card')]"/>
+                <filter name="src_oem" string="OEM / Vehicle"
+                        domain="[('source', '=', 'oem')]"/>
+                <separator/>
+                <!-- Group By -->
+                <group>
+                    <filter name="group_state" string="Status"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_source" string="Source"
+                            context="{'group_by': 'source'}"/>
+                    <filter name="group_requester" string="Requester"
+                            context="{'group_by': 'requester_id'}"/>
+                    <filter name="group_department" string="Department"
+                            context="{'group_by': 'analytic_account_id'}"/>
+                    <filter name="group_date_request" string="Request Date"
+                            context="{'group_by': 'date_request:month'}"/>
+                    <filter name="group_company" string="Company"
+                            context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE REQUEST – Pivot View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_request_pivot" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.pivot</field>
+        <field name="model">ebshel.purchase.request</field>
+        <field name="arch" type="xml">
+            <pivot string="Purchase Request Analysis">
+                <field name="analytic_account_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE REQUEST – Graph View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_request_graph" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.graph</field>
+        <field name="model">ebshel.purchase.request</field>
+        <field name="arch" type="xml">
+            <graph string="Purchase Request Analysis" type="bar">
+                <field name="analytic_account_id"/>
+                <field name="amount_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         APPROVALS — dedicated list + search (approval-centric KPIs)
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_pr_approval_list" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.approval.list</field>
+        <field name="model">ebshel.purchase.request</field>
+        <field name="arch" type="xml">
+            <list string="Approvals" create="false"
+                  decoration-danger="priority == '2'"
+                  decoration-warning="priority == '1'"
+                  decoration-muted="state in ('cancelled', 'closed')">
+                <field name="priority" widget="priority" optional="show"/>
+                <field name="name"/>
+                <field name="description" optional="show"/>
+                <field name="requester_id"/>
+                <field name="analytic_account_id" string="Cost Centre" optional="show"/>
+                <field name="current_approval_level" string="Level" optional="show"/>
+                <field name="pending_approver_ids" widget="many2many_tags"
+                       string="Awaiting" optional="show"/>
+                <field name="date_request" optional="hide"/>
+                <field name="date_required" string="Needed By" optional="show"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="budget_approval_state" widget="badge" optional="show"
+                       string="Budget"
+                       decoration-warning="budget_approval_state == 'pending'"
+                       decoration-success="budget_approval_state == 'approved'"
+                       decoration-danger="budget_approval_state == 'rejected'"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state in ('approved', 'closed')"
+                       decoration-danger="state in ('rejected', 'cancelled')"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_pr_approval_search" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.approval.search</field>
+        <field name="model">ebshel.purchase.request</field>
+        <field name="arch" type="xml">
+            <search string="Approvals">
+                <field name="name" string="Reference"/>
+                <field name="requester_id"/>
+                <field name="analytic_account_id" string="Cost Centre"/>
+                <field name="pending_approver_ids" string="Awaiting Approver"/>
+                <!-- Approval status KPIs -->
+                <filter name="awaiting_me" string="Awaiting My Approval"
+                        domain="[('state', '=', 'submitted'), ('pending_approver_ids', 'in', [uid])]"/>
+                <filter name="awaiting" string="Awaiting Approval"
+                        domain="[('state', '=', 'submitted')]"/>
+                <filter name="budget_pending" string="Pending Budget Approval"
+                        domain="[('budget_approval_state', '=', 'pending')]"/>
+                <separator/>
+                <filter name="urgent" string="Urgent / High Priority"
+                        domain="[('priority', 'in', ['1', '2'])]"/>
+                <filter name="overdue" string="Past Required Date"
+                        domain="[('state', '=', 'submitted'), ('date_required', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="approved" string="Approved"
+                        domain="[('state', '=', 'approved')]"/>
+                <filter name="rejected" string="Rejected"
+                        domain="[('state', '=', 'rejected')]"/>
+                <separator/>
+                <group>
+                    <filter name="group_level" string="Approval Level"
+                            context="{'group_by': 'current_approval_level'}"/>
+                    <filter name="group_costcentre" string="Cost Centre"
+                            context="{'group_by': 'analytic_account_id'}"/>
+                    <filter name="group_requester" string="Requester"
+                            context="{'group_by': 'requester_id'}"/>
+                    <filter name="group_priority" string="Priority"
+                            context="{'group_by': 'priority'}"/>
+                    <filter name="group_state" string="Status"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         ACTIONS
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_ebshel_purchase_request_my" model="ir.actions.act_window">
+        <field name="name">My Purchase Requests</field>
+        <field name="res_model">ebshel.purchase.request</field>
+        <field name="view_mode">list,kanban,form,pivot,graph</field>
+        <field name="domain">[('requester_id', '=', uid)]</field>
+        <field name="context">{'search_default_my_requests': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Purchase Request!
+            </p>
+            <p>Submit requests for products your department needs.</p>
+        </field>
+    </record>
+
+    <record id="action_ebshel_purchase_request_all" model="ir.actions.act_window">
+        <field name="name">All Purchase Requests</field>
+        <field name="res_model">ebshel.purchase.request</field>
+        <field name="view_mode">list,kanban,form,pivot,graph</field>
+        <field name="view_id" ref="view_ebshel_purchase_request_list"/>
+        <field name="search_view_id" ref="view_ebshel_purchase_request_search"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No purchase requests found.
+            </p>
+        </field>
+    </record>
+
+    <!-- All requests awaiting approval (managers) -->
+    <record id="action_ebshel_purchase_request_pending_approval" model="ir.actions.act_window">
+        <field name="name">All Pending PR Approvals</field>
+        <field name="res_model">ebshel.purchase.request</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="view_id" ref="view_pr_approval_list"/>
+        <field name="search_view_id" ref="view_pr_approval_search"/>
+        <field name="domain">[('state', '=', 'submitted')]</field>
+        <field name="context">{'search_default_awaiting': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing awaiting approval</p>
+            <p>All submitted requests have been processed.</p>
+        </field>
+    </record>
+
+    <!-- My pending approvals: requests currently waiting on the logged-in approver -->
+    <record id="action_pr_my_approvals" model="ir.actions.act_window">
+        <field name="name">My PR Approvals</field>
+        <field name="res_model">ebshel.purchase.request</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="view_id" ref="view_pr_approval_list"/>
+        <field name="search_view_id" ref="view_pr_approval_search"/>
+        <field name="context">{'search_default_awaiting_me': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">You're all caught up</p>
+            <p>No purchase requests are waiting on your approval right now.</p>
+        </field>
+    </record>
+
+    <!-- Requests awaiting administrator budget (over-budget) approval -->
+    <record id="action_ebshel_pr_budget_approval" model="ir.actions.act_window">
+        <field name="name">Pending Budget Approval</field>
+        <field name="res_model">ebshel.purchase.request</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="view_id" ref="view_pr_approval_list"/>
+        <field name="search_view_id" ref="view_pr_approval_search"/>
+        <field name="domain">[('budget_approval_state', '=', 'pending')]</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing awaiting budget approval</p>
+            <p>Requests that exceed their department budget appear here for an
+               administrator to approve or reject before they enter the normal
+               approval workflow.</p>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE REQUEST LINE — standalone list / search / action
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_request_line_list" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.line.list</field>
+        <field name="model">ebshel.purchase.request.line</field>
+        <field name="arch" type="xml">
+            <list string="Request Lines" create="false"
+                  decoration-muted="cancelled == True"
+                  decoration-info="qty_to_rfq &gt; 0 and request_state == 'approved'">
+                <field name="request_id"/>
+                <field name="request_state" optional="show"/>
+                <field name="product_id"/>
+                <field name="analytic_account_id" string="Department" optional="show"/>
+                <field name="qty" string="Requested"/>
+                <field name="uom_id" optional="hide"/>
+                <field name="qty_in_rfq" string="In RFQ" optional="show"/>
+                <field name="qty_to_rfq" string="To RFQ" optional="show"/>
+                <field name="purchased_qty" string="Ordered" optional="show"/>
+                <field name="qty_done" string="Received" optional="show"/>
+                <field name="qty_invoiced" string="Billed" optional="show"/>
+                <field name="pending_qty_to_receive" string="Pending" optional="hide"/>
+                <field name="date_required" optional="hide"/>
+                <field name="estimated_total" sum="Total" optional="show"/>
+                <field name="state" widget="badge" optional="hide"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-primary="state == 'rfq_created'"
+                       decoration-success="state in ('approved','po_created')"
+                       decoration-danger="state in ('rejected','cancelled')"/>
+                <field name="purchase_state" widget="badge" string="PO" optional="show"
+                       decoration-info="purchase_state in ('draft','sent')"
+                       decoration-warning="purchase_state == 'to approve'"
+                       decoration-success="purchase_state in ('purchase','done')"
+                       decoration-danger="purchase_state == 'cancel'"/>
+                <field name="reception_status" widget="badge" optional="show"
+                       decoration-muted="reception_status == 'nothing'"
+                       decoration-warning="reception_status == 'partial'"
+                       decoration-success="reception_status == 'full'"/>
+                <field name="billing_status" widget="badge" optional="show"
+                       decoration-muted="billing_status == 'nothing'"
+                       decoration-warning="billing_status == 'partial'"
+                       decoration-success="billing_status == 'full'"/>
+                <field name="cancelled" column_invisible="True"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ebshel_purchase_request_line_search" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.line.search</field>
+        <field name="model">ebshel.purchase.request.line</field>
+        <field name="arch" type="xml">
+            <search string="Search Request Lines">
+                <field name="product_id"/>
+                <field name="request_id"/>
+                <field name="analytic_account_id" string="Department"/>
+                <filter name="to_rfq" string="Available to RFQ"
+                        domain="[('qty_to_rfq', '&gt;', 0), ('request_state', '=', 'approved'), ('cancelled', '=', False)]"/>
+                <filter name="pending_receipt" string="Pending Receipt"
+                        domain="[('pending_qty_to_receive', '&gt;', 0), ('purchased_qty', '&gt;', 0)]"/>
+                <filter name="cancelled" string="Cancelled" domain="[('cancelled', '=', True)]"/>
+                <separator/>
+                <group>
+                    <filter name="group_request" string="Request"
+                            context="{'group_by': 'request_id'}"/>
+                    <filter name="group_product" string="Product"
+                            context="{'group_by': 'product_id'}"/>
+                    <filter name="group_department" string="Department"
+                            context="{'group_by': 'analytic_account_id'}"/>
+                    <filter name="group_state" string="Line Status"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_ebshel_purchase_request_line_form" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.line.form</field>
+        <field name="model">ebshel.purchase.request.line</field>
+        <field name="arch" type="xml">
+            <form string="Request Line">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_rfqs" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="rfq_count == 0">
+                            <field name="rfq_count" string="RFQs" widget="statinfo"/>
+                        </button>
+                        <button name="action_view_purchase_orders" type="object"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="po_count == 0">
+                            <field name="po_count" string="POs" widget="statinfo"/>
+                        </button>
+                        <button name="action_view_allocations" type="object"
+                                class="oe_stat_button" icon="fa-sitemap"
+                                invisible="allocation_count == 0">
+                            <field name="allocation_count" string="Allocations" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="product_id" string="Request Line"/>
+                        <h1><field name="product_id" readonly="1" options="{'no_open': True}"
+                                   placeholder="Product"/></h1>
+                    </div>
+                    <group>
+                        <group string="Item">
+                            <field name="request_id" readonly="1"/>
+                            <field name="product_id" readonly="1"/>
+                            <field name="name" readonly="1"/>
+                            <field name="qty" readonly="1"/>
+                            <field name="uom_id" readonly="1"/>
+                            <field name="analytic_account_id" string="Department" readonly="1"/>
+                            <field name="date_required" readonly="1"/>
+                        </group>
+                        <group string="Sourcing &amp; Fulfilment">
+                            <field name="qty_in_rfq"/>
+                            <field name="qty_to_rfq"/>
+                            <field name="purchased_qty"/>
+                            <field name="qty_done"/>
+                            <field name="pending_qty_to_receive"/>
+                            <field name="state"/>
+                            <field name="purchase_state"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ebshel_purchase_request_line" model="ir.actions.act_window">
+        <field name="name">Request Lines</field>
+        <field name="res_model">ebshel.purchase.request.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_ebshel_purchase_request_line_search"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No request lines yet.</p>
+            <p>Every product line across all purchase requests — track what is
+               still available to RFQ, ordered, and received.</p>
+        </field>
+    </record>
+
+</odoo>

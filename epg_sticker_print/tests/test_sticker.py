@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from unittest.mock import patch
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
@@ -394,3 +395,103 @@ class TestStickerFormatAccess(TransactionCase):
         created = self.env['epg.sticker.format'].with_user(manager).create(
             {'name': 'Access 60x30', 'width_mm': 60, 'height_mm': 30})
         self.assertEqual(created.paperformat_id.page_width, 60)
+
+
+@tagged('post_install', '-at_install')
+class TestStickerRunPreviewAndInvoices(TransactionCase):
+    """Every sticker of the run in the preview, and the wizard from an invoice.
+    (client, 2026-10-14: "print sticker should show the previews of multiple selected
+    orders. Provide the print sticker in the invoices' action also in accounting")"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.team = cls.env['crm.team'].create({'name': 'KLM'})
+        cls.p1 = cls.env['res.partner'].create({'name': 'DR RUN ONE', 'street': '1 Main Rd', 'city': 'Kochi', 'phone': '111'})
+        cls.p2 = cls.env['res.partner'].create({'name': 'DR RUN TWO', 'street': '2 Side Rd', 'city': 'Kollam', 'phone': '222'})
+        cls.product = cls.env['product.product'].create({'name': 'Twin Block', 'type': 'consu', 'list_price': 500})
+        cls.orders = cls.env['sale.order']
+        for partner in (cls.p1, cls.p1, cls.p2):
+            cls.orders |= cls.env['sale.order'].create({
+                'partner_id': partner.id, 'team_id': cls.team.id,
+                'order_line': [(0, 0, {'product_id': cls.product.id, 'product_uom_qty': 1})]})
+        cls.Wizard = cls.env['epg.sticker.print.wizard']
+
+    def _wizard(self, records, **vals):
+        return self.Wizard.with_context(active_model=records._name, active_ids=records.ids).create(vals)
+
+    def test_the_preview_shows_every_sticker_of_the_run(self):
+        wiz = self._wizard(self.orders, mode='order')
+        html = str(wiz.preview_html)
+        self.assertIn('all 3 stickers', html)
+        for i, order in enumerate(self.orders.sorted('name')):
+            self.assertIn('%s · %s' % (i + 1, order.name), html, "each label says whose parcel it is")
+
+    def test_a_customer_run_previews_one_label_a_clinic(self):
+        wiz = self._wizard(self.orders, mode='customer')
+        html = str(wiz.preview_html)
+        self.assertIn('all 2 stickers', html)
+        self.assertIn('DR RUN ONE · 2 orders', html)
+        self.assertIn('DR RUN TWO', html)
+
+    def test_a_long_run_previews_the_first_and_says_so(self):
+        from odoo.addons.epg_sticker_print.wizard import sticker_wizard
+        with patch.object(sticker_wizard, 'PREVIEW_MAX', 2):
+            html = str(self._wizard(self.orders, mode='order').preview_html)
+        last = self.orders.sorted('name')[-1]
+        self.assertIn('first 2 of 3', html)
+        self.assertNotIn(last.name, html)
+
+    def test_the_report_can_be_cut_to_the_first_stickers(self):
+        values = self.env['report.epg_sticker_print.report_sticker']._get_report_values(
+            self.orders.ids, data={'mode': 'order', 'limit': 1})
+        self.assertEqual(len(values['stickers']), 1)
+        self.assertEqual(len(self.env['report.epg_sticker_print.report_sticker']._get_report_values(
+            self.orders.ids, data={'mode': 'order'})['stickers']), 3, "no limit, the whole run")
+
+    def test_each_label_is_cut_out_of_its_sheet(self):
+        import shutil
+        # Odoo's own finding of wkhtmltopdf (PATH + bin_path), not shutil's; Odoo 20 asks the engine by name
+        if not shutil.which('pdftoppm') or self.env['ir.actions.report'].get_pdf_engine_state('wkhtmltopdf') != 'ok':
+            self.skipTest("needs wkhtmltopdf and pdftoppm")
+        from PIL import Image
+        import io
+        fmt = self.env.ref('epg_sticker_print.format_a4_2x5')
+        report = self.env.ref('epg_sticker_print.action_report_sticker').with_context(
+            epg_sticker_paperformat_id=fmt.paperformat_id.id, force_report_rendering=True)
+        pdf = report._render_qweb_pdf(report.report_name, self.orders.ids,
+                                      data={'mode': 'order', 'ids': self.orders.ids, 'format_id': fmt.id, 'copies': 1})[0]
+        self.assertTrue(pdf.startswith(b'%PDF'))
+        pngs = self.Wizard._label_pngs(pdf, fmt, 3)
+        self.assertEqual(len(pngs), 3, "three labels off one sheet")
+        with Image.open(io.BytesIO(pngs[1])) as label:
+            self.assertAlmostEqual(label.width, fmt.width_mm * 150 / 25.4, delta=2)
+            self.assertAlmostEqual(label.height, fmt.height_mm * 150 / 25.4, delta=2)
+            # the second label sits in the second column: not blank
+            self.assertLess(min(label.convert('L').getdata()), 128)
+
+    # ------------------------------------------------------------ from an invoice
+    def test_from_an_invoice_the_wizard_takes_the_orders_it_bills(self):
+        order = self.orders[0]
+        order.action_confirm()
+        invoice = order._create_invoices()
+        wiz = self._wizard(invoice)
+        self.assertEqual(wiz.order_ids, order)
+        self.assertEqual(wiz.partner_ids, self.p1)
+        self.assertEqual(wiz.sticker_count, 1)
+
+    def test_an_invoice_without_an_order_prints_for_its_clinic(self):
+        invoice = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': self.p2.id,
+            'invoice_line_ids': [(0, 0, {'product_id': self.product.id, 'quantity': 1, 'price_unit': 10})]})
+        wiz = self._wizard(invoice)
+        self.assertFalse(wiz.order_ids)
+        self.assertEqual(wiz.partner_ids, self.p2)
+        self.assertEqual(wiz.sticker_count, 1, "a customer label from the clinic itself")
+        self.assertEqual(wiz.action_print()['data']['partner_ids'], self.p2.ids)
+
+    def test_the_invoices_action_menu_and_accounting_offer_it(self):
+        action = self.env.ref('epg_sticker_print.action_sticker_print_invoice')
+        self.assertEqual(action.binding_model_id.model, 'account.move')
+        menu = self.env.ref('epg_sticker_print.menu_sticker_print_accounting')
+        self.assertEqual(menu.parent_id, self.env.ref('account.menu_finance_receivables'))

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="action_report_petty_cash_expense" model="ir.actions.report">
+        <field name="name">Petty Cash Voucher</field>
+        <field name="model">ebshel.petty.cash.expense</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_petty_cash.report_expense</field>
+        <field name="print_report_name">'Voucher - %s' % object.name</field>
+        <field name="binding_model_id" ref="model_ebshel_petty_cash_expense"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_petty_cash_advance" model="ir.actions.report">
+        <field name="name">Advance Slip</field>
+        <field name="model">ebshel.petty.cash.advance</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_petty_cash.report_advance</field>
+        <field name="print_report_name">'Advance - %s' % object.name</field>
+        <field name="binding_model_id" ref="model_ebshel_petty_cash_advance"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_petty_cash_replenishment" model="ir.actions.report">
+        <field name="name">Replenishment Claim</field>
+        <field name="model">ebshel.petty.cash.replenishment</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_petty_cash.report_replenishment</field>
+        <field name="print_report_name">'Replenishment - %s' % object.name</field>
+        <field name="binding_model_id" ref="model_ebshel_petty_cash_replenishment"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_petty_cash_count" model="ir.actions.report">
+        <field name="name">Cash Count Sheet</field>
+        <field name="model">ebshel.petty.cash.count</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_petty_cash.report_count</field>
+        <field name="print_report_name">'Cash Count - %s' % object.name</field>
+        <field name="binding_model_id" ref="model_ebshel_petty_cash_count"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_petty_cash_statement" model="ir.actions.report">
+        <field name="name">Petty Cash Fund Statement</field>
+        <field name="model">ebshel.petty.cash.statement.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_petty_cash.report_statement</field>
+        <field name="print_report_name">'Petty Cash Statement'</field>
+    </record>
+
+</odoo>

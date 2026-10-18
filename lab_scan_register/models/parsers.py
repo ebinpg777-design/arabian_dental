@@ -207,6 +207,84 @@ def _dexis(subject, text):
     return out
 
 
+def all_urls(text):
+    return [u.rstrip('.,;') for u in URL_RX.findall(text or '')]
+
+
+def _typed_note(text):
+    """A patient and a delivery date the sender typed into the message, in the same
+    shapes the clinics use on WhatsApp ("Patient name - X", "Delivery -16-10-26")."""
+    out = {}
+    for raw in (text or '').splitlines():
+        line = raw.strip()
+        match = PATIENT_RX.match(line)
+        if match and 'patient' not in out and not line.lower().startswith('name'):
+            out['patient'] = _clean(match.group('v'))
+            continue
+        match = DELIVERY_RX.match(line)
+        if match and 'delivery' not in out:
+            parsed = parse_date(match.group('v'))
+            if parsed:
+                out['delivery'] = parsed
+    return out
+
+
+def _sharer(text, subject):
+    """'Dr X (dr.x@mail.com) shared/has invited you ...' - the person, not the platform."""
+    out = {}
+    match = re.search(r'^\s*(?P<name>[^\n()]{2,80}?)\s*\((?P<mail>[^()\s]+@[^()\s]+)\)\s+'
+                      r'(?:has\s+)?(?:shared|invited)', text, re.I | re.M)
+    if match:
+        out['doctor_name'] = _clean(match.group('name'))
+        out['doctor_email'] = match.group('mail').strip().lower()
+    return out
+
+
+def _google_drive(subject, text):
+    """Google Drive share notifications: 'Folder shared with you: "X"' or
+    '"X" - Invitation to view', from "Name (via Google Drive)"."""
+    out = {'platform': 'google_drive'}
+    match = (re.search(r'(?:folder|item|file|document)s?\s+shared with you:\s*"(?P<t>[^"]+)"', subject or '', re.I)
+             or re.search(r'^"?(?P<t>.+?)"?\s*-\s*invitation to (?:view|edit|comment)', subject or '', re.I))
+    if match:
+        out['appliance'] = _clean(match.group('t'))
+    out.update(_sharer(text, subject))
+    if 'doctor_name' not in out:
+        match = re.search(r'From:\s*"?(?P<name>[^"<\n]+?)\s*\(via Google Drive\)', text, re.I)
+        if match:
+            out['doctor_name'] = _clean(match.group('name'))
+    out.update(_typed_note(text))
+    out['link'] = first_url(text, 'drive.google.com') or first_url(text, 'docs.google.com')
+    return out
+
+
+def _dropbox(subject, text):
+    """Dropbox: 'Name shared "X" with you', from no-reply@dropbox.com."""
+    out = {'platform': 'dropbox'}
+    match = re.search(r'^(?P<name>.+?)\s+shared\s+"(?P<t>[^"]+)"\s+with you', subject or '', re.I)
+    if match:
+        out['doctor_name'] = _clean(match.group('name'))
+        out['appliance'] = _clean(match.group('t'))
+    out.update({k: v for k, v in _sharer(text, subject).items() if k == 'doctor_email' or 'doctor_name' not in out})
+    out.update(_typed_note(text))
+    out['link'] = first_url(text, 'dropbox.com/scl') or first_url(text, 'dropbox.com')
+    return out
+
+
+def _onedrive(subject, text):
+    """OneDrive / SharePoint: 'Name shared "X" with you'."""
+    out = {'platform': 'onedrive'}
+    match = re.search(r'^(?P<name>.+?)\s+shared\s+"(?P<t>[^"]+)"\s+with you', subject or '', re.I)
+    if match:
+        out['doctor_name'] = _clean(match.group('name'))
+        out['appliance'] = _clean(match.group('t'))
+    out.update({k: v for k, v in _sharer(text, subject).items() if k == 'doctor_email' or 'doctor_name' not in out})
+    out.update(_typed_note(text))
+    out['link'] = (first_url(text, '1drv.ms') or first_url(text, 'onedrive.live.com')
+                   or first_url(text, 'sharepoint.com'))
+    return out
+
+
 def _other(subject, text):
     out = {'platform': 'other'}
     if subject:
@@ -217,6 +295,7 @@ def _other(subject, text):
     link = first_url(text)
     if link:
         out['link'] = link
+    out.update(_typed_note(text))
     return out
 
 
@@ -226,6 +305,9 @@ PLATFORMS = (
     ('freqty', lambda hay: 'freqtek' in hay or 'freqty' in hay
                or 'receive case notification' in hay, _freqty),
     ('dexis', lambda hay: 'dexis' in hay, _dexis),
+    ('google_drive', lambda hay: 'drive-shares' in hay or 'via google drive' in hay, _google_drive),
+    ('dropbox', lambda hay: 'dropbox' in hay, _dropbox),
+    ('onedrive', lambda hay: 'onedrive' in hay or 'sharepoint' in hay, _onedrive),
 )
 
 
@@ -248,6 +330,9 @@ def parse_email(subject, text, email_from=''):
         if mail and out['platform'] == 'other':
             out['doctor_email'] = mail
     out['subject'] = subject
+    # a folder named after the patient says nothing more as a description
+    if out.get('appliance') and out.get('patient') and out['appliance'].lower() == out['patient'].lower():
+        del out['appliance']
     return {k: v for k, v in out.items() if v not in (None, '', [])}
 
 
@@ -336,6 +421,29 @@ def split_chat(text):
             continue
         out.append(message)
     return out
+
+
+# ---------------------------------------------------------------------- arches
+BOTH_RX = re.compile(r'\b(u\s*/\s*l|u\s*&\s*l|ul|both(\s+arch(es)?)?|upper\s*(and|&|\+)\s*lower)\b', re.I)
+UPPER_RX = re.compile(r'\b(upper|maxill\w*)\b', re.I)
+LOWER_RX = re.compile(r'\b(lower|mandib\w*)\b', re.I)
+
+
+def guess_arch(text):
+    """Which arches the doctor asked for, from how they wrote it: 'Upper & Lower
+    Hawley', 'U/L Essix', 'upper bilateral expansion', 'lower retainer'. None
+    when the words say nothing - a bite plate, a name."""
+    text = text or ''
+    if BOTH_RX.search(text):
+        return 'both'
+    upper, lower = bool(UPPER_RX.search(text)), bool(LOWER_RX.search(text))
+    if upper and lower:
+        return 'both'
+    if upper:
+        return 'upper'
+    if lower:
+        return 'lower'
+    return None
 
 
 def read_chat_message(message):

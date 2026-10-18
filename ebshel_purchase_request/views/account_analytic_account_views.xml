@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Department / Cost Center: smart button to its purchase requests +
+         the cost-center flag that makes it selectable on purchase requests. -->
+    <record id="view_analytic_account_form_ebshel_requests" model="ir.ui.view">
+        <field name="name">account.analytic.account.form.ebshel.requests</field>
+        <field name="model">account.analytic.account</field>
+        <field name="inherit_id" ref="analytic.view_account_analytic_account_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_requests" type="object"
+                        class="oe_stat_button" icon="fa-clipboard"
+                        invisible="request_count == 0">
+                    <field name="request_count" string="Requests" widget="statinfo"/>
+                </button>
+            </xpath>
+            <xpath expr="//field[@name='plan_id']" position="after">
+                <field name="is_cost_center"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Make the flag filterable/visible in the analytic account list. -->
+    <record id="view_analytic_account_list_ebshel_cost_center" model="ir.ui.view">
+        <field name="name">account.analytic.account.list.ebshel.cost.center</field>
+        <field name="model">account.analytic.account</field>
+        <field name="inherit_id" ref="analytic.view_account_analytic_account_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='plan_id']" position="after">
+                <field name="is_cost_center" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

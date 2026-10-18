@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_statement_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.statement.wizard.form</field>
+        <field name="model">ebshel.petty.cash.statement.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="fund_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                </group>
+                <footer>
+                    <button name="action_print" type="object" string="Print" class="btn-primary" data-hotkey="q"/>
+                    <button special="cancel" string="Discard" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_statement_wizard" model="ir.actions.act_window">
+        <field name="name">Fund Statement</field>
+        <field name="res_model">ebshel.petty.cash.statement.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

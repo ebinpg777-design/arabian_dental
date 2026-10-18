@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pr_create_vendor_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.pr.create.vendor.wizard.form</field>
+        <field name="model">ebshel.pr.create.vendor.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Create New Vendor">
+                <sheet>
+                    <group string="Basic Information">
+                        <field name="is_company"/>
+                        <field name="name"/>
+                        <field name="company_name" invisible="is_company"/>
+                        <field name="vat"/>
+                        <field name="website"/>
+                    </group>
+                    <group string="Contact">
+                        <field name="email"/>
+                        <field name="phone"/>
+                    </group>
+                    <group string="Address">
+                        <field name="street"/>
+                        <field name="street2"/>
+                        <field name="city"/>
+                        <field name="state_id"/>
+                        <field name="country_id"/>
+                        <field name="zip"/>
+                    </group>
+                    <group string="Commercial">
+                        <field name="payment_term_id"/>
+                    </group>
+                    <!-- Award section: shown when this wizard is opened from winner selection -->
+                    <group string="Award This Vendor" invisible="not proceed_to_award">
+                        <field name="proceed_to_award" invisible="1"/>
+                        <field name="justification"
+                               placeholder="Why is this vendor being selected as winner?…"
+                               required="proceed_to_award"/>
+                        <field name="auto_create_po"/>
+                    </group>
+                    <!-- Hidden context fields -->
+                    <field name="return_to_quotation" invisible="1"/>
+                    <field name="quotation_id" invisible="1"/>
+                    <field name="rfq_id" invisible="1"/>
+                </sheet>
+                <footer>
+                    <!-- Label changes based on whether we are also awarding -->
+                    <button name="action_create_vendor"
+                            string="Create Vendor &amp; Award"
+                            type="object" class="btn-primary"
+                            invisible="not proceed_to_award"/>
+                    <button name="action_create_vendor"
+                            string="Create Vendor"
+                            type="object" class="btn-primary"
+                            invisible="proceed_to_award"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_pr_reject_wizard" model="ir.actions.act_window">
+        <field name="name">Reject Purchase Request</field>
+        <field name="res_model">ebshel.pr.reject.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_pr_reject_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.pr.reject.wizard.form</field>
+        <field name="model">ebshel.pr.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reject Purchase Request">
+                <sheet>
+                    <group>
+                        <field name="request_id" readonly="1"/>
+                        <field name="reason" placeholder="Please provide a reason for rejection…"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_reject" string="Reject"
+                            type="object" class="btn-danger"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

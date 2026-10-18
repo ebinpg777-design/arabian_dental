@@ -9,6 +9,29 @@ access_scan_member_user,scan member register,lab.scan.channel.member,group_scan_
 access_scan_member_manager,scan member manage,lab.scan.channel.member,group_scan_manager,crud,
 access_scan_paste_user,scan paste,lab.scan.paste,group_scan_user,crud,
 access_scan_paste_line_user,scan paste line,lab.scan.paste.line,group_scan_user,crud,
+access_scan_line_read,scan line read,lab.scan.line,base.group_user,r,
+access_scan_line_user,scan line register,lab.scan.line,group_scan_user,crud,
+access_scan_template_read,scan template read,lab.scan.message.template,group_scan_user,r,
+access_scan_template_manager,scan template manage,lab.scan.message.template,group_scan_manager,crud,
+access_scan_whatsapp_user,scan whatsapp wizard,lab.scan.whatsapp,group_scan_user,crud,
+access_scan_printer_read,scan printer read,lab.scan.printer,base.group_user,r,
+access_scan_printer_user,scan printer use,lab.scan.printer,group_scan_user,ru,
+access_scan_printer_manager,scan printer manage,lab.scan.printer,group_scan_manager,crud,
+access_scan_print_order_read,print order read,lab.scan.print.order,base.group_user,r,
+access_scan_print_order_user,print order use,lab.scan.print.order,group_scan_user,cru,
+access_scan_print_order_manager,print order manage,lab.scan.print.order,group_scan_manager,crud,
+access_scan_print_order_line_read,print order patient read,lab.scan.print.order.line,base.group_user,r,
+access_scan_print_order_line_user,print order patient use,lab.scan.print.order.line,group_scan_user,cru,
+access_scan_print_order_line_manager,print order patient manage,lab.scan.print.order.line,group_scan_manager,crud,
+access_scan_print_order_make_user,new print order wizard,lab.scan.print.order.make,group_scan_user,crud,
+access_scan_print_order_start_user,start print wizard,lab.scan.print.order.start,group_scan_user,crud,
+access_scan_print_order_off_user,plate off wizard,lab.scan.print.order.off,group_scan_user,crud,
+access_scan_print_order_off_line_user,plate off wizard row,lab.scan.print.order.off.line,group_scan_user,crud,
+access_scan_print_order_fail_user,print failed wizard,lab.scan.print.order.fail,group_scan_user,crud,
 rule_scan_company,Scan: own companies,lab.scan,,crud,"[('company_id', 'in', company_ids)]"
+rule_scan_line_company,Scan register patient: own companies,lab.scan.line,,crud,"[('company_id', 'in', company_ids)]"
 rule_scan_member_company,Scan channel member: own companies,lab.scan.channel.member,,crud,"[('company_id', 'in', company_ids)]"
 rule_scan_channel_company,Scan channel: own companies,lab.scan.channel,,crud,"[('company_id', 'in', company_ids)]"
+rule_scan_printer_company,3D printer: own companies,lab.scan.printer,,crud,"[('company_id', 'in', company_ids)]"
+rule_scan_print_order_company,Print order: own companies,lab.scan.print.order,,crud,"[('company_id', 'in', company_ids)]"
+rule_scan_print_order_line_company,Print order patient: own companies,lab.scan.print.order.line,,crud,"[('company_id', 'in', company_ids)]"

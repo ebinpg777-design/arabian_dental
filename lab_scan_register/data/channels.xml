@@ -7,19 +7,28 @@
             <field name="name">WeTransfer</field>
             <field name="kind">transfer</field>
             <field name="sender_match">wetransfer.com</field>
-            <field name="link_match">wetransfer.com</field>
+            <field name="link_match">wetransfer.com/downloads, we.tl/</field>
             <field name="link_validity_days">3</field>
             <field name="note">Free links last three days. The register gives each scan its expiry and warns before one lapses with no files in.</field>
         </record>
         <record id="channel_google_drive" model="lab.scan.channel">
             <field name="name">Google Drive</field>
             <field name="kind">transfer</field>
-            <field name="link_match">drive.google.com</field>
+            <field name="sender_match">drive-shares</field>
+            <field name="link_match">drive.google.com/drive/folders, drive.google.com/file/d, drive.google.com/open</field>
+            <field name="note">Share notifications come from drive-shares-…@google.com. A note typed into the share ("Patient name - X", "Delivery - date") is read too.</field>
         </record>
         <record id="channel_dropbox" model="lab.scan.channel">
             <field name="name">Dropbox</field>
             <field name="kind">transfer</field>
-            <field name="link_match">dropbox.com</field>
+            <field name="sender_match">no-reply@dropbox.com</field>
+            <field name="link_match">dropbox.com/scl/, dropbox.com/s/, dropbox.com/sh/</field>
+        </record>
+        <record id="channel_onedrive" model="lab.scan.channel">
+            <field name="name">OneDrive</field>
+            <field name="kind">transfer</field>
+            <field name="sender_match">onedrive.com, sharepointonline.com</field>
+            <field name="link_match">1drv.ms/, onedrive.live.com/redir, sharepoint.com/:</field>
         </record>
         <record id="channel_alliedstar" model="lab.scan.channel">
             <field name="name">Allied Star — AS Connect</field>

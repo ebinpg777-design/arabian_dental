@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="ebshel_purchase_request.ProcurementDashboard">
+    <div t-att-class="containerClass" >
+
+        <!-- ══ Loading ══════════════════════════════════════════════════════ -->
+        <t t-if="state.loading">
+            <div class="dsh-loading-screen">
+                <div class="dsh-loading-rings">
+                    <div/><div/><div/><div/>
+                </div>
+                <p class="dsh-loading-text">Loading intelligence dashboard…</p>
+            </div>
+        </t>
+
+        <!-- ══ Error ════════════════════════════════════════════════════════ -->
+        <t t-elif="state.error">
+            <div class="dsh-error-screen">
+                <div class="dsh-error-card">
+                    <div class="dsh-error-icon">⚠️</div>
+                    <h4>Dashboard Unavailable</h4>
+                    <p t-esc="state.error"/>
+                    <button class="btn btn-secondary mt-3" t-on-click="onRefresh">Retry</button>
+                </div>
+            </div>
+        </t>
+
+        <!-- ══ Main Dashboard ═══════════════════════════════════════════════ -->
+        <t t-else="">
+
+            <!-- ── Header ───────────────────────────────────────────────── -->
+            <div class="dsh-header">
+                <div class="dsh-header-left">
+                    <div class="dsh-header-title">
+                        <span class="dsh-header-icon">📊</span>
+                        <div>
+                            <div class="dsh-header-name">Procurement Intelligence</div>
+                            <div class="dsh-header-sub">
+                                <span t-esc="state.data.company_name"/>
+                                <span class="dsh-header-dot">·</span>
+                                <span>Welcome, <strong t-esc="state.data.user_name"/></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dsh-header-right">
+                    <!-- Period selector -->
+                    <div class="dsh-period">
+                        <button class="dsh-period-btn"
+                                t-att-class="state.period === 'month' ? 'active' : ''"
+                                t-on-click="() => this.setPeriod('month')">Month</button>
+                        <button class="dsh-period-btn"
+                                t-att-class="state.period === 'quarter' ? 'active' : ''"
+                                t-on-click="() => this.setPeriod('quarter')">Quarter</button>
+                        <button class="dsh-period-btn"
+                                t-att-class="state.period === 'year' ? 'active' : ''"
+                                t-on-click="() => this.setPeriod('year')">Year</button>
+                    </div>
+                    <span class="dsh-refresh-time" t-if="state.lastRefresh">
+                        Updated <strong t-esc="state.lastRefresh"/>
+                    </span>
+                    <button class="dsh-icon-btn" title="Refresh" t-on-click="onRefresh">↻</button>
+                    <button class="dsh-action-btn dsh-action-btn--primary" t-on-click="onNewPR">
+                        + New Request
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Alert Banner (pending approvals) ─────────────────────── -->
+            <div class="dsh-alert-banner" t-if="state.data.my_pending > 0" t-on-click="onPendingApprovals">
+                <span class="dsh-alert-icon">🔔</span>
+                <span>You have <strong t-esc="state.data.my_pending"/> purchase request(s) awaiting your approval.</span>
+                <span class="dsh-alert-cta">Review now →</span>
+            </div>
+            <div class="dsh-scrollable-content" style="overflow-y: auto; height: calc(100vh - 150px);">
+            <!-- ── KPI Cards ─────────────────────────────────────────────── -->
+            <div class="dsh-kpi-row">
+
+                <!-- Pending Approvals -->
+                <div t-att-class="kpiCardClass('pending')" t-on-click="onPendingApprovals">
+                    <div class="dsh-kpi-icon">🔔</div>
+                    <div class="dsh-kpi-value" t-esc="state.data.my_pending"/>
+                    <div class="dsh-kpi-label">My Pending PR Approvals</div>
+                    <div class="dsh-kpi-footer">Click to review</div>
+                    <div class="dsh-kpi-accent"/>
+                </div>
+
+                <!-- Active RFQs -->
+                <div t-att-class="kpiCardClass('rfq')" t-on-click="onAllRFQs">
+                    <div class="dsh-kpi-icon">📋</div>
+                    <div class="dsh-kpi-value" t-esc="state.data.active_rfqs"/>
+                    <div class="dsh-kpi-label">Active RFQs</div>
+                    <div class="dsh-kpi-footer">Draft · Sent · Comparing</div>
+                    <div class="dsh-kpi-accent"/>
+                </div>
+
+                <!-- Savings (period) -->
+                <div t-att-class="kpiCardClass('savings')">
+                    <div class="dsh-kpi-icon">💰</div>
+                    <div class="dsh-kpi-value" t-esc="_fmt(state.data.savings_month, true)"/>
+                    <div class="dsh-kpi-label">Savings · <t t-esc="state.data.period_label"/></div>
+                    <div class="dsh-kpi-footer">vs. highest quotes received</div>
+                    <div class="dsh-kpi-accent"/>
+                </div>
+
+                <!-- POs (period) -->
+                <div t-att-class="kpiCardClass('po')" t-on-click="onPosThisPeriod">
+                    <div class="dsh-kpi-icon">🛒</div>
+                    <div class="dsh-kpi-value" t-esc="state.data.pos_month"/>
+                    <div class="dsh-kpi-label">POs · <t t-esc="state.data.period_label"/></div>
+                    <div class="dsh-kpi-footer">RFQs converted to orders</div>
+                    <div class="dsh-kpi-accent"/>
+                </div>
+
+                <!-- Approved Spend (period) with trend -->
+                <div t-att-class="kpiCardClass('ytd')" t-on-click="onAllRequests">
+                    <div class="dsh-kpi-icon">📈</div>
+                    <div class="dsh-kpi-value" t-esc="_fmt(state.data.total_ytd, true)"/>
+                    <div class="dsh-kpi-label">Approved Spend · <t t-esc="state.data.period_label"/></div>
+                    <div class="dsh-kpi-footer">
+                        <span t-att-class="'dsh-trend dsh-trend--' + state.data.spend_trend_dir">
+                            <t t-if="state.data.spend_trend_dir === 'up'">▲</t>
+                            <t t-elif="state.data.spend_trend_dir === 'down'">▼</t>
+                            <t t-else="">▬</t>
+                            <t t-esc="Math.abs(state.data.spend_trend)"/>%
+                        </span>
+                        vs previous · <t t-esc="state.data.total_requests"/> reqs
+                    </div>
+                    <div class="dsh-kpi-accent"/>
+                </div>
+
+            </div>
+
+            <!-- ── Charts Row ─────────────────────────────────────────────── -->
+            <div class="dsh-charts-row">
+
+                <!-- Status Donut -->
+                <div class="dsh-card dsh-donut-card">
+                    <div class="dsh-card-header">
+                        <h5 class="dsh-card-title">Request Status</h5>
+                        <span class="dsh-card-sub">All time · this company</span>
+                    </div>
+                    <div class="dsh-donut-body">
+                        <div class="dsh-donut-wrap">
+                            <svg viewBox="0 0 140 140" class="dsh-donut-svg">
+                                <!-- Background ring -->
+                                <circle cx="70" cy="70" r="52" fill="none"
+                                        stroke="#f1f5f9" stroke-width="20"/>
+                                <!-- Segments -->
+                                <t t-foreach="donutSegments" t-as="seg" t-key="seg.state">
+                                    <circle
+                                        cx="70" cy="70" r="52"
+                                        fill="none"
+                                        t-attf-stroke="#{seg.color}"
+                                        stroke-width="20"
+                                        stroke-linecap="butt"
+                                        t-attf-stroke-dasharray="#{seg.dasharray}"
+                                        t-attf-transform="#{seg.transform}"
+                                        class="dsh-donut-seg"
+                                    />
+                                </t>
+                                <!-- Center text -->
+                                <text x="70" y="65" class="dsh-donut-num"
+                                      text-anchor="middle" dominant-baseline="middle"
+                                      t-esc="donutTotal"/>
+                                <text x="70" y="82" class="dsh-donut-sub"
+                                      text-anchor="middle">total</text>
+                            </svg>
+                        </div>
+                        <!-- Legend -->
+                        <div class="dsh-donut-legend">
+                            <t t-foreach="donutSegments" t-as="seg" t-key="seg.state">
+                                <div class="dsh-legend-item dsh-legend-item--click"
+                                     t-on-click="() => this.onOpenStatus(seg.state, seg.label)"
+                                     t-att-title="'View ' + seg.label + ' requests'">
+                                    <span class="dsh-legend-dot"
+                                          t-attf-style="background:#{seg.color}"/>
+                                    <span class="dsh-legend-name" t-esc="seg.label"/>
+                                    <span class="dsh-legend-count" t-esc="seg.count"/>
+                                    <span class="dsh-legend-pct">
+                                        (<t t-esc="seg.pct"/>%)
+                                    </span>
+                                </div>
+                            </t>
+                            <div class="dsh-donut-empty" t-if="!donutSegments.length">
+                                No data yet
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Spend Bar Chart -->
+                <div class="dsh-card dsh-monthly-card">
+                    <div class="dsh-card-header">
+                        <h5 class="dsh-card-title">Monthly Approved Spend</h5>
+                        <span class="dsh-card-sub">Last 6 months</span>
+                    </div>
+                    <div class="dsh-bar-chart-wrap">
+                        <div class="dsh-bar-chart">
+                            <t t-foreach="state.data.monthly_spend" t-as="m" t-key="m.month">
+                                <div class="dsh-bar-col"
+                                     t-on-mouseenter="() => this.onHoverMonth(m.short)"
+                                     t-on-mouseleave="() => this.onLeaveMonth()">
+                                    <div class="dsh-bar-tooltip"
+                                         t-if="state.hoveredMonth === m.short">
+                                        <div class="dsh-tip-month" t-esc="m.month"/>
+                                        <div class="dsh-tip-amount" t-esc="_fmt(m.amount)"/>
+                                        <div class="dsh-tip-count">
+                                            <t t-esc="m.count"/> requests
+                                        </div>
+                                    </div>
+                                    <div class="dsh-bar-track">
+                                        <div class="dsh-bar-fill"
+                                             t-attf-style="height: #{getBarPct(m.amount)}"
+                                             t-att-class="isCurrentMonth(m.short) ? 'dsh-bar-fill--current' : ''"/>
+                                    </div>
+                                    <div class="dsh-bar-label" t-esc="m.short"/>
+                                    <div class="dsh-bar-amount"
+                                         t-if="m.amount > 0"
+                                         t-esc="_fmt(m.amount, true)"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ── Analysis Row ───────────────────────────────────────────── -->
+            <div class="dsh-analysis-row">
+
+                <!-- Department Spend -->
+                <div class="dsh-card dsh-dept-card">
+                    <div class="dsh-card-header">
+                        <h5 class="dsh-card-title">Top Departments by Spend</h5>
+                        <span class="dsh-card-sub">YTD approved</span>
+                    </div>
+                    <div class="dsh-hbar-list" t-if="state.data.dept_spend.length">
+                        <t t-foreach="state.data.dept_spend" t-as="d" t-key="d.dept">
+                            <div class="dsh-hbar-row dsh-hbar-row--click"
+                                 t-on-click="() => this.onOpenDept(d.dept)"
+                                 t-att-title="'View ' + d.dept + ' requests'">
+                                <div class="dsh-hbar-name" t-esc="d.dept"/>
+                                <div class="dsh-hbar-track">
+                                    <div class="dsh-hbar-fill"
+                                         t-attf-style="width:#{d.pct}%"/>
+                                </div>
+                                <div class="dsh-hbar-amount" t-esc="_fmt(d.amount, true)"/>
+                            </div>
+                        </t>
+                    </div>
+                    <div class="dsh-empty-state" t-else="">
+                        <span>No approved spend this year yet.</span>
+                    </div>
+                </div>
+
+                <!-- Vendor Leaderboard -->
+                <div class="dsh-card dsh-vendor-card">
+                    <div class="dsh-card-header">
+                        <h5 class="dsh-card-title">Vendor Leaderboard</h5>
+                        <span class="dsh-card-sub">Most awarded YTD</span>
+                    </div>
+                    <div class="dsh-vendor-list" t-if="state.data.vendor_wins.length">
+                        <t t-foreach="state.data.vendor_wins" t-as="v" t-key="v.name">
+                            <div class="dsh-vendor-row"
+                                 t-att-class="state.hoveredVendor === v.name ? 'dsh-vendor-row--hover' : ''"
+                                 t-on-mouseenter="() => this.onHoverVendor(v.name)"
+                                 t-on-mouseleave="() => this.onLeaveVendor()">
+                                <div class="dsh-vendor-rank">
+                                    <t t-if="v_index === 0">🥇</t>
+                                    <t t-elif="v_index === 1">🥈</t>
+                                    <t t-elif="v_index === 2">🥉</t>
+                                    <t t-else="">#<t t-esc="v_index + 1"/></t>
+                                </div>
+                                <div class="dsh-vendor-info">
+                                    <div class="dsh-vendor-name" t-esc="v.name"/>
+                                    <div class="dsh-vendor-bar-track">
+                                        <div class="dsh-vendor-bar-fill"
+                                             t-attf-style="width:#{v.pct}%"/>
+                                    </div>
+                                </div>
+                                <div class="dsh-vendor-stats">
+                                    <div class="dsh-vendor-wins">
+                                        <t t-esc="v.wins"/> win<t t-if="v.wins !== 1">s</t>
+                                    </div>
+                                    <div class="dsh-vendor-total" t-esc="_fmt(v.total, true)"/>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                    <div class="dsh-empty-state" t-else="">
+                        <span>No awarded vendors yet.</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ── Recent Activity Feed ───────────────────────────────────── -->
+            <div class="dsh-card dsh-activity-card">
+                <div class="dsh-card-header">
+                    <h5 class="dsh-card-title">Recent Activity</h5>
+                    <span class="dsh-card-sub">Latest purchase requests</span>
+                    <button class="dsh-action-btn dsh-action-btn--sm"
+                            t-on-click="onAllRequests">View All</button>
+                </div>
+                <div class="dsh-activity-list" t-if="state.data.recent_activity.length">
+                    <t t-foreach="state.data.recent_activity" t-as="pr" t-key="pr.id">
+                        <div class="dsh-activity-row"
+                             t-on-click="() => this.onOpenPR(pr.id)">
+                            <div class="dsh-act-priority"
+                                 t-if="pr.priority !== '0'"
+                                 t-esc="priorityIcon(pr.priority)"/>
+                            <div class="dsh-act-timeline">
+                                <div class="dsh-act-dot"
+                                     t-attf-style="background: var(--state-#{pr.state}, #94a3b8)"/>
+                                <div class="dsh-act-line"/>
+                            </div>
+                            <div class="dsh-act-body">
+                                <div class="dsh-act-name">
+                                    <span class="dsh-act-ref" t-esc="pr.name"/>
+                                    <span class="dsh-act-desc" t-esc="pr.description"/>
+                                </div>
+                                <div class="dsh-act-meta">
+                                    <span t-att-class="stateBadgeClass(pr.state)"
+                                          t-esc="pr.state_label"/>
+                                    <span class="dsh-act-user">by <t t-esc="pr.requester"/></span>
+                                </div>
+                            </div>
+                            <div class="dsh-act-right">
+                                <div class="dsh-act-amount" t-esc="_fmt(pr.amount, true)"/>
+                                <div class="dsh-act-date" t-esc="pr.date"/>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+                <div class="dsh-empty-state" t-else="">
+                    <div class="dsh-empty-icon">📭</div>
+                    <p>No purchase requests found. Create your first one!</p>
+                    <button class="dsh-action-btn dsh-action-btn--primary mt-2"
+                            t-on-click="onNewPR">+ New Request</button>
+                </div>
+            </div>
+
+            <!-- ── Recently Added Vendors ─────────────────────────────────── -->
+            <div class="dsh-card dsh-vendors-card">
+                <div class="dsh-card-header">
+                    <h5 class="dsh-card-title">Recently Added Vendors</h5>
+                    <span class="dsh-card-sub">
+                        <t t-esc="state.data.new_vendor_count or 0"/> suppliers total
+                    </span>
+                    <button class="dsh-action-btn dsh-action-btn--sm"
+                            t-on-click="onAllVendors">View All</button>
+                </div>
+                <div class="dsh-vendor-grid" t-if="state.data.recent_vendors and state.data.recent_vendors.length">
+                    <t t-foreach="state.data.recent_vendors" t-as="v" t-key="v.id">
+                        <div class="dsh-vendor-tile" t-on-click="() => this.onOpenVendor(v.id)">
+                            <div class="dsh-vendor-avatar" t-esc="v.name ? v.name[0].toUpperCase() : '?'"/>
+                            <div class="dsh-vendor-info">
+                                <div class="dsh-vendor-name" t-esc="v.name"/>
+                                <div class="dsh-vendor-sub">
+                                    <t t-if="v.email"><t t-esc="v.email"/></t>
+                                    <t t-elif="v.city or v.country"><t t-esc="v.city"/><t t-if="v.city and v.country">, </t><t t-esc="v.country"/></t>
+                                    <t t-else="">No contact on file</t>
+                                </div>
+                                <div class="dsh-vendor-foot">
+                                    <span class="dsh-vendor-chip">📅 <t t-esc="v.created"/></span>
+                                    <span class="dsh-vendor-chip" t-if="v.quotation_count">
+                                        📄 <t t-esc="v.quotation_count"/> quote(s)
+                                    </span>
+                                    <span class="dsh-vendor-chip dsh-vendor-chip--new" t-else="">✦ New</span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+                <div class="dsh-empty-state" t-else="">
+                    <div class="dsh-empty-icon">🏢</div>
+                    <p>No vendors yet. They appear here as you register them.</p>
+                </div>
+            </div>
+            </div>
+
+        </t>
+    </div>
+</t>
+
+</templates>

@@ -1,0 +1,48 @@
+// The running clock, and the printing-room touches on the register and machine forms.
+.o_scan_timer {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.o_scan_timer_lg .o_scan_timer {
+    font-size: 1.35rem;
+    color: var(--primary, #714b67);
+}
+
+// the "on the machine now" pill in the register's title
+.o_scan_printing_badge {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+
+    .o_field_widget,
+    .o_field_widget a,
+    .o_field_widget span {
+        color: inherit;
+        font-size: inherit;
+    }
+}
+
+// the sticker-scan box in the printing dialogs: obviously the place to scan into
+.o_scan_code_input .o_input {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .06em;
+    background: #f8fafc;
+}
+
+.o_scan_wizard_head {
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    padding-bottom: .5rem;
+}
+
+// machine cards
+.o_scan_printer_kanban {
+    .o_scan_printer_img img {
+        width: 72px;
+        height: 72px;
+        border-radius: .5rem;
+        object-fit: cover;
+        background: #f1f5f9;
+    }
+}

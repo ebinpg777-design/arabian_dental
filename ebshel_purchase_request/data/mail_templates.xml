@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="0">
+
+    <!-- ── Approval Request Notification ────────────────────────────────── -->
+    <record id="mail_template_pr_approval_request" model="mail.template">
+      <field name="name">Purchase Request: Approval Required</field>
+      <field name="model_id" ref="model_ebshel_purchase_request"/>
+      <field name="subject">Approval Required: {{ object.name }}</field>
+      <field name="email_from">{{ object.company_id.email or user.email }}</field>
+      <field name="body_html" type="html">
+        <div style="font-family:Arial,sans-serif;font-size:14px;color:#333;">
+
+        <p>Dear <t t-out="ctx.get('approver_name') or 'Approver'"/>,</p>
+
+        <p>
+        A purchase request has been submitted and requires your review and approval.
+        </p>
+
+        <table style="border-collapse:collapse;width:100%;border:1px solid #ddd;">
+        <tr>
+            <td style="padding:8px;font-weight:bold;background:#f8f8f8;">Reference</td>
+            <td style="padding:8px;"><t t-out="object.name"/></td>
+        </tr>
+        <tr>
+            <td style="padding:8px;font-weight:bold;background:#f8f8f8;">Purpose</td>
+            <td style="padding:8px;"><t t-out="object.description or ''"/></td>
+        </tr>
+        <tr>
+            <td style="padding:8px;font-weight:bold;background:#f8f8f8;">Requested By</td>
+            <td style="padding:8px;"><t t-out="object.requester_id.name"/></td>
+        </tr>
+        <tr>
+            <td style="padding:8px;font-weight:bold;background:#f8f8f8;">Department</td>
+            <td style="padding:8px;"><t t-out="object.analytic_account_id.name or '-'"/></td>
+        </tr>
+        <tr>
+            <td style="padding:8px;font-weight:bold;background:#f8f8f8;">Estimated Value</td>
+            <td style="padding:8px;">
+                <t t-out="object.currency_id.symbol"/>
+                <t t-out="object.amount_total"/>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:8px;font-weight:bold;background:#f8f8f8;">Required By</td>
+            <td style="padding:8px;"><t t-out="object.date_required or '-'"/></td>
+        </tr>
+        </table>
+
+        <br/>
+
+        <div style="text-align:center;">
+            <a t-attf-href="/web#id={{ object.id }}&amp;model=ebshel.purchase.request&amp;view_type=form"
+              style="background:#875A7B;
+                      color:white;
+                      padding:12px 24px;
+                      text-decoration:none;
+                      border-radius:4px;">
+                Review Purchase Request
+            </a>
+        </div>
+
+        <p style="margin-top:20px;">
+        Thank you,<br/>
+        <t t-out="object.company_id.name"/>
+        </p>
+
+        </div>
+      </field>
+      <field name="auto_delete" eval="True"/>
+    </record>
+
+    <!-- ── Approval Granted Notification ────────────────────────────────── -->
+    <record id="mail_template_pr_approved" model="mail.template">
+        <field name="name">Purchase Request: Approved</field>
+        <field name="model_id" ref="model_ebshel_purchase_request"/>
+        <field name="subject">Purchase Request Approved: {{ object.name }}</field>
+        <field name="email_from">{{ object.company_id.email or user.email }}</field>
+        <field name="body_html" type="html">
+<p>Dear <t t-out="object.requester_id.name"/>,</p>
+<p>Your purchase request <strong><t t-out="object.name"/></strong> has been <strong style="color:green;">approved</strong>.</p>
+<p>The procurement team will now proceed with the RFQ process.</p>
+<p>
+  <a t-attf-href="/web#id={{ object.id }}&amp;model=ebshel.purchase.request&amp;view_type=form"
+     style="background-color:#875A7B;color:#fff;padding:8px 16px;text-decoration:none;border-radius:4px;">
+    View Request
+  </a>
+</p>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <!-- ── Rejection Notification ────────────────────────────────────────── -->
+    <record id="mail_template_pr_rejected" model="mail.template">
+        <field name="name">Purchase Request: Rejected</field>
+        <field name="model_id" ref="model_ebshel_purchase_request"/>
+        <field name="subject">Purchase Request Rejected: {{ object.name }}</field>
+        <field name="email_from">{{ object.company_id.email or user.email }}</field>
+        <field name="body_html" type="html">
+          <p>Dear <t t-out="object.requester_id.name"/>,</p>
+          <p>Your purchase request <strong><t t-out="object.name"/></strong> has been <strong style="color:red;">rejected</strong>.</p>
+          <p><strong>Reason:</strong> <t t-out="object.rejection_reason or 'No reason provided.'"/></p>
+          <p>You may reset the request to draft and revise it before re-submitting.</p>
+          <p>
+            <a t-attf-href="/web#id={{ object.id }}&amp;model=ebshel.purchase.request&amp;view_type=form"
+              style="background-color:#875A7B;color:#fff;padding:8px 16px;text-decoration:none;border-radius:4px;">
+              View Request
+            </a>
+          </p>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <!-- ── RFQ Vendor Notification ──────────────────────────────────────── -->
+    <record id="mail_template_rfq_vendor" model="mail.template">
+        <field name="name">Purchase RFQ: Request for Quotation to Vendor</field>
+        <field name="model_id" ref="model_ebshel_purchase_vendor_quotation"/>
+        <field name="subject">Request for Quotation – {{ object.rfq_id.name }}</field>
+        <field name="email_from">{{ object.company_id.email or user.email }}</field>
+        <field name="email_to">{{ object.email }}</field>
+        <field name="body_html" type="html">
+<p>Dear <t t-out="object.vendor_id.name or object.new_vendor_name or 'Vendor'"/>,</p>
+<p>We would like to invite you to submit a quotation for the following items:</p>
+<table border="1" style="border-collapse:collapse;width:100%">
+  <thead>
+    <tr style="background:#f0f0f0">
+      <th style="padding:6px;">Product</th>
+      <th style="padding:6px;">Description</th>
+      <th style="padding:6px;">Quantity</th>
+      <th style="padding:6px;">UOM</th>
+      <th style="padding:6px;">Required By</th>
+    </tr>
+  </thead>
+  <tbody>
+    <t t-foreach="object.rfq_id.rfq_line_ids" t-as="line">
+    <tr>
+      <td style="padding:6px;"><t t-out="line.product_id.name or ''"/></td>
+      <td style="padding:6px;"><t t-out="line.name or ''"/></td>
+      <td style="padding:6px;"><t t-out="line.qty"/></td>
+      <td style="padding:6px;"><t t-out="line.uom_id.name or ''"/></td>
+      <td style="padding:6px;"><t t-out="line.date_required or ''"/></td>
+    </tr>
+    </t>
+  </tbody>
+</table>
+<p><strong>Quotation Deadline:</strong> <t t-out="object.rfq_id.deadline or 'As soon as possible'"/></p>
+<t t-if="object.rfq_id.terms_conditions">
+  <hr/>
+  <p><strong>Terms &amp; Conditions</strong></p>
+  <div t-out="object.rfq_id.terms_conditions"/>
+</t>
+<p>Please reply with your best prices, delivery times, and payment terms.</p>
+<p>
+  <a t-attf-href="/web#id={{ object.rfq_id.id }}&amp;model=ebshel.purchase.rfq&amp;view_type=form"
+    style="background-color:#875A7B;color:#fff;padding:8px 16px;text-decoration:none;border-radius:4px;">
+      View RFQ
+  </a>  
+</p>
+<p>Thank you for your business.</p>
+<p><t t-out="object.company_id.name or user.company_id.name"/></p>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+</data>
+</odoo>

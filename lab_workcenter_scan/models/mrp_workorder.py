@@ -384,6 +384,22 @@ class MrpWorkorderResponsibility(models.Model):
         """, s=start, e=end)
 
     @api.model
+    def _credit_window(self, start, end, alias='wo'):
+        """SQL: the operations that can be credited in [start, end) at all - stamped
+        in it by one of the three moments `_person_credit` reads.
+
+        The same condition the credit rule applies row by row, said once outside it,
+        where the indexes on the three stamps can answer it: without it every count
+        walked the whole work-order table through the LATERAL - 0.07 s a board on six
+        weeks of stamps, and the station board asks it twice. (2026-10-15)
+        """
+        col = lambda name: SQL.identifier(alias, name)        # noqa: E731
+        return SQL(
+            "(%(a)s >= %(s)s AND %(a)s < %(e)s OR %(b)s >= %(s)s AND %(b)s < %(e)s"
+            " OR %(h)s >= %(s)s AND %(h)s < %(e)s)",
+            a=col('bench_assigned_at'), b=col('accepted_at'), h=col('handed_over_at'), s=start, e=end)
+
+    @api.model
     def _day_counts_by_person_range(self, days, tz_name=None, user_ids=None,
                                     workcenter=None):
         """{(day, user_id): jobs} for a RANGE of days, in one pass.
@@ -453,10 +469,11 @@ class MrpWorkorderResponsibility(models.Model):
             SELECT p.person, count(*) AS jobs
               FROM mrp_workorder wo
               %(credit)s
-             WHERE TRUE %(people)s %(bench)s
+             WHERE %(window)s %(people)s %(bench)s
              GROUP BY p.person
             """,
             credit=self._person_credit(start, end),
+            window=self._credit_window(start, end),
             people=SQL("AND p.person = ANY(%s)", wanted) if wanted is not None else SQL(""),
             bench=SQL("AND wo.workcenter_id = %s", workcenter.id) if workcenter else SQL(""),
         ))

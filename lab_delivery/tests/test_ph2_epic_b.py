@@ -196,3 +196,57 @@ class TestEpicBDelivery(TransactionCase):
         visit.outcome = 'delivered'
         with self.assertRaises(UserError):
             visit.do_check_out()
+
+    # ------------------------------------------------- shipped at the counter
+    def _shipped_order(self):
+        """An order the office ships by validating its transfer."""
+        order = self._order()
+        order.action_confirm()
+        return order
+
+    def _validate(self, order):
+        picking = order.picking_ids.filtered(lambda p: p.picking_type_code == 'outgoing')
+        picking.move_ids.quantity = 1
+        picking.with_context(skip_backorder=True, skip_sms=True).button_validate()
+        self.assertEqual(picking.state, 'done')
+        return picking
+
+    def test_validating_the_transfer_closes_the_dispatch(self):
+        """The office validates at the counter; the dispatch must not stay out."""
+        order = self._shipped_order()
+        delivery = self.env['lab.delivery'].create({
+            'sale_order_id': order.id, 'executive_id': self.exec_user.id,
+            'partner_id': self.clinic.id, 'scheduled_date': fields.Datetime.now(),
+            'state': 'assigned'})
+        picking = self._validate(order)
+        self.assertEqual(delivery.state, 'delivered')
+        self.assertEqual(delivery.delivered_datetime, picking.date_done)
+        self.assertIn(picking.name, delivery.message_ids[:1].body)
+
+    def test_checkout_as_delivered_passes_when_the_order_has_shipped(self):
+        """Transfer done, dispatch left assigned: the executive was refused."""
+        order = self._shipped_order()
+        self._validate(order)
+        ghost = self.env['lab.delivery'].create({
+            'sale_order_id': order.id, 'executive_id': self.exec_user.id,
+            'partner_id': self.clinic.id, 'scheduled_date': fields.Datetime.now(),
+            'state': 'out'})
+        visit = self.env['lab.visit'].create({
+            'partner_id': self.clinic.id, 'user_id': self.exec_user.id,
+            'state': 'open', 'check_in': fields.Datetime.now()})
+        visit.outcome = 'delivered'
+        visit.do_check_out(latitude=9.98, longitude=76.58)
+        self.assertEqual(visit.state, 'done', "the executive is let go")
+        self.assertEqual(ghost.state, 'delivered', "the stale dispatch is closed, not blocking")
+
+    def test_checkout_still_blocks_when_the_work_has_not_shipped(self):
+        order = self._shipped_order()        # confirmed, transfer still open
+        self.env['lab.delivery'].create({
+            'sale_order_id': order.id, 'executive_id': self.exec_user.id,
+            'partner_id': self.clinic.id, 'scheduled_date': fields.Datetime.now(),
+            'state': 'out'})
+        visit = self.env['lab.visit'].create({
+            'partner_id': self.clinic.id, 'user_id': self.exec_user.id})
+        visit.outcome = 'delivered'
+        with self.assertRaises(UserError):
+            visit.do_check_out()

@@ -1,0 +1,34 @@
+id,name,model_id,group_id/id,operation,domain
+access_fund_user,Petty cash fund: custodian and members,ebshel.petty.cash.fund,group_petty_cash_user,r,"['|', ('custodian_id', '=', user.id), ('user_ids', 'in', user.id)]"
+access_fund_approver,Petty cash fund: approvers see all,ebshel.petty.cash.fund,group_petty_cash_approver,r,
+access_fund_manager,Petty cash fund: managers,ebshel.petty.cash.fund,group_petty_cash_manager,crud,
+rule_fund_company,Petty cash fund: multi-company,ebshel.petty.cash.fund,,crud,"[('company_id', 'in', company_ids)]"
+access_category_user,Petty cash category: users,ebshel.petty.cash.category,group_petty_cash_user,r,
+access_category_manager,Petty cash category: managers,ebshel.petty.cash.category,group_petty_cash_manager,crud,
+rule_category_company,Petty cash category: multi-company,ebshel.petty.cash.category,,crud,"[('company_id', 'in', company_ids)]"
+access_denomination_user,Petty cash denomination: users,ebshel.petty.cash.denomination,group_petty_cash_user,r,
+access_denomination_manager,Petty cash denomination: managers,ebshel.petty.cash.denomination,group_petty_cash_manager,crud,
+access_expense_user,Petty cash voucher: own or held fund,ebshel.petty.cash.expense,group_petty_cash_user,crud,"['|', ('requested_by_id', '=', user.id), ('fund_id.custodian_id', '=', user.id)]"
+access_expense_approver,Petty cash voucher: approvers see all,ebshel.petty.cash.expense,group_petty_cash_approver,crud,
+rule_expense_company,Petty cash voucher: multi-company,ebshel.petty.cash.expense,,crud,"[('company_id', 'in', company_ids)]"
+access_expense_line_user,Petty cash voucher line: own or held fund,ebshel.petty.cash.expense.line,group_petty_cash_user,crud,"['|', ('expense_id.requested_by_id', '=', user.id), ('expense_id.fund_id.custodian_id', '=', user.id)]"
+access_expense_line_approver,Petty cash voucher line: approvers see all,ebshel.petty.cash.expense.line,group_petty_cash_approver,crud,
+rule_expense_line_company,Petty cash voucher line: multi-company,ebshel.petty.cash.expense.line,,crud,"[('company_id', 'in', company_ids)]"
+access_advance_user,"Petty cash advance: own, held or held fund",ebshel.petty.cash.advance,group_petty_cash_user,crud,"['|', '|', ('requested_by_id', '=', user.id), ('holder_id', '=', user.partner_id.id), ('fund_id.custodian_id', '=', user.id)]"
+access_advance_approver,Petty cash advance: approvers see all,ebshel.petty.cash.advance,group_petty_cash_approver,crud,
+rule_advance_company,Petty cash advance: multi-company,ebshel.petty.cash.advance,,crud,"[('company_id', 'in', company_ids)]"
+access_replenishment_user,Petty cash replenishment: held fund,ebshel.petty.cash.replenishment,group_petty_cash_user,crud,"[('fund_id.custodian_id', '=', user.id)]"
+access_replenishment_approver,Petty cash replenishment: approvers see all,ebshel.petty.cash.replenishment,group_petty_cash_approver,crud,
+rule_replenishment_company,Petty cash replenishment: multi-company,ebshel.petty.cash.replenishment,,crud,"[('company_id', 'in', company_ids)]"
+access_transfer_user,Petty cash transfer: held fund,ebshel.petty.cash.transfer,group_petty_cash_user,r,"['|', ('fund_id.custodian_id', '=', user.id), ('dest_fund_id.custodian_id', '=', user.id)]"
+access_transfer_approver,Petty cash transfer: approvers see all,ebshel.petty.cash.transfer,group_petty_cash_approver,r,
+access_transfer_manager,Petty cash transfer: managers,ebshel.petty.cash.transfer,group_petty_cash_manager,crud,
+rule_transfer_company,Petty cash transfer: multi-company,ebshel.petty.cash.transfer,,crud,"[('company_id', 'in', company_ids)]"
+access_count_user,Petty cash count: held fund,ebshel.petty.cash.count,group_petty_cash_user,crud,"[('fund_id.custodian_id', '=', user.id)]"
+access_count_approver,Petty cash count: approvers see all,ebshel.petty.cash.count,group_petty_cash_approver,crud,
+rule_count_company,Petty cash count: multi-company,ebshel.petty.cash.count,,crud,"[('company_id', 'in', company_ids)]"
+access_count_line_user,Petty cash count line: held fund,ebshel.petty.cash.count.line,group_petty_cash_user,crud,"[('count_id.fund_id.custodian_id', '=', user.id)]"
+access_count_line_approver,Petty cash count line: approvers see all,ebshel.petty.cash.count.line,group_petty_cash_approver,crud,
+access_refuse_wizard_approver,Petty cash refuse wizard,ebshel.petty.cash.refuse.wizard,group_petty_cash_approver,cru,
+access_settle_wizard_user,Petty cash advance settle wizard,ebshel.petty.cash.advance.settle.wizard,group_petty_cash_user,cru,
+access_statement_wizard_user,Petty cash statement wizard,ebshel.petty.cash.statement.wizard,group_petty_cash_user,cru,

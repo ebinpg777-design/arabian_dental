@@ -1,0 +1,137 @@
+<section style="max-width:1140px; margin:0 auto; padding:8px 14px 40px; color:#12233a; line-height:1.6; font-size:16px;">
+
+    <div style="text-align:center; margin-top:10px;">
+        <h2 style="font-size:34px; margin:0 0 6px;">Advanced Petty Cash</h2>
+        <p style="font-size:19px; color:#4a5a6a; margin:0 0 18px;">
+            Imprest funds, vouchers, approvals, cash advances, replenishment and cash counts -
+            every balance read from the general ledger.
+        </p>
+        <img src="banner.png" alt="Advanced Petty Cash" style="width:100%; max-width:900px; border-radius:12px;"/>
+    </div>
+
+    <!-- ====================== WHY ====================== -->
+    <div style="margin-top:40px; display:flex; flex-wrap:wrap; gap:24px;">
+        <div style="flex:1 1 320px;">
+            <h3 style="color:#184d3a;">The fund agrees with the books</h3>
+            <p>A fund is a cash journal with its own cash account. Its balance is not a running total kept by the
+            module: it is the balance of the posted journal items on that account. Whatever posts there -
+            vouchers, top-ups, a manual entry by your accountant - the fund shows it, and it can never drift
+            from the general ledger.</p>
+        </div>
+        <div style="flex:1 1 320px;">
+            <h3 style="color:#184d3a;">Receipts, as they come</h3>
+            <p>Shop receipts carry tax-included totals. Enter them as they are: the tax is extracted by Odoo's own
+            tax engine (the same computation as Odoo Expenses), with global or per-line rounding, and the
+            voucher total is exactly what leaves the cash box, cent for cent.</p>
+        </div>
+        <div style="flex:1 1 320px;">
+            <h3 style="color:#184d3a;">Custodians need no accounting rights</h3>
+            <p>Requesters and custodians work with petty cash rights only. The module checks who may approve and
+            pay, then posts the entries itself; accountants see clean, numbered entries in the fund journal.</p>
+        </div>
+    </div>
+
+    <!-- ====================== DASHBOARD ====================== -->
+    <div style="margin-top:44px;">
+        <h3 style="font-size:24px; color:#184d3a;">Dashboard</h3>
+        <p>One card per fund: cash on hand against the float, committed amounts, advances out, spending this month,
+        last count, and the queues to approve and to pay. Quick buttons raise a voucher, an advance, a
+        replenishment or a cash count.</p>
+        <img src="shot_dashboard.png" alt="Petty cash dashboard"
+             style="width:100%; margin-top:12px; border-radius:12px; border:1px solid #dfe7f2;"/>
+    </div>
+
+    <!-- ====================== VOUCHERS ====================== -->
+    <div style="margin-top:44px;">
+        <h3 style="font-size:24px; color:#184d3a;">Vouchers</h3>
+        <div style="max-width:880px; font-size:15px; color:#4a5a6a;">
+            <div style="margin:4px 0;"><b style="color:#184d3a;">&#10003;</b> <b style="color:#12233a;">Several lines per voucher</b>, each with an expense category (account, default taxes, analytic distribution, ceiling).</div>
+            <div style="margin:4px 0;"><b style="color:#184d3a;">&#10003;</b> <b style="color:#12233a;">Tax-included or tax-excluded</b> amounts, foreign-currency funds converted at the voucher date.</div>
+            <div style="margin:4px 0;"><b style="color:#184d3a;">&#10003;</b> <b style="color:#12233a;">Pay open vendor bills</b> from the cash box: the bill is reconciled automatically, and re-opened if the voucher is cancelled.</div>
+            <div style="margin:4px 0;"><b style="color:#184d3a;">&#10003;</b> <b style="color:#12233a;">Controls:</b> limit per voucher and per category line, receipts required above an amount, allowed categories per fund, payee required per category, no overdraft of the box, duplicate detection on amount and payee or receipt number.</div>
+            <div style="margin:4px 0;"><b style="color:#184d3a;">&#10003;</b> <b style="color:#12233a;">Cancel, never edit:</b> a paid voucher is cancelled by reversing its entry; the entry itself cannot be reset to draft behind the voucher's back.</div>
+        </div>
+        <img src="shot_voucher.png" alt="A paid voucher with two tax-included lines"
+             style="width:100%; margin-top:16px; border-radius:12px; border:1px solid #dfe7f2;"/>
+    </div>
+
+    <!-- ====================== APPROVAL ====================== -->
+    <div style="margin-top:44px; display:flex; flex-wrap:wrap; gap:24px;">
+        <div style="flex:1 1 420px;">
+            <h3 style="font-size:24px; color:#184d3a;">Approval</h3>
+            <ul>
+                <li>Auto-approval up to an amount per fund.</li>
+                <li>Named approvers per fund, who receive the approval activities.</li>
+                <li>Second approval by a petty cash manager from a company threshold, by another person.</li>
+                <li>No self-approval (can be allowed per company).</li>
+                <li>Refusal with a reason, sent to the requester; resubmission after correction.</li>
+                <li>Optional payment on approval.</li>
+            </ul>
+        </div>
+        <div style="flex:1 1 420px;">
+            <h3 style="font-size:24px; color:#184d3a;">Rights</h3>
+            <ul>
+                <li><b>User</b> - raises vouchers and advance requests on the funds they belong to; custodians pay, count and request top-ups for their fund.</li>
+                <li><b>Approver</b> - approves vouchers and advances of every fund.</li>
+                <li><b>Administrator</b> - configures funds and categories, gives the second approval, approves and posts replenishments and count differences.</li>
+                <li>Multi-company access rules on every document.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ====================== ADVANCES ====================== -->
+    <div style="margin-top:44px;">
+        <h3 style="font-size:24px; color:#184d3a;">Cash advances</h3>
+        <p>Hand out cash before the spending. The advance moves the cash to an advance account in the holder's name;
+        the holder's vouchers are booked against it; the settlement returns the unspent cash to the fund (or
+        reimburses the overspending) and reconciles the advance account. Settlement dates, overdue reminders, and
+        no new advance while one is overdue.</p>
+        <img src="shot_advance.png" alt="A paid-out advance with its voucher"
+             style="width:100%; margin-top:12px; border-radius:12px; border:1px solid #dfe7f2;"/>
+    </div>
+
+    <!-- ====================== REPLENISHMENT AND COUNTS ====================== -->
+    <div style="margin-top:44px; display:flex; flex-wrap:wrap; gap:24px;">
+        <div style="flex:1 1 420px;">
+            <h3 style="font-size:24px; color:#184d3a;">Replenishment</h3>
+            <p>A top-up brings the fund back to its float and lists the vouchers it covers, with a
+            claim totalled by category. The counterpart is the bank journal's outstanding payments account, so
+            the bank statement line reconciles like a payment. Returns to the bank reduce the float or close the
+            fund. A reminder when the balance falls below the threshold, and optional automatic drafting of the
+            request.</p>
+        </div>
+        <div style="flex:1 1 420px;">
+            <h3 style="font-size:24px; color:#184d3a;">Cash counts and transfers</h3>
+            <p>Count the box note by note (denominations for USD, EUR, GBP, INR, AED and SAR included, add your own)
+            or as one amount, with a witness. The ledger balance at the count date is frozen next to the count;
+            a difference must be explained and is posted as cash over or short by a manager. Periodic count
+            reminders. Transfers move cash between funds of the same currency.</p>
+        </div>
+    </div>
+    <img src="shot_count.png" alt="Cash count by denomination"
+         style="width:100%; margin-top:12px; border-radius:12px; border:1px solid #dfe7f2;"/>
+
+    <!-- ====================== REPORTING ====================== -->
+    <div style="margin-top:44px;">
+        <h3 style="font-size:24px; color:#184d3a;">Reporting and documents</h3>
+        <p>Spending analysis by category, fund, payee and month (pivot, graph, list); the fund statement with opening
+        balance, every movement and a running balance; printable vouchers with amount in words and signature
+        boxes, advance slips, replenishment claims and count sheets.</p>
+        <img src="shot_analysis.png" alt="Spending analysis by category and month"
+             style="width:100%; margin-top:12px; border-radius:12px; border:1px solid #dfe7f2;"/>
+        <img src="shot_voucher_pdf.png" alt="Printed petty cash voucher"
+             style="width:100%; margin-top:12px; border-radius:12px; border:1px solid #dfe7f2;"/>
+    </div>
+
+    <!-- ====================== SETTINGS ====================== -->
+    <div style="margin-top:44px;">
+        <h3 style="font-size:24px; color:#184d3a;">Settings</h3>
+        <img src="shot_settings.png" alt="Petty cash settings"
+             style="width:100%; margin-top:12px; border-radius:12px; border:1px solid #dfe7f2;"/>
+    </div>
+
+    <div style="margin-top:44px; text-align:center; color:#4a5a6a; font-size:15px;">
+        Odoo 20.0 Community (installs on Enterprise) - depends on Invoicing (<code>account</code>) only.<br/>
+        Support: <a href="mailto:ebinpg777@gmail.com">ebinpg777@gmail.com</a> - Ebshel Technologies
+    </div>
+</section>

@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         VENDOR QUOTATION – Form View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_vendor_quotation_form" model="ir.ui.view">
+        <field name="name">ebshel.purchase.vendor.quotation.form</field>
+        <field name="model">ebshel.purchase.vendor.quotation</field>
+        <field name="arch" type="xml">
+            <form string="Vendor Quotation">
+                <header>
+                    <button name="action_send_quotation" string="Send RFQ to Vendor"
+                            type="object" class="btn-primary"
+                            invisible="id == False or state != 'draft'"
+                            groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+                    <button name="action_send_quotation" string="Resend RFQ"
+                            type="object" class="btn-secondary"
+                            invisible="id == False or state != 'sent' or rfq_state != 'sent'"
+                            groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+                    <field name="rfq_state" invisible="1"/>
+                    <button name="action_mark_received" string="Mark as Received"
+                            type="object" class="btn-primary"
+                            invisible="id == False or state != 'sent' or rfq_state != 'sent'"/>
+                    <button name="action_mark_unreceive" string="Mark Unreceived"
+                            type="object" class="btn-primary"
+                            invisible="id == False or state != 'received' or rfq_state != 'sent'"/>
+                    <button name="action_select_winner" string="Select as Winner"
+                            type="object" class="btn-success"
+                            invisible="state != 'received'"
+                            groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,sent,received,selected"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Winner" bg_color="text-bg-success"
+                            invisible="not is_winner"/>
+                    <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger"
+                            invisible="state != 'rejected'"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_rfq" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">RFQ</span>
+                            </div>
+                        </button>
+                        <button name="action_open_comparison" type="object"
+                                class="oe_stat_button" icon="fa-balance-scale">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Compare</span>
+                            </div>
+                        </button>
+                        <button name="action_view_vendor" type="object"
+                                class="oe_stat_button" icon="fa-building-o"
+                                invisible="vendor_id == False">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Vendor</span>
+                            </div>
+                        </button>
+                        <button name="action_view_purchase_order" type="object"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="purchase_order_id == False">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Purchase Order</span>
+                            </div>
+                        </button>
+                        <field name="purchase_order_id" invisible="1"/>
+                    </div>
+                    <field name="is_winner" invisible="1"/>
+
+                    <div class="oe_title">
+                        <label for="name" string="Vendor Quotation"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <!-- ══ Quotation snapshot — at-a-glance summary ══════════════ -->
+                    <div class="d-flex flex-wrap gap-2 mb-3 mt-1" invisible="amount_total == 0">
+                        <div class="flex-grow-1 border rounded-3 p-2 bg-light" style="min-width:160px">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-money me-1"/>Quoted Total
+                            </div>
+                            <div class="fs-5 fw-bold text-primary">
+                                <field name="amount_total" readonly="1" class="oe_inline"/>
+                            </div>
+                            <small class="text-muted">
+                                untaxed <field name="amount_untaxed" readonly="1" class="oe_inline"/>
+                            </small>
+                        </div>
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:120px">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-star me-1 text-warning"/>Score
+                            </div>
+                            <div class="fs-5 fw-bold"><field name="score" readonly="1" class="oe_inline"/></div>
+                            <small class="text-muted">rank #<field name="rank" readonly="1" class="oe_inline"/></small>
+                        </div>
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:120px"
+                             invisible="not delivery_days">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-truck me-1"/>Delivery
+                            </div>
+                            <div class="fs-5 fw-bold">
+                                <field name="delivery_days" readonly="1" class="oe_inline"/> d
+                            </div>
+                            <small class="text-muted">lead time</small>
+                        </div>
+                    </div>
+
+                    <!-- Winner banner -->
+                    <div class="alert alert-success" role="alert"
+                         invisible="not is_winner">
+                        <strong>&#9733; Selected as Winning Vendor</strong>
+                        <span invisible="not winner_justification"> — <field name="winner_justification" readonly="1" nolabel="1"/></span>
+                    </div>
+                    <!-- New vendor info: registered automatically on award -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not is_new_vendor or vendor_id != False">
+                        <strong>&#9888; New / Prospective Vendor</strong><br/>
+                        This vendor is not registered in the system yet. It will be
+                        created automatically <b>when this quotation wins</b> — click
+                        <b>Select as Winner</b> and you'll be prompted to register it
+                        as part of the award.
+                    </div>
+                    <!-- Registered new vendor confirmation -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="not is_new_vendor or vendor_id == False">
+                        <strong>&#10003; Vendor registered:</strong>
+                        <field name="vendor_id" readonly="1" nolabel="1"
+                               options="{'no_open': False}"/>
+                    </div>
+                    <!-- Fields are captured while the quotation is "Pending" (draft).
+                         Once it moves on (Sent / Received / Selected / Not Selected)
+                         the quote is locked to protect comparison integrity. -->
+                    <group>
+                        <group string="Vendor Details" >
+                            <field name="rfq_id" readonly="id != False" force_save="1"
+                                   options="{'no_create': True}"/>
+                            <!-- Toggle: existing vendor vs new vendor -->
+                            <field name="is_new_vendor" widget="boolean_toggle" readonly="state != 'draft'"/>
+                            <!-- Existing vendor selector (hidden when is_new_vendor) -->
+                            <field name="vendor_id"
+                                   invisible="is_new_vendor" readonly="state != 'draft'"
+                                   required="not is_new_vendor"
+                                   options="{'no_create': True, 'no_edit': True}"/>
+                            <!-- New vendor fields (only when is_new_vendor and not yet created) -->
+                            <field name="new_vendor_name" readonly="state != 'draft'"
+                                   invisible="not is_new_vendor or vendor_id != False"
+                                   required="is_new_vendor and vendor_id == False"
+                                   placeholder="e.g. ABC Supplies Pvt. Ltd."/>
+                            <field name="new_vendor_email" readonly="state != 'draft'"
+                                   invisible="not is_new_vendor or vendor_id != False"
+                                   placeholder="vendor@example.com — used to email the RFQ"/>
+                            <field name="new_vendor_phone" readonly="state != 'draft'"
+                                   invisible="not is_new_vendor or vendor_id != False"/>
+                            <field name="vendor_registered" invisible="1"/>
+                            <field name="email" invisible="1"/>
+                            <field name="vendor_reference"/>
+                            <field name="date_quotation" readonly="state != 'draft'"/>
+                            <field name="validity_date" readonly="state != 'draft'"/>
+                        </group>
+                        <group string="Terms" readonly="state != 'draft'">
+                            <field name="payment_term_id" options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="delivery_days"/>
+                            <field name="incoterm_id" options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Quoted Lines" name="lines">
+                            <field name="line_ids" widget="one2many" readonly="state not in ('draft','sent')">
+                                <list editable="bottom"
+                                      decoration-success="is_best_price == True">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="rfq_line_id" optional="show" options="{'no_create': True, 'no_edit': True}" readonly="1" force_save="1"/>
+                                    <field name="product_category_id" column_invisible="1"/>
+                                    <field name="quotation_pdt_alter" column_invisible="1"/>
+                                    <field name="product_id" options="{'no_create': True, 'no_edit': True}" readonly="not quotation_pdt_alter" force_save="1"
+                                           domain="[('purchase_ok', '=', True)] + ([('categ_id', 'child_of', product_category_id)] if product_category_id else [])"/>
+                                    <field name="name" optional="show"/>
+                                    <field name="qty" readonly="1" force_save="1"/>
+                                    <field name="uom_id" options="{'no_create': True, 'no_edit': True}" readonly="1" force_save="1"/>
+                                    <field name="price_unit"/>
+                                    <field name="discount" optional="show"/>
+                                    <field name="tax_ids" widget="many2many_tags" optional="hide" options="{'no_create': True, 'no_edit': True}"/>
+                                    <field name="price_subtotal" sum="Subtotal"/>
+                                    <field name="price_tax" sum="Tax" optional="hide"/>
+                                    <field name="price_total" sum="Total" optional="show"/>
+                                    <field name="delivery_date" optional="show"/>
+                                    <field name="vendor_remarks" optional="hide"/>
+                                    <field name="is_best_price" optional="show"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                            <!-- Totals footer -->
+                            <group class="oe_subtotal_footer">
+                                <field name="amount_untaxed" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"/>
+                                <field name="amount_tax" widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"/>
+                                <div class="oe_subtotal_footer_separator oe_inline">
+                                    <label for="amount_total"/>
+                                </div>
+                                <field name="amount_total" nolabel="1" class="oe_subtotal_footer_separator"
+                                       widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            </group>
+                        </page>
+                        <page string="Scoring" name="scoring">
+                            <group>
+                                <field name="score" readonly="1"/>
+                                <field name="rank" readonly="1"/>
+                            </group>
+                            <group string="Justification" invisible="not is_winner">
+                                <field name="winner_justification" nolabel="1"/>
+                            </group>
+                        </page>
+                        <page string="Terms &amp; Conditions" name="terms">
+                            <group readonly="state != 'draft'">
+                                <field name="terms_template_id"
+                                       options="{'no_create_edit': True}"
+                                       placeholder="Apply a saved template…"/>
+                            </group>
+                            <field name="terms_conditions" readonly="state != 'draft'"
+                                   placeholder="Inherited from the RFQ — edit to capture the vendor's proposed terms…"/>
+                        </page>
+                        <page string="Vendor Remarks" name="remarks">
+                            <field name="vendor_notes" readonly="state != 'draft'"
+                                   placeholder="Notes from the vendor…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         VENDOR QUOTATION – List View (Comparison)
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_vendor_quotation_list" model="ir.ui.view">
+        <field name="name">ebshel.purchase.vendor.quotation.list</field>
+        <field name="model">ebshel.purchase.vendor.quotation</field>
+        <field name="arch" type="xml">
+            <list string="Vendor Quotations"
+                  decoration-success="is_winner == True"
+                  decoration-muted="state == 'rejected'"
+                  decoration-warning="is_new_vendor == True and vendor_id == False">
+                <field name="rfq_id" optional="show"/>
+                <field name="vendor_id"/>
+                <field name="new_vendor_name" optional="show"
+                       string="Prospective Name"
+                       invisible="not is_new_vendor"/>
+                <field name="is_new_vendor" optional="show" string="New Vendor"/>
+                <field name="vendor_reference" optional="show"/>
+                <field name="date_quotation" optional="show"/>
+                <field name="validity_date" optional="hide"/>
+                <field name="amount_untaxed"/>
+                <field name="amount_tax" optional="hide"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="delivery_days"/>
+                <field name="payment_term_id" optional="show"/>
+                <field name="score"/>
+                <field name="rank"/>
+                <field name="state" widget="badge"
+                       decoration-info="state in ('draft',)"
+                       decoration-warning="state == 'sent'"
+                       decoration-primary="state == 'received'"
+                       decoration-success="state == 'selected'"
+                       decoration-danger="state == 'rejected'"/>
+                <field name="is_winner" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                <button name="action_send_quotation" string="Send RFQ"
+                        type="object" icon="fa-paper-plane"
+                        invisible="state != 'draft'"
+                        groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+                <button name="action_mark_received" string="Mark Received"
+                        type="object" icon="fa-inbox"
+                        invisible="state != 'sent'"
+                        groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+                <button name="action_mark_unreceive" string="Mark Unreceived"
+                            type="object" icon="fa-inbox"
+                            invisible="state != 'received'"
+                            groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+                <button name="action_select_winner" string="Select Winner"
+                        type="object" icon="fa-trophy"
+                        invisible="state != 'received'"
+                        groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         VENDOR QUOTATION – Search View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_vendor_quotation_search" model="ir.ui.view">
+        <field name="name">ebshel.purchase.vendor.quotation.search</field>
+        <field name="model">ebshel.purchase.vendor.quotation</field>
+        <field name="arch" type="xml">
+            <search string="Search Vendor Quotations">
+                <field name="vendor_id"/>
+                <field name="rfq_id"/>
+                <filter name="received" string="Received"
+                        domain="[('state', '=', 'received')]"/>
+                <filter name="winners" string="Winners Only"
+                        domain="[('is_winner', '=', True)]"/>
+                <separator/>
+                <group>
+                    <filter name="group_rfq" string="RFQ"
+                            context="{'group_by': 'rfq_id'}"/>
+                    <filter name="group_vendor" string="Vendor"
+                            context="{'group_by': 'vendor_id'}"/>
+                    <filter name="group_state" string="Status"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         VENDOR QUOTATION – Pivot View (Price Comparison)
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_vendor_quotation_pivot" model="ir.ui.view">
+        <field name="name">ebshel.purchase.vendor.quotation.pivot</field>
+        <field name="model">ebshel.purchase.vendor.quotation</field>
+        <field name="arch" type="xml">
+            <pivot string="Vendor Price Comparison">
+                <field name="rfq_id" type="row"/>
+                <field name="vendor_id" type="col"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         ACTIONS
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_ebshel_vendor_quotation" model="ir.actions.act_window">
+        <field name="name">Vendor Quotations</field>
+        <field name="res_model">ebshel.purchase.vendor.quotation</field>
+        <field name="view_mode">list,form,pivot</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No vendor quotations yet.
+            </p>
+            <p>Send RFQs to vendors and capture their quotations here.</p>
+        </field>
+    </record>
+
+    <record id="action_ebshel_vendor_comparison" model="ir.actions.act_window">
+        <field name="name">Vendor Price Comparison</field>
+        <field name="res_model">ebshel.purchase.vendor.quotation</field>
+        <field name="view_mode">pivot,list,form</field>
+        <field name="domain">[('state', '=', 'received')]</field>
+        <field name="context">{'group_by': 'rfq_id'}</field>
+    </record>
+
+    <!-- Bulk: send RFQ to all selected vendor quotations -->
+    <record id="action_server_send_quotations" model="ir.actions.server">
+        <field name="name">✉ Send RFQ to Vendor(s)</field>
+        <field name="model_id" ref="model_ebshel_purchase_vendor_quotation"/>
+        <field name="binding_model_id" ref="model_ebshel_purchase_vendor_quotation"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_send_quotation()</field>
+    </record>
+
+</odoo>

@@ -77,10 +77,13 @@
     </template>
 
     <!-- Wizard preview: the first sticker at label size, framed. -->
-    <template id="sticker_preview">
+    <template id="sticker_preview_label">
         <div class="epg-sticker-preview" style="display:inline-block;border:1px dashed #999;background:#fff;">
             <t t-call="epg_sticker_print.sticker_body"/>
         </div>
+    </template>
+    <template id="sticker_preview">
+        <t t-call="epg_sticker_print.sticker_preview_label"/>
         <div class="text-muted small mt-1">Preview of sticker 1 of <t t-out="total"/></div>
     </template>
 

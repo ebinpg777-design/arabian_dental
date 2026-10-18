@@ -52,8 +52,8 @@ UNITS = {1: '', 1000: 'thousands', 100000: 'lakhs', 1000000: 'millions', 1000000
 
 # what decides which journal items a figure reads: two readings with the same values
 # here read the same items
-FILTER_KEYS = ('companies', 'posted_only', 'journals', 'partners', 'analytic', 'journal_types',
-               'partner_categories', 'salespeople', 'teams', 'product_categories', 'unreconciled',
+FILTER_KEYS = ('companies', 'posted_only', 'journals', 'partners', 'partners_exclude', 'analytic', 'journal_types',
+               'partner_categories', 'salespeople', 'teams', 'teams_exclude', 'product_categories', 'unreconciled',
                'label', 'amount_min', 'amount_max')
 NEGATIVE_STYLES = [('minus', '-100'), ('brackets', '(100)'), ('trailing', '100-')]
 
@@ -252,6 +252,10 @@ class FinEngine(models.AbstractModel):
         # ---- the wider filters
         for key in ('partner_categories', 'salespeople', 'product_categories', 'teams'):
             options[key] = [int(v) for v in (options.get(key) or []) if str(v).isdigit()]
+        # a list of partners or of Sales Routes can be the ones to SHOW or the ones to
+        # LEAVE OUT ("exclude partner or sales route"); an empty list leaves nothing out
+        options['partners_exclude'] = bool(options.get('partners_exclude')) and bool(options['partners'])
+        options['teams_exclude'] = bool(options.get('teams_exclude')) and bool(options['teams'])
         options['journal_types'] = [t for t in (options.get('journal_types') or []) if t in JOURNAL_TYPES]
         options['unreconciled'] = bool(options.get('unreconciled', False))
         options['label'] = (options.get('label') or '').strip()[:80]
@@ -337,7 +341,12 @@ class FinEngine(models.AbstractModel):
         if options.get('journals'):
             parts.append(SQL("%s IN %s", l('journal_id'), tuple(options['journals'])))
         if options.get('partners'):
-            parts.append(SQL("%s IN %s", l('partner_id'), tuple(options['partners'])))
+            if options.get('partners_exclude'):
+                # an item with no partner is not one of those left out
+                parts.append(SQL("(%s IS NULL OR %s NOT IN %s)", l('partner_id'), l('partner_id'),
+                                 tuple(options['partners'])))
+            else:
+                parts.append(SQL("%s IN %s", l('partner_id'), tuple(options['partners'])))
         if options.get('analytic'):
             keys = [str(i) for i in options['analytic']]
             parts.append(SQL("%s && %s::text[]", self.analytic_ids_sql(alias), keys))
@@ -351,8 +360,32 @@ class FinEngine(models.AbstractModel):
             parts.append(SQL("%s IN (SELECT id FROM account_move WHERE invoice_user_id IN %s)",
                              l('move_id'), tuple(options['salespeople'])))
         if options.get('teams') and 'team_id' in self.env['account.move']._fields:
-            parts.append(SQL("%s IN (SELECT id FROM account_move WHERE team_id IN %s)",
-                             l('move_id'), tuple(options['teams'])))
+            # A RECEIPT HAS NO SALES ROUTE OF ITS OWN. Only invoices carry team_id (Odoo
+            # computes it for sale documents alone) and a receipt is a payment's entry or a
+            # plain journal entry. Matching the move alone dropped every receipt the moment a
+            # route was picked, and left the route's gross invoices standing: a filter that
+            # can only narrow made Aged Receivable go UP. (Ortho b10a1e1, 2026-09-30)
+            #
+            # So: the move's own route when it has one - frozen at invoicing, so a clinic
+            # later moved to another route does not rewrite its history - and the CLINIC's
+            # route (sale_custom's res.partner.team_id, "Sales Route") when it has none.
+            # Same order as the collections countback: the partner, then its commercial parent.
+            teams = tuple(options['teams'])
+            if 'team_id' in self.env['res.partner']._fields:
+                on_route = SQL(
+                    """(%s IN (SELECT id FROM account_move WHERE team_id IN %s)
+                        OR (%s IN (SELECT id FROM account_move WHERE team_id IS NULL)
+                            AND %s IN (SELECT rp.id FROM res_partner rp
+                                         LEFT JOIN res_partner cp
+                                                ON cp.id = rp.commercial_partner_id
+                                        WHERE COALESCE(rp.team_id, cp.team_id) IN %s)))""",
+                    l('move_id'), teams, l('move_id'), l('partner_id'), teams)
+            else:
+                on_route = SQL("%s IN (SELECT id FROM account_move WHERE team_id IN %s)",
+                               l('move_id'), teams)
+            # leaving routes out is the same rule turned round - and an item with no
+            # partner reads NULL above, which is "not on the route", so it stays
+            parts.append(SQL("NOT COALESCE(%s, FALSE)", on_route) if options.get('teams_exclude') else on_route)
         if options.get('product_categories'):
             categs = self.env['product.category'].sudo().search([('id', 'child_of', options['product_categories'])]).ids
             parts.append(SQL("""%s IN (SELECT pp.id FROM product_product pp JOIN product_template pt ON pt.id = pp.product_tmpl_id
@@ -381,7 +414,28 @@ class FinEngine(models.AbstractModel):
         if options.get('salespeople'):
             dom.append(('move_id.invoice_user_id', 'in', options['salespeople']))
         if options.get('teams') and 'team_id' in self.env['account.move']._fields:
-            dom.append(('move_id.team_id', 'in', options['teams']))
+            # The same rule as the SQL above, and it has to STAY the same: a figure and
+            # the list it opens disagreeing is how the receipts went missing unnoticed.
+            teams = options['teams']
+            exclude = options.get('teams_exclude')
+            if 'team_id' in self.env['res.partner']._fields:
+                clinic_on_route = ['|', ('team_id', 'in', teams),
+                                   '&', ('team_id', '=', False), ('commercial_partner_id.team_id', 'in', teams)]
+                if exclude:
+                    # the move's own route when it has one; else the clinic's, and an
+                    # item with no partner has no route to leave out
+                    dom += ['|', '&', ('move_id.team_id', '!=', False), ('move_id.team_id', 'not in', teams),
+                            '&', ('move_id.team_id', '=', False), ('partner_id', 'not any', clinic_on_route)]
+                else:
+                    dom += ['|', ('move_id.team_id', 'in', teams),
+                            '&', ('move_id.team_id', '=', False),
+                            '|', ('partner_id.team_id', 'in', teams),
+                            '&', ('partner_id.team_id', '=', False),
+                                 ('partner_id.commercial_partner_id.team_id', 'in', teams)]
+            elif exclude:
+                dom.append(('move_id.team_id', 'not in', teams))
+            else:
+                dom.append(('move_id.team_id', 'in', teams))
         if options.get('product_categories'):
             dom.append(('product_id.categ_id', 'child_of', options['product_categories']))
         if options.get('unreconciled'):
@@ -711,7 +765,10 @@ class FinEngine(models.AbstractModel):
         if options.get('journals'):
             dom.append(('journal_id', 'in', options['journals']))
         if options.get('partners'):
-            dom.append(('partner_id', 'in', options['partners']))
+            if options.get('partners_exclude'):
+                dom += ['|', ('partner_id', '=', False), ('partner_id', 'not in', options['partners'])]
+            else:
+                dom.append(('partner_id', 'in', options['partners']))
         if options.get('analytic'):
             dom.append(('analytic_distribution', 'in', options['analytic']))
         dom += self.filter_domain(options)

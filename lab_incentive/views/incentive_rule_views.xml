@@ -14,6 +14,9 @@
                         </group>
                         <group>
                             <field name="slab_mode"/>
+                            <!-- the fallback for products counted on a margin %
+                                 that carry none of their own (Ortho, 2026-10-08) -->
+                            <field name="default_margin_pct"/>
                             <field name="active"/>
                         </group>
                     </group>
@@ -23,6 +26,13 @@
                         <field name="new_clinic_bonus"
                                help="Paid for each clinic the executive opened on their own route that month, on top of the slabs."/>
                     </group>
+                    <!-- Reaching for Flat gives 5% of the whole base instead. -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="slab_mode != 'telescopic'">
+                        A threshold is just a 0% first slab: to pay 5% on everything
+                        above 100,000, add a slab 0 → 100,000 at 0% and a slab
+                        100,000 → blank at 5%.
+                    </div>
                     <field name="slab_ids">
                         <list editable="bottom">
                             <field name="amount_from"/>

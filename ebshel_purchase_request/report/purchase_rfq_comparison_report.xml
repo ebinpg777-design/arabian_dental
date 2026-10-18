@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Custom A4 Landscape Paper Format ────────────────────────────────── -->
+    <record id="paperformat_a4_landscape" model="report.paperformat">
+        <field name="name">Ebshel A4 Landscape</field>
+        <field name="format">A4</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line">False</field>
+        <field name="header_spacing">3</field>
+    </record>
+
+    <!-- ── IR Actions Report ─────────────────────────────────────────────── -->
+    <record id="action_report_rfq_comparison" model="ir.actions.report">
+        <field name="name">RFQ Vendor Comparison</field>
+        <field name="model">ebshel.purchase.rfq</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_purchase_request.report_rfq_comparison_document</field>
+        <field name="report_file">ebshel_purchase_request.report_rfq_comparison_document</field>
+        <field name="binding_model_id" ref="model_ebshel_purchase_rfq"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="ebshel_purchase_request.paperformat_a4_landscape"/>
+    </record>
+
+    <!-- ── QWeb Template ─────────────────────────────────────────────────── -->
+    <template id="report_rfq_comparison_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <t t-set="vendors" t-value="doc.vendor_quotation_ids.filtered(lambda q: q.state in ('received','selected')).sorted(lambda q: q.rank or 999)"/>
+                    <t t-set="totals" t-value="[v.amount_total for v in vendors if v.amount_total &gt; 0]"/>
+                    <t t-set="best_total" t-value="min(totals) if totals else 0"/>
+                    <t t-set="worst_total" t-value="max(totals) if totals else 0"/>
+                    <t t-set="line_count" t-value="len(doc.rfq_line_ids)"/>
+                    <div class="page">
+                        <style>
+                            .cmp-title { font-weight:700; margin:0; }
+                            .cmp-ref { color:#555; font-size:13px; font-weight:600; }
+                            .cmp-band { display:flex; gap:10px; margin:10px 0 14px; }
+                            .cmp-kpi { flex:1; border:1px solid #ccc; border-radius:3px; padding:8px 12px; }
+                            .cmp-kpi .lbl { font-size:9.5px; text-transform:uppercase; letter-spacing:.5px;
+                                            color:#777; font-weight:700; }
+                            .cmp-kpi .val { font-size:15px; font-weight:700; }
+                            .cmp-kpi--reco { border:2px solid #333; }
+                            table.cmp-tbl { width:100%; border-collapse:collapse; font-size:11px; }
+                            table.cmp-tbl th { background:#f0f0f0; padding:6px 7px; border:1px solid #ccc; }
+                            table.cmp-tbl td { padding:5px 7px; border:1px solid #ddd; }
+                            .cmp-win { background:#f0f0f0 !important; }
+                            .cmp-best { background:#f0f0f0 !important; font-weight:700; }
+                            .cmp-bestmark { font-size:8px; font-weight:700; }
+                            .cmp-total-row td { border-top:2px solid #333; font-weight:700; background:#f0f0f0; }
+                            .cmp-meta-row td { background:#fafafa; }
+                            .cmp-rank-row td { font-weight:700; text-align:center; background:#fafafa; }
+                        </style>
+
+                        <div class="row mb-1">
+                            <div class="col-7">
+                                <h2 class="cmp-title">Vendor Price Comparison</h2>
+                                <div class="cmp-ref"><t t-esc="doc.name"/></div>
+                            </div>
+                            <div class="col-5 text-end cmp-ref">
+                                RFQ Date <span t-field="doc.date_rfq"/><br/>
+                                Officer: <t t-esc="doc.procurement_officer_id.name or '—'"/>
+                            </div>
+                        </div>
+
+                        <!-- Summary band -->
+                        <div class="cmp-band">
+                            <div class="cmp-kpi"><div class="lbl">Vendors</div><div class="val"><t t-esc="len(vendors)"/></div></div>
+                            <div class="cmp-kpi cmp-kpi--save"><div class="lbl">Lowest Quote</div>
+                                <div class="val"><span t-esc="best_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></div></div>
+                            <div class="cmp-kpi cmp-kpi--save"><div class="lbl">Max Savings</div>
+                                <div class="val"><span t-esc="(worst_total - best_total)" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></div></div>
+                            <t t-if="vendors">
+                                <div class="cmp-kpi cmp-kpi--reco">
+                                    <div class="lbl">Recommended</div>
+                                    <div class="val" t-esc="vendors[0].vendor_id.name or vendors[0].new_vendor_name"/>
+                                </div>
+                            </t>
+                        </div>
+
+                        <t t-if="doc.request_ids">
+                            <p class="cmp-ref mb-2">Source Requests:
+                                <t t-foreach="doc.request_ids" t-as="req"><span t-esc="req.name"/><t t-if="not req_last">, </t></t>
+                            </p>
+                        </t>
+
+                        <!-- Matrix -->
+                        <table class="cmp-tbl">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left;width:26%">Product</th>
+                                    <th>Qty</th>
+                                    <th>UoM</th>
+                                    <t t-foreach="vendors" t-as="vendor">
+                                        <th t-att-class="'cmp-win' if vendor.is_winner else ''">
+                                            <t t-esc="vendor.vendor_id.name or vendor.new_vendor_name"/>
+                                            <br/><small>Rank #<t t-esc="vendor.rank"/></small>
+                                            <t t-if="vendor.is_winner"><br/><small>[ SELECTED ]</small></t>
+                                        </th>
+                                    </t>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="doc.rfq_line_ids" t-as="rfq_line">
+                                    <t t-set="row_prices" t-value="[v.line_ids.filtered(lambda l: l.rfq_line_id == rfq_line)[:1].price_unit for v in vendors if v.line_ids.filtered(lambda l: l.rfq_line_id == rfq_line and l.price_unit &gt; 0)]"/>
+                                    <t t-set="row_best" t-value="min(row_prices) if row_prices else 0"/>
+                                    <tr>
+                                        <td style="text-align:left"><t t-esc="rfq_line.product_id.name or rfq_line.name"/></td>
+                                        <td class="text-center"><t t-esc="rfq_line.qty"/></td>
+                                        <td class="text-center"><t t-esc="rfq_line.uom_id.name"/></td>
+                                        <t t-foreach="vendors" t-as="vendor">
+                                            <t t-set="vline" t-value="vendor.line_ids.filtered(lambda l: l.rfq_line_id == rfq_line)[:1]"/>
+                                            <td class="text-end" t-att-class="('cmp-best' if (vline and vline.price_unit == row_best and row_best &gt; 0) else ('cmp-win' if vendor.is_winner else ''))">
+                                                <t t-if="vline and vline.price_unit">
+                                                    <span t-esc="vline.price_unit" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                    <t t-if="vline.price_unit == row_best and row_best &gt; 0"> <span class="cmp-bestmark">(BEST)</span></t>
+                                                    <t t-if="vline.discount"><br/><small>(<t t-esc="vline.discount"/>% disc.)</small></t>
+                                                </t>
+                                                <t t-else="">—</t>
+                                            </td>
+                                        </t>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot>
+                                <tr class="cmp-meta-row">
+                                    <td colspan="3" style="text-align:left">Subtotal (excl. tax)</td>
+                                    <t t-foreach="vendors" t-as="vendor">
+                                        <td class="text-end"><span t-esc="vendor.amount_untaxed" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    </t>
+                                </tr>
+                                <tr class="cmp-meta-row">
+                                    <td colspan="3" style="text-align:left">Taxes</td>
+                                    <t t-foreach="vendors" t-as="vendor">
+                                        <td class="text-end"><span t-esc="vendor.amount_tax" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    </t>
+                                </tr>
+                                <tr class="cmp-total-row">
+                                    <td colspan="3" style="text-align:left">GRAND TOTAL</td>
+                                    <t t-foreach="vendors" t-as="vendor">
+                                        <td class="text-end" t-att-style="'text-decoration:underline;' if vendor.amount_total == best_total and best_total &gt; 0 else ''">
+                                            <span t-esc="vendor.amount_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                            <t t-if="vendor.amount_total == best_total and best_total &gt; 0"> (best)</t>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr class="cmp-meta-row">
+                                    <td colspan="3" style="text-align:left">Coverage (lines quoted)</td>
+                                    <t t-foreach="vendors" t-as="vendor">
+                                        <td class="text-center"><t t-esc="len(vendor.line_ids.filtered(lambda l: l.price_unit &gt; 0))"/>/<t t-esc="line_count"/></td>
+                                    </t>
+                                </tr>
+                                <tr class="cmp-meta-row">
+                                    <td colspan="3" style="text-align:left">Delivery (days)</td>
+                                    <t t-foreach="vendors" t-as="vendor">
+                                        <td class="text-center"><t t-esc="vendor.delivery_days or '—'"/></td>
+                                    </t>
+                                </tr>
+                                <tr class="cmp-meta-row">
+                                    <td colspan="3" style="text-align:left">Payment Terms</td>
+                                    <t t-foreach="vendors" t-as="vendor">
+                                        <td class="text-center"><t t-esc="vendor.payment_term_id.name or '—'"/></td>
+                                    </t>
+                                </tr>
+                                <tr class="cmp-rank-row">
+                                    <td colspan="3" style="text-align:left">Score / Rank</td>
+                                    <t t-foreach="vendors" t-as="vendor">
+                                        <td><t t-esc="round(vendor.score, 1)"/> · #<t t-esc="vendor.rank"/></td>
+                                    </t>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <t t-if="doc.winner_quotation_id">
+                            <div style="border:1px solid #333; padding:8px 12px; margin-top:14px;">
+                                <strong>Selected Vendor: <t t-esc="doc.winner_quotation_id.vendor_id.name or doc.winner_quotation_id.new_vendor_name"/></strong>
+                                <t t-if="doc.winner_quotation_id.winner_justification">
+                                    <br/>Justification: <t t-esc="doc.winner_quotation_id.winner_justification"/>
+                                </t>
+                            </div>
+                        </t>
+                        <!-- Signature block for a standard procurement document -->
+                        <div class="row" style="margin-top:40px;">
+                            <div class="col-4">Prepared by: <span t-esc="doc.procurement_officer_id.name or ''"/>
+                                <div style="border-top:1px solid #333; margin-top:28px; width:80%;"/></div>
+                            <div class="col-4 offset-4 text-end">Approved by:
+                                <div style="border-top:1px solid #333; margin-top:28px; width:80%; margin-left:auto;"/></div>
+                        </div>
+                        <t t-if="doc.terms_conditions">
+                            <div class="mt-4">
+                                <h5>Terms &amp; Conditions</h5>
+                                <div t-out="doc.terms_conditions"/>
+                            </div>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

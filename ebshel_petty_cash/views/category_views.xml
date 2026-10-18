@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_category_list" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.category.list</field>
+        <field name="model">ebshel.petty.cash.category</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code" optional="show"/>
+                <field name="account_id"/>
+                <field name="tax_ids" widget="many2many_tags" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="max_amount" optional="show"/>
+                <field name="receipt_required" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_category_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.category.form</field>
+        <field name="model">ebshel.petty.cash.category</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <field name="active" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Travel and Transport"/></h1>
+                    </div>
+                    <group>
+                        <group string="Accounting">
+                            <field name="code"/>
+                            <field name="account_id"/>
+                            <field name="tax_ids" widget="many2many_tags"/>
+                            <field name="analytic_distribution" widget="analytic_distribution"
+                                   groups="analytic.group_analytic_accounting"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Controls">
+                            <field name="max_amount"/>
+                            <field name="receipt_required"/>
+                            <field name="partner_required"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="What this category covers, shown to the requesters..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_category_search" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.category.search</field>
+        <field name="model">ebshel.petty.cash.category</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" filter_domain="['|', ('name', 'ilike', self), ('code', 'ilike', self)]"/>
+                <field name="account_id"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_category" model="ir.actions.act_window">
+        <field name="name">Expense Categories</field>
+        <field name="res_model">ebshel.petty.cash.category</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create an expense category</p>
+            <p>Categories carry the expense account, the default taxes and the limits of the voucher lines.</p>
+        </field>
+    </record>
+
+</odoo>

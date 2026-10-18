@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Top-level Application Menu
+    ══════════════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_ebshel_purchase_request_root"
+              name="Purchase Requests"
+              web_icon="ebshel_purchase_request,static/description/icon.png"
+              sequence="55"
+              groups="ebshel_purchase_request.group_pr_user"/>
+
+    <!-- ── Dashboard ────────────────────────────────────────────────────── -->
+    <record id="action_procurement_dashboard" model="ir.actions.client">
+        <field name="name">Procurement Dashboard</field>
+        <field name="tag">ebshel_procurement_dashboard</field>
+    </record>
+
+    <menuitem id="menu_ebshel_dashboard"
+              name="Dashboard"
+              parent="menu_ebshel_purchase_request_root"
+              action="action_procurement_dashboard"
+              sequence="5"
+              groups="ebshel_purchase_request.group_pr_manager"/>
+
+    <!-- ── Purchase Requests section ──────────────────────────────────────── -->
+    <menuitem id="menu_ebshel_pr_section"
+              name="Purchase Requests"
+              parent="menu_ebshel_purchase_request_root"
+              sequence="10"
+              groups="ebshel_purchase_request.group_pr_user"/>
+
+    <menuitem id="menu_ebshel_pr_all"
+              name="Purchase Requests"
+              action="action_ebshel_purchase_request_all"
+              parent="menu_ebshel_pr_section"
+              sequence="10"/>
+
+    <menuitem id="menu_ebshel_pr_lines"
+              name="Purchase Request Lines"
+              action="action_ebshel_purchase_request_line"
+              parent="menu_ebshel_pr_section"
+              sequence="20"/>
+
+
+    <!-- ── Procurement ────────────────────────────────────────────────────── -->
+    <menuitem id="menu_ebshel_procurement_section"
+              name="Procurement"
+              parent="menu_ebshel_purchase_request_root"
+              sequence="20"
+              groups="ebshel_purchase_request.group_pr_procurement_officer"/>
+
+    <menuitem id="menu_ebshel_create_rfq_multi"
+              name="New RFQ"
+              parent="menu_ebshel_procurement_section"
+              action="action_pr_create_rfq_wizard"
+              sequence="5"/>
+
+    <menuitem id="menu_ebshel_rfq"
+              name="RFQs"
+              parent="menu_ebshel_procurement_section"
+              action="action_ebshel_purchase_rfq"
+              sequence="10"/>
+
+    <menuitem id="menu_ebshel_vendor_quotations"
+              name="Vendor Quotations"
+              parent="menu_ebshel_procurement_section"
+              action="action_ebshel_vendor_quotation"
+              sequence="20"/>
+
+    <menuitem id="menu_ebshel_vendors"
+              name="Vendors"
+              parent="menu_ebshel_procurement_section"
+              action="action_ebshel_vendors"
+              sequence="30"/>
+
+    <!-- ── Approvals (approvers &amp; managers) ───────────────────────────── -->
+    <menuitem id="menu_ebshel_approvals_section"
+              name="Approvals"
+              parent="menu_ebshel_purchase_request_root"
+              sequence="15"
+              groups="ebshel_purchase_request.group_pr_approver,ebshel_purchase_request.group_pr_manager"/>
+
+    <menuitem id="menu_ebshel_my_approvals"
+              name="My PR Approvals"
+              parent="menu_ebshel_approvals_section"
+              action="action_pr_my_approvals"
+              sequence="5"
+              groups="ebshel_purchase_request.group_pr_approver,ebshel_purchase_request.group_pr_manager"/>
+
+    <menuitem id="menu_ebshel_all_approvals"
+              name="All Pending PR Approvals"
+              parent="menu_ebshel_approvals_section"
+              action="action_ebshel_purchase_request_pending_approval"
+              sequence="10"
+              groups="ebshel_purchase_request.group_pr_manager"/>
+
+    <menuitem id="menu_ebshel_po_award_approvals"
+              name="PO Awards to Approve"
+              parent="menu_ebshel_approvals_section"
+              action="action_ebshel_rfq_award_approval"
+              sequence="15"
+              groups="ebshel_purchase_request.group_pr_admin"/>
+
+    <menuitem id="menu_ebshel_budget_approvals"
+              name="Pending Budget Approval"
+              parent="menu_ebshel_approvals_section"
+              action="action_ebshel_pr_budget_approval"
+              sequence="20"
+              groups="ebshel_purchase_request.group_pr_admin"/>
+
+    <!-- ── Configuration ─────────────────────────────────────────────────── -->
+    <menuitem id="menu_ebshel_pr_config_section"
+              name="Configuration"
+              parent="menu_ebshel_purchase_request_root"
+              sequence="99"
+              groups="ebshel_purchase_request.group_pr_admin"/>
+
+    <menuitem id="menu_ebshel_pr_settings"
+              name="Settings"
+              parent="menu_ebshel_pr_config_section"
+              action="action_ebshel_pr_settings"
+              sequence="5"/>
+
+    <menuitem id="menu_ebshel_approval_levels"
+              name="Approval Levels"
+              parent="menu_ebshel_pr_config_section"
+              action="action_pr_approval_config"
+              sequence="10"/>
+
+    <menuitem id="menu_ebshel_approval_simulator"
+              name="Routing Simulator"
+              parent="menu_ebshel_pr_config_section"
+              action="action_pr_approval_simulator"
+              sequence="15"/>
+
+    <menuitem id="menu_ebshel_rfq_terms"
+              name="RFQ Terms &amp; Conditions"
+              parent="menu_ebshel_pr_config_section"
+              action="action_rfq_terms"
+              sequence="20"/>
+
+    <menuitem id="menu_purchase_analytic_line"
+              name="Purchase Analytic Lines"
+              parent="menu_ebshel_approvals_section"
+              action="action_purchase_analytic_line"
+              sequence="60"/>
+
+</odoo>

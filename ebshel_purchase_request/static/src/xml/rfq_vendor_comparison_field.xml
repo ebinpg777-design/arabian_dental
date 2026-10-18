@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="ebshel_purchase_request.RfqVendorComparisonField">
+    <div class="rvc-widget">
+
+        <!-- ══ Empty state ════════════════════════════════════════════════ -->
+        <t t-if="!hasVendors">
+            <div class="rvc-empty">
+                <div class="rvc-empty-icon">⚖️</div>
+                <div class="rvc-empty-title">No vendor quotations yet</div>
+                <div class="rvc-empty-sub">
+                    Add vendor quotations to compare prices and crown a winner.
+                </div>
+            </div>
+        </t>
+
+        <!-- ══ Comparison ═════════════════════════════════════════════════ -->
+        <t t-else="">
+
+            <!-- Savings strip -->
+            <div class="rvc-savings" t-if="potentialSavings > 0">
+                <span class="rvc-savings-icon">💡</span>
+                <span>
+                    Picking the lowest quote instead of the highest saves
+                    <strong class="rvc-savings-amount"
+                             t-esc="fmt(potentialSavings, rankedVendors[0].currencyId)"/>
+                </span>
+                <span class="rvc-savings-count">
+                    <t t-esc="rankedVendors.length"/> vendors compared
+                </span>
+            </div>
+
+            <!-- Award / Order status toolbar -->
+            <div class="rvc-toolbar" t-if="hasWinner or hasPO">
+                <t t-if="hasPO">
+                    <span class="rvc-status rvc-status--po">
+                        ✓ Ordered — purchase order(s) created
+                    </span>
+                    <button class="rvc-btn rvc-btn--po" t-on-click="() => this.viewPO()">
+                        📋 View Purchase Order(s)
+                    </button>
+                </t>
+                <t t-elif="hasWinner">
+                    <span class="rvc-status rvc-status--won">
+                        🏆 <strong t-esc="winner.name"/> awarded
+                    </span>
+                    <button class="rvc-btn rvc-btn--po"
+                            t-if="canAward"
+                            t-att-disabled="state.busy"
+                            t-on-click="() => this.createPO()">
+                        🛒 Create Purchase Order
+                    </button>
+                </t>
+            </div>
+
+            <!-- Podium cards -->
+            <div class="rvc-grid">
+                <t t-foreach="rankedVendors" t-as="v" t-key="v.id">
+                    <div t-att-class="cardClass(v)"
+                         t-on-mouseenter="() => this.onHover(v.id)"
+                         t-on-mouseleave="() => this.onLeave()">
+
+                        <!-- Winner crown banner -->
+                        <div class="rvc-crown" t-if="v.isWinner">
+                            👑 WINNER
+                        </div>
+
+                        <!-- Rank medal -->
+                        <div class="rvc-rank" t-if="!v.isWinner">
+                            <span t-esc="medal(v.rank or (v_index + 1))"/>
+                        </div>
+
+                        <!-- New-vendor flag -->
+                        <div class="rvc-new-flag" t-if="v.isNewVendor">NEW</div>
+
+                        <!-- Vendor name -->
+                        <div class="rvc-vendor">
+                            <span class="rvc-vendor-icon">🏢</span>
+                            <span class="rvc-vendor-name" t-esc="v.name"/>
+                        </div>
+
+                        <!-- Total price -->
+                        <div class="rvc-total">
+                            <t t-esc="fmt(v.total, v.currencyId)"/>
+                        </div>
+                        <div class="rvc-untaxed">
+                            untaxed <t t-esc="fmt(v.untaxed, v.currencyId)"/>
+                        </div>
+
+                        <!-- Comparative price bar -->
+                        <div class="rvc-pricebar-track">
+                            <div class="rvc-pricebar-fill"
+                                 t-att-class="isBestPrice(v) ? 'rvc-pricebar-fill--best' : ''"
+                                 t-attf-style="width: #{priceBarWidth(v)}"/>
+                        </div>
+
+                        <!-- Quick badges -->
+                        <div class="rvc-badges">
+                            <span class="rvc-badge rvc-badge--price" t-if="isBestPrice(v)">
+                                💰 Lowest price
+                            </span>
+                            <span class="rvc-badge rvc-badge--delta" t-if="priceDelta(v)">
+                                <t t-esc="priceDelta(v)"/> vs best
+                            </span>
+                            <span class="rvc-badge rvc-badge--fast" t-if="isFastest(v)">
+                                ⚡ Fastest
+                            </span>
+                            <span class="rvc-badge rvc-badge--score" t-if="isBestScore(v)">
+                                ⭐ Top score
+                            </span>
+                        </div>
+
+                        <!-- Metrics -->
+                        <div class="rvc-metrics">
+                            <div class="rvc-metric">
+                                <span class="rvc-metric-label">Delivery</span>
+                                <span class="rvc-metric-value">
+                                    <t t-if="v.deliveryDays"><t t-esc="v.deliveryDays"/> days</t>
+                                    <t t-else="">—</t>
+                                </span>
+                            </div>
+                            <div class="rvc-metric">
+                                <span class="rvc-metric-label">Terms</span>
+                                <span class="rvc-metric-value" t-esc="v.paymentTerm or '—'"/>
+                            </div>
+                        </div>
+
+                        <!-- Score gauge -->
+                        <div class="rvc-score-row">
+                            <span class="rvc-score-label">Score</span>
+                            <div class="rvc-score-track">
+                                <div class="rvc-score-fill"
+                                     t-attf-style="width: #{scoreBarWidth(v)}"/>
+                            </div>
+                            <span class="rvc-score-num" t-esc="v.score.toFixed(0)"/>
+                        </div>
+
+                        <!-- Existing justification -->
+                        <div class="rvc-justify-shown" t-if="v.isWinner and v.justification">
+                            <span class="rvc-justify-icon">📝</span>
+                            <em t-esc="v.justification"/>
+                        </div>
+
+                        <!-- Footer actions -->
+                        <div class="rvc-actions" t-if="!readonly">
+
+                            <!-- Inline justification box -->
+                            <t t-if="state.justifyId === v.id">
+                                <textarea class="rvc-justify-input"
+                                          placeholder="Why is this vendor the winner? (optional)"
+                                          rows="2"
+                                          t-model="state.justifyText"/>
+                                <div class="rvc-justify-btns">
+                                    <button class="rvc-btn rvc-btn--crown"
+                                            t-att-disabled="state.busy"
+                                            t-on-click="() => this.confirmWinner(v)">
+                                        <t t-if="state.justifyMode === 'order'">🛒 Award &amp; Create PO</t>
+                                        <t t-else="">👑 Confirm Winner</t>
+                                    </button>
+                                    <button class="rvc-btn rvc-btn--ghost"
+                                            t-on-click="() => this.cancelJustify()">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </t>
+
+                            <!-- Winner, PO not yet created → offer to order from this card -->
+                            <t t-elif="v.isWinner and !hasPO">
+                                <span class="rvc-winner-tag">✓ Awarded</span>
+                                <button class="rvc-btn rvc-btn--po"
+                                        t-if="canAward"
+                                        t-att-disabled="state.busy"
+                                        t-on-click="() => this.createPO()">
+                                    🛒 Create Purchase Order
+                                </button>
+                            </t>
+
+                            <!-- Winner with PO already created -->
+                            <t t-elif="v.isWinner and hasPO">
+                                <span class="rvc-winner-tag">✓ Ordered</span>
+                            </t>
+
+                            <!-- Challenger cards: crown, or award + order in one click -->
+                            <t t-else="">
+                                <div class="rvc-award-btns" t-if="canAward">
+                                    <button class="rvc-btn rvc-btn--crown"
+                                            t-att-disabled="state.busy"
+                                            t-on-click="() => this.openJustify(v, 'award')">
+                                        👑 Crown Winner
+                                    </button>
+                                    <button class="rvc-btn rvc-btn--order"
+                                            t-att-disabled="state.busy"
+                                            t-on-click="() => this.openJustify(v, 'order')"
+                                            title="Award this vendor and create the purchase order in one step">
+                                        🛒 Award &amp; Order
+                                    </button>
+                                </div>
+                                <button class="rvc-btn rvc-btn--ghost"
+                                        t-on-click="() => this.openQuotation(v)">
+                                    ✎ Edit Quote
+                                </button>
+                            </t>
+                        </div>
+
+                        <!-- Read-only winner tag -->
+                        <div class="rvc-actions" t-if="readonly and v.isWinner">
+                            <span class="rvc-winner-tag">
+                                <t t-if="hasPO">✓ Ordered</t>
+                                <t t-else="">✓ Awarded</t>
+                            </span>
+                        </div>
+
+                    </div>
+                </t>
+            </div>
+
+        </t>
+    </div>
+</t>
+
+</templates>

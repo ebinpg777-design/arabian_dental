@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The register's tiles (ebshel_dynamic_filter): where the work is waiting, at a
+         glance. noupdate - the lab may reorder, recolour or retire them. -->
+    <data noupdate="1">
+        <record id="row_scan_1" model="filter.tile.row">
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="number">1</field>
+            <field name="name">Scan Register</field>
+        </record>
+
+        <record id="tile_scan_draft" model="filter.tile">
+            <field name="name">Draft</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('state', '=', 'draft')]</field>
+            <field name="color">slate</field>
+            <field name="icon">fa-pencil</field>
+            <field name="tooltip">Registered, not yet confirmed</field>
+        </record>
+        <record id="tile_scan_to_print" model="filter.tile">
+            <field name="name">To Print</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('state', '=', 'confirmed')]</field>
+            <field name="color">amber</field>
+            <field name="icon">fa-inbox</field>
+            <field name="tooltip">Confirmed, waiting to go for 3D printing</field>
+        </record>
+        <record id="tile_scan_printing" model="filter.tile">
+            <field name="name">Sent for Printing</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('state', '=', 'printing')]</field>
+            <field name="color">violet</field>
+            <field name="icon">fa-cube</field>
+            <field name="tooltip">Confirmed and in the printing room, waiting for a machine</field>
+        </record>
+        <record id="tile_scan_in_progress" model="filter.tile">
+            <field name="name">Print In Progress</field>
+            <field name="sequence">35</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('state', '=', 'in_progress')]</field>
+            <field name="color">indigo</field>
+            <field name="icon">fa-print</field>
+            <field name="tooltip">On a machine right now</field>
+        </record>
+        <record id="tile_scan_print_failed" model="filter.tile">
+            <field name="name">Failed Print</field>
+            <field name="sequence">37</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('state', '=', 'printing'), ('failed_print_count', '&gt;', 0)]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-exclamation-triangle</field>
+            <field name="tooltip">A model failed; waiting for a plate or on a new one</field>
+        </record>
+        <record id="tile_scan_to_order" model="filter.tile">
+            <field name="name">Printed — To Order</field>
+            <field name="sequence">40</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('state', '=', 'printed')]</field>
+            <field name="color">teal</field>
+            <field name="icon">fa-shopping-cart</field>
+            <field name="tooltip">Printed; the orders can be created</field>
+        </record>
+        <record id="tile_scan_delivery_risk" model="filter.tile">
+            <field name="name">Delivery at Risk</field>
+            <field name="sequence">50</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('delivery_at_risk', '=', True)]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-truck</field>
+            <field name="tooltip">Delivery asked for within two days and not ordered yet</field>
+        </record>
+        <record id="tile_scan_link_dying" model="filter.tile">
+            <field name="name">Link Expiring</field>
+            <field name="sequence">60</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('download_state', 'in', ('soon', 'expired')), ('has_attachments', '=', False), ('state', 'in', ('draft', 'confirmed', 'printing', 'in_progress', 'printed'))]</field>
+            <field name="color">orange</field>
+            <field name="icon">fa-hourglass-half</field>
+            <field name="tooltip">A download link about to die with no files in yet</field>
+        </record>
+        <record id="tile_scan_ordered_month" model="filter.tile">
+            <field name="name">Ordered This Month</field>
+            <field name="sequence">70</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
+            <field name="domain">[('state', '=', 'done'), ('date_received', '&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="color">emerald</field>
+            <field name="icon">fa-check</field>
+        </record>
+        <!-- The plates, where they stand (a print order list's own row) -->
+        <record id="row_scan_print_order_1" model="filter.tile.row">
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_print_order"/>
+            <field name="number">1</field>
+            <field name="name">Print Orders</field>
+        </record>
+        <record id="tile_print_order_plating" model="filter.tile">
+            <field name="name">Plating</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_print_order"/>
+            <field name="domain">[('state', '=', 'draft')]</field>
+            <field name="color">violet</field>
+            <field name="icon">fa-th</field>
+            <field name="tooltip">Plates being made, not on a machine yet</field>
+        </record>
+        <record id="tile_print_order_missing_files" model="filter.tile">
+            <field name="name">Missing Files</field>
+            <field name="sequence">15</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_print_order"/>
+            <field name="domain">[('state', '=', 'draft'), ('files_missing_count', '&gt;', 0)]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-paperclip</field>
+            <field name="tooltip">Plates being made with a patient who has no file and no link yet</field>
+        </record>
+        <record id="tile_print_order_printing" model="filter.tile">
+            <field name="name">Printing</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_print_order"/>
+            <field name="domain">[('state', '=', 'printing')]</field>
+            <field name="color">indigo</field>
+            <field name="icon">fa-print</field>
+        </record>
+        <record id="tile_print_order_due_off" model="filter.tile">
+            <field name="name">Due Off</field>
+            <field name="sequence">30</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_print_order"/>
+            <field name="domain">[('due_off', '=', True)]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-bell</field>
+            <field name="tooltip">Past the time the plate was expected off the machine</field>
+        </record>
+        <record id="tile_print_order_washing" model="filter.tile">
+            <field name="name">Wash &amp; Cure</field>
+            <field name="sequence">40</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_print_order"/>
+            <field name="domain">[('state', '=', 'washing')]</field>
+            <field name="color">teal</field>
+            <field name="icon">fa-tint</field>
+            <field name="tooltip">Off the machine, in the IPA and the UV box</field>
+        </record>
+        <record id="tile_print_order_failed_month" model="filter.tile">
+            <field name="name">Failed This Month</field>
+            <field name="sequence">50</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_print_order"/>
+            <field name="domain">[('state', '=', 'failed'), ('date_start', '&gt;=', context_today().strftime('%Y-%m-01'))]</field>
+            <field name="color">orange</field>
+            <field name="icon">fa-times</field>
+        </record>
+
+        <!-- The patients waiting for a plate: what goes on the next one first -->
+        <record id="row_scan_line_1" model="filter.tile.row">
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_line"/>
+            <field name="number">1</field>
+            <field name="name">Queue</field>
+        </record>
+        <record id="tile_scan_line_replate" model="filter.tile">
+            <field name="name">Re-plates</field>
+            <field name="sequence">10</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_line"/>
+            <field name="domain">[('last_failure', '!=', False)]</field>
+            <field name="color">rose</field>
+            <field name="icon">fa-repeat</field>
+            <field name="tooltip">Their model failed on a plate; they go on the next one first</field>
+        </record>
+        <record id="tile_scan_line_urgent" model="filter.tile">
+            <field name="name">Urgent</field>
+            <field name="sequence">20</field>
+            <field name="row">1</field>
+            <field name="model_id" ref="lab_scan_register.model_lab_scan_line"/>
+            <field name="domain">[('priority', '=', '1')]</field>
+            <field name="color">amber</field>
+            <field name="icon">fa-bolt</field>
+        </record>
+    </data>
+</odoo>

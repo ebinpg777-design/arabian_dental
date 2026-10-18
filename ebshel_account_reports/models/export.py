@@ -141,6 +141,8 @@ class FinReportExport(models.Model):
                            ('teams', _('Sales team')), ('product_categories', _('Product category')),
                            ('analytic', _('Analytic'))):
             if options.get(key):
+                if options.get('%s_exclude' % key):
+                    label = _('%s left out', label)
                 out.append((label, named(key)))
         if options.get('accounts_query'):
             out.append((_('Accounts'), options['accounts_query']))

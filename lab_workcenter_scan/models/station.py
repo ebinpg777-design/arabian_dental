@@ -131,11 +131,10 @@ class LabStation(models.AbstractModel):
         # against its own siblings — so it is resolved the same way the printed sheet
         # resolves it, over the live cases only. That set is ~2,500 orders, not 24,000.
         Floor = self.env['report.lab.floor']
-        live = self.env['mrp.production'].search(Floor._live_domain())
         # BY PIECE, not by case: a case sold as Upper & Lower is two jobs on
         # this floor, and the bench must be able to take the upper while the
         # lower is still at another station. (client, 2026-09-12)
-        first_steps = Floor._open_steps_by_arch(live)
+        first_steps = Floor._first_steps_shared()
         here_ids = self._open_here_ids(workcenter, first_steps)
         open_here = [('id', 'in', here_ids)]
         # Whose work to show. A lead handing out the morning taps a name and sees only
@@ -270,9 +269,7 @@ class LabStation(models.AbstractModel):
         """
         day = day or self._lab_today()
         if first_steps is None:
-            Floor = self.env['report.lab.floor']
-            live = self.env['mrp.production'].search(Floor._live_domain())
-            first_steps = Floor._open_steps_by_arch(live)
+            first_steps = self.env['report.lab.floor']._first_steps_shared()
         # Waiting and on-the-bench are the live cases standing at each station,
         # counted at the step they are actually at - the board's own rule. A
         # case routed through four benches is at ONE of them, not four.
@@ -406,9 +403,7 @@ class LabStation(models.AbstractModel):
         """Ids of the live pieces whose first open step is at this station -
         the set the Arrived column is drawn from."""
         if first_steps is None:
-            Floor = self.env['report.lab.floor']
-            live = self.env['mrp.production'].search(Floor._live_domain())
-            first_steps = Floor._open_steps_by_arch(live)
+            first_steps = self.env['report.lab.floor']._first_steps_shared()
         return [row['id'] for row in first_steps
                 if (row.get('workcenter_id') or [None])[0] == workcenter.id]
 
@@ -776,7 +771,9 @@ class LabStation(models.AbstractModel):
             # `name`, not `display_name`: lab_reports appends the sales order to the
             # latter, and the card already carries the order as its own chip.
             'production': production.name if production else '',
-            'product': production.product_id.display_name if production else '',
+            # (the screen shows `product_name`; the coded display name cost a
+            # name search per board and nothing read it)
+            'product': (production.product_id.name or '').strip() if production else '',
             # What the appliance IS, for the tile. The plain name, not
             # `display_name`: that leads with the internal code ("[OCR-C08]
             # Hawleys Appliances"), which the bench does not say out loud and

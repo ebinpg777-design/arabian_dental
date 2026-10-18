@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data>
+
+    <!-- ── Category ─────────────────────────────────────────────────────── -->
+    <record id="res_groups_privilege_purchase_request" model="res.groups.privilege">
+        <field name="name">Purchase Requests</field>
+        <field name="sequence">36</field>
+        <field name="category_id" ref="base.module_category_supply_chain"/>
+    </record>
+
+    <!-- ── Purchase Request User ──────────────────────────────────────────
+         Can create and manage their own purchase requests.
+    ──────────────────────────────────────────────────────────────────── -->
+    <record id="group_pr_user" model="res.groups">
+        <field name="name">User</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_purchase_request"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- ── Purchase Request Manager ───────────────────────────────────────
+         Can view and manage all requests in their company/department.
+    ──────────────────────────────────────────────────────────────────── -->
+    <record id="group_pr_manager" model="res.groups">
+        <field name="name">Manager</field>
+        <field name="sequence">20</field>
+        <field name="privilege_id" ref="res_groups_privilege_purchase_request"/>
+        <field name="implied_ids" eval="[(4, ref('group_pr_user'))]"/>
+    </record>
+
+    <!-- ── Purchase Request Approver ──────────────────────────────────────
+         Can approve or reject requests. Configured per approval level.
+    ──────────────────────────────────────────────────────────────────── -->
+    <record id="group_pr_approver" model="res.groups">
+        <field name="name">Approver</field>
+        <field name="sequence">30</field>
+        <field name="privilege_id" ref="res_groups_privilege_purchase_request"/>
+        <field name="implied_ids" eval="[(4, ref('group_pr_manager'))]"/>
+    </record>
+
+    <!-- ── Procurement Officer ────────────────────────────────────────────
+         Can create RFQs, manage vendor quotations, and compare prices.
+    ──────────────────────────────────────────────────────────────────── -->
+    <record id="group_pr_procurement_officer" model="res.groups">
+        <field name="name">Procurement Officer</field>
+        <field name="sequence">40</field>
+        <field name="privilege_id" ref="res_groups_privilege_purchase_request"/>
+        <field name="implied_ids" eval="[(4, ref('group_pr_manager'))]"/>
+    </record>
+
+    <!-- ── Purchase Request Administrator ────────────────────────────────
+         Full access: configuration, approval config, all records.
+    ──────────────────────────────────────────────────────────────────── -->
+    <record id="group_pr_admin" model="res.groups">
+        <field name="name">Administrator</field>
+        <field name="sequence">50</field>
+        <field name="privilege_id" ref="res_groups_privilege_purchase_request"/>
+        <field name="implied_ids" eval="[(4, ref('group_pr_procurement_officer')), (4, ref('group_pr_approver'))]"/>
+        <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+
+</data>
+</odoo>

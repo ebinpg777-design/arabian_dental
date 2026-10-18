@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- 3DP-01, 3DP-02… : the number on each machine's sticker -->
+        <record id="seq_scan_printer" model="ir.sequence">
+            <field name="name">3D printer</field>
+            <field name="code">lab.scan.printer</field>
+            <field name="prefix">3DP-</field>
+            <field name="padding">2</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_rfq_terms_list" model="ir.ui.view">
+        <field name="name">ebshel.rfq.terms.list</field>
+        <field name="model">ebshel.rfq.terms</field>
+        <field name="arch" type="xml">
+            <list string="Terms &amp; Conditions">
+                <field name="sequence" widget="handle"/>
+                <field name="code" optional="show"/>
+                <field name="name"/>
+                <field name="description" optional="show"/>
+                <field name="payment_term_id" optional="show"/>
+                <field name="incoterm_id" optional="hide"/>
+                <field name="validity_days" optional="hide"/>
+                <field name="rfq_count" string="Used" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="active" widget="boolean_toggle" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_rfq_terms_form" model="ir.ui.view">
+        <field name="name">ebshel.rfq.terms.form</field>
+        <field name="model">ebshel.rfq.terms</field>
+        <field name="arch" type="xml">
+            <form string="Terms &amp; Conditions">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_rfqs" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="rfq_count == 0">
+                            <field name="rfq_count" widget="statinfo" string="RFQs"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Standard Purchase Terms"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identification">
+                            <field name="code" placeholder="STD-2026"/>
+                            <field name="description" placeholder="One-line summary for the list"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="Commercial Terms">
+                            <field name="payment_term_id" options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="incoterm_id" options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="validity_days"/>
+                            <field name="delivery_lead_days"/>
+                            <field name="warranty"/>
+                            <field name="penalty"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Terms &amp; Conditions" name="terms">
+                            <field name="terms"
+                                   placeholder="Full terms &amp; conditions vendors will see on the RFQ email and comparison PDF…"/>
+                        </page>
+                        <page string="Internal Note" name="note">
+                            <field name="note" placeholder="Notes for internal use only (not shared with vendors)…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_rfq_terms_search" model="ir.ui.view">
+        <field name="name">ebshel.rfq.terms.search</field>
+        <field name="model">ebshel.rfq.terms</field>
+        <field name="arch" type="xml">
+            <search string="Search Terms">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="payment_term_id"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_company" string="Company"
+                            context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+                    <filter name="group_payment" string="Payment Terms"
+                            context="{'group_by': 'payment_term_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_rfq_terms" model="ir.actions.act_window">
+        <field name="name">RFQ Terms &amp; Conditions</field>
+        <field name="res_model">ebshel.rfq.terms</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a Terms &amp; Conditions template</p>
+            <p>Maintain reusable T&amp;C with commercial terms. Set a company default
+               in Settings so new RFQs inherit it automatically.</p>
+        </field>
+    </record>
+
+</odoo>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Incentive',
-    'version': '20.0.1.5.1',
+    'version': '20.0.1.6.0',
     'summary': "Monthly executive incentives: calculate, approve, disburse (R19/R20)",
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',
@@ -11,7 +11,10 @@
     # reaches 'paid' on a ledger whose receipts are never reconciled.
     # lab_ceo_dashboard: the manager menus hang under its root (undeclared on 19.0,
     # where the two were always installed together).
-    'depends': ['lab_fieldwork', 'lab_delivery', 'ebshel_dynamic_filter',
+    # account: the incentive menus hang off the Accounting menu and the access rows
+    # name account.group_account_manager, so it is declared even though
+    # lab_collections already brings it in.
+    'depends': ['account', 'lab_fieldwork', 'lab_delivery', 'ebshel_dynamic_filter',
                 'lab_collections', 'lab_ceo_dashboard'],
     'data': [
         'data/ir_sequence.xml',

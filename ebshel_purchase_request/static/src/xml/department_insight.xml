@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="ebshel_purchase_request.DepartmentInsight">
+<div class="ebshel-dept-insight">
+
+    <t t-if="state.loading">
+        <div class="di-loading">
+            <div class="di-spinner"/>
+            <p>Loading department insight…</p>
+        </div>
+    </t>
+
+    <t t-elif="state.error">
+        <div class="di-error">
+            <div class="di-error-icon">⚠️</div>
+            <p t-esc="state.error"/>
+            <button class="di-ghost-btn" t-on-click="onBack">← Back</button>
+        </div>
+    </t>
+
+    <t t-elif="state.data">
+        <!-- Header -->
+        <div class="di-header">
+            <div class="di-header-left">
+                <div class="di-eyebrow">DEPARTMENT INSIGHT</div>
+                <div class="di-title">
+                    <span class="di-title-icon">🏛</span>
+                    <t t-esc="state.data.department"/>
+                </div>
+            </div>
+            <div class="di-header-right">
+                <button class="di-back-btn" t-on-click="onBack" title="Back to the request">← Back</button>
+                <button class="di-icon-btn" t-on-click="onRefresh" title="Refresh">↺</button>
+                <button class="di-ghost-btn" t-on-click="onViewAll">Open Requests →</button>
+            </div>
+        </div>
+
+        <!-- KPI tiles -->
+        <div class="di-kpis">
+            <div class="di-kpi di-kpi--primary">
+                <div class="di-kpi-label">Committed Spend</div>
+                <div class="di-kpi-value" t-esc="fmt(state.data.committed_amount)"/>
+                <div class="di-kpi-sub"><t t-esc="state.data.total_requests"/> requests total</div>
+            </div>
+            <div class="di-kpi di-kpi--ok">
+                <div class="di-kpi-label">Approved</div>
+                <div class="di-kpi-value" t-esc="fmt(state.data.approved_amount)"/>
+                <div class="di-kpi-sub">committed &amp; closed</div>
+            </div>
+            <div class="di-kpi di-kpi--warn">
+                <div class="di-kpi-label">Pending Approval</div>
+                <div class="di-kpi-value" t-esc="fmt(state.data.pending_amount)"/>
+                <div class="di-kpi-sub"><t t-esc="state.data.pending_count"/> awaiting</div>
+            </div>
+            <div class="di-kpi">
+                <div class="di-kpi-label">Avg / Request</div>
+                <div class="di-kpi-value" t-esc="fmt(state.data.avg_request)"/>
+                <div class="di-kpi-sub">across all states</div>
+            </div>
+        </div>
+
+        <!-- Two-column analytics -->
+        <div class="di-grid">
+            <!-- Status mix -->
+            <div class="di-card">
+                <div class="di-card-title">Status Breakdown</div>
+                <t t-if="state.data.status_breakdown.length">
+                    <t t-foreach="state.data.status_breakdown" t-as="s" t-key="s.state">
+                        <div class="di-bar-row">
+                            <div class="di-bar-head">
+                                <span class="di-dot" t-attf-style="background: #{stateColor(s.state)}"/>
+                                <span class="di-bar-label" t-esc="s.label"/>
+                                <span class="di-bar-count" t-esc="s.count"/>
+                                <span class="di-bar-amt" t-esc="fmt(s.amount)"/>
+                            </div>
+                            <div class="di-bar-track">
+                                <div class="di-bar-fill"
+                                     t-attf-style="width: #{statusPct(s.amount)}; background: #{stateColor(s.state)}"/>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+                <div class="di-empty" t-else="">No requests for this department yet.</div>
+            </div>
+
+            <!-- Monthly trend -->
+            <div class="di-card">
+                <div class="di-card-title">Committed Spend · last 6 months</div>
+                <div class="di-trend">
+                    <t t-foreach="state.data.monthly" t-as="m" t-key="m_index">
+                        <div class="di-trend-col">
+                            <div class="di-trend-bar-wrap">
+                                <div class="di-trend-bar" t-attf-style="height: #{monthlyPct(m.amount)}"
+                                     t-att-title="fmt(m.amount)"/>
+                            </div>
+                            <div class="di-trend-label" t-esc="m.label"/>
+                        </div>
+                    </t>
+                </div>
+            </div>
+
+            <!-- Top products -->
+            <div class="di-card">
+                <div class="di-card-title">Top Products</div>
+                <t t-if="state.data.top_products.length">
+                    <t t-foreach="state.data.top_products" t-as="p" t-key="p_index">
+                        <div class="di-bar-row">
+                            <div class="di-bar-head">
+                                <span class="di-rank" t-esc="p_index + 1"/>
+                                <span class="di-bar-label" t-esc="p.name"/>
+                                <span class="di-bar-amt" t-esc="fmt(p.amount)"/>
+                            </div>
+                            <div class="di-bar-track">
+                                <div class="di-bar-fill di-bar-fill--prod" t-attf-style="width: #{prodPct(p.amount)}"/>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+                <div class="di-empty" t-else="">No product lines yet.</div>
+            </div>
+
+            <!-- Top vendors -->
+            <div class="di-card">
+                <div class="di-card-title">Top Vendors (ordered)</div>
+                <t t-if="state.data.top_vendors.length">
+                    <t t-foreach="state.data.top_vendors" t-as="v" t-key="v_index">
+                        <div class="di-bar-row">
+                            <div class="di-bar-head">
+                                <span class="di-rank" t-esc="v_index + 1"/>
+                                <span class="di-bar-label" t-esc="v.name"/>
+                                <span class="di-bar-amt" t-esc="fmt(v.amount)"/>
+                            </div>
+                            <div class="di-bar-track">
+                                <div class="di-bar-fill di-bar-fill--vend" t-attf-style="width: #{vendPct(v.amount)}"/>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+                <div class="di-empty" t-else="">No purchase orders yet.</div>
+            </div>
+        </div>
+
+        <!-- Recent requests -->
+        <div class="di-card di-card--wide">
+            <div class="di-card-title">Recent Requests</div>
+            <t t-if="state.data.recent_requests.length">
+                <div class="di-req" t-foreach="state.data.recent_requests" t-as="r" t-key="r.id"
+                     t-on-click="() => this.onOpenPR(r.id)">
+                    <span class="di-req-dot" t-attf-style="background: #{stateColor(r.state)}"/>
+                    <span class="di-req-ref" t-esc="r.name"/>
+                    <span class="di-req-desc" t-esc="r.description"/>
+                    <span class="di-req-badge" t-attf-style="color: #{stateColor(r.state)}; border-color: #{stateColor(r.state)}"
+                          t-esc="r.state_label"/>
+                    <span class="di-req-user" t-esc="r.requester"/>
+                    <span class="di-req-amt" t-esc="fmt(r.amount)"/>
+                    <span class="di-req-date" t-esc="r.date"/>
+                </div>
+            </t>
+            <div class="di-empty" t-else="">No recent requests.</div>
+        </div>
+
+    </t>
+</div>
+</t>
+
+</templates>

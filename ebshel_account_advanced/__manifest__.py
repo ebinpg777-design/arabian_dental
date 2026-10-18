@@ -28,7 +28,7 @@ Everything the accounting team does after the entries are booked, on one set of 
 Every screen sits inside the Accounting app's own menus (Customers, Accounting, Reporting,
 Configuration) - there is no separate top-level menu.
 """,
-    'version': '20.0.1.2.0',
+    'version': '20.0.1.3.0',
     'category': 'Accounting/Accounting',
     'author': 'Ebshel Technologies',
     'website': 'https://ebshel.com',

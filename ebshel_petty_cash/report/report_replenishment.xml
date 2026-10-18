@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="report_replenishment_document">
+        <t t-call="web.external_layout">
+            <div class="page">
+                <h2>
+                    <t t-if="doc.kind == 'replenish'">Petty Cash Replenishment Claim</t>
+                    <t t-else="">Petty Cash Return to Bank</t>
+                    <span t-field="doc.name"/>
+                </h2>
+                <div class="row mt-3 mb-3">
+                    <div class="col-6">
+                        <strong>Fund:</strong> <span t-field="doc.fund_id"/><br/>
+                        <strong>Custodian:</strong> <span t-field="doc.fund_id.custodian_id"/><br/>
+                        <strong>Float:</strong> <span t-field="doc.fund_id.float_amount"/>
+                    </div>
+                    <div class="col-6 text-end">
+                        <strong>Date:</strong> <span t-field="doc.date"/><br/>
+                        <strong>Status:</strong> <span t-field="doc.state"/><br/>
+                        <strong>Amount:</strong> <span t-field="doc.amount" class="fw-bold"/>
+                    </div>
+                </div>
+                <t t-if="doc.kind == 'replenish' and doc.expense_ids">
+                    <h5>Spending by category</h5>
+                    <table class="table table-sm">
+                        <tr t-foreach="doc._category_summary()" t-as="item">
+                            <td><span t-out="item[0]"/></td>
+                            <td class="text-end"><span t-out="item[1]" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                        </tr>
+                        <tr class="fw-bold">
+                            <td>Total of the vouchers</td>
+                            <td class="text-end"><span t-field="doc.expense_total"/></td>
+                        </tr>
+                    </table>
+                    <h5>Vouchers covered</h5>
+                    <table class="table table-sm o_main_table">
+                        <thead>
+                            <tr><th>Voucher</th><th>Date</th><th>Description</th><th>Payee</th><th class="text-end">Total</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="doc.expense_ids" t-as="expense">
+                                <td><span t-field="expense.name"/></td>
+                                <td><span t-field="expense.date"/></td>
+                                <td><span t-field="expense.description"/></td>
+                                <td><span t-field="expense.partner_id"/></td>
+                                <td class="text-end"><span t-field="expense.amount_total"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+                <p>Amount in words: <span t-out="doc.currency_id.amount_to_text(doc.amount)"/></p>
+                <t t-call="ebshel_petty_cash.report_approval_trail"/>
+                <t t-set="signatures" t-value="['Custodian', 'Approved by', 'Accounts']"/>
+                <t t-call="ebshel_petty_cash.report_signatures"/>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_replenishment">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="ebshel_petty_cash.report_replenishment_document"/>
+            </t>
+        </t>
+    </template>
+
+</odoo>

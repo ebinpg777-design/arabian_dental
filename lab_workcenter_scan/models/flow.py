@@ -454,10 +454,12 @@ class LabFlow(models.AbstractModel):
                    count(*) FILTER (WHERE NOT p.as_tech) AS finished_for_others
               FROM mrp_workorder wo
               %(credit)s
+             WHERE %(window)s
              GROUP BY p.person
              ORDER BY finished DESC, taken DESC
              LIMIT %(limit)s
-        """, s=start, e=end, credit=Workorder._person_credit(start, end), limit=limit))
+        """, s=start, e=end, credit=Workorder._person_credit(start, end),
+            window=Workorder._credit_window(start, end), limit=limit))
         rows = self.env.cr.fetchall()
         # The targets set for the day, and the board's own count against
         # them - taken or finished, once - so this table, the station chips

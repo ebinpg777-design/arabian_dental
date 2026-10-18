@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- On the incoming mail server: when it creates Scan Registers, only the
+         e-mails an E-mail source recognises by sender or subject are registered. -->
+    <record id="view_email_server_form_scan" model="ir.ui.view">
+        <field name="name">fetchmail.server.form.scan.register</field>
+        <field name="model">fetchmail.server</field>
+        <field name="inherit_id" ref="mail.view_email_server_form"/>
+        <field name="arch" type="xml">
+            <field name="object_id" position="after">
+                <field name="object_model" invisible="1"/>
+                <field name="scan_matching_only" invisible="object_model != 'lab.scan'"/>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The printing room's four dialogs. Each has a code box at the top, focused, for
+         the barcode scanner: a machine sticker or a plate ticket goes in, the box clears
+         itself for the next scan. -->
+
+    <!-- ===================================================== New Print Order -->
+    <record id="view_scan_print_order_make_form" model="ir.ui.view">
+        <field name="name">lab.scan.print.order.make.form</field>
+        <field name="model">lab.scan.print.order.make</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="o_scan_wizard_head mb-3">
+                    <div class="fs-5 fw-bold"><i class="fa fa-th text-primary me-2"/>Put the patients on a plate</div>
+                    <div class="text-muted">
+                        <field name="capacity_text" class="oe_inline"/>
+                        <span class="badge rounded-pill text-bg-warning ms-2" invisible="not over_capacity"
+                              title="More than the plate usually holds — a hint, not a stop">over capacity</span>
+                    </div>
+                </div>
+                <!-- No machine here: it is picked at Start Print, where the operator scans
+                     its sticker (client, 2026-10-14). -->
+                <group>
+                    <field name="mode" widget="radio" options="{'horizontal': true}"/>
+                    <field name="order_id" invisible="mode != 'existing'" required="mode == 'existing'"
+                           options="{'no_create': True}"/>
+                </group>
+                <!-- Each patient's scans are attached here, as they go to the printing room:
+                     the upload button in the row, or the register's download link. A row still
+                     red has neither, and the dialog will not send it. -->
+                <field name="line_ids" options="{'no_create': True}" nolabel="1">
+                    <list editable="bottom" decoration-danger="not has_print_files">
+                        <field name="priority" widget="priority" nolabel="1" readonly="1"/>
+                        <field name="scan_id" readonly="1"/>
+                        <field name="patient_name" readonly="1"/>
+                        <field name="partner_id" readonly="1" optional="hide"/>
+                        <field name="arch" readonly="1" optional="show"/>
+                        <field name="date_delivery" readonly="1" optional="show"/>
+                        <field name="attachment_ids" string="Scans" widget="many2many_binary"/>
+                        <field name="print_file_count" string="Files" readonly="1" optional="hide"/>
+                        <field name="download_url" widget="url" placeholder="or paste the download link" optional="show"/>
+                        <field name="print_attempts" string="Attempts" readonly="1" optional="hide"/>
+                        <field name="last_failure" readonly="1" optional="show" decoration-danger="last_failure"/>
+                        <field name="has_print_files" column_invisible="1"/>
+                    </list>
+                </field>
+                <div class="text-muted small mb-2" invisible="not line_ids">
+                    Attach each patient's scans with their Files button, or paste the register's download
+                    link. A patient whose register already has files shared by all its patients is ready too.
+                </div>
+                <group>
+                    <group string="The Sliced File" invisible="split">
+                        <!-- the ChituBox file comes with the plate, sent in pieces (a .ctb is
+                             often over what one request may carry): its figures are read
+                             from it on the server, and the plate keeps it for download -->
+                        <field name="slice_attachment_id" widget="slice_upload" string="ChituBox File"/>
+                        <div class="text-muted small" colspan="2" invisible="mode != 'existing' or not slice_attachment_id">
+                            Replaces the sliced file the plate had.
+                        </div>
+                    </group>
+                    <group string="Plate">
+                        <field name="resin_batch" placeholder="the bottle or lot in the vat"/>
+                        <field name="note" placeholder="Plate 2, grey resin…"/>
+                        <field name="split" invisible="mode != 'new' or not over_capacity and not split"/>
+                        <field name="plan_text" nolabel="1" colspan="2" class="text-muted fst-italic"
+                               invisible="not split or not plan_text"/>
+                    </group>
+                </group>
+                <field name="scan_ids" invisible="1"/>
+                <field name="model_count" invisible="1"/>
+                <field name="capacity" invisible="1"/>
+                <field name="over_capacity" invisible="1"/>
+                <footer>
+                    <button name="action_create" type="object" string="Create Print Order" class="btn-primary"
+                            icon="fa-th" data-hotkey="q" invisible="mode != 'new' or split"/>
+                    <button name="action_create" type="object" string="Create the Plates" class="btn-primary"
+                            icon="fa-th" data-hotkey="q" invisible="mode != 'new' or not split"/>
+                    <button name="action_create" type="object" string="Add to the Plate" class="btn-primary"
+                            icon="fa-plus" data-hotkey="q" invisible="mode != 'existing'"/>
+                    <button name="action_queue_only" type="object" string="Queue Only" data-hotkey="w"
+                            invisible="not scan_ids"
+                            help="Send the registers to the printing room without a plate: the room plates them later."/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ========================================================== Start Print -->
+    <record id="view_scan_print_order_start_form" model="ir.ui.view">
+        <field name="name">lab.scan.print.order.start.form</field>
+        <field name="model">lab.scan.print.order.start</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="o_scan_wizard_head mb-3">
+                    <div class="fs-5 fw-bold"><i class="fa fa-play text-primary me-2"/>Put the plate on the machine</div>
+                    <div class="text-muted"><field name="file_summary" class="oe_inline"/></div>
+                </div>
+                <field name="checklist_html" nolabel="1" class="mb-2 d-block"/>
+                <field name="blocked" invisible="1"/>
+                <field name="profile_warning" invisible="1"/>
+                <group>
+                    <field name="code" placeholder="Scan the machine's sticker (or the plate ticket)…"
+                           class="o_scan_code_input" default_focus="1"/>
+                    <field name="order_id" options="{'no_create': True}"/>
+                    <field name="printer_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="printer_hint" nolabel="1" colspan="2" class="text-muted fst-italic"
+                           invisible="not printer_hint"/>
+                    <field name="resin_batch" placeholder="the bottle or lot in the vat"/>
+                    <field name="note" placeholder="Plate 2, grey resin…"/>
+                </group>
+                <footer>
+                    <button name="action_start" type="object" string="Start Print" class="btn-primary"
+                            icon="fa-play" data-hotkey="q" invisible="blocked"/>
+                    <button name="action_start" type="object" string="Start Print" icon="fa-play"
+                            invisible="not blocked" disabled="1"
+                            title="Something on the list above has to be put right first"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============================================================ Plate Off -->
+    <record id="view_scan_print_order_off_form" model="ir.ui.view">
+        <field name="name">lab.scan.print.order.off.form</field>
+        <field name="model">lab.scan.print.order.off</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="o_scan_wizard_head mb-3">
+                    <div class="fs-5 fw-bold"><i class="fa fa-check text-success me-2"/>The plate came off</div>
+                    <div class="text-muted">Every model is ticked printed. Untick the ones that failed.</div>
+                </div>
+                <group>
+                    <field name="code" placeholder="Scan the plate ticket…" class="o_scan_code_input" default_focus="1"/>
+                    <field name="order_id" options="{'no_create': True}"/>
+                </group>
+                <field name="line_ids" nolabel="1">
+                    <list editable="bottom" create="0" delete="0"
+                          decoration-danger="not ok" decoration-success="ok">
+                        <field name="ok" widget="boolean_toggle"/>
+                        <field name="scan_name" readonly="1"/>
+                        <field name="patient_name" readonly="1"/>
+                        <field name="partner_id" readonly="1" optional="hide"/>
+                        <field name="part" readonly="1"/>
+                        <field name="model_count" string="Models" readonly="1"/>
+                        <field name="attempt" string="#" readonly="1" optional="hide"/>
+                        <field name="failed_part" invisible="ok" required="not ok"/>
+                        <field name="reason" invisible="ok"/>
+                        <field name="note" placeholder="what you saw"/>
+                        <field name="line_id" column_invisible="1"/>
+                    </list>
+                </field>
+                <group invisible="failed_count == 0">
+                    <group string="What Went Wrong">
+                        <field name="reason" widget="radio" nolabel="1" colspan="2"/>
+                        <field name="note" placeholder="What you saw on the plate…" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="The Failed Models">
+                        <field name="replate"/>
+                        <field name="replate_mode" widget="radio" invisible="not replate"/>
+                        <field name="replate_order_id" options="{'no_create': True}"
+                               invisible="not replate or replate_mode != 'existing'"/>
+                    </group>
+                </group>
+                <group>
+                    <field name="skip_cure"/>
+                </group>
+                <field name="failed_count" invisible="1"/>
+                <footer>
+                    <button name="action_confirm" type="object" string="Plate Off" class="btn-primary"
+                            icon="fa-check" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ========================================================= Print Failed -->
+    <record id="view_scan_print_order_fail_form" model="ir.ui.view">
+        <field name="name">lab.scan.print.order.fail.form</field>
+        <field name="model">lab.scan.print.order.fail</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="o_scan_wizard_head mb-3">
+                    <div class="fs-5 fw-bold"><i class="fa fa-exclamation-triangle text-danger me-2"/>The whole plate failed</div>
+                    <div class="text-muted">Every model on <field name="order_id" class="oe_inline fw-bold" readonly="1"
+                         options="{'no_open': True}"/> is recorded as failed, against its machine.</div>
+                </div>
+                <group>
+                    <field name="reason" widget="radio"/>
+                    <field name="note" placeholder="What you saw on the plate…"/>
+                </group>
+                <group string="Restart">
+                    <field name="restart"/>
+                    <field name="printer_code" placeholder="Scan the sticker of the machine to restart on…"
+                           class="o_scan_code_input" invisible="not restart"/>
+                    <field name="printer_id" options="{'no_create': True, 'no_open': True}"
+                           invisible="not restart" required="restart"/>
+                    <field name="printer_hint" nolabel="1" colspan="2" class="text-muted fst-italic"
+                           invisible="not restart or not printer_hint"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Record the Failure" class="btn-danger"
+                            icon="fa-exclamation-triangle" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

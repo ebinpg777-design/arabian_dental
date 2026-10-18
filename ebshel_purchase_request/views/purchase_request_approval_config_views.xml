@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Approval Level: Form ───────────────────────────────────────────── -->
+    <record id="view_pr_approval_config_form" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.approval.config.form</field>
+        <field name="model">ebshel.purchase.request.approval.config</field>
+        <field name="arch" type="xml">
+            <form string="Approval Level">
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-secondary"
+                            invisible="active"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_pending_requests" type="object"
+                                class="oe_stat_button" icon="fa-hourglass-half">
+                            <field name="pending_request_count" widget="statinfo"
+                                   string="Pending"/>
+                        </button>
+                        <button name="toggle_active" type="object"
+                                class="oe_stat_button" icon="fa-archive">
+                            <field name="active" widget="boolean_button"
+                                   options="{'terminology': 'archive'}"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name" string="Approval Level"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Department Head, Finance, CFO…"/>
+                        </h1>
+                    </div>
+
+                    <!-- ══ Level snapshot — live config summary ══════════════════ -->
+                    <div class="d-flex flex-wrap gap-2 mb-3 mt-1">
+                        <div class="flex-grow-1 border rounded-3 p-2 bg-light" style="min-width:200px">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-gavel me-1"/>Policy
+                            </div>
+                            <div class="fw-bold"><field name="policy_summary" readonly="1" class="oe_inline"/></div>
+                            <small class="text-muted">
+                                needs <field name="required_approvals" readonly="1" class="oe_inline"/>
+                                of <field name="approver_count" readonly="1" class="oe_inline"/> eligible
+                            </small>
+                        </div>
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:170px">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-money me-1"/>Amount Band
+                            </div>
+                            <div class="fw-bold"><field name="amount_band" readonly="1" class="oe_inline"/></div>
+                        </div>
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:130px"
+                             invisible="not escalation_days">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-clock-o me-1"/>SLA
+                            </div>
+                            <div class="fs-5 fw-bold text-primary">
+                                <field name="escalation_days" readonly="1" class="oe_inline"/> d
+                            </div>
+                            <small class="text-muted">target turnaround</small>
+                        </div>
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:130px"
+                             invisible="pending_request_count == 0">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-hourglass-half me-1"/>Pending
+                            </div>
+                            <div class="fs-5 fw-bold text-warning">
+                                <field name="pending_request_count" readonly="1" class="oe_inline"/>
+                            </div>
+                            <small class="text-muted">awaiting this level</small>
+                        </div>
+                    </div>
+
+                    <group>
+                        <group string="Routing">
+                            <field name="sequence"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Approval Policy">
+                            <field name="approval_mode" widget="radio"/>
+                            <field name="min_approvers"
+                                   invisible="approval_mode != 'quorum'"
+                                   required="approval_mode == 'quorum'"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Amount Conditions (optional)">
+                            <field name="amount_min"/>
+                            <field name="amount_max"/>
+                        </group>
+                        <group string="Governance">
+                            <field name="escalation_days"/>
+                            <field name="notify_on_pending"/>
+                            <field name="color" widget="color_picker"/>
+                        </group>
+                    </group>
+                    <!-- ── Approvers (inline) ─────────────────────────────── -->
+                    <separator string="👥 Approvers"/>
+                    <p class="text-muted">
+                        Anyone in the listed groups, plus the named users below, may
+                        approve at this level. The policy above decides how many of
+                        them must sign off.
+                    </p>
+                    <group>
+                        <field name="approver_group_ids" widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                        <field name="approver_ids" widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                        <field name="approver_user_ids" widget="many2many_tags" readonly="1"
+                               string="Effective approvers"
+                               options="{'no_create': True}"
+                               help="The complete set of users who can actually approve here."/>
+                    </group>
+
+                    <!-- ── Department / Cost-Centre filter (inline) ───────── -->
+                    <separator string="🏛 Department / Cost Centre Filter"/>
+                    <field name="analytic_account_ids" widget="many2many_tags" nolabel="1"
+                           placeholder="Leave empty to apply this level to every department"/>
+
+                    <!-- ── Category-wise amount limits (inline) ───────────── -->
+                    <separator string="🏷 Category Amount Limits"/>
+                    <p class="text-muted">
+                        Optional — restrict this level to specific product categories
+                        within an amount band (e.g. route IT spend over a threshold
+                        here). Leave empty to ignore product categories.
+                    </p>
+                    <field name="category_limit_ids" nolabel="1">
+                        <list editable="bottom">
+                            <field name="product_category_id"
+                                   options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="amount_min"/>
+                            <field name="amount_max"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+
+                    <!-- ── Notes (inline) ─────────────────────────────────── -->
+                    <separator string="📝 Notes"/>
+                    <field name="description" nolabel="1" placeholder="Internal notes…"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Approval Level: Kanban ─────────────────────────────────────────── -->
+    <record id="view_pr_approval_config_kanban" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.approval.config.kanban</field>
+        <field name="model">ebshel.purchase.request.approval.config</field>
+        <field name="arch" type="xml">
+            <kanban default_order="sequence" class="o_kanban_dashboard">
+                <field name="color"/>
+                <field name="sequence"/>
+                <field name="policy_summary"/>
+                <field name="pending_request_count"/>
+                <field name="amount_band"/>
+                <field name="escalation_days"/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="oe_kanban_card oe_kanban_global_click
+                                           oe_kanban_color_#{kanban_getcolor(record.color.raw_value)}">
+                            <div class="o_kanban_record_top mb8">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <span class="badge text-bg-secondary me-1"
+                                              t-esc="'#' + record.sequence.value"/>
+                                        <field name="name"/>
+                                    </strong>
+                                </div>
+                                <span t-if="record.pending_request_count.raw_value > 0"
+                                      class="badge text-bg-warning"
+                                      title="Requests pending at this level">
+                                    <t t-esc="record.pending_request_count.value"/> pending
+                                </span>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div class="mb4">
+                                    <i class="fa fa-users me-1" title="Approval policy"/>
+                                    <t t-esc="record.policy_summary.value"/>
+                                </div>
+                                <div class="text-muted">
+                                    <i class="fa fa-money me-1" title="Amount band"/>
+                                    <t t-esc="record.amount_band.value"/>
+                                    <t t-if="record.escalation_days.raw_value">
+                                        <span class="badge text-bg-light ms-2" title="SLA / target turnaround">
+                                            ⏱ <t t-esc="record.escalation_days.value"/>d
+                                        </span>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ── Approval Level: List ───────────────────────────────────────────── -->
+    <record id="view_pr_approval_config_list" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.approval.config.list</field>
+        <field name="model">ebshel.purchase.request.approval.config</field>
+        <field name="arch" type="xml">
+            <list string="Approval Levels" default_order="sequence">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="approval_mode" widget="badge"
+                       decoration-info="approval_mode == 'any'"
+                       decoration-warning="approval_mode == 'quorum'"
+                       decoration-danger="approval_mode == 'all'"/>
+                <field name="required_approvals" string="Needs"/>
+                <field name="approver_count" string="Eligible"/>
+                <field name="approver_user_ids" widget="many2many_tags" string="Effective approvers" optional="hide"/>
+                <field name="amount_band" string="Amount" optional="show"/>
+                <field name="escalation_days" string="SLA (d)" optional="show"/>
+                <field name="analytic_account_ids" widget="many2many_tags" optional="hide"/>
+                <field name="pending_request_count" string="Pending"/>
+                <field name="active" widget="boolean_toggle"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Approval Level: Search ─────────────────────────────────────────── -->
+    <record id="view_pr_approval_config_search" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.approval.config.search</field>
+        <field name="model">ebshel.purchase.request.approval.config</field>
+        <field name="arch" type="xml">
+            <search string="Approval Levels">
+                <field name="name"/>
+                <field name="approver_ids"/>
+                <field name="approver_group_ids"/>
+                <field name="analytic_account_ids" string="Department"/>
+                <filter name="active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter name="mode_any" string="Any One" domain="[('approval_mode', '=', 'any')]"/>
+                <filter name="mode_all" string="All Approvers" domain="[('approval_mode', '=', 'all')]"/>
+                <filter name="mode_quorum" string="Quorum" domain="[('approval_mode', '=', 'quorum')]"/>
+                <group>
+                    <filter name="group_mode" string="Policy" context="{'group_by': 'approval_mode'}"/>
+                    <filter name="group_company" string="Company" context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_pr_approval_config" model="ir.actions.act_window">
+        <field name="name">Approval Levels</field>
+        <field name="res_model">ebshel.purchase.request.approval.config</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_pr_approval_config_search"/>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Define your approval levels</p>
+            <p>
+                Approval levels route purchase requests to the right people, in
+                order, based on amount and department. Each level can require any
+                single approver, every approver, or a configurable quorum.
+            </p>
+        </field>
+    </record>
+
+    <!-- ── Routing Simulator (what-if tool) ───────────────────────────────── -->
+    <record id="view_pr_approval_simulator_form" model="ir.ui.view">
+        <field name="name">ebshel.pr.approval.simulator.form</field>
+        <field name="model">ebshel.pr.approval.simulator</field>
+        <field name="arch" type="xml">
+            <form string="Approval Routing Simulator">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>🧪 Approval Routing Simulator</h2>
+                        <p class="text-muted">
+                            Enter an amount and (optionally) a department to preview
+                            exactly which approval levels a request would pass through.
+                        </p>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="amount"/>
+                            <field name="analytic_account_id"
+                                   options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <separator string="Resulting approval chain"/>
+                    <field name="result_html" widget="html" readonly="1" nolabel="1"/>
+                </sheet>
+                <footer>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_pr_approval_simulator" model="ir.actions.act_window">
+        <field name="name">Routing Simulator</field>
+        <field name="res_model">ebshel.pr.approval.simulator</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

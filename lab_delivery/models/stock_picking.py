@@ -6,7 +6,11 @@ number) as plain text, typed at the counter. The same receipt reader that fills 
 delivery's number fills these, and the receipt is kept on the transfer as proof of
 what was handed over and when. (client, 2026-08-28)
 """
+import logging
+
 from odoo import fields, models
+
+_logger = logging.getLogger(__name__)
 
 
 class StockPicking(models.Model):
@@ -20,3 +24,22 @@ class StockPicking(models.Model):
         [('typed', 'Typed'), ('barcode', 'Read from barcode'),
          ('vision', 'Read from receipt'), ('both', 'Barcode and receipt agree')],
         string='Number Came From', copy=False, default='typed')
+
+    def _action_done(self):
+        """A transfer validated at the counter closes its order's dispatch too.
+
+        Marking a dispatch delivered already validates the transfer; this is the
+        other direction, which was missing - see lab.delivery._close_if_shipped.
+        Never allowed to fail the validation itself."""
+        res = super()._action_done()
+        orders = self.filtered(
+            lambda p: p.picking_type_code == 'outgoing' and p.state == 'done').sale_id
+        if orders:
+            try:
+                with self.env.cr.savepoint():
+                    Delivery = self.env['lab.delivery'].sudo()
+                    Delivery.search([('sale_order_id', 'in', orders.ids), ('direction', '=', 'out'),
+                                     ('state', 'in', ('draft', 'assigned', 'out'))])._close_if_shipped()
+            except Exception as exc:                                    # noqa: BLE001
+                _logger.warning("closing dispatches for %s failed: %s", orders.mapped('name'), exc)
+        return res

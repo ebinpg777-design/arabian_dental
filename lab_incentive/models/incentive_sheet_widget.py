@@ -14,8 +14,8 @@ class LabIncentiveSheet(models.Model):
 
     slab_widget_data = fields.Json(compute='_compute_slab_widget_data')
 
-    @api.depends('rule_id', 'total_base', 'slab_amount', 'new_clinic_count',
-                 'new_clinic_amount', 'incentive_amount')
+    @api.depends('rule_id', 'total_base', 'total_sales', 'slab_amount', 'new_clinic_count',
+                 'new_clinic_amount', 'incentive_amount', 'line_ids.incentive_basis')
     def _compute_slab_widget_data(self):
         for sheet in self:
             # The slabs are read elevated: an executive may read the rule but not
@@ -56,6 +56,7 @@ class LabIncentiveSheet(models.Model):
                 'steps': sheet._calculation_steps(rule, base),
                 'mode_note': sheet._calculation_note(rule),
                 'base_text': money(base),
+                'base_note': sheet._base_note(money),
                 'slab_text': money(sheet.slab_amount or 0.0),
                 'clinics': {
                     'count': sheet.new_clinic_count,
@@ -64,6 +65,25 @@ class LabIncentiveSheet(models.Model):
                 } if (sheet.new_clinic_count or rule.new_clinic_bonus) else None,
                 'total_text': money(sheet.incentive_amount or 0.0),
             }
+
+    def _base_note(self, money):
+        """Why the base is not the amount billed, when it is not: the lines whose
+        product is counted on its incentive price or the lab's margin on it.
+        (Ortho, 2026-10-08)"""
+        own = self.line_ids.filtered(lambda l: (l.incentive_basis or 'sale') != 'sale')
+        if not own:
+            return ''
+        labels = {'price': _('incentive price'), 'margin_pct': _('margin %'),
+                  'margin_amount': _('margin per unit')}
+        counts = {}
+        for line in own:
+            counts[line.incentive_basis] = counts.get(line.incentive_basis, 0) + 1
+        parts = ', '.join('%s %s' % (n, labels.get(basis, basis))
+                          for basis, n in counts.items())
+        return _("Billed %(billed)s. The base is %(base)s because %(count)s line(s) "
+                 "count on their own base, not the amount billed (%(parts)s).",
+                 billed=money(self.total_sales), base=money(self.total_base),
+                 count=len(own), parts=parts)
 
     def _slab_rate_label(self, slab):
         if slab.incentive_type == 'percent':

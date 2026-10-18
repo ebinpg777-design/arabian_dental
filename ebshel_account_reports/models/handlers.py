@@ -1415,7 +1415,10 @@ class AnalyticHandler(models.AbstractModel):
         if d_from and d_to:
             parts.append(SQL("al.date >= %s AND al.date <= %s", d_from, d_to))
         if options.get('partners'):
-            parts.append(SQL("al.partner_id IN %s", tuple(options['partners'])))
+            if options.get('partners_exclude'):
+                parts.append(SQL("(al.partner_id IS NULL OR al.partner_id NOT IN %s)", tuple(options['partners'])))
+            else:
+                parts.append(SQL("al.partner_id IN %s", tuple(options['partners'])))
         if options.get('analytic'):
             parts.append(SQL("(%s)", SQL(" OR ").join(
                 SQL("%s IN %s", SQL.identifier('al', column), tuple(options['analytic']))
@@ -1510,7 +1513,10 @@ class AnalyticHandler(models.AbstractModel):
         domain = [(self._column_of(aid), '=', aid), ('date', '>=', d_from), ('date', '<=', d_to),
                   ('company_id', 'in', options['companies'])]
         if options.get('partners'):
-            domain.append(('partner_id', 'in', options['partners']))
+            if options.get('partners_exclude'):
+                domain += ['|', ('partner_id', '=', False), ('partner_id', 'not in', options['partners'])]
+            else:
+                domain.append(('partner_id', 'in', options['partners']))
         if options.get('analytic'):
             domain += ['|'] * (len(self._plan_columns()) - 1) + [
                 (column, 'in', options['analytic']) for column in self._plan_columns()]
@@ -1549,7 +1555,7 @@ class StatementOfAccountHandler(models.AbstractModel):
     def lines(self, report, options, columns, for_export=False):
         currency = self.engine.currency(options)
         rows = super().lines(report, options, columns, for_export=for_export)
-        if len(options.get('partners') or []) == 1:
+        if len(options.get('partners') or []) == 1 and not options.get('partners_exclude'):
             # one partner's statement closes on its own balance, not on a total of one
             rows = [r for r in rows if r['id'] != 'total']
         out, open_partner = [], None
@@ -1595,14 +1601,17 @@ class StatementOfAccountHandler(models.AbstractModel):
         options = self.adjust_options(report, engine.normalize(report, options))
         acc = self._ledger_accounts(report, options)
         d_from, d_to = self._period(options)
-        partners = options.get('partners') or [
+        # the partners chosen; or, with none chosen or a list left out, those with entries
+        partners = options['partners'] if options.get('partners') and not options.get('partners_exclude') else [
             r[0] for r in engine.sums_by(options, SQL("l.partner_id"), 'flow', d_from, d_to, account_ids=acc, limit=200) if r[0]]
         sent, skipped = 0, 0
         for partner in self.env['res.partner'].browse(partners).exists():
             if not partner.email:
                 skipped += 1
                 continue
-            single = dict(options, partners=[partner.id])
+            # this partner's own statement: a list that was left out does not carry over, or
+            # the statement would read every partner BUT this one
+            single = dict(options, partners=[partner.id], partners_exclude=False)
             pdf, _kind = self.env['ir.actions.report']._render_qweb_pdf(
                 'ebshel_account_reports.action_fin_report_pdf', res_ids=[report.id],
                 data={'options': single, 'report_id': report.id})

@@ -262,20 +262,25 @@
                     <div class="o_efr_group" t-if="this.state.report.allow_partners">
                         <button class="o_efr_f o_efr_f_partners o_efr_popbtn" t-att-class="this.state.options.partners.length ? 'on' : ''"
                                 t-on-click="() => this.openPick('partners')">
-                            <i class="fa fa-user"/>Partners<b t-if="this.state.options.partners.length" class="o_efr_count" t-out="this.state.options.partners.length"/>
+                            <i class="fa fa-user"/><t t-if="this.state.options.partners_exclude">Partners left out</t><t t-else="">Partners</t><b t-if="this.state.options.partners.length" t-att-class="'o_efr_count' + (this.state.options.partners_exclude ? ' o_efr_count_ex' : '')" t-out="this.state.options.partners.length"/>
                         </button>
                         <div class="o_efr_pop o_efr_pnl o_efr_pnl_partners" t-if="this.state.menu === 'partners' and this.state.pick">
                             <div class="o_efr_pnl_h"><span class="o_efr_pnl_i"><i class="fa fa-user"/></span>
                                 <div class="o_efr_pnl_t"><b>Partners</b>
-                                    <span><t t-if="this.state.pick.ids.length"><t t-out="this.state.pick.ids.length"/> chosen</t><t t-else="">Every partner</t></span></div>
+                                    <span><t t-if="this.state.pick.ids.length"><t t-out="this.state.pick.ids.length"/> <t t-if="this.state.pick.exclude">left out</t><t t-else="">chosen</t></t><t t-else="">Every partner</t></span></div>
                                 <button t-if="this.state.pick.ids.length" class="o_efr_pnl_clear" t-on-click="this.pickClear">Clear</button></div>
+                            <!-- the partners ticked: the only ones shown, or the ones left out -->
+                            <div class="o_efr_mode">
+                                <button type="button" t-att-class="!this.state.pick.exclude ? 'on' : ''" t-on-click="() => this.setPickExclude(false)"><i class="fa fa-check-circle-o"/>Only these</button>
+                                <button type="button" t-att-class="'ex' + (this.state.pick.exclude ? ' on' : '')" t-on-click="() => this.setPickExclude(true)"><i class="fa fa-ban"/>Leave these out</button>
+                            </div>
                             <div class="o_efr_pnl_s"><i class="fa fa-search"/>
                                 <input type="text" t-att-value="this.state.pick.query" t-on-input="this.onPickQuery" placeholder="Type a name"/></div>
                             <div class="o_efr_pnl_b">
                                 <t t-set="pr" t-value="this.partnerRows"/>
-                                <div t-if="pr.chosen.length" class="o_efr_pnl_sec">Chosen</div>
-                                <button t-foreach="pr.chosen" t-as="it" t-key="'c' + it.id" class="o_efr_prow on" t-on-click="() => this.pickToggle(it.id)">
-                                    <span class="o_efr_box"><i class="fa fa-check"/></span>
+                                <div t-if="pr.chosen.length" class="o_efr_pnl_sec"><t t-if="this.state.pick.exclude">Left out</t><t t-else="">Chosen</t></div>
+                                <button t-foreach="pr.chosen" t-as="it" t-key="'c' + it.id" t-att-class="'o_efr_prow on' + (this.state.pick.exclude ? ' ex' : '')" t-on-click="() => this.pickToggle(it.id)">
+                                    <span class="o_efr_box"><i t-att-class="'fa ' + (this.state.pick.exclude ? 'fa-times' : 'fa-check')"/></span>
                                     <span class="o_efr_prow_n" t-out="it.name"/><span class="o_efr_prow_a" t-out="it.amount_text"/>
                                 </button>
                                 <div class="o_efr_pnl_sec">
@@ -293,7 +298,7 @@
                             <div class="o_efr_pnl_f">
                                 <button class="btn btn-light" t-on-click="this.cancelPick">Cancel</button>
                                 <button class="o_efr_pnl_go" t-on-click="this.applyPick" t-att-disabled="!this.pickChanges">
-                                    <i class="fa fa-check me-1"/><t t-if="!this.pickChanges">No change</t><t t-elif="this.state.pick.ids.length">Show <t t-out="this.state.pick.ids.length"/> partners</t><t t-else="">Show all partners</t></button>
+                                    <i class="fa fa-check me-1"/><t t-if="!this.pickChanges">No change</t><t t-elif="this.state.pick.ids.length and this.state.pick.exclude">Leave out <t t-out="this.state.pick.ids.length"/> partner<t t-if="this.state.pick.ids.length !== 1">s</t></t><t t-elif="this.state.pick.ids.length">Show <t t-out="this.state.pick.ids.length"/> partner<t t-if="this.state.pick.ids.length !== 1">s</t></t><t t-else="">Show all partners</t></button>
                             </div>
                         </div>
                     </div>
@@ -347,17 +352,21 @@
                                 <div t-foreach="this.wideCards" t-as="c" t-key="c.key" class="o_efr_mf_card">
                                     <div class="o_efr_mf_h"><i t-att-class="'fa ' + c.icon"/><b t-out="c.title"/>
                                         <t t-if="c.chosen">
-                                            <span class="o_efr_mf_n"><t t-out="c.chosen"/> selected</span>
+                                            <span t-att-class="'o_efr_mf_n' + (c.exclude ? ' ex' : '')"><t t-out="c.chosen"/> <t t-if="c.exclude">left out</t><t t-else="">selected</t></span>
                                             <button type="button" class="o_efr_mf_clr" t-on-click="() => this.clearWide(c.key)">Clear</button>
                                         </t>
                                         <span t-else="" class="o_efr_mf_all">all <t t-out="c.total"/></span>
+                                    </div>
+                                    <div class="o_efr_mode o_efr_mode_sm" t-if="c.excludable">
+                                        <button type="button" t-att-class="!c.exclude ? 'on' : ''" t-on-click="() => this.setTeamsExclude(false)"><i class="fa fa-check-circle-o"/>Only these</button>
+                                        <button type="button" t-att-class="'ex' + (c.exclude ? ' on' : '')" t-on-click="() => this.setTeamsExclude(true)"><i class="fa fa-ban"/>Leave these out</button>
                                     </div>
                                     <div class="o_efr_mini_s" t-if="c.total &gt; 7"><i class="fa fa-search"/>
                                         <input type="text" t-att-value="this.state.wideQ[c.key] || ''" t-att-placeholder="'Find among ' + c.total + '…'"
                                                t-on-input="(ev) => this.state.wideQ[c.key] = ev.target.value"/></div>
                                     <div class="o_efr_picklist">
                                         <button type="button" t-foreach="c.items" t-as="u" t-key="u.id" t-att-title="u.name"
-                                                t-att-class="'o_efr_pk' + (u.on ? ' on' : '') + (u.sep ? ' sep' : '')" t-on-click="() => this.draftToggle(c.key, u.id)">
+                                                t-att-class="'o_efr_pk' + (u.on ? ' on' : '') + (u.on and c.exclude ? ' ex' : '') + (u.sep ? ' sep' : '')" t-on-click="() => this.draftToggle(c.key, u.id)">
                                             <span class="o_efr_pk_box"/>
                                             <span class="o_efr_pk_n"><span t-out="u.leaf"/><em t-if="u.path" t-out="u.path"/></span>
                                         </button>
@@ -394,8 +403,8 @@
                             </div>
                             <!-- what is chosen, in one line, whatever is scrolled out of sight above -->
                             <div class="o_efr_mf_sum" t-if="this.draftSummary.length">
-                                <span class="o_efr_mf_suml">Showing only</span>
-                                <span t-foreach="this.draftSummary" t-as="sm" t-key="sm.key" class="o_efr_achip o_efr_ac_more">
+                                <span class="o_efr_mf_suml">Filters</span>
+                                <span t-foreach="this.draftSummary" t-as="sm" t-key="sm.key" t-att-class="'o_efr_achip o_efr_ac_more' + (sm.exclude ? ' ex' : '')">
                                     <b t-out="sm.label"/> <t t-out="sm.text"/><i class="fa fa-times o_efr_achip_x" t-on-click="() => this.clearWide(sm.key)" title="Remove"/>
                                 </span>
                             </div>
@@ -434,7 +443,7 @@
                 </div></div>
                 <!-- what is narrowing the report, each taken off with one click -->
                 <div class="o_efr_active" t-if="this.activeChips.length">
-                    <span t-foreach="this.activeChips" t-as="chip" t-key="chip.key" t-att-class="'o_efr_achip o_efr_ac_' + chip.tone">
+                    <span t-foreach="this.activeChips" t-as="chip" t-key="chip.key" t-att-class="'o_efr_achip o_efr_ac_' + chip.tone + (chip.exclude ? ' ex' : '')">
                         <i t-att-class="'fa ' + chip.icon"/><t t-out="chip.text"/>
                         <i class="fa fa-times o_efr_achip_x" title="Remove this filter" t-on-click="() => this.clearChip(chip)"/>
                     </span>

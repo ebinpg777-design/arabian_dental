@@ -91,6 +91,12 @@ class LabCeoDashboard(models.AbstractModel):
         ('money', 'Money', 'fa-university',
          'lab_ceo_dashboard.action_pulse_money',
          'Revenue, cash and receivables'),
+        # Last, so the number keys of every screen above keep their meaning. Left
+        # out by itself where the scan register is not installed: the action is
+        # looked up, not depended on. (client, 2026-10-12)
+        ('scans', 'Scans', 'fa-cube',
+         'lab_scan_register.action_scan_dashboard',
+         'What the doctors sent, and where it is now'),
     ]
 
     # The Field Force tile is not one screen: it is whichever of these this
@@ -268,6 +274,12 @@ class LabCeoDashboard(models.AbstractModel):
                     ('date', '>=', fields.Datetime.to_string(
                         utc_start(month_start)))])
                 return n, _("this month")
+            if key == 'scans' and 'lab.scan' in self.env:
+                # every register not yet ordered or cancelled - Print In Progress too
+                n = self.env['lab.scan'].search_count([
+                    ('company_id', '=', self.env.company.id),
+                    ('state', 'in', ('draft', 'confirmed', 'printing', 'in_progress', 'printed'))])
+                return n, _("open")
             # 'money' deliberately shows NO figure. The bank-and-cash balance
             # on a launcher put the lab's most sensitive number in front of
             # every management reader on every hub visit; it lives inside the

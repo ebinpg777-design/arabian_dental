@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Inject the KPI band as the first child inside the list renderer (single-root). -->
+    <t t-name="ebshel_purchase_request.RFQListRenderer"
+       t-inherit="web.ListRenderer" t-inherit-mode="primary">
+        <xpath expr="//table[@t-ref='table']" position="before">
+            <RFQDashboard list="props.list"/>
+        </xpath>
+    </t>
+
+    <!-- KPI tiles (reuses .ebshel-pr-dash styling, RFQ flavour) -->
+    <t t-name="ebshel_purchase_request.RFQDashboard">
+        <div class="ebshel-pr-dash ebshel-rfq-dash" t-if="state.data">
+            <!-- Pipeline row (icon left, value + label right) -->
+            <div class="ebshel-pr-dash-grid">
+                <div class="ebshel-pr-dash-rowlabel">All</div>
+                <div class="ebshel-pr-tile"
+                     t-att-class="state.data.global.draft ? 'ebshel-pr-tile--info' : 'ebshel-pr-tile--muted'"
+                     filter_name="draft" t-on-click="setSearchContext" title="Draft RFQs">
+                    <div class="ebshel-pr-tile-ico">📝</div>
+                    <div class="ebshel-pr-tile-text">
+                        <div class="ebshel-pr-tile-num" t-esc="state.data.global.draft"/>
+                        <div class="ebshel-pr-tile-lbl">Draft</div>
+                    </div>
+                </div>
+                <div class="ebshel-pr-tile"
+                     t-att-class="state.data.global.sent ? 'ebshel-pr-tile--slate' : 'ebshel-pr-tile--muted'"
+                     filter_name="sent" t-on-click="setSearchContext" title="Sent to vendors">
+                    <div class="ebshel-pr-tile-ico">📤</div>
+                    <div class="ebshel-pr-tile-text">
+                        <div class="ebshel-pr-tile-num" t-esc="state.data.global.sent"/>
+                        <div class="ebshel-pr-tile-lbl">Sent</div>
+                    </div>
+                </div>
+                <div class="ebshel-pr-tile"
+                     t-att-class="state.data.global.comparing ? 'ebshel-pr-tile--warning' : 'ebshel-pr-tile--muted'"
+                     filter_name="comparing" t-on-click="setSearchContext" title="Under comparison">
+                    <div class="ebshel-pr-tile-ico">⚖</div>
+                    <div class="ebshel-pr-tile-text">
+                        <div class="ebshel-pr-tile-num" t-esc="state.data.global.comparing"/>
+                        <div class="ebshel-pr-tile-lbl">Comparing</div>
+                    </div>
+                </div>
+                <div class="ebshel-pr-tile"
+                     t-att-class="state.data.global.awarded ? 'ebshel-pr-tile--success' : 'ebshel-pr-tile--muted'"
+                     filter_name="awarded" t-on-click="setSearchContext" title="Awarded">
+                    <div class="ebshel-pr-tile-ico">🏆</div>
+                    <div class="ebshel-pr-tile-text">
+                        <div class="ebshel-pr-tile-num" t-esc="state.data.global.awarded"/>
+                        <div class="ebshel-pr-tile-lbl">Awarded</div>
+                    </div>
+                </div>
+                <div class="ebshel-pr-tile"
+                     t-att-class="state.data.global.po_created ? 'ebshel-pr-tile--closed' : 'ebshel-pr-tile--muted'"
+                     filter_name="po_created" t-on-click="setSearchContext" title="Purchase order(s) created">
+                    <div class="ebshel-pr-tile-ico">🛒</div>
+                    <div class="ebshel-pr-tile-text">
+                        <div class="ebshel-pr-tile-num" t-esc="state.data.global.po_created"/>
+                        <div class="ebshel-pr-tile-lbl">PO Created</div>
+                    </div>
+                </div>
+                <!-- Advanced filter tiles -->
+                <div class="ebshel-pr-tile ebshel-pr-tile--accent"
+                     filter_name="active" t-on-click="setSearchContext" title="In progress (sent or comparing)">
+                    <div class="ebshel-pr-tile-ico">⚡</div>
+                    <div class="ebshel-pr-tile-text">
+                        <div class="ebshel-pr-tile-num" t-esc="state.data.global.active"/>
+                        <div class="ebshel-pr-tile-lbl">In Progress</div>
+                    </div>
+                </div>
+                <div class="ebshel-pr-tile"
+                     t-att-class="state.data.global.overdue ? 'ebshel-pr-tile--danger' : 'ebshel-pr-tile--muted'"
+                     filter_name="overdue" t-on-click="setSearchContext" title="Past deadline, not yet ordered">
+                    <div class="ebshel-pr-tile-ico">⏰</div>
+                    <div class="ebshel-pr-tile-text">
+                        <div class="ebshel-pr-tile-num" t-esc="state.data.global.overdue"/>
+                        <div class="ebshel-pr-tile-lbl">Overdue</div>
+                    </div>
+                </div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--month"
+                     filter_name="this_month" t-on-click="setSearchContext" title="Raised this month">
+                    <div class="ebshel-pr-tile-ico">📅</div>
+                    <div class="ebshel-pr-tile-text">
+                        <div class="ebshel-pr-tile-num" t-esc="state.data.global.this_month"/>
+                        <div class="ebshel-pr-tile-lbl">This Month</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My row -->
+            <div class="ebshel-pr-dash-grid ebshel-pr-dash-grid--my">
+                <div class="ebshel-pr-dash-rowlabel">My</div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--sm"
+                     t-att-class="state.data.my.draft ? 'ebshel-pr-tile--info' : 'ebshel-pr-tile--muted'"
+                     filter_name="draft,my_rfqs" t-on-click="setSearchContext" title="My draft RFQs">
+                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.draft"/>
+                </div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--sm"
+                     t-att-class="state.data.my.sent ? 'ebshel-pr-tile--slate' : 'ebshel-pr-tile--muted'"
+                     filter_name="sent,my_rfqs" t-on-click="setSearchContext" title="My sent RFQs">
+                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.sent"/>
+                </div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--sm"
+                     t-att-class="state.data.my.comparing ? 'ebshel-pr-tile--warning' : 'ebshel-pr-tile--muted'"
+                     filter_name="comparing,my_rfqs" t-on-click="setSearchContext" title="My RFQs under comparison">
+                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.comparing"/>
+                </div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--sm"
+                     t-att-class="state.data.my.awarded ? 'ebshel-pr-tile--success' : 'ebshel-pr-tile--muted'"
+                     filter_name="awarded,my_rfqs" t-on-click="setSearchContext" title="My awarded RFQs">
+                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.awarded"/>
+                </div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--sm"
+                     t-att-class="state.data.my.po_created ? 'ebshel-pr-tile--closed' : 'ebshel-pr-tile--muted'"
+                     filter_name="po_created,my_rfqs" t-on-click="setSearchContext" title="My RFQs with POs">
+                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.po_created"/>
+                </div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--sm ebshel-pr-tile--accent"
+                     filter_name="active,my_rfqs" t-on-click="setSearchContext" title="My in-progress RFQs">
+                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.active"/>
+                </div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--sm"
+                     t-att-class="state.data.my.overdue ? 'ebshel-pr-tile--danger' : 'ebshel-pr-tile--muted'"
+                     filter_name="overdue,my_rfqs" t-on-click="setSearchContext" title="My overdue RFQs">
+                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.overdue"/>
+                </div>
+                <div class="ebshel-pr-tile ebshel-pr-tile--sm ebshel-pr-tile--month"
+                     filter_name="this_month,my_rfqs" t-on-click="setSearchContext" title="My RFQs this month">
+                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.this_month"/>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

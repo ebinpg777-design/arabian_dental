@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================ kanban -->
+    <record id="view_scan_printer_kanban" model="ir.ui.view">
+        <field name="name">lab.scan.printer.kanban</field>
+        <field name="model">lab.scan.printer</field>
+        <field name="arch" type="xml">
+            <kanban class="o_scan_printer_kanban" quick_create="false" records_draggable="0"
+                    default_order="sequence, code">
+                <field name="state"/>
+                <field name="running_count"/>
+                <field name="failure_rate"/>
+                <field name="print_count"/>
+                <field name="queued_count"/>
+                <field name="status_text"/>
+                <field name="color"/>
+                <templates>
+                    <t t-name="card" class="flex-row">
+                        <aside class="o_kanban_aside_full">
+                            <field name="image_128" widget="image" class="o_scan_printer_img"
+                                   options="{'img_class': 'object-fit-cover'}"/>
+                        </aside>
+                        <main class="ps-2 d-flex flex-column">
+                            <div class="d-flex align-items-center gap-2">
+                                <span t-attf-class="o_tag o_badge badge rounded-pill font-monospace o_tag_color_#{record.color.raw_value}"
+                                      title="The number on the sticker, in the machine's colour"><field name="code"/></span>
+                                <field name="name" class="fw-bold text-truncate"/>
+                            </div>
+                            <div class="text-muted small text-truncate" t-if="record.brand.raw_value">
+                                <field name="brand"/>
+                            </div>
+                            <div class="text-muted small" t-if="record.location.raw_value">
+                                <i class="fa fa-map-marker me-1"/><field name="location"/>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1 mt-auto pt-2 small">
+                                <span t-if="record.state.raw_value == 'maintenance'" class="badge rounded-pill text-bg-warning">
+                                    <i class="fa fa-wrench"/> Maintenance</span>
+                                <span t-elif="record.state.raw_value == 'retired'" class="badge rounded-pill text-bg-secondary">Retired</span>
+                                <span t-elif="record.running_count.raw_value" class="badge rounded-pill text-bg-primary">
+                                    <i class="fa fa-print" title="Printing"/> <field name="status_text"/></span>
+                                <span t-else="" class="badge rounded-pill text-bg-success"><i class="fa fa-check"/> <field name="status_text"/></span>
+                                <span t-if="record.print_count.raw_value" class="badge rounded-pill"
+                                      t-att-class="record.failure_rate.raw_value >= 20 ? 'text-bg-danger' : 'text-bg-light'"
+                                      title="Share of models that failed">
+                                    <field name="failure_rate"/>% failed</span>
+                            </div>
+                        </main>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ================================================================== list -->
+    <record id="view_scan_printer_list" model="ir.ui.view">
+        <field name="name">lab.scan.printer.list</field>
+        <field name="model">lab.scan.printer</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'retired'" decoration-warning="state == 'maintenance'">
+                <field name="sequence" widget="handle"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="technology" optional="show"/>
+                <field name="brand" optional="show"/>
+                <field name="location" optional="show"/>
+                <field name="user_id" optional="hide" widget="many2one_avatar_user"/>
+                <field name="status_text" string="Now"/>
+                <field name="queued_count" string="Up Next" optional="show"/>
+                <field name="print_count" string="Plates" sum="Plates"/>
+                <field name="model_done_count" string="Models Printed" sum="Printed" optional="show"/>
+                <field name="model_failed_count" string="Models Failed" sum="Failed"/>
+                <field name="failure_rate" string="Failed %"/>
+                <field name="plate_capacity" optional="hide"/>
+                <field name="estimate_accuracy" optional="hide"/>
+                <field name="hours_recent" string="Hours (30 d)" optional="show"/>
+                <field name="last_print_date" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'ready'"
+                       decoration-warning="state == 'maintenance'"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ================================================================== form -->
+    <record id="view_scan_printer_form" model="ir.ui.view">
+        <field name="name">lab.scan.printer.form</field>
+        <field name="model">lab.scan.printer</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_print_sticker" type="object" string="Print Sticker"
+                            icon="fa-tag" invisible="not id"/>
+                    <button name="action_start_next" type="object" string="Start Next Plate" class="btn-primary"
+                            icon="fa-play" invisible="not next_order_id or running_count or state != 'ready'"/>
+                    <field name="next_order_id" invisible="1"/>
+                    <button name="action_plate_off" type="object" string="Plate Off" class="btn-primary"
+                            icon="fa-check" invisible="running_count == 0"/>
+                    <button name="action_plate_failed" type="object" string="Plate Failed"
+                            icon="fa-exclamation-triangle" invisible="running_count == 0"/>
+                    <button name="action_set_maintenance" type="object" string="Under Maintenance"
+                            icon="fa-wrench" invisible="state != 'ready'"/>
+                    <button name="action_set_ready" type="object" string="Back in Service"
+                            icon="fa-check-circle" invisible="state == 'ready'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_running" type="object" class="oe_stat_button" icon="fa-print"
+                                invisible="running_count == 0">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value"><field name="running_order_id" options="{'no_open': True}"/></span>
+                                <span class="o_stat_text">Printing Now</span>
+                            </div>
+                        </button>
+                        <button name="action_view_queue" type="object" class="oe_stat_button" icon="fa-list-ol"
+                                invisible="queued_count == 0">
+                            <field name="queued_count" widget="statinfo" string="Up Next"/>
+                        </button>
+                        <button name="action_view_orders" type="object" class="oe_stat_button" icon="fa-history">
+                            <field name="print_count" widget="statinfo" string="Plates"/>
+                        </button>
+                        <button name="action_view_failed" type="object" class="oe_stat_button" icon="fa-exclamation-triangle"
+                                invisible="model_failed_count == 0">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value text-danger"><field name="model_failed_count"/></span>
+                                <span class="o_stat_text">Failed Models · <field name="failure_rate" class="oe_inline"/>%</span>
+                            </div>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-clock-o" disabled="1">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value"><field name="hours_recent"/> h</span>
+                                <span class="o_stat_text">Last 30 days</span>
+                            </div>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Under Maintenance" bg_color="text-bg-warning"
+                            invisible="state != 'maintenance'"/>
+                    <widget name="web_ribbon" title="Retired" bg_color="text-bg-secondary"
+                            invisible="state != 'retired'"/>
+                    <field name="image_1920" widget="image" class="oe_avatar"
+                           options="{'preview_image': 'image_128', 'size': [120, 120]}"/>
+                    <div class="oe_title">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge rounded-pill text-bg-dark font-monospace fs-6"
+                                  invisible="not code or code == 'New'" title="The number on the sticker">
+                                <field name="code" class="oe_inline"/>
+                            </span>
+                            <!-- the colour of the machine's tag on every plate -->
+                            <field name="color" widget="color_picker" class="oe_inline" title="The colour of this machine's tag on the print orders"/>
+                        </div>
+                        <h1><field name="name" placeholder="e.g. Printer 1 — Sonic Mini"/></h1>
+                        <div class="text-muted" invisible="not brand"><field name="brand" class="oe_inline"/></div>
+                        <div class="mt-1" invisible="not id">
+                            <span class="badge rounded-pill o_scan_printing_badge" invisible="running_count == 0">
+                                <i class="fa fa-print me-1" title="Printing"/><field name="status_text" class="oe_inline"/>
+                            </span>
+                            <span class="badge rounded-pill text-bg-success" invisible="running_count or state != 'ready'">
+                                <i class="fa fa-check me-1"/><field name="status_text" class="oe_inline"/>
+                            </span>
+                        </div>
+                    </div>
+                    <group>
+                        <group string="Machine" name="machine">
+                            <field name="technology"/>
+                            <field name="brand"/>
+                            <field name="serial_no"/>
+                            <field name="location"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="date_purchased"/>
+                            <field name="typical_hours" widget="float_time"/>
+                            <field name="plate_capacity"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="ChituBox Profile" name="profile">
+                            <field name="profile_name" placeholder="Phrozen Sonic Mini 8K"/>
+                            <label for="bed_x_mm" string="Bed (mm)"/>
+                            <div class="o_row">
+                                <field name="bed_x_mm" class="oe_inline"/> × <field name="bed_y_mm" class="oe_inline"/>
+                            </div>
+                            <label for="resolution_x" string="Resolution (px)"/>
+                            <div class="o_row">
+                                <field name="resolution_x" class="oe_inline"/> × <field name="resolution_y" class="oe_inline"/>
+                            </div>
+                            <p class="text-muted small" colspan="2">
+                                As ChituBox writes them into a sliced file: a plate whose file says otherwise is
+                                flagged before it starts. Blank means no check.
+                            </p>
+                        </group>
+                        <group string="Record" name="record">
+                            <field name="done_count"/>
+                            <field name="failed_count"/>
+                            <field name="plate_failure_rate" decoration-danger="plate_failure_rate >= 20"/>
+                            <field name="model_done_count"/>
+                            <field name="model_failed_count" decoration-danger="model_failed_count > 0"/>
+                            <field name="failure_rate" decoration-danger="failure_rate >= 20"/>
+                        </group>
+                        <group string="Last 30 Days" name="recent">
+                            <field name="done_recent"/>
+                            <field name="failed_recent" decoration-danger="failed_recent > 0"/>
+                            <field name="hours_recent"/>
+                            <field name="resin_ml_recent"/>
+                            <field name="estimate_accuracy" invisible="not estimate_accuracy"/>
+                            <field name="last_print_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Printing Now" name="running">
+                            <field name="running_order_ids" readonly="1" nolabel="1">
+                                <list no_open="1" decoration-warning="running_long">
+                                    <field name="name"/>
+                                    <field name="patient_count" string="Patients"/>
+                                    <field name="model_count" string="Models"/>
+                                    <field name="start_user_id" widget="many2one_avatar_user"/>
+                                    <field name="date_start" widget="scan_timer" string="Running For"/>
+                                    <field name="date_start" string="Since"/>
+                                    <field name="expected_end"/>
+                                    <field name="progress_pct" widget="progressbar" string="Progress"/>
+                                    <field name="resin_batch" optional="show"/>
+                                    <field name="running_long" column_invisible="1"/>
+                                    <button name="action_plate_off" type="object" icon="fa-check" title="Plate Off"/>
+                                    <button name="action_print_failed" type="object" icon="fa-exclamation-triangle"
+                                            title="Print Failed"/>
+                                </list>
+                            </field>
+                            <p class="text-muted small mb-0" invisible="running_count">
+                                Nothing is printing on this machine. A plate starts on it from its print order —
+                                its sticker scanned, or the machine picked — or with Start Next Plate.
+                            </p>
+                        </page>
+                        <page string="Up Next" name="queue">
+                            <field name="queued_order_ids" nolabel="1">
+                                <list editable="bottom" create="0" delete="0" no_open="1">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name" readonly="1"/>
+                                    <field name="patient_count" string="Patients" readonly="1"/>
+                                    <field name="model_count" string="Models" readonly="1"/>
+                                    <field name="is_ready" widget="boolean" readonly="1" string="Ready"/>
+                                    <field name="estimated_hours" widget="float_time" readonly="1"/>
+                                    <field name="date_delivery" readonly="1"/>
+                                    <button name="action_start_print" type="object" icon="fa-play" title="Start Print"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="History" name="history">
+                            <field name="order_ids" readonly="1" nolabel="1">
+                                <list decoration-danger="state == 'failed'" decoration-info="state == 'printing'"
+                                      decoration-muted="state == 'cancel'" no_open="1">
+                                    <field name="date_start"/>
+                                    <field name="name"/>
+                                    <field name="patient_count" string="Patients"/>
+                                    <field name="printed_count" string="Printed"/>
+                                    <field name="failed_count" string="Failed"/>
+                                    <field name="duration_hours" widget="float_time" string="Time"/>
+                                    <field name="resin_ml" optional="hide"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state == 'printing'"
+                                           decoration-success="state in ('washing', 'done')"
+                                           decoration-danger="state == 'failed'"/>
+                                    <button name="action_view_registers" type="object" icon="fa-external-link"
+                                            title="The registers on this plate"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="note" placeholder="Resin in use, settings that work, what to watch for…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================ search -->
+    <record id="view_scan_printer_search" model="ir.ui.view">
+        <field name="name">lab.scan.printer.search</field>
+        <field name="model">lab.scan.printer</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="brand"/>
+                <field name="location"/>
+                <filter name="ready" string="Ready" domain="[('state', '=', 'ready')]"/>
+                <filter name="maintenance" string="Under Maintenance" domain="[('state', '=', 'maintenance')]"/>
+                <separator/>
+                <filter name="free" string="Free" domain="[('state', '=', 'ready'), ('running_count', '=', 0)]"/>
+                <filter name="busy" string="Printing Now" domain="[('running_count', '>', 0)]"/>
+                <separator/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_technology" string="Technology" context="{'group_by': 'technology'}"/>
+                    <filter name="group_location" string="Location" context="{'group_by': 'location'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_scan_printer" model="ir.actions.act_window">
+        <field name="name">3D Printers</field>
+        <field name="res_model">lab.scan.printer</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_scan_printer_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No 3D printer yet</p>
+            <p>Add each machine once. It gets its number by itself - print the sticker and put it on the
+               machine - and from then on every print, finished or failed, is on its record.</p>
+        </field>
+    </record>
+</odoo>

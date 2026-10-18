@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The plate ticket: A6, clipped to the wash basket. The plate's number large with
+         its QR - scanned into Start Print or Plate Off it picks this plate - the machine,
+         when it went on and is expected off, and every patient on it, so the models in
+         the basket can be told apart without opening anything. -->
+    <record id="paperformat_plate_ticket" model="report.paperformat">
+        <field name="name">Plate Ticket (A6)</field>
+        <field name="format">custom</field>
+        <field name="page_width">105</field>
+        <field name="page_height">148</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">5</field>
+        <field name="margin_bottom">5</field>
+        <field name="margin_left">5</field>
+        <field name="margin_right">5</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="action_report_plate_ticket" model="ir.actions.report">
+        <field name="name">Plate Ticket</field>
+        <field name="model">lab.scan.print.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_scan_register.report_plate_ticket</field>
+        <field name="paperformat_id" ref="paperformat_plate_ticket"/>
+        <field name="print_report_name">'Plate - %s' % object.name.replace('/', '-')</field>
+        <field name="binding_model_id" ref="model_lab_scan_print_order"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_plate_ticket">
+        <!-- Floats and inline-blocks, never a layout table: wkhtmltopdf draws a hairline
+             box around any table. The QR is drawn on the server, so it prints the same
+             wherever the ticket is printed. -->
+        <t t-call="web.basic_layout">
+            <t t-foreach="docs" t-as="o">
+                <div class="page" t-attf-style="font-family:Arial,Helvetica,sans-serif; color:#111; font-size:9pt; {{ 'page-break-after:always;' if not o_last else '' }}">
+                    <div style="overflow:hidden;">
+                        <div style="float:right; width:28mm; height:28mm; text-align:center;">
+                            <img t-if="o.ticket_qr" t-att-src="image_data_uri(o.ticket_qr)"
+                                 style="width:28mm; height:28mm;"/>
+                        </div>
+                        <div style="margin-right:31mm;">
+                            <div style="font-size:7pt; color:#666; text-transform:uppercase; letter-spacing:.12em;"
+                                 t-out="o.company_id.name"/>
+                            <div style="font-size:20pt; font-weight:bold; line-height:1.1;" t-out="o.name"/>
+                            <div style="margin-top:1.5mm;">
+                                <span style="display:inline-block; background:#111; color:#fff; border-radius:3mm; padding:.4mm 2.5mm; font-weight:bold; letter-spacing:.06em;"
+                                      t-out="o.printer_id.code"/>
+                                <span style="font-size:11pt; font-weight:bold; margin-left:1.5mm;" t-out="o.printer_id.name"/>
+                            </div>
+                            <div style="margin-top:1.5mm; color:#333;">
+                                <t t-if="o.date_start">Started <t t-out="o._local_time(o.date_start)"/>
+                                    · expected off <b t-out="o._local_time(o.expected_end)"/></t>
+                                <t t-else="">Not started yet</t>
+                            </div>
+                            <div t-if="o.resin_batch" style="color:#333;">Resin batch <b t-out="o.resin_batch"/></div>
+                            <div t-if="o.slice_filename" style="color:#666; font-size:7.5pt; overflow:hidden; white-space:nowrap;"
+                                 t-out="o.slice_filename"/>
+                        </div>
+                    </div>
+                    <div t-if="o.preview_small" style="margin-top:2mm; text-align:center;">
+                        <img t-att-src="'data:image/png;base64,%s' % o.preview_small.decode()" style="height:30mm;"/>
+                    </div>
+                    <div style="margin-top:3mm; border-top:0.3mm solid #111; padding-top:1.5mm; font-size:8pt; color:#666; text-transform:uppercase; letter-spacing:.08em;">
+                        <t t-out="o.patient_count"/> patients · <t t-out="o.model_count"/> models
+                    </div>
+                    <t t-foreach="o.line_ids.filtered(lambda l: l.result != 'withdrawn')" t-as="line">
+                        <div style="padding:1.2mm 0; border-bottom:0.2mm solid #ccc; overflow:hidden;">
+                            <div style="float:right; text-align:right; color:#333;">
+                                <t t-out="dict(line._fields['part'].selection).get(line.part)"/>
+                                <div t-if="line.attempt &gt; 1" style="color:#b91c1c; font-weight:bold;">↻ attempt <t t-out="line.attempt"/></div>
+                            </div>
+                            <div style="font-size:10.5pt; font-weight:bold;">
+                                <span t-if="line.priority == '1'" style="color:#b91c1c;">⚡</span>
+                                <t t-out="line.patient_name or '—'"/>
+                            </div>
+                            <div style="color:#555;"><t t-out="line.scan_id.name"/> · <t t-out="line.partner_id.name or ''"/></div>
+                        </div>
+                    </t>
+                    <div style="margin-top:2mm; font-size:7.5pt; color:#666;">
+                        Plated by <t t-out="o.user_id.name"/> · <t t-out="o._local_time(o.create_date)"/>
+                        <t t-out="o.create_date and o.create_date.strftime('%d-%m-%Y') or ''"/>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_fund_kanban" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.fund.kanban</field>
+        <field name="model">ebshel.petty.cash.fund</field>
+        <field name="arch" type="xml">
+            <kanban class="o_petty_cash_dashboard" create="false" sample="1">
+                <field name="currency_id"/>
+                <field name="is_low"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex align-items-baseline">
+                            <field name="name" class="fw-bold fs-4 me-2"/>
+                            <field name="code" class="text-muted me-2"/>
+                            <field name="state" widget="label_selection" class="ms-auto"
+                                   options="{'classes': {'draft': 'default', 'open': 'success', 'suspended': 'warning', 'closed': 'danger'}}"/>
+                        </div>
+                        <div class="text-muted">
+                            <field name="custodian_id" widget="many2one_avatar_user" options="{'display_avatar_name': True}" readonly="1"/>
+                        </div>
+                        <div class="d-flex mt-3">
+                            <div>
+                                <div class="small text-muted">Cash on hand</div>
+                                <field name="balance" widget="monetary" class="fs-3 fw-bold"/>
+                            </div>
+                            <div class="ms-auto text-end">
+                                <div class="small text-muted">Float</div>
+                                <field name="float_amount" widget="monetary"/>
+                            </div>
+                        </div>
+                        <field name="balance_ratio" widget="progressbar" class="mt-1"/>
+                        <div t-if="record.is_low.raw_value" class="text-danger small mt-1">
+                            <i class="oi" data-icon="warning" title="Low balance" role="img" aria-label="Low balance"/> Below the replenishment threshold
+                        </div>
+                        <div class="row g-1 small mt-2">
+                            <div class="col-6">
+                                <span class="text-muted">Committed</span>
+                                <field name="pending_amount" widget="monetary" class="d-block"/>
+                            </div>
+                            <div class="col-6 text-end">
+                                <span class="text-muted">Advances out</span>
+                                <field name="advance_outstanding" widget="monetary" class="d-block"/>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Spent this month</span>
+                                <field name="month_spent" widget="monetary" class="d-block"/>
+                            </div>
+                            <div class="col-6 text-end">
+                                <span class="text-muted">Last count</span>
+                                <field name="last_count_date" class="d-block"/>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 small mt-2">
+                            <a name="action_view_to_approve" type="object">
+                                <field name="to_approve_count"/> to approve
+                            </a>
+                            <a name="action_view_to_pay" type="object">
+                                <field name="to_pay_count"/> to pay
+                            </a>
+                            <a name="action_view_advances" type="object">
+                                <field name="open_advance_count"/> open advances
+                            </a>
+                        </div>
+                        <footer t-if="record.state.raw_value == 'open'" class="pt-2">
+                            <div class="d-flex flex-wrap gap-1">
+                                <button name="action_new_expense" type="object" class="btn btn-primary btn-sm">Voucher</button>
+                                <button name="action_new_advance" type="object" class="btn btn-secondary btn-sm">Advance</button>
+                                <button name="action_new_replenishment" type="object" class="btn btn-secondary btn-sm">Replenish</button>
+                                <button name="action_new_count" type="object" class="btn btn-secondary btn-sm">Count</button>
+                            </div>
+                        </footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_fund_list" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.fund.list</field>
+        <field name="model">ebshel.petty.cash.fund</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="is_low" decoration-muted="state in ('closed', 'suspended')">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="custodian_id" widget="many2one_avatar_user"/>
+                <field name="journal_id" groups="account.group_account_readonly"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="currency_id" groups="base.group_multi_currency" optional="hide"/>
+                <field name="float_amount" sum="Total"/>
+                <field name="balance" sum="Total"/>
+                <field name="advance_outstanding" optional="show"/>
+                <field name="replenish_amount" optional="show"/>
+                <field name="is_low" column_invisible="True"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'open'" decoration-warning="state == 'suspended'" decoration-danger="state == 'closed'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_fund_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.fund.form</field>
+        <field name="model">ebshel.petty.cash.fund</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_open" type="object" string="Open" class="btn-primary"
+                            invisible="state not in ('draft', 'suspended')" groups="ebshel_petty_cash.group_petty_cash_manager"/>
+                    <button name="action_new_replenishment" type="object" string="Replenish" class="btn-primary"
+                            invisible="state != 'open'"/>
+                    <button name="action_print_statement" type="object" string="Statement"
+                            invisible="state == 'draft'"/>
+                    <button name="action_suspend" type="object" string="Suspend"
+                            invisible="state != 'open'" groups="ebshel_petty_cash.group_petty_cash_manager"/>
+                    <button name="action_close" type="object" string="Close"
+                            invisible="state not in ('open', 'suspended')" groups="ebshel_petty_cash.group_petty_cash_manager"
+                            confirm="Close the fund? Its cash must have been returned to the bank."/>
+                    <button name="action_reset_draft" type="object" string="Reopen"
+                            invisible="state != 'closed'" groups="ebshel_petty_cash.group_petty_cash_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,open,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_expenses" type="object" class="oe_stat_button" icon="description">
+                            <field name="expense_count" widget="statinfo" string="Vouchers"/>
+                        </button>
+                        <button name="action_view_advances" type="object" class="oe_stat_button" icon="handshake">
+                            <field name="advance_count" widget="statinfo" string="Advances"/>
+                        </button>
+                        <button name="action_view_replenishments" type="object" class="oe_stat_button" icon="refresh">
+                            <field name="replenishment_count" widget="statinfo" string="Replenishments"/>
+                        </button>
+                        <button name="action_view_counts" type="object" class="oe_stat_button" icon="calculate">
+                            <field name="count_count" widget="statinfo" string="Counts"/>
+                        </button>
+                        <button name="action_view_journal_items" type="object" class="oe_stat_button" icon="book"
+                                groups="account.group_account_readonly" string="Cash Book"/>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <field name="active" invisible="1"/>
+                    <field name="is_low" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <div class="alert alert-warning mb-2" role="alert" invisible="not is_low">
+                        The balance is below the replenishment threshold.
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Head Office Petty Cash"/></h1>
+                    </div>
+                    <group>
+                        <group string="Fund">
+                            <field name="code"/>
+                            <field name="custodian_id" widget="many2one_avatar_user"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="id"/>
+                            <field name="currency_id" groups="base.group_multi_currency"/>
+                            <field name="journal_id" placeholder="Created with the fund"
+                                   groups="account.group_account_readonly"/>
+                            <field name="account_id" groups="account.group_account_readonly"/>
+                            <field name="source_journal_id" groups="account.group_account_readonly"/>
+                        </group>
+                        <group string="Position">
+                            <field name="balance"/>
+                            <field name="pending_amount"/>
+                            <field name="available_amount"/>
+                            <field name="advance_outstanding"/>
+                            <field name="float_amount"/>
+                            <field name="replenish_amount"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Controls" name="controls">
+                            <group>
+                                <group string="Limits">
+                                    <field name="min_balance"/>
+                                    <field name="max_expense_amount"/>
+                                    <field name="auto_approve_limit"/>
+                                    <field name="allow_negative"/>
+                                </group>
+                                <group string="Receipts and Automation">
+                                    <field name="require_receipt"/>
+                                    <field name="receipt_required_amount" invisible="not require_receipt"/>
+                                    <field name="post_on_approval"/>
+                                    <field name="auto_replenish"/>
+                                    <field name="count_interval_days"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="People" name="people">
+                            <group>
+                                <field name="user_ids" widget="many2many_avatar_user"/>
+                                <field name="approver_ids" widget="many2many_avatar_user"/>
+                            </group>
+                        </page>
+                        <page string="Spending" name="spending">
+                            <group>
+                                <field name="category_ids" widget="many2many_tags"/>
+                                <field name="analytic_distribution" widget="analytic_distribution"
+                                       groups="analytic.group_analytic_accounting"/>
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="note" placeholder="Rules of use, location of the cash box..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_fund_search" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.fund.search</field>
+        <field name="model">ebshel.petty.cash.fund</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" filter_domain="['|', ('name', 'ilike', self), ('code', 'ilike', self)]"/>
+                <field name="custodian_id"/>
+                <filter name="my_funds" string="My Funds" domain="[('custodian_id', '=', uid)]"/>
+                <separator/>
+                <filter name="open" string="Open" domain="[('state', '=', 'open')]"/>
+                <filter name="closed" string="Closed" domain="[('state', '=', 'closed')]"/>
+                <separator/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_custodian" string="Custodian" context="{'group_by': 'custodian_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_company" string="Company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fund_dashboard" model="ir.actions.act_window">
+        <field name="name">Petty Cash</field>
+        <field name="res_model">ebshel.petty.cash.fund</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Set up your first petty cash fund</p>
+            <p>A fund is a cash box with a custodian, a float and its own cash journal.</p>
+        </field>
+    </record>
+
+    <record id="action_fund_config" model="ir.actions.act_window">
+        <field name="name">Funds</field>
+        <field name="res_model">ebshel.petty.cash.fund</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a petty cash fund</p>
+            <p>Its cash journal and cash account are created with it.</p>
+        </field>
+    </record>
+
+</odoo>

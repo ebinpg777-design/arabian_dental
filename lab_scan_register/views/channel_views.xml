@@ -13,6 +13,7 @@
                 <field name="partner_id"/>
                 <field name="member_count" string="Members" optional="show"/>
                 <field name="sender_match" optional="hide"/>
+                <field name="subject_match" optional="hide"/>
                 <field name="link_match" optional="hide"/>
                 <field name="link_validity_days" optional="hide"/>
                 <field name="user_id" optional="show"/>
@@ -46,7 +47,7 @@
                     </div>
                     <div class="d-flex align-items-center gap-3 mb-3">
                         <span class="o_form_label">Source</span>
-                        <field name="kind" widget="selection_badge" options="{'horizontal': true}"/>
+                        <field name="kind" widget="badges_selection"/>
                     </div>
                     <group>
                         <group>
@@ -57,7 +58,9 @@
                         </group>
                         <group>
                             <field name="sender_match" invisible="kind == 'whatsapp'"
-                                   placeholder="e.g. allied-star.com"/>
+                                   placeholder="e.g. allied-star.com, doctor@gmail.com"/>
+                            <field name="subject_match" invisible="kind == 'whatsapp'"
+                                   placeholder="e.g. New case, Scan"/>
                             <field name="link_match" invisible="kind == 'whatsapp'"
                                    placeholder="e.g. wetransfer.com"/>
                             <field name="link_validity_days" invisible="kind == 'whatsapp'"/>

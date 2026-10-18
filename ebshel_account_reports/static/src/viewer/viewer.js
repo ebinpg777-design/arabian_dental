@@ -1432,7 +1432,8 @@ export class FinReportViewer extends Component {
             this.state.menu = null;
             return;
         }
-        this.state.pick = { key, ids: [...(this.state.options[key] || [])], query: "", hits: null, loading: false };
+        this.state.pick = { key, ids: [...(this.state.options[key] || [])], query: "", hits: null, loading: false,
+                            exclude: !!this.state.options[`${key}_exclude`] };
         this.openMenu(key);
         if (key === "partners") {
             this.loadPartnerHits();
@@ -1480,7 +1481,16 @@ export class FinReportViewer extends Component {
         let n = 0;
         for (const id of after) if (!before.has(id)) n++;
         for (const id of before) if (!after.has(id)) n++;
+        // show these / leave these out: a change only while there is a list to turn round
+        if (p.key === "partners" && p.ids.length && !!p.exclude !== !!this.state.options.partners_exclude) {
+            n++;
+        }
         return n;
+    }
+
+    /** Partners and Sales Routes: the list chosen is the one to show, or the one to leave out. */
+    setPickExclude(exclude) {
+        this.state.pick.exclude = exclude;
     }
 
     applyPick() {
@@ -1495,7 +1505,11 @@ export class FinReportViewer extends Component {
             this.state.choices.partners = [...known.values()];
         }
         this.state.pick = null;
-        this.reload({ [p.key]: [...p.ids] });
+        const patch = { [p.key]: [...p.ids] };
+        if (p.key === "partners") {
+            patch.partners_exclude = p.ids.length ? !!p.exclude : false;
+        }
+        this.reload(patch);
     }
 
     cancelPick() {
@@ -1717,7 +1731,9 @@ export class FinReportViewer extends Component {
                 return { id: i.id, name: i.name, on: chosen.has(i.id), sep, leaf: parts[parts.length - 1],
                          path: parts.length > 1 ? parts.slice(0, -1).join(" / ") : "" };
             });
-            cards.push({ key, title, icon, total: all.length, chosen: chosen.size, items });
+            cards.push({ key, title, icon, total: all.length, chosen: chosen.size, items,
+                         // a Sales Route can be left out as well as kept ("exclude partner or sales route")
+                         excludable: key === "teams", exclude: key === "teams" && !!this.state.draft.teams_exclude });
         }
         return cards;
     }
@@ -1747,7 +1763,8 @@ export class FinReportViewer extends Component {
         for (const [key, label] of [["journal_types", _t("Journal")], ["salespeople", _t("Salesperson")], ["teams", _t("Team")],
                                     ["partner_categories", _t("Tag")], ["product_categories", _t("Category")]]) {
             if ((d[key] || []).length) {
-                out.push({ key, label, text: named(key) });
+                const out_ = key === "teams" && d.teams_exclude;
+                out.push({ key, label: out_ ? _t("Not team") : label, text: named(key), exclude: out_ });
             }
         }
         if (d.label) {
@@ -1774,7 +1791,15 @@ export class FinReportViewer extends Component {
         } else {
             d[key] = [];
             delete this.state.wideQ[key];
+            if (key === "teams") {
+                d.teams_exclude = false;
+            }
         }
+    }
+
+    /** The Sales team card: the routes ticked are the only ones shown, or the ones left out. */
+    setTeamsExclude(exclude) {
+        this.state.draft.teams_exclude = exclude;
     }
 
     // what the report alone can be asked (bucket sizes, accounts without movement…)
@@ -1805,6 +1830,7 @@ export class FinReportViewer extends Component {
         n += String(o.amount_min ?? "") !== String(d.amount_min ?? "") ? 1 : 0;
         n += String(o.amount_max ?? "") !== String(d.amount_max ?? "") ? 1 : 0;
         n += !!o.unreconciled !== !!d.unreconciled ? 1 : 0;
+        n += (d.teams || []).length && !!o.teams_exclude !== !!d.teams_exclude ? 1 : 0;
         // the switches and this report's own settings wait for Apply like the rest
         const r = this.state.report || {};
         if (r.allow_posted_toggle) {
@@ -1823,7 +1849,7 @@ export class FinReportViewer extends Component {
     }
 
     resetDraft() {
-        Object.assign(this.state.draft, { journal_types: [], partner_categories: [], salespeople: [], teams: [],
+        Object.assign(this.state.draft, { journal_types: [], partner_categories: [], salespeople: [], teams: [], teams_exclude: false,
                                           product_categories: [], label: "", amount_min: "", amount_max: "", unreconciled: false });
         this.state.wideQ = {};
     }
@@ -1842,7 +1868,8 @@ export class FinReportViewer extends Component {
             rows.push({ key: "analytic", icon: "fa-sitemap", tone: "analytic", name: _t("Analytic"), count: (o.analytic || []).length, value: (o.analytic || []).length ? "" : _t("All") });
         }
         if (r.allow_partners) {
-            rows.push({ key: "partners", icon: "fa-user", tone: "partners", name: _t("Partners"), count: (o.partners || []).length, value: (o.partners || []).length ? "" : _t("All") });
+            rows.push({ key: "partners", icon: "fa-user", tone: "partners", name: o.partners_exclude ? _t("Partners left out") : _t("Partners"),
+                        count: (o.partners || []).length, value: (o.partners || []).length ? "" : _t("All") });
         }
         if (r.allow_accounts) {
             rows.push({ key: "accounts", icon: "fa-list-ol", tone: "accounts", name: _t("Accounts"), value: o.accounts_query || _t("All") });
@@ -1881,7 +1908,7 @@ export class FinReportViewer extends Component {
         const o = this.state.options;
         this.state.draft = {
             journal_types: [...(o.journal_types || [])], partner_categories: [...(o.partner_categories || [])],
-            salespeople: [...(o.salespeople || [])], teams: [...(o.teams || [])],
+            salespeople: [...(o.salespeople || [])], teams: [...(o.teams || [])], teams_exclude: !!o.teams_exclude,
             product_categories: [...(o.product_categories || [])], label: o.label || "",
             amount_min: o.amount_min === null || o.amount_min === undefined ? "" : o.amount_min,
             amount_max: o.amount_max === null || o.amount_max === undefined ? "" : o.amount_max,
@@ -1908,7 +1935,8 @@ export class FinReportViewer extends Component {
         const d = this.state.draft, r = this.state.report || {};
         const patch = {
             journal_types: d.journal_types, partner_categories: d.partner_categories, salespeople: d.salespeople,
-            teams: d.teams, product_categories: d.product_categories, label: d.label,
+            teams: d.teams, teams_exclude: d.teams.length ? !!d.teams_exclude : false,
+            product_categories: d.product_categories, label: d.label,
             amount_min: d.amount_min === "" ? null : Number(d.amount_min),
             amount_max: d.amount_max === "" ? null : Number(d.amount_max), unreconciled: d.unreconciled,
             ...(d.extra || {}),
@@ -1947,7 +1975,10 @@ export class FinReportViewer extends Component {
             const ids = o[key] || [];
             if (ids.length) {
                 const names = ids.slice(0, 2).map((id) => this.nameIn(list, id)).join(", ");
-                chips.push({ key, icon, tone: key, text: `${label}: ${names}${ids.length > 2 ? " +" + (ids.length - 2) : ""}`, clear: { [key]: [] } });
+                const out = !!o[`${key}_exclude`];
+                chips.push({ key, icon, tone: key, exclude: out,
+                             text: `${out ? _t("%s left out", label) : label}: ${names}${ids.length > 2 ? " +" + (ids.length - 2) : ""}`,
+                             clear: out ? { [key]: [], [`${key}_exclude`]: false } : { [key]: [] } });
             }
         };
         many("journals", _t("Journals"), c.journals, "fa-book");

@@ -12,6 +12,11 @@ from ..models.sticker_engine import BARCODES, MODES
 
 _logger = logging.getLogger(__name__)
 
+# The preview shows every sticker of the run up to this many - the whole run of a
+# morning's parcels, not just the first label (client, 2026-10-14: "print sticker
+# should show the previews of multiple selected orders"). Past it, Preview all.
+PREVIEW_MAX = 20
+
 
 class StickerPrintWizard(models.TransientModel):
     _name = 'epg.sticker.print.wizard'
@@ -63,6 +68,9 @@ class StickerPrintWizard(models.TransientModel):
         if ctx.get('active_model') == 'res.partner':
             return self.env['res.partner'].browse(ctx.get('active_ids') or []).exists().ids
         orders = self.env['sale.order'].browse(self._default_orders())
+        if not orders and ctx.get('active_model') == 'account.move':
+            # an invoice billed without an order still has a clinic to send to
+            return self._invoices_from_context().partner_id.ids
         return orders.partner_id.ids
 
     @api.model
@@ -73,7 +81,18 @@ class StickerPrintWizard(models.TransientModel):
             return self.env['sale.order'].browse(ids).exists().ids
         if ctx.get('active_model') == 'stock.picking':
             return self.env['stock.picking'].browse(ctx.get('active_ids') or []).sale_id.ids
+        if ctx.get('active_model') == 'account.move':
+            # an invoice's parcels are the orders it bills (client, 2026-10-14: "print
+            # sticker in the invoices' action, in accounting")
+            return self._invoices_from_context().invoice_line_ids.sale_line_ids.order_id.filtered(
+                lambda o: o.state != 'cancel').ids
         return []
+
+    @api.model
+    def _invoices_from_context(self):
+        ctx = self.env.context
+        ids = ctx.get('active_ids') or ([ctx['active_id']] if ctx.get('active_id') else [])
+        return self.env['account.move'].browse(ids).exists()
 
     # ------------------------------------------------------------ choosing orders
     @api.depends('partner_ids', 'order_ids')
@@ -184,8 +203,9 @@ class StickerPrintWizard(models.TransientModel):
             wiz.preview_html = wiz._preview_markup(stickers, fmt)
 
     def _preview_markup(self, stickers, fmt):
-        """The preview IS the print: the first label is rendered by wkhtmltopdf exactly as
-        it will be printed, and the first page of that PDF is shown as an image.
+        """The preview IS the print: the run's stickers - up to PREVIEW_MAX of them - are
+        rendered by wkhtmltopdf exactly as they will be printed, and each label is cut out
+        of its page and shown as an image, captioned with whose it is.
 
         Drawing the same template straight into the form looked different — the web
         client's fonts and line heights are not wkhtmltopdf's, and mm boxes scale with
@@ -196,63 +216,103 @@ class StickerPrintWizard(models.TransientModel):
         self.ensure_one()
         Engine = self.env['epg.sticker.engine']
         total = len(stickers)
-        # A preview of ONE label, rendered the real way, same as the order path
-        # always has: the first order, or - with no orders picked - the first
-        # clinic. Passing every partner through here would preview correctly
-        # too, but one label is the point; the rest are the same layout.
+        shown = stickers[:PREVIEW_MAX]
         use_partners = not self.order_ids and self._can_print_from_partners()
-        first = self.partner_ids[:1] if use_partners else self.order_ids[:1]
         try:
             report = self.env.ref('epg_sticker_print.action_report_sticker').with_context(
                 epg_sticker_paperformat_id=fmt.paperformat_id.id)
-            data = dict(self._options(), copies=1, format_id=fmt.id)
+            # the same run the print makes, cut to the stickers shown
+            data = dict(self._options(), copies=1, format_id=fmt.id, limit=len(shown))
             if use_partners:
-                data['partner_ids'] = first.ids
+                data['partner_ids'] = self.partner_ids.ids
                 pdf = report._render_qweb_pdf(report.report_name, [], data=data)[0]
             else:
-                data['ids'] = first.ids
-                pdf = report._render_qweb_pdf(report.report_name, first.ids, data=data)[0]
-            png = self._first_page_png(pdf, fmt)
+                data['ids'] = self.order_ids.ids
+                pdf = report._render_qweb_pdf(report.report_name, self.order_ids.ids, data=data)[0]
+            pngs = self._label_pngs(pdf, fmt, len(shown))
         except Exception as exc:                                   # noqa: BLE001
             _logger.info("sticker preview: falling back to HTML (%s)", exc)
-            png = None
-        if png:
-            width_px = int(fmt.width_mm * 3.2)                        # ~81 dpi on screen
-            return Markup(
-                '<div class="epg-sticker-preview" style="display:inline-block;border:1px dashed #999;'
-                'background:#fff;line-height:0;"><img src="data:image/png;base64,%s" '
-                'style="width:%spx;max-width:100%%;image-rendering:-webkit-optimize-contrast;"/></div>'
-                '<div class="text-muted small mt-1">Preview of sticker 1 of %s — exactly as it prints</div>'
-            ) % (base64.b64encode(png).decode(), width_px, total)
+            pngs = None
+        if total == 1:
+            head = _('Preview of the sticker — exactly as it prints')
+        elif total <= PREVIEW_MAX:
+            head = _('Preview of all %s stickers — exactly as they print', total)
+        else:
+            head = _('The first %(n)s of %(total)s stickers — exactly as they print. Preview all shows every one.',
+                     n=len(shown), total=total)
+        if pngs and len(pngs) == len(shown):
+            # one label at full size; a run as a grid the eye can walk down
+            width_px = int(fmt.width_mm * (3.2 if len(pngs) == 1 else 2.2))
+            cells = Markup('').join(
+                Markup('<figure style="display:inline-block;margin:0 10px 12px 0;vertical-align:top;">'
+                       '<div class="epg-sticker-preview" style="border:1px dashed #999;background:#fff;line-height:0;">'
+                       '<img src="data:image/png;base64,%s" style="width:%spx;max-width:100%%;'
+                       'image-rendering:-webkit-optimize-contrast;"/></div>'
+                       '<figcaption class="text-muted small" style="max-width:%spx;white-space:nowrap;overflow:hidden;'
+                       'text-overflow:ellipsis;">%s</figcaption></figure>')
+                % (base64.b64encode(png).decode(), width_px, width_px, self._caption(i, sticker))
+                for i, (png, sticker) in enumerate(zip(pngs, shown)))
+            return Markup('<div class="text-muted small mb-2">%s</div><div>%s</div>') % (head, cells)
         layout = Engine.layout_vars(fmt)
-        html = self.env['ir.qweb']._render('epg_sticker_print.sticker_preview', {
-            'sticker': stickers[0], 'layout': layout, 'total': total})
-        return Markup(html)
+        cells = Markup('').join(
+            Markup('<figure style="display:inline-block;margin:0 10px 12px 0;vertical-align:top;">%s'
+                   '<figcaption class="text-muted small">%s</figcaption></figure>') % (
+                Markup(self.env['ir.qweb']._render('epg_sticker_print.sticker_preview_label',
+                                                   {'sticker': sticker, 'layout': layout})),
+                self._caption(i, sticker))
+            for i, sticker in enumerate(shown))
+        return Markup('<div class="text-muted small mb-2">%s</div><div>%s</div>') % (head, cells)
 
     @api.model
-    def _first_page_png(self, pdf, fmt):
-        """Rasterise page 1 of `pdf` with poppler (pdftoppm), cropped to the first label."""
+    def _caption(self, index, sticker):
+        """'3 · SO280137 · DR ONE' - which parcel the label is for."""
+        bits = [str(index + 1)]
+        if sticker.get('kind') == 'order' and sticker.get('title'):
+            bits.append(sticker['title'])
+        if sticker.get('name'):
+            bits.append(sticker['name'])
+        if sticker.get('kind') in ('customer', 'route') and (sticker.get('count') or 0) > 1:
+            bits.append(_('%s orders', sticker['count']))
+        return ' · '.join(bits)
+
+    @api.model
+    def _label_pngs(self, pdf, fmt, count):
+        """Every label of the first `count`, cut out of the pages of `pdf` (poppler's
+        pdftoppm, then the label grid of the format): a roll is one label a page; a
+        sheet holds columns x rows of them, side by side with the gap between columns."""
+        import io
+        import glob
         import shutil
         import subprocess
         import tempfile
-        if not shutil.which('pdftoppm'):
+        from PIL import Image
+        if not shutil.which('pdftoppm') or count < 1:
             return None
+        per_page = max(fmt.columns * fmt.rows, 1)
+        pages = -(-count // per_page)
+        dpi = 200 if count == 1 else 150
+        mm = dpi / 25.4
+        out = []
         with tempfile.TemporaryDirectory() as tmp:
             src = os.path.join(tmp, 's.pdf')
             with open(src, 'wb') as fh:
                 fh.write(pdf)
-            dpi = 200
-            # crop to the first label on sheet formats; rolls are one label per page
-            w_px = int(fmt.width_mm / 25.4 * dpi)
-            h_px = int(fmt.height_mm / 25.4 * dpi)
-            cmd = ['pdftoppm', '-png', '-r', str(dpi), '-f', '1', '-l', '1', '-singlefile',
-                   '-x', '0', '-y', '0', '-W', str(w_px), '-H', str(h_px), src, os.path.join(tmp, 'p')]
-            subprocess.run(cmd, check=True, timeout=30, capture_output=True)
-            out = os.path.join(tmp, 'p.png')
-            if not os.path.exists(out):
-                return None
-            with open(out, 'rb') as fh:
-                return fh.read()
+            subprocess.run(['pdftoppm', '-png', '-r', str(dpi), '-f', '1', '-l', str(pages), src, os.path.join(tmp, 'p')],
+                           check=True, timeout=60, capture_output=True)
+            files = sorted(glob.glob(os.path.join(tmp, 'p-*.png')), key=lambda f: int(f.rsplit('-', 1)[1][:-4]))
+            for path in files[:pages]:
+                with Image.open(path) as page:
+                    for slot in range(per_page):
+                        if len(out) == count:
+                            break
+                        col, row = slot % fmt.columns, slot // fmt.columns
+                        x = col * (fmt.width_mm + fmt.gap_mm) * mm
+                        y = row * fmt.height_mm * mm
+                        box = tuple(int(round(v)) for v in (x, y, x + fmt.width_mm * mm, y + fmt.height_mm * mm))
+                        buf = io.BytesIO()
+                        page.crop(box).save(buf, format='PNG', optimize=True)
+                        out.append(buf.getvalue())
+        return out
 
     def _report_data(self):
         self.ensure_one()

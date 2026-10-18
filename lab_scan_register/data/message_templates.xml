@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Starting templates; the lab rewrites them as it likes (noupdate). -->
+    <data noupdate="1">
+        <record id="template_received" model="lab.scan.message.template">
+            <field name="name">Scans received</field>
+            <field name="sequence">10</field>
+            <field name="body">Hello! {company} has received the scans for {patients} ({scan}). We will be in touch if anything is unclear. Thank you.</field>
+        </record>
+        <record id="template_files_missing" model="lab.scan.message.template">
+            <field name="name">Files could not be opened</field>
+            <field name="sequence">20</field>
+            <field name="body">Hello! We could not open the scan files for {patients} ({scan}). Could you please send them again?</field>
+        </record>
+        <record id="template_link_expired" model="lab.scan.message.template">
+            <field name="name">Download link expired</field>
+            <field name="sequence">30</field>
+            <field name="body">Hello! The download link for {patients} ({scan}) has expired before we could download the files. Could you please share them again?</field>
+        </record>
+        <record id="template_clarify" model="lab.scan.message.template">
+            <field name="name">Clarification needed</field>
+            <field name="sequence">40</field>
+            <field name="body">Hello! For {patients} ({scan}) we need a clarification before we start: </field>
+        </record>
+        <record id="template_printing" model="lab.scan.message.template">
+            <field name="name">Sent for 3D printing</field>
+            <field name="sequence">50</field>
+            <field name="body">Hello! The models for {patients} ({scan}) have gone for 3D printing.</field>
+        </record>
+        <record id="template_printed" model="lab.scan.message.template">
+            <field name="name">Models printed</field>
+            <field name="sequence">55</field>
+            <field name="body">Hello! The models for {patients} ({scan}) are printed. Your cases are on their way to production for delivery by {delivery}. Thank you, {company}.</field>
+        </record>
+        <record id="template_booked" model="lab.scan.message.template">
+            <field name="name">Cases booked</field>
+            <field name="sequence">60</field>
+            <field name="body">Hello! The cases for {patients} are booked: {orders}. Thank you, {company}.</field>
+        </record>
+    </data>
+</odoo>

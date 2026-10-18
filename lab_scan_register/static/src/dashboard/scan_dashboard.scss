@@ -1,0 +1,485 @@
+// The Scan Register dashboard. Same visual language as the Management menu's
+// Business Pulse (cards, pill tabs, quiet panels). SCSS variables only - Odoo 19
+// exposes no --bs-* custom properties in the backend.
+
+$sd-whatsapp: #25a366;
+$sd-email: #3b6fd8;
+$sd-transfer: #e0902b;
+$sd-main: #0e7c86;
+$sd-print: #4f46e5;
+$sd-good: #15803d;
+$sd-warn: #b45309;
+$sd-bad: #b42318;
+
+// every machine in its own tag colour - the one its tag has on the print orders
+@for $i from 1 through length($o-colors) {
+    .o_sd_mc_c#{$i - 1} { --sd-mc: #{nth($o-colors, $i)}; }
+}
+
+.o_sd {
+    padding: 1rem 1.25rem 2rem;
+    max-width: 1500px;
+    margin: 0 auto;
+    overflow-y: auto;
+
+    .o_sd_click { cursor: pointer; }
+    .o_sd_body { transition: opacity .15s; }
+    .o_sd_dim { opacity: .55; }
+
+    // ------------------------------------------------------------ header
+    .o_sd_head { display: flex; align-items: center; gap: .75rem 1.25rem; flex-wrap: wrap; margin-bottom: .85rem; }
+    .o_sd_eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: $o-gray-600; font-weight: 600; }
+    .o_sd_h { margin: 0; font-size: 1.4rem; font-weight: 700; color: $o-gray-900; }
+    .o_sd_tabs { display: flex; gap: .35rem; flex-wrap: wrap; }
+    .o_sd_tab {
+        border: 1px solid $border-color;
+        border-radius: 2rem;
+        padding: .4rem .95rem;
+        font-weight: 600;
+        font-size: .85rem;
+        background-color: $body-bg;
+        color: $o-gray-700;
+        min-height: 36px;
+        &:hover { background-color: $o-gray-100; }
+    }
+    .o_sd_tab_on, .o_sd_tab_on:hover { background-color: $sd-main; border-color: $sd-main; color: #fff; }
+    .o_sd_live_dot { font-size: .5rem; vertical-align: middle; color: #ef4444; animation: o_sd_pulse 2s infinite; }
+    .o_sd_tab_on .o_sd_live_dot { color: #fecaca; }
+    .o_sd_range { font-size: .85rem; color: $o-gray-600; }
+    .o_sd_head_actions { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+    .o_sd_iconbtn {
+        border: 1px solid $border-color; background: $body-bg; color: $o-gray-700; border-radius: .5rem;
+        width: 36px; height: 36px;
+        &:hover { color: $sd-main; border-color: $sd-main; }
+    }
+    .o_sd_full {
+        border: 0;
+        background: transparent;
+        color: $o-gray-700;
+        font-weight: 600;
+        font-size: .85rem;
+        &:hover { color: $sd-main; }
+    }
+
+    // ------------------------------------------------------------ alerts
+    .o_sd_alerts {
+        display: flex; flex-wrap: wrap; align-items: center; gap: .4rem;
+        background: $body-bg; border: 1px solid $border-color; border-left: 4px solid $sd-bad;
+        border-radius: .75rem; padding: .55rem .75rem; margin-bottom: 1rem;
+        &.o_sd_alerts_clear { border-left-color: $sd-good; }
+    }
+    .o_sd_alerts_l { font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: $o-gray-700; margin-right: .35rem; }
+    .o_sd_alerts_clear .o_sd_alerts_l { color: $sd-good; }
+    .o_sd_alert {
+        border: 1px solid transparent; border-radius: 2rem; padding: .25rem .7rem; font-size: .8rem; font-weight: 600;
+        b { margin-left: .2rem; }
+        &:hover { filter: brightness(.96); }
+    }
+    .o_sd_tone_danger { background: #fde8e7; color: $sd-bad; border-color: #f6c7c3; }
+    .o_sd_tone_warning { background: #fff4e5; color: $sd-warn; border-color: #f6d7a7; }
+    .o_sd_tone_info { background: #e8f1fd; color: #1d4ed8; border-color: #c6dbfa; }
+    .o_sd_alerts_more { margin-left: auto; border: 0; background: transparent; font-size: .78rem; color: $o-gray-600; &:hover { color: $sd-main; } }
+    .o_sd_alerts_clearlist {
+        flex-basis: 100%; display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .78rem; color: $o-gray-600;
+        padding-top: .35rem; border-top: 1px dashed $border-color; margin-top: .2rem;
+    }
+
+    // ------------------------------------------------------------ cards
+    .o_sd_group_l {
+        font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: $o-gray-600;
+        margin: .1rem 0 .4rem;
+    }
+    .o_sd_cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+        gap: .7rem;
+        margin-bottom: .9rem;
+    }
+    .o_sd_card {
+        position: relative;
+        background: $body-bg;
+        border: 1px solid $border-color;
+        border-radius: .75rem;
+        padding: .75rem .95rem .8rem;
+        min-width: 0;
+        overflow: hidden;
+        transition: transform .1s, box-shadow .1s, border-color .1s;
+        &::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--sd-accent, $sd-main); }
+        &.o_sd_click:hover { border-color: var(--sd-accent, $sd-main); box-shadow: 0 4px 14px rgba(15, 23, 42, .08); transform: translateY(-1px); }
+        &.o_sd_alarm { --sd-accent: #{$sd-bad}; .o_sd_card_v { color: $sd-bad; } }
+    }
+    .o_sd_accent_scan { --sd-accent: #{$sd-main}; }
+    .o_sd_accent_print { --sd-accent: #{$sd-print}; }
+    .o_sd_card_top { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+    .o_sd_card_l { color: $o-gray-600; font-size: .78rem; font-weight: 600; line-height: 1.2; }
+    .o_sd_card_i {
+        flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+        font-size: .85rem; color: var(--sd-accent, $sd-main);
+        background: color-mix(in srgb, var(--sd-accent, #{$sd-main}) 12%, transparent);
+    }
+    .o_sd_card_v {
+        font-size: 1.7rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; margin-top: .15rem; color: $o-gray-900;
+        small { font-size: .9rem; color: $o-gray-500; font-weight: 600; }
+    }
+    .o_sd_sub { color: $o-gray-500; font-size: .76rem; margin-top: .3rem; }
+    .o_sd_delta { font-size: .76rem; margin-top: .3rem; font-weight: 700; .fa { font-size: .7rem; } }
+    .o_sd_vs { font-weight: 400; color: $o-gray-500; }
+    .o_sd_up { color: $sd-good; }
+    .o_sd_down { color: $sd-bad; }
+    .o_sd_meter {
+        height: 5px; border-radius: 3px; background: $o-gray-100; overflow: hidden; margin-top: .4rem;
+        > span { display: block; height: 100%; background: var(--sd-accent, $sd-main); border-radius: 3px; }
+    }
+
+    // ------------------------------------------------------------ sections and panels
+    .o_sd_section_h {
+        display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+        font-size: 1.05rem; font-weight: 700; color: $o-gray-900;
+        margin: 1.4rem 0 .6rem; padding-bottom: .4rem; border-bottom: 2px solid $border-color;
+        > .fa { color: $sd-main; }
+    }
+    .o_sd_panel {
+        background: $body-bg;
+        border: 1px solid $border-color;
+        border-radius: .75rem;
+        padding: .9rem 1rem;
+        margin-bottom: .75rem;
+        min-width: 0;
+    }
+    .o_sd_title {
+        font-weight: 700;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: $o-gray-700;
+        margin-bottom: .65rem;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        flex-wrap: wrap;
+        .fa { color: $o-gray-500; margin-right: .2rem; }
+    }
+    .o_sd_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: .75rem;
+        > .o_sd_panel { margin-bottom: 0; }
+        margin-bottom: .75rem;
+    }
+    .o_sd_empty { color: $o-gray-500; font-size: .85rem; padding: .25rem 0; }
+    .o_sd_good { color: $sd-good; }
+    .o_sd_rank {
+        display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; border-radius: 50%;
+        background: $o-gray-100; color: $o-gray-700; font-size: .68rem; font-weight: 700; margin-right: .4rem; flex: 0 0 auto;
+    }
+    .o_sd_pill {
+        display: inline-flex; align-items: center; gap: .25rem; border-radius: 2rem; padding: .05rem .5rem; font-size: .72rem; font-weight: 600;
+        background: $o-gray-100; color: $o-gray-700; white-space: nowrap;
+        &.o_sd_pill_good { background: #e7f6ec; color: $sd-good; }
+        &.o_sd_pill_bad { background: #fde8e7; color: $sd-bad; }
+        &.o_sd_pill_warn { background: #fff4e5; color: $sd-warn; }
+        &.o_sd_click:hover { filter: brightness(.95); }
+    }
+
+    // ------------------------------------------------------------ pipeline
+    .o_sd_pipe { display: flex; align-items: stretch; gap: .5rem; flex-wrap: wrap; }
+    .o_sd_step {
+        flex: 1 1 150px;
+        border-radius: .6rem;
+        padding: .7rem .85rem;
+        background: $o-gray-100;
+        border-top: 4px solid $o-gray-400;
+        &:hover { background: $o-gray-200; }
+    }
+    .o_sd_step_confirmed { border-top-color: #e0b82b; }
+    .o_sd_step_printing { border-top-color: #8b5cf6; }
+    .o_sd_step_in_progress { border-top-color: $sd-print; }
+    .o_sd_step_printed { border-top-color: $sd-main; }
+    .o_sd_step_l { font-size: .8rem; font-weight: 600; color: $o-gray-700; }
+    .o_sd_step_v { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .o_sd_step_s { font-size: .76rem; color: $o-gray-600; }
+    .o_sd_arrow { align-self: center; color: $o-gray-400; font-size: 1.4rem; }
+
+    // ------------------------------------------------------------ rows and bars
+    .o_sd_row {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .35rem 0;
+        border-bottom: 1px solid $o-gray-100;
+        &:last-child { border-bottom: 0; }
+    }
+    .o_sd_row_l { flex: 1 1 auto; min-width: 0; font-size: .875rem; }
+    .o_sd_row_v { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
+    .o_sd_row_n { font-size: .78rem; min-width: 2.5rem; text-align: right; }
+
+    .o_sd_bar {
+        display: grid;
+        grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
+        align-items: center;
+        gap: .6rem;
+        padding: .3rem .25rem;
+        border-radius: .4rem;
+        &.o_sd_click:hover { background: $o-gray-100; }
+    }
+    .o_sd_bar_l { font-size: .85rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; }
+    .o_sd_bar_track { height: .6rem; background: $o-gray-100; border-radius: 1rem; overflow: hidden; }
+    .o_sd_bar_fill { display: block; height: 100%; border-radius: 1rem; }
+    .o_sd_bar_v { font-weight: 700; font-size: .85rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .o_sd_src_whatsapp { background: $sd-whatsapp; }
+    .o_sd_src_email { background: $sd-email; }
+    .o_sd_src_transfer { background: $sd-transfer; }
+    .o_sd_fill_main { background: $sd-main; }
+    .o_sd_fill_soft { background: #67b7bd; }
+    .o_sd_fill_warn { background: #f59e0b; }
+    .o_sd_fill_bad { background: #ef4444; }
+
+    // ------------------------------------------------------------ trend
+    .o_sd_legend {
+        margin-left: auto;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: .74rem;
+        color: $o-gray-600;
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .3rem;
+    }
+    .o_sd_key { display: inline-block; width: .7rem; height: .7rem; border-radius: .15rem; margin-left: .5rem; }
+    .o_sd_trend {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        height: 170px;
+        padding-top: 1.1rem;
+        overflow-x: auto;
+    }
+    .o_sd_col {
+        flex: 1 0 14px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: stretch;
+        position: relative;
+        cursor: pointer;
+        &:hover .o_sd_col_stack { opacity: .8; }
+    }
+    .o_sd_col_stack {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        min-height: 0;
+        > span { display: block; min-height: 2px; }
+        > span:first-of-type { border-radius: 3px 3px 0 0; }
+    }
+    // just above its own bar, whatever the bar's height
+    .o_sd_col_v {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: .68rem;
+        line-height: 1.1rem;
+        color: $o-gray-600;
+    }
+    .o_sd_col_l {
+        text-align: center;
+        font-size: .66rem;
+        color: $o-gray-500;
+        margin-top: .2rem;
+        white-space: nowrap;
+    }
+
+    // ------------------------------------------------------------ the plates' flow
+    .o_sd_flow { display: flex; align-items: stretch; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+    .o_sd_flowstep {
+        flex: 1 1 165px; min-width: 0;
+        background: $body-bg; border: 1px solid $border-color; border-top: 4px solid $o-gray-400; border-radius: .65rem;
+        padding: .6rem .8rem;
+        &:hover { box-shadow: 0 4px 14px rgba(15, 23, 42, .08); }
+    }
+    .o_sd_flow_draft { border-top-color: #e0b82b; }
+    .o_sd_flow_printing { border-top-color: $sd-print; }
+    .o_sd_flow_washing { border-top-color: #0ea5e9; }
+    .o_sd_flow_printed { border-top-color: $sd-good; background: color-mix(in srgb, #{$sd-good} 4%, #{$body-bg}); }
+    .o_sd_flow_failed { border-top-color: $sd-bad; background: color-mix(in srgb, #{$sd-bad} 4%, #{$body-bg}); }
+    .o_sd_flow_top { font-size: .78rem; font-weight: 600; color: $o-gray-700; .fa { color: $o-gray-500; margin-right: .2rem; } }
+    .o_sd_flow_v { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; small { font-size: .78rem; color: $o-gray-500; font-weight: 600; } }
+    .o_sd_flow_s { font-size: .76rem; color: $o-gray-600; display: flex; flex-wrap: wrap; gap: .25rem .4rem; align-items: center; }
+    .o_sd_flow_sep { align-self: stretch; width: 1px; background: $border-color; margin: 0 .35rem; }
+
+    // ------------------------------------------------------------ the machines
+    .o_sd_machines {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: .75rem;
+        margin-bottom: .75rem;
+    }
+    .o_sd_mc {
+        background: $body-bg;
+        border: 1px solid $border-color;
+        border-top: 5px solid var(--sd-mc, #{$sd-print});
+        border-radius: .75rem;
+        padding: .65rem .85rem .55rem;
+        display: flex; flex-direction: column; gap: .5rem;
+        &.o_sd_mc_maintenance, &.o_sd_mc_retired { opacity: .75; }
+    }
+    .o_sd_mc_head { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .o_sd_mc_code {
+        flex: 0 0 auto; white-space: nowrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; font-weight: 700;
+        background: var(--sd-mc, #111827); color: #fff; border-radius: 999px; padding: .1rem .55rem;
+        text-shadow: 0 0 2px rgba(0, 0, 0, .35);
+    }
+    .o_sd_mc_name { font-weight: 700; font-size: .92rem; min-width: 0; flex: 1 1 auto; color: $o-gray-900; }
+    .o_sd_mc_state {
+        flex: 0 0 auto; font-size: .72rem; font-weight: 700; border-radius: 999px; padding: .1rem .5rem;
+        background: $o-gray-100; color: $o-gray-700;
+        .fa { font-size: .5rem; vertical-align: middle; }
+    }
+    .o_sd_mc_busy .o_sd_mc_state { background: #e0e7ff; color: $sd-print; .fa { animation: o_sd_pulse 2s infinite; } }
+    .o_sd_mc_free .o_sd_mc_state { background: #e7f6ec; color: $sd-good; }
+    .o_sd_mc_maintenance .o_sd_mc_state { background: #fff4e5; color: $sd-warn; }
+    .o_sd_mc_now {
+        border-radius: .5rem; padding: .45rem .6rem;
+        background: color-mix(in srgb, var(--sd-mc, #{$sd-print}) 9%, #{$body-bg});
+        &.o_sd_mc_idle { background: $o-gray-100; }
+    }
+    .o_sd_mc_now_l { font-size: .82rem; display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
+    .o_sd_mc_now_s { font-size: .74rem; color: $o-gray-600; margin-top: .15rem; }
+    .o_sd_mc_bar {
+        height: 6px; border-radius: 3px; overflow: hidden; margin-top: .35rem;
+        background: color-mix(in srgb, var(--sd-mc, #{$sd-print}) 20%, #{$body-bg});
+        > span { display: block; height: 100%; background: var(--sd-mc, #{$sd-print}); }
+    }
+    .o_sd_mc_body { display: flex; align-items: center; gap: .75rem; }
+    .o_sd_mc_ring {
+        position: relative; flex: 0 0 64px; width: 64px; height: 64px;
+        svg { width: 64px; height: 64px; }
+        .o_sd_ring_bg { fill: none; stroke: $o-gray-100; stroke-width: 4; }
+        .o_sd_ring_fg { fill: none; stroke: var(--sd-mc, #{$sd-print}); stroke-width: 4; stroke-linecap: round; }
+    }
+    .o_sd_mc_ring_v { position: absolute; top: 18px; left: 0; right: 0; text-align: center; font-weight: 700; font-size: .85rem; }
+    .o_sd_mc_ring_l { position: absolute; top: 36px; left: 0; right: 0; text-align: center; font-size: .6rem; color: $o-gray-500; text-transform: uppercase; }
+    .o_sd_mc_stats {
+        flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: .3rem .25rem; border-radius: .4rem; padding: .2rem;
+        > div { text-align: center; min-width: 0; }
+        b { display: block; font-variant-numeric: tabular-nums; font-size: .92rem; }
+        span { display: block; font-size: .62rem; color: $o-gray-500; text-transform: uppercase; letter-spacing: .03em; }
+        &:hover { background: $o-gray-100; }
+    }
+    .o_sd_mc_foot {
+        display: flex; flex-wrap: wrap; gap: .25rem .8rem; font-size: .74rem; color: $o-gray-600;
+        border-top: 1px dashed $border-color; padding-top: .4rem;
+    }
+    .o_sd_mc_fail { color: $sd-bad; }
+
+    // ------------------------------------------------------------ the machines' timeline
+    .o_sd_tl, .o_sd_heat { overflow-x: auto; }
+    .o_sd_tl_row, .o_sd_heat_row { display: flex; align-items: stretch; min-width: 760px; border-bottom: 1px solid $o-gray-100; }
+    .o_sd_tl_axis, .o_sd_heat_head { border-bottom: 1px solid $border-color; }
+    .o_sd_tl_name {
+        flex: 0 0 150px; display: flex; flex-direction: column; justify-content: center; gap: .1rem; padding: .3rem .5rem .3rem 0; min-width: 0;
+        .o_sd_mc_code { align-self: flex-start; }
+    }
+    .o_sd_tl_meta { font-size: .68rem; color: $o-gray-500; white-space: nowrap; }
+    .o_sd_tl_track { position: relative; flex: 1 1 auto; height: 38px; }
+    .o_sd_tl_axis .o_sd_tl_track { height: 20px; }
+    .o_sd_tl_tick { position: absolute; top: 3px; transform: translateX(-50%); font-size: .64rem; color: $o-gray-500; }
+    .o_sd_tl_grid { position: absolute; top: 0; bottom: 0; width: 1px; background: $o-gray-100; }
+    .o_sd_tl_now { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 3; }
+    .o_sd_seg {
+        position: absolute; top: 8px; height: 22px; border-radius: 5px; cursor: pointer; overflow: hidden;
+        background: var(--sd-mc, #{$sd-print}); color: #fff; z-index: 1;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3);
+        &:hover { filter: brightness(1.08); z-index: 2; }
+        &.o_sd_seg_narrow .o_sd_seg_l { display: none; }
+    }
+    .o_sd_seg_l {
+        display: block; padding: 0 .35rem; line-height: 22px; font-size: .66rem; font-weight: 700; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 2px rgba(0, 0, 0, .35);
+    }
+    .o_sd_seg_failed { background: repeating-linear-gradient(135deg, #ef4444 0 6px, #f87171 6px 12px); }
+    .o_sd_seg_cancel { background: $o-gray-300; color: $o-gray-700; .o_sd_seg_l { text-shadow: none; } }
+    .o_sd_seg_printing { background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, .18) 0 6px, transparent 6px 12px); }
+    .o_sd_seg_projected, .o_sd_seg_planned, .o_sd_seg_suggested, .o_sd_seg_patients {
+        color: $o-gray-800; .o_sd_seg_l { text-shadow: none; }
+    }
+    .o_sd_seg_projected {
+        background: color-mix(in srgb, var(--sd-mc, #{$sd-print}) 35%, #{$body-bg});
+        border: 1px dashed var(--sd-mc, #{$sd-print});
+    }
+    .o_sd_seg_planned { background: color-mix(in srgb, var(--sd-mc, #{$sd-print}) 18%, #{$body-bg}); border: 1px dashed var(--sd-mc, #{$sd-print}); }
+    .o_sd_seg_suggested { background: #ecfdf3; border: 1px dashed $sd-good; color: $sd-good; }
+    .o_sd_seg_patients { background: repeating-linear-gradient(135deg, $o-gray-100 0 6px, $body-bg 6px 12px); border: 1px dashed $o-gray-400; color: $o-gray-600; }
+    // the legend's keys
+    .o_sd_key.o_sd_seg_done { background: $sd-print; }
+    .o_sd_key.o_sd_seg_failed { background: #ef4444; }
+    .o_sd_key.o_sd_seg_projected { background: #c7d2fe; border: 1px dashed $sd-print; }
+    .o_sd_key.o_sd_seg_planned { background: #eef2ff; border: 1px dashed $sd-print; }
+    .o_sd_key.o_sd_seg_suggested { background: #ecfdf3; border: 1px dashed $sd-good; }
+    .o_sd_key.o_sd_seg_patients { background: $o-gray-100; border: 1px dashed $o-gray-400; }
+
+    .o_sd_heat_cells { flex: 1 1 auto; display: flex; gap: 2px; align-items: center; padding: .3rem 0; }
+    .o_sd_heat_day { flex: 1 1 0; min-width: 8px; text-align: center; font-size: .62rem; color: $o-gray-500; &.o_sd_heat_sun { color: $sd-bad; } }
+    .o_sd_heat_cell {
+        flex: 1 1 0; min-width: 8px; height: 24px; border-radius: 3px;
+        background: color-mix(in srgb, var(--sd-mc, #{$sd-print}) var(--a, 0%), #{$o-gray-100});
+        &.o_sd_heat_zero { background: $o-gray-100; }
+        &.o_sd_click:hover { outline: 2px solid var(--sd-mc, #{$sd-print}); }
+    }
+
+    // ------------------------------------------------------------ the queue
+    .o_sd_fc { display: flex; flex-direction: column; gap: .3rem; }
+    .o_sd_fc_big { font-size: .95rem; b { font-size: 1.15rem; } }
+    .o_sd_fc_s { font-size: .8rem; color: $o-gray-600; }
+    .o_sd_fc_eta { font-size: .85rem; color: $sd-good; font-weight: 600; &.o_sd_fc_bad { color: $sd-bad; } }
+    .o_sd_fc_chips { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+    .o_sd_next {
+        display: flex; align-items: center; gap: .5rem; padding: .35rem .25rem; border-bottom: 1px solid $o-gray-100; font-size: .82rem;
+        &:hover { background: $o-gray-100; }
+        &:last-child { border-bottom: 0; }
+    }
+    .o_sd_next_i { flex: 0 0 1.4rem; text-align: center; }
+    .o_sd_next_main { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_sd_next_due, .o_sd_next_since { flex: 0 0 auto; font-size: .74rem; white-space: nowrap; }
+
+    // ------------------------------------------------------------ the latest plates
+    .o_sd_tablewrap { overflow-x: auto; }
+    .o_sd_table {
+        width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 640px;
+        th { font-size: .66rem; text-transform: uppercase; letter-spacing: .04em; color: $o-gray-500; font-weight: 700; padding: .3rem .5rem; border-bottom: 1px solid $border-color; }
+        td { padding: .4rem .5rem; border-bottom: 1px solid $o-gray-100; vertical-align: middle; }
+        tbody tr:hover { background: $o-gray-100; }
+    }
+    .o_sd_state {
+        display: inline-block; border-radius: 999px; padding: .05rem .5rem; font-size: .72rem; font-weight: 700; background: $o-gray-100; color: $o-gray-700;
+        &.o_sd_state_draft { background: #fff7db; color: #92400e; }
+        &.o_sd_state_printing { background: #e0e7ff; color: $sd-print; }
+        &.o_sd_state_washing { background: #e0f2fe; color: #0369a1; }
+        &.o_sd_state_done { background: #e7f6ec; color: $sd-good; }
+        &.o_sd_state_failed { background: #fde8e7; color: $sd-bad; }
+    }
+    .o_sd_minibar {
+        display: inline-block; width: 90px; height: 6px; border-radius: 3px; background: #e0e7ff; overflow: hidden; vertical-align: middle;
+        > span { display: block; height: 100%; background: $sd-print; }
+        &.o_sd_minibar_late > span { background: $sd-bad; }
+    }
+}
+
+@keyframes o_sd_pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+@media (max-width: 767.98px) {
+    .o_sd {
+        padding: .75rem .75rem 2rem;
+        .o_sd_head_actions { margin-left: 0; }
+        .o_sd_bar { grid-template-columns: minmax(0, 8rem) minmax(0, 1fr) auto; }
+        .o_sd_grid { grid-template-columns: 1fr; }
+        .o_sd_flow_sep, .o_sd_arrow { display: none; }
+    }
+}

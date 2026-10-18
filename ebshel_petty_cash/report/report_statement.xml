@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="report_statement">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-foreach="doc._statement_data()" t-as="statement">
+                    <t t-set="currency" t-value="statement['currency']"/>
+                    <t t-set="company" t-value="statement['fund'].company_id"/>
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            <h2>Fund Statement - <span t-out="statement['fund'].name"/></h2>
+                            <p>
+                                From <span t-out="doc.date_from" t-options="{'widget': 'date'}"/>
+                                to <span t-out="doc.date_to" t-options="{'widget': 'date'}"/>
+                                - custodian <span t-out="statement['fund'].custodian_id.name"/>
+                            </p>
+                            <table class="table table-sm o_main_table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Entry</th>
+                                        <th>Reference</th>
+                                        <th>Label</th>
+                                        <th>Partner</th>
+                                        <th class="text-end">Receipts</th>
+                                        <th class="text-end">Payments</th>
+                                        <th class="text-end">Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="fw-bold">
+                                        <td colspan="7">Opening balance</td>
+                                        <td class="text-end"><span t-out="statement['opening']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                    </tr>
+                                    <tr t-foreach="statement['rows']" t-as="row">
+                                        <td><span t-out="row['date']" t-options="{'widget': 'date'}"/></td>
+                                        <td><span t-out="row['number']"/></td>
+                                        <td><span t-out="row['reference']"/></td>
+                                        <td><span t-out="row['label']"/></td>
+                                        <td><span t-out="row['partner']"/></td>
+                                        <td class="text-end"><span t-if="row['in']" t-out="row['in']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                        <td class="text-end"><span t-if="row['out']" t-out="row['out']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                        <td class="text-end"><span t-out="row['balance']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                    </tr>
+                                    <tr class="fw-bold">
+                                        <td colspan="5">Totals and closing balance</td>
+                                        <td class="text-end"><span t-out="statement['total_in']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                        <td class="text-end"><span t-out="statement['total_out']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                        <td class="text-end"><span t-out="statement['closing']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <t t-set="signatures" t-value="['Custodian', 'Reviewed by']"/>
+                            <t t-call="ebshel_petty_cash.report_signatures"/>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

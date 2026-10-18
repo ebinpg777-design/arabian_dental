@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <menuitem id="menu_root" name="Petty Cash" sequence="45"
+              web_icon="ebshel_petty_cash,static/description/icon.png"
+              groups="ebshel_petty_cash.group_petty_cash_user"/>
+
+    <menuitem id="menu_dashboard" name="Dashboard" parent="menu_root" action="action_fund_dashboard" sequence="1"/>
+
+    <menuitem id="menu_operations" name="Operations" parent="menu_root" sequence="10"/>
+    <menuitem id="menu_expense" name="Vouchers" parent="menu_operations" action="action_expense" sequence="10"/>
+    <menuitem id="menu_advance" name="Advances" parent="menu_operations" action="action_advance" sequence="20"/>
+    <menuitem id="menu_replenishment" name="Replenishments" parent="menu_operations" action="action_replenishment" sequence="30"/>
+    <menuitem id="menu_count" name="Cash Counts" parent="menu_operations" action="action_count" sequence="40"/>
+    <menuitem id="menu_transfer" name="Fund Transfers" parent="menu_operations" action="action_transfer" sequence="50"
+              groups="ebshel_petty_cash.group_petty_cash_manager"/>
+
+    <menuitem id="menu_approvals" name="To Approve" parent="menu_root" sequence="20"
+              groups="ebshel_petty_cash.group_petty_cash_approver"/>
+    <menuitem id="menu_expense_to_approve" name="Vouchers" parent="menu_approvals" action="action_expense_to_approve" sequence="10"/>
+    <menuitem id="menu_expense_to_pay" name="Vouchers to Pay" parent="menu_approvals" action="action_expense_to_pay" sequence="20"/>
+
+    <menuitem id="menu_reporting" name="Reporting" parent="menu_root" sequence="30"/>
+    <menuitem id="menu_expense_analysis" name="Spending Analysis" parent="menu_reporting" action="action_expense_analysis" sequence="10"/>
+    <menuitem id="menu_statement" name="Fund Statement" parent="menu_reporting" action="action_statement_wizard" sequence="20"/>
+
+    <menuitem id="menu_config" name="Configuration" parent="menu_root" sequence="90"
+              groups="ebshel_petty_cash.group_petty_cash_manager"/>
+    <menuitem id="menu_settings" name="Settings" parent="menu_config" action="action_petty_cash_settings" sequence="1"
+              groups="base.group_system"/>
+    <menuitem id="menu_fund_config" name="Funds" parent="menu_config" action="action_fund_config" sequence="10"/>
+    <menuitem id="menu_category" name="Expense Categories" parent="menu_config" action="action_category" sequence="20"/>
+    <menuitem id="menu_denomination" name="Denominations" parent="menu_config" action="action_denomination" sequence="30"/>
+
+</odoo>

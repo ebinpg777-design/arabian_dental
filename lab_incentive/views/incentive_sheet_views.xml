@@ -6,14 +6,16 @@
         <field name="arch" type="xml">
             <form string="Incentive Sheet">
                 <header>
+                    <!-- accounting prepares the figure as well (it runs month-end
+                         from its own menu); approving stays with field work -->
                     <button name="action_compute" type="object" string="Compute"
                             class="btn-primary" invisible="state != 'draft'"
-                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                            groups="lab_fieldwork.group_fieldwork_manager,account.group_account_manager"/>
                     <!-- after marking a clinic as a new lead, or a late invoice: read the
                          month again. An approved sheet is Reset first. -->
                     <button name="action_compute" type="object" string="Recompute"
                             invisible="state != 'computed'"
-                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                            groups="lab_fieldwork.group_fieldwork_manager,account.group_account_manager"/>
                     <button name="action_approve" type="object" string="Approve"
                             class="btn-primary" invisible="state != 'computed'"
                             groups="lab_fieldwork.group_fieldwork_manager"/>
@@ -79,8 +81,9 @@
                             <field name="product_id"/>
                             <field name="quantity" optional="show"/>
                             <field name="sale_amount" sum="Total"/>
+                            <field name="incentive_basis" optional="show"/>
                             <field name="incentive_base" sum="Total"/>
-                            <field name="used_incentive_price" optional="show"/>
+                            <field name="used_incentive_price" optional="hide"/>
                         </list>
                     </field>
                 </sheet>

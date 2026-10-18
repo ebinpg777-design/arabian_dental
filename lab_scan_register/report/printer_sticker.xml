@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- A 70 x 40 mm label: the machine's number large, a QR and a barcode of it for
+         the Start Print dialog's scanner, the name and make underneath. One per page,
+         so a roll label printer takes a run of them. -->
+    <record id="paperformat_printer_sticker" model="report.paperformat">
+        <field name="name">3D Printer Sticker (70 × 40 mm)</field>
+        <field name="format">custom</field>
+        <field name="page_width">70</field>
+        <field name="page_height">40</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">2</field>
+        <field name="margin_bottom">2</field>
+        <field name="margin_left">2</field>
+        <field name="margin_right">2</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="action_report_printer_sticker" model="ir.actions.report">
+        <field name="name">Machine Sticker</field>
+        <field name="model">lab.scan.printer</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_scan_register.report_printer_sticker</field>
+        <field name="paperformat_id" ref="paperformat_printer_sticker"/>
+        <field name="print_report_name">'Sticker - %s' % (object.code or object.name)</field>
+        <field name="binding_model_id" ref="model_lab_scan_printer"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_printer_sticker">
+        <!-- Floats and inline-blocks, never a layout table: wkhtmltopdf draws a hairline
+             box around any table. The images are base64 drawn on the server, so the
+             sticker prints the same wherever it is printed. -->
+        <t t-call="web.basic_layout">
+            <t t-foreach="docs" t-as="p">
+                <div class="page" t-attf-style="width:66mm; height:36mm; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#111; position:relative; {{ 'page-break-after:always;' if not p_last else '' }}">
+                    <div style="float:left; width:22mm; height:22mm; text-align:center;">
+                        <img t-if="p.sticker_qr" t-att-src="image_data_uri(p.sticker_qr)"
+                             style="width:22mm; height:22mm;"/>
+                        <div t-else="" style="width:22mm; height:22mm; border:1px solid #999; font-size:7pt; color:#777; line-height:22mm;">no QR</div>
+                    </div>
+                    <div style="margin-left:24mm; height:22mm;">
+                        <div style="font-size:6.5pt; color:#666; text-transform:uppercase; letter-spacing:.12em; white-space:nowrap; overflow:hidden;"
+                             t-out="p.company_id.name"/>
+                        <div style="font-size:21pt; font-weight:bold; line-height:1.05; letter-spacing:.04em; white-space:nowrap;"
+                             t-out="p.code"/>
+                        <div style="font-size:9.5pt; font-weight:bold; margin-top:1mm; line-height:1.15; max-height:8mm; overflow:hidden;"
+                             t-out="p.name"/>
+                        <div t-if="p.brand" style="font-size:6.5pt; color:#555; white-space:nowrap; overflow:hidden;"
+                             t-out="p.brand"/>
+                    </div>
+                    <div style="clear:both; text-align:center; padding-top:1.5mm;">
+                        <img t-if="p.sticker_barcode" t-att-src="image_data_uri(p.sticker_barcode)"
+                             style="width:60mm; height:9mm;"/>
+                        <div style="font-size:6pt; color:#666; letter-spacing:.2em; margin-top:.5mm;" t-out="p.code"/>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

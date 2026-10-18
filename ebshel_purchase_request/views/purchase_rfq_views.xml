@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE RFQ – Form View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_rfq_form" model="ir.ui.view">
+        <field name="name">ebshel.purchase.rfq.form</field>
+        <field name="model">ebshel.purchase.rfq</field>
+        <field name="arch" type="xml">
+            <form string="Purchase RFQ">
+                <header>
+                    <button name="action_open_comparison_view"
+                            string="Compare Quotes"
+                            type="object" class="btn-primary"
+                            invisible="received_count == 0 or state not in ('comparing','awarded')"/>
+                    <button name="action_send_to_vendors" string="Send to Vendors"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <!-- Quantity-increase approval (line qty above the request) -->
+                    <field name="qty_increase_needs_approval" invisible="1"/>
+                    <button name="action_request_qty_approval"
+                            string="Request Quantity Approval"
+                            type="object" class="btn-warning"
+                            invisible="state != 'draft' or not qty_increase_needs_approval or qty_approval_state == 'pending'"/>
+                    <button name="action_approve_qty" string="✅ Approve Quantity"
+                            type="object" class="btn-success"
+                            invisible="qty_approval_state != 'pending'"
+                            groups="ebshel_purchase_request.group_pr_admin"/>
+                    <button name="action_reject_qty" string="⛔ Reject Quantity"
+                            type="object" class="btn-secondary"
+                            invisible="qty_approval_state != 'pending'"
+                            groups="ebshel_purchase_request.group_pr_admin"/>
+                    <button name="action_start_comparison" string="Compare &amp; Select Winner"
+                            type="object" class="btn-primary"
+                            invisible="state != 'sent'"/>
+                    <button name="action_revert_comparison" string="Reset to Sent"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'comparing' or award_state != 'none'"/>
+                    <button name="action_open_bargain_wizard" string="💬 Request Better Price"
+                            type="object" class="btn-secondary"
+                            invisible="received_count != 0 or state != 'sent'"
+                            groups="ebshel_purchase_request.group_pr_procurement_officer"
+                            help="Email selected vendors a revised-price (bargaining) request."/>
+                    <button name="action_open_split_award" string="Split Award"
+                            type="object" class="btn-success"
+                            invisible="state != 'comparing' or award_mode in ['single', 'split']"
+                            groups="ebshel_purchase_request.group_pr_procurement_officer"
+                            help="Award lines to different vendors and generate one PO per vendor."/>
+                    <button name="action_select_winner" string="Single Winner"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'comparing' or award_mode in ['single', 'split']"/>
+                    <button name="action_revert_to_comparing" string="Revert To Comparing"
+                            type="object" class="btn-primary"
+                            invisible="award_state != 'rejected'"/>
+                    <button name="action_create_purchase_order" string="Create Purchase Order"
+                            type="object" class="btn-primary"
+                            invisible="state != 'awarded' or po_count &gt; 0 or award_mode != False or award_state == 'rejected'"/>
+                    <!-- Award approval (higher authority) -->
+                    <button name="action_approve_award" string="✅ Approve Award"
+                            type="object" class="btn-success"
+                            invisible="award_state != 'pending' or state == 'po_created'"
+                            groups="ebshel_purchase_request.group_pr_admin"
+                            help="Approve the proposed award and create the purchase order(s)."/>
+                    <button name="action_reject_award" string="⛔ Reject Award"
+                            type="object" class="btn-secondary"
+                            invisible="award_state != 'pending' or state == 'po_created'"
+                            groups="ebshel_purchase_request.group_pr_admin"/>
+                    <button name="action_view_purchase_order" string="View Purchase Order(s)"
+                            type="object" class="btn-secondary"
+                            invisible="po_count == 0"/>
+                    <button name="action_reset_to_draft" string="Reset to Draft"
+                            type="object"
+                            invisible="state != 'cancelled'"/>
+                    <button name="action_cancel" string="Cancel"
+                            type="object"
+                            invisible="state in ('cancelled', 'po_created')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,sent,comparing,awarded,po_created"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="PO Created"
+                            bg_color="text-bg-success" invisible="state != 'po_created'"/>
+                    <widget name="web_ribbon" title="Awarded"
+                            bg_color="text-bg-info" invisible="state != 'awarded'"/>
+                    <widget name="web_ribbon" title="Award Rejected"
+                            bg_color="text-bg-danger" invisible="award_state != 'rejected'"/>
+                    <widget name="web_ribbon" title="Cancelled"
+                            bg_color="text-bg-danger" invisible="state != 'cancelled'"/>
+                    <field name="award_state" invisible="1"/>
+                    <field name="qty_approval_state" invisible="1"/>
+                    <field name="has_qty_increase" invisible="1"/>
+
+                    <!-- ══ RFQ line quantity above the requested amount ══════════ -->
+                    <div class="alert alert-warning mb-2" role="alert"
+                         invisible="qty_approval_state not in ('none', 'rejected') or not qty_increase_needs_approval">
+                        A line quantity exceeds the requested amount. An
+                        Administrator must approve the increase before this RFQ
+                        can be sent to vendors.
+                    </div>
+                    <div class="alert alert-info mb-2" role="alert"
+                         invisible="qty_approval_state != 'pending'">
+                        Quantity increase submitted — awaiting Administrator approval.
+                    </div>
+
+
+                    <!-- ══ Award awaiting higher-authority approval ══════════════ -->
+                    <div class="alert alert-warning mb-2" role="alert"
+                         invisible="award_state != 'pending' or state == 'po_created'">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2" style="font-size:22px;">⏳</span>
+                            <div>
+                                <strong>PO award awaiting approval</strong>
+                                — <field name="award_mode" readonly="1" class="oe_inline"/>,
+                                proposed by <field name="award_proposed_by_id" readonly="1" class="oe_inline"/>.
+                                <span groups="ebshel_purchase_request.group_pr_admin">
+                                    Review the proposal below, then <b>Approve Award</b> or
+                                    <b>Reject Award</b> in the top bar.
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mt-2" invisible="award_note == False">
+                            <span class="text-muted">Justification: </span>
+                            <i><field name="award_note" readonly="1" class="oe_inline"/></i>
+                        </div>
+                    </div>
+
+                    <!-- Proposed-award details so the approver sees what is being approved -->
+                    <group string="📋 Proposed Award (for approval)"
+                           invisible="award_state != 'pending' or state == 'po_created'">
+                        <field name="award_proposed_by_id" readonly="1"/>
+                        <field name="award_mode" readonly="1"/>
+                        <!-- Single winner -->
+                        <field name="award_winner_id" readonly="1"
+                               invisible="award_mode != 'single'"/>
+                        <!-- Split allocation -->
+                        <field name="award_line_ids" nolabel="1" colspan="2"
+                               invisible="award_mode != 'split'">
+                            <list create="false" delete="false" edit="false">
+                                <field name="rfq_line_id" string="Product Line"/>
+                                <field name="quotation_id" string="Awarded Vendor"/>
+                                <field name="qty" string="Qty"/>
+                            </list>
+                        </field>
+                    </group>
+                    <div class="alert alert-danger d-flex align-items-center mb-2" role="alert"
+                         invisible="award_state != 'rejected'">
+                        <span class="me-2" style="font-size:20px;">⛔</span>
+                        <div>
+                            <strong>Award proposal rejected.</strong>
+                            <span invisible="award_rejection_reason == False">
+                                Reason: <field name="award_rejection_reason" readonly="1" class="oe_inline"/>.
+                            </span>
+                            Revise and re-submit from the comparison.
+                        </div>
+                    </div>
+
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_quotations" type="object"
+                                class="oe_stat_button" icon="fa-list-alt"
+                                invisible="quotation_count == 0">
+                            <field name="quotation_count" string="Quotations" widget="statinfo"/>
+                        </button>
+                        <button name="action_open_comparison_view" type="object"
+                                class="oe_stat_button" icon="fa-balance-scale"
+                                invisible="received_count == 0">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Compare</span>
+                            </div>
+                        </button>
+                        <button name="action_view_requests" type="object"
+                                class="oe_stat_button" icon="fa-clipboard"
+                                invisible="request_count == 0">
+                            <field name="request_count" string="Requests" widget="statinfo"/>
+                        </button>
+                        <button name="action_view_purchase_order" type="object"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="po_count == 0">
+                            <field name="po_count" string="Purchase Orders" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <!-- ══ RFQ Cockpit — live, data-driven insight band ══════════ -->
+                    <field name="deadline_state" invisible="1"/>
+                    <field name="best_vendor_id" invisible="1"/>
+                    <div class="d-flex flex-wrap gap-2 mb-3 mt-2"
+                         invisible="state == 'cancelled'">
+
+                        <!-- Workflow progress -->
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-flag-checkered me-1"/>Progress
+                            </div>
+                            <field name="progress_pct" widget="progressbar"
+                                   readonly="1" nolabel="1"/>
+                        </div>
+
+                        <!-- Deadline countdown -->
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
+                             invisible="deadline_state == 'none'">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-clock-o me-1"/>Deadline
+                            </div>
+                            <div>
+                                <span class="badge text-bg-danger" invisible="deadline_state != 'overdue'">
+                                    <i class="fa fa-exclamation-circle me-1"/>Overdue
+                                </span>
+                                <span class="badge text-bg-danger" invisible="deadline_state != 'today'">
+                                    Due today
+                                </span>
+                                <span class="badge text-bg-warning" invisible="deadline_state != 'soon'">
+                                    <field name="days_to_deadline" readonly="1" class="oe_inline"/> day(s) left
+                                </span>
+                                <span class="badge text-bg-success" invisible="deadline_state != 'ok'">
+                                    <field name="days_to_deadline" readonly="1" class="oe_inline"/> days left
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Vendor response rate -->
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
+                             invisible="quotation_count == 0">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-reply-all me-1"/>Vendor Response
+                            </div>
+                            <field name="response_rate" widget="progressbar"
+                                   readonly="1" nolabel="1"/>
+                            <small class="text-muted">
+                                <field name="received_count" readonly="1" class="oe_inline"/>
+                                of <field name="quotation_count" readonly="1" class="oe_inline"/> priced
+                            </small>
+                        </div>
+
+                        <!-- Best quote -->
+                        <div class="flex-grow-1 border rounded-3 p-2 bg-light" style="min-width:160px"
+                             invisible="best_quote_total == 0">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-trophy me-1 text-warning"/>Best Quote
+                            </div>
+                            <div class="fs-5 fw-bold text-success">
+                                <field name="best_quote_total" readonly="1" class="oe_inline"/>
+                            </div>
+                            <small class="text-muted" invisible="not best_vendor_id">
+                                <field name="best_vendor_id" readonly="1" class="oe_inline"/>
+                            </small>
+                        </div>
+
+                        <!-- Potential savings -->
+                        <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
+                             invisible="potential_savings == 0">
+                            <div class="text-muted small text-uppercase mb-1">
+                                <i class="fa fa-line-chart me-1 text-success"/>Spread
+                            </div>
+                            <div class="fs-5 fw-bold">
+                                <field name="potential_savings" readonly="1" class="oe_inline"/>
+                            </div>
+                            <small class="text-muted">low → high quote</small>
+                        </div>
+                    </div>
+
+                    <!-- ══ Smart contextual alerts ═══════════════════════════════ -->
+                    <div class="alert alert-info d-flex align-items-center mb-2" role="alert"
+                         invisible="state != 'draft' or quotation_count > 0">
+                        <i class="fa fa-info-circle fa-lg me-2"/>
+                        <span>Add vendor quotations below, then <b>Send to Vendors</b> to start collecting prices.</span>
+                    </div>
+                    <div class="alert alert-warning d-flex align-items-center mb-2" role="alert"
+                         invisible="deadline_state != 'overdue' or quotation_count == 0">
+                        <i class="fa fa-exclamation-triangle fa-lg me-2"/>
+                        <span>The quotation deadline has passed. Follow up with vendors or proceed to comparison.</span>
+                    </div>
+                    <div class="alert alert-success d-flex align-items-center mb-2" role="alert"
+                         invisible="potential_savings == 0 or state in ('awarded', 'po_created')">
+                        <i class="fa fa-lightbulb-o fa-lg me-2"/>
+                        <span>Picking the lowest quote over the highest saves
+                            <field name="potential_savings" readonly="1" class="oe_inline fw-bold"/> —
+                            best price from <field name="best_vendor_id" readonly="1" class="oe_inline fw-bold"/>.
+                            Open the <b>Comparison Dashboard</b> to award.</span>
+                    </div>
+
+                    <!-- The RFQ is set up while in Draft. Once it is sent to vendors
+                         the details and line scope are locked so the request that
+                         went out cannot change underneath the quotations. -->
+                    <group>
+                        <group string="RFQ Details" >
+                            <field name="procurement_officer_id" readonly="state != 'draft'" options="{'no_create': True, 'no_edit': True}"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="date_rfq" readonly="state != 'draft'"/>
+                            <field name="deadline" readonly="state not in ('draft','sent')"/>
+                        </group>
+                        <group string="Summary">
+                            <field name="line_count" string="Lines" readonly="1"/>
+                            <field name="vendor_count" string="Vendors" readonly="1"/>
+                            <field name="quotation_count" string="Quotations" readonly="1"/>
+                            <field name="received_count" string="Received Quotations" readonly="1"/>
+                            <field name="po_count" string="Purchase Orders" readonly="1"/>
+                        </group>
+                    </group>
+                    <!-- Source Requests (computed) -->
+                    <group string="Source Purchase Requests" invisible="not request_ids">
+                        <field name="request_ids" widget="many2many_tags" readonly="1" nolabel="1"/>
+                    </group>
+                    <notebook>
+                        <page string="RFQ Lines" name="rfq_lines">
+                            <field name="rfq_line_ids" widget="one2many" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle" readonly="parent.state != 'draft'"/>
+                                    <field name="request_line_id" optional="show" options="{'no_create': True, 'no_edit': True}" readonly="parent.state != 'draft'"/>
+                                    <field name="product_category_id" column_invisible="1" />
+                                    <field name="quotation_pdt_alter" column_invisible="1"/>
+                                    <field name="product_id" options="{'no_create': True, 'no_edit': True}" readonly="parent.state != 'draft' and not (parent.state == 'sent' and quotation_pdt_alter)"
+                                           domain="[('purchase_ok', '=', True)] + ([('categ_id', 'child_of', product_category_id)] if product_category_id else [])"/>
+                                    <field name="name" optional="show" readonly="parent.state != 'draft'"/>
+                                    <field name="qty" readonly="parent.state != 'draft'"/>
+                                    <field name="updated_qty" readonly="1" string="Increased Quantity"/>
+                                    <field name="uom_id" options="{'no_create': True, 'no_edit': True}" readonly="parent.state != 'draft'"/>
+                                    <field name="date_required" readonly="parent.state != 'draft'"/>
+                                    <field name="remarks" optional="hide" readonly="parent.state != 'draft'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Vendor Quotations" name="vendor_quotations">
+                            <div class="mb-2">
+                                <button name="action_add_vendor" string="Add Vendor Quotation"
+                                        type="object" class="btn-secondary"
+                                        invisible="state not in ('draft', 'sent', 'comparing')"/>
+                                <button name="action_send_to_vendors" string="Send to All Vendors"
+                                        type="object" class="btn-primary ms-1"
+                                        invisible="state != 'draft' or quotation_count == 0"/>
+                            </div>
+                            <field name="vendor_quotation_ids" readonly="state in ('po_created',)"
+                                   widget="one2many">
+                                <list decoration-success="is_winner == True"
+                                      decoration-muted="state == 'rejected'">
+                                    <field name="vendor_id"/>
+                                    <field name="vendor_reference" optional="show"/>
+                                    <field name="date_quotation" optional="show"/>
+                                    <field name="amount_untaxed" sum="Untaxed"/>
+                                    <field name="amount_tax" optional="hide"/>
+                                    <field name="amount_total" sum="Total"/>
+                                    <field name="delivery_days"/> 
+                                    <field name="payment_term_id" optional="show"/>
+                                    <field name="score"/>
+                                    <field name="rank"/>
+                                    <field name="bargain_round" string="Bargains" optional="show"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state == 'draft'"
+                                           decoration-warning="state == 'sent'"
+                                           decoration-primary="state == 'received'"
+                                           decoration-success="state == 'selected'"
+                                           decoration-danger="state == 'rejected'"/>
+                                    <field name="is_winner" optional="show"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <button name="action_send_quotation" string="Send RFQ"
+                                            type="object" icon="fa-paper-plane"
+                                            invisible="state != 'draft'"/>
+                                    <button name="action_mark_received" string="Mark Received"
+                                            type="object" icon="fa-inbox text-success"
+                                            invisible="state != 'sent' or parent.state != 'sent'"/>
+                                    <button name="action_mark_unreceive" string="Mark Unreceived"
+                                            type="object" icon="fa-undo text-danger"
+                                            invisible="state != 'received' or parent.state != 'sent'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="🏆 Compare &amp; Award" name="compare_award">
+                            <field name="vendor_quotation_ids"
+                                   widget="rfq_vendor_comparison"
+                                   readonly="state in ('po_created',)"
+                                   nolabel="1">
+                                <list>
+                                    <field name="vendor_id"/>
+                                    <field name="new_vendor_name"/>
+                                    <field name="is_new_vendor"/>
+                                    <field name="amount_untaxed"/>
+                                    <field name="amount_tax"/>
+                                    <field name="amount_total"/>
+                                    <field name="delivery_days"/>
+                                    <field name="payment_term_id"/>
+                                    <field name="score"/>
+                                    <field name="rank"/>
+                                    <field name="state"/>
+                                    <field name="is_winner"/>
+                                    <field name="winner_justification"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Terms &amp; Conditions" name="terms">
+                            <group readonly="state != 'draft'">
+                                <field name="terms_template_id"
+                                       options="{'no_create_edit': True}"
+                                       placeholder="Apply a saved template…"/>
+                            </group>
+                            <field name="terms_conditions" readonly="state != 'draft'"
+                                   placeholder="Terms &amp; conditions vendors will see on the RFQ email and comparison PDF…"/>
+                        </page>
+                        <page string="Internal Notes" name="notes">
+                            <field name="notes" placeholder="Internal notes (not sent to vendors)…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE RFQ – List View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_rfq_list" model="ir.ui.view">
+        <field name="name">ebshel.purchase.rfq.list</field>
+        <field name="model">ebshel.purchase.rfq</field>
+        <field name="arch" type="xml">
+            <list string="Purchase RFQs" js_class="ebshel_rfq_dashboard_list"
+                  decoration-muted="state in ('cancelled',)">
+                <field name="name"/>
+                <field name="date_rfq"/>
+                <field name="deadline" optional="show"/>
+                <field name="procurement_officer_id" optional="show"/>
+                <field name="line_count" string="Lines"/>
+                <field name="vendor_count" string="Vendors"/>
+                <field name="quotation_count" string="Quotations"/>
+                <field name="po_count" string="Purchase Orders" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'sent'"
+                       decoration-primary="state == 'comparing'"
+                       decoration-success="state in ('awarded', 'po_created')"
+                       decoration-danger="state == 'cancelled'"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PURCHASE RFQ – Search View
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_ebshel_purchase_rfq_search" model="ir.ui.view">
+        <field name="name">ebshel.purchase.rfq.search</field>
+        <field name="model">ebshel.purchase.rfq</field>
+        <field name="arch" type="xml">
+            <search string="Search RFQs">
+                <field name="name" string="RFQ Reference"/>
+                <field name="procurement_officer_id"/>
+                <filter name="my_rfqs" string="My RFQs"
+                        domain="[('procurement_officer_id','=',uid)]"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="sent" string="Sent" domain="[('state','=','sent')]"/>
+                <filter name="comparing" string="Comparing" domain="[('state','=','comparing')]"/>
+                <filter name="awarded" string="Awarded" domain="[('state','=','awarded')]"/>
+                <filter name="po_created" string="PO Created" domain="[('state','=','po_created')]"/>
+                <separator/>
+                <filter name="active" string="In Progress"
+                        domain="[('state','in',['sent','comparing'])]"/>
+                <filter name="overdue" string="Overdue Deadline"
+                        domain="[('deadline','&lt;', context_today().strftime('%Y-%m-%d')),('state','not in',['cancelled','po_created'])]"/>
+                <filter name="this_month" string="This Month"
+                        domain="[('date_rfq','&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <separator/>
+                <group>
+                    <filter name="group_state" string="Status"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_officer" string="Procurement Officer"
+                            context="{'group_by': 'procurement_officer_id'}"/>
+                    <filter name="group_date" string="RFQ Date"
+                            context="{'group_by': 'date_rfq:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         ACTIONS
+    ══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_ebshel_purchase_rfq" model="ir.actions.act_window">
+        <field name="name">Purchase RFQs</field>
+        <field name="res_model">ebshel.purchase.rfq</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No RFQs created yet.
+            </p>
+            <p>Create RFQs from approved purchase requests to start the vendor quotation process.</p>
+        </field>
+    </record>
+
+    <!-- PO awards awaiting the higher authority's approval -->
+    <record id="action_ebshel_rfq_award_approval" model="ir.actions.act_window">
+        <field name="name">PO Awards to Approve</field>
+        <field name="res_model">ebshel.purchase.rfq</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('award_state', '=', 'pending')]</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing awaiting your approval</p>
+            <p>When a procurement officer awards a vendor, the proposed purchase
+               order appears here for you to approve or reject.</p>
+        </field>
+    </record>
+
+</odoo>

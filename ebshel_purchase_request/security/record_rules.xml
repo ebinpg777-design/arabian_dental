@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="0">
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         Per-group ir.rules are OR-combined. So the base user rule must be
+         self-contained (own + company); broader groups add their own rule.
+    ════════════════════════════════════════════════════════════════════ -->
+
+    <!-- ── Purchase Request: base USER sees ONLY their own ─────────────────── -->
+    <record id="rule_pr_user_own" model="ir.rule">
+        <field name="name">Purchase Request: User sees only own</field>
+        <field name="model_id" ref="model_ebshel_purchase_request"/>
+        <field name="domain_force">[
+            ('requester_id', '=', user.id),
+            ('company_id', 'in', company_ids),
+        ]</field>
+        <field name="groups" eval="[(4, ref('ebshel_purchase_request.group_pr_user'))]"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- ── Approver: also sees requests pending their approval ─────────────── -->
+    <record id="rule_pr_approver_pending" model="ir.rule">
+        <field name="name">Purchase Request: Approver sees pending approvals</field>
+        <field name="model_id" ref="model_ebshel_purchase_request"/>
+        <field name="domain_force">[
+            ('company_id', 'in', company_ids),
+            ('pending_approver_ids', 'in', [user.id]),
+        ]</field>
+        <field name="groups" eval="[(4, ref('ebshel_purchase_request.group_pr_approver'))]"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- ── Manager / Officer / Admin: all requests in their company ────────── -->
+    <record id="rule_pr_manager_all" model="ir.rule">
+        <field name="name">Purchase Request: Manager sees all in company</field>
+        <field name="model_id" ref="model_ebshel_purchase_request"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('ebshel_purchase_request.group_pr_manager'))]"/>
+    </record>
+
+    <!-- ── RFQ / Vendor Quotation: company-scoped for everyone ─────────────── -->
+    <record id="rule_pr_rfq_multicompany" model="ir.rule">
+        <field name="name">Purchase RFQ: Multi-Company</field>
+        <field name="model_id" ref="model_ebshel_purchase_rfq"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('ebshel_purchase_request.group_pr_user'))]"/>
+    </record>
+
+    <record id="rule_pr_vendor_quot_multicompany" model="ir.rule">
+        <field name="name">Vendor Quotation: Multi-Company</field>
+        <field name="model_id" ref="model_ebshel_purchase_vendor_quotation"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('ebshel_purchase_request.group_pr_user'))]"/>
+    </record>
+
+</data>
+</odoo>

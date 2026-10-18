@@ -22,6 +22,7 @@ Nothing here touches the ledger. (client, 2026-09-18)
 import base64
 import secrets
 from collections import defaultdict
+from datetime import timedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
@@ -405,6 +406,8 @@ class CashHandover(models.Model):
         ``pending``    handed over, waiting for the count;
         ``with_you``   unbanked + in_float: not yet in the office's hands;
         ``available``  with_you - pending: what can be handed over now;
+        ``received``   cash the accounts have already booked as the doctor's
+                       receipt (see _receipts_for), and so no longer held;
         ``oldest``/``days``  the age of the oldest rupee still held, the
                        handovers covering the oldest collections first.
 
@@ -414,7 +417,7 @@ class CashHandover(models.Model):
         users = users.sudo()
         today = fields.Date.context_today(self)
         out = {u.id: dict(unbanked=0.0, in_float=0.0, pending=0.0, pending_count=0,
-                          with_you=0.0, available=0.0, oldest=None, days=0,
+                          with_you=0.0, available=0.0, received=0.0, oldest=None, days=0,
                           allocation_id=False) for u in users}
         if not users:
             return out
@@ -423,48 +426,71 @@ class CashHandover(models.Model):
             if day and (row['oldest'] is None or day < row['oldest']):
                 row['oldest'] = day
 
+        # Everything collected and not yet counted by the office, as
+        # (user id, where, partner, amount, date).
+        held = []
         Visit = self.env['lab.visit'].sudo()
         for visit in Visit.search([
                 ('user_id', 'in', users.ids), ('state', '=', 'done'),
                 ('pay_mode', '=', 'cash'), ('collected', '>', 0),
                 ('cash_banked', '=', False)]):
-            row = out[visit.user_id.id]
-            row['unbanked'] += visit.collected
-            older(row, visit.date)
+            held.append((visit.user_id.id, 'pocket', visit.partner_id, visit.collected, visit.date))
         for loose in self.env['lab.cash.collection'].sudo().search([
                 ('user_id', 'in', users.ids), ('pay_mode', '=', 'cash'),
                 ('cash_banked', '=', False)]):
-            row = out[loose.user_id.id]
-            row['unbanked'] += loose.amount
-            older(row, loose.date)
+            held.append((loose.user_id.id, 'pocket', loose.partner_id, loose.amount, loose.date))
 
         allocations = {u: u.petty_cash_allocation_id for u in users}
         alloc_ids = [a.id for a in allocations.values() if a]
-        by_alloc = defaultdict(list)
+        handed = defaultdict(float)
         if alloc_ids:
+            owner = {a.id: u.id for u, a in allocations.items() if a}
             for txn in self.env['petty.cash.transaction'].sudo().search([
                     ('allocation_id', 'in', alloc_ids),
                     ('type', 'in', ('collection', 'handover')),
                     ('state', '=', 'posted')], order='date, id'):
-                by_alloc[txn.allocation_id.id].append(txn)
+                uid = owner[txn.allocation_id.id]
+                if txn.type == 'handover':
+                    handed[uid] += txn.amount
+                else:
+                    held.append((uid, 'float', txn.partner_id, txn.amount, txn.date))
+
+        received = self._receipts_for(held)
+        floats = defaultdict(list)
+        for index, (uid, where, partner, amount, day) in enumerate(held):
+            row = out[uid]
+            if index in received:
+                row['received'] += amount
+                if where == 'float':
+                    floats[uid].append((amount, day, True))
+                continue
+            if where == 'pocket':
+                row['unbanked'] += amount
+                older(row, day)
+            else:
+                floats[uid].append((amount, day, False))
+
         for user, allocation in allocations.items():
             row = out[user.id]
             row['allocation_id'] = allocation.id
             if not allocation:
                 continue
             rounding = allocation.currency_id.rounding or 0.01
-            moves = by_alloc[allocation.id]
-            handed = sum(t.amount for t in moves if t.type == 'handover')
-            collected = [t for t in moves if t.type == 'collection']
-            row['in_float'] = max(sum(t.amount for t in collected) - handed, 0.0)
+            moves = sorted(floats[user.id], key=lambda m: m[1] or today)
+            booked = sum(amount for amount, _day, is_booked in moves if is_booked)
+            # A counted envelope was usually booked by the accounts as well: let
+            # what is already booked cover it first, so the same rupee does not
+            # come off twice and hide cash somebody still has.
+            covered = max(handed[user.id] - booked, 0.0)
+            left = [(amount, day) for amount, day, is_booked in moves if not is_booked]
+            row['in_float'] = max(sum(amount for amount, _day in left) - covered, 0.0)
             # FIFO: what was handed over covers the oldest collections first;
             # the first one not fully covered is the age of what is left.
-            covered = handed
-            for txn in collected:
-                if float_compare(covered, txn.amount, precision_rounding=rounding) >= 0:
-                    covered -= txn.amount
+            for amount, day in left:
+                if float_compare(covered, amount, precision_rounding=rounding) >= 0:
+                    covered -= amount
                     continue
-                older(row, txn.date)
+                older(row, day)
                 break
 
         for handover in self.sudo().search([
@@ -478,6 +504,69 @@ class CashHandover(models.Model):
             row['available'] = max(row['with_you'] - row['pending'], 0.0)
             row['days'] = (today - row['oldest']).days if row['oldest'] else 0
         return out
+
+    # How far a receipt may sit from the day the cash was taken and still be
+    # that cash: the day before (a receipt typed in ahead of the visit) to a
+    # month after (an envelope that waited for the accountant).
+    RECEIPT_DAYS_BEFORE = 1
+    RECEIPT_DAYS_AFTER = 30
+
+    @api.model
+    def _receipts_for(self, held):
+        """The indexes of the ``held`` collections the accounts already booked.
+
+        The office counts envelopes rarely while the accounts book every
+        doctor's payment the day it arrives. So "with you" only ever went up:
+        one executive showed over a lakh held for 35 days when nearly all of
+        it was booked in the bank journal the same day it was collected (seen
+        on Ortho, 2026-10-08). A booked receipt is the office saying it has the
+        money, whichever way it got there.
+
+        A collection is booked when a receipt of the SAME clinic and the SAME
+        amount was posted from a bank or cash journal (credit notes and
+        invoices are not money in) within the window above. One receipt
+        settles one collection, the oldest collection first and the earliest
+        receipt first, so two equal payments from one clinic need two receipts.
+        """
+        if not held:
+            return set()
+        partners = self.env['res.partner'].browse()
+        for _uid, _where, partner, _amount, _day in held:
+            partners |= partner.commercial_partner_id
+        partners = partners.filtered('id')
+        days = [day for *_rest, day in held if day]
+        if not partners or not days:
+            return set()
+        lines = self.env['account.move.line'].sudo().search([
+            ('partner_id', 'child_of', partners.ids),
+            ('account_id.account_type', '=', 'asset_receivable'),
+            ('parent_state', '=', 'posted'),
+            ('move_id.move_type', '=', 'entry'),
+            ('journal_id.type', 'in', ('bank', 'cash')),
+            ('credit', '>', 0),
+            ('date', '>=', min(days) - timedelta(days=self.RECEIPT_DAYS_BEFORE)),
+            ('date', '<=', max(days) + timedelta(days=self.RECEIPT_DAYS_AFTER)),
+        ], order='date, id')
+        by_partner = defaultdict(list)
+        for line in lines:
+            by_partner[line.partner_id.commercial_partner_id.id].append(line)
+        used, settled = set(), set()
+        order = sorted(range(len(held)), key=lambda i: (held[i][4] or fields.Date.today(), i))
+        for index in order:
+            _uid, _where, partner, amount, day = held[index]
+            if not day:
+                continue
+            first = day - timedelta(days=self.RECEIPT_DAYS_BEFORE)
+            last = day + timedelta(days=self.RECEIPT_DAYS_AFTER)
+            for line in by_partner.get(partner.commercial_partner_id.id, ()):
+                if line.id in used or not first <= line.date <= last:
+                    continue
+                if float_compare(line.credit, amount, precision_rounding=line.company_currency_id.rounding or 0.01):
+                    continue
+                used.add(line.id)
+                settled.add(index)
+                break
+        return settled
 
     @api.model
     def _cash_policy(self):

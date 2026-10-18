@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_advance_settle_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.advance.settle.wizard.form</field>
+        <field name="model">ebshel.petty.cash.advance.settle.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="currency_id" invisible="1"/>
+                <group>
+                    <group>
+                        <field name="advance_id"/>
+                        <field name="holder_id"/>
+                        <field name="date"/>
+                    </group>
+                    <group>
+                        <field name="amount"/>
+                        <field name="amount_spent"/>
+                        <field name="direction" readonly="1"/>
+                        <field name="difference" invisible="direction == 'none'"/>
+                    </group>
+                </group>
+                <div class="text-muted" invisible="direction != 'return'">
+                    The holder hands the unspent cash back; it is posted into the fund.
+                </div>
+                <div class="text-muted" invisible="direction != 'reimburse'">
+                    The holder spent more than advanced; the difference is paid out of the fund.
+                </div>
+                <footer>
+                    <button name="action_settle" type="object" string="Settle" class="btn-primary" data-hotkey="q"/>
+                    <button special="cancel" string="Discard" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

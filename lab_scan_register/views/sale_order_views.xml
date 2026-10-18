@@ -7,11 +7,21 @@
         <field name="arch" type="xml">
             <div name="button_box" position="inside">
                 <button name="action_view_scan" type="object" class="oe_stat_button" icon="fa-cube"
-                        invisible="not scan_id" string="Scan"/>
+                        invisible="not scan_id" string="Scan Register"/>
             </div>
             <field name="origin" position="after">
                 <field name="scan_id" invisible="1"/>
+                <field name="scan_line_id" invisible="1"/>
             </field>
+            <!-- Only an order made from a register has a plate; the group stays out of
+                 the way on every other order. -->
+            <group name="sale_reporting" position="after">
+                <group name="scan_printed" string="Printed" invisible="not print_order_id">
+                    <field name="print_order_id"/>
+                    <field name="print_printer_id"/>
+                    <field name="print_resin_batch" invisible="not print_resin_batch"/>
+                </group>
+            </group>
         </field>
     </record>
 </odoo>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_scans" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.lab.scan</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="60"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Scans" string="Scans" name="lab_scan_register" groups="base.group_system">
+                    <block title="Housekeeping" name="scan_retention_block">
+                        <!-- (client, 2026-10-14: "remove attachments and chatter of scan registers
+                             and print orders after three months - the 3 months can be configurable") -->
+                        <setting id="scan_retention" string="Remove old scan files and chatter"
+                                 help="A scan register's and a print order's files and chatter are removed once the record is this old. The register, its patients and the plate's figures stay; sale orders keep their own copies of the scans.">
+                            <div class="mt-2">
+                                <field name="scan_retention_months" class="oe_inline text-center" style="width: 10%; min-width: 4rem;"/>
+                                months old · 0 keeps everything
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <i class="fa fa-info-circle me-1"/><field name="scan_retention_preview" class="d-inline"/>
+                            </div>
+                            <div class="text-muted small">Checked every night; a lot to clear is cleared over a few nights.</div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_scan_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module': 'lab_scan_register', 'bin_size': False}</field>
+    </record>
+
+    <!-- Settings are an administrator's page in Odoo (res.config.settings is theirs alone) -->
+    <menuitem id="menu_scan_settings" name="Settings" parent="menu_scan_config" sequence="100"
+              action="action_scan_settings" groups="base.group_system"/>
+</odoo>

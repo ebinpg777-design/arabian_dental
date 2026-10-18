@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pr_allocation_list" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.allocation.list</field>
+        <field name="model">ebshel.purchase.request.allocation</field>
+        <field name="arch" type="xml">
+            <list string="Allocations" create="false" edit="false">
+                <field name="request_id"/>
+                <field name="product_id"/>
+                <field name="purchase_order_id"/>
+                <field name="requested_product_uom_qty" string="Allocated"/>
+                <field name="allocated_product_qty" string="Received"/>
+                <field name="open_product_qty" string="Open"
+                       decoration-warning="open_product_qty &gt; 0"
+                       decoration-success="open_product_qty == 0"/>
+                <field name="product_uom_id"/>
+                <field name="purchase_state" widget="badge"
+                       decoration-info="purchase_state in ('draft','sent')"
+                       decoration-warning="purchase_state == 'to approve'"
+                       decoration-success="purchase_state in ('purchase','done')"
+                       decoration-danger="purchase_state == 'cancel'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_pr_allocation_form" model="ir.ui.view">
+        <field name="name">ebshel.purchase.request.allocation.form</field>
+        <field name="model">ebshel.purchase.request.allocation</field>
+        <field name="arch" type="xml">
+            <form string="Allocation">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_request" type="object"
+                                class="oe_stat_button" icon="fa-clipboard"
+                                invisible="not request_id">
+                            <div class="o_stat_info"><span class="o_stat_text">Request</span></div>
+                        </button>
+                        <button name="action_view_purchase_order" type="object"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="not purchase_order_id">
+                            <div class="o_stat_info"><span class="o_stat_text">Purchase Order</span></div>
+                        </button>
+                        <button name="action_view_receipt" type="object"
+                                class="oe_stat_button" icon="fa-truck"
+                                invisible="not stock_move_id">
+                            <div class="o_stat_info"><span class="o_stat_text">Receipt</span></div>
+                        </button>
+                    </div>
+                    <group>
+                        <group string="Source">
+                            <field name="request_id"/>
+                            <field name="request_line_id"/>
+                            <field name="product_id"/>
+                        </group>
+                        <group string="Fulfilment">
+                            <field name="purchase_order_id"/>
+                            <field name="purchase_line_id"/>
+                            <field name="stock_move_id"/>
+                            <field name="purchase_state"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Quantities">
+                            <field name="requested_product_uom_qty"/>
+                            <field name="allocated_product_qty"/>
+                            <field name="open_product_qty"/>
+                            <field name="product_uom_id"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

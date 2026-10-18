@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pr_create_rfq_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.pr.create.rfq.wizard.form</field>
+        <field name="model">ebshel.pr.create.rfq.wizard</field>
+        <field name="arch" type="xml">
+            <form string="New Request for Quotation" class="o_ebshel_rfq_wizard">
+                <sheet>
+                    <div class="oe_title mb-2">
+                        <h1>📨 New Request for Quotation</h1>
+                        <p class="text-muted">
+                            Pool the approved lines you want to source into a single
+                            RFQ — across as many purchase requests as you like.
+                        </p>
+                    </div>
+
+                    <!-- Live summary band -->
+                    <div class="d-flex gap-3 flex-wrap mb-3">
+                        <div class="flex-fill text-center border rounded-3 p-3 bg-view">
+                            <div class="display-6 fw-bold text-primary">
+                                <field name="request_count" nolabel="1" readonly="1"/>
+                            </div>
+                            <div class="text-muted small">Source Requests</div>
+                        </div>
+                        <div class="flex-fill text-center border rounded-3 p-3 bg-view">
+                            <div class="display-6 fw-bold text-info">
+                                <field name="line_count" nolabel="1" readonly="1"/>
+                            </div>
+                            <div class="text-muted small">Lines to Quote</div>
+                        </div>
+                        <div class="flex-fill text-center border rounded-3 p-3 bg-view">
+                            <div class="display-6 fw-bold text-success">
+                                <field name="est_total" nolabel="1" readonly="1"
+                                       widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            </div>
+                            <div class="text-muted small">Estimated Value</div>
+                        </div>
+                        <field name="currency_id" invisible="1"/>
+                    </div>
+
+                    <group>
+                        <group string="① Source Requests">
+                            <field name="request_ids" widget="many2many_tags"
+                                   nolabel="1" colspan="2"
+                                   domain="[('state','=','approved'),('line_ids.qty_to_rfq', '>', 0)]"
+                                   options="{'no_create': True}"
+                                   placeholder="Add one or more approved purchase requests…"/>
+                        </group>
+                        <group string="② RFQ Details">
+                            <field name="deadline" placeholder="When should vendors reply?"/>
+                            <field name="vendor_ids" widget="many2many_tags"
+                                   options="{'no_create': True, 'no_edit': True}"
+                                   placeholder="Invite vendors — a quotation is created for each…"/>
+                        </group>
+                    </group>
+
+                    <separator string="③ Lines to source — set the quantity per line"/>
+                    <p class="text-muted">
+                        Untick a line to skip it, or lower <b>Qty to RFQ</b> to source
+                        only part now — the remainder stays available for another RFQ later.
+                    </p>
+                    <field name="wizard_line_ids" nolabel="1">
+                        <list editable="bottom" create="false" delete="false">
+                            <!-- Required source line — must be in the view so the web
+                                 client persists it (set by the request_ids onchange). -->
+                            <field name="request_line_id" column_invisible="True"/>
+                            <field name="selected" widget="boolean_toggle"/>
+                            <field name="request_id" readonly="1"/>
+                            <field name="product_id" readonly="1"/>
+                            <field name="uom_id" readonly="1" optional="show"/>
+                            <field name="requested_qty" readonly="1"/>
+                            <field name="in_rfq_qty" readonly="1" string="Already in RFQ" optional="show"/>
+                            <field name="remaining_qty" readonly="1"/>
+                            <field name="qty"/>
+                            <field name="price_unit" readonly="1" optional="show"/>
+                            <field name="date_required" readonly="1" optional="hide"/>
+                            <field name="currency_id" column_invisible="True"/>
+                        </list>
+                    </field>
+
+                    <separator string="④ Terms &amp; Conditions"/>
+                    <field name="company_id" invisible="1"/>
+                    <group>
+                        <field name="terms_template_id"
+                               options="{'no_create': True, 'no_edit': True}"
+                               placeholder="Apply a saved template…"/>
+                    </group>
+                    <field name="terms_conditions"
+                           placeholder="Terms &amp; conditions vendors will see on the RFQ email and PDF…"/>
+
+                    <group string="Notes for Vendors (optional)">
+                        <field name="notes" nolabel="1"
+                               placeholder="Any extra instructions to include on the RFQ…"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_create_rfq" string="Create RFQ"
+                            type="object" class="btn-primary" data-hotkey="q"
+                            invisible="line_count == 0"/>
+                    <button string="Create RFQ" class="btn-primary" disabled="1"
+                            invisible="line_count != 0"
+                            help="Select at least one approved request line first."/>
+                    <button string="Discard" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_pr_create_rfq_wizard" model="ir.actions.act_window">
+        <field name="name">Create RFQ</field>
+        <field name="res_model">ebshel.pr.create.rfq.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{}</field>
+    </record>
+
+</odoo>

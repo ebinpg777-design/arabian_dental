@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pr_bargain_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.pr.bargain.wizard.form</field>
+        <field name="model">ebshel.pr.bargain.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Request Better Price">
+                <sheet>
+                    <div class="oe_title mb-2">
+                        <h1>💬 Request a Better Price</h1>
+                        <p class="text-muted">
+                            Send a revised-price request to one or more vendors at once.
+                            Add a global message and an optional target price &amp;
+                            note per item — each vendor gets their own current price
+                            alongside your target.
+                        </p>
+                    </div>
+
+                    <field name="currency_id" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                    <field name="available_quotation_ids" invisible="1"/>
+
+                    <group>
+                        <group string="Vendors">
+                            <field name="quotation_ids" widget="many2many_tags"
+                                   nolabel="1" colspan="2"
+                                   domain="[('id', 'in', available_quotation_ids)]"
+                                   options="{'no_create': True}"
+                                   placeholder="Pick the vendors to bargain with…"/>
+                        </group>
+                        <group string="Reply Deadline">
+                            <field name="deadline"/>
+                        </group>
+                    </group>
+
+                    <separator string="Global message (sent to every selected vendor)"/>
+                    <field name="global_message"/>
+
+                    <separator string="Per-item target price &amp; message"/>
+                    <field name="line_ids" nolabel="1">
+                        <list editable="bottom" create="false" delete="false">
+                            <!-- Required source line — must be in the view so the web
+                                 client persists it (set by the wizard default). -->
+                            <field name="rfq_line_id" column_invisible="1"/>
+                            <field name="product_id" readonly="1"/>
+                            <field name="qty" readonly="1"/>
+                            <field name="uom_id" readonly="1" optional="show"/>
+                            <field name="target_price" string="Unit Price"/>
+                            <field name="total_target_price" string="Total" readonly="1"/>
+                            <field name="item_message"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button name="action_send_bargain" string="📨 Send Request"
+                            type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Discard" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

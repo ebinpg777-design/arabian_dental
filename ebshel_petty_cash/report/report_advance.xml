@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="report_advance_document">
+        <t t-call="web.external_layout">
+            <div class="page">
+                <h2>Cash Advance <span t-field="doc.name"/></h2>
+                <div class="row mt-3 mb-3">
+                    <div class="col-6">
+                        <strong>Fund:</strong> <span t-field="doc.fund_id"/><br/>
+                        <strong>Paid to:</strong> <span t-field="doc.holder_id"/><br/>
+                        <strong>Purpose:</strong> <span t-field="doc.purpose"/>
+                    </div>
+                    <div class="col-6 text-end">
+                        <strong>Date:</strong> <span t-field="doc.date"/><br/>
+                        <strong>Settle by:</strong> <span t-field="doc.due_date"/><br/>
+                        <strong>Status:</strong> <span t-field="doc.state"/>
+                    </div>
+                </div>
+                <table class="table table-sm">
+                    <tr class="fw-bold"><td>Amount advanced</td><td class="text-end"><span t-field="doc.amount"/></td></tr>
+                    <tr><td>Accounted for by vouchers</td><td class="text-end"><span t-field="doc.amount_spent"/></td></tr>
+                    <tr t-if="doc.state == 'settled'">
+                        <td>Settled on <span t-field="doc.settled_date"/> (returned + / reimbursed -)</td>
+                        <td class="text-end"><span t-field="doc.settlement_amount"/></td>
+                    </tr>
+                    <tr t-else=""><td>Still to account for</td><td class="text-end"><span t-field="doc.amount_due"/></td></tr>
+                </table>
+                <p>Amount in words: <span t-out="doc.currency_id.amount_to_text(doc.amount)"/></p>
+                <table t-if="doc.expense_ids" class="table table-sm o_main_table">
+                    <thead>
+                        <tr><th>Voucher</th><th>Date</th><th>Description</th><th class="text-end">Total</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="doc.expense_ids" t-as="expense">
+                            <td><span t-field="expense.name"/></td>
+                            <td><span t-field="expense.date"/></td>
+                            <td><span t-field="expense.description"/></td>
+                            <td class="text-end"><span t-field="expense.amount_total"/></td>
+                            <td><span t-field="expense.state"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="small">
+                    I acknowledge receiving the amount above and undertake to account for it with receipts,
+                    and to return any unspent cash, by the settlement date.
+                </p>
+                <t t-call="ebshel_petty_cash.report_approval_trail"/>
+                <t t-set="signatures" t-value="['Received by', 'Approved by', 'Paid by (custodian)']"/>
+                <t t-call="ebshel_petty_cash.report_signatures"/>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_advance">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="ebshel_petty_cash.report_advance_document"/>
+            </t>
+        </t>
+    </template>
+
+</odoo>

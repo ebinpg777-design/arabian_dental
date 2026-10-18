@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <!-- Generic: used on vouchers, advances and replenishments. -->
+    <record id="mail_act_petty_cash_approval" model="mail.activity.type">
+        <field name="name">Petty Cash Approval</field>
+        <field name="summary">Petty cash approval</field>
+        <field name="icon">check_box</field>
+    </record>
+    <record id="mail_act_petty_cash_replenish" model="mail.activity.type">
+        <field name="name">Petty Cash Low Balance</field>
+        <field name="summary">Replenish the petty cash fund</field>
+        <field name="icon">payments</field>
+        <field name="res_model">ebshel.petty.cash.fund</field>
+    </record>
+    <record id="mail_act_petty_cash_count" model="mail.activity.type">
+        <field name="name">Petty Cash Count</field>
+        <field name="summary">Count the petty cash</field>
+        <field name="icon">calculate</field>
+        <field name="res_model">ebshel.petty.cash.fund</field>
+    </record>
+    <record id="mail_act_petty_cash_settle" model="mail.activity.type">
+        <field name="name">Petty Cash Advance Overdue</field>
+        <field name="summary">Settle the overdue advance</field>
+        <field name="icon">schedule</field>
+        <field name="res_model">ebshel.petty.cash.advance</field>
+    </record>
+</odoo>

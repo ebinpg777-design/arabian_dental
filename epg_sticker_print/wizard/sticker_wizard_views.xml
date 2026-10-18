@@ -92,6 +92,19 @@
         <field name="binding_view_types">list,form,kanban</field>
     </record>
 
+    <!-- From the invoices too, in Accounting: an invoice's parcels are the orders it
+         bills; one billed without an order still has its clinic. (client, 2026-10-14) -->
+    <record id="action_sticker_print_invoice" model="ir.actions.act_window">
+        <field name="name">Print Stickers</field>
+        <field name="res_model">epg.sticker.print.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_sticker_print_wizard"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">action</field>
+        <field name="binding_view_types">list,form</field>
+    </record>
+
     <!-- Reached from the menu the counter starts empty and picks the clinics, so it
          gets the whole screen: the preview on the right is the point of the page.
          target MUST be 'current', not 'new' - it was 'new' (a modal) while this
@@ -117,4 +130,8 @@
               parent="sale.sale_order_menu" sequence="26"
               action="action_sticker_print_menu"
               groups="sales_team.group_sale_salesman"/>
+    <menuitem id="menu_sticker_print_accounting" name="Print Stickers"
+              parent="account.menu_finance_receivables" sequence="90"
+              action="action_sticker_print_menu"
+              groups="account.group_account_invoice"/>
 </odoo>

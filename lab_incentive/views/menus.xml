@@ -31,4 +31,28 @@
               parent="lab_fieldwork.menu_fw_config" sequence="30"
               action="action_incentive_rule"
               groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <!--
+      Accounting is who actually pays these, and they are not field-work managers,
+      so the same three screens appear under Accounting in their own section,
+      before Reporting so Configuration stays last. (Ortho client, 2026-10-08)
+    -->
+    <menuitem id="menu_incentive_account_root" name="Incentives"
+              parent="account.menu_finance" sequence="15"
+              groups="account.group_account_manager"/>
+
+    <menuitem id="menu_incentive_account_sheets" name="Incentives"
+              parent="menu_incentive_account_root" sequence="10"
+              action="action_incentive_sheet"
+              groups="account.group_account_manager"/>
+
+    <menuitem id="menu_incentive_account_generate" name="Incentive Generation"
+              parent="menu_incentive_account_root" sequence="20"
+              action="action_generate_sheets"
+              groups="account.group_account_manager"/>
+
+    <menuitem id="menu_incentive_account_rules" name="Incentive Rules"
+              parent="menu_incentive_account_root" sequence="30"
+              action="action_incentive_rule"
+              groups="account.group_account_manager"/>
 </odoo>

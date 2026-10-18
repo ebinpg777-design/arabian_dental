@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
+from datetime import timedelta
+
 from odoo import _, api, fields, models
+
+from .stock_picking import CLOSABLE
+
+_logger = logging.getLogger(__name__)
 
 
 class MrpProduction(models.Model):
@@ -172,6 +179,122 @@ class MrpProduction(models.Model):
                 or any(self.move_raw_ids.mapped('picked'))):
             return 'progress'
         return 'confirmed'
+
+    # ------------------------------------------------------------ closing finished work
+    # Two ways a job is finished and still sitting open, neither of which the
+    # delivery rule catches. (client, 2026-09-25)
+    #
+    # The lab asked for these as a scheduler rather than as hooks, and that is
+    # the right shape: both are statements about a job that became true some
+    # time ago - the last step was scanned, the invoice aged past its grace -
+    # and neither has a moment to hang an override on.
+    CLOSE_FINISHED_PARAM = 'lab_workcenter_scan.close_finished_mo'
+    CLOSE_INVOICED_DAYS_PARAM = 'lab_workcenter_scan.close_invoiced_days'
+    CLOSE_BATCH_PARAM = 'lab_workcenter_scan.close_finished_batch'
+
+    @api.model
+    def _lab_close_finished_enabled(self):
+        """On unless the lab says otherwise.
+
+        A key nobody has saved reads empty (Odoo 20's get_str: '', where 19's
+        get_param gave False and str(False) is 'False'), so a naive read would
+        turn the default off.
+        """
+        raw = self.env['ir.config_parameter'].sudo().get_str(
+            self.CLOSE_FINISHED_PARAM)
+        if raw in (None, False, ''):
+            return True
+        return str(raw).strip().lower() not in ('false', '0')
+
+    @api.model
+    def _lab_close_finished_settings(self):
+        """(grace days before an invoiced job closes, jobs per run)."""
+        get = self.env['ir.config_parameter'].sudo().get_str
+
+        def number(key, default):
+            raw = get(key)
+            if raw in (None, False, ''):
+                return default
+            try:
+                return int(float(raw))
+            except (TypeError, ValueError):
+                return default
+        return (number(self.CLOSE_INVOICED_DAYS_PARAM, 2),
+                number(self.CLOSE_BATCH_PARAM, 500))
+
+    def _lab_every_step_done(self):
+        """The jobs here whose every step has been scanned through.
+
+        Read through `_lab_step_states`, NEVER by asking the relation
+        directly: `workorder_ids` reads blank inside core's circular compute
+        (see _lab_repair_premature_to_close), and `all()` over an empty list
+        is True - so the obvious one-liner would close a job with five open
+        steps precisely when the bug that hides them is biting. A job with no
+        steps AT ALL is not "all its steps are done" either; it is a job nobody
+        gave any work to, and it is left for the delivery rule.
+        """
+        states = self._lab_step_states()
+        return self.filtered(
+            lambda job: states.get(job.id)
+            and all(s in ('done', 'cancel') for s in states[job.id])
+            and any(s == 'done' for s in states[job.id]))
+
+    def _lab_invoiced_and_settled(self, grace_days):
+        """The jobs here whose order is fully invoiced and past its grace.
+
+        The wait is the point. An invoice raised this morning can still be
+        corrected, credited or re-issued this afternoon, and a job closed
+        underneath that is work the lab can no longer put back. Only once the
+        paperwork has stood untouched for `grace_days` is the case treated as
+        over.
+        """
+        if grace_days < 0 or not self:
+            return self.browse()
+        cutoff = fields.Date.context_today(self) - timedelta(days=grace_days)
+        settled = self.browse()
+        for job in self:
+            order = job.sale_id
+            if not order or order.invoice_status != 'invoiced':
+                continue
+            bills = order.invoice_ids.filtered(
+                lambda m: m.state == 'posted' and m.move_type == 'out_invoice')
+            # No posted bill means "nothing to be late about", not "settled".
+            if not bills:
+                continue
+            if all(b.create_date and b.create_date.date() <= cutoff for b in bills):
+                settled |= job
+        return settled
+
+    @api.model
+    def _cron_close_finished_jobs(self):
+        """Close what the floor and the office have both finished with.
+
+        Batched on purpose: the first run on a lab that has never had this meets
+        a backlog - 1,506 of 3,479 open jobs on the live database - and one
+        transaction that long is a lock nobody wants across a working day. It
+        drains over successive runs instead.
+        """
+        if not self._lab_close_finished_enabled():
+            return 0
+        grace_days, batch = self._lab_close_finished_settings()
+        Production = self.sudo()
+        candidates = Production.search(
+            [('state', 'in', CLOSABLE)], order='date_start, id')
+        if not candidates:
+            return 0
+        due = (candidates._lab_every_step_done()
+               | candidates._lab_invoiced_and_settled(grace_days))
+        closed = 0
+        for job in due[:batch]:
+            # No finished_on: unlike the delivery rule there is no shipping date
+            # to borrow, and dating a close by the invoice would put the job's
+            # finish before its last step. Now is the honest answer.
+            if job._lab_mark_done_quietly():
+                closed += 1
+        if closed:
+            _logger.info("lab_workcenter_scan: closed %s finished job(s) of %s due",
+                         closed, len(due))
+        return closed
 
     @api.model
     def _lab_repair_premature_to_close(self, job_ids=None):

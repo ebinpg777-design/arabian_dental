@@ -424,22 +424,58 @@ class LabDelivery(models.Model):
         """
         open_ones = self.sudo().search(
             [('state', 'in', ('draft', 'assigned', 'out'))], order='create_date')
-        orders = open_ones.mapped('sale_order_id')
+        shipped = self._shipped_order_ids(open_ones.mapped('sale_order_id'))
+        live = open_ones.filtered(
+            lambda d: d.sale_order_id.id not in shipped)
+        return live.ids[:limit] if limit else live.ids
+
+    @api.model
+    def _shipped_order_ids(self, orders):
+        """The orders whose outgoing transfers have all gone: at least one done
+        and none still open. Testing "has a done picking" alone calls the second
+        appliance of a two-line case delivered."""
         if not orders:
-            return open_ones.ids[:limit] if limit else open_ones.ids
-        Picking = self.env['stock.picking'].sudo()
+            return set()
         done, still_open = set(), set()
-        for order, state in Picking._read_group(
+        for order, state in self.env['stock.picking'].sudo()._read_group(
                 [('sale_id', 'in', orders.ids), ('state', '!=', 'cancel'),
                  ('picking_type_code', '=', 'outgoing')],
                 ['sale_id', 'state']):
             (done if state == 'done' else still_open).add(order.id)
-        # Shipped AND nothing left open: testing "has a done picking" alone
-        # calls the second appliance of a two-line case delivered.
-        shipped = done - still_open
-        live = open_ones.filtered(
-            lambda d: d.sale_order_id.id not in shipped)
-        return live.ids[:limit] if limit else live.ids
+        return done - still_open
+
+    def _close_if_shipped(self):
+        """Close the outgoing dispatches whose order has already shipped, and
+        return the ones that are genuinely still out.
+
+        The sync used to run one way only: marking a dispatch delivered validated
+        its transfer, but the office validating the transfer at the counter never
+        closed the dispatch. It stayed "assigned" or "out" for good, the delay
+        engine chased work that had arrived weeks before, and every executive who
+        then checked out of that clinic as Delivered was refused at the door
+        ("... for this clinic is still open"). The transfer is the inventory
+        truth: when it says the order has gone, the dispatch says so too.
+        (from Ortho, 2026-10-07)
+        """
+        candidates = self.filtered(
+            lambda d: d.direction == 'out' and d.state in OPEN_STATES and d.sale_order_id)
+        shipped = self._shipped_order_ids(candidates.sudo().mapped('sale_order_id'))
+        ghosts = candidates.filtered(lambda d: d.sale_order_id.id in shipped)
+        for delivery in ghosts.sudo():
+            pickings = delivery.sale_order_id.picking_ids.filtered(
+                lambda p: p.picking_type_code == 'outgoing' and p.state == 'done')
+            when = max(pickings.mapped('date_done') or [fields.Datetime.now()])
+            delivery.write({
+                'state': 'delivered',
+                'delivered_datetime': when,
+                'is_delayed': False,
+                'late_delivered': bool(delivery.scheduled_date) and when > delivery._deadline(),
+            })
+            delivery.message_post(body=_(
+                "Closed: %(picks)s was validated on %(when)s, so this work had "
+                "already gone out.", picks=', '.join(pickings.mapped('name')),
+                when=fields.Datetime.context_timestamp(delivery, when).strftime('%d-%m-%Y %H:%M')))
+        return self - ghosts
 
     def _lab_sync_courier_to_pickings(self):
         """The transfer carries the same courier and number as the dispatch.

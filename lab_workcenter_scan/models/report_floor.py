@@ -28,20 +28,91 @@ is confidently wrong:
                  not a completion date — 13,001 orders finish at exactly 09:00 — so it is
                  never used as one.
 """
+import threading
+import time
 from datetime import timedelta
 
 from odoo import api, fields, models
 from odoo.fields import Domain
+from odoo.modules import module as odoo_module
 from odoo.tools import SQL
 
 # A sheet is read standing up. Past roughly this many rows it stops being a worklist and
 # becomes a report nobody finishes, so every sheet states the true total beside the cap.
 FLOOR_ROWS = 40
 
+# THE FLOOR, SHARED BETWEEN BOARDS FOR A FEW SECONDS.
+# What is still in the lab and the step each piece is waiting at are the same for every
+# station, and every board - sixteen tablets refreshing once a minute, the flow board,
+# whoever opens a station - worked them out again from scratch: 0.12 s a board on this
+# copy, several times that on the live server, where opening a station took four
+# seconds (client video, 2026-10-15). Kept for FLOOR_TTL seconds per database and
+# company scope, and dropped at once (and again after the commit) when a step is taken,
+# handed on, moved or undone, or an order changes state. Never in tests, unless asked.
+FLOOR_TTL = 30
+_floor_memo = {}
+_floor_lock = threading.Lock()
+
 
 class ReportLabFloor(models.AbstractModel):
     _name = 'report.lab.floor'
     _description = 'Shop Floor Report Helpers'
+
+    # ------------------------------------------------------------------ shared for a moment
+    @api.model
+    def _floor_memo_on(self):
+        return self.env.context.get('lab_floor_memo', not odoo_module.current_test)
+
+    @api.model
+    def _floor_shared(self, key, compute, ttl=FLOOR_TTL):
+        """`compute()`, or what it gave less than `ttl` seconds ago on this database."""
+        if not self._floor_memo_on():
+            return compute()
+        key = (self.env.cr.dbname,) + tuple(key)
+        now = time.monotonic()
+        with _floor_lock:
+            hit = _floor_memo.get(key)
+        if hit and hit[0] > now:
+            return hit[1]
+        value = compute()
+        with _floor_lock:
+            _floor_memo[key] = (now + ttl, value)
+        return value
+
+    @api.model
+    def _floor_forget(self):
+        """The floor changed: the next board works it out afresh. Dropped now, for
+        this transaction's own next read, and again once it commits, so a board that
+        read the old floor in between does not keep it."""
+        db = self.env.cr.dbname
+
+        def forget():
+            with _floor_lock:
+                for key in [k for k in _floor_memo if k[0] == db]:
+                    _floor_memo.pop(key, None)
+        forget()
+        postcommit = self.env.cr.postcommit
+        if not postcommit.data.get('lab_floor_forget'):
+            postcommit.data['lab_floor_forget'] = True
+            postcommit.add(forget)
+
+    @api.model
+    def _first_steps_shared(self):
+        """The step every live piece is waiting at (`_open_steps_by_arch`), worked out
+        for the whole floor of the open companies and shared between boards.
+
+        Over every step of each case, not only the ones the reader may open: a bench
+        user sees only their own benches' work orders, and the first open step among
+        THOSE is not the case's first open step - a case whose next step is at another
+        bench read as arrived at theirs. What a board then SHOWS is still searched as
+        the reader, so nobody is shown a job they may not open."""
+        companies = tuple(sorted(self.env.companies.ids))
+
+        def compute():
+            live = self.env['mrp.production'].sudo().search(
+                self._live_domain() + [('company_id', 'in', list(companies))])
+            return self.sudo()._open_steps_by_arch(live)
+        return self._floor_shared(('first_steps', companies), compute)
 
     # ------------------------------------------------------------------ what is real
     @api.model
@@ -109,12 +180,16 @@ class ReportLabFloor(models.AbstractModel):
         afresh, so the actions that write never carry it."""
         if records.env.context.get('lab_live_ids') is not None:
             return records
-        self.env['mrp.production'].flush_model(['state', 'sale_id'])
-        rows = self.env.execute_query(SQL(
-            "SELECT mo.id, COALESCE(mo.sale_id IN %s, FALSE) FROM mrp_production mo"
-            " WHERE mo.state NOT IN ('done', 'cancel')", self._shipped_orders().subselect()))
-        live = tuple(mo_id for mo_id, shipped in rows if not shipped)
-        return records.with_context(lab_live_ids=live, lab_closeout_count=len(rows) - len(live))
+
+        def compute():
+            self.env['mrp.production'].flush_model(['state', 'sale_id'])
+            rows = self.env.execute_query(SQL(
+                "SELECT mo.id, COALESCE(mo.sale_id IN %s, FALSE) FROM mrp_production mo"
+                " WHERE mo.state NOT IN ('done', 'cancel')", self._shipped_orders().subselect()))
+            live = tuple(mo_id for mo_id, shipped in rows if not shipped)
+            return live, len(rows) - len(live)
+        live, closeout = self._floor_shared(('live',), compute)
+        return records.with_context(lab_live_ids=live, lab_closeout_count=closeout)
 
     @api.model
     def _closeout_count(self):

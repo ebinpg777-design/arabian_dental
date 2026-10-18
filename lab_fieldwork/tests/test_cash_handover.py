@@ -275,3 +275,82 @@ class TestCashHandover(TransactionCase):
         self.assertIn(h.code, html)
         self.assertIn('Cash Handover Receipt', html)
         self.assertTrue(h.qr_image, "the QR that opens the slip")
+
+    # ------------------------------------------- booked by the accounts
+    def _receipt(self, amount, partner=None, journal_type='bank', days=0):
+        """The doctor's payment as the accounts book it: a plain entry in a
+        bank or cash journal, receivable credited - no account.payment."""
+        from datetime import timedelta
+        from odoo import fields
+        company = self.env.company
+        # A journal of its own: a copy of a live database may hold bank
+        # journals whose account is archived, or no cash journal at all.
+        code = 'TR%s' % journal_type[0].upper()
+        journal = self.env['account.journal'].search(
+            [('code', '=', code), ('company_id', '=', company.id)], limit=1) or \
+            self.env['account.journal'].create({
+                'name': 'Test receipts (%s)' % journal_type, 'code': code,
+                'type': journal_type, 'company_id': company.id})
+        receivable = self.env['account.account'].search(
+            [('account_type', '=', 'asset_receivable'), ('company_ids', 'in', company.ids),
+             ('active', '=', True)], limit=1)
+        other = journal.default_account_id
+        move = self.env['account.move'].create({
+            'move_type': 'entry', 'journal_id': journal.id,
+            'date': fields.Date.context_today(self.exec_user) + timedelta(days=days),
+            'line_ids': [
+                (0, 0, {'name': 'Customer Payment', 'partner_id': (partner or self.clinic).id,
+                        'account_id': receivable.id, 'credit': amount, 'debit': 0}),
+                (0, 0, {'name': 'Customer Payment', 'account_id': other.id, 'debit': amount, 'credit': 0}),
+            ]})
+        move.action_post()
+        return move
+
+    def test_cash_the_accounts_booked_is_no_longer_with_you(self):
+        """'With you' only ever grew while the accounts booked every doctor's
+        payment in the bank journal the day it was taken. (Ortho, 2026-10-08)"""
+        self._cash_visit(2000.0)
+        self.assertEqual(self._position()['with_you'], 2000.0)
+        self._receipt(2000.0)
+        pos = self._position()
+        self.assertEqual((pos['with_you'], pos['available'], pos['received']), (0.0, 0.0, 2000.0))
+        self.assertEqual(pos['days'], 0, "nothing held, nothing ageing")
+        day = self.env['lab.my.day'].with_user(self.exec_user).get_day()
+        self.assertEqual(day['summary']['cash_in_hand'], 0.0)
+
+    def test_a_different_amount_another_clinic_or_a_late_receipt_does_not_count(self):
+        self._cash_visit(2000.0)
+        self._receipt(1999.0)
+        self._receipt(2000.0, partner=self.env['res.partner'].create({'name': 'Some Other Clinic'}))
+        self._receipt(2000.0, days=45)
+        self.assertEqual(self._position()['with_you'], 2000.0)
+
+    def test_one_receipt_settles_one_collection(self):
+        """Two equal payments from one clinic need two receipts."""
+        self._cash_visit(500.0)
+        self._cash_visit(500.0)
+        self._receipt(500.0)
+        pos = self._position()
+        self.assertEqual((pos['with_you'], pos['received']), (500.0, 500.0))
+
+    def test_cash_in_the_pocket_is_settled_by_its_receipt_too(self):
+        """Cash that never reached the float (the visits before it existed)."""
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.auto_float', 'False')
+        v = self._cash_visit(3000.0)
+        self.assertFalse(v.cash_banked)
+        self.assertEqual(self._position()['unbanked'], 3000.0)
+        self._receipt(3000.0, journal_type='cash')
+        self.assertEqual(self._position()['with_you'], 0.0)
+
+    def test_a_counted_envelope_and_its_receipt_do_not_come_off_twice(self):
+        """The office counts the envelope AND the accounts book the receipt for
+        the same cash: it comes off once, and cash still held stays held."""
+        self._cash_visit(2000.0)
+        h = self._declare(2000.0)
+        wiz = self.env['lab.cash.receive'].with_user(self.officer).create({'code': h.code})
+        wiz._onchange_code()
+        wiz.action_confirm()
+        self._receipt(2000.0)
+        self._cash_visit(1000.0)
+        pos = self._position()
+        self.assertEqual(pos['with_you'], 1000.0, "the second visit is still in the pocket")

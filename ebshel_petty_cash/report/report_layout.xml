@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <!-- Signature boxes: pass `signatures` as a list of labels. -->
+    <template id="report_signatures">
+        <div class="row mt-5" style="page-break-inside: avoid;">
+            <t t-foreach="signatures" t-as="label">
+                <div class="col text-center">
+                    <div style="border-top: 1px solid #666; margin: 40px 12px 4px 12px;"/>
+                    <span class="small" t-out="label"/>
+                </div>
+            </t>
+        </div>
+    </template>
+
+    <!-- Approval trail line of an approvable document `doc`. -->
+    <template id="report_approval_trail">
+        <p class="small text-muted mb-1">
+            Requested by <span t-field="doc.requested_by_id"/>
+            <t t-if="doc.first_approver_id">; first approval <span t-field="doc.first_approver_id"/></t>
+            <t t-if="doc.approver_id">; approved by <span t-field="doc.approver_id"/>
+                <t t-if="doc.approval_date"> on <span t-field="doc.approval_date" t-options="{'widget': 'date'}"/></t>
+            </t>
+        </p>
+    </template>
+
+</odoo>

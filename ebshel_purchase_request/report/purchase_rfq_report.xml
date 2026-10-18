@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Request for Quotation document ──────────────────────────────────── -->
+    <record id="action_report_rfq" model="ir.actions.report">
+        <field name="name">Request for Quotation</field>
+        <field name="model">ebshel.purchase.rfq</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_purchase_request.report_rfq_document</field>
+        <field name="report_file">ebshel_purchase_request.report_rfq_document</field>
+        <field name="binding_model_id" ref="model_ebshel_purchase_rfq"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <template id="report_rfq_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <style>
+                            .ebshel-rfq-title { font-weight:700; letter-spacing:1px; margin:0; }
+                            .ebshel-rfq-sub { color:#555; font-size:13px; }
+                            .ebshel-chip { display:inline-block; border:1px solid #999;
+                                         border-radius:3px; padding:2px 10px; font-size:11px; font-weight:700; }
+                            .ebshel-box { border:1px solid #ccc; border-radius:3px; padding:8px 12px; }
+                            .ebshel-box .lbl { font-size:10px; text-transform:uppercase; letter-spacing:.5px;
+                                             color:#777; font-weight:700; }
+                            .ebshel-box .val { font-size:13px; font-weight:600; }
+                            table.ebshel-items { width:100%; border-collapse:collapse; font-size:12px; }
+                            table.ebshel-items th { background:#f0f0f0; padding:7px 8px; text-align:left;
+                                                  border:1px solid #ccc; }
+                            table.ebshel-items td { padding:6px 8px; border:1px solid #ddd; }
+                            .ebshel-fill { border-left:1px dashed #bbb; }
+                            .ebshel-note { font-size:11px; color:#555; }
+                        </style>
+
+                        <!-- Title -->
+                        <div class="row mb-2">
+                            <div class="col-7">
+                                <h2 class="ebshel-rfq-title">REQUEST FOR QUOTATION</h2>
+                                <div class="ebshel-rfq-sub">
+                                    Reference <strong t-esc="doc.name"/>
+                                </div>
+                            </div>
+                            <div class="col-5 text-end">
+                                <span class="ebshel-chip">Please quote by
+                                    <t t-if="doc.deadline"><span t-field="doc.deadline"/></t>
+                                    <t t-else="">earliest convenience</t>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Meta boxes -->
+                        <div class="row mb-3">
+                            <div class="col-4">
+                                <div class="ebshel-box">
+                                    <div class="lbl">RFQ Date</div>
+                                    <div class="val"><span t-field="doc.date_rfq"/></div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="ebshel-box">
+                                    <div class="lbl">Quotation Deadline</div>
+                                    <div class="val">
+                                        <t t-if="doc.deadline"><span t-field="doc.deadline"/></t>
+                                        <t t-else="">As soon as possible</t>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="ebshel-box">
+                                    <div class="lbl">Contact</div>
+                                    <div class="val"><t t-esc="doc.procurement_officer_id.name or doc.company_id.name"/></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="ebshel-note mb-2">
+                            We invite you to submit your best quotation for the items listed below.
+                            Please complete the unit price column, indicate your delivery lead time and
+                            payment terms, and return this document before the deadline.
+                        </p>
+
+                        <!-- Items -->
+                        <table class="ebshel-items mb-3">
+                            <thead>
+                                <tr>
+                                    <th style="width:4%">#</th>
+                                    <th style="width:34%">Product / Description</th>
+                                    <th class="text-end" style="width:9%">Qty</th>
+                                    <th style="width:9%">UoM</th>
+                                    <th style="width:14%">Required By</th>
+                                    <th class="text-end ebshel-fill" style="width:15%">Unit Price</th>
+                                    <th class="text-end ebshel-fill" style="width:15%">Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="doc.rfq_line_ids" t-as="line">
+                                    <tr>
+                                        <td><t t-esc="line_index + 1"/></td>
+                                        <td>
+                                            <strong t-esc="line.product_id.name or line.name"/>
+                                            <t t-if="line.name and line.name != line.product_id.name">
+                                                <br/><span class="ebshel-note" t-esc="line.name"/>
+                                            </t>
+                                        </td>
+                                        <td class="text-end"><t t-esc="line.qty"/></td>
+                                        <td><t t-esc="line.uom_id.name"/></td>
+                                        <td><span t-field="line.date_required"/></td>
+                                        <td class="ebshel-fill"></td>
+                                        <td class="ebshel-fill"></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <!-- Vendor response block -->
+                        <div class="row mb-3">
+                            <div class="col-4"><div class="ebshel-box"><div class="lbl">Delivery Lead Time</div><div class="val">_______________ days</div></div></div>
+                            <div class="col-4"><div class="ebshel-box"><div class="lbl">Payment Terms</div><div class="val">__________________</div></div></div>
+                            <div class="col-4"><div class="ebshel-box"><div class="lbl">Quotation Valid Until</div><div class="val">__________________</div></div></div>
+                        </div>
+
+                        <!-- Terms -->
+                        <t t-if="doc.terms_conditions">
+                            <h5 style="color:#1e293b;font-weight:700;">Terms &amp; Conditions</h5>
+                            <div class="ebshel-note" style="font-size:12px;" t-out="doc.terms_conditions"/>
+                        </t>
+
+                        <!-- Signature -->
+                        <div class="row mt-5">
+                            <div class="col-6">
+                                <div style="border-top:1px solid #94a3b8;padding-top:4px;" class="ebshel-note">
+                                    Vendor Authorised Signature &amp; Stamp
+                                </div>
+                            </div>
+                            <div class="col-6 text-end">
+                                <div style="border-top:1px solid #94a3b8;padding-top:4px;" class="ebshel-note">
+                                    Date
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

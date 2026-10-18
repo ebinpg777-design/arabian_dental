@@ -541,6 +541,12 @@ class LabMrpReport(models.AbstractModel):
         delivery is the event that counts, not the order being closed here -
         orders on this database are closed late or never. (client, 2026-09-10)
         """
+        # a twelve-week median does not move in ten minutes: shared between boards
+        return self.env['report.lab.floor']._floor_shared(
+            ('usual_days',), self._usual_days_now, ttl=600)
+
+    @api.model
+    def _usual_days_now(self):
         since = fields.Datetime.now() - timedelta(days=USUAL_DAYS)
         self.env['stock.picking'].flush_model()
         self.env['mrp.production'].flush_model()

@@ -10,5 +10,26 @@
             <field name="interval_type">days</field>
             <field name="active" eval="True"/>
         </record>
+        <!-- Files and chatter of registers and print orders past the months set in
+             Settings (client, 2026-10-14). Nightly; a big first clear runs in batches. -->
+        <record id="cron_clear_old_files" model="ir.cron">
+            <field name="name">Scan Register: remove old scan files and chatter</field>
+            <field name="model_id" ref="model_lab_scan_retention"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_clear_old()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="nextcall" eval="(DateTime.now() + relativedelta(days=1)).strftime('%Y-%m-%d 21:30:00')"/>
+            <field name="active" eval="True"/>
+        </record>
+        <record id="cron_watch_prints" model="ir.cron">
+            <field name="name">Scan Register: a plate past its expected off time</field>
+            <field name="model_id" ref="model_lab_scan_print_order"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_watch_prints()</field>
+            <field name="interval_number">30</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
     </data>
 </odoo>

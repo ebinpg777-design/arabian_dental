@@ -303,7 +303,8 @@ class FinReport(models.Model):
         self.env.flush_all()
         self._check_report_access()
         engine = self.env['ebshel.fin.engine']
-        options = dict(engine.normalize(self, options), partners=[])
+        # the panel offers the partners left out too, so they can be taken back
+        options = dict(engine.normalize(self, options), partners=[], partners_exclude=False)
         d_from = fields.Date.to_date(options['date']['from'])
         d_to = fields.Date.to_date(options['date']['to'])
         accounts = [a for a, m in engine.accounts(options).items() if m['type'] in self.SUGGESTION_TYPES]
@@ -659,13 +660,16 @@ class FinReport(models.Model):
         if options.get('journals'):
             parts.append(_('%s journal(s)', len(options['journals'])))
         if options.get('partners'):
-            parts.append(_('%s partner(s)', len(options['partners'])))
+            parts.append(_('excluding %s partner(s)', len(options['partners'])) if options.get('partners_exclude')
+                         else _('%s partner(s)', len(options['partners'])))
         if options.get('analytic'):
             parts.append(_('%s analytic account(s)', len(options['analytic'])))
         for key, label in (('journal_types', _('journal type(s)')), ('partner_categories', _('partner tag(s)')),
                            ('salespeople', _('salesperson(s)')), ('teams', _('sales team(s)')),
                            ('product_categories', _('product categor(ies)'))):
-            if options.get(key):
+            if options.get(key) and key == 'teams' and options.get('teams_exclude'):
+                parts.append(_('excluding %(n)s %(what)s', n=len(options[key]), what=label))
+            elif options.get(key):
                 parts.append('%s %s' % (len(options[key]), label))
         if options.get('label'):
             parts.append(_('label contains "%s"', options['label']))

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pr_split_award_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.pr.split.award.wizard.form</field>
+        <field name="model">ebshel.pr.split.award.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Split Award – Generate Purchase Orders">
+                <sheet>
+                    <div class="alert alert-info" role="status">
+                        <strong>Split the award across vendors.</strong>
+                        Pick the winning vendor for each line — lines going to the
+                        same vendor are grouped into <b>one PO per vendor</b>.
+                        Untick a line to leave it unordered, or trim
+                        <b>Award Qty</b> to order less than requested.
+                        You can never order more than the requested quantity.
+                    </div>
+                    <field name="rfq_id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="line_ids" nolabel="1">
+                        <list editable="bottom" create="false" delete="false"
+                              decoration-muted="award == False"
+                              decoration-success="is_best == True and award == True">
+                            <field name="award" widget="boolean_toggle"/>
+                            <field name="product_id" readonly="1"/>
+                            <field name="rfq_line_id" column_invisible="True"/>
+                            <field name="requested_qty" readonly="1"/>
+                            <field name="uom_id" readonly="1"/>
+                            <field name="available_quotation_ids" column_invisible="True"/>
+                            <field name="quotation_id"
+                                   domain="[('id', 'in', available_quotation_ids)]"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   placeholder="Select winning vendor…"/>
+                            <field name="price_unit" readonly="1"/>
+                            <field name="is_best" string="Best?" readonly="1"/>
+                            <field name="delivery_days" readonly="1"/>
+                            <field name="awarded_qty"/>
+                            <field name="subtotal" readonly="1"/>
+                            <field name="currency_id" column_invisible="True"/>
+                        </list>
+                    </field>
+                    <group>
+                        <group string="Award Summary">
+                            <field name="awarded_count"/>
+                            <field name="skipped_count"/>
+                            <field name="po_count" string="Purchase Orders to create"/>
+                            <field name="est_total" widget="monetary"/>
+                        </group>
+                        <group>
+                            <field name="summary_html" nolabel="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_generate_pos"
+                            string="Generate Purchase Orders"
+                            type="object" class="btn-primary"
+                            data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Show the originating request line(s) on each PO line -->
+    <record id="view_purchase_order_form_pr_link" model="ir.ui.view">
+        <field name="name">purchase.order.form.pr.link</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Flag orders raised outside the request → RFQ → award flow -->
+            <xpath expr="//sheet" position="inside">
+                <widget name="web_ribbon" title="Off-Process"
+                        bg_color="text-bg-warning"
+                        invisible="not is_direct"/>
+                <field name="is_direct" invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_qty']"
+                   position="after">
+                <field name="request_line_ids" widget="many2many_tags"
+                       optional="hide" string="From Request"/>
+            </xpath>
+            <!-- Back-links to the procurement chain that produced this PO -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_rfq" type="object"
+                        class="oe_stat_button" icon="fa-balance-scale"
+                        invisible="not rfq_id">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Source RFQ</span>
+                    </div>
+                </button>
+                <button name="action_view_requests" type="object"
+                        class="oe_stat_button" icon="fa-clipboard"
+                        invisible="request_count == 0">
+                    <field name="request_count" string="Requests" widget="statinfo"/>
+                </button>
+                <field name="rfq_id" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- "Off-Process" filter on the Purchase Orders search -->
+    <record id="view_purchase_order_search_pr_offprocess" model="ir.ui.view">
+        <field name="name">purchase.order.search.pr.offprocess</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_view_search"/>
+        <field name="arch" type="xml">
+            <filter name="my_Orders" position="after">
+                <separator/>
+                <filter name="ebshel_off_process" string="Off-Process Orders"
+                        domain="[('is_direct', '=', True)]"
+                        help="Purchase orders created directly, outside the request → RFQ → award flow."/>
+                <filter name="ebshel_on_process" string="From Requests / RFQ"
+                        domain="[('is_direct', '=', False)]"/>
+            </filter>
+        </field>
+    </record>
+
+</odoo>

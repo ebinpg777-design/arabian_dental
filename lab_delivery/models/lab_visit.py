@@ -104,6 +104,10 @@ class LabVisit(models.Model):
                 ('direction', '=', 'out'),
                 ('state', 'in', ('assigned', 'out')),
             ])
+            # A dispatch whose transfer the office already validated is paperwork
+            # that never caught up, not work in the van: close it and let the
+            # executive go, rather than refuse someone who really did deliver.
+            open_deliveries = open_deliveries._close_if_shipped()
             if open_deliveries:
                 raise UserError(_(
                     "The outcome says Delivered, but %(names)s for this clinic "

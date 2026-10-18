@@ -3,18 +3,43 @@
     <menuitem id="menu_scan_root" name="Scans" sequence="22"
               web_icon="lab_scan_register,static/description/icon.png"
               groups="lab_scan_register.group_scan_user"/>
+    <menuitem id="menu_scan_dashboard" name="Dashboard" parent="menu_scan_root"
+              action="action_scan_dashboard" sequence="5"/>
     <menuitem id="menu_scan_register" name="Scan Register" parent="menu_scan_root"
               action="action_scan" sequence="10"/>
+    <!-- The printing room: plates, the patients waiting for one, the registers in its
+         hands, and the machines. -->
+    <menuitem id="menu_scan_printing" name="3D Printing" parent="menu_scan_root" sequence="15"/>
+    <record id="menu_scan_printing" model="ir.ui.menu">
+        <field name="action" eval="False"/>
+    </record>
+    <menuitem id="menu_scan_print_order" name="Print Orders" parent="menu_scan_printing"
+              action="action_scan_print_order" sequence="10"/>
+    <menuitem id="menu_scan_print_queue" name="Waiting for a Plate" parent="menu_scan_printing"
+              action="action_scan_print_queue" sequence="20"/>
+    <menuitem id="menu_scan_printing_registers" name="Registers in Printing" parent="menu_scan_printing"
+              action="action_scan_printing" sequence="30"/>
+    <menuitem id="menu_scan_printer" name="3D Printers" parent="menu_scan_printing"
+              action="action_scan_printer" sequence="40"/>
     <menuitem id="menu_scan_paste" name="Paste WhatsApp Messages" parent="menu_scan_root"
               action="action_scan_paste" sequence="20"/>
-    <menuitem id="menu_scan_analysis" name="Analysis" parent="menu_scan_root"
-              action="action_scan_analysis" sequence="30"/>
+    <menuitem id="menu_scan_reporting" name="Reporting" parent="menu_scan_root" sequence="30"/>
+    <menuitem id="menu_scan_analysis" name="Scan Analysis" parent="menu_scan_reporting"
+              action="action_scan_analysis" sequence="10"/>
+    <menuitem id="menu_scan_print" name="Print Orders" parent="menu_scan_reporting"
+              action="action_scan_print_order_report" sequence="20"/>
+    <menuitem id="menu_scan_print_models" name="Models" parent="menu_scan_reporting"
+              action="action_scan_print_order_line" sequence="25"/>
+    <menuitem id="menu_scan_print_failed" name="Failed Models" parent="menu_scan_reporting"
+              action="action_scan_print_order_line_failed" sequence="30"/>
     <menuitem id="menu_scan_config" name="Configuration" parent="menu_scan_root" sequence="90"
               groups="lab_scan_register.group_scan_manager"/>
     <menuitem id="menu_scan_channel_whatsapp" name="WhatsApp Groups" parent="menu_scan_config"
               action="action_scan_channel_whatsapp" sequence="10"/>
     <menuitem id="menu_scan_member" name="Group Members" parent="menu_scan_config"
               action="action_scan_member" sequence="15"/>
+    <menuitem id="menu_scan_message_template" name="WhatsApp Templates" parent="menu_scan_config"
+              action="action_scan_message_template" sequence="17"/>
     <menuitem id="menu_scan_channel_email" name="E-mail Sources" parent="menu_scan_config"
               action="action_scan_channel_email" sequence="20"/>
     <menuitem id="menu_scan_channel_transfer" name="File Transfer Platforms" parent="menu_scan_config"

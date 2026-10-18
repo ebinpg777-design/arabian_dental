@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_ebshel_pr" model="ir.ui.view">
+        <field name="name">res.config.settings.form.ebshel.purchase.request</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="Purchase Requests" name="ebshel_purchase_request"
+                     logo="/ebshel_purchase_request/static/description/icon.png">
+                    <field name="company_currency_id" invisible="1"/>
+                    <block title="Approval Policy" name="ebshel_pr_approval_block">
+                        <setting string="Auto-Approve Small Requests"
+                                 help="Approve requests automatically on submission when their estimated total is at or below the threshold.">
+                            <field name="pr_auto_approve_enabled"/>
+                            <div class="content-group mt-2" invisible="not pr_auto_approve_enabled">
+                                <div class="row">
+                                    <label for="pr_auto_approve_amount" string="Auto-approve below"
+                                           class="col-lg-5 o_light_label"/>
+                                    <field name="pr_auto_approve_amount"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Approval Escalation"
+                                 help="Give each approval to-do a due date so reminders / escalation can fire.">
+                            <field name="pr_escalation_enabled"/>
+                            <div class="content-group mt-2" invisible="not pr_escalation_enabled">
+                                <div class="row">
+                                    <label for="pr_escalation_days" string="Approver gets"
+                                           class="col-lg-5 o_light_label"/>
+                                    <field name="pr_escalation_days" class="oe_inline"/>
+                                    <span class="ms-2">day(s)</span>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Allow Self-Approval"
+                                 help="Let a requester approve their own purchase request when they are listed as an approver.">
+                            <field name="pr_allow_self_approval"/>
+                        </setting>
+                        <setting string="Require PO Award Approval"
+                                 help="Awarding a vendor from an RFQ creates an award proposal that an Administrator must approve before the purchase order(s) are created.">
+                            <field name="pr_require_po_approval"/>
+                        </setting>
+                        <setting string="Direct Purchase Order Policy"
+                                 help="Govern purchase orders raised straight in the Purchase app, outside the request → RFQ → award flow. Warn flags them and notifies administrators; Strict blocks them (Purchase Managers may override).">
+                            <field name="pr_po_enforcement" widget="radio"/>
+                        </setting>
+                        <setting string="Allow Quantity Update on Approved Requests"
+                                 help="Show an 'Update Quantities' action on approved requests so users can reduce line quantities (e.g. drop the unneeded remainder after a partial RFQ). Quantities can only be reduced, never below what is already on an RFQ.">
+                            <field name="pr_allow_approved_qty_edit"/>
+                            <div class="content-group mt-2" invisible="not pr_allow_approved_qty_edit">
+                                <div class="text-muted">
+                                    Updating reduces a line's requested quantity down to what has already been sourced.
+                                </div>
+                                <div class="mt-2">
+                                    <field name="pr_qty_edit_reapproval" class="oe_inline"/>
+                                    <span class="ms-2">Re-approve after a quantity change</span>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Allow Product Alter During Approval"
+                                 help="Let an approver swap a line's product for another in the same category (on lines the requester flagged 'Allow Product Alter'), or return the request to the requester with a suggested product.">
+                            <field name="pr_allow_product_change"/>
+                        </setting>
+                        <setting string="Allow Product Alter At Quotation and RFQ"
+                                 help="Allow to alter the product at quotation and according to that allow to alter the product in RFQ also , if the quotation product provide more benefit.">
+                            <field name="quotation_pdt_alter"/>
+                        </setting>
+                        <setting string="Allow RFQ Quantity Above Request"
+                                 help="Allow an RFQ line quantity to exceed the quantity on its source purchase-request line. When off, the quantity is capped at the requested amount.">
+                            <field name="rfq_allow_qty_increase"/>
+                            <div class="content-group mt-2" invisible="not rfq_allow_qty_increase">
+                                <div class="mt-2">
+                                    <field name="rfq_qty_increase_approval" class="oe_inline"/>
+                                    <span class="ms-2">Require Administrator approval before sending such an RFQ to vendors</span>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Allow to create PR for amount that exceed budget"
+                                 help="Allow to create PR for a department, even if the budget exceeded for that department.">
+                            <field name="pr_for_amount_exceed_budget"/>
+                        </setting>
+                    </block>
+                    <block title="RFQ Terms &amp; Conditions" name="ebshel_rfq_terms_block">
+                        <setting string="Default RFQ Terms &amp; Conditions"
+                                 help="Choose a template from the master — new RFQs inherit it automatically.">
+                            <field name="rfq_default_terms_id"
+                                   options="{'no_create_edit': True}"
+                                   placeholder="Select a Terms &amp; Conditions template…"/>
+                            <div class="mt-2">
+                                <button name="action_open_rfq_terms" type="object"
+                                        string="Manage T&amp;C Templates" class="btn-link" icon="fa-arrow-right"/>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_ebshel_pr_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{'module': 'ebshel_purchase_request'}</field>
+    </record>
+
+</odoo>

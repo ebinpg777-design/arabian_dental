@@ -33,6 +33,8 @@
                      paid on, at what rate, and what it gave -->
                 <div t-if="this.data.steps and this.data.steps.length" class="o_incentive_calc mt-3">
                     <div class="text-muted small mb-1" t-out="this.data.mode_note"/>
+                    <div t-if="this.data.base_note" class="text-muted small mb-1 o_incentive_base_note"
+                         t-out="this.data.base_note"/>
                     <!-- on a phone: Slab | Working | Incentive - the working already
                          says what was paid on and at what rate -->
                     <table class="table table-sm o_incentive_calc_table mb-1">

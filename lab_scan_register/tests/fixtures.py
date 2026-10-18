@@ -139,3 +139,49 @@ CHAT_ANDROID_EXPORT = (
 
 CHAT_IOS_EXPORT = ("\u200e[06/10/26, 10:49:12 AM] KidsDentalClinic: \u200e<attached: 00000041-2026 scan.zip>\n"
                    "sameer verma lingual arch plain plain bands on 36 46")
+
+# Share notifications from the file-transfer platforms, in their standard wording.
+# Modelled on each platform's notification template - not captured from the lab's
+# own mailbox like the ones above - so a real one forwarded later should be added.
+DRIVE_SUBJECT = 'Fwd: Folder shared with you: "Rahim VP"'
+DRIVE_BODY = """---------- Forwarded message ---------
+From: Dr Arun K R (via Google Drive) <drive-shares-dm-noreply@google.com>
+Date: Mon, 12 Oct 2026 at 10:15
+Subject: Folder shared with you: "Rahim VP"
+To: <lab.scans@example.com>
+
+Dr Arun K R shared a folder
+Dr Arun K R (arun.pm.dentist@example.com) has invited you to contribute to the following shared folder:
+Rahim VP
+Patient name - Rahim VP
+Upper Hawley retainer
+Delivery -16-10-26
+Open
+https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz?usp=sharing_eil_m
+Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA
+You have received this email because arun.pm.dentist@example.com shared a folder with you from Google Drive.
+https://support.google.com/drive
+"""
+
+DROPBOX_SUBJECT = 'Fwd: Dr Priya Nair shared "Diya scans" with you'
+DROPBOX_BODY = """---------- Forwarded message ---------
+From: Dropbox <no-reply@dropbox.com>
+Subject: Dr Priya Nair shared "Diya scans" with you
+
+Dr Priya Nair (priya.dental@example.com) shared "Diya scans" with you.
+View folder
+https://www.dropbox.com/scl/fo/a1b2c3/AAAbbbCCC?rlkey=xyz&dl=0
+https://www.dropbox.com/help
+"""
+
+ONEDRIVE_SUBJECT = 'Fwd: Dr Jose shared "Tanvi expansion" with you'
+ONEDRIVE_BODY = """---------- Forwarded message ---------
+From: Dr Jose <no-reply@sharepointonline.com>
+Subject: Dr Jose shared "Tanvi expansion" with you
+
+Dr Jose shared a folder with you
+Here's the folder that Dr Jose shared with you.
+Tanvi expansion
+Open
+https://1drv.ms/f/s!AbCdEfGh12345
+"""

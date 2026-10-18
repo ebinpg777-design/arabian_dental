@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Vendor: smart button to all RFQ quotations this partner has submitted -->
+    <record id="view_partner_form_ebshel_quotations" model="ir.ui.view">
+        <field name="name">res.partner.form.ebshel.quotations</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_quotations" type="object"
+                        class="oe_stat_button" icon="fa-list-alt"
+                        invisible="quotation_count == 0">
+                    <field name="quotation_count" string="Quotations" widget="statinfo"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ── Vendors action (suppliers) ─────────────────────────────────────── -->
+    <record id="action_ebshel_vendors" model="ir.actions.act_window">
+        <field name="name">Vendors</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('supplier_rank', '>', 0)]</field>
+        <field name="context">{'default_supplier_rank': 1, 'default_is_company': True, 'res_partner_search_mode': 'supplier'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Register your first vendor</p>
+            <p>
+                Vendors you quote and order from appear here. New vendors are also
+                created automatically when an unregistered bidder wins an RFQ.
+            </p>
+        </field>
+    </record>
+
+</odoo>

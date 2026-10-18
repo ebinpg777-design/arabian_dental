@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pr_select_winner_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.pr.select.winner.wizard.form</field>
+        <field name="model">ebshel.pr.select.winner.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Select Winning Vendor">
+                <sheet>
+                    <group>
+                        <field name="rfq_id" readonly="1"/>
+                    </group>
+                    <separator string="Received Quotations"/>
+                    <field name="quotation_ids" nolabel="1" readonly="1">
+                        <list>
+                            <field name="vendor_id"/>
+                            <field name="amount_untaxed"/>
+                            <field name="amount_tax"/>
+                            <field name="amount_total"/>
+                            <field name="delivery_days"/>
+                            <field name="payment_term_id"/>
+                            <field name="score"/>
+                            <field name="rank"/>
+                        </list>
+                    </field>
+                    <separator string="Selection"/>
+                    <group>
+                        <field name="winner_quotation_id"
+                               domain="[('rfq_id','=',rfq_id),('state','=','received')]"
+                               options="{'no_create': True, 'no_edit': True}"/>
+                        <field name="justification" placeholder="Explain why this vendor was selected…"/>
+                        <field name="auto_create_po"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_winner" string="Confirm &amp; Award"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

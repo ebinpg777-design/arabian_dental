@@ -26,5 +26,35 @@
             <field name="active" eval="False"/>
         </record>
 
+        <!--
+            THE OTHER TWO WAYS A JOB IS FINISHED. (client, 2026-09-25)
+
+            The rule above closes a job when its appliance physically ships.
+            These close it when the floor has scanned every step through, and
+            when the office has invoiced the case and the invoice has stood
+            untouched for a couple of days - an invoice raised this morning can
+            still be corrected this afternoon, and a job closed underneath that
+            is work the lab cannot put back.
+
+            Daily, and batched: the first run on a lab that has never had this
+            meets a backlog, and one transaction that long is a lock nobody
+            wants across a working day. It drains over successive runs.
+
+            INACTIVE in the lab (Ortho ships it active): the lab's database holds
+            the migrated real book, and what this would close is to be seen
+            before it is switched on. Switch it on here; the rule itself has its
+            own switch too, lab_workcenter_scan.close_finished_mo (on unless set
+            to 0). noupdate: once switched on, an upgrade leaves it on.
+        -->
+        <record id="cron_close_finished_jobs" model="ir.cron">
+            <field name="name">Close manufacturing orders the lab has finished with</field>
+            <field name="model_id" ref="mrp.model_mrp_production"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_close_finished_jobs()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="False"/>
+        </record>
+
     </data>
 </odoo>

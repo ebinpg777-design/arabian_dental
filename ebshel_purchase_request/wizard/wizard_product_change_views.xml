@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_ebshel_pr_product_change_wizard_form" model="ir.ui.view">
+        <field name="name">ebshel.pr.product.change.wizard.form</field>
+        <field name="model">ebshel.pr.product.change.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Alter Product">
+                <div class="alert alert-info" role="alert">
+                    Choose a replacement product (same category) on the lines you
+                    want to change. <b>Apply</b> swaps them now and keeps the
+                    request pending approval; <b>Send to Requester</b> records your
+                    suggestions and returns the request to the requester to make
+                    the change.
+                </div>
+                <field name="line_ids">
+                    <list editable="bottom" create="false" delete="false">
+                        <field name="current_product_id" readonly="1"/>
+                        <field name="categ_id" readonly="1" optional="show"/>
+                        <field name="qty" readonly="1" optional="hide"/>
+                        <field name="new_product_id"
+                               options="{'no_create': True, 'no_edit': True}"/>
+                        <field name="request_line_id" column_invisible="True"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_apply" string="Apply" type="object"
+                            class="btn-primary"/>
+                    <button name="action_send_to_requester"
+                            string="Send to Requester" type="object"
+                            class="btn-secondary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

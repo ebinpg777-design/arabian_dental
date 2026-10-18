@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_advance_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.advance.form</field>
+        <field name="model">ebshel.petty.cash.advance</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" type="object" string="Submit" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary"
+                            invisible="not can_approve"/>
+                    <button name="action_pay" type="object" string="Pay Out" class="btn-primary"
+                            invisible="not can_pay"/>
+                    <button name="action_new_expense" type="object" string="Add Voucher"
+                            invisible="state != 'paid'"/>
+                    <button name="action_settle" type="object" string="Settle" class="btn-primary"
+                            invisible="state != 'paid'"/>
+                    <button name="action_refuse" type="object" string="Refuse"
+                            invisible="state not in ('to_approve', 'approved')"
+                            groups="ebshel_petty_cash.group_petty_cash_approver"/>
+                    <button name="action_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('to_approve', 'refused', 'cancelled')"/>
+                    <button name="%(action_report_petty_cash_advance)d" type="action" string="Print"
+                            invisible="state in ('draft', 'refused', 'cancelled')"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state not in ('draft', 'to_approve', 'approved', 'paid')"
+                            confirm="Cancel this advance? A paid advance is reversed in the books."/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,paid,settled"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_expenses" type="object" class="oe_stat_button" icon="description">
+                            <field name="expense_count" widget="statinfo" string="Vouchers"/>
+                        </button>
+                        <button name="action_view_move" type="object" class="oe_stat_button" icon="book"
+                                invisible="not move_id" groups="account.group_account_readonly" string="Journal Entry"/>
+                    </div>
+                    <field name="can_approve" invisible="1"/>
+                    <field name="can_pay" invisible="1"/>
+                    <field name="is_overdue" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                    <div class="alert alert-danger mb-2" role="alert" invisible="not is_overdue">
+                        This advance is overdue: it should have been settled by <field name="due_date" class="d-inline" readonly="1"/>.
+                    </div>
+                    <div class="alert alert-info mb-2" role="status" invisible="state != 'to_approve' or not first_approver_id">
+                        First approval by <field name="first_approver_id" class="d-inline" readonly="1"/>; waiting for a petty cash manager.
+                    </div>
+                    <div class="alert alert-danger mb-2" role="alert" invisible="state != 'refused'">
+                        <strong>Refused:</strong> <field name="refuse_reason" class="d-inline"/>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="fund_id" readonly="state not in ('draft', 'to_approve')" options="{'no_create': True}"/>
+                            <field name="holder_id" readonly="state not in ('draft', 'to_approve')"/>
+                            <field name="purpose" placeholder="e.g. Site visit expenses"/>
+                            <field name="amount" readonly="state not in ('draft', 'to_approve')"/>
+                        </group>
+                        <group>
+                            <field name="date" readonly="state not in ('draft', 'to_approve')"/>
+                            <field name="due_date" readonly="state in ('settled', 'cancelled')"/>
+                            <field name="requested_by_id" widget="many2one_avatar_user" readonly="state != 'draft'"/>
+                            <field name="custodian_id" widget="many2one_avatar_user"/>
+                        </group>
+                    </group>
+                    <group invisible="state not in ('paid', 'settled')">
+                        <group string="Accounting for the Cash">
+                            <field name="amount_spent"/>
+                            <field name="amount_due"/>
+                        </group>
+                        <group string="Settlement" invisible="state != 'settled'">
+                            <field name="settled_date"/>
+                            <field name="settlement_amount"/>
+                            <field name="settlement_move_id" groups="account.group_account_readonly"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Vouchers" name="vouchers">
+                            <field name="expense_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="description"/>
+                                    <field name="partner_id"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="amount_total" sum="Total"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Approval" name="approval">
+                            <group>
+                                <field name="first_approver_id" invisible="not first_approver_id"/>
+                                <field name="approver_id"/>
+                                <field name="approval_date"/>
+                                <field name="move_id" groups="account.group_account_readonly"/>
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="note"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_advance_list" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.advance.list</field>
+        <field name="model">ebshel.petty.cash.advance</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="is_overdue" decoration-muted="state in ('cancelled', 'refused', 'settled')" sample="1">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="fund_id"/>
+                <field name="holder_id"/>
+                <field name="purpose"/>
+                <field name="due_date"/>
+                <field name="is_overdue" column_invisible="True"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="amount" sum="Total"/>
+                <field name="amount_spent" sum="Total" optional="show"/>
+                <field name="amount_due" sum="Total"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'to_approve'" decoration-warning="state in ('approved', 'paid')"
+                       decoration-success="state == 'settled'" decoration-danger="state == 'refused'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_advance_search" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.advance.search</field>
+        <field name="model">ebshel.petty.cash.advance</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" filter_domain="['|', ('name', 'ilike', self), ('purpose', 'ilike', self)]"/>
+                <field name="fund_id"/>
+                <field name="holder_id"/>
+                <filter name="my_advances" string="My Advances"
+                        domain="['|', ('requested_by_id', '=', uid), ('holder_id.user_ids', 'in', uid)]"/>
+                <separator/>
+                <filter name="to_approve" string="To Approve" domain="[('state', '=', 'to_approve')]"/>
+                <filter name="to_pay" string="To Pay Out" domain="[('state', '=', 'approved')]"/>
+                <filter name="open" string="Outstanding" domain="[('state', '=', 'paid')]"/>
+                <filter name="overdue" string="Overdue" domain="[('is_overdue', '=', True)]"/>
+                <filter name="settled" string="Settled" domain="[('state', '=', 'settled')]"/>
+                <separator/>
+                <filter name="date" string="Date" date="date"/>
+                <group>
+                    <filter name="group_fund" string="Fund" context="{'group_by': 'fund_id'}"/>
+                    <filter name="group_holder" string="Paid To" context="{'group_by': 'holder_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_advance" model="ir.actions.act_window">
+        <field name="name">Advances</field>
+        <field name="res_model">ebshel.petty.cash.advance</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Request a cash advance</p>
+            <p>Cash handed out before the spending; the vouchers and the returned cash settle it.</p>
+        </field>
+    </record>
+
+</odoo>
