@@ -284,6 +284,7 @@ class ScanLine(models.Model):
     def action_put_on_plate(self):
         """The room ticks the waiting patients that fit one plate."""
         lines = self.filtered(lambda l: l.print_state in ('none', 'to_plate') and not l.sale_order_id
+                              and not l.scan_id.already_printed
                               and l.scan_id.state in ('confirmed', 'printing', 'in_progress', 'printed'))
         if not lines:
             raise UserError(_("None of these patients is waiting for a plate."))

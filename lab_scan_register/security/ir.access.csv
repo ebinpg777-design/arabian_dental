@@ -28,6 +28,8 @@ access_scan_print_order_start_user,start print wizard,lab.scan.print.order.start
 access_scan_print_order_off_user,plate off wizard,lab.scan.print.order.off,group_scan_user,crud,
 access_scan_print_order_off_line_user,plate off wizard row,lab.scan.print.order.off.line,group_scan_user,crud,
 access_scan_print_order_fail_user,print failed wizard,lab.scan.print.order.fail,group_scan_user,crud,
+access_scan_link_orders_user,scan link orders,lab.scan.link.orders,group_scan_user,crud,
+access_scan_link_orders_line_user,scan link orders line,lab.scan.link.orders.line,group_scan_user,crud,
 rule_scan_company,Scan: own companies,lab.scan,,crud,"[('company_id', 'in', company_ids)]"
 rule_scan_line_company,Scan register patient: own companies,lab.scan.line,,crud,"[('company_id', 'in', company_ids)]"
 rule_scan_member_company,Scan channel member: own companies,lab.scan.channel.member,,crud,"[('company_id', 'in', company_ids)]"

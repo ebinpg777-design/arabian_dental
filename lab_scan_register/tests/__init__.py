@@ -13,3 +13,5 @@ from . import test_slice_file
 from . import test_print_orders
 from . import test_slice_upload
 from . import test_retention
+from . import test_already_printed
+from . import test_link_orders

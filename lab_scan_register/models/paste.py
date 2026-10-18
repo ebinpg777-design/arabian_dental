@@ -27,7 +27,7 @@ class ScanPaste(models.TransientModel):
                                        "here. An exported chat (.txt) works too.")
     line_ids = fields.One2many('lab.scan.paste.line', 'paste_id', string='Messages Found')
     is_read = fields.Boolean('Read')
-    line_count = fields.Integer('Messages', compute='_compute_counts')
+    line_count = fields.Integer('Message Count', compute='_compute_counts')
     selected_count = fields.Integer('Selected', compute='_compute_counts')
 
     @api.depends('line_ids.include')

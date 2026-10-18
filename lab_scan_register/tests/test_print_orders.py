@@ -477,6 +477,10 @@ class TestPrintOrders(ScanCase):
     def test_the_plate_ticket_renders_the_number_the_qr_and_the_patients(self):
         first = self._plate(self._patients('Anu', 'Binu').line_ids)
         second = self._plate(self._patients('Cini').line_ids, printer=self.p2)
+        # the plate picture from its sliced file goes on the ticket too (Odoo 20 hands a
+        # binary field back as a BinaryValue: drawn with image_data_uri, never .decode())
+        second._apply_slice_head(ctb(), 'cini.ctb', 0)
+        self.assertTrue(second.preview_small)
         html = self.env['ir.actions.report']._render_qweb_html(
             'lab_scan_register.action_report_plate_ticket', (first | second).ids)[0].decode()
         for order in (first, second):
@@ -484,7 +488,7 @@ class TestPrintOrders(ScanCase):
             self.assertIn(order.printer_id.code, html)
         for name in ('Anu', 'Binu', 'Cini'):
             self.assertIn(name, html)
-        self.assertEqual(html.count('data:image/png;base64,'), 2, "a QR per plate")
+        self.assertEqual(html.count('data:image/png;base64,'), 3, "a QR per plate, and the sliced plate's picture")
         self.assertEqual(html.count('page-break-after:always'), 1, "one ticket a page, no blank last page")
         self.assertEqual(first.action_print_ticket()['report_name'], 'lab_scan_register.report_plate_ticket')
 

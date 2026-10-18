@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- (client, 2026-10-15: "a button in scan register to map the SOs if the SOs
+         are directly created, not from scan registers") -->
+    <record id="view_scan_link_orders_form" model="ir.ui.view">
+        <field name="name">lab.scan.link.orders.form</field>
+        <field name="model">lab.scan.link.orders</field>
+        <field name="arch" type="xml">
+            <form string="Link Existing Orders">
+                <field name="scan_id" invisible="1"/>
+                <field name="clinic_id" invisible="1"/>
+                <div class="alert alert-info mb-3" role="status">
+                    For each patient, the order that was booked for them in Sales. Where the clinic has one order
+                    for that patient's name it is filled in already - check it. When every patient has an order,
+                    the register is Ordered.
+                </div>
+                <field name="line_ids" nolabel="1">
+                    <list editable="bottom" create="false" delete="false">
+                        <field name="scan_line_id" column_invisible="1"/>
+                        <field name="clinic_id" column_invisible="1"/>
+                        <field name="patient_name" string="Patient"/>
+                        <field name="description" optional="show"/>
+                        <field name="sale_order_id" options="{'no_create': True}" placeholder="Pick the order"/>
+                        <field name="order_patient" optional="show"/>
+                        <field name="order_date" optional="show"/>
+                    </list>
+                </field>
+                <group>
+                    <field name="copy_files"/>
+                </group>
+                <footer>
+                    <button name="action_link" type="object" string="Link Orders" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_scan_form_link_orders" model="ir.ui.view">
+        <field name="name">lab.scan.form.link.orders</field>
+        <field name="model">lab.scan</field>
+        <field name="inherit_id" ref="lab_scan_register.view_scan_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='action_create_orders']" position="after">
+                <button name="action_open_link_orders" type="object" string="Link Existing Orders"
+                        icon="fa-link" invisible="state in ('done', 'cancel')"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

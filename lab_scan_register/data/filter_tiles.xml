@@ -24,10 +24,10 @@
             <field name="sequence">20</field>
             <field name="row">1</field>
             <field name="model_id" ref="lab_scan_register.model_lab_scan"/>
-            <field name="domain">[('state', '=', 'confirmed')]</field>
+            <field name="domain">[('state', '=', 'confirmed'), ('already_printed', '=', False)]</field>
             <field name="color">amber</field>
             <field name="icon">fa-inbox</field>
-            <field name="tooltip">Confirmed, waiting to go for 3D printing</field>
+            <field name="tooltip">Confirmed, waiting to go for 3D printing (not those printed already)</field>
         </record>
         <record id="tile_scan_printing" model="filter.tile">
             <field name="name">Sent for Printing</field>

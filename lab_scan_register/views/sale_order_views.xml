@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
             <div name="button_box" position="inside">
-                <button name="action_view_scan" type="object" class="oe_stat_button" icon="fa-cube"
+                <button name="action_view_scan" type="object" class="oe_stat_button" icon="fa-inbox"
                         invisible="not scan_id" string="Scan Register"/>
             </div>
             <field name="origin" position="after">

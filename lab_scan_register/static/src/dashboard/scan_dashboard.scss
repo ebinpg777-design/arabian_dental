@@ -483,3 +483,10 @@ $sd-bad: #b42318;
         .o_sd_flow_sep, .o_sd_arrow { display: none; }
     }
 }
+
+// The dashboard IS the action, and scrolls itself. Core locks every action at
+// `html .o_web_client > .o_action_manager > .o_action { overflow: hidden }` on a
+// desktop-width screen, which outranks the bare `.o_sd { overflow-y: auto }` above -
+// so below the fold could not be reached (client, 2026-10-15: "scrolling not
+// working"). Answered at the same weight, as the Technician Day does.
+html .o_web_client > .o_action_manager > .o_action.o_sd { overflow-y: auto; min-height: 0; }

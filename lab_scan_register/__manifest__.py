@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Scan Register',
-    'version': '20.0.2.0.0',
+    'version': '20.0.2.1.0',
     'category': 'Sales/Sales',
     'summary': 'Every scan a doctor sends - by WhatsApp, scanner cloud or e-mail - '
                'registered, confirmed, printed plate by plate as print orders, and turned '
@@ -60,6 +60,7 @@ so without them the labels print without their codes).
         'views/print_wizard_views.xml',
         'report/printer_sticker.xml',
         'views/scan_views.xml',
+        'views/link_orders_views.xml',
         'views/paste_views.xml',
         'views/whatsapp_views.xml',
         'views/sale_order_views.xml',

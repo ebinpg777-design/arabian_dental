@@ -62,7 +62,7 @@
                         </div>
                     </div>
                     <div t-if="o.preview_small" style="margin-top:2mm; text-align:center;">
-                        <img t-att-src="'data:image/png;base64,%s' % o.preview_small.decode()" style="height:30mm;"/>
+                        <img t-att-src="image_data_uri(o.preview_small)" style="height:30mm;"/>
                     </div>
                     <div style="margin-top:3mm; border-top:0.3mm solid #111; padding-top:1.5mm; font-size:8pt; color:#666; text-transform:uppercase; letter-spacing:.08em;">
                         <t t-out="o.patient_count"/> patients · <t t-out="o.model_count"/> models

@@ -491,7 +491,7 @@
                               t-on-click="() => this.open(fp.domain, 'Failed: ' + fp.label, d.models_failed_model)">
                             <t t-out="fp.label"/> <b t-out="fp.count"/></span>
                     </div>
-                    <div class="o_sd_title mt-3"><i class="fa fa-stopwatch fa-clock-o"/> On the plate</div>
+                    <div class="o_sd_title mt-3"><i class="fa fa-clock-o"/> On the plate</div>
                     <div t-foreach="d.plate_stages" t-as="ps" t-key="ps.key" class="o_sd_row">
                         <span class="o_sd_row_l">
                             <t t-out="ps.label"/>

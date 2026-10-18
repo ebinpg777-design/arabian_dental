@@ -72,6 +72,15 @@ class Scan(models.Model):
                                  default=lambda s: s.env.company)
     state = fields.Selection(STATES, string='Status', default='draft', required=True,
                              tracking=True, copy=False, index=True)
+    # Models that are printed already - printed before the register was made, or
+    # sent printed - need no printing room: no plate, no machine, no cure. Ticked
+    # on a confirmed register, its orders are made straight away. (client,
+    # 2026-10-15: "add a boolean Already Printed - those scans can be converted to
+    # orders directly; it can be set in confirmed status")
+    already_printed = fields.Boolean(
+        'Already Printed', copy=False, tracking=True,
+        help="The models are printed already: the register skips 3D printing, and Create Orders makes "
+             "its orders straight from Confirmed.")
 
     # ------------------------------------------------------------- where from
     source = fields.Selection(KINDS, string='Source', required=True, default='whatsapp',
@@ -100,7 +109,7 @@ class Scan(models.Model):
 
     # ------------------------------------------------------------- patients
     line_ids = fields.One2many('lab.scan.line', 'scan_id', string='Patients', copy=True)
-    patient_count = fields.Integer('Patients', compute='_compute_lines', store=True)
+    patient_count = fields.Integer('Patient Count', compute='_compute_lines', store=True)
     patient_names = fields.Char('Patient Names', compute='_compute_lines', store=True)
     date_delivery = fields.Date('Delivery Date', compute='_compute_lines', store=True,
                                 help="The earliest delivery date asked for on any patient.")
@@ -504,6 +513,12 @@ class Scan(models.Model):
                     "%(scans)s is confirmed, so it can no longer be changed (%(fields)s). "
                     "Reset it to draft first — possible until its orders are made.",
                     scans=', '.join(settled.mapped('name')), fields=labels))
+        if 'already_printed' in vals and not workflow:
+            elsewhere = self.filtered(lambda s: s.state != 'confirmed' and s.already_printed != bool(vals['already_printed']))
+            if elsewhere:
+                raise UserError(_(
+                    "Already Printed is set on a confirmed register - %s is not one.",
+                    ', '.join(elsewhere.mapped('name'))))
         files = FILE_FIELDS.intersection(vals)
         if files and not workflow:
             settled = self.filtered(lambda s: s.state in FILES_SETTLED)
@@ -604,11 +619,15 @@ class Scan(models.Model):
         for scan in self:
             if scan.state != 'confirmed':
                 raise UserError(_("%s must be confirmed before it goes for 3D printing.", scan.name))
+            if scan.already_printed:
+                raise UserError(_(
+                    "%s is marked Already Printed - its models need no printing. Create its orders, or "
+                    "untick Already Printed to send it for 3D printing.", scan.name))
             missing = scan.line_ids.filtered(lambda l: not l.has_print_files)
             if missing:
                 raise UserError(_(
                     "Attach the scans for %(patients)s - or the download link - before %(scan)s goes for "
-                    "3D printing.", patients=', '.join(p or _('a patient') for p in missing.mapped('patient_name')),
+                    "3D printing.", patients=', '.join(p or self.env._('a patient') for p in missing.mapped('patient_name')),
                     scan=scan.name))
 
     def action_send_to_print(self):
@@ -623,6 +642,10 @@ class Scan(models.Model):
         if others:
             raise UserError(_("Only confirmed registers go for 3D printing; untick %s.",
                               ', '.join(others.mapped('name'))))
+        printed = self.filtered('already_printed')
+        if printed:
+            raise UserError(_("%s is marked Already Printed - its orders are made from the register, "
+                              "not through the printing room.", ', '.join(printed.mapped('name'))))
         return {'type': 'ir.actions.act_window', 'name': _('Send to 3D Printing'),
                 'res_model': 'lab.scan.print.order.make', 'view_mode': 'form', 'target': 'new',
                 'context': {'active_model': 'lab.scan', 'active_ids': self.ids}}
@@ -755,14 +778,16 @@ class Scan(models.Model):
         """One order per patient, each with its own files and the shared ones. Only
         once the models are printed."""
         self.ensure_one()
-        if self.state != 'printed':
-            raise UserError(_("%s must be printed before its orders are made.", self.name))
+        # printed here, or printed already and marked so on the confirmed register
+        if not (self.state == 'printed' or (self.state == 'confirmed' and self.already_printed)):
+            raise UserError(_("%s must be printed before its orders are made - or, if its models are "
+                              "printed already, tick Already Printed on the confirmed register.", self.name))
         # the product is what the order is made of: needed here, and not before
         # (client, 2026-10-14)
         no_product = self.line_ids.filtered(lambda l: not l.sale_order_id and not l.product_id)
         if no_product:
             raise UserError(_("Pick a product for %(patients)s before the orders of %(scan)s are made.",
-                              patients=', '.join(l.patient_name or _('a patient') for l in no_product),
+                              patients=', '.join(l.patient_name or self.env._('a patient') for l in no_product),
                               scan=self.name))
         shared = self._shared_attachments()
         for line in self.line_ids.filtered(lambda l: not l.sale_order_id):

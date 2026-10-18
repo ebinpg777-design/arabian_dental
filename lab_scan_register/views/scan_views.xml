@@ -29,6 +29,7 @@
                        decoration-warning="download_state == 'soon'"
                        decoration-danger="download_state == 'expired'"/>
                 <field name="order_count" string="Orders" optional="show"/>
+                <field name="already_printed" string="Printed Already" optional="show" widget="boolean" readonly="1"/>
                 <field name="printer_id" string="Machine" optional="show"/>
                 <field name="failed_print_count" string="Failed Models" optional="hide" sum="Failed models"/>
                 <field name="waiting_count" string="Waiting for a Plate" optional="hide" sum="Waiting"/>
@@ -128,7 +129,8 @@
                     <button name="action_confirm" type="object" string="Confirm" class="btn-primary"
                             invisible="state != 'draft'" data-hotkey="v"/>
                     <button name="action_create_orders" type="object" string="Create Orders"
-                            class="btn-primary" icon="fa-shopping-cart" invisible="state != 'printed'" data-hotkey="o"/>
+                            class="btn-primary" icon="fa-shopping-cart" data-hotkey="o"
+                            invisible="not (state == 'printed' or (state == 'confirmed' and already_printed))"/>
                     <button name="action_open_whatsapp" type="object" string="WhatsApp Message"
                             icon="fa-whatsapp" invisible="state == 'cancel'"/>
                     <button name="action_open_link" type="object" string="Open Download Link"
@@ -195,6 +197,9 @@
                                   invisible="priority != '1'"><i class="fa fa-bolt me-1"/>Urgent</span>
                             <span class="badge rounded-pill text-bg-success fs-6 flex-shrink-0 text-nowrap"
                                   invisible="not date_acknowledged"><i class="fa fa-check me-1"/>Acknowledged</span>
+                            <span class="badge rounded-pill text-bg-info fs-6 flex-shrink-0 text-nowrap"
+                                  invisible="not already_printed" title="No 3D printing: the models are printed already">
+                                <i class="fa fa-check-square-o me-1"/>Already printed</span>
                             <span class="badge rounded-pill o_scan_printing_badge fs-6 flex-shrink-0 text-nowrap"
                                   invisible="state != 'in_progress'" title="Printing, or in wash &amp; cure">
                                 <i class="fa fa-print me-1" title="On the machine"/>
@@ -208,6 +213,18 @@
                         </div>
                         <div class="text-muted" invisible="not print_summary or state not in ('printing', 'in_progress', 'printed')">
                             <i class="fa fa-print me-1" title="In printing"/><field name="print_summary" class="oe_inline"/>
+                        </div>
+                    </div>
+                    <!-- printed already: no printing room - the orders straight away (client, 2026-10-15) -->
+                    <div class="alert alert-info d-flex align-items-center gap-3 mb-3" role="status"
+                         invisible="state != 'confirmed'">
+                        <field name="already_printed" widget="boolean_toggle" nolabel="1" class="oe_inline mb-0"/>
+                        <div>
+                            <b>Already printed</b>
+                            <span invisible="already_printed"> — tick it when the models are printed already: the register
+                                skips 3D printing and its orders are made straight away.</span>
+                            <span invisible="not already_printed"> — no 3D printing for this register.
+                                <b>Create Orders</b> makes its orders now.</span>
                         </div>
                     </div>
                     <div class="d-flex flex-wrap align-items-baseline gap-3 mb-3">
@@ -401,7 +418,10 @@
                 <field name="printer_id"/>
                 <filter name="open" string="Open" domain="[('state', 'in', ('draft', 'confirmed', 'printing', 'in_progress', 'printed'))]"/>
                 <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
-                <filter name="to_print" string="To Print" domain="[('state', '=', 'confirmed')]"/>
+                <filter name="to_print" string="To Print" domain="[('state', '=', 'confirmed'), ('already_printed', '=', False)]"/>
+                <filter name="already_printed" string="Already Printed" domain="[('already_printed', '=', True)]"/>
+                <filter name="ready_to_order" string="Ready to Order"
+                        domain="['|', ('state', '=', 'printed'), '&amp;', ('state', '=', 'confirmed'), ('already_printed', '=', True)]"/>
                 <filter name="printing" string="Sent for Printing" domain="[('state', '=', 'printing')]"/>
                 <filter name="in_progress" string="Print In Progress" domain="[('state', '=', 'in_progress')]"/>
                 <filter name="printed" string="Printed" domain="[('state', '=', 'printed')]"/>
@@ -493,7 +513,7 @@
         <field name="res_model">lab.scan</field>
         <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="view_scan_search"/>
-        <field name="domain">[('state', 'in', ('confirmed', 'printing', 'in_progress', 'printed'))]</field>
+        <field name="domain">['|', ('state', 'in', ('printing', 'in_progress', 'printed')), '&amp;', ('state', '=', 'confirmed'), ('already_printed', '=', False)]</field>
         <field name="context">{'search_default_group_state': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Nothing waiting for the printer</p>
