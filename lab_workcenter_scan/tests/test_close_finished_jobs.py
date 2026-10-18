@@ -171,3 +171,32 @@ class TestCloseFinishedJobs(TransactionCase):
             params.search(
                 [('key', '=', 'lab_workcenter_scan.%s' % key)]).unlink()
         self.assertEqual(self.Production._lab_close_finished_settings(), (2, 500))
+
+    # ------------------------------------------------------------- the lab's own
+    def test_the_lab_ships_the_scheduler_switched_off(self):
+        """Ortho runs it daily. The lab's database holds the migrated real book, so
+        what it would close is looked at before anybody switches it on."""
+        cron = self.env.ref('lab_workcenter_scan.cron_close_finished_jobs')
+        self.assertFalse(cron.active)
+        self.assertEqual(cron.code.strip(), 'model._cron_close_finished_jobs()')
+
+    def test_a_run_closes_the_finished_job_and_keeps_its_arrival(self):
+        """One run end to end: the job whose every step is done is closed, keeping
+        its date_start (the lab's only per-job arrival date); the one with a step
+        still open stays as it is."""
+        self.env['ir.config_parameter'].sudo().set_str(
+            'lab_workcenter_scan.close_finished_mo', '1')
+        finished, unfinished = self._job(), self._job()
+        self._finish_steps(finished)
+        self._finish_steps(unfinished, how_many=1)
+        self.env.flush_all()
+        arrived = finished.date_start
+        self.assertGreaterEqual(self.Production._cron_close_finished_jobs(), 1)
+        finished.invalidate_recordset()
+        unfinished.invalidate_recordset()
+        self.assertEqual(finished.state, 'done')
+        self.assertEqual(finished.date_start, arrived)
+        self.assertNotEqual(unfinished.state, 'done')
+        said = ' '.join(finished.message_ids.mapped('body'))
+        self.assertIn('every step of this job is done', said)
+        self.assertNotIn('delivered to the doctor', said, "nothing here knows it was delivered")

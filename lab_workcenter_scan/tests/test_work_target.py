@@ -283,6 +283,7 @@ class TestWorkTarget(TransactionCase):
         wizard = self.env['lab.work.target.wizard'].create({
             'workcenter_id': self.bench.id,
             'date_from': self.today, 'date_to': self.today,
+            'skip_weekends': False,     # today may be a Sunday
             'line_ids': [(0, 0, {'user_id': self.tech.id, 'target': 11})]})
         wizard.action_save()
         rows = self.Target.search([('date', '=', self.today),
@@ -347,6 +348,7 @@ class TestWorkTarget(TransactionCase):
         wizard_form.workcenter_id = self.bench
         wizard_form.date_from = self.today
         wizard_form.date_to = self.today
+        wizard_form.skip_weekends = False      # today may be a Sunday
         self.assertTrue(wizard_form.line_ids, "the bench's people must be listed")
         with wizard_form.line_ids.edit(0) as line:
             line.target = 9
@@ -365,6 +367,7 @@ class TestWorkTarget(TransactionCase):
         wizard = self.env['lab.work.target.wizard'].create({
             'workcenter_id': self.bench.id,
             'date_from': self.today, 'date_to': self.today,
+            'skip_weekends': False,     # today may be a Sunday
             'line_ids': [(0, 0, {'user_id': self.tech.id, 'target': 4}),
                          (0, 0, {'target': 7})]})
         wizard.action_save()

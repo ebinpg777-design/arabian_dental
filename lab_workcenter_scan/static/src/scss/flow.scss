@@ -487,6 +487,64 @@ html .o_web_client > .o_action_manager > .o_action {
         &.o_fl_proc_idle { color: $o-gray-600; }
     }
 
+    // ON A PHONE OR A TABLET the ten columns become a card. (client, 2026-09-25)
+    //
+    // `min-width: 62rem` above is 992px, which is wider than every phone and
+    // most tablets - so the board could only be read by dragging it sideways,
+    // and the station name scrolled out of view exactly when the figure beside
+    // it needed a name. The same answer the petty-cash list got when it was
+    // 877px wide on a 412px screen: stop being a table.
+    //
+    // Each figure carries its own label (data-label in flow.xml), so the header
+    // row can go and every number still says what it is.
+    @media (max-width: 991.98px) {
+        .o_fl_proc_h {
+            display: none;
+        }
+
+        .o_fl_proc_row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: .25rem .75rem;
+            min-width: 0;            // the 62rem floor is what forced the drag
+            padding: .6rem .5rem .7rem;
+        }
+
+        .o_fl_proc_name {
+            flex: 1 0 100%;          // the station owns the first line
+            margin-bottom: .15rem;
+        }
+
+        // The station rows only. Written for every `.o_fl_num` on the board,
+        // this hid the people table's figures on a phone too - none of them
+        // carries a label - and left its names standing alone.
+        .o_fl_proc_row .o_fl_num {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: baseline;
+            gap: .3rem;
+            text-align: left;
+
+            &::before {
+                content: attr(data-label);
+                font-size: .62rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: .03em;
+                color: $o-gray-600;
+            }
+
+            // A figure with no label is a spacer, not a statistic.
+            &:not([data-label]) { display: none; }
+        }
+
+        // These ride under their own number rather than beside it.
+        .o_fl_proc_row .o_fl_proc_sub {
+            margin-left: .25rem;
+        }
+    }
+
     .o_fl_proc_name { min-width: 0; }
     .o_fl_proc_title {
         display: flex;

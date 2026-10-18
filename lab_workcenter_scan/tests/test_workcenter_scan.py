@@ -518,6 +518,23 @@ class TestStationBoard(TransactionCase):
         self.assertIn('Polish', self.mo.message_ids[0].body,
                       "the trail must name the station it went to")
 
+    def test_a_bench_bound_technician_can_hand_on_to_a_bench_they_cannot_see(self):
+        """The next station is almost never one a bench-bound technician belongs to.
+        Read as them, the next step does not exist - no "handed from" stamp, a trail
+        saying it was the last step - and stamping it must not need their write
+        access, or every hand-over off a staffed bench is refused."""
+        tech = self._bench_user('bench_sender', self.wc_a)
+        station = self.env['lab.station'].with_user(tech)
+        station.accept(self.wo_a.id)
+        self.wo_a.with_user(self.head).action_assign_bench_user(tech.id)
+        station.handover(self.wo_a.id)
+        self.wo_a.invalidate_recordset()
+        self.wo_b.invalidate_recordset()
+        self.assertEqual(self.wo_a.state, 'done')
+        self.assertEqual(self.wo_b.handed_from_workcenter_id, self.wc_a)
+        self.assertEqual(self.wo_b.handed_from_user_id, tech)
+        self.assertNotIn('last step', self.mo.message_ids[0].body)
+
     def test_the_next_station_is_known_before_the_button_is_pressed(self):
         """The head decides whether to hand over; they cannot decide if the board will
         not say where it goes."""

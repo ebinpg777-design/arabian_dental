@@ -162,7 +162,7 @@ class MrpProduction(models.Model):
                 closed |= job
         return closed
 
-    def _lab_mark_done_quietly(self, finished_on=False):
+    def _lab_mark_done_quietly(self, finished_on=False, note=None):
         """Finish one job without ever putting a dialog in a storeman's way.
 
         `button_mark_done` is interactive by design: rather than finishing, it can RETURN
@@ -174,6 +174,9 @@ class MrpProduction(models.Model):
 
         A savepoint per job: one case that cannot be finished must not roll back the
         delivery that triggered this, nor the other jobs on the same order.
+
+        `note`: what the job's chatter says - the delivery's words unless the caller
+        closes it for another reason (the finished-jobs scheduler).
         """
         self.ensure_one()
         started_at = fields.Datetime.now()
@@ -240,7 +243,7 @@ class MrpProduction(models.Model):
                     invented.unlink()
                 # Inside the savepoint: a mail-layer failure here would otherwise
                 # escape and roll back the delivery that triggered all this.
-                self.message_post(body=_(
+                self.message_post(body=note or _(
                     "Closed automatically: this appliance has been delivered to the "
                     "doctor."))
         except SERIALIZATION_ERRORS:

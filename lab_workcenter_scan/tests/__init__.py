@@ -14,3 +14,4 @@ from . import test_workorder_form
 from . import test_station_speed
 from . import test_close_finished_jobs
 from . import test_workcentre_all_jobs
+from . import test_correct_finished

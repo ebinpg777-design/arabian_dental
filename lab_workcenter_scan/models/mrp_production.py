@@ -282,14 +282,21 @@ class MrpProduction(models.Model):
             [('state', 'in', CLOSABLE)], order='date_start, id')
         if not candidates:
             return 0
-        due = (candidates._lab_every_step_done()
-               | candidates._lab_invoiced_and_settled(grace_days))
+        steps_done = candidates._lab_every_step_done()
+        due = steps_done | candidates._lab_invoiced_and_settled(grace_days)
         closed = 0
         for job in due[:batch]:
             # No finished_on: unlike the delivery rule there is no shipping date
             # to borrow, and dating a close by the invoice would put the job's
             # finish before its last step. Now is the honest answer.
-            if job._lab_mark_done_quietly():
+            #
+            # The chatter says WHY: the shared close otherwise writes "delivered to
+            # the doctor", which neither rule here knows to be true.
+            note = (_("Closed automatically: every step of this job is done.")
+                    if job in steps_done else
+                    _("Closed automatically: the order is invoiced and the invoice "
+                      "has stood %s day(s) unchanged.", grace_days))
+            if job._lab_mark_done_quietly(note=note):
                 closed += 1
         if closed:
             _logger.info("lab_workcenter_scan: closed %s finished job(s) of %s due",

@@ -1023,17 +1023,31 @@ class LabStation(models.AbstractModel):
             if workcenter_id else self._default_workcenter()
         if not workcenter:
             raise UserError(_("Choose a station before scanning."))
-        wo = self._workorder_from_code(code, workcenter)
-        if wo.workcenter_id != workcenter:
-            raise UserError(_(
-                "%(job)s is at %(where)s, not here. A job is corrected at the "
-                "bench it is standing at.",
-                job=self._job_label(wo),
-                where=wo.workcenter_id.sudo().display_name))
+        try:
+            wo = self._workorder_from_code(code, workcenter)
+        except UserError:
+            wo = self.env['mrp.workorder']
+        if not wo or wo.workcenter_id != workcenter:
+            # Nothing open of it here: the job may be one this bench has already
+            # passed on, whose names are wrong. (client, 2026-10-15)
+            try:
+                finished = self._workorder_from_code(code, workcenter, finished_here=True)
+            except UserError:
+                finished = self.env['mrp.workorder']
+            if finished:
+                wo = finished
+            elif not wo:
+                self._workorder_from_code(code, workcenter)     # the open lookup's own words
+            else:
+                raise UserError(_(
+                    "%(job)s is at %(where)s, not here. A job is corrected at the "
+                    "bench it is standing at.",
+                    job=self._job_label(wo),
+                    where=wo.workcenter_id.sudo().display_name))
         wo._check_bench_access(_('correct a job'))
-        if wo.state in ('done', 'cancel'):
+        if wo.state == 'cancel':
             raise UserError(_(
-                "%s is finished, so there is nothing left to correct here.",
+                "%s is cancelled, so there is nothing left to correct here.",
                 self._job_label(wo)))
         people = [p for p in self._bench_load(workcenter) if p['id'] != 'none']
         role = wo._bench_role(workcenter)
@@ -1041,6 +1055,9 @@ class LabStation(models.AbstractModel):
             'job': self._card(wo, self._ul_labels()),
             'people': people,
             'status': self._job_status(wo),
+            # A finished job: only who did it can be put right - not where it stands.
+            'finished': wo.state == 'done',
+            'finished_at': self._clock(wo.handed_over_at or wo.date_finished) if wo.state == 'done' else '',
             'wants_finisher': workcenter.is_finisher,
             'bench_user_id': wo.bench_user_id.id or False,
             'finisher_user_id': wo.finisher_user_id.id or False,
@@ -1064,6 +1081,19 @@ class LabStation(models.AbstractModel):
         if not wo:
             raise UserError(_("That job no longer exists."))
         workcenter_id = wo.workcenter_id.id
+        if wo.state == 'done':
+            if status and status != 'passed':
+                raise UserError(_("%s is finished: only who did it can be corrected, not where it stands.",
+                                  self._job_label(wo)))
+            changed = wo.action_correct_finished_names(bench_user_id=bench_user_id,
+                                                       finisher_user_id=finisher_user_id)
+            if not changed:
+                raise UserError(_("Nothing was changed."))
+            return {
+                'board': self.get_station(workcenter_id, person_id),
+                'message': _("%(job)s — %(what)s corrected.",
+                             job=self._job_label(wo), what=', '.join(changed)),
+            }
         changed = []
         if bench_user_id is not None and (bench_user_id or False) != (
                 wo.bench_user_id.id or False):
@@ -1532,7 +1562,7 @@ class LabStation(models.AbstractModel):
         return Workorder.search(leaf + open_only, order='sequence, id')
 
     @api.model
-    def _workorder_from_code(self, code, workcenter):
+    def _workorder_from_code(self, code, workcenter, finished_here=False):
         """Find the job a scanned code refers to.
 
         The lab prints several different sheets and they do not all carry the same
@@ -1544,12 +1574,18 @@ class LabStation(models.AbstractModel):
 
         Preference always goes to a work order AT THIS STATION: one order has several
         operations, and the lead scanning at Trimming means the trimming step.
+
+        `finished_here`: the FINISHED steps at this station instead of the open ones -
+        what Correct falls back to when a job card names work this bench has already
+        passed on (client, 2026-10-15: "able to correct finished work orders by
+        scanning, by clicking Correct").
         """
         code = (code or '').strip()
         if not code:
             raise UserError(_("Nothing was scanned."))
         Workorder = self.env['mrp.workorder']
-        open_only = [('state', 'not in', ('done', 'cancel'))]
+        open_only = ([('workcenter_id', '=', workcenter.id), ('state', '=', 'done')] if finished_here
+                     else [('state', 'not in', ('done', 'cancel'))])
 
         # Each number the lab prints, most specific first. The work order barcode names
         # one operation; the manufacturing reference names the case; the sales order may
@@ -1597,9 +1633,17 @@ class LabStation(models.AbstractModel):
                 raise UserError(_(
                     "%s is a STATION label. Scan the job card instead — the station "
                     "label is for moving a job you already have open.", code))
+            if finished_here:
+                raise UserError(_("Nothing finished at %(wc)s matches %(code)s.",
+                                  wc=workcenter.display_name, code=code))
             raise UserError(_(
                 "Nothing open matches %s. Check the job card, or the job may already be "
                 "finished.", code))
+        if finished_here:
+            # the step this bench passed on last: a case redone here has finished here twice
+            return candidates.sorted(
+                lambda w: (w.handed_over_at or w.date_finished or w.create_date, w.id), reverse=True
+            )[:1].with_env(self.env)
 
         here = candidates.filtered(lambda w: w.workcenter_id == workcenter)
         # A two-piece case puts BOTH arches under one number, and they can stand

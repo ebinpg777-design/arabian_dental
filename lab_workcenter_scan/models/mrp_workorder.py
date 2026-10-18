@@ -292,7 +292,13 @@ class MrpWorkorderHandover(models.Model):
                     "%(wo)s has no finishing technician named, and %(wc)s records "
                     "one. Choose who finished it before handing it on.",
                     wo=wo.display_name, wc=wo.workcenter_id.display_name))
-            following = wo.next_workorder_id
+            # Elevated, like the undo: the next bench is usually one a bench-bound
+            # user can neither read nor write, and read as them the job "goes
+            # nowhere" - no stamp, and a trail saying it was the last step. Fresh,
+            # because a value computed under the user's rules may be cached.
+            this = wo.sudo()
+            this.invalidate_recordset(['next_workorder_id', 'next_workcenter_id'])
+            following = this.next_workorder_id
             wo.button_finish()
             wo.write({'handed_over_by_id': self.env.uid,
                       'handed_over_at': fields.Datetime.now()})
@@ -633,6 +639,84 @@ class MrpWorkorderResponsibility(models.Model):
                 "add you to Production Leads on that work centre.",
                 wc=workcenter.display_name, what=what))
         return role
+
+    def action_correct_finished_names(self, bench_user_id=None, finisher_user_id=None):
+        """Put right who did a FINISHED job - its technician and its finishing
+        technician, nothing else. (client, 2026-10-15: "able to correct finished work
+        orders by scanning, by clicking Correct. Only Technician or Finishing
+        Technician can be edited")
+
+        Each name through the rule it has while the job is open: the technician is the
+        lead's call, the finisher anyone's at the bench, and both must work there. A
+        finished job keeps its names - a hand-over needs them - so neither can be
+        cleared where it was required. The stamps stay as they were, so the job counts
+        for the new name on the days it was done, not today, and the daily targets of
+        both names on those days are recounted. Returns what changed, in words.
+        """
+        self.ensure_one()
+        if self.state != 'done':
+            raise UserError(_("%s is not finished - correct it as an open job.", self.display_name))
+        workcenter = self.workcenter_id
+        Users = self.env['res.users']
+
+        def posted(user):
+            return not (workcenter.users or workcenter.head_user_ids) \
+                or user in workcenter.users or user in workcenter.head_user_ids
+
+        old_tech, old_finisher = self.bench_user_id, self.finisher_user_id
+        vals, changed = {}, []
+        if bench_user_id is not None and (bench_user_id or False) != (old_tech.id or False):
+            self._check_bench_access(_('correct who did a job'), leads_only=True)
+            if not bench_user_id:
+                raise UserError(_("%s is finished, so it keeps a technician - choose who did it.",
+                                  self.display_name))
+            user = Users.browse(int(bench_user_id)).exists()
+            if not user or not posted(user):
+                raise UserError(_("%(who)s does not work at %(wc)s.",
+                                  who=user.name or _('That person'), wc=workcenter.display_name))
+            vals['bench_user_id'] = user.id
+            # sale_custom's technician of record, kept in step as on assignment
+            if 'user_id' in self._fields:
+                vals['user_id'] = user.id
+            changed.append(_("technician"))
+        if finisher_user_id is not None and (finisher_user_id or False) != (old_finisher.id or False):
+            self._check_bench_access(_('name the finishing technician'))
+            if not finisher_user_id and workcenter.is_finisher:
+                raise UserError(_("%(wo)s is finished and %(wc)s records who finished it - choose who did.",
+                                  wo=self.display_name, wc=workcenter.display_name))
+            user = Users.browse(int(finisher_user_id)).exists() if finisher_user_id else Users
+            if user and not posted(user):
+                raise UserError(_("%(who)s does not work at %(wc)s.", who=user.name, wc=workcenter.display_name))
+            vals['finisher_user_id'] = user.id or False
+            changed.append(_("finisher"))
+        if not vals:
+            return []
+        self.write(vals)
+        if self.production_id:
+            lines = []
+            if 'bench_user_id' in vals:
+                lines.append(_("technician %(old)s → %(new)s", old=old_tech.name or _('nobody'),
+                               new=self.bench_user_id.name))
+            if 'finisher_user_id' in vals:
+                lines.append(_("finisher %(old)s → %(new)s", old=old_finisher.name or _('nobody'),
+                               new=self.finisher_user_id.name or _('nobody')))
+            self.production_id.message_post(body=_(
+                "%(wo)s at %(wc)s, finished, corrected by %(who)s: %(what)s.",
+                wo=self.display_name, wc=workcenter.display_name, who=self.env.user.name,
+                what='; '.join(lines)))
+        self._recount_credit_targets(old_tech | old_finisher | self.bench_user_id | self.finisher_user_id)
+        return changed
+
+    def _recount_credit_targets(self, users):
+        """The daily targets of `users` on the days this job is credited to them -
+        the day it was given out, taken and handed on - counted again."""
+        self.ensure_one()
+        Station = self.env['lab.station']
+        days = {Station._lab_time(stamp).date()
+                for stamp in (self.bench_assigned_at, self.accepted_at, self.handed_over_at) if stamp}
+        if users and days:
+            self.env['lab.work.target'].sudo().search(
+                [('user_id', 'in', users.ids), ('date', 'in', list(days))]).action_refresh()
 
     def action_assign_finisher(self, user_id):
         """Name who finished the job, at a bench that records that separately.

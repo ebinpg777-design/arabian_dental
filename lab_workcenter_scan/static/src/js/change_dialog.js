@@ -31,6 +31,10 @@ export class ChangeDialog extends Component {
         benchUserId: t.or([t.number(), t.boolean()]),
         finisherUserId: t.or([t.number(), t.boolean()]),
         canAssign: t.boolean(),      // giving work out is the lead's call
+        // A job this bench has passed on: only who did it can be corrected, and a
+        // finished job keeps its names (client, 2026-10-15)
+        finished: t.boolean().optional(),
+        finishedAt: t.string().optional(),
         onConfirm: t.function(),     // async ({benchUserId, finisherUserId, status}) => void
     });
 
@@ -66,11 +70,18 @@ export class ChangeDialog extends Component {
             return;
         }
         // Tapping the name already on the job clears it: the correction is as
-        // often "nobody, this was never given out" as it is another name.
+        // often "nobody, this was never given out" as it is another name - but a
+        // finished job was handed on with a name, and keeps one.
+        if (this.props.finished && this.state.benchUserId === id) {
+            return;
+        }
         this.state.benchUserId = this.state.benchUserId === id ? false : id;
     }
 
     pickFinisher(id) {
+        if (this.props.finished && this.state.finisherUserId === id) {
+            return;
+        }
         this.state.finisherUserId = this.state.finisherUserId === id ? false : id;
     }
 

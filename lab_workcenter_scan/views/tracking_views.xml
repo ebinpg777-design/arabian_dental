@@ -51,6 +51,16 @@
                         <field name="open_workorder_count" widget="statinfo"
                                string="Jobs Here"/>
                     </button>
+                    <!-- The whole history of the bench, finished work included.
+                         "Jobs Here" is the queue and the flow board's drill is
+                         narrower still; neither answers "what has this bench
+                         done". (client, 2026-09-26) -->
+                    <button name="action_view_all_workorders" type="object"
+                            class="oe_stat_button" icon="fa-list"
+                            invisible="all_workorder_count == 0">
+                        <field name="all_workorder_count" widget="statinfo"
+                               string="All Jobs"/>
+                    </button>
                 </div>
             </xpath>
         </field>

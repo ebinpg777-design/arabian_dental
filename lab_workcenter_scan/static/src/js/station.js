@@ -441,6 +441,8 @@ export class LabStation extends Component {
             benchUserId: found.bench_user_id,
             finisherUserId: found.finisher_user_id,
             canAssign: !!found.can_assign,
+            finished: !!found.finished,
+            finishedAt: found.finished_at || "",
             onConfirm: async ({ benchUserId, finisherUserId, status }) => {
                 const result = await this.orm.call("lab.station", "apply_change", [
                     found.job.id,

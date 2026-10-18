@@ -380,6 +380,16 @@ class TestTechDay(TransactionCase):
         self.assertEqual(absent['stations'], [self.other.id])
         self.assertGreaterEqual(data['kpis']['absent'], 1)
 
+    def test_a_check_in_alone_does_not_make_a_technician(self):
+        """Everybody checks in - the field team and the office too. A row is for
+        somebody who works a bench: named on one, or on a job that day."""
+        driver = self.env['res.users'].create({'name': 'TD Driver', 'login': 'td_driver'})
+        for user in (self.asha, driver):
+            self._attend(self._employee(user), self.at(9, 0), self.at(17, 0))
+        rows = [r['id'] for r in self.Day.get_day(day=fields.Date.to_string(self.day), slot=60)['rows']]
+        self.assertIn(self.asha.id, rows, "named on a bench and present: idle all day, still her row")
+        self.assertNotIn(driver.id, rows)
+
     # ------------------------------------------------------ idle, and whose it is
     def test_idle_is_counted_outside_lunch_and_kept_as_periods(self):
         """Asha is in 09:00-17:00 on an 08-12 / 13-17 roster: the lunch is not idle,

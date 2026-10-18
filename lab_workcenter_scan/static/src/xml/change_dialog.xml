@@ -15,16 +15,23 @@
                 <span t-if="this.props.job.patient and this.props.job.clinic"> · </span>
                 <span t-if="this.props.job.clinic" class="o_st_clinic" t-out="this.props.job.clinic"/>
             </div>
-            <div class="o_st_doing_next">
+            <div t-if="!this.props.finished" class="o_st_doing_next">
                 <i class="fa fa-industry me-1" title="Now at"/>
                 Now at <strong t-out="this.props.job.operation"/>
             </div>
+            <div t-else="" class="o_st_doing_next">
+                <i class="fa fa-check-circle me-1" title="Finished"/>
+                <strong t-out="this.props.job.operation"/> finished here<t t-if="this.props.finishedAt"> at <t t-out="this.props.finishedAt"/></t>
+            </div>
+        </div>
+        <div t-if="this.props.finished" class="o_st_change_note">
+            This job is finished: only who did it can be corrected.
         </div>
 
         <!-- Who is doing it. Tapping the name already on the job clears it:
              "nobody, this was never given out" is as common a correction as
              another name. -->
-        <div class="o_st_doing_lead">Who is doing it?</div>
+        <div class="o_st_doing_lead"><t t-if="this.props.finished">Who did it?</t><t t-else="">Who is doing it?</t></div>
         <div t-if="!this.props.canAssign" class="o_st_change_note">
             Giving work out is the bench lead's call, so the name is shown but
             cannot be changed here.
@@ -54,8 +61,8 @@
             </div>
         </t>
 
-        <div class="o_st_doing_lead">Where does it stand?</div>
-        <div class="o_st_tiles o_st_tiles_status">
+        <div t-if="!this.props.finished" class="o_st_doing_lead">Where does it stand?</div>
+        <div t-if="!this.props.finished" class="o_st_tiles o_st_tiles_status">
             <button t-foreach="this.statuses" t-as="s" t-key="s.key"
                     class="o_st_tile o_st_tile_status"
                     t-att-class="this.state.status === s.key ? 'o_st_tile_on' : ''"

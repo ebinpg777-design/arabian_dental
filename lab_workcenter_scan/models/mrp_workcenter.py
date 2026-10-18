@@ -97,12 +97,31 @@ class MrpWorkcenter(models.Model):
                                           string='Jobs Here')
 
     def _compute_open_count(self):
-        counts = dict(self.env['mrp.workorder']._read_group(
+        # Both counts in two grouped reads rather than one per bench per field.
+        Workorder = self.env['mrp.workorder']
+        open_counts = dict(Workorder._read_group(
             [('workcenter_id', 'in', self.ids),
              ('state', 'not in', ('done', 'cancel'))],
             ['workcenter_id'], ['__count']))
+        all_counts = dict(Workorder._read_group(
+            [('workcenter_id', 'in', self.ids)], ['workcenter_id'], ['__count']))
         for wc in self:
-            wc.open_workorder_count = counts.get(wc, 0)
+            wc.open_workorder_count = open_counts.get(wc, 0)
+            wc.all_workorder_count = all_counts.get(wc, 0)
+
+    # EVERY job this bench has ever had, beside the count of what is on it now.
+    # "Jobs Here" is the queue - what is open, which is what the floor works
+    # from. It is not an answer to "what has this bench done", and the flow
+    # board's own drill narrows harder still (live orders only, on purpose: the
+    # drill has to hold the same work the number counted). Neither reaches the
+    # finished work, so this does. (client, 2026-09-26)
+    #
+    # NOT `workorder_count`: core already owns that name here and it is the OPEN
+    # count (state not in done/cancel), computed together with workcenter_load
+    # and the late and blocked counts. Redefining it would have taken those
+    # three down with it, silently.
+    all_workorder_count = fields.Integer(compute='_compute_open_count',
+                                         string='All Jobs')
 
     def action_view_open_workorders(self):
         self.ensure_one()
@@ -111,7 +130,34 @@ class MrpWorkcenter(models.Model):
             'res_model': 'mrp.workorder', 'view_mode': 'list,form',
             'domain': [('workcenter_id', '=', self.id),
                        ('state', 'not in', ('done', 'cancel'))],
+            'views': self._lab_case_views(),
         }
+
+    def action_view_all_workorders(self):
+        """Every job at this bench, finished ones included."""
+        self.ensure_one()
+        search = self.env.ref('mrp.view_mrp_production_workorder_form_view_filter',
+                              raise_if_not_found=False)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('All jobs at %s', self.display_name),
+            'res_model': 'mrp.workorder', 'view_mode': 'list,form',
+            'domain': [('workcenter_id', '=', self.id)],
+            'views': self._lab_case_views(),
+            # Grouped by status, so "to be done" and "done" at this bench are
+            # two bands rather than 4,388 rows to scroll. The filter is called
+            # `status` in core's search view and lives only in THAT one, so the
+            # view is pinned - `search_default_groupby_state` was a guess and
+            # did nothing at all, silently, which is how these go wrong.
+            'search_view_id': (search.id, search.name) if search else False,
+            'context': {'search_default_status': 1},
+        }
+
+    def _lab_case_views(self):
+        """Named by case, not by bench: the title already says which bench."""
+        view = self.env.ref('lab_workcenter_scan.view_workorder_list_case',
+                            raise_if_not_found=False)
+        return [(view.id if view else False, 'list'), (False, 'form')]
 
     def action_assign_scan_codes(self):
         """Give codes to work centres that predate this module."""

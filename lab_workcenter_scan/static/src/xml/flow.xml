@@ -184,27 +184,27 @@
                             </span>
                             <span class="o_fl_proc_bar"><span t-attf-style="width: {{ s.pct }}%"/></span>
                         </span>
-                        <span class="o_fl_num">
+                        <span class="o_fl_num" data-label="Queue now">
                             <b t-out="this.fmt(s.here)"/>
                             <span t-if="s.here_waiting" class="o_fl_proc_sub">
                                 <t t-out="this.fmt(s.here_waiting)"/> waiting
                             </span>
                         </span>
-                        <span class="o_fl_num" t-out="s.in_day"/>
-                        <span class="o_fl_num o_fl_num_fin" t-out="s.out_day"/>
-                        <span class="o_fl_num" t-att-class="{ 'o_fl_net_up': s.net_day > 0, 'o_fl_net_down': s.net_day &lt; 0 }"
+                        <span class="o_fl_num" data-label="In" t-out="s.in_day"/>
+                        <span class="o_fl_num o_fl_num_fin" data-label="Out" t-out="s.out_day"/>
+                        <span class="o_fl_num" data-label="Net" t-att-class="{ 'o_fl_net_up': s.net_day > 0, 'o_fl_net_down': s.net_day &lt; 0 }"
                               t-out="this.signed(s.net_day)"/>
-                        <span class="o_fl_num" t-out="this.minutesOf(s.wait_min)"/>
-                        <span class="o_fl_num">
+                        <span class="o_fl_num" data-label="Wait to start" t-out="this.minutesOf(s.wait_min)"/>
+                        <span class="o_fl_num" data-label="Step time">
                             <t t-out="this.minutesOf(s.cycle_min)"/>
                             <span t-if="s.over_day" class="o_fl_proc_sub o_fl_over"><t t-out="s.over_day"/> over</span>
                         </span>
-                        <span class="o_fl_num" t-out="s.people_day || '—'"/>
-                        <span class="o_fl_num o_fl_when">
+                        <span class="o_fl_num" data-label="People" t-out="s.people_day || '—'"/>
+                        <span class="o_fl_num o_fl_when" data-label="Hours">
                             <t t-if="s.first"><t t-out="s.first"/><t t-if="s.last"> – <t t-out="s.last"/></t></t>
                             <t t-else="">—</t>
                         </span>
-                        <span class="o_fl_num" t-att-class="{ 'o_fl_hot_n': s.stuck }">
+                        <span class="o_fl_num" data-label="Stuck" t-att-class="{ 'o_fl_hot_n': s.stuck }">
                             <t t-if="s.stuck"><t t-out="this.fmt(s.stuck)"/></t>
                             <t t-else="">—</t>
                             <span t-if="s.oldest_h >= 48" class="o_fl_proc_sub">oldest <t t-out="this.daysOf(s.oldest_h)"/></span>

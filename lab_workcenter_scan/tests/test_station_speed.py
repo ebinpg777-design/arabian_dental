@@ -2,8 +2,10 @@
 """The manufacturing boards read the live set once, and the stamps they count are indexed.
 
 (client, 2026-10-14: "fix any performance issues in the manufacturing module")
-Only the loading work of Ortho 22b6d02 is here: the quicker scan beside it (4b6eff0)
-was reverted at the client's request and never came to the lab.
+The loading work of Ortho 22b6d02, and d5f318c's floor shared between boards for a
+few seconds (2026-10-15: opening a station took four seconds on the live server).
+The quicker scan beside them (4b6eff0) was reverted at the client's request and
+never came to the lab.
 """
 from odoo import fields
 from odoo.tests import TransactionCase, tagged
