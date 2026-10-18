@@ -732,16 +732,21 @@ class TestIncentiveOnMargin(IncentiveCommon):
         with self.assertRaises(ValidationError):
             self._traded('Bought-in, forgotten', 900.0, incentive_basis='margin_amount')
 
-    def test_the_upgrade_puts_an_incentive_price_on_its_basis(self):
-        """An incentive price used to apply just by being set; after the upgrade it
-        needs the 'price' basis, or the product quietly earns on the full bill."""
+    def _migration(self, version):
         import importlib.util
         import os
         path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                            'migrations', '20.0.1.6.0', 'post-migrate.py')
-        spec = importlib.util.spec_from_file_location('lab_incentive_migrate_1_6', path)
+                            'migrations', version, 'post-migrate.py')
+        spec = importlib.util.spec_from_file_location(
+            'lab_incentive_migrate_%s' % version.replace('.', '_'), path)
         migration = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(migration)
+        return migration
+
+    def test_the_upgrade_puts_an_incentive_price_on_its_basis(self):
+        """An incentive price used to apply just by being set; after the upgrade it
+        needs the 'price' basis, or the product quietly earns on the full bill."""
+        migration = self._migration('20.0.1.6.0')
         priced = self.env['product.template'].create({
             'name': 'Priced before the basis existed', 'list_price': 3000.0,
             'incentive_price': 300.0})
@@ -752,6 +757,21 @@ class TestIncentiveOnMargin(IncentiveCommon):
         (priced | unpriced).invalidate_recordset()
         self.assertEqual(priced.incentive_basis, 'price')
         self.assertEqual(unpriced.incentive_basis, 'sale')
+
+    def test_the_upgrade_labels_the_lines_computed_before_it(self):
+        """Lines from before the basis existed carry none: the Counted On column was
+        blank and the working's note left out the incentive-priced ones."""
+        self._order(self.costly)
+        self._order(self.plain)
+        sheet = self._computed()
+        self.env.flush_all()
+        self.env.cr.execute("UPDATE lab_incentive_sheet_line SET incentive_basis = NULL "
+                            "WHERE id IN %s", [tuple(sheet.line_ids.ids)])
+        self._migration('20.0.1.7.0').migrate(self.env.cr, '20.0.1.6.0')
+        self.env.invalidate_all()
+        by_product = {l.product_id: l.incentive_basis for l in sheet.line_ids}
+        self.assertEqual(by_product, {self.costly: 'price', self.plain: 'sale'})
+        self.assertIn('incentive price', sheet.slab_widget_data['base_note'])
 
 
 @tagged('post_install', '-at_install')

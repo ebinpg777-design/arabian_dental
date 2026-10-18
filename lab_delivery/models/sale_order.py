@@ -135,7 +135,11 @@ class SaleOrder(models.Model):
                 for d in order.delivery_ids)
 
     def _compute_lab_delivery_count(self):
-        counts = dict(self.env['lab.delivery']._read_group(
+        # A count, read as the system: office sales staff may open an order but not a
+        # dispatch (Track a Work answers them), and a stat field that raised for them
+        # took the whole order form down with an Access Error - no plain salesperson
+        # could open a sale order at all.
+        counts = dict(self.env['lab.delivery'].sudo()._read_group(
             [('sale_order_id', 'in', self.ids)], ['sale_order_id'], ['__count']))
         for order in self:
             order.lab_delivery_count = counts.get(order, 0)

@@ -10,3 +10,4 @@ from . import test_report_day_bounds
 from . import test_order_list_appliance
 from . import test_order_list_selection
 from . import test_order_line_cast
+from . import test_change_customer

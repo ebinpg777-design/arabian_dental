@@ -14,10 +14,12 @@ _logger = logging.getLogger(__name__)
 
 def migrate(cr, version):
     env = api.Environment(cr, SUPERUSER_ID, {})
-    # '>' and not '!=': on Odoo 20 ('incentive_price', '!=', 0) also matches the
-    # products that never had one (NULL), and would put every product on 'price'.
+    # Not ('incentive_price', '!=', 0): on Odoo 20 that also matches the products
+    # that never had one (NULL), and would put every product on 'price'. A
+    # comparison leaves NULL out.
     products = env['product.template'].with_context(active_test=False).search([
-        ('incentive_price', '>', 0), ('incentive_basis', '=', 'sale')])
+        '|', ('incentive_price', '>', 0), ('incentive_price', '<', 0),
+        ('incentive_basis', '=', 'sale')])
     if products:
         products.write({'incentive_basis': 'price'})
     _logger.info("lab_incentive: incentive basis set to 'price' on %d product(s) "

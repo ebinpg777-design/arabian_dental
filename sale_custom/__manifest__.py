@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Sales Custom',
-    'version': '20.0.1.44.0',
+    'version': '20.0.1.45.0',
     'category': 'Sales',
     'summary': 'Dental lab customization: per-patient orders, MRP job cards, GST invoicing, daily sales',
     'description': """
@@ -62,6 +62,7 @@ Re-implemented for Odoo 19. Provides:
         'views/order_list_views.xml',
         'views/order_count_views.xml',
         'views/confirm_wizard_views.xml',
+        'views/change_customer_views.xml',
         'security/ir.access.csv',
     ],
     'assets': {
