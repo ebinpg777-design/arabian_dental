@@ -125,3 +125,50 @@ class TestDirectPayment(TransactionCase):
         not carry a partner_type value that trips those by coincidence."""
         payment = self._payment(payment_type='inbound')
         self.assertEqual(payment.partner_type, 'supplier')
+
+    # ------------------------------------------- Register Payment on invoices
+    # The widened account-type list used to reach the Register Payment wizard too:
+    # it took an invoice's income (a bill's expense) line as a line to pay, found
+    # money going both ways, and refused every invoice. (found 2026-10-15)
+    def _invoice(self, move_type, account, partner):
+        move = self.env['account.move'].create({
+            'move_type': move_type, 'partner_id': partner.id,
+            'invoice_date': '2026-10-01', 'date': '2026-10-01',
+            'invoice_line_ids': [(0, 0, {'name': 'Crown', 'quantity': 1, 'price_unit': 400.0,
+                                         'account_id': account.id, 'tax_ids': [(6, 0, [])]})],
+        })
+        move.action_post()
+        return move
+
+    def _register(self, moves):
+        return self.env['account.payment.register'].with_context(
+            active_model='account.move', active_ids=moves.ids).create(
+            {'journal_id': self.journal.id})._create_payments()
+
+    def test_register_payment_pays_a_customer_invoice(self):
+        clinic = self.env['res.partner'].create({'name': 'Register Payment Clinic'})
+        invoice = self._invoice('out_invoice', self.income_account, clinic)
+        payments = self._register(invoice)
+        self.assertEqual(len(payments), 1)
+        self.assertEqual(payments.payment_type, 'inbound')
+        self.assertAlmostEqual(payments.amount, 400.0)
+        self.assertIn(invoice.payment_state, ('paid', 'in_payment'))
+
+    def test_register_payment_pays_a_vendor_bill(self):
+        vendor = self.env['res.partner'].create({'name': 'Register Payment Vendor'})
+        bill = self._invoice('in_invoice', self.expense_account, vendor)
+        payments = self._register(bill)
+        self.assertEqual(payments.payment_type, 'outbound')
+        self.assertIn(bill.payment_state, ('paid', 'in_payment'))
+
+    def test_only_a_direct_payment_reads_expense_and_income_as_its_counterpart(self):
+        """Everything else - the wizard included - sees core's own list."""
+        self.assertEqual(sorted(self.Payment._get_valid_payment_account_types()),
+                         ['asset_receivable', 'liability_payable'])
+        clinic = self.env['res.partner'].create({'name': 'Plain Payment Clinic'})
+        plain = self.Payment.create({'payment_type': 'inbound', 'partner_type': 'customer',
+                                     'partner_id': clinic.id, 'journal_id': self.journal.id, 'amount': 75.0})
+        plain.action_post()
+        _liquidity, counterpart, writeoff = plain._seek_for_lines()
+        self.assertEqual(counterpart.account_id.account_type, 'asset_receivable')
+        self.assertFalse(writeoff)

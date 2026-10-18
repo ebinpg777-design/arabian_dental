@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""The follow-up column must not ask the database once per row.
+"""The follow-up column, and sending, must not ask the database once per row.
 
 `_ebshel_judge` resolves which follow-up level a customer has reached, and every
 caller of it is a loop: the column on a partner list, the collections desk, the
@@ -7,6 +7,8 @@ nightly job. Ortho found it SEARCHING the level table for each one - a 200-row l
 issued 118 searches for an answer that is identical every time (Ortho 9b330cd,
 2026-10-04). The lab's Odoo 20 review had fixed the same fault its own way: the
 ladder is read once per call (`Level._of_company`) and handed to every judgement.
+Sending missed it: the level after the one sent (`_next`) was still searched for once
+per customer, by the nightly job and the desk's Send alike; it takes the ladder now.
 
 Asserted as a query COUNT against the level table, because that is the thing that
 regresses: the figures were always right, they were just bought one query at a time.
@@ -16,6 +18,7 @@ from datetime import timedelta
 
 from odoo import fields
 from odoo.tests import TransactionCase, tagged
+from odoo.tools import SQL
 
 
 @contextmanager
@@ -26,8 +29,10 @@ def counted(cr, needle):
 
     def spy(query, params=None, log_exceptions=True):
         box['n'] += 1
-        if needle in str(query):
+        text = query._sql_tuple[0] if isinstance(query, SQL) else str(query)
+        if needle in text:
             box['hits'] += 1
+            box.setdefault('seen', []).append(text)
         return original(query, params, log_exceptions)
 
     cr.execute = spy
@@ -104,3 +109,32 @@ class TestFollowupQueries(TransactionCase):
         self.levels.filtered(lambda l: l.name == 'Final').write({'days': 40})
         self.assertEqual(Level._for_days(45, self.own).name, 'Final', 'the level moved')
         self.assertEqual(Level._for_days(45, self.own, levels=Level._of_company(self.own)).name, 'Final')
+
+    def test_the_next_level_comes_from_the_ladder_without_a_query(self):
+        Level = self.env['ebshel.followup.level']
+        ladder = Level._of_company(self.own)
+        ladder.mapped('days')                                   # read, as its callers have it
+        reminder, chase, final = self.levels
+        with counted(self.env.cr, 'FROM "ebshel_followup_level"') as box:
+            waits = [level._wait_days(ladder) for level in (reminder, chase, final)]
+        self.assertEqual(box['n'], 0, "the following level is picked from the ladder, not searched for")
+        self.assertEqual(waits, [23, 30, final.repeat_days])
+        self.assertEqual(waits, [level._wait_days() for level in (reminder, chase, final)],
+                         "and agrees with the search it replaces")
+        self.assertEqual(reminder._next(ladder), chase)
+        self.assertFalse(final._next(ladder))
+
+    def test_sending_to_many_customers_does_not_search_the_levels_for_each(self):
+        Level = self.env['ebshel.followup.level']
+        # the company's own ladder is this one level: nothing follows it, so it repeats
+        Level.search([('company_id', '=', self.company.id)]).write({'active': False})
+        letter = Level.create({'name': 'Q letter', 'days': 5, 'action': 'letter', 'repeat_days': 20})
+        self.env.flush_all()
+        self.env.invalidate_all()
+        with counted(self.env.cr, 'FROM "ebshel_followup_level"') as box:
+            result = self.partners.action_ebshel_send_reminder(level_id=letter.id)
+        self.assertEqual(sorted(result['sent']), sorted(self.partners.ids))
+        self.assertLess(box['hits'], len(self.partners),
+                        "the level after the one sent was searched for once per customer:\n%s"
+                        % '\n'.join(box.get('seen', [])))
+        self.assertEqual(set(self.partners.mapped('ebshel_followup_next_date')), {self.today + timedelta(days=20)})

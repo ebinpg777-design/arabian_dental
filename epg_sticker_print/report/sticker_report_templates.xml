@@ -90,6 +90,12 @@
     <!-- The PDF: rolls = one label per page; sheets = a fixed grid, one page per N labels. -->
     <template id="report_sticker">
         <t t-call="web.html_container">
+            <!-- The page has no div.article (it would wrap the labels in Odoo's padded
+                 report body), so wkhtmltopdf gets this body bare - without the layout's
+                 <meta charset> - and read it as latin-1: "Destination · 2 orders"
+                 printed "Destination Â· 2 orders", and so did any name with an accent.
+                 The browser sniffs a charset from the first bytes wherever it stands. -->
+            <meta charset="utf-8"/>
             <!-- The label IS the page: the stock wrappers (body / #wrapwrap / main) carry
                  ~2 mm of margins and whitespace line boxes, which pushed every roll label
                  onto a blank second page (2026-08-20). Zero them; every element inside

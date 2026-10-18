@@ -95,7 +95,21 @@ class AccountPayment(models.Model):
         # the journal entry - without it, a direct payment's expense/income line
         # would be read back as a write-off instead of the counterpart, and any
         # edit to the payment afterwards would silently drop it.
-        return super()._get_valid_payment_account_types() + list(DIRECT_ACCOUNT_TYPES)
+        #
+        # ONLY there, for a direct payment. The Register Payment wizard reads the
+        # same list to pick the lines of an invoice that are to be paid: widened
+        # everywhere, it took the invoice's income line along with its receivable
+        # and refused EVERY customer invoice and vendor bill ("You can't register
+        # payments for both inbound and outbound moves at the same time").
+        types = super()._get_valid_payment_account_types()
+        if self.env.context.get('epg_direct_seek'):
+            types = types + list(DIRECT_ACCOUNT_TYPES)
+        return types
+
+    def _seek_for_lines(self):
+        if self.payment_kind == 'direct':
+            return super(AccountPayment, self.with_context(epg_direct_seek=True))._seek_for_lines()
+        return super()._seek_for_lines()
 
     # ------------------------------------------------------------------ constraints
     @api.constrains('payment_kind', 'destination_account_id')

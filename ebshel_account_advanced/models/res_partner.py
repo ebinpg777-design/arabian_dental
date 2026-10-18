@@ -289,20 +289,27 @@ class ResPartner(models.Model):
                                       summary=_('Collections: %s', level.name),
                                       note=_('Overdue %s', self._ebshel_money(self.ebshel_overdue_total)), **values)
 
-    def _ebshel_after_send(self, level):
+    def _ebshel_after_send(self, level, levels=None):
+        """Move the customer on to the level sent. `levels`: see FollowupLevel._next."""
         self.ensure_one()
         today = fields.Date.context_today(self)
         vals = {'ebshel_followup_level_id': level.id,
-                'ebshel_followup_next_date': today + timedelta(days=level._wait_days())}
+                'ebshel_followup_next_date': today + timedelta(days=level._wait_days(levels))}
         if level.on_hold and not self.ebshel_on_hold:
             vals['ebshel_on_hold'] = True
             self._ebshel_log('hold', level, _('By level %s', level.name))
         self.write(vals)
 
     # ------------------------------------------------------------------ actions
-    def action_ebshel_send_reminder(self, level_id=None, note=None):
-        """Email (or record) the reminder for the level reached, with its attachments."""
+    def action_ebshel_send_reminder(self, level_id=None, note=None, levels=None):
+        """Email (or record) the reminder for the level reached, with its attachments.
+        `levels`: the company's levels from Level._of_company(), read once by a caller
+        sending to many customers; read here once otherwise - the level after the one
+        sent used to be searched for once per customer."""
         Level = self.env['ebshel.followup.level']
+        # over RPC this is whatever the caller sent: only a recordset of levels is trusted
+        if not isinstance(levels, models.BaseModel) or levels._name != Level._name:
+            levels = Level._of_company(self.env.company)
         results = {'sent': [], 'skipped': [], 'letters': []}
         today = fields.Date.context_today(self)
         done = set()
@@ -313,8 +320,8 @@ class ResPartner(models.Model):
             done.add(partner.id)
             level = Level.browse(level_id) if level_id else partner.ebshel_suggested_level_id
             if not level:
-                level = Level._for_days(partner.ebshel_overdue_days, self.env.company) or Level.search(
-                    [('company_id', '=', self.env.company.id)], order='days', limit=1)
+                level = Level._for_days(partner.ebshel_overdue_days, self.env.company, levels=levels) or \
+                    levels.sorted(lambda l: (l.days, l.id))[:1]
             if not level:
                 results['skipped'].append({'id': partner.id, 'name': partner.display_name, 'why': _('no follow-up level is defined')})
                 continue
@@ -344,7 +351,7 @@ class ResPartner(models.Model):
                 partner._ebshel_log('note', level, note or _('Level %s reached', level.name), amount=partner.ebshel_overdue_total)
             if level.action in ('email_call', 'call', 'todo') or level.activity_type_id:
                 partner._ebshel_schedule_activity(level)
-            partner._ebshel_after_send(level)
+            partner._ebshel_after_send(level, levels=levels)
             results['sent'].append(partner.id)
         return results
 

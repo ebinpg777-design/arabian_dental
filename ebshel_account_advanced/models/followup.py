@@ -72,14 +72,19 @@ class FollowupLevel(models.Model):
         return self.search([('company_id', '=', company.id), ('days', '<=', max(days_overdue, 0))],
                            order='days desc, id desc', limit=1)
 
-    def _next(self):
+    def _next(self, levels=None):
+        """The level after this one. `levels`: the company's levels from _of_company(),
+        when sending to many customers in a row - one search per customer otherwise."""
         self.ensure_one()
+        if levels is not None and self in levels:
+            # _of_company() reads highest first: walk it lowest first, like the search below
+            return next((level for level in reversed(levels) if level.days > self.days), self.browse())
         return self.search([('company_id', '=', self.company_id.id), ('days', '>', self.days)], order='days, id', limit=1)
 
-    def _wait_days(self):
+    def _wait_days(self, levels=None):
         """How long after this level before the next reminder is due."""
         self.ensure_one()
-        nxt = self._next()
+        nxt = self._next(levels)
         return max((nxt.days - self.days) if nxt else self.repeat_days, 1)
 
     def action_open_partners(self):
@@ -332,7 +337,7 @@ class FollowupDesk(models.AbstractModel):
                     continue
                 try:
                     with self.env.cr.savepoint():
-                        partner.action_ebshel_send_reminder(level_id=level.id, note=_('Sent automatically'))
+                        partner.action_ebshel_send_reminder(level_id=level.id, note=_('Sent automatically'), levels=levels)
                 except Exception:                                      # noqa: BLE001
                     _logger.exception("automatic reminder for %s failed", partner.display_name)
                 if not odoo_module.current_test:

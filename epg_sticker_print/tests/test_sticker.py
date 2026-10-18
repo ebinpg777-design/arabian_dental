@@ -449,6 +449,18 @@ class TestStickerRunPreviewAndInvoices(TransactionCase):
         self.assertEqual(len(self.env['report.epg_sticker_print.report_sticker']._get_report_values(
             self.orders.ids, data={'mode': 'order'})['stickers']), 3, "no limit, the whole run")
 
+    def test_the_body_wkhtmltopdf_gets_says_it_is_utf8(self):
+        """The page has no div.article, so wkhtmltopdf is handed the body bare - without
+        the layout's <meta charset> - and read it as latin-1: "Destination · 2 orders"
+        printed "Destination Â· 2 orders". The body itself must say utf-8."""
+        report = self.env.ref('epg_sticker_print.action_report_sticker')
+        html = report._render_qweb_html(report.report_name, self.orders.ids,
+                                        data={'mode': 'customer', 'ids': self.orders.ids})[0]
+        bodies = report._prepare_wkhtmltopdf_html(html)[0]
+        self.assertEqual(len(bodies), 1, "one body: the labels are not wrapped in the padded layout")
+        self.assertIn('charset="utf-8"', bodies[0][:2000])
+        self.assertIn('· 2 orders', bodies[0], "and it carries the middle dot as text")
+
     def test_each_label_is_cut_out_of_its_sheet(self):
         import shutil
         # Odoo's own finding of wkhtmltopdf (PATH + bin_path), not shutil's; Odoo 20 asks the engine by name
