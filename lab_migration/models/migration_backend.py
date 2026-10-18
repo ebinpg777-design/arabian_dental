@@ -125,14 +125,21 @@ class MigrationBackend(models.Model):
         field drift, e.g. res.partner.mobile removed)."""
         return {k: v for k, v in vals.items() if k in Model._fields}
 
-    def _fetch(self, cur, table, where=None, src_sql=None):
+    def _fetch(self, cur, table, where=None, src_sql=None, changed=False):
         # src_sql lets a spec read from a JOIN instead of a plain table — needed
         # where v17 split a record across tables that v19 merged (mrp.workcenter
         # _inherits resource.resource in v17; v19 has name/code/company_id on the
         # model itself).
         q = src_sql or ('SELECT * FROM "%s"' % table)
-        if where:
-            q += ' WHERE ' + where
+        conds = [where] if where else []
+        if changed and self.txn_changed_since and not src_sql:
+            # master data of an incremental run: only what was added or edited
+            # since the last migration, so the adjustments made here afterwards
+            # (adopted products, codes, tags) are not written over again
+            ts = fields.Datetime.to_string(self.txn_changed_since)
+            conds.append("(create_date >= '%s' OR write_date >= '%s')" % (ts, ts))
+        if conds:
+            q += ' WHERE ' + ' AND '.join('(%s)' % c for c in conds)
         try:
             cur.execute(q)
             # unwrap jsonb translations / memoryviews once, for every reader
@@ -231,7 +238,7 @@ class MigrationBackend(models.Model):
         if spec['key'] == 'product_product':
             return self._sync_products(cur, spec, cache, stats)
         rows = self._fetch(cur, spec['src'], where=spec.get('where'),
-                           src_sql=spec.get('src_sql'))  # ALL companies' rows
+                           src_sql=spec.get('src_sql'), changed=True)  # ALL companies' rows
         if rows is None:
             stats.append("%-22s SKIPPED (no source table '%s')" % (spec['name'], spec['src']))
             return
@@ -353,7 +360,7 @@ class MigrationBackend(models.Model):
         if not spec.get('m2o') and not spec.get('m2m'):
             return
         rows = self._fetch(cur, spec['src'], where=spec.get('where'),
-                           src_sql=spec.get('src_sql'))
+                           src_sql=spec.get('src_sql'), changed=True)
         if rows is None:
             return
         Model = self.env[spec['dst']].with_context(active_test=False)
@@ -487,7 +494,7 @@ class MigrationBackend(models.Model):
 
     def _sync_products(self, cur, spec, cache, stats):
         """Adopt each template's variant instead of creating new product.product."""
-        rows = self._fetch(cur, spec['src'])
+        rows = self._fetch(cur, spec['src'], changed=True)
         if rows is None:
             stats.append("%-22s SKIPPED" % spec['name'])
             return

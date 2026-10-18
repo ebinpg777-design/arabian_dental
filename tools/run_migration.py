@@ -19,6 +19,11 @@ Environment:
                       (default: all, in that order)
     MIG_FROM          documents from this date   (default 2025-01-01 = everything)
     MIG_LIMIT         smoke-test limit per phase (default 0 = all)
+    MIG_CHANGED_SINCE incremental run: only source records created or edited at or
+                      after this moment, UTC, e.g. '2026-10-06 12:35:11' (the newest
+                      write in the previous run's source). Edited documents are
+                      brought up to date; matched or bank-cleared entries are kept.
+                      Run the phases master,gl,ops,inventory,chatter - never opening.
 
 Every phase commits as it goes (the module batches its own commits), so a run
 that stops can be resumed with MIG_PHASES set to what is left.
@@ -54,6 +59,9 @@ vals = {
     'txn_from_date': from_date,
     'txn_limit': int(os.environ.get('MIG_LIMIT', '0')),
     'txn_only_new': os.environ.get('MIG_RESUME', '0') == '1',
+    # always written: the backend outlives the run, and a value left from an
+    # incremental run would quietly shrink the next full one
+    'txn_changed_since': os.environ.get('MIG_CHANGED_SINCE') or False,
 }
 if os.environ.get('MIG_FILESTORE'):
     vals['src_filestore'] = os.environ['MIG_FILESTORE']
@@ -86,8 +94,11 @@ for phase in phases:
         backend.action_continue_invoice_numbering(); env.cr.commit()
         show('NUMBERING', backend.log)
     elif phase == 'gl':
-        stats = backend._txn_run(['share_records', 'sale_orders', 'purchases', 'invoices',
-                                  'journal_entries', 'reconcile', 'cheques'])
+        # an incremental run first cancels what the source deleted since, so the
+        # reconcile phase can match the invoices it frees with their new receipts
+        stats = backend._txn_run((['deleted'] if backend.txn_changed_since else [])
+                                 + ['share_records', 'sale_orders', 'purchases', 'invoices',
+                                    'journal_entries', 'reconcile', 'cheques'])
         show('DOCUMENTS (GL)', stats)
     elif phase == 'ops':
         stats = backend._txn_run(['manufacturing', 'pickings', 'stock_moves', 'move_lines',

@@ -42,7 +42,7 @@ import re
 import psycopg2
 import psycopg2.extras
 
-from odoo import fields, models, _
+from odoo import SUPERUSER_ID, fields, models, _
 
 from .migration_spec import JAW_MAP, PRIORITY_MAP, teeth_from_quadrants
 
@@ -65,6 +65,12 @@ class MigrationBackend(models.Model):
         help="Date the on-hand quantities are computed as of. Empty = the opening "
              "date. Set it to the dump date once the transfers are in, so stock "
              "shows today's position rather than the opening one.")
+    txn_changed_since = fields.Datetime(
+        'Changed Since',
+        help="Incremental run: read only the source records created or edited at or "
+             "after this moment (the source's own clock, UTC), and bring edited "
+             "documents up to date as well as adding new ones. Set it to the moment "
+             "the previous migration's backup was taken. Empty = every record.")
     txn_only_new = fields.Boolean(
         'Resume Mode', default=False,
         help="Skip documents that already carry a mapping instead of rewriting "
@@ -193,6 +199,25 @@ class MigrationBackend(models.Model):
             raise UserError(_("Set 'Migrate Documents From' before migrating transactions."))
         return d
 
+    def _txn_changed(self, ref, children=()):
+        """SQL condition keeping only the rows created or edited since
+        ``txn_changed_since`` - '' when no incremental run is asked for.
+
+        ``ref`` is the alias (or table name) of the row being read; each
+        ``(table, fk)`` in ``children`` makes an edit to one of its lines count
+        too: Odoo does not always touch the parent when a line changes. The
+        moment is a Datetime of this record, never user text, so it is inlined.
+        """
+        if not self.txn_changed_since:
+            return ''
+        ts = fields.Datetime.to_string(self.txn_changed_since)
+        cond = ["%s.create_date >= '%s'" % (ref, ts), "%s.write_date >= '%s'" % (ref, ts)]
+        for table, fk in children:
+            cond.append("EXISTS (SELECT 1 FROM %s c WHERE c.%s = %s.id AND "
+                        "(c.create_date >= '%s' OR c.write_date >= '%s'))"
+                        % (table, fk, ref, ts, ts))
+        return ' AND (%s)' % ' OR '.join(cond)
+
     def _txn_tail(self):
         """SQL tail applying the smoke-test limit (empty when unlimited)."""
         return ' LIMIT %d' % self.txn_limit if self.txn_limit else ''
@@ -276,6 +301,40 @@ class MigrationBackend(models.Model):
         order.write(dict(vals, order_line=self._txn_merge_lines(order.order_line, line_vals)))
         return True
 
+    def _txn_same_invoice(self, move_id, row, src_lines, partner):
+        """True when the copy here already says what the source says.
+
+        An incremental run reads every invoice touched since the last migration,
+        and most were touched only because a receipt paid them (975 of 1,165 on
+        the 2026-10-18 run; the matching itself arrives through the reconcile
+        phase) or for nothing visible at all. Rewriting those would reset and
+        re-post an invoice for no change, so only a real edit - state, customer,
+        date, amount, reference or lines - is let through.
+        """
+        move = self.env['account.move'].browse(move_id)
+        lines = [l for l in src_lines if l.get('display_type') == 'product']
+        return (move.state == (row.get('state') or 'draft')
+                and move.partner_id.id == partner
+                and move.invoice_date == row.get('invoice_date')
+                and (move.ref or '') == (row.get('ref') or '')
+                and abs((move.amount_total or 0.0) - (row.get('amount_total') or 0.0)) < 0.005
+                and len(move.invoice_line_ids.filtered(lambda l: l.display_type == 'product'))
+                == len(lines))
+
+    def _txn_same_entry(self, move_id, row, src_lines, cache):
+        """The journal-entry counterpart of _txn_same_invoice: same date, state
+        and lines (account, partner, debit, credit)."""
+        move = self.env['account.move'].browse(move_id)
+        if move.state != (row.get('state') or 'draft') or move.date != row.get('date'):
+            return False
+        def key(account, partner, debit, credit):
+            return (account or 0, partner or 0, round(debit or 0.0, 2), round(credit or 0.0, 2))
+        here = sorted(key(l.account_id.id, l.partner_id.id, l.debit, l.credit) for l in move.line_ids)
+        there = sorted(key(self._resolve(cache, 'account.account', l.get('account_id')),
+                           self._resolve(cache, 'res.partner', l.get('partner_id')),
+                           l.get('debit'), l.get('credit')) for l in src_lines)
+        return here == there
+
     def _txn_keep_move(self, move_id, counts, row_id):
         """True when an already-migrated invoice or journal entry is left alone.
 
@@ -292,6 +351,16 @@ class MigrationBackend(models.Model):
         lines = self.env['account.move'].browse(move_id).line_ids
         busy = lines.filtered(
             lambda l: l.matched_debit_ids or l.matched_credit_ids or l.full_reconcile_id)
+        if busy and self.txn_changed_since:
+            # An incremental run may undo a match the MIGRATION made: it was copied
+            # from the source, the source has since edited the entry and matched it
+            # again (receipt PBNK1/2026-27/2038, 14,750 -> 14,950 on 2026-10-16), and
+            # the reconcile phase copies the new match afterwards. A match a person
+            # made here is still never touched.
+            partials = lines.matched_debit_ids | lines.matched_credit_ids
+            if not partials.filtered(lambda p: p.create_uid.id != SUPERUSER_ID):
+                lines.remove_move_reconcile()
+                busy = False
         if not busy and 'bank.clearance' in self.env:
             busy = self.env['bank.clearance'].sudo().search_count(
                 [('move_line_id', 'in', lines.ids)], limit=1)
@@ -344,7 +413,7 @@ class MigrationBackend(models.Model):
               JOIN sale_order so ON so.id = sol.order_id
               JOIN product_product pp ON pp.id = sol.product_id
               JOIN product_template pt ON pt.id = pp.product_tmpl_id
-             WHERE so.date_order >= %(d)s
+             WHERE so.date_order >= %(d)s%(so_changed)s
                AND pt.company_id IS NOT NULL AND pt.company_id <> so.company_id
              UNION
             SELECT DISTINCT pt.id
@@ -352,9 +421,10 @@ class MigrationBackend(models.Model):
               JOIN account_move i ON i.id = il.move_id
               JOIN product_product pp ON pp.id = il.product_id
               JOIN product_template pt ON pt.id = pp.product_tmpl_id
-             WHERE i.date >= %(d)s
+             WHERE i.date >= %(d)s%(i_changed)s
                AND pt.company_id IS NOT NULL AND pt.company_id <> i.company_id
-        """, {'d': d})
+        """ % {'d': '%(d)s', 'so_changed': self._txn_changed('so'),
+                 'i_changed': self._txn_changed('i')}, {'d': d})
         tmpl_ids = [self._resolve(cache, 'product.template', r['tmpl_id'])
                     for r in cur.fetchall()]
         tmpl_ids = [t for t in tmpl_ids if t]
@@ -382,16 +452,17 @@ class MigrationBackend(models.Model):
         cur.execute("""
             SELECT DISTINCT p.id
               FROM sale_order so JOIN res_partner p ON p.id = so.partner_id
-             WHERE so.date_order >= %(d)s
+             WHERE so.date_order >= %(d)s%(so_changed)s
                AND p.company_id IS NOT NULL AND p.company_id <> so.company_id
              UNION
             SELECT DISTINCT p.id
               FROM account_move_line aml
               JOIN account_move m ON m.id = aml.move_id AND m.state = 'posted'
               JOIN res_partner p ON p.id = aml.partner_id
-             WHERE m.date >= %(d)s
+             WHERE m.date >= %(d)s%(m_changed)s
                AND p.company_id IS NOT NULL AND p.company_id <> m.company_id
-        """, {'d': d})
+        """ % {'d': '%(d)s', 'so_changed': self._txn_changed('so'),
+                 'm_changed': self._txn_changed('m')}, {'d': d})
         ids = [self._resolve(cache, 'res.partner', r['id']) for r in cur.fetchall()]
         ids = [i for i in ids if i]
         if not ids:
@@ -453,8 +524,9 @@ class MigrationBackend(models.Model):
         SO = self.env['sale.order'].sudo().with_context(
             active_test=False, mail_create_nolog=True, mail_notrack=True,
             tracking_disable=True)
-        cur.execute("SELECT * FROM sale_order WHERE date_order >= %s ORDER BY id"
-                    + self._txn_tail(), (d,))
+        cur.execute("SELECT * FROM sale_order WHERE date_order >= %s"
+                    + self._txn_changed('sale_order', [('sale_order_line', 'order_id')])
+                    + " ORDER BY id" + self._txn_tail(), (d,))
         orders = cur.fetchall()
         if not orders:
             stats.append("Sale Orders            nothing to migrate")
@@ -666,8 +738,9 @@ class MigrationBackend(models.Model):
             tracking_disable=True)
         cur.execute("""SELECT * FROM account_move
                         WHERE move_type IN ('out_invoice', 'in_invoice', 'out_refund', 'in_refund')
-                          AND COALESCE(invoice_date, date) >= %s
-                        ORDER BY id""" + self._txn_tail(), (d,))
+                          AND COALESCE(invoice_date, date) >= %s"""
+                    + self._txn_changed('account_move', [('account_move_line', 'move_id')])
+                    + " ORDER BY id" + self._txn_tail(), (d,))
         invoices = cur.fetchall()
         if not invoices:
             stats.append("Invoices               nothing to migrate")
@@ -699,7 +772,7 @@ class MigrationBackend(models.Model):
             anchors[(m.journal_id.id, m.name)] = m
 
         counts = {'created': 0, 'updated': 0, 'posted': 0, 'failed': 0, 'skipped': 0,
-                  'kept': 0, 'protected': 0}
+                  'kept': 0, 'protected': 0, 'unchanged': 0}
         batch, processed = [], 0
         for row in invoices:
             processed += 1
@@ -723,6 +796,10 @@ class MigrationBackend(models.Model):
                     # type, keeping its own number.
                     journal = self._txn_journal_for(cache, cid, journal, move_type)
                     existing = self._resolve(cache, 'account.move', row['id'])
+                    if existing and self.txn_changed_since and self._txn_same_invoice(
+                            existing, row, lines_by_inv.get(row['id'], []), partner):
+                        counts['unchanged'] += 1
+                        continue
                     if existing and self._txn_keep_move(existing, counts, row['id']):
                         continue
                     vals = {
@@ -851,9 +928,10 @@ class MigrationBackend(models.Model):
         self._txn_put_many(cache, 'account.move', batch)
         self.env.cr.commit()
         stats.append("Invoices               created=%d updated=%d posted=%d skipped=%d failed=%d "
-                     "kept=%d protected=%d"
+                     "kept=%d protected=%d unchanged=%d"
                      % (counts['created'], counts['updated'], counts['posted'],
-                        counts['skipped'], counts['failed'], counts['kept'], counts['protected']))
+                        counts['skipped'], counts['failed'], counts['kept'], counts['protected'],
+                        counts['unchanged']))
 
     # ------------------------------------------------------------------ journal entries
     def _txn_journal_entries(self, cur, cache, stats):
@@ -870,9 +948,13 @@ class MigrationBackend(models.Model):
             mail_create_nolog=True, mail_notrack=True, tracking_disable=True)
         cur.execute("""
             SELECT m.* FROM account_move m
-             WHERE m.date >= %s AND m.state = 'posted' AND m.move_type = 'entry'
-             ORDER BY m.id
-        """ + self._txn_tail(), (d,))
+             WHERE m.date >= %s AND m.move_type = 'entry'
+               AND (m.state = 'posted' OR %s)
+        """ + self._txn_changed('m', [('account_move_line', 'move_id')])
+            + " ORDER BY m.id" + self._txn_tail(),
+            # an incremental run also reads entries un-posted or cancelled since:
+            # their copy here has to follow them out of the ledger
+            (d, bool(self.txn_changed_since)))
         moves = cur.fetchall()
         if not moves:
             stats.append("Journal Entries        nothing to migrate")
@@ -886,7 +968,7 @@ class MigrationBackend(models.Model):
         lines_by_move = self._group(cur.fetchall(), 'move_id')
 
         counts = {'created': 0, 'updated': 0, 'failed': 0, 'skipped': 0,
-                  'kept': 0, 'protected': 0}
+                  'kept': 0, 'protected': 0, 'unchanged': 0}
         batch, processed = [], 0
         for row in moves:
             processed += 1
@@ -942,6 +1024,28 @@ class MigrationBackend(models.Model):
                         vals['partner_id'] = partner
                     vals = self._valid(self.env['account.move'], vals)
                     existing = self._resolve(cache, 'account.move', row['id'])
+                    if row.get('state') != 'posted':
+                        # read only by an incremental run: un-posted or cancelled
+                        # in the source since the last migration
+                        if existing and Move.browse(existing).state == (row.get('state') or 'draft'):
+                            # already where the source is (a second run, or an
+                            # entry cancelled before the last migration and touched)
+                            counts['unchanged'] += 1
+                            continue
+                        if existing and not self._txn_keep_move(existing, counts, row['id']):
+                            move = Move.browse(existing)
+                            if move.state == 'posted':
+                                move.button_draft()
+                            if row.get('state') == 'cancel':
+                                move.button_cancel()
+                            counts['updated'] += 1
+                        else:
+                            counts['skipped'] += 1
+                        continue
+                    if existing and self.txn_changed_since and self._txn_same_entry(
+                            existing, row, lines_by_move.get(row['id'], []), cache):
+                        counts['unchanged'] += 1
+                        continue
                     if existing and self._txn_keep_move(existing, counts, row['id']):
                         continue
                     if existing:
@@ -969,9 +1073,77 @@ class MigrationBackend(models.Model):
         self._txn_put_many(cache, 'account.move', batch)
         self.env.cr.commit()
         stats.append("Journal Entries        created=%d updated=%d skipped=%d failed=%d "
-                     "kept=%d protected=%d"
+                     "kept=%d protected=%d unchanged=%d"
                      % (counts['created'], counts['updated'], counts['skipped'], counts['failed'],
-                        counts['kept'], counts['protected']))
+                        counts['kept'], counts['protected'], counts['unchanged']))
+
+    # ------------------------------------------------------------------ deleted in the source
+    # (target model, source table) whose deletions an incremental run reports
+    _TXN_DELETION_CHECKS = (('sale.order', 'sale_order'), ('purchase.order', 'purchase_order'),
+                            ('stock.picking', 'stock_picking'), ('res.partner', 'res_partner'))
+
+    def _txn_gone(self, cur, cache, model, table):
+        """{source id: target id} of the migrated records whose source row is gone."""
+        mapped = cache.get(model) or {}
+        if not mapped:
+            return {}
+        cur.execute('SELECT id FROM "%s" WHERE id = ANY(%%s)' % table, (list(mapped),))
+        alive = {r['id'] for r in cur.fetchall()}
+        return {src: dst for src, dst in mapped.items() if src not in alive}
+
+    def _txn_deleted(self, cur, cache, stats):
+        """Documents the source DELETED since the last migration.
+
+        A changed-since read cannot see a deletion: the row is simply not there.
+        On the 2026-10-18 run four bank receipts posted before the cut-off had
+        been deleted in the old system (57,300 of receivable, 30,050 of bank),
+        and their copies here stayed posted. An entry whose source is gone is
+        cancelled here - kept, not deleted, so the trail survives - together with
+        the matching the migration had copied for it, which frees its invoices
+        for the receipts that replaced it (the reconcile phase, after this one).
+        A match made HERE by a person (not by the migration) is not undone: that
+        entry is left posted and reported. A cheque whose payment is gone is
+        cancelled likewise. Other deletions are reported, not acted on.
+        """
+        if not self.txn_changed_since:
+            return
+        Move = self.env['account.move'].sudo().with_context(
+            mail_create_nolog=True, tracking_disable=True)
+        counts = {'cancelled': 0, 'already': 0, 'protected': 0}
+        for src, dst in sorted(self._txn_gone(cur, cache, 'account.move', 'account_move').items()):
+            move = Move.browse(dst).exists()
+            if not move or move.state == 'cancel':
+                counts['already'] += 1
+                continue
+            partials = move.line_ids.matched_debit_ids | move.line_ids.matched_credit_ids
+            if partials.filtered(lambda p: p.create_uid.id != SUPERUSER_ID):
+                counts['protected'] += 1
+                _logger.warning("txn account.move %s (source %s) was deleted in the source but "
+                                "is matched by hand here: left posted", move.name, src)
+                continue
+            with self.env.cr.savepoint():
+                if move.state == 'posted':
+                    move.button_draft()
+                move.button_cancel()     # also takes off the migrated matching
+                move.message_post(body=_(
+                    "Deleted in the old system after the previous migration: cancelled here."))
+            counts['cancelled'] += 1
+        stats.append("Deleted in Source      entries cancelled=%d already=%d protected=%d"
+                     % (counts['cancelled'], counts['already'], counts['protected']))
+        if 'lab.cheque' in self.env and cache.get('lab.cheque'):
+            gone = self._txn_gone(cur, cache, 'lab.cheque', 'account_payment')
+            cheques = self.env['lab.cheque'].sudo().browse(list(gone.values())).exists()
+            cheques = cheques.filtered(lambda c: c.state != 'cancel')
+            cheques.write({'state': 'cancel'})
+            stats.append("Deleted in Source      cheques cancelled=%d" % len(cheques))
+        for model, table in self._TXN_DELETION_CHECKS:
+            gone = self._txn_gone(cur, cache, model, table)
+            if gone:
+                stats.append("Deleted in Source      %s: %d still here (not acted on): %s"
+                             % (model, len(gone), sorted(gone)[:20]))
+                _logger.warning("txn %s: %d record(s) deleted in the source are still here: %s",
+                                model, len(gone), sorted(gone))
+        self.env.cr.commit()
 
     # ------------------------------------------------------------------ manufacturing
     # v17 mrp.production states -> v19. v19 dropped 'planned' (scheduling moved
@@ -991,8 +1163,10 @@ class MigrationBackend(models.Model):
         MO = self.env['mrp.production'].sudo().with_context(
             mail_create_nolog=True, mail_notrack=True, tracking_disable=True)
         try:
-            cur.execute("SELECT * FROM mrp_production WHERE COALESCE(date_start, create_date) >= %s "
-                        "ORDER BY id" + self._txn_tail(), (d,))
+            cur.execute("SELECT * FROM mrp_production WHERE COALESCE(date_start, create_date) >= %s"
+                        + self._txn_changed('mrp_production', [('mrp_workorder', 'production_id'),
+                                                               ('stock_move', 'raw_material_production_id')])
+                        + " ORDER BY id" + self._txn_tail(), (d,))
             rows = cur.fetchall()
         except psycopg2.Error as e:
             stats.append("Manufacturing Orders   SKIPPED (%s)" % str(e).split('\n')[0])
@@ -1109,8 +1283,9 @@ class MigrationBackend(models.Model):
         d = self._txn_dates()
         Picking = self.env['stock.picking'].sudo().with_context(
             mail_create_nolog=True, mail_notrack=True, tracking_disable=True)
-        cur.execute("SELECT * FROM stock_picking WHERE date >= %s ORDER BY id"
-                    + self._txn_tail(), (d,))
+        cur.execute("SELECT * FROM stock_picking WHERE date >= %s"
+                    + self._txn_changed('stock_picking', [('stock_move', 'picking_id')])
+                    + " ORDER BY id" + self._txn_tail(), (d,))
         rows = cur.fetchall()
         if not rows:
             stats.append("Transfers              nothing to migrate")
@@ -1222,6 +1397,15 @@ class MigrationBackend(models.Model):
                     if existing and self.txn_only_new:
                         counts['skipped'] += 1
                         continue
+                    if existing and self.txn_changed_since:
+                        # a later incremental run meets the transfers an earlier one
+                        # made: same state and moves means nothing to do - and a done
+                        # one could not be rewritten anyway, its stock lines are in
+                        pick = Picking.browse(existing)
+                        if (pick.state == self._PICK_STATE.get(row.get('state'), 'draft')
+                                and len(pick.move_ids) == len(move_vals)):
+                            counts['unchanged'] = counts.get('unchanged', 0) + 1
+                            continue
                     if existing:
                         pick = Picking.browse(existing)
                         # Replace the moves too. Building move_vals and then writing
@@ -1265,9 +1449,10 @@ class MigrationBackend(models.Model):
         self.env.cr.commit()
         self._txn_link_backorders(rows, cache)
         self._txn_seed_picking_numbers(cur, cache, stats)
-        stats.append("Transfers              created=%d (%d moves) updated=%d skipped=%d failed=%d"
+        stats.append("Transfers              created=%d (%d moves) updated=%d skipped=%d failed=%d "
+                     "unchanged=%d"
                      % (counts['created'], counts['moves'], counts['updated'],
-                        counts['skipped'], counts['failed']))
+                        counts['skipped'], counts['failed'], counts.get('unchanged', 0)))
 
     def _txn_link_backorders(self, rows, cache):
         """A backorder points at the transfer it continues; both exist now."""
@@ -1293,8 +1478,8 @@ class MigrationBackend(models.Model):
         """
         d = self._txn_dates()
         cur.execute("""SELECT * FROM stock_move
-                        WHERE picking_id IS NULL AND date >= %s AND state IN ('done', 'cancel')
-                        ORDER BY date, id""" + self._txn_tail(), (d,))
+                        WHERE picking_id IS NULL AND date >= %s AND state IN ('done', 'cancel')"""
+                    + self._txn_changed('stock_move') + " ORDER BY date, id" + self._txn_tail(), (d,))
         rows = cur.fetchall()
         if not rows:
             stats.append("Stock Moves (no transfer) nothing to migrate")
@@ -1372,8 +1557,8 @@ class MigrationBackend(models.Model):
         d = self._txn_dates()
         cur.execute("""SELECT l.* FROM stock_move_line l
                         JOIN stock_move m ON m.id = l.move_id
-                       WHERE m.state = 'done' AND l.date >= %s
-                       ORDER BY l.date, l.id""" + self._txn_tail(), (d,))
+                       WHERE m.state = 'done' AND l.date >= %s"""
+                    + self._txn_changed('l') + " ORDER BY l.date, l.id" + self._txn_tail(), (d,))
         rows = cur.fetchall()
         if not rows:
             stats.append("Stock Move Lines       nothing to migrate")
@@ -1522,8 +1707,9 @@ class MigrationBackend(models.Model):
         d = self._txn_dates()
         PO = self.env['purchase.order'].sudo().with_context(
             mail_create_nolog=True, mail_notrack=True, tracking_disable=True)
-        cur.execute("SELECT * FROM purchase_order WHERE date_order >= %s ORDER BY id"
-                    + self._txn_tail(), (d,))
+        cur.execute("SELECT * FROM purchase_order WHERE date_order >= %s"
+                    + self._txn_changed('purchase_order', [('purchase_order_line', 'order_id')])
+                    + " ORDER BY id" + self._txn_tail(), (d,))
         rows = cur.fetchall()
         if not rows:
             stats.append("Purchase Orders        nothing to migrate")
@@ -1702,8 +1888,7 @@ class MigrationBackend(models.Model):
               JOIN account_move_line dl ON dl.id = apr.debit_move_id
               JOIN account_move_line cl ON cl.id = apr.credit_move_id
              WHERE dl.date >= %s AND cl.date >= %s
-             ORDER BY apr.id
-        """ + self._txn_tail(), (d, d))
+        """ + self._txn_changed('apr') + " ORDER BY apr.id" + self._txn_tail(), (d, d))
         partials = cur.fetchall()
         if not partials:
             stats.append("Reconciliation         nothing to replay")
@@ -1772,8 +1957,7 @@ class MigrationBackend(models.Model):
                   FROM account_payment p JOIN account_move m ON m.id = p.move_id
                  WHERE p.cheque_status IS NOT NULL AND p.payment_type = 'inbound'
                    AND m.state = 'posted' AND m.date >= %s
-                 ORDER BY p.id
-            """ + self._txn_tail(), (d,))
+            """ + self._txn_changed('p') + " ORDER BY p.id" + self._txn_tail(), (d,))
             rows = cur.fetchall()
         except psycopg2.Error as e:
             stats.append("Cheques                SKIPPED (%s)" % str(e).split('\n')[0])
@@ -1930,8 +2114,10 @@ class MigrationBackend(models.Model):
             return
         d = self._txn_dates()
         try:
-            cur.execute("SELECT * FROM material_request WHERE create_date >= %s ORDER BY id"
-                        + self._txn_tail(), (d,))
+            cur.execute("SELECT * FROM material_request WHERE create_date >= %s"
+                        + self._txn_changed('material_request',
+                                            [('material_request_lines', 'material_request_id')])
+                        + " ORDER BY id" + self._txn_tail(), (d,))
             rows = cur.fetchall()
         except psycopg2.Error as e:
             stats.append("Material Requests      SKIPPED (%s)" % str(e).split('\n')[0])
@@ -2065,8 +2251,7 @@ class MigrationBackend(models.Model):
               FROM ir_attachment
              WHERE res_model IN %s AND res_id IS NOT NULL AND store_fname IS NOT NULL
                AND (res_field IS NULL OR res_field = 'image_1920')
-             ORDER BY id
-        """, (self._ATTACHMENT_MODELS,))
+        """ + self._txn_changed('ir_attachment') + " ORDER BY id", (self._ATTACHMENT_MODELS,))
         rows = cur.fetchall()
         if not rows:
             stats.append("Attachments            nothing to migrate")
@@ -2403,6 +2588,10 @@ class MigrationBackend(models.Model):
 
     def _txn_run(self, phases):
         self = self._migration_env()
+        if self.txn_changed_since:
+            # an edited invoice or entry has to be brought up to date, not kept;
+            # _txn_keep_move still refuses one whose lines are matched or cleared
+            self = self.with_context(**{self._TXN_REWRITE_CTX: True})
         conn = self._connect()
         conn.autocommit = True
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
