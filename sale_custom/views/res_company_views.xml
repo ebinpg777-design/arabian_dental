@@ -21,6 +21,7 @@
                         <field name="letterhead_address" placeholder="ADL Tower, Karikkad, Thrikkalangode P.O&#10;Nilambur Road, Manjeri, Malappuram Dt - 676123"/>
                         <field name="letterhead_phones" placeholder="0483 2 767 330&#10;8592 94 94 30, 8592 94 94 11"/>
                         <field name="letterhead_emails" placeholder="accounts@example.com&#10;lab@example.com"/>
+                        <field name="gst_declaration"/>
                     </group>
                     <group string="Report Logos &amp; Signature">
                         <field name="logo1" widget="image"/>

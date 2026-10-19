@@ -113,6 +113,12 @@ class ResCompany(models.Model):
     letterhead_emails = fields.Text(
         'Letterhead E-mails',
         help="E-mail addresses on invoices, one line per line. Empty: the company e-mail.")
+    # Printed in a box of its own at the foot of every tax invoice (client, 2026-10-19).
+    gst_declaration = fields.Text(
+        'GST Declaration',
+        default='We declare that this invoice shows the actual price of the goods described '
+                'and that all particulars are true and correct.',
+        help="Printed at the foot of every tax invoice and credit note.")
 
     _LETTERHEAD_ICONS = {'address': 'lh_location.svg', 'phones': 'lh_phone.svg', 'emails': 'lh_mail.svg'}
 

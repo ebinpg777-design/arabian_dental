@@ -324,10 +324,6 @@
                             <!-- every word capitalised, as the lab's own invoices wrote it
                                  ("One Thousand, Three Hundred Rupees") - client, 2026-10-19 -->
                             <div class="oi-words"><t t-out="o._dental_words(o.amount_total)"/></div>
-                            <div class="oi-declare" t-if="o.comment and o.move_type in ('out_invoice', 'out_refund')">
-                                <div class="oi-label">GST declaration</div>
-                                <div t-out="' '.join(o.comment.split())"/>
-                            </div>
                         </td>
                         <td style="border:none;padding:0;vertical-align:top;">
                             <!-- no taxable value or GST rows here: the line table carries
@@ -357,48 +353,44 @@
                     </tr>
                 </table>
 
-                <!-- ── bank details ──────────────────────────────────────── -->
-                <!-- Odoo 20 removed res.bank: the bank's name, branch city and IFSC
-                     (bank_bic) now live on the account itself; acc_number is account_number. -->
-                <!-- heading and table on the same page: a long invoice left the heading
-                     alone at the foot of page one and the accounts on page two -->
-                <div t-if="o.company_id.partner_id.bank_ids" style="page-break-inside:avoid;">
-                    <div class="oi-section">Bank Details</div>
-                    <table class="oi-bank">
-                        <tr t-foreach="o.company_id.partner_id.bank_ids" t-as="b">
-                            <td style="width:25%;">
-                                <div class="oi-label">Bank name</div>
-                                <div class="oi-bankval"><span t-field="b.bank_name"/></div>
-                            </td>
-                            <td style="width:28%;">
-                                <div class="oi-label">Account number</div>
-                                <div class="oi-bankval"><span t-field="b.account_number"/></div>
-                            </td>
-                            <td style="width:24%;">
-                                <div class="oi-label">Branch</div>
-                                <div class="oi-bankval"><span t-field="b.city"/></div>
-                            </td>
-                            <td>
-                                <div class="oi-label">IFSC code</div>
-                                <div class="oi-bankval"><span t-field="b.bank_bic"/></div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- ── pay / sign ────────────────────────────────────────── -->
+                <!-- ── pay / sign ──────────────────────────────────────────
+                     One card: the QR code with the bank details beside it, as rows
+                     (client, 2026-10-19: "add bank details in the block of the QR code,
+                     row-wise, to save space for more item lines"). Odoo 20 removed
+                     res.bank: the bank's name, branch city and IFSC (bank_bic) live on
+                     the account itself; acc_number is account_number. -->
+                <t t-set="banks" t-value="o.company_id.partner_id.bank_ids"/>
                 <table style="width:100%;border-collapse:collapse;margin-top:6px;page-break-inside:avoid;">
                     <tr>
-                        <td style="width:44%;border:none;padding:0;vertical-align:top;">
-                            <div class="oi-paycard" t-if="o.company_id.payment_qr">
+                        <td style="width:64%;border:none;padding:0;vertical-align:top;">
+                            <div class="oi-paycard" t-if="o.company_id.payment_qr or banks">
                                 <table style="width:100%;border-collapse:collapse;">
                                     <tr>
-                                        <td class="oi-qr" style="border:none;padding:0;width:36mm;">
+                                        <td t-if="o.company_id.payment_qr" class="oi-qr" style="border:none;padding:0;width:36mm;">
                                             <img t-att-src="image_data_uri(o.company_id.payment_qr)"/>
                                         </td>
                                         <td style="border:none;padding:0 0 0 10px;vertical-align:middle;">
-                                            <div class="oi-qrtitle">SCAN TO PAY</div>
-                                            <div class="oi-qrnote">Quick payment<br/>using the QR code.</div>
+                                            <div class="oi-qrtitle" t-if="o.company_id.payment_qr">Scan to pay</div>
+                                            <div class="oi-qrtitle" t-else="">Bank details</div>
+                                            <table class="oi-bankrows" t-foreach="banks" t-as="b">
+                                                <tr t-if="b_first">
+                                                    <td class="k">Payee</td>
+                                                    <td class="v"><span t-field="o.company_id.name"/></td>
+                                                </tr>
+                                                <tr t-if="b.bank_name">
+                                                    <td class="k">Bank</td>
+                                                    <td class="v"><span t-field="b.bank_name"/><t t-if="b.city">, <span t-field="b.city"/></t></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="k">A/c No</td>
+                                                    <td class="v"><span t-field="b.account_number"/></td>
+                                                </tr>
+                                                <tr t-if="b.bank_bic">
+                                                    <td class="k">IFSC</td>
+                                                    <td class="v"><span t-field="b.bank_bic"/></td>
+                                                </tr>
+                                            </table>
+                                            <div class="oi-qrnote" t-if="not banks">Quick payment using the QR code.</div>
                                         </td>
                                     </tr>
                                 </table>
@@ -416,10 +408,14 @@
                     </tr>
                 </table>
 
-                <div class="oi-terms" t-if="o.invoice_payment_term_id.note or o.fiscal_position_id.note or o.narration">
-                    <span t-if="o.invoice_payment_term_id.note" t-field="o.invoice_payment_term_id.note"/>
-                    <span t-if="o.fiscal_position_id.note" t-field="o.fiscal_position_id.note"/>
-                    <span t-if="o.narration" t-field="o.narration"/>
+                <!-- The GST declaration in a box the full width of the page (client,
+                     2026-10-19), from the company's GST Declaration field (else the
+                     invoice's own note). The payment-term / narration bullets that used
+                     to print here were taken off at the same time. -->
+                <t t-set="decl" t-value="' '.join(((o.company_id.gst_declaration or o.comment or '') if o.move_type in ('out_invoice', 'out_refund') else '').split())"/>
+                <div class="oi-gstbox" t-if="decl">
+                    <div class="oi-gsttitle">GST Declaration:</div>
+                    <div t-out="decl"/>
                 </div>
 
                 <!-- the closing bar: a red rule, the note and the website (client,

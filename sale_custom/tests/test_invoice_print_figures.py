@@ -168,6 +168,12 @@ class TestInvoicePrintFigures(AccountTestInvoicingCommon):
         html = self.env['ir.actions.report']._render_qweb_html('account.account_invoices', move.ids)[0].decode()
         self.assertIn('>Jaw</th>', html, "one line has a jaw: the column appears")
         self.assertNotIn('Taxable value', html, "the GST is in the columns, not repeated in the totals")
+        self.assertIn('GST Declaration:', html)
+        self.assertIn('actual price of the goods described', html, "the company's declaration, boxed")
+        self.assertNotIn('oi-terms', html, "no payment-term / narration bullets")
+        self.env.company.gst_declaration = 'Our own wording.'
+        html = self.env['ir.actions.report']._render_qweb_html('account.account_invoices', move.ids)[0].decode()
+        self.assertIn('Our own wording.', html)
 
     def test_the_letterhead_lines(self):
         company = self.env.company
