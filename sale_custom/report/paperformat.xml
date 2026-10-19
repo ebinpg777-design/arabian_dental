@@ -43,13 +43,15 @@
         <field name="page_height">0</field>
         <field name="page_width">0</field>
         <field name="orientation">Portrait</field>
-        <field name="margin_top">8</field>
+        <!-- no header band at all: the card starts 6 mm from the paper's edge (client,
+             2026-10-19, "remove unwanted space" above the letterhead) -->
+        <field name="margin_top">6</field>
         <!-- the footer is one 7.2pt line under a rule now, so the band needs less room -->
         <field name="margin_bottom">8</field>
         <field name="margin_left">8</field>
         <field name="margin_right">8</field>
         <field name="header_line" eval="False"/>
-        <field name="header_spacing">3</field>
+        <field name="header_spacing">0</field>
         <field name="dpi">96</field>
     </record>
     <!-- Landscape twin of the letterhead-in-body format, for anything genuinely too

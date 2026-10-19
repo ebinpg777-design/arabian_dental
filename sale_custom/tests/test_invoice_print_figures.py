@@ -175,16 +175,17 @@ class TestInvoicePrintFigures(AccountTestInvoicingCommon):
                        'zip': '600001', 'phone': '0400 100 200', 'email': 'lab@example.com',
                        'letterhead_address': False, 'letterhead_phones': False, 'letterhead_emails': False})
         rows = company._lab_letterhead()
-        self.assertEqual([lines for _icon, lines in rows], [
+        self.assertEqual([lines for _kind, _icon, lines in rows], [
             ['Lab Tower, Main Road, Market Junction', 'Example Town - 600001'],
             ['0400 100 200'], ['lab@example.com']], "empty fields fall back to the company's own")
-        self.assertTrue(all(icon.startswith('data:image/svg+xml;base64,') for icon, _lines in rows),
+        self.assertEqual([kind for kind, _icon, _lines in rows], ['address', 'phones', 'emails'])
+        self.assertTrue(all(icon.startswith('data:image/svg+xml;base64,') for _kind, icon, _lines in rows),
                         "the icons travel inside the page")
         company.write({'letterhead_phones': '0400 100 200\n\n  0900   111 222 , 0900 333 444  ',
                        'letterhead_emails': 'accounts@example.com\nlab@example.com'})
         rows = company._lab_letterhead()
-        self.assertEqual(rows[1][1], ['0400 100 200', '0900 111 222 , 0900 333 444'],
+        self.assertEqual(rows[1][2], ['0400 100 200', '0900 111 222 , 0900 333 444'],
                          "one printed line per typed line, blank lines dropped")
-        self.assertEqual(rows[2][1], ['accounts@example.com', 'lab@example.com'])
+        self.assertEqual(rows[2][2], ['accounts@example.com', 'lab@example.com'])
         company.write({'phone': False, 'letterhead_phones': False})
         self.assertEqual(len(company._lab_letterhead()), 2, "no phone at all: no phone line")

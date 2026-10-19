@@ -43,15 +43,15 @@
                      bottom of the sheet"). wkhtmltopdf gives a row's surplus height to
                      the auto row above it, which is what pushes the foot down. An invoice
                      longer than a page simply flows on, the foot after its last line.
-                     349mm, not the page's 281: Odoo lets wkhtmltopdf "smart-shrink" the
+                     353mm, not the page's 283: Odoo lets wkhtmltopdf "smart-shrink" the
                      body, so a millimetre here is about 0.77 on paper. Found by probing
-                     (2026-10-19, bottom margin 8): 351 still fits a page, 352 spills.
+                     (2026-10-19, margins 6/8, no header spacing): 354 still fits, 356 spills.
                      Re-probe if the paper format's margins or the shrinking ever change.
                      The closing bar (note, website) is the sheet's last row, so the few
                      millimetres wkhtmltopdf keeps clear above its footer fall below the
                      bar, where only the page number sits. -->
                 <!-- the height can be overridden from a shell for probing: context lab_sheet_h -->
-                <table class="oi-sheet" t-attf-style="height:{{o.env.context.get('lab_sheet_h', 349)}}mm;">
+                <table class="oi-sheet" t-attf-style="height:{{o.env.context.get('lab_sheet_h', 353)}}mm;">
                     <tr><td class="oi-sheet-top">
 
                 <!-- letterhead, in the body: the design puts it in a card at the top of
@@ -74,11 +74,21 @@
                                 <t t-set="head_logo" t-value="o.company_id.logo1 or o.company_id.logo"/>
                                 <img t-if="head_logo" class="oi-logo" t-att-src="image_data_uri(head_logo)"/>
                                 <div t-else="" class="oi-companyname" t-out="o.company_id.name"/>
+                                <!-- the GSTIN large and bold, the e-mails under it (client,
+                                     2026-10-19: "move email to the left block below the GST
+                                     number, increase the GST number font size and make bold") -->
+                                <t t-set="lh" t-value="o.company_id._lab_letterhead()"/>
                                 <div t-if="o.company_id.gst_number or o.company_id.pan_number" class="oi-ids">
                                     <span t-if="o.company_id.gst_number">GSTIN <b t-field="o.company_id.gst_number"/></span>
                                     <span t-if="o.company_id.gst_number and o.company_id.pan_number"> · </span>
                                     <span t-if="o.company_id.pan_number">PAN <b t-field="o.company_id.pan_number"/></span>
                                 </div>
+                                <table class="oi-lhblock oi-lhleft">
+                                    <tr t-foreach="[r for r in lh if r[0] == 'emails']" t-as="row">
+                                        <td class="oi-lhicon"><img t-att-src="row[1]"/></td>
+                                        <td class="oi-lhtext"><div t-foreach="row[2]" t-as="line" t-out="line"/></td>
+                                    </tr>
+                                </table>
                             </td>
                             <td class="oi-lhinfo">
                                 <!-- the certification marks in the top-right corner, above the
@@ -88,9 +98,9 @@
                                     <img class="oi-cert" t-att-src="image_data_uri(o.company_id.logo2)"/>
                                 </div>
                                 <table class="oi-lhblock">
-                                    <tr t-foreach="o.company_id._lab_letterhead()" t-as="row">
-                                        <td class="oi-lhicon"><img t-att-src="row[0]"/></td>
-                                        <td class="oi-lhtext"><div t-foreach="row[1]" t-as="line" t-out="line"/></td>
+                                    <tr t-foreach="[r for r in lh if r[0] != 'emails']" t-as="row">
+                                        <td class="oi-lhicon"><img t-att-src="row[1]"/></td>
+                                        <td class="oi-lhtext"><div t-foreach="row[2]" t-as="line" t-out="line"/></td>
                                     </tr>
                                 </table>
                             </td>

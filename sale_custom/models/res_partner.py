@@ -117,9 +117,10 @@ class ResCompany(models.Model):
     _LETTERHEAD_ICONS = {'address': 'lh_location.svg', 'phones': 'lh_phone.svg', 'emails': 'lh_mail.svg'}
 
     def _lab_letterhead(self):
-        """[(icon data URI, [lines])] for the letterhead's contact block, empty kinds left
-        out. The icons travel inside the page as data URIs: a /static URL makes
-        wkhtmltopdf fetch it from the server on every print (see payment_qr)."""
+        """[(kind, icon data URI, [lines])] for the letterhead - 'address', 'phones',
+        'emails' - empty kinds left out. The icons travel inside the page as data URIs:
+        a /static URL makes wkhtmltopdf fetch it from the server on every print (see
+        payment_qr)."""
         self.ensure_one()
 
         def lines(text):
@@ -145,7 +146,7 @@ class ResCompany(models.Model):
             if blocks[kind]:
                 with file_open('sale_custom/static/src/img/' + self._LETTERHEAD_ICONS[kind], 'rb') as f:
                     icon = 'data:image/svg+xml;base64,' + base64.b64encode(f.read()).decode()
-                result.append((icon, blocks[kind]))
+                result.append((kind, icon, blocks[kind]))
         return result
 
 

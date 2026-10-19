@@ -42,24 +42,28 @@
     // the block pushed to the right edge but reading left-aligned so the icons stand
     // in one column (client, 2026-10-19).
     .oi-letterhead {
-        background: $card; border-radius: 8px; padding: 8px 16px 9px;
-        td.oi-lhlogo { vertical-align: middle; }
+        background: $card; border-radius: 8px; padding: 7px 14px 8px;
+        // the logo at the top of the card, level with the marks (client, 2026-10-19)
+        td.oi-lhlogo { vertical-align: top; }
         // The contact column has a set width, and the marks are as wide as it is
         // (client, 2026-10-19: "increase the size of the logo to fit the width of the
-        // column containing the address"). 86mm here is ~66mm on paper (wkhtmltopdf's
-        // shrinking), a little more than the lab's longest line; a longer line wraps.
-        td.oi-lhinfo { vertical-align: top; width: 86mm; }
-        .oi-logo { max-height: 52px; }
+        // column containing the address", then "reduce the width of this block").
+        // 76mm here is ~58mm on paper (wkhtmltopdf's shrinking); a longer line wraps.
+        td.oi-lhinfo { vertical-align: top; width: 76mm; }
+        // the wordmark large (client, 2026-10-19: "increase the company logo size")
+        .oi-logo { max-height: 74px; max-width: 100%; }
         .oi-companyname { font-size: 18pt; font-weight: 700; color: $red; line-height: 1.1; }
         // The transparent PNG marks sit straight on the tint, no plate behind them.
         .oi-lhcerts { line-height: 0; margin-bottom: 4px; }
         .oi-cert { width: 100%; }
-        .oi-ids { font-size: 8.6pt; color: $muted; margin-top: 5px;
-            b { color: $ink; font-weight: 700; } }
+        .oi-ids { font-size: 10pt; color: $muted; margin-top: 6px;
+            b { color: $ink; font-weight: 700; font-size: 12pt; letter-spacing: .3px; } }
         table.oi-lhblock { width: 100%; }
+        // the e-mails under the GSTIN: the block hugs its lines, left-aligned
+        table.oi-lhleft { width: auto; margin-top: 5px; }
         td.oi-lhicon { width: 17px; padding: 1px 7px 0 0; vertical-align: top; line-height: 0;
             img { width: 13px; height: 13px; } }
-        td.oi-lhtext { font-size: 9.4pt; line-height: 1.2; color: $ink; padding: 0 0 2px;
+        td.oi-lhtext { font-size: 9pt; line-height: 1.2; color: $ink; padding: 0 0 2px;
             vertical-align: top; }
         tr:last-child td.oi-lhtext { padding-bottom: 0; }
     }
