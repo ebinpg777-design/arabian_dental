@@ -269,6 +269,17 @@ class AccountMove(models.Model):
             table[line.id] = cells
         return groups, table
 
+    # -- the lab's invoice numbers: B2C/2026-27/19892 (2026-10-19) -------------------
+    # Odoo reads "2026-27" as a yearly sequence with the year "27" (the range check
+    # wants both years written at the same length), so every invoice refused to be
+    # re-posted after a reset to draft - "The Date isn't aligned with the existing
+    # sequence number" - and a new invoice would have been numbered B2C/2026-26/....
+    # A short end year is matched on its own length: 2026 -> 27 is one fiscal year on.
+    def _validate_fiscalyear_difference(self, start_year, end_year):
+        if len(end_year) < len(start_year):
+            return self._truncate_year_to_length(int(start_year) + 1, len(end_year)) == int(end_year)
+        return super()._validate_fiscalyear_difference(start_year, end_year)
+
     def _dental_column_totals(self):
         """The foot of the line table: quantity, taxable value, each GST column and the
         line totals summed (client, 2026-10-19: "add total in each column of item")."""

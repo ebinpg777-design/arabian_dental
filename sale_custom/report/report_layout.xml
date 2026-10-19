@@ -91,21 +91,23 @@
             <t t-out="0"/>
         </div>
 
-        <!-- One tight line: contact details left, page number right. (Was three stacked
-             lists, which ate ~20 mm at the foot of every page.) -->
-        <!-- Footer bar: contact details, and the page number on the right. -->
-        <!-- `footer_class`: a document in the lab's brand colours passes lab-brand -->
-        <div t-attf-class="footer lab-footerbar {{footer_class or ''}}">
+        <!-- One line under a rule: the note on the left, the website in the middle, the
+             page number on the right. The phone and e-mail went (client, 2026-10-19:
+             "remove phone and email from the bottom, improve the bottom with the
+             website") - the letterhead carries them now. (Was three stacked lists,
+             which ate ~20 mm at the foot of every page.) -->
+        <!-- `footer_class`: a document in the lab's brand colours passes lab-brand.
+             `footer_minimal`: the page number alone, for a document that draws its own
+             closing bar at the foot of its body (the tax invoice). -->
+        <div t-attf-class="footer lab-footerbar {{footer_class or ''}} {{'lab-minimal' if footer_minimal else ''}}">
             <table style="width:100%;border-collapse:collapse;">
-                <tr>
-                    <td>Phone: <span t-field="company.phone"/></td>
-                    <td style="text-align:center;">Email: <span t-field="company.email"/></td>
-                    <td style="text-align:right;"><t t-out="(company.website or '').replace('https://', '').replace('http://', '').rstrip('/')"/></td>
-                </tr>
-                <tr>
-                    <td class="oc-foot-strong" t-out="footer_note or ''"/>
-                    <td/>
+                <tr t-if="footer_minimal">
                     <td style="text-align:right;">Page <span class="page"/> / <span class="topage"/></td>
+                </tr>
+                <tr t-else="">
+                    <td class="oc-foot-strong" style="width:34%;" t-out="footer_note or ''"/>
+                    <td class="oc-foot-site" style="text-align:center;"><t t-out="(company.website or '').replace('https://', '').replace('http://', '').rstrip('/')"/></td>
+                    <td style="width:34%;text-align:right;">Page <span class="page"/> / <span class="topage"/></td>
                 </tr>
             </table>
         </div>

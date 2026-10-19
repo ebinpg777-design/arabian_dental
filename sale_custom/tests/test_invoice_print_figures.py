@@ -112,6 +112,24 @@ class TestInvoicePrintFigures(AccountTestInvoicingCommon):
         r_old, r_total = refund._dental_balances()
         self.assertAlmostEqual(r_total, r_old - 400.0, 2, msg="a credit note brings the balance down")
 
+    def test_the_labs_year_range_numbers_are_understood(self):
+        """B2C/2026-27/19892: a fiscal-year range with the end year written short."""
+        company = self.env.company
+        company.write({'fiscalyear_last_month': '3', 'fiscalyear_last_day': 31})
+        move = self._invoice(self.clinic, 100.0, fields.Date.to_date('2026-10-17'), post=False)
+        move.name = 'B2C/2026-27/19892'
+        self.assertEqual(move._deduce_sequence_number_reset(move.name), 'year_range')
+        self.assertTrue(move._sequence_matches_date(), "October 2026 is in 2026-27")
+        move.action_post()
+        self.assertEqual(move.name, 'B2C/2026-27/19892', "re-posting keeps the number")
+        move.button_draft()
+        move.action_post()
+        self.assertEqual(move.name, 'B2C/2026-27/19892')
+        nxt = self._invoice(self.clinic, 100.0, fields.Date.to_date('2026-10-18'))
+        self.assertEqual(nxt.name, 'B2C/2026-27/19893', "the next number keeps the lab's format")
+        later = self._invoice(self.clinic, 100.0, fields.Date.to_date('2027-04-02'))
+        self.assertEqual(later.name, 'B2C/2027-28/00001', "a new fiscal year starts a new range")
+
     def test_no_balances_on_a_bill(self):
         bill = self.env['account.move'].create({
             'move_type': 'in_invoice', 'partner_id': self.clinic.id, 'invoice_date': self.day,

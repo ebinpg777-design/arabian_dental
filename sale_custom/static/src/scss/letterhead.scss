@@ -44,9 +44,13 @@ $oc-line: #dde3e9;
     padding-top: 2px;
 
     .oc-foot-strong { color: $oc-navy; font-weight: 700; }
-    // Two tight lines, so the band takes only the millimetres it needs and the
-    // body keeps the rest of the page. (client, 2026-09-16)
-    td { border: none; padding: 0; line-height: 1.15; }
+    // the website, set a touch larger and spaced out, is the bar's centrepiece
+    .oc-foot-site { font-size: 8pt; font-weight: 700; letter-spacing: .6px; color: #474f54; }
+    // the page number alone, no rule: the document's own bar closes its body
+    &.lab-minimal { border-top: none; padding-top: 0; }
+    // One tight line, so the band takes only the millimetres it needs and the
+    // body keeps the rest of the page. (client, 2026-09-16, 2026-10-19)
+    td { border: none; padding: 0; line-height: 1.2; vertical-align: baseline; }
 
     // a document in Arabian Dental Lab's colours (the tax invoice, 2026-10-19); the
     // others keep their navy until they are recoloured too

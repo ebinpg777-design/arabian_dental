@@ -11,6 +11,7 @@
             mo="{'widget': 'monetary', 'display_currency': cur}"
             footer_note.translate="Thank you for your business."
             footer_class="'lab-brand'"
+            footer_minimal="True"
             hide_letterhead="True">
             <t t-set="o" t-value="o.with_context(lang=o.partner_id.lang)"/>
             <t t-set="cur" t-value="o.currency_id"/>
@@ -28,6 +29,12 @@
             <t t-set="show_teeth" t-value="any(l.teeth for l in lines)"/>
             <t t-set="show_tax" t-value="bool(o.amount_tax) or any(l.tax_ids for l in lines)"/>
             <t t-set="paid" t-value="o.amount_total - o.amount_residual"/>
+            <!-- The report wrappers (body, #wrapwrap, main, .article) carry margins and
+                 padding of their own that kept the sheet's foot a clear 7 mm above the
+                 footer bar ("remove this unwanted space", client, 2026-10-19). -->
+            <style>
+                html, body, #wrapwrap, main, .article { margin: 0 !important; padding: 0 !important; }
+            </style>
             <div class="page lab-invoice">
                 <!-- The sheet: one table as tall as the page's body, the invoice proper in
                      its top row and the closing block - words, totals, bank, pay, sign,
@@ -36,12 +43,15 @@
                      bottom of the sheet"). wkhtmltopdf gives a row's surplus height to
                      the auto row above it, which is what pushes the foot down. An invoice
                      longer than a page simply flows on, the foot after its last line.
-                     343mm, not the page's 279: Odoo lets wkhtmltopdf "smart-shrink" the
+                     349mm, not the page's 281: Odoo lets wkhtmltopdf "smart-shrink" the
                      body, so a millimetre here is about 0.77 on paper. Found by probing
-                     (2026-10-19): 346 still fits a page, 349 spills; 343 ends the terms
-                     ~275 mm down, a safe 10 mm above the footer bar. Re-probe if the
-                     paper format's margins or the shrinking ever change. -->
-                <table class="oi-sheet" style="height:343mm;">
+                     (2026-10-19, bottom margin 8): 351 still fits a page, 352 spills.
+                     Re-probe if the paper format's margins or the shrinking ever change.
+                     The closing bar (note, website) is the sheet's last row, so the few
+                     millimetres wkhtmltopdf keeps clear above its footer fall below the
+                     bar, where only the page number sits. -->
+                <!-- the height can be overridden from a shell for probing: context lab_sheet_h -->
+                <table class="oi-sheet" t-attf-style="height:{{o.env.context.get('lab_sheet_h', 349)}}mm;">
                     <tr><td class="oi-sheet-top">
 
                 <!-- letterhead, in the body: the design puts it in a card at the top of
@@ -398,6 +408,17 @@
                     <span t-if="o.invoice_payment_term_id.note" t-field="o.invoice_payment_term_id.note"/>
                     <span t-if="o.fiscal_position_id.note" t-field="o.fiscal_position_id.note"/>
                     <span t-if="o.narration" t-field="o.narration"/>
+                </div>
+
+                <!-- the closing bar: a red rule, the note and the website (client,
+                     2026-10-19: no phone or e-mail at the bottom, the website instead) -->
+                <div class="oi-foot">
+                    <table>
+                        <tr>
+                            <td class="oi-footnote">Thank you for your business.</td>
+                            <td class="oi-footsite"><t t-out="(o.company_id.website or '').replace('https://', '').replace('http://', '').rstrip('/')"/></td>
+                        </tr>
+                    </table>
                 </div>
 
                     </td></tr>
