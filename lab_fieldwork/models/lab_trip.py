@@ -45,6 +45,15 @@ class LabTrip(models.Model):
     amount = fields.Monetary('Claim', compute='_compute_amount', store=True,
                              currency_field='currency_id')
     note = fields.Text('Remarks')
+    # The day's distance as the phone's trail measured it, beside the odometer claim
+    # (the live layer, 2026-10-19). A claim of 48 km on a trail of 31 km is a question
+    # for the approver, not a verdict: a trail has gaps whenever the app was closed.
+    gps_km = fields.Float('Distance (phone trail)', digits=(8, 1), readonly=True,
+                          compute='_compute_gps_km', store=True)
+    km_variance_pct = fields.Float(
+        'Claim vs Trail (%)', digits=(6, 0), compute='_compute_gps_km', store=True,
+        help="How far the odometer claim exceeds the phone trail. Blank when the day "
+             "recorded no trail.")
     auto_closed = fields.Boolean(readonly=True, copy=False,
                                  help="Submitted by the end-of-day job, not by the executive.")
     auto_close_failed = fields.Boolean(
@@ -86,6 +95,15 @@ class LabTrip(models.Model):
         for trip in self:
             trip.distance = max(0.0, (trip.odo_end or 0.0) - (trip.odo_start or 0.0))
             trip.amount = trip.distance * (trip.rate or 0.0)
+
+    @api.depends('user_id', 'date', 'state', 'distance')
+    def _compute_gps_km(self):
+        Ping = self.env['lab.location.ping'].sudo()
+        for trip in self:
+            km = Ping._trail_km_for(trip.user_id, trip.date) if trip.user_id and trip.date else 0.0
+            trip.gps_km = round(km, 1)
+            trip.km_variance_pct = round((trip.distance - km) / km * 100.0) \
+                if km >= 1.0 and trip.distance else 0.0
 
     def _day_visits(self):
         """The visits this day's travel paid for.

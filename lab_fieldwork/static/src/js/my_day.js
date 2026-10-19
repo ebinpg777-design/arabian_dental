@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onPatched, onWillStart, proxy, signal, usePlugin, useProps } from "@odoo/owl";
+import { Component, onMounted, onPatched, onWillStart, onWillUnmount, proxy, signal, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
@@ -9,6 +9,14 @@ import { session } from "@web/session";
 import { user } from "@web/core/user";
 import { formatMonetary } from "@web/views/fields/formatters";
 import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
+import { MyTrail } from "@lab_fieldwork/js/my_trail";
+
+// How often the "Where I am" card re-reads the recorder: often enough that "last fix
+// 2 min ago" is true, rare enough to cost nothing. No RPC - the numbers are local.
+const WHERE_TICK_MS = 30000;
+// A dismissed nudge is forgotten after this long: the key is visit + kind, and a
+// visit is one day's thing, so there is nothing to keep past the week.
+const DISMISS_KEEP_MS = 7 * 24 * 3600 * 1000;
 
 /**
  * The executive's whole application.
@@ -18,6 +26,7 @@ import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/
  */
 export class LabMyDay extends Component {
     static template = "lab_fieldwork.MyDay";
+    static components = { MyTrail };
     props = useProps();
 
     setup() {
@@ -34,7 +43,17 @@ export class LabMyDay extends Component {
             clinics: { open: false, rows: [], busy: false, query: "",
                        more: false, favouritesOnly: false, favourites: 0,
                        noRoute: false, loaded: false },
-            day: null, data: null, loading: true, busy: 0 });
+            day: null, data: null, loading: true, busy: 0,
+            // The "Where I am" card: the recorder's own numbers (status), the
+            // server's answer to tracking_state (km, nudges), whether the trail map
+            // is open, and the nudges this phone has waved away.
+            where: { status: null, server: null, trail: false, dismissed: {},
+                     now: Date.now() } });
+        this.state.where.dismissed = this.readDismissed();
+        onMounted(() => {
+            this._whereTimer = setInterval(() => this.syncWhere(), WHERE_TICK_MS);
+        });
+        onWillUnmount(() => clearInterval(this._whereTimer));
         // TAKE THE SCREEN TO THE ANSWER. The clinics panel opens below the day's
         // own work, which on a phone is far enough down that tapping the tile
         // looked like it had done nothing at all. The scroll has to wait for the
@@ -107,6 +126,11 @@ export class LabMyDay extends Component {
         this.state.data = await this.orm.call(
             "lab.my.day", "get_day", [this.state.day || false]);
         this.state.loading = false;
+        // Every reload also asks the recorder to re-check with the server, so the
+        // km and the nudges on the card are as fresh as the visits above them -
+        // and the watch is told at once when the attendance button changed sides.
+        // Not awaited: the screen is up, the card fills in behind it.
+        this.refreshWhere();
     }
 
     money(v) {
@@ -262,6 +286,181 @@ export class LabMyDay extends Component {
         return Boolean(this.attendance.tracking);
     }
 
+    // -------------------------------------------------------------- where I am
+    // The light on the attendance card says the route is being kept; this card says
+    // what that amounts to - how many fixes, how fresh, how far - so the executive
+    // sees the thing the manager's board sees about them, and a dead GPS is noticed
+    // at the clinic door rather than at the day sheet. (client, 2026-10-19)
+    get userId() {
+        return user.userId;
+    }
+
+    /** Only today, only on duty, only while the lab records at all - and never on a
+        phone the lab has excused from giving a position (tracking_state says so;
+        the attendance light alone does not know). */
+    get showWhere() {
+        const server = this.state.where.server;
+        return this.onDuty && this.tracking
+            && Boolean(this.state.data && this.state.data.is_today)
+            && !(server && server.enabled === false);
+    }
+
+    get whereStatus() {
+        return this.state.where.status || {};
+    }
+
+    /** Re-check with the server, then copy the recorder's numbers onto the card. */
+    refreshWhere() {
+        this.tracker.refresh().then(() => this.syncWhere(), () => this.syncWhere());
+    }
+
+    /** No RPC: the recorder already knows; this reads it onto reactive state. */
+    syncWhere() {
+        const w = this.state.where;
+        w.status = this.tracker.getStatus();
+        w.server = this.tracker.server;
+        w.now = Date.now();
+    }
+
+    /** "12 fixes sent · last fix 2 min ago · ±18 m" */
+    get whereLine() {
+        const s = this.whereStatus;
+        const sent = s.sent || 0;
+        const bits = [`${sent} ${sent === 1 ? "fix" : "fixes"} sent`];
+        if (s.lastFix) {
+            bits.push(`last fix ${this.ago(s.lastFix.at)}`);
+            if (s.lastFix.accuracy_m) {
+                bits.push(`±${Math.round(s.lastFix.accuracy_m)} m`);
+            }
+        } else if (s.recording) {
+            bits.push("waiting for the first fix");
+        }
+        if (s.queued) {
+            // Out of coverage: the phone is holding them, and says so.
+            bits.push(`${s.queued} waiting to send`);
+        }
+        return bits.join(" · ");
+    }
+
+    /** From the server, not the phone: the kilometres it has actually kept. */
+    get kmToday() {
+        const server = this.state.where.server;
+        const km = Number(server && server.km_today) || 0;
+        return km.toFixed(1);
+    }
+
+    /** Why the badge is grey, when it is. Only the case the executive can fix. */
+    get whereProblem() {
+        const s = this.whereStatus;
+        if (s.denied) {
+            return "Location is blocked for this site, so your route is not being "
+                + "recorded. Allow it in Chrome's site settings, then reload the page.";
+        }
+        if (!s.recording && !navigator.geolocation) {
+            return "This browser cannot share a location. Open the app in Google Chrome.";
+        }
+        return "";
+    }
+
+    ago(epochMs) {
+        const s = Math.max(0, Math.round((this.state.where.now - epochMs) / 1000));
+        if (s < 45) {
+            return "just now";
+        }
+        if (s < 3600) {
+            return `${Math.round(s / 60)} min ago`;
+        }
+        return `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min ago`;
+    }
+
+    toggleTrail() {
+        this.state.where.trail = !this.state.where.trail;
+    }
+
+    // ------------------------------------------------------------------ nudges
+    // The phone has noticed something the executive has not pressed: inside a
+    // planned clinic's radius without a check-in ("arrived"), or well outside one
+    // while still checked in ("left"). The server decides both; this screen only
+    // offers the tap. Nothing is written until they take it.
+    get nudges() {
+        const server = this.state.where.server;
+        if (!server || !Array.isArray(server.nudges)) {
+            return [];
+        }
+        const dismissed = this.state.where.dismissed;
+        const visits = (this.state.data && this.state.data.visits) || [];
+        return server.nudges.filter((n) => {
+            if (dismissed[this.nudgeKey(n)]) {
+                return false;
+            }
+            // The card list is fresher than the last tracking_state answer for a
+            // few seconds after a check-in: a nudge whose visit has already moved
+            // on is not shown again in that window.
+            const visit = visits.find((v) => v.id === n.visit_id);
+            if (visit && n.kind === "arrived" && visit.state !== "planned") {
+                return false;
+            }
+            if (visit && n.kind === "left" && visit.state !== "open") {
+                return false;
+            }
+            return true;
+        });
+    }
+
+    nudgeKey(n) {
+        return `${n.visit_id}:${n.kind}`;
+    }
+
+    // Per user, like the recorder's queue: a shared phone must not carry one
+    // person's refusals into the next login.
+    get dismissKey() {
+        return `lab_fw.nudges.${user.userId || 0}`;
+    }
+
+    readDismissed() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.dismissKey)) || {};
+            const floor = Date.now() - DISMISS_KEEP_MS;
+            return Object.fromEntries(
+                Object.entries(saved).filter(([, at]) => Number(at) > floor));
+        } catch {
+            return {};
+        }
+    }
+
+    /** The X. Remembered for that visit and kind: a new kind for the same visit
+        - left, after arrived - is a new question and shows again. */
+    dismissNudge(n) {
+        const dismissed = { ...this.state.where.dismissed, [this.nudgeKey(n)]: Date.now() };
+        this.state.where.dismissed = dismissed;
+        try {
+            localStorage.setItem(this.dismissKey, JSON.stringify(dismissed));
+        } catch {
+            // Private mode: it will simply ask again after a reload.
+        }
+    }
+
+    /**
+     * "Check in?" - the same path as the visit card's "I'm Here": the fix is taken
+     * now, by getPosition(), and the server measures it against the clinic itself.
+     * The card is looked up first so a visit already opened from its form is not
+     * checked in twice.
+     */
+    async checkInFromNudge(n) {
+        const visits = (this.state.data && this.state.data.visits) || [];
+        const visit = visits.find((v) => v.id === n.visit_id);
+        if (visit && visit.state !== "planned") {
+            this.dismissNudge(n);
+            return;
+        }
+        await this.onPrimary(visit || { id: n.visit_id, state: "planned" });
+    }
+
+    /** "Check out" needs an outcome, so it opens the form - the existing path. */
+    checkOutFromNudge(n) {
+        this.openVisit({ id: n.visit_id });
+    }
+
     get clockLabel() {
         if (this.attendance.state === "no_employee") {
             return "No employee record";
@@ -290,10 +489,9 @@ export class LabMyDay extends Component {
                 latitude: coords ? coords.latitude : false,
                 longitude: coords ? coords.longitude : false,
             });
+            // load() tells the watch which side of the privacy boundary the button
+            // just put us on - at once, not on its five-minute timer.
             await this.load();
-            // The button has just changed which side of the privacy boundary we are
-            // on, so the watch is told at once rather than on its five-minute timer.
-            this.tracker.refresh();
             this.notification.add(
                 this.onDuty ? "You are on duty. Have a good day." : "Day ended.",
                 { type: "success" }

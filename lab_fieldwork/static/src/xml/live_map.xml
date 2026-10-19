@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!--
+    The live map: a compact header, the people down the side, the map filling
+    the rest. The root IS the web client's `.o_action` (a column flex box that
+    hides its own overflow), which is exactly the frame a full-height map wants;
+    `o_action_delegate_scroll` keeps a phone from scrolling the action instead
+    of the bottom sheet.
+-->
+<t t-name="lab_fieldwork.LiveMap">
+    <div class="o_fw_live o_action o_action_delegate_scroll">
+
+        <div class="o_fw_live_head">
+            <div class="o_fw_live_head_row">
+                <button type="button" class="o_fw_live_btn o_fw_live_sheet_toggle"
+                        t-att-title="this.state.panelOpen ? 'Hide the people' : 'Show the people'"
+                        t-on-click="() => this.togglePanel()">
+                    <i class="fa fa-users" aria-hidden="true"/>
+                    <span class="o_fw_live_sheet_n" t-out="this.executives.length"/>
+                </button>
+                <div class="o_fw_live_title">
+                    <h4>
+                        Live Map
+                        <span t-if="this.state.isToday and !this.state.lost" class="o_fw_live_dot_live" title="Updating"/>
+                    </h4>
+                    <div class="o_fw_live_counts">
+                        <span><b t-out="this.counts.duty"/> on duty</span>
+                        <span class="o_fw_live_c_moving"><b t-out="this.counts.moving"/> moving</span>
+                        <span class="o_fw_live_c_clinic"><b t-out="this.counts.at_clinic"/> at a clinic</span>
+                        <span class="o_fw_live_c_offline"><b t-out="this.counts.offline"/> offline</span>
+                        <span t-if="this.state.lost" class="o_fw_live_lost">
+                            <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>connection lost – retrying…
+                        </span>
+                        <span t-elif="this.state.isToday and this.state.updatedAt" class="o_fw_live_updated">
+                            updated <t t-out="this.state.updatedAt"/>
+                        </span>
+                        <span t-elif="!this.state.isToday" class="o_fw_live_pastday">
+                            <i class="fa fa-history me-1" aria-hidden="true"/>past day
+                        </span>
+                    </div>
+                </div>
+
+                <div class="o_fw_live_tools">
+                    <div class="o_fw_live_chips" role="group" aria-label="Show">
+                        <button type="button" class="o_fw_live_chip"
+                                t-att-class="this.state.show === 'duty' ? 'o_fw_live_chip_on' : ''"
+                                t-on-click="() => this.setShow('duty')">On duty</button>
+                        <button type="button" class="o_fw_live_chip"
+                                t-att-class="this.state.show === 'all' ? 'o_fw_live_chip_on' : ''"
+                                t-on-click="() => this.setShow('all')">Everyone</button>
+                    </div>
+                    <button t-if="this.focused" type="button" class="o_fw_live_chip o_fw_live_chip_focus"
+                            title="Show everyone again"
+                            t-on-click="() => this.clearFocus()">
+                        <span class="o_fw_live_dot" t-attf-style="background: {{ this.focused.colour }}"/>
+                        <t t-out="this.focused.name"/>
+                        <i class="fa fa-times ms-1" aria-hidden="true"/>
+                    </button>
+                    <button t-if="this.focused and this.state.isToday" type="button"
+                            class="o_fw_live_chip"
+                            t-att-class="this.state.follow ? 'o_fw_live_chip_on' : ''"
+                            title="Keep this person in view"
+                            t-on-click="() => this.toggleFollow()">
+                        <i class="fa fa-crosshairs" aria-hidden="true"/> Follow
+                    </button>
+                    <input type="date" class="o_fw_live_date"
+                           t-att-value="this.state.day" t-att-max="this.todayIso"
+                           t-on-change="(ev) => this.pickDate(ev.target.value)"/>
+                    <button t-if="!this.state.isToday" type="button" class="o_fw_live_btn o_fw_live_btn_go"
+                            t-on-click="() => this.goToday()">Today</button>
+                </div>
+            </div>
+
+            <!-- Replay: only a finished day can be played back. The slider runs
+                 over the recording itself, not the clock, so a 9-to-6 round does
+                 not start with four empty hours. -->
+            <div t-if="!this.state.isToday and this.state.range" class="o_fw_live_replay">
+                <button type="button" class="o_fw_live_btn" t-on-click="() => this.togglePlay()"
+                        t-att-title="this.state.playing ? 'Pause' : 'Replay the day'">
+                    <i t-if="this.state.playing" class="fa fa-pause" aria-hidden="true"/>
+                    <i t-else="" class="fa fa-play" aria-hidden="true"/>
+                </button>
+                <span class="o_fw_live_replay_end" t-out="this.clock(this.state.range.min)"/>
+                <input type="range" class="o_fw_live_slider"
+                       t-att-min="this.state.range.min" t-att-max="this.state.range.max" step="60"
+                       t-att-value="this.state.replayAt === null ? this.state.range.max : this.state.replayAt"
+                       t-on-input="(ev) => this.onReplay(ev)"/>
+                <span class="o_fw_live_replay_end" t-out="this.clock(this.state.range.max)"/>
+                <span t-if="this.state.replayAt !== null" class="o_fw_live_replay_clock" t-out="this.replayLabel"/>
+                <button t-if="this.state.replayAt !== null" type="button" class="o_fw_live_btn"
+                        title="Back to the whole day" t-on-click="() => this.exitReplay()">
+                    Whole day
+                </button>
+            </div>
+        </div>
+
+        <div class="o_fw_live_body">
+            <aside class="o_fw_live_panel" t-att-class="this.state.panelOpen ? '' : 'o_fw_live_panel_closed'">
+                <div t-if="this.state.loading and !this.state.data" class="o_fw_live_msg">
+                    <i class="fa fa-circle-o-notch fa-spin me-2" aria-hidden="true"/>Finding everyone…
+                </div>
+                <div t-elif="!this.executives.length" class="o_fw_live_msg">
+                    <i class="fa fa-map-o me-2" aria-hidden="true"/>
+                    <t t-if="this.state.show === 'duty'">Nobody is on duty right now.</t>
+                    <t t-else="">No field executive to show.</t>
+                </div>
+                <div t-foreach="this.executives" t-as="ex" t-key="ex.user_id"
+                     class="o_fw_live_row"
+                     t-att-class="{
+                        'o_fw_live_row_on': this.state.focusId === ex.user_id,
+                        'o_fw_live_row_dim': this.state.focusId and this.state.focusId !== ex.user_id,
+                        'o_fw_live_row_off': ex.status === 'off',
+                     }"
+                     t-on-click="() => this.focus(ex)">
+                    <div class="o_fw_live_row_top">
+                        <span class="o_fw_live_dot" t-attf-style="background: {{ ex.colour }}"/>
+                        <span class="o_fw_live_name" t-out="ex.name"/>
+                        <span class="o_fw_live_badge" t-attf-class="o_fw_live_badge_{{ ex.status }}"
+                              t-out="ex.status_label || ex.status"/>
+                    </div>
+                    <div class="o_fw_live_row_sub">
+                        <span>
+                            <t t-if="ex.status === 'off'">not on duty</t>
+                            <t t-else="">last seen <t t-out="this.lastSeen(ex)"/></t>
+                        </span>
+                        <a t-if="ex.phone" t-attf-href="tel:{{ ex.phone }}" class="o_fw_live_tel"
+                           t-att-title="ex.phone" t-on-click.stop="">
+                            <i class="fa fa-phone" aria-hidden="true"/>
+                        </a>
+                    </div>
+                    <div t-if="ex.at_clinic" class="o_fw_live_row_where o_fw_live_c_clinic">
+                        <i class="fa fa-map-marker me-1" aria-hidden="true"/>
+                        <t t-out="ex.at_clinic.name"/> since <t t-out="this.clock(ex.at_clinic.since_epoch)"/>
+                    </div>
+                    <div t-elif="ex.next and this.state.isToday" class="o_fw_live_row_where">
+                        <i class="fa fa-arrow-right me-1" aria-hidden="true"/>
+                        <t t-out="ex.next.name"/>
+                        <span t-if="ex.next.eta_min !== null and ex.next.eta_min !== undefined" class="text-muted">
+                            · ~<t t-out="this.round(ex.next.eta_min)"/> min
+                        </span>
+                    </div>
+                    <div class="o_fw_live_row_stats">
+                        <span title="Visits done / planned">
+                            <i class="fa fa-check-square-o" aria-hidden="true"/>
+                            <t t-out="ex.visits_done"/>/<t t-out="ex.visits_planned"/>
+                        </span>
+                        <span title="Distance today">
+                            <i class="fa fa-road" aria-hidden="true"/> <t t-out="this.km(ex.km)"/> km
+                        </span>
+                        <span t-if="ex.halt_minutes" title="Minutes halted" class="o_fw_live_c_halt">
+                            <i class="fa fa-pause-circle-o" aria-hidden="true"/> <t t-out="this.round(ex.halt_minutes)"/> min
+                        </span>
+                        <span t-if="ex.overspeed" title="Over the speed limit" class="o_fw_live_c_speed">
+                            <i class="fa fa-tachometer" aria-hidden="true"/> <t t-out="ex.overspeed"/>
+                        </span>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="o_fw_live_canvas" t-ref="this.mapRef"/>
+        </div>
+
+        <div class="o_fw_live_legend">
+            <span t-foreach="this.legend" t-as="item" t-key="item.label"
+                  t-attf-class="o_fw_live_key o_fw_live_key_{{ item.kind }}">
+                <i t-attf-style="background: {{ item.colour }}"/><t t-out="item.label"/>
+            </span>
+        </div>
+    </div>
+</t>
+
+</templates>

@@ -104,6 +104,18 @@ class DeskBase extends Component {
     }
 
     // ------------------------------------------------------- the field board
+    /** "3 min ago" for the board's live line. */
+    ago(seconds) {
+        if (seconds === null || seconds === undefined) { return ""; }
+        if (seconds < 90) { return "just now"; }
+        if (seconds < 3600) { return `${Math.round(seconds / 60)} min ago`; }
+        return `${Math.floor(seconds / 3600)} h ${Math.round((seconds % 3600) / 60)} min ago`;
+    }
+
+    openLiveMap(userId) {
+        this.action.doAction("lab_fieldwork.action_live_map", { additionalContext: { user_id: userId } });
+    }
+
     get statusLabel() {
         return { at_clinic: "at a clinic", moving: "on the road",
                  finished: "day finished", idle: "not started",

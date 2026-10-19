@@ -256,6 +256,13 @@ class LabVisit(models.Model):
         readonly=True, copy=False, string='Left Open',
         help="Still open at the end of the day with no outcome recorded, so it could "
              "not be closed without inventing one.")
+    # What the trail saw before anybody pressed a button (the live layer, 2026-10-19):
+    # the phone inside the clinic's radius while the visit was still only planned,
+    # and well outside it while the visit was still open. Neither changes the visit
+    # - the executive is nudged to check in or out - but both are kept, so a visit
+    # checked in from the car park an hour after arriving reads as what it was.
+    auto_arrived_at = fields.Datetime('Arrived (trail)', readonly=True, copy=False)
+    auto_left_at = fields.Datetime('Left (trail)', readonly=True, copy=False)
 
     # --- outputs
     # The slips an executive fills in at the counter, and the orders they became.

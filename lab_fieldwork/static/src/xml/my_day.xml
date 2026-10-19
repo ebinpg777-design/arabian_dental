@@ -132,7 +132,9 @@
                         </t>
                         <t t-elif="this.onDuty">
                             Since <t t-out="this.attendance.since"/> · <t t-out="this.hoursToday"/> today
-                            <span t-if="this.tracking" class="o_fw_tracking"
+                            <!-- The badge moves to the "Where I am" card when that
+                                 card is up; here only when it is not (a past day). -->
+                            <span t-if="this.tracking and !this.showWhere" class="o_fw_tracking"
                                   title="Your route is recorded while your day is running, and stops when you end it.">
                                 <i class="fa fa-location-arrow"/> route recording
                             </span>
@@ -154,6 +156,78 @@
                     <span class="ms-2"><t t-out="this.clockLabel"/></span>
                 </button>
             </div>
+
+            <!-- Where I am. The light on the attendance card says the route is being
+                 kept; this card says what that amounts to - how many fixes, how
+                 fresh, how far - so the executive sees what the manager's board
+                 sees about them, and a dead GPS is noticed at the clinic door rather
+                 than at the day sheet. Today only, on duty only, recording only.
+                 (client, 2026-10-19) -->
+            <t t-if="this.showWhere">
+                <!-- The phone has noticed something the executive has not pressed.
+                     A nudge, not an action: nothing is written until they tap. The X
+                     remembers the refusal for that visit and kind. -->
+                <div t-foreach="this.nudges" t-as="n" t-key="n.visit_id + ':' + n.kind"
+                     class="o_fw_nudge" t-att-class="'o_fw_nudge_' + n.kind">
+                    <div class="o_fw_nudge_body">
+                        <div class="o_fw_nudge_text">
+                            <t t-if="n.kind === 'arrived'">
+                                <i class="fa fa-map-marker me-1" title="At a clinic"/>
+                                You seem to be at <t t-out="n.clinic"/><t t-if="n.since_label"> (since <t t-out="n.since_label"/>)</t>. Check in?
+                            </t>
+                            <t t-else="">
+                                <i class="fa fa-sign-out me-1" title="Away from the clinic"/>
+                                Left <t t-out="n.clinic"/><t t-if="n.since_label"> at <t t-out="n.since_label"/></t>? Check out.
+                            </t>
+                        </div>
+                        <button class="o_fw_nudge_x" title="Not now"
+                                t-on-click="() => this.dismissNudge(n)">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+                    <button t-if="n.kind === 'arrived'" class="o_fw_nudge_btn"
+                            t-att-disabled="this.state.busy === n.visit_id"
+                            t-on-click="() => this.checkInFromNudge(n)">
+                        <i class="fa fa-map-marker" title="I'm Here"/>
+                        <span class="ms-2">I'm Here</span>
+                    </button>
+                    <button t-else="" class="o_fw_nudge_btn"
+                            t-on-click="() => this.checkOutFromNudge(n)">
+                        <i class="fa fa-check" title="Check out"/>
+                        <span class="ms-2">Check out</span>
+                    </button>
+                </div>
+
+                <div class="o_fw_where">
+                    <div class="o_fw_where_row">
+                        <span t-if="this.whereStatus.recording" class="o_fw_tracking"
+                              title="Your route is recorded while your day is running, and stops when you end it.">
+                            <i class="fa fa-location-arrow"/> route recording
+                        </span>
+                        <span t-else="" class="o_fw_tracking o_fw_tracking_off"
+                              title="The day is running but this phone is not giving a position.">
+                            <i class="fa fa-location-arrow"/> not recording
+                        </span>
+                        <span class="o_fw_where_line" t-out="this.whereLine"/>
+                    </div>
+                    <div class="o_fw_where_row">
+                        <span class="o_fw_where_km">
+                            <strong t-out="this.kmToday"/> km today
+                        </span>
+                        <button class="o_fw_where_btn" t-on-click="() => this.toggleTrail()">
+                            <i t-att-class="'fa me-1 ' + (this.state.where.trail ? 'fa-chevron-up' : 'fa-map-o')"
+                               t-att-title="this.state.where.trail ? 'Hide my trail' : 'Show my trail'"/>
+                            <t t-if="this.state.where.trail">Hide my trail</t>
+                            <t t-else="">Show my trail</t>
+                        </button>
+                    </div>
+                    <div t-if="this.whereProblem" class="o_fw_warn">
+                        <i class="fa fa-exclamation-triangle me-1" title="Not recording"/>
+                        <t t-out="this.whereProblem"/>
+                    </div>
+                    <MyTrail t-if="this.state.where.trail" userId="this.userId"/>
+                </div>
+            </t>
 
             <!-- Two kinds of button, kept apart because they are used at different
                  moments. DO is the doorstep: things done without opening a record -

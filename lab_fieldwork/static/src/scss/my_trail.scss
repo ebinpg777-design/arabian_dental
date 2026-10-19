@@ -1,0 +1,175 @@
+// My Day: the "Where I am" card, the nudges above it, and the trail map inside it.
+//
+// The three ship together and are styled together, next to the component rather than
+// in fieldwork.scss. Same rules as the rest of the screen: 44px targets, one column,
+// the action on the right. SCSS variables only - the backend exposes no `--bs-*`
+// custom properties (see fieldwork.scss).
+
+.o_fw_day {
+    // `.o_fw_day` is a column flex container (it is also `.o_action`): a direct
+    // child with no flex sizing is shrinkable and collapses under the cards below
+    // it. Same trap as .o_fw_card and .o_fw_cash. (2026-09-18)
+    .o_fw_nudge,
+    .o_fw_where { flex: 0 0 auto; }
+
+    // ------------------------------------------------------------------ nudges
+    // The phone has noticed something the executive has not pressed. Louder than
+    // the cards below - it is the one thing on the screen asking for a tap - and
+    // coloured by what it is: green for a door reached, amber for one left.
+    .o_fw_nudge {
+        display: flex;
+        align-items: stretch;
+        margin-bottom: .75rem;
+        border: 1px solid $border-color;
+        border-left-width: 4px;
+        border-radius: .625rem;
+        background-color: $body-bg;
+        overflow: hidden;
+    }
+    .o_fw_nudge_arrived {
+        border-left-color: $success;
+        background-color: rgba($success, .08);
+    }
+    .o_fw_nudge_left {
+        border-left-color: $warning;
+        background-color: rgba($warning, .1);
+    }
+    .o_fw_nudge_body {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        align-items: flex-start;
+        gap: .25rem;
+        padding: .75rem .25rem .75rem 1rem;
+    }
+    .o_fw_nudge_text {
+        flex: 1 1 auto;
+        font-size: .9375rem;
+        font-weight: 600;
+        line-height: 1.35;
+        color: $o-gray-900;
+    }
+    .o_fw_nudge_x {
+        flex: 0 0 auto;
+        width: 36px;
+        height: 36px;
+        margin-top: -.25rem;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: $o-gray-600;
+        &:hover { background-color: rgba(0, 0, 0, .06); }
+    }
+    .o_fw_nudge_btn {
+        flex: 0 0 auto;
+        min-width: 7.5rem;
+        min-height: 44px;
+        border: 0;
+        border-left: 1px solid $border-color;
+        background-color: #1f3a5f;
+        color: #fff;
+        font-weight: 600;
+        font-size: .875rem;
+        white-space: nowrap;
+        &:hover:not(:disabled) { background-color: #17304f; }
+        &:disabled { opacity: .5; }
+    }
+
+    // ------------------------------------------------------------------ where I am
+    // Quiet, like the travel line: a fact strip with one button. What it says is the
+    // thing the manager's board says about this person, shown to the person.
+    .o_fw_where {
+        margin-bottom: 1rem;
+        padding: .75rem 1rem;
+        border: 1px solid $border-color;
+        border-radius: .625rem;
+        background-color: $o-gray-100;
+    }
+    .o_fw_where_row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .375rem .75rem;
+        font-size: .8125rem;
+        color: $o-gray-700;
+        & + & { margin-top: .5rem; }
+    }
+    .o_fw_where .o_fw_tracking { margin-left: 0; }
+    // The badge when the light is OFF: grey, and still a badge, so the executive
+    // sees the recorder is not running rather than sees nothing.
+    .o_fw_tracking_off {
+        background: rgba(108, 117, 125, .15);
+        color: $o-gray-700;
+    }
+    .o_fw_where_line { min-width: 0; }
+    .o_fw_where_km {
+        font-size: .875rem;
+        color: $o-gray-900;
+        strong { font-size: 1.125rem; }
+    }
+    .o_fw_where_btn {
+        margin-left: auto;
+        min-height: 36px;
+        padding: .25rem .875rem;
+        border: 1px solid $border-color;
+        border-radius: 999px;
+        background-color: $body-bg;
+        color: $o-gray-900;
+        font-size: .8125rem;
+        font-weight: 600;
+        white-space: nowrap;
+        &:hover { background-color: $o-gray-200; }
+    }
+    .o_fw_where .o_fw_warn { margin-top: .5rem; }
+
+    // ------------------------------------------------------------------ the trail
+    .o_fw_trail { margin-top: .75rem; }
+    .o_fw_trail_cap {
+        font-size: .8rem;
+        color: $o-gray-600;
+        margin-bottom: .35rem;
+    }
+    .o_fw_trail_canvas {
+        height: 240px;
+        width: 100%;
+        border: 1px solid rgba(0, 0, 0, .12);
+        border-radius: .5rem;
+        overflow: hidden;
+        // Leaflet's panes sit above the page's own controls without this.
+        z-index: 0;
+        background: #eceff1;
+    }
+    .o_fw_trail_empty {
+        padding: .75rem 0;
+        font-size: .875rem;
+        color: $o-gray-600;
+    }
+    // The "show the whole day" control, sized like Leaflet's own zoom buttons.
+    .o_fw_trail_reset a {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        color: #14181d;
+        font-size: .9rem;
+    }
+    .o_fw_trail_key {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .25rem 1rem;
+        margin-top: .45rem;
+        font-size: .75rem;
+        color: $o-gray-600;
+        span {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+        }
+        i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+    }
+}

@@ -185,6 +185,11 @@ class LabDailyUpdate(models.Model):
     collected = fields.Monetary('Collected', readonly=True,
                                 currency_field='currency_id')
     km = fields.Float('Distance (km)', readonly=True)
+    # From the phone's trail (the live layer, 2026-10-19): the distance it saw, the
+    # minutes spent stopped away from any clinic, and the fixes over the speed limit.
+    gps_km = fields.Float('Distance (phone trail)', digits=(8, 1), readonly=True)
+    halt_minutes = fields.Integer('Stopped Away from Clinics (min)', readonly=True)
+    overspeed_count = fields.Integer('Over the Speed Limit', readonly=True)
     delivery_count = fields.Integer('Deliveries', readonly=True)
     new_clinic_count = fields.Integer('New Clinics', readonly=True)
     attendance_in = fields.Char('Started', readonly=True)
@@ -319,6 +324,8 @@ class LabDailyUpdate(models.Model):
                         [sheet.user_id.id], sheet.date).get(sheet.user_id.id, 0.0),
                 'km': sum(trips.mapped('distance')),
             }
+            vals.update(self.env['lab.location.ping'].sudo()._day_summary(
+                sheet.user_id, sheet.date))
 
             # Downstream modules, if they are there. lab_delivery depends on
             # this module, never the other way round, so it is felt for.

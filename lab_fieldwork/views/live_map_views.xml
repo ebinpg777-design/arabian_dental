@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The field, live (2026-10-19): the manager's map of where every executive is
+         right now, their trail so far, the clinics done and to come. Halts are the
+         stops the trail found away from any clinic. -->
+    <record id="action_live_map" model="ir.actions.client">
+        <field name="name">Live Map</field>
+        <field name="tag">lab_live_map</field>
+    </record>
+
+    <record id="view_location_halt_list" model="ir.ui.view">
+        <field name="name">lab.location.halt.list</field>
+        <field name="model">lab.location.halt</field>
+        <field name="arch" type="xml">
+            <list default_order="started_at desc" create="0">
+                <field name="date"/>
+                <field name="user_id"/>
+                <field name="started_at"/>
+                <field name="ended_at"/>
+                <field name="minutes" sum="Minutes"/>
+                <field name="place"/>
+                <field name="note"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_location_halt_form" model="ir.ui.view">
+        <field name="name">lab.location.halt.form</field>
+        <field name="model">lab.location.halt</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="user_id" readonly="1"/>
+                            <field name="date" readonly="1"/>
+                            <field name="place" readonly="1"/>
+                            <field name="note"/>
+                        </group>
+                        <group>
+                            <field name="started_at" readonly="1"/>
+                            <field name="ended_at" readonly="1"/>
+                            <field name="minutes" readonly="1"/>
+                            <field name="latitude" readonly="1"/>
+                            <field name="longitude" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_location_halt_search" model="ir.ui.view">
+        <field name="name">lab.location.halt.search</field>
+        <field name="model">lab.location.halt</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="place"/>
+                <filter name="today" string="Today" domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="long" string="30 min or more" domain="[('minutes', '>=', 30)]"/>
+                <group>
+                    <filter name="by_user" string="Executive" context="{'group_by': 'user_id'}"/>
+                    <filter name="by_date" string="Day" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_location_halts" model="ir.actions.act_window">
+        <field name="name">Halts</field>
+        <field name="res_model">lab.location.halt</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_today': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No halts recorded</p>
+            <p>A halt is the phone standing still for a while somewhere that is not a clinic or the lab, read from the day's trail.</p>
+        </field>
+    </record>
+
+    <!-- Both under Operations, managers only: Live Map first, where the day is. -->
+    <menuitem id="menu_fw_ops_live_map" name="Live Map"
+              parent="lab_fieldwork.menu_fw_ops" sequence="1"
+              action="action_live_map"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+    <menuitem id="menu_fw_ops_halts" name="Halts"
+              parent="lab_fieldwork.menu_fw_ops" sequence="12"
+              action="action_location_halts"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+    <!-- what the trail noticed, on the visit itself -->
+    <record id="view_visit_form_live" model="ir.ui.view">
+        <field name="name">lab.visit.form.live</field>
+        <field name="model">lab.visit</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_visit_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='gps_map_url']" position="after">
+                <field name="auto_arrived_at" invisible="not auto_arrived_at"
+                       groups="lab_fieldwork.group_fieldwork_manager"/>
+                <field name="auto_left_at" invisible="not auto_left_at"
+                       groups="lab_fieldwork.group_fieldwork_manager"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

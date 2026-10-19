@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Delivery',
-    'version': '20.0.1.29.0',
+    'version': '20.0.1.29.1',
     'summary': "Hand-delivery of finished lab work: who carries what where, and what happened (R4–R8)",
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- The executive's own trail, inside the "Where I am" card on My Day. -->
+    <t t-name="lab_fieldwork.MyTrail">
+        <div class="o_fw_trail">
+            <div class="o_fw_trail_cap">
+                <t t-if="this.state.loading and !this.state.data">
+                    <i class="fa fa-circle-o-notch fa-spin me-1" title="Loading"/>Drawing your day…
+                </t>
+                <span t-elif="this.state.error" class="text-danger">
+                    <i class="fa fa-exclamation-triangle me-1" title="Error"/><t t-out="this.state.error"/>
+                </span>
+                <t t-else=""><t t-out="this.caption"/></t>
+            </div>
+            <div t-if="this.hasPoints" class="o_fw_trail_canvas" t-ref="this.mapRef"/>
+            <div t-elif="!this.state.loading and !this.state.error" class="o_fw_trail_empty">
+                <i class="fa fa-map-o me-1" title="No trail yet"/>
+                Nothing recorded yet today — the trail starts with the first fix.
+            </div>
+            <div t-if="this.hasPoints" class="o_fw_trail_key">
+                <span><i style="background:#0ea5e9"/>route recorded</span>
+                <span><i style="background:#0f9d58"/>at the door</span>
+                <span><i style="background:#dc3545"/>away from the clinic</span>
+                <span t-if="this.halts.length"><i style="background:#f97316"/>stopped</span>
+                <span><i style="background:#6d28d9"/>you, now</span>
+            </div>
+        </div>
+    </t>
+
+</templates>

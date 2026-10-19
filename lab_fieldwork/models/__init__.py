@@ -34,6 +34,8 @@ from . import ir_ui_menu
 from . import desk_cover
 from . import daily_update
 from . import day_track
+from . import location_halt
 from . import location_ping
+from . import location_live
 from . import weekly_report
 from . import ir_http

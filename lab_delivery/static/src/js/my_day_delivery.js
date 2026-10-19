@@ -84,7 +84,11 @@ patch(LabMyDay.prototype, {
 
     /** The inbound mirror of Mark Delivered: the lab takes the bag in. */
     async receiveAtLab(d) {
-        const coords = session.fw_location_exception ? null : await this.getPosition();
+        // getPosition() settles on {coords} or {error} (lab_fieldwork e73104b);
+        // reading latitude straight off it sent every hand-over without a fix.
+        // No position still goes as nulls, as before. (2026-10-19)
+        const found = session.fw_location_exception ? {} : await this.getPosition();
+        const coords = found.coords || null;
         const action = await this.orm.call("lab.delivery", "action_receive_at_lab", [
             [d.id],
             coords ? coords.latitude : false,
@@ -114,7 +118,9 @@ patch(LabMyDay.prototype, {
     async markDelivered(d) {
         // The fix is taken at THIS moment - pressing Delivered - because that is
         // when standing at the clinic means something. (client, 2026-08-28)
-        const coords = session.fw_location_exception ? null : await this.getPosition();
+        // {coords} or {error} since e73104b - see receiveAtLab(). (2026-10-19)
+        const found = session.fw_location_exception ? {} : await this.getPosition();
+        const coords = found.coords || null;
         const action = await this.orm.call("lab.delivery", "action_mark_delivered", [
             [d.id],
             coords ? coords.latitude : false,

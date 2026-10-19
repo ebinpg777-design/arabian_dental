@@ -56,6 +56,20 @@
                                 </div>
                             </div>
                         </setting>
+                        <setting id="fw_live" string="The Field, Live"
+                                 help="The live map and the desk board read the trail while the day is running: where each executive is, whether they are moving, stopped or out of signal, halts away from clinics, and speed. The phone nudges an executive to check in when it is standing at a planned clinic.">
+                            <field name="fw_auto_arrive"/>
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="fw_speed_limit" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_speed_limit"/>
+                                </div>
+                                <div class="row">
+                                    <label for="fw_halt_minutes" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_halt_minutes"/>
+                                </div>
+                            </div>
+                        </setting>
                     </block>
 
                     <block title="Coverage Policy" name="fw_coverage_block"

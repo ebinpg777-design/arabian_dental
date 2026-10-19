@@ -83,6 +83,23 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='lab_fieldwork.track_keep_days',
         help="Routes older than this are deleted every night. A day sheet keeps its "
              "visits and its odometer for good; only the between-the-doors trail goes.")
+    # --- The live layer (2026-10-19) -------------------------------------------
+    fw_auto_arrive = fields.Boolean(
+        'Notice arrivals from the trail', default=True,
+        config_parameter='lab_fieldwork.auto_arrive',
+        help="When the phone stands inside a planned clinic's radius, My Day asks the "
+             "executive to check in; when it walks well away from an open visit, to check "
+             "out. Nothing is checked in or out by itself.")
+    fw_speed_limit = fields.Integer(
+        'Speed limit (km/h)', default=60,
+        config_parameter='lab_fieldwork.speed_limit',
+        help="Trail fixes faster than this are marked on the live map and counted on "
+             "the day sheet. 0 switches the check off.")
+    fw_halt_minutes = fields.Integer(
+        'A halt is (minutes)', default=10,
+        config_parameter='lab_fieldwork.halt_minutes',
+        help="Stopped this long somewhere that is not a clinic or the lab is recorded "
+             "as a halt and shown on the live map.")
 
     # Booleans whose default is True. Odoo's own config_parameter machinery hands False
     # straight to set_param, which deletes the key — and a missing key then reads as the
@@ -93,6 +110,7 @@ class ResConfigSettings(models.TransientModel):
         ('fw_auto_close_day', 'lab_fieldwork.auto_close_day'),
         ('fw_auto_float', 'lab_fieldwork.auto_float'),
         ('fw_track_live', 'lab_fieldwork.track_live'),
+        ('fw_auto_arrive', 'lab_fieldwork.auto_arrive'),
     )
 
     def set_values(self):

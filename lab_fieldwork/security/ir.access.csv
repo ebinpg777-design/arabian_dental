@@ -75,3 +75,7 @@ rule_location_ping_own,Location trail: own,lab.location.ping,lab_fieldwork.group
 rule_location_ping_all,Location trail: all,lab.location.ping,lab_fieldwork.group_fieldwork_manager,r,
 rule_location_ping_all_1,Location trail: all,lab.location.ping,base.group_system,crud,
 rule_location_ping_company,Location trail: company,lab.location.ping,,crud,"[('company_id', 'in', company_ids)]"
+rule_location_halt_own,Field halt: own,lab.location.halt,lab_fieldwork.group_fieldwork_executive,ru,"[('user_id', '=', user.id)]"
+rule_location_halt_all,Field halt: all,lab.location.halt,lab_fieldwork.group_fieldwork_manager,ru,
+rule_location_halt_all_1,Field halt: all,lab.location.halt,base.group_system,crud,
+rule_location_halt_company,Field halt: company,lab.location.halt,,crud,"[('company_id', 'in', company_ids)]"

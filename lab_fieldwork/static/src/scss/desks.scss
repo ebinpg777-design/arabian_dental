@@ -233,6 +233,14 @@ $fwd-warn:   #d99b00;
     .o_fwd_status_finished { background: rgba(79,70,229,.12); color: #4f46e5; }
     .o_fwd_status_idle     { background: rgba(217,155,0,.16); color: #8a6400; }
     .o_fwd_status_on_duty  { background: rgba(15,157,88,.10); color: #0b7a43; }
+    // the live layer: a dot for how fresh the phone's last fix is, in words beside it
+    .o_fwd_live { font-size: .74rem; color: $fwd-muted; margin-top: .15rem; white-space: nowrap; }
+    .o_fwd_live_dot { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%;
+        margin-right: .3rem; vertical-align: middle; background: #9aa3ab; }
+    .o_fwd_live_moving { background: #0e7c86; box-shadow: 0 0 0 3px rgba(14,124,134,.18); }
+    .o_fwd_live_stopped { background: #d99b00; }
+    .o_fwd_live_offline { background: #9aa3ab; }
+    .o_fwd_live_map { color: $fwd-muted; }
     // Calls all made but still clocked in - green like the other working states,
     // never the indigo of a finished day.
     .o_fwd_status_visits_done { background: rgba(15,157,88,.16); color: #0b7a43; }

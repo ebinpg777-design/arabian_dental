@@ -293,13 +293,28 @@
                                 <td><span t-att-class="'o_fwd_status o_fwd_status_' + row.status">
                                     <t t-out="this.statusLabel[row.status]"/></span>
                                     <span t-if="row.at_clinic" class="o_fwd_muted">
-                                        · <t t-out="row.at_clinic"/></span></td>
+                                        · <t t-out="row.at_clinic"/></span>
+                                    <!-- the live layer (2026-10-19): the phone's last word -->
+                                    <div t-if="row.last_age_s !== null and row.last_age_s !== undefined"
+                                         class="o_fwd_live">
+                                        <span t-att-class="'o_fwd_live_dot o_fwd_live_' + row.live"
+                                              t-att-title="row.live"/>
+                                        <t t-out="row.where"/> · seen <t t-out="this.ago(row.last_age_s)"/>
+                                        <span t-if="row.halt_minutes" class="o_fwd_muted">
+                                            · stopped <t t-out="row.halt_minutes"/> min</span>
+                                        <a href="#" class="o_fwd_live_map ms-1" title="See on the live map"
+                                           t-on-click.prevent="() => this.openLiveMap(row.id)">
+                                            <i class="fa fa-map-marker" title="Live map"/></a>
+                                    </div></td>
                                 <td class="text-end"><t t-out="row.done"/>/<t t-out="row.planned"/></td>
                                 <td class="text-end" t-out="this.money(row.value)"/>
                                 <td class="text-end" t-out="this.money(row.collected)"/>
                                 <td class="text-end" t-att-class="row.unbanked ? 'o_fwd_bad' : ''"
                                     t-out="this.money(row.unbanked)"/>
-                                <td class="text-end"><t t-out="Math.round(row.distance)"/></td>
+                                <td class="text-end"><t t-out="Math.round(row.distance)"/>
+                                    <span t-if="row.gps_km" class="o_fwd_muted d-block"
+                                          t-attf-title="{{row.gps_km}} km on the phone's trail so far">
+                                        ~<t t-out="Math.round(row.gps_km)"/></span></td>
                             </tr>
                         </tbody>
                     </table>

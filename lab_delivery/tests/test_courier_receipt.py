@@ -831,7 +831,8 @@ class TestScanToDeliver(TransactionCase):
         # Bare on purpose (client, 2026-08-28): no caption, no instruction, and no
         # number under the bars - the invoice number is already printed twice.
         self.assertNotIn('Scan to deliver', html)
-        self.assertIn('oi-scanstrip', html)
+        # beside the Bill To card since the invoice's header rework (2026-10-19)
+        self.assertIn('oi-scancell', html)
         # and the code it carries is the one the scanner resolves
         found = self.Delivery.scan(invoice.name)['context']['lab_scan_summary']
         self.assertEqual(found['order'], order.name)

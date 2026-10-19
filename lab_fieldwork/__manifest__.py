@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.5.19.0',
+    'version': '20.0.5.20.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -87,6 +87,7 @@ in the server, not merely in the form.
         'report/cash_handover_receipt.xml',
         'data/daily_flow_data.xml',
         'views/lab_fieldwork_menus.xml',
+        'views/live_map_views.xml',
         # After the menus: its menuitem hangs off menu_fw_approvals.
         'views/desk_cover_views.xml',
         # After the menus too: it hangs off menu_fw_ops and the Petty Cash app.
@@ -129,6 +130,14 @@ in the server, not merely in the form.
             'lab_fieldwork/static/src/xml/new_clinics.xml',
             'lab_fieldwork/static/src/js/desks.js',
             'lab_fieldwork/static/src/xml/desks.xml',
+            # The field, live (2026-10-19): the manager's live map and the
+            # executive's own trail card on My Day. Leaflet (above) is already loaded.
+            'lab_fieldwork/static/src/scss/live_map.scss',
+            'lab_fieldwork/static/src/js/live_map.js',
+            'lab_fieldwork/static/src/xml/live_map.xml',
+            'lab_fieldwork/static/src/scss/my_trail.scss',
+            'lab_fieldwork/static/src/js/my_trail.js',
+            'lab_fieldwork/static/src/xml/my_trail.xml',
             'lab_fieldwork/static/src/scss/desks.scss',
         ],
     },

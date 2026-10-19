@@ -29,7 +29,7 @@ import logging
 from datetime import timedelta
 
 from .lab_visit import has_fix, metres_between
-from .local_day import local_midnight_utc
+from .local_day import local_midnight_utc, tz_name
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
@@ -62,6 +62,13 @@ class LabLocationPing(models.Model):
     latitude = fields.Float(digits=(10, 7), required=True)
     longitude = fields.Float(digits=(10, 7), required=True)
     accuracy_m = fields.Float('Fix Accuracy (m)')
+    # The live layer (location_live.py, 2026-10-19): how fast, which way, how much
+    # phone was left. Speed comes from the phone when it has one, else from the
+    # distance to the previous kept ping; over the limit it is flagged for the map.
+    speed_kmh = fields.Float('Speed (km/h)', digits=(6, 1))
+    heading = fields.Float(digits=(5, 1))
+    battery = fields.Float('Phone Battery (%)', digits=(5, 1))
+    overspeed = fields.Boolean(index=True)
     company_id = fields.Many2one('res.company', required=True, index=True,
                                  default=lambda self: self.env.company)
 
@@ -137,19 +144,29 @@ class LabLocationPing(models.Model):
             accuracy = float(ping.get('accuracy_m') or 0.0)
             if accuracy and accuracy > WORST_ACCURACY_M:
                 continue
-            cleaned.append((when, latitude, longitude, accuracy))
+            extra = {}
+            for key in ('speed_kmh', 'heading', 'battery'):
+                try:
+                    value = ping.get(key)
+                    extra[key] = float(value) if value not in (None, '', False) else None
+                except (TypeError, ValueError):
+                    extra[key] = None
+            cleaned.append((when, latitude, longitude, accuracy, extra))
         if not cleaned:
             return 0
-        cleaned.sort()
+        cleaned.sort(key=lambda row: row[0])
 
         # One day per batch is the normal case; a batch that straddles midnight is
         # split rather than filed under the day it was sent.
         kept = 0
         by_day = {}
-        for when, latitude, longitude, accuracy in cleaned:
+        # tz_name, not `user.tz or 'UTC'`: most of the lab's users carry no timezone,
+        # and UTC filed the evening's pings under tomorrow (found 2026-10-19).
+        zone = tz_name(self.env, user)
+        for when, latitude, longitude, accuracy, extra in cleaned:
             local_day = fields.Datetime.context_timestamp(
-                self.with_context(tz=user.tz or 'UTC'), when).date()
-            by_day.setdefault(local_day, []).append((when, latitude, longitude, accuracy))
+                self.with_context(tz=zone), when).date()
+            by_day.setdefault(local_day, []).append((when, latitude, longitude, accuracy, extra))
 
         for day, rows in by_day.items():
             windows = self._duty_windows(user, day)
@@ -163,23 +180,34 @@ class LabLocationPing(models.Model):
                                       order='ts desc', limit=1)
             last_ts = last.ts
             last_point = (last.latitude, last.longitude) if last else None
+            limit = self._speed_limit()
 
             values = []
-            for when, latitude, longitude, accuracy in rows:
+            for when, latitude, longitude, accuracy, extra in rows:
                 if not self._on_duty_at(windows, when):
                     continue
                 if last_ts and when <= last_ts:
                     continue                      # already have this stretch
+                moved = waited = 0.0
                 if last_point:
                     moved = metres_between(last_point[0], last_point[1],
                                            latitude, longitude) or 0.0
                     waited = (when - last_ts).total_seconds() if last_ts else 0
                     if moved < MIN_MOVE_METRES and waited < HEARTBEAT_SECONDS:
                         continue
+                speed = extra.get('speed_kmh')
+                if speed is None and last_point and waited > 0:
+                    speed = moved / waited * 3.6   # the ground covered, when the phone gave none
+                speed = round(max(speed or 0.0, 0.0), 1)
                 values.append({
                     'user_id': user.id, 'date': day, 'ts': when,
                     'latitude': latitude, 'longitude': longitude,
                     'accuracy_m': accuracy, 'company_id': company.id,
+                    'speed_kmh': speed,
+                    'heading': extra.get('heading') or 0.0,
+                    'battery': extra.get('battery') or 0.0,
+                    # a GPS jump reads as 300 km/h; a real motorbike never does
+                    'overspeed': bool(limit) and limit < speed < 150,
                 })
                 last_ts, last_point = when, (latitude, longitude)
                 if existing + len(values) >= MAX_PINGS_PER_DAY:
@@ -190,6 +218,8 @@ class LabLocationPing(models.Model):
                 # one go and must not half-fail on a company rule.
                 self.sudo().create(values)
                 kept += len(values)
+                # the live layer: last position, auto-arrival, halts, the trip's km
+                self.sudo()._after_record(user, day, values)
         return kept
 
     # ---------------------------------------------------------------- reading
@@ -201,7 +231,7 @@ class LabLocationPing(models.Model):
         out = []
         for ping in pings:
             local = fields.Datetime.context_timestamp(
-                self.with_context(tz=user.tz or 'UTC'), ping.ts)
+                self.with_context(tz=tz_name(self.env, user)), ping.ts)
             out.append([ping.latitude, ping.longitude, local.strftime('%H:%M')])
         return out
 
