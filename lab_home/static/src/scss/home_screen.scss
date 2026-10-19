@@ -106,9 +106,8 @@ body.o_lab_wall_dark {
 
 .o_home_menu {
     // The wordmark is drawn on the screen rather than baked into a picture, so
-    // it stays sharp on any screen and stays put when the grid scrolls. Bottom
-    // LEFT, because three of the four wallpapers put something in the opposite
-    // corner.
+    // it stays sharp on any screen. Bottom LEFT, because three of the four
+    // wallpapers put something in the opposite corner.
     position: relative;
 
     // Full strength, and the box is the artwork's own proportion: 1500x193 is
@@ -131,11 +130,26 @@ body.o_lab_wall_dark {
     // capitals and a location line instead of the lock-up - and a hard refresh
     // is not a fix anybody can be asked to remember. Bump the number whenever
     // the artwork changes. (client, 2026-09-25)
+    //
+    // In the FLOW, not `position: fixed`. A plate pinned to the window sat on
+    // top of the apps whenever the window was shorter than the grid: Employees
+    // and Attendances drawn through "Dental Lab" at 1280x690 (client,
+    // 2026-10-08). Shrinking the grid's scroll box to stop above the plate
+    // only moved the trouble - a full-page capture, which grows the grid to
+    // its whole height, still found the plate pinned to the first screen,
+    // across the Migration tile, with the wallpaper seamed where the screen
+    // ended (client, 2026-10-19). The home menu is a flex column, so the plate
+    // is its last item: `margin-top: auto` keeps it in the bottom-left corner
+    // while the apps fit, and once they don't it follows the last row and
+    // scrolls with the grid. Nothing can be drawn over it, at any size or zoom.
+    // No gap above it: the apps' own bottom padding leaves ~27px under the last
+    // caption, and anything more scrolled a 1260x894 screen by a few pixels.
     &::after {
         content: "";
-        position: fixed;
-        left: 2rem;
-        bottom: 1.5rem;
+        flex: 0 0 44px;
+        align-self: flex-start;
+        // 1rem on top of the home menu's own px-3 is the old 2rem from the edge.
+        margin: auto 0 1.5rem 1rem;
         width: 340px;
         height: 44px;
         background: url("/lab_home/static/src/img/wordmark.png?v=2") no-repeat left bottom / contain;
@@ -147,17 +161,6 @@ body.o_lab_wall_dark {
         &::after {
             display: none;
         }
-    }
-
-    // The wordmark is fixed and the grid scrolls, so on a short screen the last
-    // row of apps slid under the plate - Employees and Attendances drawn through
-    // "Dental Lab" at 1280x690 once the greeting moved the grid down (client,
-    // 2026-10-08). The grid now scrolls in the screen ABOVE the wordmark's band
-    // (its bottom gap, its height and a little air): the wallpaper is on <body>,
-    // so the band shows the same picture, and an app can no longer reach the plate.
-    // `!important` against the template's h-100, which is a Bootstrap utility.
-    @include media-breakpoint-up(md) {
-        height: calc(100% - 2.25rem - 44px) !important;
     }
 
     .o_app .o_caption {
