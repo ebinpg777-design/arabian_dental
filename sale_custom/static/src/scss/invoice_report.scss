@@ -64,7 +64,9 @@
     // the dates strip now runs the full width under the address, cells rule-separated
     .oi-metacard { border: 1px solid $line; border-radius: 8px; padding: 10px 16px;
         td { vertical-align: top; padding-right: 14px; border-left: 1px solid $line; padding-left: 14px; }
-        td:first-child { border-left: none; padding-left: 0; } }
+        td:first-child { border-left: none; padding-left: 0; }
+        // one line each: a quarter of the page holds "B2C/2026-27/19739" whole
+        .oi-metaval { white-space: nowrap; } }
     // sales code chip, sitting above the address block
     // Sales code + patient: a white chip sitting on the Bill To card's tint — the
     // approved look; no full-width band (client, 2026-08-18).

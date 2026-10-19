@@ -147,22 +147,25 @@
                                       'img_style': 'width:96mm; height:17mm; display:block;'}"/>
                 </div>
 
-                <div class="oi-metacard" style="width:60%;">
-                    <table>
+                <!-- the full width, in equal columns (2026-10-19: "fit to full page and
+                     divide to 4"); a missing source or due date shares its room out -->
+                <t t-set="meta_w" t-value="round(100.0 / (2 + bool(o.invoice_origin) + bool(o.invoice_date_due)), 2)"/>
+                <div class="oi-metacard">
+                    <table style="table-layout:fixed;">
                         <tr>
-                            <td style="width:25%;" t-if="o.name">
+                            <td t-attf-style="width:{{meta_w}}%;">
                                 <div class="oi-label">Invoice No.</div>
                                 <div class="oi-metaval"><span t-field="o.name"/></div>
                             </td>
-                            <td style="width:25%;" t-if="o.invoice_origin">
+                            <td t-attf-style="width:{{meta_w}}%;" t-if="o.invoice_origin">
                                 <div class="oi-label">Source</div>
                                 <div class="oi-metaval"><span t-field="o.invoice_origin"/></div>
                             </td>
-                            <td style="width:25%;">
+                            <td t-attf-style="width:{{meta_w}}%;">
                                 <div class="oi-label">Invoice date</div>
                                 <div class="oi-metaval"><span t-field="o.invoice_date"/></div>
                             </td>
-                            <td t-if="o.invoice_date_due">
+                            <td t-attf-style="width:{{meta_w}}%;" t-if="o.invoice_date_due">
                                 <div class="oi-label">Due date</div>
                                 <div class="oi-metaval"><span t-field="o.invoice_date_due"/></div>
                             </td>
