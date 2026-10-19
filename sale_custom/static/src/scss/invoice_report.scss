@@ -56,28 +56,35 @@
 
     // ---- cards ------------------------------------------------------------
     .oi-label { font-size: 8.8pt; color: $muted; text-transform: uppercase; letter-spacing: .8px; }
-    .oi-billcard { background: $card; border-radius: 8px; padding: 14px 18px; margin: 58px 0 10px; }
-    // The barcode sits flush between the address card and the dates strip: it is a
-    // machine-readable mark, not a section, so it takes no frame and no gap of its
-    // own. The card above already carries 10px. (client, 2026-08-28)
-    .oi-scanstrip { margin: 0 0 6px; padding: 0; border: 0; line-height: 0; }
+    // Address card and barcode share one row, no gap above (2026-10-19: "remove
+    // unwanted spaces, so more items can be added" - the 58px that stood above the
+    // card and the barcode's own row gave the lines about 130px back). The barcode
+    // takes no frame and no gap of its own: a machine-readable mark, not a section.
+    table.oi-headrow { margin: 0 0 8px; }
+    td.oi-billcell { vertical-align: top; }
+    td.oi-scancell { width: 100mm; padding-left: 4mm; vertical-align: middle; text-align: right;
+        line-height: 0; }
+    .oi-billcard { background: $card; border-radius: 8px; padding: 10px 16px; }
     // the dates strip now runs the full width under the address, cells rule-separated
     .oi-metacard { border: 1px solid $line; border-radius: 8px; padding: 10px 16px;
         td { vertical-align: top; padding-right: 14px; border-left: 1px solid $line; padding-left: 14px; }
         td:first-child { border-left: none; padding-left: 0; }
-        // one line each: a quarter of the page holds "B2C/2026-27/19739" whole
-        .oi-metaval { white-space: nowrap; } }
+        // one line each: a quarter of the page holds "B2C/2026-27/19739" whole -
+        // except the source, which on an invoice for several orders is a list
+        // ("S75260, S75188, S75284, S75280") and ran over the invoice date
+        .oi-metaval { white-space: nowrap; }
+        .oi-metaval.oi-wrap { white-space: normal; } }
     // sales code chip, sitting above the address block
     // Sales code + patient: a white chip sitting on the Bill To card's tint — the
     // approved look; no full-width band (client, 2026-08-18).
     .oi-codechip { display: inline-block; background: #fff; border-radius: 6px;
-        padding: 5px 16px; margin-top: 10px;
+        padding: 4px 14px; margin-top: 7px;
         table { width: auto; }
         td { white-space: nowrap; }
         td.oi-chip-patient { padding-left: 20px; }
         td + td.oi-chip-patient { border-left: 1px solid $line; }
         .oi-label { margin-right: 10px; }
-        .oi-codeval { font-size: 15.5pt; font-weight: 700; color: $head; vertical-align: -1px; } }
+        .oi-codeval { font-size: 14pt; font-weight: 700; color: $head; vertical-align: -1px; } }
     .oi-partyname { font-size: 15pt; font-weight: 700; color: $head; line-height: 1.2; margin: 3px 0 2px; }
     .oi-partyline { font-size: 12.5pt; line-height: 1.4; }
     .oi-partysub { font-size: 10pt; color: $muted; margin-top: 4px; }
@@ -96,30 +103,72 @@
         .mid { text-align: center; }
     }
 
+    // GST in columns (client, 2026-10-19): up to twelve columns on a portrait page,
+    // so the figures step down from the 12.5pt the five-column table had.
+    table.oi-gst {
+        font-size: 10.5pt;
+        thead th { font-size: 8.2pt; padding: 8px 6px; letter-spacing: .3px; }
+        tbody td { padding: 6px 6px; vertical-align: middle; }
+        td.oi-slno { font-weight: 400; color: $muted; }
+        .oi-rate { font-size: 7.8pt; font-weight: 400; color: $muted; line-height: 1.1; }
+        td.oi-linetotal { color: $head; background: $card; }
+        td.oi-teethcell { padding: 4px 6px; }
+        td.oi-hsn { font-size: 9pt; font-weight: 400; }
+    }
+
+    // The Palmer cross: a vertical and a horizontal rule, the teeth in the four
+    // quadrants, the right-hand side of the mouth on the left (as the dentist faces
+    // the patient) - the way the lab's invoices have always drawn it.
+    table.oi-palmer {
+        width: auto; margin: 0 auto;
+        // `border: 0 none` first: the line table rules every cell it contains,
+        // nested ones too, and boxed each quadrant in a faint grey frame
+        td.q { border: 0 none; font-size: 10pt; font-weight: 700; color: $ink; min-width: 26px;
+            height: 15px; padding: 1px 5px; white-space: nowrap; line-height: 1.15; }
+        td.ur, td.lr { text-align: right; border-right: 1.5px solid $ink; }
+        td.ur, td.ul { border-bottom: 1.5px solid $ink; }
+        td.ul, td.ll { text-align: left; }
+    }
+    .oi-teethrest { font-size: 8pt; font-weight: 400; color: $muted; margin-top: 2px; }
+
     // ---- words + totals ---------------------------------------------------
     .oi-words { font-size: 12pt; font-weight: 700; color: $head; margin-top: 3px; }
+    .oi-declare { margin-top: 12px; font-size: 8.6pt; color: $muted; line-height: 1.35;
+        .oi-label { font-size: 7.6pt; margin-bottom: 1px; } }
+    // Every row shares one side inset (6px, the line table's own), so labels and
+    // figures stand in two straight columns and line up with the Total column above
+    // - the tinted Total balance row was inset 10px and the rest 0 (client, 2026-10-19:
+    // "indentation issues in the rows, align properly").
     table.oi-totals {
-        font-size: 12.5pt;
-        td { padding: 7px 0; }
+        font-size: 11.5pt;
+        td { padding: 3px 6px; }
         td.v { text-align: right; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
-        tr.sub td { border-bottom: 1px solid $line; }
-        tr.total td { padding-top: 10px; font-size: 16.5pt; font-weight: 700; color: $red;
-            border-top: 2px solid $red; }
-        tr.due td { color: #b0151b; font-size: 12.5pt; }
+        tr.tax td.k { color: $muted; }
+        tr.total td { padding: 7px 6px 6px; font-size: 16pt; font-weight: 700; color: $red;
+            border-top: 2px solid $red; text-transform: uppercase; }
+        tr.old td { border-top: 1px solid $line; padding-top: 6px; }
+        // the clinic's whole debt with this bill: the figure the lab is asking for,
+        // on the card tint so it reads as the answer and not one more row
+        tr.balance td { background: $card; padding: 7px 6px; font-size: 13.5pt; font-weight: 700;
+            color: $head; text-transform: uppercase; }
+        tr.balance td.v { text-transform: none; }
     }
 
     // ---- bank / pay / sign -------------------------------------------------
+    // Spacing below the totals trimmed when they grew by three rows (round off, old
+    // balance, total balance): a long address had pushed the closing notes a few
+    // pixels over the footer onto a blank second page. (2026-10-19)
     .oi-section { font-size: 11pt; font-weight: 700; color: $red; text-transform: uppercase;
-        letter-spacing: .4px; margin: 14px 0 5px; }
-    table.oi-bank { background: $card; border-radius: 8px;
-        td { padding: 6px 12px; vertical-align: top; border-left: 1px solid $line; }
+        letter-spacing: .4px; margin: 10px 0 4px; }
+    table.oi-bank { background: $card; border-radius: 8px; page-break-inside: avoid;
+        td { padding: 4px 12px; vertical-align: top; border-left: 1px solid $line; }
         td:first-child { border-left: none; }
         .oi-bankval { font-size: 10.5pt; margin-top: 1px; }
         // Smaller than the labels higher up the page: down here the words are
         // captions for the numbers, not headings. (client, 2026-09-16)
         .oi-label { font-size: 7.6pt; } }
-    .oi-paycard { border: 1px solid $line; border-radius: 8px; padding: 9px 12px; }
-    .oi-qr img { width: 30mm; height: 30mm; }
+    .oi-paycard { border: 1px solid $line; border-radius: 8px; padding: 7px 12px; }
+    .oi-qr img { width: 27mm; height: 27mm; }
     .oi-qrtitle { font-size: 11pt; font-weight: 700; color: $red; }
     .oi-qrnote { font-size: 8.4pt; color: $muted; line-height: 1.3; margin-top: 1px; }
     .oi-sign { text-align: center; padding-top: 2px;

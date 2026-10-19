@@ -69,7 +69,7 @@
                 <div class="oi-rule"/>
 
                 <!-- ── title ─────────────────────────────────────────────── -->
-                <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
+                <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
                     <tr>
                         <td style="border:none;padding:0;vertical-align:bottom;">
                             <div class="oi-title">
@@ -88,64 +88,70 @@
                     </tr>
                 </table>
 
-                <!-- ── address, then the invoice meta ────────────────────
+                <!-- ── address and barcode, then the invoice meta ──────────
                      Client layout (2026-08-18): the sales code sits under the Bill To
-                     address and the dates/source card runs below the block. The gap the
-                     code used to leave above the card is kept (see .oi-billcard). -->
-                <div class="oi-billcard">
-                    <div class="oi-label">Bill to</div>
-                    <div class="oi-partyname" t-field="o.partner_id.name"/>
-                    <div class="oi-partyline"
-                         t-field="o.partner_id"
-                         t-options='{"widget": "contact", "fields": ["address"], "no_marker": True}'/>
-                    <div class="oi-partysub">
-                        <t t-set="gstin" t-value="o.partner_id.gst_number or (o.partner_id.parent_id and o.partner_id.parent_id.gst_number)"/>
-                        <span t-if="gstin">GSTIN: <t t-out="gstin"/></span>
-                        <span t-if="gstin and o.partner_id.pan_number">  ·  </span>
-                        <span t-if="o.partner_id.pan_number">PAN: <span t-field="o.partner_id.pan_number"/></span>
-                        <span t-if="(gstin or o.partner_id.pan_number) and o.partner_id.dci_number">  ·  </span>
-                        <span t-if="o.partner_id.dci_number">DCI No: <span t-field="o.partner_id.dci_number"/></span>
-                    </div>
+                     address and the dates/source card runs below the block.
+                     Side by side since 2026-10-19 ("remove unwanted spaces, so more
+                     items can be added"): the gap that stood above the card and the
+                     barcode's own row went; the barcode sits beside the card. -->
+                <table class="oi-headrow">
+                    <tr>
+                        <td class="oi-billcell">
+                            <div class="oi-billcard">
+                                <div class="oi-label">Bill to</div>
+                                <div class="oi-partyname" t-field="o.partner_id.name"/>
+                                <div class="oi-partyline"
+                                     t-field="o.partner_id"
+                                     t-options='{"widget": "contact", "fields": ["address"], "no_marker": True}'/>
+                                <div class="oi-partysub">
+                                    <t t-set="gstin" t-value="o.partner_id.gst_number or (o.partner_id.parent_id and o.partner_id.parent_id.gst_number)"/>
+                                    <span t-if="gstin">GSTIN: <t t-out="gstin"/></span>
+                                    <span t-if="gstin and o.partner_id.pan_number">  ·  </span>
+                                    <span t-if="o.partner_id.pan_number">PAN: <span t-field="o.partner_id.pan_number"/></span>
+                                    <span t-if="(gstin or o.partner_id.pan_number) and o.partner_id.dci_number">  ·  </span>
+                                    <span t-if="o.partner_id.dci_number">DCI No: <span t-field="o.partner_id.dci_number"/></span>
+                                </div>
 
-                    <!-- white chip on the card's tint (approved design): sales code and
-                         patient side by side, a light divider between them -->
-                    <div class="oi-codechip" t-if="('team_id' in o._fields and o.team_id) or len(patients) == 1">
-                        <table>
-                            <tr>
-                                <td t-if="'team_id' in o._fields and o.team_id">
-                                    <span class="oi-label">Sales code</span>
-                                    <span class="oi-codeval"><span t-field="o.team_id.name"/></span>
-                                </td>
-                                <td t-if="len(patients) == 1" class="oi-chip-patient">
-                                    <span class="oi-label">Patient</span>
-                                    <span class="oi-codeval"><t t-out="patients[0]"/></span>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- ── the scan strip ──────────────────────────────────────
-                     Just the barcode, on the left, under the address block. No
-                     caption, no frame, no number under the bars: the invoice
-                     number is already printed twice on this sheet, and a scanner
-                     needs none of it. (client, 2026-08-28) -->
-                <!-- 96 x 17 mm, rendered at 1800 px: a field printer with a tired
-                     drum DROPS the thin bars outright - a captured failure photo
-                     showed 27-47 of the 68 elements surviving on paper, which no
-                     scanner can ever read back. At this width a thin element is
-                     ~1.07 mm instead of 0.80, wide enough to outlive toner
-                     starvation and a fit-to-page shrink. (client, 2026-08-28) -->
-                <div class="oi-scanstrip">
-                    <span t-field="o.name"
-                          t-options="{'widget': 'barcode',
-                                      'symbology': 'Code128',
-                                      'humanreadable': 0,
-                                      'quiet': 1,
-                                      'width': 1800,
-                                      'height': 240,
-                                      'img_style': 'width:96mm; height:17mm; display:block;'}"/>
-                </div>
+                                <!-- white chip on the card's tint (approved design): sales code and
+                                     patient side by side, a light divider between them -->
+                                <div class="oi-codechip" t-if="('team_id' in o._fields and o.team_id) or len(patients) == 1">
+                                    <table>
+                                        <tr>
+                                            <td t-if="'team_id' in o._fields and o.team_id">
+                                                <span class="oi-label">Sales code</span>
+                                                <span class="oi-codeval"><span t-field="o.team_id.name"/></span>
+                                            </td>
+                                            <td t-if="len(patients) == 1" class="oi-chip-patient">
+                                                <span class="oi-label">Patient</span>
+                                                <span class="oi-codeval"><t t-out="patients[0]"/></span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Just the barcode: no caption, no frame, no number under the
+                             bars - the invoice number is printed twice on this sheet and a
+                             scanner needs none of it. (client, 2026-08-28)
+                             96 x 17 mm, rendered at 1800 px: a field printer with a tired
+                             drum DROPS the thin bars outright - a captured failure photo
+                             showed 27-47 of the 68 elements surviving on paper, which no
+                             scanner can ever read back. At this width a thin element is
+                             ~1.07 mm instead of 0.80, wide enough to outlive toner
+                             starvation and a fit-to-page shrink. (client, 2026-08-28)
+                             Keep the size; only its place changed. -->
+                        <td class="oi-scancell">
+                            <span t-field="o.name"
+                                  t-options="{'widget': 'barcode',
+                                              'symbology': 'Code128',
+                                              'humanreadable': 0,
+                                              'quiet': 1,
+                                              'width': 1800,
+                                              'height': 240,
+                                              'img_style': 'width:96mm; height:17mm; display:inline-block;'}"/>
+                        </td>
+                    </tr>
+                </table>
 
                 <!-- the full width, in equal columns (2026-10-19: "fit to full page and
                      divide to 4"); a missing source or due date shares its room out -->
@@ -159,7 +165,7 @@
                             </td>
                             <td t-attf-style="width:{{meta_w}}%;" t-if="o.invoice_origin">
                                 <div class="oi-label">Source</div>
-                                <div class="oi-metaval"><span t-field="o.invoice_origin"/></div>
+                                <div class="oi-metaval oi-wrap"><span t-field="o.invoice_origin"/></div>
                             </td>
                             <td t-attf-style="width:{{meta_w}}%;">
                                 <div class="oi-label">Invoice date</div>
@@ -173,94 +179,112 @@
                     </table>
                 </div>
 
-                <!-- ── lines ─────────────────────────────────────────────── -->
-                <table class="oi-lines">
+                <!-- ── lines ───────────────────────────────────────────────
+                     The lab's own invoice, redrawn (client, 2026-10-19): each line's
+                     GST in its own columns - SGST and CGST, or IGST across states -
+                     and the line total with GST; the teeth as the Palmer cross the
+                     lab always printed. -->
+                <t t-set="gst" t-value="o._dental_gst_table() if show_tax else ([], {})"/>
+                <t t-set="gst_names" t-value="gst[0]"/>
+                <table class="oi-lines oi-gst">
                     <thead>
                         <tr>
+                            <th class="mid" style="width:4%">#</th>
                             <th>Description</th>
-                            <th t-if="show_hsn" style="width:8%">HSN</th>
-                            <th t-if="show_patient" style="width:14%">Patient</th>
-                            <th t-if="show_ul" class="mid" style="width:6%">Jaw</th>
-                            <th t-if="show_teeth" class="mid" style="width:10%">Teeth</th>
-                            <th class="num" style="width:8%">Qty</th>
-                            <th class="num" style="width:13%">Unit Price</th>
-                            <th t-if="show_disc" class="num" style="width:7%">Disc %</th>
-                            <th t-if="show_tax" class="num" style="width:9%">Tax</th>
-                            <th class="num" style="width:14%">Amount</th>
+                            <th t-if="show_hsn" class="mid" style="width:8%">HSN</th>
+                            <th t-if="show_patient" style="width:12%">Patient</th>
+                            <th t-if="show_ul" class="mid" style="width:5%">Jaw</th>
+                            <th t-if="show_teeth" class="mid">Teeth</th>
+                            <th class="num" style="width:5%">Qty</th>
+                            <th class="num" style="width:9%">Rate</th>
+                            <th t-if="show_disc" class="num" style="width:6%">Disc %</th>
+                            <th class="num" style="width:10%"><t t-if="gst_names">Taxable</t><t t-else="">Amount</t></th>
+                            <th t-foreach="gst_names" t-as="g" class="num" style="width:8%"><t t-out="g"/></th>
+                            <th t-if="gst_names" class="num" style="width:11%">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr t-foreach="lines" t-as="l">
+                            <t t-set="cells" t-value="gst[1].get(l.id, {})"/>
+                            <td class="mid oi-slno"><t t-out="l_index + 1"/></td>
                             <td><span t-field="l.name"/></td>
-                            <td t-if="show_hsn"><span t-field="l.product_id.hsn_number"/></td>
+                            <td t-if="show_hsn" class="mid oi-hsn"><span t-field="l.product_id.hsn_number"/></td>
                             <td t-if="show_patient"><span t-field="l.patient"/></td>
                             <td t-if="show_ul" class="mid"><span t-field="l.ul"/></td>
-                            <td t-if="show_teeth" class="mid"><span t-field="l.teeth"/></td>
+                            <td t-if="show_teeth" class="mid oi-teethcell">
+                                <t t-set="cross" t-value="l._dental_palmer() if l.teeth else None"/>
+                                <table t-if="cross" class="oi-palmer">
+                                    <tr>
+                                        <td class="q ur"><t t-out="cross['ur']"/></td>
+                                        <td class="q ul"><t t-out="cross['ul']"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="q lr"><t t-out="cross['lr']"/></td>
+                                        <td class="q ll"><t t-out="cross['ll']"/></td>
+                                    </tr>
+                                </table>
+                                <div t-if="cross and cross['rest']" class="oi-teethrest" t-out="cross['rest']"/>
+                                <span t-if="l.teeth and not cross" t-field="l.teeth"/>
+                            </td>
                             <td class="num">
                                 <span t-field="l.quantity"/>
                                 <span t-field="l.product_uom_id" groups="uom.group_uom"/>
                             </td>
                             <td class="num"><span t-out="o._dental_money(l.price_unit)"/></td>
                             <td t-if="show_disc" class="num"><span t-if="l.discount" t-out="l.discount"/></td>
-                            <td t-if="show_tax" class="num"><span t-out="', '.join(t.name for t in l.tax_ids)"/></td>
                             <td class="num"><span t-out="o._dental_money(l.price_subtotal)"/></td>
+                            <td t-foreach="gst_names" t-as="g" class="num">
+                                <t t-if="g in cells">
+                                    <span t-out="o._dental_money(cells[g][1])"/>
+                                    <div class="oi-rate"><t t-out="('%.2f' % cells[g][0]).rstrip('0').rstrip('.')"/>%</div>
+                                </t>
+                            </td>
+                            <td t-if="gst_names" class="num oi-linetotal"><span t-out="o._dental_money(l.price_total)"/></td>
                         </tr>
                     </tbody>
                 </table>
 
-                <!-- ── words + totals ────────────────────────────────────── -->
-                <table style="width:100%;border-collapse:collapse;margin-top:14px;page-break-inside:avoid;">
+                <!-- ── words + totals ──────────────────────────────────────
+                     The sums the lab's invoice always ended with: the taxable value,
+                     each GST, the round-off, the bill amount; then the clinic's old
+                     balance and the total balance with this bill. -->
+                <t t-set="balances" t-value="o._dental_balances()"/>
+                <table style="width:100%;border-collapse:collapse;margin-top:10px;page-break-inside:avoid;">
                     <tr>
-                        <td style="width:55%;border:none;padding:0 16px 0 0;vertical-align:top;">
-                            <t t-if="show_hsn and o._dental_hsn_summary()">
-                                <div class="oi-label" style="margin-top:10px;">HSN summary</div>
-                                <table class="oi-lines" style="margin-top:3px;font-size:9pt;">
-                                    <thead>
-                                        <tr><th>HSN</th><th class="num">Taxable</th><th class="num">GST %</th>
-                                            <th class="num">Tax</th><th class="num">Total</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr t-foreach="o._dental_hsn_summary()" t-as="h">
-                                            <td><t t-out="h['hsn']"/></td>
-                                            <td class="num"><span t-out="o._dental_money(h['taxable'])"/></td>
-                                            <td class="num"><t t-out="h['rate']"/></td>
-                                            <td class="num"><span t-out="o._dental_money(h['tax'])"/></td>
-                                            <td class="num"><span t-out="o._dental_money(h['total'])"/></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </t>
+                        <td style="width:52%;border:none;padding:0 22px 0 0;vertical-align:top;">
+                            <div class="oi-label">Amount in words</div>
+                            <!-- every word capitalised, as the lab's own invoices wrote it
+                                 ("One Thousand, Three Hundred Rupees") - client, 2026-10-19 -->
+                            <div class="oi-words"><t t-out="o._dental_words(o.amount_total)"/></div>
+                            <div class="oi-declare" t-if="o.comment and o.move_type in ('out_invoice', 'out_refund')">
+                                <div class="oi-label">GST declaration</div>
+                                <div t-out="' '.join(o.comment.split())"/>
+                            </div>
                         </td>
                         <td style="border:none;padding:0;vertical-align:top;">
+                            <!-- no taxable value or GST rows here: the line table carries
+                                 them in its columns ("no need this, total bill amount is
+                                 enough" - client, 2026-10-19) -->
                             <table class="oi-totals">
-                                <tr class="sub">
-                                    <td class="k">Subtotal</td>
-                                    <td class="v"><span t-out="o._dental_money(o.amount_untaxed)"/></td>
-                                </tr>
-                                <tr t-foreach="o._dental_tax_groups()" t-as="group">
-                                    <td class="k"><t t-out="group[0]"/></td>
-                                    <td class="v"><span t-out="o._dental_money(group[1])"/></td>
+                                <tr class="tax">
+                                    <td class="k">Round off</td>
+                                    <td class="v"><span t-out="o._dental_money(o._dental_round_off())"/></td>
                                 </tr>
                                 <tr class="total">
-                                    <td>TOTAL</td>
+                                    <td>Bill amount</td>
                                     <td class="v"><span t-out="o._dental_money(o.amount_total)"/></td>
                                 </tr>
-                                <tr t-if="o.move_type == 'out_invoice' and paid">
-                                    <td class="k">Paid</td>
-                                    <td class="v">- <span t-out="o._dental_money(paid)"/></td>
-                                </tr>
-                                <tr class="due" t-if="o.move_type == 'out_invoice' and o.state == 'posted' and o.amount_residual and paid">
-                                    <td class="k">Amount due</td>
-                                    <td class="v"><span t-out="o._dental_money(o.amount_residual)"/></td>
-                                </tr>
+                                <t t-if="balances">
+                                    <tr class="old">
+                                        <td class="k">Old balance</td>
+                                        <td class="v"><span t-out="o._dental_money(balances[0])"/></td>
+                                    </tr>
+                                    <tr class="balance">
+                                        <td>Total balance</td>
+                                        <td class="v"><span t-out="o._dental_money(balances[1])"/></td>
+                                    </tr>
+                                </t>
                             </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="width:55%;border:none;padding:0 16px 0 0;vertical-align:top;">
-                            <div class="oi-label">Amount in words</div>
-                            <div class="oi-words"><strong t-out="o.convert(o.amount_total, cur.name)"/></div>
-                            
                         </td>
                     </tr>
                 </table>
@@ -268,7 +292,9 @@
                 <!-- ── bank details ──────────────────────────────────────── -->
                 <!-- Odoo 20 removed res.bank: the bank's name, branch city and IFSC
                      (bank_bic) now live on the account itself; acc_number is account_number. -->
-                <t t-if="o.company_id.partner_id.bank_ids">
+                <!-- heading and table on the same page: a long invoice left the heading
+                     alone at the foot of page one and the accounts on page two -->
+                <div t-if="o.company_id.partner_id.bank_ids" style="page-break-inside:avoid;">
                     <div class="oi-section">Bank Details</div>
                     <table class="oi-bank">
                         <tr t-foreach="o.company_id.partner_id.bank_ids" t-as="b">
@@ -290,7 +316,7 @@
                             </td>
                         </tr>
                     </table>
-                </t>
+                </div>
 
                 <!-- ── pay / sign ────────────────────────────────────────── -->
                 <table style="width:100%;border-collapse:collapse;margin-top:8px;page-break-inside:avoid;">

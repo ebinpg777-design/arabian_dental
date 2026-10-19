@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import re
+
 from odoo import api, fields, models
 from odoo.tools.misc import formatLang
 
@@ -226,6 +228,90 @@ class AccountMove(models.Model):
             groups[group.id]['amount'] += abs(line.amount_currency)
         return [(groups[k]['name'], groups[k]['amount']) for k in order]
 
+    # -- GST in columns, round off, old balance (client, 2026-10-19) ---------------
+    # The lab's Odoo 17 invoice showed each line's GST beside it, the round-off on
+    # its own row, and the clinic's old balance and total balance under the bill
+    # amount. "GST should show in columns", "needs to show old balance and total
+    # balance", "also round off".
+
+    def _dental_gst_table(self):
+        """(group names, {line id: {group name: (rate, amount)}}) for the line table.
+
+        A line's GST is a group tax ("GST 5%") whose children post to separate tax
+        groups (SGST, CGST - or IGST across states). Each child becomes a column.
+        Computed with the company's rounding method, so with round-per-line (the lab's
+        setting) the columns add up to the posted tax lines to the paisa.
+        """
+        self.ensure_one()
+        groups, table = [], {}
+        rounding = self.company_id.tax_calculation_rounding_method
+        for line in self.invoice_line_ids.filtered(lambda l: l.display_type == 'product'):
+            cells = {}
+            if line.tax_ids:
+                res = line.tax_ids.compute_all(
+                    line.price_unit * (1 - (line.discount or 0.0) / 100.0),
+                    currency=self.currency_id, quantity=line.quantity,
+                    product=line.product_id, partner=self.partner_id,
+                    is_refund=self.move_type in ('out_refund', 'in_refund'),
+                    rounding_method=rounding)
+                for data in res['taxes']:
+                    tax = self.env['account.tax'].browse(data['id'])
+                    name = tax.tax_group_id.name or tax.name
+                    if name not in groups:
+                        groups.append(name)
+                    rate, amount = cells.get(name, (0.0, 0.0))
+                    if tax.amount_type == 'percent':
+                        rate += tax.amount
+                    cells[name] = (rate, amount + data['amount'])
+            table[line.id] = cells
+        return groups, table
+
+    def _dental_words(self, amount):
+        """The amount in words with every word capitalised - "Four Hundred Rupees And
+        Zero Paise" - the way the lab's invoices always wrote it. `convert` itself is
+        left lower-case for the other print-outs that use it."""
+        self.ensure_one()
+        return re.sub(r'\b[a-z]', lambda m: m.group().upper(),
+                      self.convert(amount, self.currency_id.name))
+
+    def _dental_taxable(self):
+        """What the lines charge before GST. Not `amount_untaxed`: Odoo counts the
+        cash-rounding line in that, and the round-off has a row of its own."""
+        self.ensure_one()
+        return sum(self.invoice_line_ids.filtered(
+            lambda l: l.display_type == 'product').mapped('price_subtotal'))
+
+    def _dental_round_off(self):
+        self.ensure_one()
+        return self.currency_id.round(
+            self.amount_total - self._dental_taxable() - self.amount_tax)
+
+    def _dental_balances(self):
+        """(old balance, total balance) of the clinic, as the lab's Odoo 17 invoice
+        printed them: every posted receivable entry dated up to the invoice date,
+        this invoice left out, then this invoice added on top. None on bills.
+
+        The Odoo 17 version read only the partner's own receivable account and the
+        invoice's own partner; the clinic's account is the commercial partner's, and
+        migrated or hand-made entries may sit on another receivable account, so both
+        are widened here.
+        """
+        self.ensure_one()
+        if self.move_type not in ('out_invoice', 'out_refund'):
+            return None
+        date = self.invoice_date or self.date or fields.Date.context_today(self)
+        [(old,)] = self.env['account.move.line'].sudo()._read_group([
+            ('partner_id', 'child_of', self.commercial_partner_id.id),
+            ('account_id.account_type', '=', 'asset_receivable'),
+            ('parent_state', '=', 'posted'),
+            ('company_id', '=', self.company_id.id),
+            ('date', '<=', date),
+            ('move_id', '!=', self.id or 0),
+        ], aggregates=['balance:sum'])
+        mine = sum(self.line_ids.filtered(
+            lambda l: l.account_id.account_type == 'asset_receivable').mapped('balance'))
+        return (old or 0.0, (old or 0.0) + mine)
+
 
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
@@ -235,6 +321,44 @@ class AccountMoveLine(models.Model):
         [('upper', 'U'), ('lower', 'L'), ('ul', 'UL')], string='Jaw')
     teeth = fields.Char('Teeth (FDI)')  # no size: 19 silently cut it at 64 characters
     work_number = fields.Char(string='Work Number')
+
+    # The teeth as the lab's invoices always drew them: a Palmer cross, each tooth's
+    # number in its quadrant (client, 2026-10-19, "the teeth map in the column").
+    # Drawn as the dentist faces the patient: the patient's RIGHT on the left of the
+    # cross. Numbers run outward from the midline, so the right-hand quadrants read
+    # 8..1 towards the centre line and the left-hand ones 1..8 away from it. Milk
+    # teeth (FDI 5x-8x) take Palmer's letters A-E.
+    _DENTAL_PALMER_CELL = {1: 'ur', 2: 'ul', 3: 'll', 4: 'lr', 5: 'ur', 6: 'ul', 7: 'll', 8: 'lr'}
+
+    def _dental_palmer(self):
+        """{'ur', 'ul', 'lr', 'll': text, 'rest': text} for the cross, or None when the
+        teeth text holds no FDI number at all (it is then printed as written).
+
+        Anything that is not a tooth - a lone digit, a word - is kept in `rest` and
+        printed under the cross, never dropped: the note is the lab's own writing.
+        """
+        self.ensure_one()
+        cells = {'ur': [], 'ul': [], 'lr': [], 'll': []}
+        rest = []
+        for token in re.split(r'[\s,;/]+', (self.teeth or '').strip()):
+            if not token:
+                continue
+            match = re.fullmatch(r'([1-8])([1-8])', token)
+            quadrant, tooth = (int(match.group(1)), int(match.group(2))) if match else (0, 0)
+            if not match or (quadrant >= 5 and tooth > 5):
+                rest.append(token)
+                continue
+            cell = self._DENTAL_PALMER_CELL[quadrant]
+            if (tooth, quadrant) not in cells[cell]:
+                cells[cell].append((tooth, quadrant))
+        if not any(cells.values()):
+            return None
+        result = {'rest': ' '.join(rest)}
+        for cell, teeth in cells.items():
+            teeth = sorted(teeth, reverse=cell in ('ur', 'lr'))
+            result[cell] = ' '.join(
+                'ABCDE'[tooth - 1] if quadrant >= 5 else str(tooth) for tooth, quadrant in teeth)
+        return result
     # The invoice's patient list, read from the move that already stores it.
     #
     # This used to be a STORED column on account_move_line with
