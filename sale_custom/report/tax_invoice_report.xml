@@ -393,7 +393,7 @@
                             <div class="oi-paycard" t-if="o.company_id.payment_qr">
                                 <table style="width:100%;border-collapse:collapse;">
                                     <tr>
-                                        <td class="oi-qr" style="border:none;padding:0;width:40mm;">
+                                        <td class="oi-qr" style="border:none;padding:0;width:36mm;">
                                             <img t-att-src="image_data_uri(o.company_id.payment_qr)"/>
                                         </td>
                                         <td style="border:none;padding:0 0 0 10px;vertical-align:middle;">
