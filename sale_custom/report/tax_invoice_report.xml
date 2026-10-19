@@ -19,10 +19,11 @@
             <t t-set="lines" t-value="o.invoice_line_ids.filtered(lambda l: l.display_type == 'product')"/>
             <t t-set="show_disc" t-value="any(l.discount for l in lines)"/>
             <t t-set="show_hsn" t-value="any((l.product_id.hsn_number or '') for l in lines)"/>
-            <!-- One patient for the whole invoice? Name it once under the sales code
-                 instead of repeating it on every row. -->
+            <!-- The patient on every line (client, 2026-10-19: "add patient's name in the
+                 item list"); a single patient is also named in the chip under Bill To.
+                 Jaw and Teeth columns appear when any line carries one. -->
             <t t-set="patients" t-value="o._dental_patients()"/>
-            <t t-set="show_patient" t-value="len(patients) > 1"/>
+            <t t-set="show_patient" t-value="any(l.patient for l in lines)"/>
             <t t-set="show_ul" t-value="any(l.ul for l in lines)"/>
             <t t-set="show_teeth" t-value="any(l.teeth for l in lines)"/>
             <t t-set="show_tax" t-value="bool(o.amount_tax) or any(l.tax_ids for l in lines)"/>
@@ -89,7 +90,7 @@
                 <div class="oi-rule"/>
 
                 <!-- ── title ─────────────────────────────────────────────── -->
-                <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+                <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
                     <tr>
                         <td style="border:none;padding:0;vertical-align:bottom;">
                             <div class="oi-title">
@@ -294,7 +295,7 @@
                      each GST, the round-off, the bill amount; then the clinic's old
                      balance and the total balance with this bill. -->
                 <t t-set="balances" t-value="o._dental_balances()"/>
-                <table style="width:100%;border-collapse:collapse;margin-top:10px;page-break-inside:avoid;">
+                <table style="width:100%;border-collapse:collapse;margin-top:6px;page-break-inside:avoid;">
                     <tr>
                         <td style="width:52%;border:none;padding:0 22px 0 0;vertical-align:top;">
                             <div class="oi-label">Amount in words</div>
@@ -364,7 +365,7 @@
                 </div>
 
                 <!-- ── pay / sign ────────────────────────────────────────── -->
-                <table style="width:100%;border-collapse:collapse;margin-top:8px;page-break-inside:avoid;">
+                <table style="width:100%;border-collapse:collapse;margin-top:6px;page-break-inside:avoid;">
                     <tr>
                         <td style="width:44%;border:none;padding:0;vertical-align:top;">
                             <div class="oi-paycard" t-if="o.company_id.payment_qr">

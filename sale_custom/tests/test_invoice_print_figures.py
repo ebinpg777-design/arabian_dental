@@ -45,7 +45,7 @@ class TestInvoicePrintFigures(AccountTestInvoicingCommon):
             'invoice_cash_rounding_id': self.rounding.id,
             'invoice_line_ids': [(0, 0, {
                 'name': '[CE1039] FULL METAL CROWN', 'quantity': 1, 'price_unit': price,
-                'tax_ids': [(6, 0, self.gst.ids)], 'teeth': teeth})]})
+                'tax_ids': [(6, 0, self.gst.ids)], 'teeth': teeth, 'patient': 'Ravi Menon'})]})
         if post:
             move.action_post()
         return move
@@ -140,8 +140,15 @@ class TestInvoicePrintFigures(AccountTestInvoicingCommon):
     def test_the_print_shows_them(self):
         move = self._invoice(self.clinic, 380.95, self.day, teeth='17, 36')
         html = self.env['ir.actions.report']._render_qweb_html('account.account_invoices', move.ids)[0].decode()
-        for text in ('SGST', 'CGST', 'Round off', 'Old balance', 'Total balance', 'oi-palmer', 'Bill amount'):
+        for text in ('SGST', 'CGST', 'Round off', 'Old balance', 'Total balance', 'oi-palmer', 'Bill amount',
+                     '>Patient</th>', 'Ravi Menon'):
             self.assertIn(text, html)
+        self.assertNotIn('>Jaw</th>', html, "no line has a jaw: no Jaw column")
+        move.button_draft()
+        move.invoice_line_ids[0].ul = 'upper'
+        move.action_post()
+        html = self.env['ir.actions.report']._render_qweb_html('account.account_invoices', move.ids)[0].decode()
+        self.assertIn('>Jaw</th>', html, "one line has a jaw: the column appears")
         self.assertNotIn('Taxable value', html, "the GST is in the columns, not repeated in the totals")
 
     def test_the_letterhead_lines(self):
