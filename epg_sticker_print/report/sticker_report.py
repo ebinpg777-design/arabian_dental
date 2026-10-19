@@ -36,8 +36,10 @@ class ReportSticker(models.AbstractModel):
             # the wizard's preview: the first few stickers of the run, rendered the real way
             stickers = stickers[:max(int(data['limit']), 1)]
         layout = Engine.layout_vars(fmt)
-        per_page = layout['per_page']
-        pages = [stickers[i:i + per_page] for i in range(0, len(stickers), per_page)] or [[]]
+        # the cells of the sheet in the tray that are already gone (wizard grid)
+        skip = self.env['epg.sticker.sheet'].parse(data.get('skip_cells'), layout['per_page']) \
+            if data.get('skip_cells') else []
+        pages = Engine.paginate(stickers, layout['per_page'], skip)
         return {
             'doc_ids': doc_ids, 'doc_model': doc_model, 'docs': docs,
             'stickers': stickers, 'pages': pages, 'layout': layout, 'fmt': fmt,

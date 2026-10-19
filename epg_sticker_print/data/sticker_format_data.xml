@@ -23,6 +23,19 @@
             <field name="margin_mm">1.5</field>
             <field name="columns">1</field><field name="rows">1</field>
         </record>
+        <!-- The lab's sheet for an ordinary printer (client, 2026-10-19): 65 x 35 mm
+             labels, three across and eight down an A4, the grid centred - 7.5 mm at the
+             sides, 8.5 mm top and bottom. Measure the real sheet and set the offsets if
+             the print lands off the labels. -->
+        <record id="format_a4_3x8_65x35" model="epg.sticker.format">
+            <field name="name">A4 sheet 3 × 8 (65 × 35 mm)</field>
+            <field name="sequence">25</field>
+            <field name="width_mm">65</field><field name="height_mm">35</field>
+            <field name="margin_mm">1.5</field>
+            <field name="columns">3</field><field name="rows">8</field>
+            <field name="sheet_width_mm">210</field><field name="sheet_height_mm">297</field>
+            <field name="note">24-up A4 label sheet, ordinary printer</field>
+        </record>
         <record id="format_a4_2x5" model="epg.sticker.format">
             <field name="name">A4 sheet 2 × 5 (105 × 59 mm)</field>
             <field name="sequence">30</field>

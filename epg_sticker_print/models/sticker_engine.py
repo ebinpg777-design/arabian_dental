@@ -328,11 +328,18 @@ class StickerEngine(models.AbstractModel):
         way the browser wraps, measured with the print font."""
         if not text:
             return 0
+        # wkhtmltopdf's WebKit lays text out in whole pixels, so a line that the font
+        # tables say fits by a hair sometimes wraps on paper: "MERSIA PHARMACY, NEAR"
+        # measured 150 pt into a 151 pt column and printed on two lines, with the
+        # address's third line hidden behind the phone (3 x 8 sheet, 2026-10-19). A
+        # word is counted as wrapping when it would end within 2% of the edge - one
+        # size step smaller in those few cases, never a hidden line.
+        edge = width_mm * 0.98
         lines, cur = 1, 0.0
         space = self._text_mm(' ', pt, bold)
         for word in text.split():
             wmm = self._text_mm(word, pt, bold)
-            if cur and cur + space + wmm > width_mm:
+            if cur and cur + space + wmm > edge:
                 lines += 1
                 cur = wmm
             else:
@@ -421,5 +428,33 @@ class StickerEngine(models.AbstractModel):
         z = self.zones(fmt)
         z['per_page'] = max((fmt.columns * fmt.rows) if fmt else 1, 1)
         z['columns'] = (fmt.columns if fmt else 1)
+        z['rows'] = (fmt.rows if fmt else 1)
         z['gap'] = (fmt.gap_mm if fmt else 0.0)
+        z['row_gap'] = (fmt.row_gap_mm if fmt else 0.0)
+        # where the label grid sits on a sheet fed through an ordinary printer
+        z['offset_left'], z['offset_top'] = fmt._grid_offsets() if fmt else (0.0, 0.0)
         return z
+
+    @api.model
+    def paginate(self, stickers, per_page, skip=()):
+        """The run cut into pages of `per_page` cells.
+
+        The first page is the sheet in the tray: its `skip` cells - the labels already
+        peeled off - hold None, and the stickers take the free cells in reading order.
+        The pages after it are fresh sheets. A sheet with every cell marked used is no
+        sheet at all: the run starts on a fresh one.
+        """
+        stickers = list(stickers)
+        skip = {slot for slot in skip if 0 <= slot < per_page}
+        if per_page <= 1 or not stickers or not skip or len(skip) >= per_page:
+            return [stickers[i:i + per_page] for i in range(0, len(stickers), per_page)] or [[]]
+        first, rest = [], stickers
+        for slot in range(per_page):
+            if slot in skip or not rest:
+                first.append(None)
+            else:
+                first.append(rest[0])
+                rest = rest[1:]
+        while first and first[-1] is None:
+            first.pop()
+        return [first] + [rest[i:i + per_page] for i in range(0, len(rest), per_page)]

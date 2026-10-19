@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from unittest.mock import patch
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
 
@@ -513,3 +513,98 @@ class TestStickerRunPreviewAndInvoices(TransactionCase):
         self.assertEqual(action.binding_model_id.model, 'account.move')
         menu = self.env.ref('epg_sticker_print.menu_sticker_print_accounting')
         self.assertEqual(menu.parent_id, self.env.ref('account.menu_finance_receivables'))
+
+
+@tagged('post_install', '-at_install')
+class TestStickerTraySheet(TransactionCase):
+    """An A4 of 3 x 8 labels in an ordinary printer, mostly peeled off: the wizard shows
+    the sheet, the run lands on the labels still there, and the next run remembers.
+    (client, 2026-10-19)"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.fmt = cls.env.ref('epg_sticker_print.format_a4_3x8_65x35')
+        cls.Engine = cls.env['epg.sticker.engine']
+        cls.Sheet = cls.env['epg.sticker.sheet']
+        cls.product = cls.env['product.product'].create({'name': 'Tray Appliance', 'type': 'consu', 'list_price': 100.0})
+        cls.clinic = cls.env['res.partner'].create({'name': 'DR TRAY', 'street': '1 Tray Rd', 'city': 'Kochi', 'phone': '111'})
+        cls.orders = cls.env['sale.order']
+        for _i in range(2):
+            cls.orders |= cls.env['sale.order'].create({
+                'partner_id': cls.clinic.id,
+                'order_line': [(0, 0, {'product_id': cls.product.id, 'product_uom_qty': 1})]})
+
+    def _wizard(self, **vals):
+        return self.env['epg.sticker.print.wizard'].with_context(
+            active_model='sale.order', active_ids=self.orders.ids).create(dict({'mode': 'order', 'format_id': self.fmt.id}, **vals))
+
+    def test_the_sheet_is_an_a4_page_with_the_grid_centred(self):
+        self.assertTrue(self.fmt.is_sheet)
+        self.assertEqual((self.fmt.columns * self.fmt.rows, self.fmt.grid_width_mm, self.fmt.grid_height_mm), (24, 195, 280))
+        self.assertEqual((self.fmt.page_width_mm, self.fmt.page_height_mm), (210, 297), "the page is the sheet")
+        self.assertEqual(self.fmt._grid_offsets(), (7.5, 8.5), "centred until measured offsets are typed in")
+        self.assertEqual((self.fmt.paperformat_id.page_width, self.fmt.paperformat_id.page_height), (210, 297))
+        layout = self.Engine.layout_vars(self.fmt)
+        self.assertEqual((layout['per_page'], layout['offset_left'], layout['offset_top']), (24, 7.5, 8.5))
+        self.fmt.write({'offset_left_mm': 6.0})
+        self.assertEqual(self.fmt._grid_offsets(), (6.0, 8.5))
+        with self.assertRaises(ValidationError):
+            self.fmt.write({'offset_left_mm': 40.0})
+        self.fmt.write({'offset_left_mm': 0.0})
+        roll = self.env.ref('epg_sticker_print.format_roll_65x35')
+        self.assertEqual(roll._grid_offsets(), (0.0, 0.0), "a roll's page is its label")
+
+    def test_the_run_fills_the_free_cells_then_fresh_sheets(self):
+        stickers = ['s%s' % i for i in range(7)]
+        pages = self.Engine.paginate(stickers, 6, skip=[0, 1, 4])
+        self.assertEqual(pages, [[None, None, 's0', 's1', None, 's2'], ['s3', 's4', 's5', 's6']])
+        self.assertEqual(self.Engine.paginate(stickers[:2], 6, skip=[0, 4]), [[None, 's0', 's1']],
+                         "cells after the last sticker are not drawn")
+        self.assertEqual(self.Engine.paginate(stickers, 6, skip=range(6)), [stickers[:6], stickers[6:]],
+                         "a sheet with every label gone is no sheet: the run starts fresh")
+        self.assertEqual(self.Engine.paginate(stickers[:3], 1, skip=[0]), [['s0'], ['s1'], ['s2']], "rolls ignore it")
+        self.assertEqual(self.Engine.paginate([], 6, skip=[0]), [[]])
+
+    def test_what_the_print_took_is_what_the_next_run_starts_from(self):
+        after = self.Sheet.after_print
+        self.assertEqual(after(24, range(21), 2), list(range(23)), "two of the three left")
+        self.assertEqual(after(24, range(21), 3), [], "the sheet is finished: a fresh one next")
+        self.assertEqual(after(24, range(21), 5), [0, 1], "two on the fresh sheet after it")
+        self.assertEqual(after(24, range(21), 27), [], "3 here + 24 on the next: both finished")
+        self.assertEqual(after(24, [], 24), [])
+        self.assertEqual(after(24, [3, 5], 1), [0, 3, 5], "reading order, around the gaps")
+
+    def test_the_wizard_starts_from_the_tray_sheet_and_the_print_moves_it_on(self):
+        import json
+        self.Sheet.create({'format_id': self.fmt.id, 'used_cells': json.dumps(list(range(21)))})
+        wiz = self._wizard()
+        self.assertEqual(json.loads(wiz.sheet_cells), list(range(21)), "the sheet as the last print left it")
+        self.assertEqual(wiz.sticker_count, 2)
+        self.assertEqual(wiz._report_data()['skip_cells'], list(range(21)))
+        action = wiz.action_print()
+        self.assertEqual(action['data']['skip_cells'], list(range(21)))
+        self.assertEqual(self.Sheet.cells_for(self.fmt), list(range(23)), "two more gone")
+        values = self.env['report.epg_sticker_print.report_sticker']._get_report_values(
+            self.orders.ids, data=action['data'])
+        first = values['pages'][0]
+        self.assertEqual(len(values['pages']), 1)
+        self.assertEqual(first[:21], [None] * 21, "the peeled-off cells stay blank")
+        self.assertEqual([s['title'] for s in first[21:]], self.orders.sorted('name').mapped('name'))
+        # the counter corrects the grid by hand: that is what the print takes from
+        wiz.sheet_cells = json.dumps([0, 1])
+        wiz.action_print()
+        self.assertEqual(self.Sheet.cells_for(self.fmt), [0, 1, 2, 3])
+        # a roll has no sheet in the tray
+        wiz.format_id = self.env.ref('epg_sticker_print.format_roll_65x35')
+        self.assertEqual(wiz.sheet_cells, '[]')
+        self.assertNotIn('skip_cells', wiz._report_data())
+
+    def test_the_page_blanks_the_peeled_cells(self):
+        report = self.env.ref('epg_sticker_print.action_report_sticker')
+        html = report._render_qweb_html(report.report_name, self.orders.ids, data={
+            'mode': 'order', 'ids': self.orders.ids, 'format_id': self.fmt.id, 'copies': 1, 'skip_cells': [0, 2]})[0]
+        self.assertEqual(html.count(b'epg-sticker-blank'), 2)
+        self.assertEqual(html.count(b'class="epg-sticker"'), 2)
+        self.assertIn(b'padding:8.5mm 0 0 7.5mm', html, "the grid is pushed to where the labels are")
+        self.assertLess(html.index(b'epg-sticker-blank'), html.index(b'class="epg-sticker"'), "first cell blank")

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="epg_sticker_print.StickerSheetGrid">
+        <div class="epg_sheet_grid">
+            <div class="epg_sheet_grid__head">
+                <span class="epg_sheet_grid__title">Sheet in the tray</span>
+                <span class="epg_sheet_grid__actions" t-if="!this.props.readonly">
+                    <button type="button" class="btn btn-link btn-sm p-0" t-on-click="() => this.fresh()"
+                            title="Every label is still on the sheet">Fresh sheet</button>
+                    <span class="mx-1 text-muted">·</span>
+                    <button type="button" class="btn btn-link btn-sm p-0" t-on-click="() => this.invert()"
+                            title="Swap the used and the free labels - quicker when only a few are left">Invert</button>
+                    <span class="mx-1 text-muted">·</span>
+                    <button type="button" class="btn btn-link btn-sm p-0" t-on-click="() => this.allUsed()"
+                            title="Mark every label used, then click the ones that are left">All used</button>
+                </span>
+            </div>
+            <div class="epg_sheet_grid__sheet" t-att-class="{ 'is-readonly': this.props.readonly }"
+                 t-att-style="this.gridStyle">
+                <t t-foreach="this.cells" t-as="cell" t-key="cell.slot">
+                    <div class="epg_sheet_grid__cell"
+                         t-att-class="{ 'is-used': cell.used, 'is-planned': cell.number > 0 }"
+                         t-att-style="this.cellStyle"
+                         t-att-title="this.cellTitle(cell)"
+                         t-on-mousedown="(ev) => this.paintStart(cell, ev)"
+                         t-on-mouseenter="() => this.paintOver(cell)">
+                        <span t-if="cell.number" t-out="cell.number"/>
+                        <i t-elif="cell.used" class="fa fa-times" role="img" aria-label="used"/>
+                    </div>
+                </t>
+            </div>
+            <div class="epg_sheet_grid__summary" t-out="this.summary"/>
+            <div class="epg_sheet_grid__legend">
+                <span><i class="epg_sheet_grid__swatch is-planned"/>this run</span>
+                <span><i class="epg_sheet_grid__swatch is-used"/>already used</span>
+                <span><i class="epg_sheet_grid__swatch"/>free</span>
+            </div>
+        </div>
+    </t>
+
+</templates>

@@ -23,7 +23,25 @@ class StickerFormat(models.Model):
                              help="Free space kept inside the label edge.")
     columns = fields.Integer(default=1, required=True, help="Labels side by side on one page (1 for a roll).")
     rows = fields.Integer(default=1, required=True, help="Label rows on one page (1 for a roll).")
-    gap_mm = fields.Float(string='Gap between labels (mm)', default=0.0)
+    gap_mm = fields.Float(string='Gap between columns (mm)', default=0.0)
+    row_gap_mm = fields.Float(string='Gap between rows (mm)', default=0.0)
+    # A sheet fed through an ordinary printer (client, 2026-10-19: 3 x 8 labels of
+    # 65 x 35 mm on A4): the page is the whole sheet and the label grid sits
+    # somewhere on it. Left at zero, the page is the grid itself (rolls, and sheets
+    # whose labels run edge to edge).
+    sheet_width_mm = fields.Float(
+        string='Sheet Width (mm)', default=0.0,
+        help="The paper the labels are on, when it is larger than the label grid "
+             "(210 for A4). 0: the page is the label grid.")
+    sheet_height_mm = fields.Float(string='Sheet Height (mm)', default=0.0, help="297 for A4. 0: the grid.")
+    offset_left_mm = fields.Float(
+        string='Grid Offset Left (mm)', default=0.0,
+        help="From the sheet's left edge to the first label. 0: the grid is centred.")
+    offset_top_mm = fields.Float(
+        string='Grid Offset Top (mm)', default=0.0,
+        help="From the sheet's top edge to the first label. 0: the grid is centred.")
+    grid_width_mm = fields.Float(string='Grid Width (mm)', compute='_compute_page_size', store=True)
+    grid_height_mm = fields.Float(string='Grid Height (mm)', compute='_compute_page_size', store=True)
     page_width_mm = fields.Float(string='Page Width (mm)', compute='_compute_page_size', store=True)
     page_height_mm = fields.Float(string='Page Height (mm)', compute='_compute_page_size', store=True)
     is_sheet = fields.Boolean(compute='_compute_page_size', store=True)
@@ -35,12 +53,32 @@ class StickerFormat(models.Model):
     _positive = models.Constraint('CHECK (width_mm > 0 AND height_mm > 0 AND columns > 0 AND rows > 0)',
                                   'A label needs a positive size and at least one row and column.')
 
-    @api.depends('width_mm', 'height_mm', 'columns', 'rows', 'gap_mm')
+    @api.depends('width_mm', 'height_mm', 'columns', 'rows', 'gap_mm', 'row_gap_mm',
+                 'sheet_width_mm', 'sheet_height_mm')
     def _compute_page_size(self):
         for fmt in self:
             fmt.is_sheet = fmt.columns * fmt.rows > 1
-            fmt.page_width_mm = fmt.width_mm * fmt.columns + fmt.gap_mm * max(fmt.columns - 1, 0)
-            fmt.page_height_mm = fmt.height_mm * fmt.rows + fmt.gap_mm * max(fmt.rows - 1, 0)
+            fmt.grid_width_mm = fmt.width_mm * fmt.columns + fmt.gap_mm * max(fmt.columns - 1, 0)
+            fmt.grid_height_mm = fmt.height_mm * fmt.rows + fmt.row_gap_mm * max(fmt.rows - 1, 0)
+            fmt.page_width_mm = max(fmt.sheet_width_mm, fmt.grid_width_mm)
+            fmt.page_height_mm = max(fmt.sheet_height_mm, fmt.grid_height_mm)
+
+    def _grid_offsets(self):
+        """(left, top) in mm from the page's edge to the first label: the offsets as
+        typed, else the grid centred on the sheet. Zero on a page that IS the grid."""
+        self.ensure_one()
+        left = self.offset_left_mm or (self.page_width_mm - self.grid_width_mm) / 2.0
+        top = self.offset_top_mm or (self.page_height_mm - self.grid_height_mm) / 2.0
+        return round(max(left, 0.0), 2), round(max(top, 0.0), 2)
+
+    @api.constrains('offset_left_mm', 'offset_top_mm', 'grid_width_mm', 'grid_height_mm',
+                    'page_width_mm', 'page_height_mm')
+    def _check_grid_on_sheet(self):
+        for fmt in self:
+            left, top = fmt._grid_offsets()
+            if left + fmt.grid_width_mm > fmt.page_width_mm + 0.01 or top + fmt.grid_height_mm > fmt.page_height_mm + 0.01:
+                raise ValidationError(_("The label grid of %s runs off its sheet: check the offsets "
+                                        "and the sheet size.", fmt.name))
 
     @api.constrains('is_default')
     def _check_single_default(self):
@@ -86,7 +124,8 @@ class StickerFormat(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        if any(k in vals for k in ('name', 'width_mm', 'height_mm', 'columns', 'rows', 'gap_mm', 'dpi')):
+        if any(k in vals for k in ('name', 'width_mm', 'height_mm', 'columns', 'rows', 'gap_mm', 'row_gap_mm',
+                                   'sheet_width_mm', 'sheet_height_mm', 'dpi')):
             self._sync_paperformat()
         return res
 

@@ -38,8 +38,12 @@
                             <span t-if="sticker['sender'] and not sticker.get('priority')" style="display:block;overflow:hidden;text-overflow:ellipsis;text-align:right;padding-left:1.5mm;">From: <t t-out="sticker['sender']"/></span>
                         </div>
 
-                        <!-- name + address: the address flows as one paragraph -->
-                        <div t-attf-style="height:{{f['body']}}mm;overflow:hidden;">
+                        <!-- name + address: the address flows as one paragraph. A MINIMUM
+                             height: the band is an estimate of what wkhtmltopdf will wrap,
+                             and when the paper takes one line more than measured the extra
+                             line pushes the details down (clipped at the label's foot at
+                             worst) instead of vanishing behind them. -->
+                        <div t-attf-style="min-height:{{f['body']}}mm;">
                             <div t-attf-style="font-size:{{f['name']}}pt;font-weight:bold;line-height:1.08;" t-out="sticker['name']"/>
                             <div t-attf-style="font-size:{{f['address']}}pt;line-height:1.12;" t-out="', '.join(sticker['address'])"/>
                         </div>
@@ -113,16 +117,30 @@
                     font-size: 0; line-height: 0; }
                 .epg-sticker { page-break-inside: avoid; }
             </style>
+            <!-- A sheet fed through an ordinary printer: the page is the sheet and the
+                 grid is pushed to where its labels are (offsets). A None cell is a label
+                 already peeled off the sheet in the tray: a blank of the label's size, so
+                 the cells after it still land on their labels. -->
             <t t-foreach="pages" t-as="page">
-                <div class="page" t-attf-style="{{'page-break-after:always;' if not page_last else ''}}margin:0;padding:0;">
+                <div class="page" t-attf-style="{{'page-break-after:always;' if not page_last else ''}}margin:0;padding:{{layout['offset_top']}}mm 0 0 {{layout['offset_left']}}mm;">
                     <t t-if="layout['per_page'] == 1">
                         <t t-foreach="page" t-as="sticker"><t t-call="epg_sticker_print.sticker_body"/></t>
                     </t>
                     <t t-else="">
-                        <table t-attf-style="border-collapse:collapse;width:{{layout['width']*layout['columns'] + layout['gap']*(layout['columns']-1)}}mm;">
+                        <!-- Fixed columns, each its label wide (plus the gap, carried as the
+                             cell's right padding). Auto layout shared the row's width out
+                             among the cells it had: a last row of two labels made each cell
+                             97.5 mm wide and printed the second label across two of the
+                             sheet's labels (found on the 3 x 8 sheet, 2026-10-19). -->
+                        <table t-attf-style="border-collapse:collapse;table-layout:fixed;width:{{layout['width']*layout['columns'] + layout['gap']*(layout['columns']-1)}}mm;">
+                            <colgroup>
+                                <col t-foreach="range(layout['columns'])" t-as="c"
+                                     t-attf-style="width:{{layout['width'] + (layout['gap'] if c &lt; layout['columns'] - 1 else 0)}}mm;"/>
+                            </colgroup>
                             <tr t-foreach="[page[i:i+layout['columns']] for i in range(0, len(page), layout['columns'])]" t-as="row">
-                                <td t-foreach="row" t-as="sticker" t-attf-style="border:none;padding:0;{{'padding-right:%smm;' % layout['gap'] if layout['gap'] else ''}}vertical-align:top;">
-                                    <t t-call="epg_sticker_print.sticker_body"/>
+                                <td t-foreach="row" t-as="sticker" t-attf-style="border:none;padding:0;{{'padding-right:%smm;' % layout['gap'] if layout['gap'] else ''}}{{'padding-bottom:%smm;' % layout['row_gap'] if layout['row_gap'] and not row_last else ''}}vertical-align:top;">
+                                    <t t-if="sticker"><t t-call="epg_sticker_print.sticker_body"/></t>
+                                    <div t-else="" class="epg-sticker-blank" t-attf-style="width:{{layout['width']}}mm;height:{{layout['height']}}mm;"/>
                                 </td>
                             </tr>
                         </table>

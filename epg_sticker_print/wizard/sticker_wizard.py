@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import json
 import logging
 import base64
 from markupsafe import Markup
@@ -60,6 +61,33 @@ class StickerPrintWizard(models.TransientModel):
     sticker_count = fields.Integer(compute='_compute_preview')
     preview_html = fields.Html(compute='_compute_preview', sanitize=False)
     format_hint = fields.Char(compute='_compute_preview')
+
+    # The sheet in the tray (client, 2026-10-19: an A4 of 3 x 8 labels in an ordinary
+    # printer, most of them already peeled off). The grid widget on `sheet_cells`
+    # shows the sheet; the cells marked are gone and the run fills the rest, in
+    # reading order, then fresh sheets. Pre-filled from what the last print took
+    # (epg.sticker.sheet), so the counter usually has nothing to click.
+    format_is_sheet = fields.Boolean(related='format_id.is_sheet')
+    format_columns = fields.Integer(related='format_id.columns')
+    format_rows = fields.Integer(related='format_id.rows')
+    format_width_mm = fields.Float(related='format_id.width_mm')
+    format_height_mm = fields.Float(related='format_id.height_mm')
+    sheet_cells = fields.Char(
+        string='Sheet in the tray', compute='_compute_sheet_cells', store=True, readonly=False,
+        help="The labels already peeled off the sheet in the tray. Click a cell to mark it.")
+
+    @api.depends('format_id')
+    def _compute_sheet_cells(self):
+        Sheet = self.env['epg.sticker.sheet']
+        for wiz in self:
+            wiz.sheet_cells = json.dumps(Sheet.cells_for(wiz.format_id))
+
+    def _skip_cells(self):
+        """The tray sheet's used cells as a list, empty for a roll."""
+        self.ensure_one()
+        if not self.format_id.is_sheet:
+            return []
+        return self.env['epg.sticker.sheet'].parse(self.sheet_cells, self.format_id.columns * self.format_id.rows)
 
     @api.model
     def _default_partners(self):
@@ -187,8 +215,11 @@ class StickerPrintWizard(models.TransientModel):
     def _compute_preview(self):
         for wiz in self:
             fmt = wiz.format_id
-            wiz.format_hint = fmt and _('%(w)s x %(h)s mm, %(n)s per page', w=fmt.width_mm, h=fmt.height_mm,
-                                        n=fmt.columns * fmt.rows) or ''
+            if fmt and fmt.is_sheet:
+                wiz.format_hint = _('%(w)s x %(h)s mm, %(n)s per sheet (%(c)s x %(r)s)', w=fmt.width_mm,
+                                    h=fmt.height_mm, n=fmt.columns * fmt.rows, c=fmt.columns, r=fmt.rows)
+            else:
+                wiz.format_hint = fmt and _('%(w)s x %(h)s mm, 1 per page', w=fmt.width_mm, h=fmt.height_mm) or ''
             if not wiz.order_ids and not wiz._can_print_from_partners():
                 wiz.sticker_count = 0
                 wiz.preview_html = Markup(
@@ -292,6 +323,7 @@ class StickerPrintWizard(models.TransientModel):
         pages = -(-count // per_page)
         dpi = 200 if count == 1 else 150
         mm = dpi / 25.4
+        left, top = fmt._grid_offsets()
         out = []
         with tempfile.TemporaryDirectory() as tmp:
             src = os.path.join(tmp, 's.pdf')
@@ -306,8 +338,8 @@ class StickerPrintWizard(models.TransientModel):
                         if len(out) == count:
                             break
                         col, row = slot % fmt.columns, slot // fmt.columns
-                        x = col * (fmt.width_mm + fmt.gap_mm) * mm
-                        y = row * fmt.height_mm * mm
+                        x = (left + col * (fmt.width_mm + fmt.gap_mm)) * mm
+                        y = (top + row * (fmt.height_mm + fmt.row_gap_mm)) * mm
                         box = tuple(int(round(v)) for v in (x, y, x + fmt.width_mm * mm, y + fmt.height_mm * mm))
                         buf = io.BytesIO()
                         page.crop(box).save(buf, format='PNG', optimize=True)
@@ -317,6 +349,9 @@ class StickerPrintWizard(models.TransientModel):
     def _report_data(self):
         self.ensure_one()
         data = dict(self._options(), format_id=self.format_id.id)
+        skip = self._skip_cells()
+        if skip:
+            data['skip_cells'] = skip
         if self.order_ids:
             data['ids'] = self.order_ids.ids
         elif self._can_print_from_partners():
@@ -343,6 +378,8 @@ class StickerPrintWizard(models.TransientModel):
         action = report.with_context(epg_sticker_paperformat_id=self.format_id.paperformat_id.id).report_action(
             self.order_ids, data=self._report_data(), config=False)
         action['context'] = dict(action.get('context') or {}, epg_sticker_paperformat_id=self.format_id.paperformat_id.id)
+        # what this run takes off the tray sheet is what the next run starts from
+        self.env['epg.sticker.sheet'].record_print(self.format_id, self._skip_cells(), self.sticker_count)
         return action
 
     def action_preview_html(self):

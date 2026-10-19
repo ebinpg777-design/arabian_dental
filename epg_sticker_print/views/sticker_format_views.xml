@@ -28,7 +28,12 @@
                             <field name="is_default"/><field name="active" invisible="1"/>
                         </group>
                         <group string="Page">
-                            <field name="columns"/><field name="rows"/><field name="gap_mm"/>
+                            <field name="columns"/><field name="rows"/>
+                            <field name="gap_mm"/><field name="row_gap_mm"/>
+                            <field name="sheet_width_mm"/><field name="sheet_height_mm"/>
+                            <field name="offset_left_mm" invisible="not sheet_width_mm and not sheet_height_mm"/>
+                            <field name="offset_top_mm" invisible="not sheet_width_mm and not sheet_height_mm"/>
+                            <field name="grid_width_mm" readonly="1"/><field name="grid_height_mm" readonly="1"/>
                             <field name="page_width_mm" readonly="1"/><field name="page_height_mm" readonly="1"/>
                             <field name="dpi" groups="base.group_no_one"/>
                             <field name="paperformat_id" groups="base.group_no_one"/>

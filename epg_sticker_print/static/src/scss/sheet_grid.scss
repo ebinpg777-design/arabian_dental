@@ -1,0 +1,105 @@
+// The sheet in the tray, as the wizard draws it: a white sheet with the label grid,
+// the labels already gone hatched, the run's labels in the brand colour with their
+// number. Narrow on purpose - it stands in the wizard's left column, under the format.
+.epg_sheet_grid {
+    max-width: 280px;
+    margin: 4px 0 8px;
+
+    &__head {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 2px 10px;
+        margin-bottom: 4px;
+    }
+    &__title {
+        font-weight: 700;
+        font-size: 0.9em;
+        white-space: nowrap;
+    }
+    &__actions {
+        white-space: nowrap;
+        font-size: 0.85em;
+    }
+
+    &__sheet {
+        display: grid;
+        gap: 3px;
+        padding: 7px;
+        background: #fff;
+        border: 1px solid #c9ced3;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+        user-select: none;
+    }
+
+    &__cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #b8bec4;
+        border-radius: 3px;
+        background: #fff;
+        color: #5c6670;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+
+        &.is-planned {
+            background: $o-brand-primary;
+            border-color: transparent;
+            color: #fff;
+        }
+        &.is-used {
+            background: repeating-linear-gradient(135deg, #eceff1 0 4px, #dfe3e6 4px 8px);
+            border-color: #d2d7db;
+            color: #a2aab1;
+            font-size: 10px;
+        }
+        .epg_sheet_grid__sheet:not(.is-readonly) &:hover {
+            outline: 2px solid rgba($o-brand-primary, 0.4);
+            outline-offset: -1px;
+        }
+        .epg_sheet_grid__sheet.is-readonly & {
+            cursor: default;
+        }
+    }
+
+    &__summary {
+        margin-top: 6px;
+        font-size: 0.85em;
+        color: #5c6670;
+    }
+
+    &__legend {
+        display: flex;
+        gap: 12px;
+        margin-top: 3px;
+        font-size: 0.78em;
+        color: #8a939b;
+
+        span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+    }
+    &__swatch {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border: 1px solid #b8bec4;
+        border-radius: 2px;
+        background: #fff;
+
+        &.is-planned {
+            background: $o-brand-primary;
+            border-color: transparent;
+        }
+        &.is-used {
+            background: repeating-linear-gradient(135deg, #eceff1 0 3px, #dfe3e6 3px 6px);
+        }
+    }
+}

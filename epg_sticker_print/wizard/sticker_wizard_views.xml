@@ -44,6 +44,15 @@
                             <field name="mode" widget="radio"/>
                             <field name="format_id" options="{'no_create': True}"/>
                             <field name="format_hint" nolabel="1" colspan="2" class="text-muted small"/>
+                            <field name="format_is_sheet" invisible="1"/>
+                            <field name="format_columns" invisible="1"/>
+                            <field name="format_rows" invisible="1"/>
+                            <field name="format_width_mm" invisible="1"/>
+                            <field name="format_height_mm" invisible="1"/>
+                            <!-- the sheet in the tray: which labels are gone, where this
+                                 run lands (client, 2026-10-19) -->
+                            <field name="sheet_cells" widget="sticker_sheet_grid" nolabel="1" colspan="2"
+                                   invisible="not format_is_sheet"/>
                             <field name="copies"/>
                             <field name="barcode_type" widget="radio" options="{'horizontal': true}"/>
                         </group>
