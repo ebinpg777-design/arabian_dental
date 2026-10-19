@@ -37,18 +37,19 @@
     }
 
     // ---- letterhead card --------------------------------------------------
-    // Two columns that balance: logo, marks and tax ids on the left; the contact
-    // lines on the right, the block pushed to the right edge but reading
-    // left-aligned so the icons stand in one column (client, 2026-10-19).
+    // Two columns: logo and tax ids on the left, centred on the card's height; on
+    // the right the certification marks in the top corner, then the contact lines,
+    // the block pushed to the right edge but reading left-aligned so the icons stand
+    // in one column (client, 2026-10-19).
     .oi-letterhead {
-        background: $card; border-radius: 8px; padding: 10px 16px;
-        td.oi-lhlogo { vertical-align: top; }
-        td.oi-lhinfo { vertical-align: middle; }
+        background: $card; border-radius: 8px; padding: 8px 16px 9px;
+        td.oi-lhlogo { vertical-align: middle; }
+        td.oi-lhinfo { vertical-align: top; }
         .oi-logo { max-height: 52px; }
         .oi-companyname { font-size: 18pt; font-weight: 700; color: $red; line-height: 1.1; }
         // The transparent PNG marks sit straight on the tint, no plate behind them.
-        .oi-lhcerts { margin-top: 6px; line-height: 0; }
-        .oi-cert { max-height: 36px; }
+        .oi-lhcerts { text-align: right; line-height: 0; margin-bottom: 5px; }
+        .oi-cert { max-height: 32px; }
         .oi-ids { font-size: 8.6pt; color: $muted; margin-top: 5px;
             b { color: $ink; font-weight: 700; } }
         table.oi-lhblock { width: auto; margin-left: auto; }

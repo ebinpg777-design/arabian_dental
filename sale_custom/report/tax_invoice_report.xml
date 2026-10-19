@@ -63,9 +63,6 @@
                                 <t t-set="head_logo" t-value="o.company_id.logo1 or o.company_id.logo"/>
                                 <img t-if="head_logo" class="oi-logo" t-att-src="image_data_uri(head_logo)"/>
                                 <div t-else="" class="oi-companyname" t-out="o.company_id.name"/>
-                                <div t-if="o.company_id.logo2" class="oi-lhcerts">
-                                    <img class="oi-cert" t-att-src="image_data_uri(o.company_id.logo2)"/>
-                                </div>
                                 <div t-if="o.company_id.gst_number or o.company_id.pan_number" class="oi-ids">
                                     <span t-if="o.company_id.gst_number">GSTIN <b t-field="o.company_id.gst_number"/></span>
                                     <span t-if="o.company_id.gst_number and o.company_id.pan_number"> · </span>
@@ -73,6 +70,12 @@
                                 </div>
                             </td>
                             <td class="oi-lhinfo">
+                                <!-- the certification marks in the top-right corner, above the
+                                     contact lines, as on the lab's stationery (client, 2026-10-19:
+                                     "move the marked logo to right top") -->
+                                <div t-if="o.company_id.logo2" class="oi-lhcerts">
+                                    <img class="oi-cert" t-att-src="image_data_uri(o.company_id.logo2)"/>
+                                </div>
                                 <table class="oi-lhblock">
                                     <tr t-foreach="o.company_id._lab_letterhead()" t-as="row">
                                         <td class="oi-lhicon"><img t-att-src="row[0]"/></td>
