@@ -177,6 +177,21 @@
                                               'width': 1800,
                                               'height': 240,
                                               'img_style': 'width:96mm; height:17mm; display:inline-block;'}"/>
+                            <!-- under the barcode: the sales route and the salesperson
+                                 (client, 2026-10-19) -->
+                            <t t-set="route" t-value="o.team_id if 'team_id' in o._fields else False"/>
+                            <table class="oi-whosold" t-if="route or o.invoice_user_id">
+                                <tr>
+                                    <td t-if="route">
+                                        <div class="oi-label">Sales route</div>
+                                        <div class="oi-whoval" t-field="route.name"/>
+                                    </td>
+                                    <td t-if="o.invoice_user_id">
+                                        <div class="oi-label">Salesperson</div>
+                                        <div class="oi-whoval" t-field="o.invoice_user_id.name"/>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                 </table>

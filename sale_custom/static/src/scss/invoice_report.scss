@@ -91,8 +91,12 @@
     // takes no frame and no gap of its own: a machine-readable mark, not a section.
     table.oi-headrow { margin: 0 0 6px; }
     td.oi-billcell { vertical-align: top; }
-    td.oi-scancell { width: 100mm; padding-left: 4mm; vertical-align: middle; text-align: right;
+    // the barcode near the top of the cell, the route and the salesperson under it
+    td.oi-scancell { width: 100mm; padding: 6px 0 0 4mm; vertical-align: top; text-align: right;
         line-height: 0; }
+    table.oi-whosold { width: auto; margin: 8px 0 0 auto; line-height: 1.2;
+        td { padding: 0 0 0 22px; text-align: right; vertical-align: top; }
+        .oi-whoval { font-size: 11pt; font-weight: 700; color: $head; margin-top: 1px; white-space: nowrap; } }
     .oi-billcard { background: $card; border-radius: 8px; padding: 8px 14px; }
     // the dates strip now runs the full width under the address, cells rule-separated
     .oi-metacard { border: 1px solid $line; border-radius: 8px; padding: 8px 14px;
