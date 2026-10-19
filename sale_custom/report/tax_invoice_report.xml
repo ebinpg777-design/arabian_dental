@@ -239,8 +239,8 @@
                             <th>Description</th>
                             <th t-if="show_hsn" class="mid" style="width:8%">HSN</th>
                             <th t-if="show_patient" style="width:10%">Patient</th>
-                            <th t-if="show_ul" class="mid" style="width:4%">Jaw</th>
                             <th t-if="show_teeth" class="mid" style="width:8%">Teeth</th>
+                            <th t-if="show_ul" class="mid" style="width:4%">Jaw</th>
                             <th class="num" style="width:5%">Qty</th>
                             <th class="num" style="width:8%">Rate</th>
                             <th t-if="show_disc" class="num" style="width:6%">Disc %</th>
@@ -256,7 +256,6 @@
                             <td><span t-field="l.name"/></td>
                             <td t-if="show_hsn" class="mid oi-hsn"><span t-field="l.product_id.hsn_number"/></td>
                             <td t-if="show_patient"><span t-field="l.patient"/></td>
-                            <td t-if="show_ul" class="mid"><span t-field="l.ul"/></td>
                             <td t-if="show_teeth" class="mid oi-teethcell">
                                 <t t-set="cross" t-value="l._dental_palmer() if l.teeth else None"/>
                                 <table t-if="cross" class="oi-palmer">
@@ -272,6 +271,7 @@
                                 <div t-if="cross and cross['rest']" class="oi-teethrest" t-out="cross['rest']"/>
                                 <span t-if="l.teeth and not cross" t-field="l.teeth"/>
                             </td>
+                            <td t-if="show_ul" class="mid"><span t-field="l.ul"/></td>
                             <td class="num">
                                 <span t-field="l.quantity"/>
                                 <span t-field="l.product_uom_id" groups="uom.group_uom"/>
@@ -297,8 +297,8 @@
                             <td>Total</td>
                             <td t-if="show_hsn"/>
                             <td t-if="show_patient"/>
-                            <td t-if="show_ul"/>
                             <td t-if="show_teeth"/>
+                            <td t-if="show_ul"/>
                             <td class="num"><t t-out="tot['qty_text']"/></td>
                             <td/>
                             <td t-if="show_disc"/>

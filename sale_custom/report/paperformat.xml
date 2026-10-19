@@ -46,8 +46,9 @@
         <!-- no header band at all: the card starts 6 mm from the paper's edge (client,
              2026-10-19, "remove unwanted space" above the letterhead) -->
         <field name="margin_top">6</field>
-        <!-- the footer is one 7.2pt line under a rule now, so the band needs less room -->
-        <field name="margin_bottom">8</field>
+        <!-- the footer is the page number alone now (the invoice draws its own closing
+             bar), so the band is as small as wkhtmltopdf will print it -->
+        <field name="margin_bottom">5</field>
         <field name="margin_left">8</field>
         <field name="margin_right">8</field>
         <field name="header_line" eval="False"/>
