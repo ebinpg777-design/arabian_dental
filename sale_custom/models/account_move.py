@@ -153,7 +153,10 @@ class AccountMove(models.Model):
         res = currency.amount_to_text(abs(amount)) or ''
         # Legacy Indian wording fallbacks (when the currency labels are not localised).
         res = res.replace('INR', 'Rupees').replace('Cents', 'Paise').replace('Cent', 'Paise')
-        if res and 'Paise' not in res:   # match v10: always show the paise part
+        # match v10: always show the paise part. Case-blind: Odoo writes "fifty paise"
+        # in lower case, and a case-sensitive test printed "Fifty Paise and Zero
+        # Paise" on every amount with paise in it (found 2026-10-19).
+        if res and 'paise' not in res.lower():
             res += ' and Zero Paise'
         return res
 
@@ -267,11 +270,12 @@ class AccountMove(models.Model):
         return groups, table
 
     def _dental_words(self, amount):
-        """The amount in words with every word capitalised - "Four Hundred Rupees And
-        Zero Paise" - the way the lab's invoices always wrote it. `convert` itself is
-        left lower-case for the other print-outs that use it."""
+        """The amount in words with every word capitalised but "and" - "Four Hundred
+        Rupees and Zero Paise" (client, 2026-10-19). `convert` itself is left as it is
+        for the other print-outs that use it."""
         self.ensure_one()
-        return re.sub(r'\b[a-z]', lambda m: m.group().upper(),
+        return re.sub(r'\b[A-Za-z]+\b',
+                      lambda m: 'and' if m.group().lower() == 'and' else m.group()[:1].upper() + m.group()[1:],
                       self.convert(amount, self.currency_id.name))
 
     def _dental_taxable(self):

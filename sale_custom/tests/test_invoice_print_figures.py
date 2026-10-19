@@ -71,9 +71,16 @@ class TestInvoicePrintFigures(AccountTestInvoicingCommon):
         move = self._invoice(self.clinic, 380.95, self.day)
         words = move._dental_words(move.amount_total)
         self.assertTrue(words)
-        self.assertEqual(words, ' '.join(w[:1].upper() + w[1:] for w in words.split(' ')),
-                         "every word starts with a capital")
-        self.assertNotIn(' and ', words)
+        for word in words.replace(',', ' ').split():
+            if word.lower() == 'and':
+                self.assertEqual(word, 'and', "'and' stays small")
+            else:
+                self.assertTrue(word[0].isupper(), "every other word starts with a capital: %s" % words)
+        self.assertIn(' and ', words)
+        self.assertNotIn('And', words)
+        with_paise = move._dental_words(1321.50).lower()
+        self.assertEqual(with_paise.count('paise'), 1, "fifty paise, not 'fifty paise and zero paise'")
+        self.assertIn('zero paise', move._dental_words(400.0).lower(), "whole rupees still say so")
 
     def test_old_balance_and_total_balance(self):
         # billed to the doctor: the clinic's account all the same
