@@ -300,6 +300,12 @@ export class LabMyDay extends Component {
         the attendance light alone does not know). */
     get showWhere() {
         const server = this.state.where.server;
+        // With the tracking app the browser is told to stand down (enabled false), but
+        // the card still belongs on the screen: it says the app is recording and how
+        // to set it up. (2026-10-19)
+        if (server && server.app_mode) {
+            return this.onDuty && Boolean(this.state.data && this.state.data.is_today);
+        }
         return this.onDuty && this.tracking
             && Boolean(this.state.data && this.state.data.is_today)
             && !(server && server.enabled === false);
@@ -350,6 +356,35 @@ export class LabMyDay extends Component {
     }
 
     /** Why the badge is grey, when it is. Only the case the executive can fix. */
+    /** The Traccar Client app's settings when it records for this person, else null. */
+    get appSetup() {
+        const server = this.state.where.server;
+        return (server && server.app) || null;
+    }
+
+    get appLine() {
+        const app = this.appSetup;
+        if (!app || app.last_app_fix_age_s === null || app.last_app_fix_age_s === undefined) {
+            return "no position from the app yet";
+        }
+        return `last position ${this.ago(this.state.where.now - app.last_app_fix_age_s * 1000)}`;
+    }
+
+    /** Silent for a quarter of an hour while the day runs: the app is off or blocked. */
+    get appProblem() {
+        const app = this.appSetup;
+        if (!app) {
+            return "";
+        }
+        const age = app.last_app_fix_age_s;
+        if (age === null || age === undefined || age > 900) {
+            return "The tracking app has not sent a position for a while. Open Traccar Client "
+                + "and check the service is on, location is allowed all the time and battery "
+                + "saving is off for it.";
+        }
+        return "";
+    }
+
     get whereProblem() {
         const s = this.whereStatus;
         if (s.denied) {

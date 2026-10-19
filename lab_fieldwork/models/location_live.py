@@ -27,10 +27,11 @@ All of it is derived from pings that only exist while the executive is on duty, 
 the privacy boundary stays the one the trail already has.
 """
 import logging
+import secrets
 from datetime import datetime, timedelta
 
 from odoo import _, api, fields, models
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 
 from .lab_visit import has_fix, metres_between
 from .local_day import local_midnight_utc, tz_name
@@ -139,10 +140,11 @@ class LabLocationPingLive(models.Model):
         """The day's trail as [(ts, lat, lon, speed_kmh, overspeed, battery), ...]."""
         pings = self.sudo().search_read(
             [('user_id', '=', user.id), ('date', '=', day)],
-            ['ts', 'latitude', 'longitude', 'speed_kmh', 'overspeed', 'battery', 'accuracy_m'],
+            ['ts', 'latitude', 'longitude', 'speed_kmh', 'overspeed', 'battery', 'accuracy_m', 'source'],
             order='ts')
         return [(p['ts'], p['latitude'], p['longitude'], p['speed_kmh'] or 0.0,
-                 bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0)
+                 bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0,
+                 p['source'] or 'browser')
                 for p in pings]
 
     @api.model
@@ -261,7 +263,7 @@ class LabLocationPingLive(models.Model):
         found = []          # (started, ended or None, lat, lon)
         anchor = None       # (ts, lat, lon)
         last_ts = points[0][0]
-        for ts, lat, lon, speed, _over, _batt, _acc in points:
+        for ts, lat, lon, speed, _over, _batt, _acc, _src in points:
             still = speed < HALT_SPEED_KMH and (
                 anchor is None or (metres_between(anchor[1], anchor[2], lat, lon) or 0.0) <= HALT_RADIUS_M)
             if anchor is not None and (ts - last_ts).total_seconds() > TRAIL_GAP_SECONDS:
@@ -459,7 +461,8 @@ class LabLocationPingLive(models.Model):
                 'status': status, 'status_label': label, 'since_epoch': epoch(since),
                 'last': {'lat': last[1], 'lon': last[2], 'epoch': epoch(last[0]),
                          'age_s': int((now - last[0]).total_seconds()), 'speed_kmh': last[3],
-                         'accuracy_m': last[6], 'battery': last[5] or user.sudo().fw_last_battery or None}
+                         'accuracy_m': last[6], 'battery': last[5] or user.sudo().fw_last_battery or None,
+                         'source': last[7]}
                 if last else None,
                 'at_clinic': {'clinic_id': open_visit.partner_id.id, 'name': open_visit.partner_id.display_name,
                               'visit_id': open_visit.id, 'since_epoch': epoch(open_visit.check_in)}
@@ -509,6 +512,75 @@ class ResUsersLive(models.Model):
     fw_last_battery = fields.Float('Phone Battery (%)', digits=(5, 1), readonly=True,
                                    groups='lab_fieldwork.group_fieldwork_manager')
 
+    # The free Traccar Client app instead of the browser (client, 2026-10-19). It
+    # tracks with the screen off; the browser cannot. The identifier is the phone's
+    # password to the endpoint - whoever holds it can post positions as this person -
+    # so it is long, random, unique, and only an administrator sees or changes it.
+    fw_gps_app = fields.Boolean(
+        'Tracked by the Traccar app', readonly=True, copy=False,
+        groups='lab_fieldwork.group_fieldwork_manager',
+        help="This person's phone runs the free Traccar Client app, which sends positions "
+             "with the screen off. The browser then stops asking for one.")
+    fw_gps_device_id = fields.Char(
+        'Tracking App Device ID', readonly=True, copy=False, index=True,
+        groups='lab_fieldwork.group_fieldwork_admin,base.group_system')
+
+    _fw_gps_device_unique = models.Constraint(
+        'unique(fw_gps_device_id)', 'That tracking device ID is already in use.')
+
+    @api.model
+    def _fw_new_device_id(self):
+        return secrets.token_hex(8).upper()
+
+    def _fw_check_app_admin(self):
+        if not (self.env.su or self.env.user.has_group('lab_fieldwork.group_fieldwork_admin')
+                or self.env.user.has_group('base.group_system')):
+            raise AccessError(_("Only a Field Work administrator sets up the tracking app."))
+
+    def action_fw_tracking_app(self):
+        """Switch the tracking app on or off for this person (button: a field-work
+        administrator cannot edit a user record - see action_fw_set_exception)."""
+        self._fw_check_app_admin()
+        value = bool(self.env.context.get('fw_value'))
+        for user in self.sudo():
+            if user.fw_gps_app == value:
+                continue
+            vals = {'fw_gps_app': value}
+            if value and not user.fw_gps_device_id:
+                vals['fw_gps_device_id'] = self._fw_new_device_id()
+            user.write(vals)
+            user.partner_id.message_post(body=_(
+                "Tracking app switched %(state)s by %(who)s.",
+                state=_("on") if value else _("off"), who=self.env.user.name))
+        return True
+
+    def action_fw_new_device_id(self):
+        """A new identifier: the old phone stops being accepted at once (a lost or
+        handed-over phone)."""
+        self._fw_check_app_admin()
+        for user in self.sudo():
+            user.fw_gps_device_id = self._fw_new_device_id()
+            user.partner_id.message_post(body=_(
+                "Tracking app device ID replaced by %(who)s; the phone must be set up again.",
+                who=self.env.user.name))
+        return True
+
+    def _fw_app_setup(self):
+        """What the executive types into Traccar Client, or None without the app."""
+        self.ensure_one()
+        me = self.sudo()
+        if not me.fw_gps_app or not me.fw_gps_device_id:
+            return None
+        base = self.env['ir.config_parameter'].sudo().get_str('web.base.url', '').rstrip('/')
+        last = self.env['lab.location.ping'].sudo().search(
+            [('user_id', '=', me.id), ('source', '=', 'app')], order='ts desc', limit=1)
+        return {
+            'server_url': '%s/lab_fieldwork/gps' % base,
+            'device_id': me.fw_gps_device_id,
+            'last_app_fix_age_s': int((fields.Datetime.now() - last.ts).total_seconds())
+            if last else None,
+        }
+
 
 class LabMyDayLive(models.AbstractModel):
     _inherit = 'lab.my.day'
@@ -520,6 +592,12 @@ class LabMyDayLive(models.AbstractModel):
         phone has walked away from."""
         state = super().tracking_state()
         user = self.env.user
+        # With the tracking app on, the browser stands down: two GPS watches on one
+        # phone is double the battery for the same trail. (2026-10-19)
+        state['app'] = user._fw_app_setup() if state.get('enabled') else None
+        if state['app']:
+            state['enabled'] = False
+            state['app_mode'] = True
         Ping = self.env['lab.location.ping'].sudo()
         day = Ping._today_for(user)
         points = Ping._day_points(user, day)
@@ -527,7 +605,8 @@ class LabMyDayLive(models.AbstractModel):
         state['last_fix_age_s'] = int((fields.Datetime.now() - points[-1][0]).total_seconds()) \
             if points else None
         nudges = []
-        if state.get('enabled') and state.get('on_duty') and Ping._auto_arrive_enabled():
+        if (state.get('enabled') or state.get('app_mode')) and state.get('on_duty') \
+                and Ping._auto_arrive_enabled():
             visits = self.env['lab.visit'].sudo().search(
                 [('user_id', '=', user.id), ('date', '=', day),
                  ('state', 'in', ('planned', 'open'))], order='id')

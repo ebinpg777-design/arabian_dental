@@ -69,6 +69,10 @@ class LabLocationPing(models.Model):
     heading = fields.Float(digits=(5, 1))
     battery = fields.Float('Phone Battery (%)', digits=(5, 1))
     overspeed = fields.Boolean(index=True)
+    # Where it came from: the browser while My Day is open, or the Traccar Client app
+    # (controllers/gps.py), which keeps sending with the screen off. (2026-10-19)
+    source = fields.Selection([('browser', 'Browser'), ('app', 'Tracking app')],
+                              default='browser', required=True)
     company_id = fields.Many2one('res.company', required=True, index=True,
                                  default=lambda self: self.env.company)
 
@@ -208,6 +212,8 @@ class LabLocationPing(models.Model):
                     'battery': extra.get('battery') or 0.0,
                     # a GPS jump reads as 300 km/h; a real motorbike never does
                     'overspeed': bool(limit) and limit < speed < 150,
+                    # set only by the app endpoint: the browser cannot claim to be the app
+                    'source': 'app' if self.env.context.get('fw_ping_source') == 'app' else 'browser',
                 })
                 last_ts, last_point = when, (latitude, longitude)
                 if existing + len(values) >= MAX_PINGS_PER_DAY:

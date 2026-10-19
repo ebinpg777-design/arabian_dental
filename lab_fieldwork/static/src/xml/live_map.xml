@@ -122,7 +122,9 @@
                     <div class="o_fw_live_row_sub">
                         <span>
                             <t t-if="ex.status === 'off'">not on duty</t>
-                            <t t-else="">last seen <t t-out="this.lastSeen(ex)"/></t>
+                            <t t-else="">last seen <t t-out="this.lastSeen(ex)"/>
+                                <span t-if="ex.last and ex.last.source === 'app'" class="o_fw_live_via"
+                                      title="Sent by the Traccar Client app, which keeps tracking with the screen off">· app</span></t>
                         </span>
                         <a t-if="ex.phone" t-attf-href="tel:{{ ex.phone }}" class="o_fw_live_tel"
                            t-att-title="ex.phone" t-on-click.stop="">

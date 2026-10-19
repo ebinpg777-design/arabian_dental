@@ -173,3 +173,13 @@
         }
     }
 }
+
+// The tracking app's settings on My Day (2026-10-19): folded away once set up.
+.o_fw_where .o_fw_app_setup {
+    margin-top: .5rem; font-size: .85rem;
+    summary { cursor: pointer; color: #2563eb; font-weight: 600; }
+    ol { margin: .4rem 0 .3rem 1.1rem; padding: 0; }
+    li { margin-bottom: .2rem; }
+    code { font-size: .8rem; word-break: break-all; }
+}
+

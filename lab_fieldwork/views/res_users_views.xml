@@ -15,6 +15,10 @@
                         <field name="fw_location_exception"/>
                         <field name="fw_camera_exception"/>
                     </group>
+                    <group string="Tracking app (screen off)">
+                        <field name="fw_gps_app"/>
+                        <field name="fw_gps_device_id" invisible="not fw_gps_app" class="font-monospace"/>
+                    </group>
                     <div class="text-muted">
                         <p><b>Location:</b> field work records the time only for this
                         person — no position is asked for on visits, deliveries or the
@@ -60,6 +64,34 @@
                         <button name="action_fw_set_exception" type="object" string="Switch off" class="btn btn-sm btn-secondary"
                                 context="{'fw_exception': 'camera', 'fw_value': False}" invisible="not fw_camera_exception"/>
                     </div>
+                    <!-- the free Traccar Client app (2026-10-19): switched by button like
+                         the exceptions above, for the same reason -->
+                    <label for="fw_gps_app"/>
+                    <div class="d-flex align-items-center gap-2" name="fw_app_switch">
+                        <field name="fw_gps_app" readonly="1" nolabel="1" widget="boolean"/>
+                        <span invisible="not fw_gps_app" class="badge text-bg-info">On: Traccar Client app</span>
+                        <button name="action_fw_tracking_app" type="object" string="Switch on" class="btn btn-sm btn-primary"
+                                context="{'fw_value': True}" invisible="fw_gps_app"/>
+                        <button name="action_fw_tracking_app" type="object" string="Switch off" class="btn btn-sm btn-secondary"
+                                context="{'fw_value': False}" invisible="not fw_gps_app"/>
+                    </div>
+                    <label for="fw_gps_device_id" invisible="not fw_gps_app"/>
+                    <div class="d-flex align-items-center gap-2" invisible="not fw_gps_app">
+                        <field name="fw_gps_device_id" nolabel="1" class="font-monospace"/>
+                        <button name="action_fw_new_device_id" type="object" string="New ID" class="btn btn-sm btn-link"
+                                confirm="The phone will have to be set up again with the new ID, and the old one stops being accepted at once. Continue?"/>
+                    </div>
+                    <div colspan="2" class="alert alert-info small mb-0" role="alert" invisible="not fw_gps_app">
+                        <p class="mb-1"><b>Tracking with the screen off:</b> install the free
+                            <em>Traccar Client</em> app (Play Store / App Store) on this person's phone and set</p>
+                        <ul class="mb-1">
+                            <li>Server URL: <code>https://&lt;your Odoo address&gt;/lab_fieldwork/gps</code></li>
+                            <li>Device identifier: the Device ID above</li>
+                            <li>Frequency 60 s, distance 50 m, accuracy high; offline buffering on</li>
+                        </ul>
+                        <p class="mb-0">The app may run all day: positions are kept only while their day is running
+                            (Start my day to End the day). My Day shows them the same settings.</p>
+                    </div>
                     <div colspan="2" class="text-muted small">
                         <p class="mb-1"><b>Location:</b> field work records the time only for this
                         person - no position is asked for on visits, deliveries or the day trail,
@@ -84,6 +116,8 @@
                 <field name="fw_location_exception" string="No location" widget="boolean"
                        groups="lab_fieldwork.group_fieldwork_admin,base.group_system"/>
                 <field name="fw_camera_exception" string="No camera" widget="boolean"
+                       groups="lab_fieldwork.group_fieldwork_admin,base.group_system"/>
+                <field name="fw_gps_app" string="Tracking app" widget="boolean"
                        groups="lab_fieldwork.group_fieldwork_admin,base.group_system"/>
                 <field name="login_date" optional="show"/>
             </list>

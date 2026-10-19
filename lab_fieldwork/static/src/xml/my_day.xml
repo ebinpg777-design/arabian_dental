@@ -200,6 +200,15 @@
 
                 <div class="o_fw_where">
                     <div class="o_fw_where_row">
+                        <t t-if="this.appSetup">
+                            <!-- the Traccar Client app records instead of this page -->
+                            <span class="o_fw_tracking"
+                                  title="The Traccar Client app records your route, even with the screen off.">
+                                <i class="fa fa-mobile"/> tracking app
+                            </span>
+                            <span class="o_fw_where_line" t-out="this.appLine"/>
+                        </t>
+                        <t t-else="">
                         <span t-if="this.whereStatus.recording" class="o_fw_tracking"
                               title="Your route is recorded while your day is running, and stops when you end it.">
                             <i class="fa fa-location-arrow"/> route recording
@@ -209,6 +218,7 @@
                             <i class="fa fa-location-arrow"/> not recording
                         </span>
                         <span class="o_fw_where_line" t-out="this.whereLine"/>
+                        </t>
                     </div>
                     <div class="o_fw_where_row">
                         <span class="o_fw_where_km">
@@ -221,7 +231,22 @@
                             <t t-else="">Show my trail</t>
                         </button>
                     </div>
-                    <div t-if="this.whereProblem" class="o_fw_warn">
+                    <details t-if="this.appSetup" class="o_fw_app_setup">
+                        <summary>Set up the tracking app</summary>
+                        <ol>
+                            <li>Install <b>Traccar Client</b> (free) from the Play Store or App Store.</li>
+                            <li>Server URL: <code class="user-select-all" t-out="this.appSetup.server_url"/></li>
+                            <li>Device identifier: <code class="user-select-all" t-out="this.appSetup.device_id"/></li>
+                            <li>Frequency 60 s, distance 50 m, high accuracy; switch the service on.</li>
+                            <li>Allow location <b>all the time</b>, and switch off battery saving for the app.</li>
+                        </ol>
+                        <div class="small text-muted">Positions are kept only between Start my day and End the day.</div>
+                    </details>
+                    <div t-if="this.appProblem" class="o_fw_warn">
+                        <i class="fa fa-exclamation-triangle me-1" title="Not receiving"/>
+                        <t t-out="this.appProblem"/>
+                    </div>
+                    <div t-if="!this.appSetup and this.whereProblem" class="o_fw_warn">
                         <i class="fa fa-exclamation-triangle me-1" title="Not recording"/>
                         <t t-out="this.whereProblem"/>
                     </div>
