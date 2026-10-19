@@ -8,6 +8,14 @@
             <field name="columns">1</field><field name="rows">1</field>
             <field name="is_default" eval="True"/>
         </record>
+        <!-- the lab's own roll (client, 2026-10-19, "6.5 * 3.5": centimetres) -->
+        <record id="format_roll_65x35" model="epg.sticker.format">
+            <field name="name">Roll 65 × 35 mm</field>
+            <field name="sequence">15</field>
+            <field name="width_mm">65</field><field name="height_mm">35</field>
+            <field name="margin_mm">1.5</field>
+            <field name="columns">1</field><field name="rows">1</field>
+        </record>
         <record id="format_roll_50x30" model="epg.sticker.format">
             <field name="name">Roll 50 × 30 mm</field>
             <field name="sequence">20</field>

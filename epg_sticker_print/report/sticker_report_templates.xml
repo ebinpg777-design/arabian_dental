@@ -21,13 +21,21 @@
                     <td t-attf-style="border:none;padding:0;vertical-align:top;width:{{f['inner_w']}}mm;overflow:hidden;">
 
                         <!-- what this label is -->
-                        <div t-attf-style="height:{{f['head']}}mm;overflow:hidden;font-size:{{f['small']}}pt;color:#555;text-transform:uppercase;letter-spacing:.3px;line-height:1.1;">
-                            <span t-out="sticker['title']"/>
-                            <!-- says out loud that this one leaves the clinic's route -->
-                            <b t-if="sticker.get('to_patient')"> | TO PATIENT</b>
-                            <t t-if="sticker['count'] > 1"> · <t t-out="sticker['count']"/> orders</t>
+                        <!-- One line, always. The sender used to float right and, when the
+                             code's column left too little room beside the title, dropped to
+                             a second line that the one-line strip cut to a sliver ("FROM:
+                             ARABIAN DENTAL LAB" as a smear under the order number, 2026-10-19).
+                             Now the title floats left and the sender takes what is left of
+                             the line - a block beside a float - ending in "..." if it must. -->
+                        <div t-attf-style="height:{{f['head']}}mm;overflow:hidden;font-size:{{f['small']}}pt;color:#555;text-transform:uppercase;letter-spacing:.3px;line-height:1.1;white-space:nowrap;">
                             <span t-if="sticker.get('priority')" t-attf-style="float:right;font-weight:bold;color:#fff;background:#c0392b;padding:0 1.2mm;"><t t-out="sticker['priority']"/></span>
-                            <span t-if="sticker['sender'] and not sticker.get('priority')" style="float:right;">From: <t t-out="sticker['sender']"/></span>
+                            <span style="float:left;">
+                                <span t-out="sticker['title']"/>
+                                <!-- says out loud that this one leaves the clinic's route -->
+                                <b t-if="sticker.get('to_patient')"> | TO PATIENT</b>
+                                <t t-if="sticker['count'] > 1"> · <t t-out="sticker['count']"/> orders</t>
+                            </span>
+                            <span t-if="sticker['sender'] and not sticker.get('priority')" style="display:block;overflow:hidden;text-overflow:ellipsis;text-align:right;padding-left:1.5mm;">From: <t t-out="sticker['sender']"/></span>
                         </div>
 
                         <!-- name + address: the address flows as one paragraph -->

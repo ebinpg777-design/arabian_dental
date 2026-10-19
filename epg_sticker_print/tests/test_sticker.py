@@ -91,6 +91,12 @@ class TestStickerPrint(TransactionCase):
             wiz = self.env['epg.sticker.print.wizard'].with_context(active_model='stock.picking', active_ids=picking.ids).create({})
             self.assertEqual(wiz.order_ids, self.o1)
 
+    def test_the_65x35_roll_prints_on_its_own_page_size(self):
+        fmt = self.env.ref('epg_sticker_print.format_roll_65x35')
+        paper = fmt.paperformat_id
+        self.assertEqual((paper.page_width, paper.page_height), (65, 35))
+        self.assertFalse(fmt.is_sheet, "a roll: one sticker per page")
+
     def test_paperformat_from_context(self):
         report = self.env.ref('epg_sticker_print.action_report_sticker')
         fmt = self.env.ref('epg_sticker_print.format_roll_50x30')
