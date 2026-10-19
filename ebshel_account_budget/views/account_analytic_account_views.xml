@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_analytic_account_form_budget" model="ir.ui.view">
+        <field name="name">account.analytic.account.form.ebshel.budget</field>
+        <field name="model">account.analytic.account</field>
+        <field name="inherit_id" ref="analytic.view_account_analytic_account_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_budgets" type="object" class="oe_stat_button" icon="pie_chart"
+                        invisible="budget_count == 0" groups="account.group_account_readonly">
+                    <field name="budget_count" string="Budgets" widget="statinfo"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Budgets" name="budgets" groups="account.group_account_readonly">
+                    <field name="budget_line_ids" readonly="1">
+                        <list decoration-danger="is_over_budget">
+                            <field name="budget_id"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="budget_amount" sum="Budget"/>
+                            <field name="achieved_amount" sum="Achieved"/>
+                            <field name="committed_amount" sum="Committed" optional="show"/>
+                            <field name="available_amount" sum="Available"/>
+                            <field name="achieved_percentage" widget="progressbar"/>
+                            <field name="state" widget="badge"/>
+                            <field name="is_over_budget" column_invisible="1"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

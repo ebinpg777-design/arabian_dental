@@ -6,7 +6,7 @@
 ##############################################################################
 {
     'name': 'Purchase Request Management',
-    'version': '19.0.1.1.0',
+    'version': '20.0.1.1.0',
     'category': 'Purchase',
     'summary': (
         'Full procurement flow: purchase requests, multi-level approvals, '
@@ -43,16 +43,14 @@ Key Features
     'depends': [
         'purchase',
         'stock',
+        'purchase_stock',
         'analytic',
         'mail',
         'account',
-        'account_budget',
     ],
     'data': [
         # Security (must load first)
         'security/groups.xml',
-        'security/ir.model.access.csv',
-        'security/record_rules.xml',
         # Data
         'data/sequences.xml',
         'data/mail_templates.xml',
@@ -69,11 +67,7 @@ Key Features
         'views/purchase_request_views.xml',
         'views/purchase_request_allocation_views.xml',
         'views/purchase_analytic_line_views.xml',
-        # account_analytic_account_views must load before budget_views: both
-        # extend the analytic-account form, and budget_views triggers combined
-        # validation of that form's whole inheritance tree.
         'views/account_analytic_account_views.xml',
-        'views/budget_views.xml',
         'views/purchase_rfq_views.xml',
         'views/purchase_vendor_quotation_views.xml',
         'views/purchase_order_views.xml',
@@ -87,6 +81,8 @@ Key Features
         'report/purchase_rfq_comparison_report.xml',
         # Menu (must load last)
         'views/menu.xml',
+        # Access (after the models' views and groups are loaded)
+        'security/ir.access.csv',
     ],
     'assets': {
         'web.assets_backend': [

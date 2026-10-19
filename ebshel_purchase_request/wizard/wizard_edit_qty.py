@@ -82,10 +82,10 @@ class PrQtyEditLine(models.TransientModel):
     uom_id = fields.Many2one(related='request_line_id.uom_id', readonly=True)
     current_qty = fields.Float(
         related='request_line_id.qty', string='Current Qty', readonly=True,
-        digits='Product Unit of Measure')
+        digits='Product Unit')
     qty_in_rfq = fields.Float(
         related='request_line_id.qty_in_rfq', string='On RFQ (min)', readonly=True,
-        digits='Product Unit of Measure')
+        digits='Product Unit')
     new_qty = fields.Float(
-        'New Quantity', digits='Product Unit of Measure')
+        'New Quantity', digits='Product Unit')
 

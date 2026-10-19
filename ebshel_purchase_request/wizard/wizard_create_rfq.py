@@ -151,7 +151,7 @@ class PrCreateRfqWizardLine(models.TransientModel):
                                  string='Est. Unit Price', currency_field='currency_id')
     date_required = fields.Date(related='request_line_id.date_required')
     selected = fields.Boolean('Include', default=True)
-    qty = fields.Float('Qty to RFQ', digits='Product Unit of Measure')
+    qty = fields.Float('Qty to RFQ', digits='Product Unit')
 
     @api.onchange('qty', 'remaining_qty')
     def _onchange_qty(self):

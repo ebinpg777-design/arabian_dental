@@ -1,10 +1,10 @@
 # Purchase Request Management
 
-**Full procurement lifecycle for Odoo 19** — from an internal purchase request,
+**Full procurement lifecycle for Odoo 20 (Community)** — from an internal purchase request,
 through multi‑level approvals and multi‑vendor RFQs, to award, purchase order,
 receipt and billing — with complete traceability at every step.
 
-* **Version:** 19.0.1.0.2
+* **Version:** 20.0.1.1.0
 * **Category:** Purchase
 * **License:** OPL‑1
 * **Author:** Ebshel Technologies — <https://ebshel.com>
@@ -111,9 +111,13 @@ A fully configurable approval engine driven by **Approval Levels**:
   each line, plus a dedicated **Fulfilment** tab on the request.
 
 ### 2.7 Budget Awareness
-- When the Odoo **Budget** module is in use, the request form shows the selected
-  department's **current‑period budget**: budgeted amount, committed, available,
-  % used, and the amount available **after** this request.
+- With **Analytic Budgets** (`ebshel_account_budget`) installed, the bridge
+  **Purchase Budget Control** (`ebshel_purchase_budget`) installs itself and the
+  request form shows the selected department's **current‑period budget**:
+  budgeted amount, committed, available, % used, and the amount available
+  **after** this request. The Enterprise **Budget** module (`account_budget`) is
+  read too when it is installed. Without a budget module these figures are
+  hidden.
 - An **over‑budget warning** appears when the request would exceed the
   department's available budget. Only **Open (confirmed)** budgets are counted.
 
@@ -216,9 +220,10 @@ indexed for large‑database dashboard and list queries.
 
 ## 8. Dependencies
 
-`purchase`, `stock`, `analytic`, `mail`, `account` (all standard Odoo).
-Budget figures on the request integrate with the optional **Budget** module when
-installed (gracefully ignored when absent).
+`purchase`, `stock`, `purchase_stock`, `analytic`, `mail`, `account` (all
+standard Odoo Community). Department budgets come from the optional
+`ebshel_account_budget` + `ebshel_purchase_budget` modules, or from the
+Enterprise `account_budget` module; without either they are ignored.
 
 ---
 

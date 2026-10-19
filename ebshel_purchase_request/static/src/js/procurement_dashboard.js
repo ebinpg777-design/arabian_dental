@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, useState, onMounted, onWillUnmount } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy, useProps } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { user } from "@web/core/user";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Procurement Intelligence Dashboard
@@ -12,14 +13,14 @@ import { user } from "@web/core/user";
 
 export class ProcurementDashboard extends Component {
     static template = "ebshel_purchase_request.ProcurementDashboard";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm           = useService("orm");
         this.actionService = useService("action");
         this.notification  = useService("notification");
 
-        this.state = useState({
+        this.state = proxy({
             loading:      true,
             error:        null,
             data:         null,

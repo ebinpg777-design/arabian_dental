@@ -17,8 +17,9 @@ class PettyCashCommon(AccountTestInvoicingCommon):
         cls.today = fields.Date.context_today(cls.env.user)
         cls.company.write(
             {
-                "petty_cash_replenish_approval": False,
                 "petty_cash_duplicate_days": 30,
+                # risk scoring depends on the weekday and receipts: tested on its own
+                "petty_cash_risk_review": False,
                 "tax_calculation_rounding_method": "round_globally",
             }
         )
@@ -61,6 +62,15 @@ class PettyCashCommon(AccountTestInvoicingCommon):
         cls.cat_travel = Category.create(
             {"name": "Local Travel", "account_id": cls.expense_account.id}
         )
+
+        # the default matrix: one petty cash approver for vouchers and advances;
+        # replenishments are approved by no level (tests switch it on)
+        cls.level_approver = cls.env.ref("ebshel_petty_cash.approval_level_approver")
+        cls.level_replenishment = cls.env.ref("ebshel_petty_cash.approval_level_replenishment")
+        cls.level_replenishment.active = False
+        cls.env["ebshel.petty.cash.approval.level"].search(
+            [("id", "not in", (cls.level_approver | cls.level_replenishment).ids)]
+        ).active = False
 
         cls.fund = cls._create_fund("Head Office", "PCHO")
         cls._fund_top_up(cls.fund, 1000.0)
@@ -123,12 +133,26 @@ class PettyCashCommon(AccountTestInvoicingCommon):
             }
         )
 
+    @classmethod
+    def _level(cls, name, **vals):
+        return cls.env["ebshel.petty.cash.approval.level"].create({"name": name, **vals})
+
+    def _approve_all(self, document):
+        """Approve each level of ``document`` with the first user allowed to."""
+        candidates = self.approver | self.manager | self.manager_2 | self.custodian
+        for _i in range(10):
+            if document.state != "to_approve":
+                break
+            user = next(
+                (u for u in candidates if not document._petty_cash_approval_error(u)), None
+            )
+            self.assertTrue(user, document._petty_cash_approval_error(self.approver))
+            document.with_user(user).action_approve()
+        return document
+
     def _approve_and_pay(self, voucher):
         voucher.with_user(voucher.requested_by_id).action_submit()
-        if voucher.state == "to_approve":
-            voucher.with_user(self.approver).action_approve()
-        if voucher.state == "to_approve":
-            voucher.with_user(self.manager).action_approve()
+        self._approve_all(voucher)
         if voucher.state == "approved":
             voucher.with_user(self.custodian).action_post()
         return voucher

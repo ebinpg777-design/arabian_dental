@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <!-- Approval levels: the approval matrix -->
+    <record id="view_approval_level_list" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.approval.level.list</field>
+        <field name="model">ebshel.petty.cash.approval.level</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="min_amount"/>
+                <field name="apply_on_expense" string="Vouchers"/>
+                <field name="apply_on_advance" string="Advances"/>
+                <field name="apply_on_replenishment" string="Top-Ups"/>
+                <field name="approver_type"/>
+                <field name="user_ids" widget="many2many_avatar_user" optional="show"/>
+                <field name="approval_mode" optional="show"/>
+                <field name="fund_ids" widget="many2many_tags" optional="show"/>
+                <field name="category_ids" widget="many2many_tags" optional="hide"/>
+                <field name="escalation_days" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_approval_level_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.approval.level.form</field>
+        <field name="model">ebshel.petty.cash.approval.level</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <field name="active" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <div class="oe_title">
+                        <label for="name" string="Level"/>
+                        <h1><field name="name" placeholder="e.g. Finance Manager"/></h1>
+                    </div>
+                    <group>
+                        <group string="When">
+                            <label for="apply_on_expense" string="Applies To"/>
+                            <div class="d-flex gap-3">
+                                <span><field name="apply_on_expense" nolabel="1"/> Vouchers</span>
+                                <span><field name="apply_on_advance" nolabel="1"/> Advances</span>
+                                <span><field name="apply_on_replenishment" nolabel="1"/> Replenishments</span>
+                            </div>
+                            <field name="min_amount"/>
+                            <field name="fund_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="category_ids" widget="many2many_tags" options="{'no_create': True}"
+                                   invisible="not apply_on_expense"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Who">
+                            <field name="approver_type" widget="radio"/>
+                            <field name="user_ids" widget="many2many_avatar_user"
+                                   invisible="approver_type != 'users'" required="approver_type == 'users'"/>
+                            <field name="approval_mode" widget="radio" options="{'horizontal': true}"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group string="Escalation">
+                            <field name="escalation_days"/>
+                            <field name="escalation_user_id" invisible="not escalation_days"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="What this level checks..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_approval_level_search" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.approval.level.search</field>
+        <field name="model">ebshel.petty.cash.approval.level</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="user_ids"/>
+                <field name="fund_ids"/>
+                <filter name="vouchers" string="Vouchers" domain="[('apply_on_expense', '=', True)]"/>
+                <filter name="advances" string="Advances" domain="[('apply_on_advance', '=', True)]"/>
+                <filter name="replenishments" string="Replenishments" domain="[('apply_on_replenishment', '=', True)]"/>
+                <separator/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_approval_level" model="ir.actions.act_window">
+        <field name="name">Approval Levels</field>
+        <field name="res_model">ebshel.petty.cash.approval.level</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Define your approval matrix</p>
+            <p>Each level that matches a document (type, fund, category, amount) becomes one step
+                of its approval chain, in sequence. A document no level matches is approved on submission.</p>
+        </field>
+    </record>
+
+    <!-- Approval steps: the approvals inbox and the approval analysis -->
+    <record id="view_approval_step_list" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.approval.step.list</field>
+        <field name="model">ebshel.petty.cash.approval.step</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false" decoration-danger="is_overdue"
+                  decoration-muted="state in ('waiting', 'cancelled')" sample="1">
+                <header>
+                    <button name="action_approve" type="object" string="Approve"/>
+                    <button name="action_refuse" type="object" string="Refuse"/>
+                </header>
+                <field name="is_overdue" column_invisible="True"/>
+                <field name="can_approve" column_invisible="True"/>
+                <field name="company_currency_id" column_invisible="True"/>
+                <field name="document_name"/>
+                <field name="document_type" string="Type"/>
+                <field name="name"/>
+                <field name="fund_id"/>
+                <field name="requested_by_id" widget="many2one_avatar_user"/>
+                <field name="amount_company" sum="Total"/>
+                <field name="risk_level" widget="badge" optional="show"
+                       decoration-success="risk_level == 'low'" decoration-warning="risk_level == 'medium'"
+                       decoration-danger="risk_level == 'high'"/>
+                <field name="activated_date" optional="show"/>
+                <field name="deadline" optional="show"/>
+                <field name="approver_ids" widget="many2many_avatar_user" optional="hide"/>
+                <field name="done_by_id" widget="many2one_avatar_user" optional="hide"/>
+                <field name="duration_hours" optional="hide" widget="float_time"/>
+                <field name="state" widget="badge" decoration-success="state == 'approved'"
+                       decoration-danger="state == 'refused'" decoration-info="state == 'pending'"/>
+                <button name="action_open_document" type="object" string="Open" class="btn-link"/>
+                <button name="action_approve" type="object" string="Approve" class="btn-success btn-sm"
+                        invisible="not can_approve"/>
+                <button name="action_refuse" type="object" string="Refuse" class="btn-danger btn-sm"
+                        invisible="not can_approve"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_approval_step_form" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.approval.step.form</field>
+        <field name="model">ebshel.petty.cash.approval.step</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false" delete="false">
+                <header>
+                    <button name="action_approve" type="object" string="Approve" class="btn-success" invisible="not can_approve"/>
+                    <button name="action_refuse" type="object" string="Refuse" class="btn-danger" invisible="not can_approve"/>
+                    <button name="action_open_document" type="object" string="Open Document"/>
+                    <field name="state" widget="statusbar" statusbar_visible="waiting,pending,approved"/>
+                </header>
+                <sheet>
+                    <field name="can_approve" invisible="1"/>
+                    <field name="company_currency_id" invisible="1"/>
+                    <div class="oe_title">
+                        <h1><field name="document_name"/></h1>
+                        <h3 class="text-muted"><field name="name"/></h3>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="document_type"/>
+                            <field name="fund_id"/>
+                            <field name="requested_by_id" widget="many2one_avatar_user"/>
+                            <field name="amount_company"/>
+                            <field name="risk_level"/>
+                        </group>
+                        <group>
+                            <field name="approver_ids" widget="many2many_avatar_user"/>
+                            <field name="approval_mode"/>
+                            <field name="approved_user_ids" widget="many2many_avatar_user"/>
+                            <field name="activated_date"/>
+                            <field name="deadline"/>
+                            <field name="escalated"/>
+                            <field name="done_by_id"/>
+                            <field name="done_date"/>
+                            <field name="comment"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_approval_step_search" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.approval.step.search</field>
+        <field name="model">ebshel.petty.cash.approval.step</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="document_name"/>
+                <field name="fund_id"/>
+                <field name="requested_by_id"/>
+                <field name="approver_ids"/>
+                <field name="level_id"/>
+                <filter name="mine" string="Waiting for Me" domain="[('is_my_approval', '=', True)]"/>
+                <filter name="pending" string="Pending" domain="[('state', '=', 'pending')]"/>
+                <filter name="decided" string="Decided" domain="[('state', 'in', ('approved', 'refused'))]"/>
+                <separator/>
+                <filter name="vouchers" string="Vouchers" domain="[('document_type', '=', 'expense')]"/>
+                <filter name="advances" string="Advances" domain="[('document_type', '=', 'advance')]"/>
+                <filter name="replenishments" string="Replenishments" domain="[('document_type', '=', 'replenishment')]"/>
+                <separator/>
+                <filter name="high_risk" string="High Risk" domain="[('risk_level', '=', 'high')]"/>
+                <filter name="escalated" string="Escalated" domain="[('escalated', '=', True)]"/>
+                <separator/>
+                <filter name="done_date" string="Decided On" date="done_date"/>
+                <group>
+                    <filter name="group_level" string="Level" context="{'group_by': 'name'}"/>
+                    <filter name="group_type" string="Document Type" context="{'group_by': 'document_type'}"/>
+                    <filter name="group_decided_by" string="Decided By" context="{'group_by': 'done_by_id'}"/>
+                    <filter name="group_fund" string="Fund" context="{'group_by': 'fund_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_approval_step_pivot" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.approval.step.pivot</field>
+        <field name="model">ebshel.petty.cash.approval.step</field>
+        <field name="arch" type="xml">
+            <pivot sample="1">
+                <field name="name" type="row"/>
+                <field name="state" type="col"/>
+                <field name="duration_hours" type="measure"/>
+                <field name="amount_company" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_approval_step_graph" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.approval.step.graph</field>
+        <field name="model">ebshel.petty.cash.approval.step</field>
+        <field name="arch" type="xml">
+            <graph type="bar" sample="1">
+                <field name="done_by_id"/>
+                <field name="duration_hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_my_approvals" model="ir.actions.act_window">
+        <field name="name">My Approvals</field>
+        <field name="res_model">ebshel.petty.cash.approval.step</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_mine': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing waits for your approval</p>
+            <p>Vouchers, advances and replenishments reach this inbox when their approval chain gets to one of your levels.</p>
+        </field>
+    </record>
+
+    <record id="action_approval_analysis" model="ir.actions.act_window">
+        <field name="name">Approval Analysis</field>
+        <field name="res_model">ebshel.petty.cash.approval.step</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_decided': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No decision yet</p>
+            <p>How long each level and each approver takes to decide.</p>
+        </field>
+    </record>
+
+    <!-- Delegations -->
+    <record id="view_delegation_list" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.delegation.list</field>
+        <field name="model">ebshel.petty.cash.delegation</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" decoration-success="is_current">
+                <field name="is_current" column_invisible="True"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="delegate_id" widget="many2one_avatar_user"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="note"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_delegation_search" model="ir.ui.view">
+        <field name="name">ebshel.petty.cash.delegation.search</field>
+        <field name="model">ebshel.petty.cash.delegation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="delegate_id"/>
+                <filter name="mine" string="Mine" domain="['|', ('user_id', '=', uid), ('delegate_id', '=', uid)]"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_delegation" model="ir.actions.act_window">
+        <field name="name">Approval Delegations</field>
+        <field name="res_model">ebshel.petty.cash.delegation</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Going on leave?</p>
+            <p>Delegate your petty cash approvals to a colleague for a period; they approve on your behalf.</p>
+        </field>
+    </record>
+
+</odoo>

@@ -29,7 +29,7 @@ class PurchaseRFQLine(models.Model):
         compute='_compute_from_request_line', store=True, readonly=False,
     )
     qty = fields.Float(
-        'Quantity', digits='Product Unit of Measure',
+        'Quantity', digits='Product Unit',
         compute='_compute_from_request_line', store=True, readonly=False,
     )
     uom_id = fields.Many2one(
@@ -58,7 +58,7 @@ class PurchaseRFQLine(models.Model):
         help='Per-item message sent to vendors when requesting a revised price.')
     
     updated_qty = fields.Float(
-        'Updated Quantity', digits='Product Unit of Measure',
+        'Updated Quantity', digits='Product Unit',
         compute='_compute_updated_qty', store=False, copy=False, readonly=True,
     )
 
@@ -88,7 +88,7 @@ class PurchaseRFQLine(models.Model):
             rec.updated_qty = (rec.qty - base_qty) if rec.qty > base_qty else 0.0
             
 
-    @api.constrains('qty', 'request_line_id.qty')
+    @api.constrains('qty', 'request_line_id')
     def _check_quantity_on_rfq(self):
         for rec in self:
             # Only cap at the requested quantity when the company does NOT allow

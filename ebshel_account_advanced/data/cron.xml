@@ -28,21 +28,5 @@
             <field name="interval_type">weeks</field>
             <field name="active" eval="True"/>
         </record>
-        <!-- Ortho's e1869906. Receipts on the lab's book are plain journal entries too, so
-             nothing marks an invoice paid until somebody reconciles it; this settles every
-             partner's open items nightly (a quoted or same-amount invoice first, then oldest
-             first). Shipped SWITCHED OFF in the lab: its first run reconciles the whole book
-             in one night, and that is for the accountant to switch on (Settings > Technical >
-             Scheduled Actions), not for a module upgrade to do. -->
-        <record id="cron_settle" model="ir.cron">
-            <field name="name">Advanced Accounting: settle open items with payments</field>
-            <field name="model_id" ref="model_ebshel_match_desk"/>
-            <field name="state">code</field>
-            <field name="code">model._cron_settle()</field>
-            <field name="interval_number">1</field>
-            <field name="interval_type">days</field>
-            <field name="nextcall" eval="(DateTime.now().replace(hour=20, minute=30, second=0, microsecond=0) + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')"/>
-            <field name="active" eval="False"/>
-        </record>
     </data>
 </odoo>

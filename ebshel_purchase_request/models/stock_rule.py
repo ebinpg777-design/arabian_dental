@@ -38,7 +38,7 @@ class StockRule(models.Model):
         grouped = defaultdict(list)
         for procurement, rule in procurements:
             company = rule.company_id or procurement.company_id
-            warehouse = rule.propagate_warehouse_id or rule.warehouse_id
+            warehouse = rule.warehouse_id
             grouped[(company.id, warehouse.id)].append((procurement, rule))
 
         for (company_id, _wh), proc_rules in grouped.items():
@@ -73,7 +73,7 @@ class StockRule(models.Model):
             'product_id': product.id,
             'name': product._get_purchase_description(),
             'qty': procurement.product_qty,
-            'uom_id': procurement.product_uom.id,
+            'uom_id': procurement.uom_id.id,
             'date_required': procurement.values.get('date_planned')
                              and fields.Date.to_date(procurement.values['date_planned']),
         }

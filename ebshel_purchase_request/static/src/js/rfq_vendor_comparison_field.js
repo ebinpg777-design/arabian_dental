@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, useState } from "@odoo/owl";
+import { Component, proxy, useProps } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 import { formatMonetary } from "@web/views/fields/formatters";
@@ -15,7 +15,7 @@ import { formatMonetary } from "@web/views/fields/formatters";
 
 export class RfqVendorComparisonField extends Component {
     static template = "ebshel_purchase_request.RfqVendorComparisonField";
-    static props = { ...standardFieldProps };
+    props = useProps({ ...standardFieldProps });
 
     setup() {
         this.orm          = useService("orm");
@@ -23,7 +23,7 @@ export class RfqVendorComparisonField extends Component {
         this.notification = useService("notification");
         this.dialog       = useService("dialog");
 
-        this.state = useState({
+        this.state = proxy({
             busy:        false,
             hoveredId:   null,
             justifyId:   null,   // quotation id whose justification box is open

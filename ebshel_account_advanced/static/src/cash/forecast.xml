@@ -3,7 +3,7 @@
     <t t-name="ebshel_account_advanced.CashForecast">
         <div class="o_eaa o_action o_eaa_cash">
             <div class="o_eaa_head">
-                <h2><i class="fa fa-line-chart me-2"/>Cash forecast</h2>
+                <h2><i class="oi me-2" data-icon="show_chart"/>Cash forecast</h2>
                 <span class="o_eaa_sub" t-if="this.state.data">from <t t-out="this.state.data.today"/></span>
                 <div class="ms-auto d-flex gap-2 align-items-center flex-wrap" t-if="this.state.data">
                     <select class="form-select form-select-sm" style="width:auto" t-on-change="(ev) => this.set('weeks', +ev.target.value)">
@@ -14,10 +14,10 @@
                     <label class="small text-muted" title="Blank: each customer's own habit">late by</label>
                     <input type="number" class="form-control form-control-sm" style="width:70px" placeholder="habit" t-att-value="this.state.params.delay_days" t-on-change="(ev) => this.set('delay_days', ev.target.value === '' ? null : +ev.target.value)"/>
                     <label class="small text-muted"><input type="checkbox" t-att-checked="this.state.params.include_draft" t-on-change="(ev) => this.set('include_draft', ev.target.checked)"/> drafts</label>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="oi" data-icon="refresh"/></button>
                 </div>
             </div>
-            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Looking ahead…</div>
+            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="oi oi-spin me-2" data-icon="autorenew"/>Looking ahead…</div>
             <div t-elif="this.state.data" class="o_eaa_body">
                 <div class="o_eaa_kpis">
                     <div class="o_eaa_kpi"><div class="o_eaa_kl">Cash today</div><div class="o_eaa_kv" t-out="this.money(this.state.data.kpis.opening)"/><div class="o_eaa_ks"><t t-out="this.state.data.cash_accounts.length"/> bank and cash accounts</div></div>
@@ -76,7 +76,7 @@
                     <div>
                         <div class="o_eaa_panel mb-2">
                             <div class="o_eaa_ph">Planned items <span class="text-muted">— not in the ledger yet</span>
-                                <button class="btn btn-sm btn-outline-secondary o_eaa_btn ms-auto" t-if="this.state.data.can_write and !this.state.adding" t-on-click="this.startAdd"><i class="fa fa-plus"/></button></div>
+                                <button class="btn btn-sm btn-outline-secondary o_eaa_btn ms-auto" t-if="this.state.data.can_write and !this.state.adding" t-on-click="this.startAdd"><i class="oi" data-icon="add"/></button></div>
                             <div t-if="this.state.adding" class="mb-2 d-flex flex-column gap-1">
                                 <input class="form-control form-control-sm" placeholder="Name (e.g. payroll)" t-model.proxy="this.state.item.name"/>
                                 <div class="d-flex gap-1">
@@ -96,7 +96,7 @@
                                         <td><span t-att-class="'o_eaa_badge ' + (it.kind === 'in' ? 'good' : 'bad')" t-out="it.kind"/></td>
                                         <td><t t-out="it.name"/><div class="small text-muted"><t t-out="it.frequency"/> from <t t-out="it.date"/></div></td>
                                         <td class="num" t-out="this.money(it.amount)"/>
-                                        <td><button class="btn btn-sm btn-link text-danger o_eaa_btn" t-if="this.state.data.can_write" t-on-click="() => this.deleteItem(it)"><i class="fa fa-trash-o"/></button></td>
+                                        <td><button class="btn btn-sm btn-link text-danger o_eaa_btn" t-if="this.state.data.can_write" t-on-click="() => this.deleteItem(it)"><i class="oi" data-icon="delete"/></button></td>
                                     </tr>
                                 </tbody>
                             </table>

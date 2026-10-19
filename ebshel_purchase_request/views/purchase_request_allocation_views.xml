@@ -32,17 +32,17 @@
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_request" type="object"
-                                class="oe_stat_button" icon="fa-clipboard"
+                                class="oe_stat_button" icon="assignment"
                                 invisible="not request_id">
                             <div class="o_stat_info"><span class="o_stat_text">Request</span></div>
                         </button>
                         <button name="action_view_purchase_order" type="object"
-                                class="oe_stat_button" icon="fa-shopping-cart"
+                                class="oe_stat_button" icon="shopping_cart"
                                 invisible="not purchase_order_id">
                             <div class="o_stat_info"><span class="o_stat_text">Purchase Order</span></div>
                         </button>
                         <button name="action_view_receipt" type="object"
-                                class="oe_stat_button" icon="fa-truck"
+                                class="oe_stat_button" icon="local_shipping"
                                 invisible="not stock_move_id">
                             <div class="o_stat_info"><span class="o_stat_text">Receipt</span></div>
                         </button>

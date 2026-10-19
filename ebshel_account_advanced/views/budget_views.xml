@@ -29,8 +29,8 @@
                 <header>
                     <button name="action_confirm" type="object" string="Confirm" class="btn-primary" invisible="state != 'draft'"/>
                     <button name="action_generate_phases" type="object" string="Split by month" invisible="state == 'cancelled'"/>
-                    <button name="action_board" type="object" string="Board" class="btn-secondary" icon="fa-bar-chart"/>
-                    <button name="action_report" type="object" string="Budget vs Actual" class="btn-secondary" icon="fa-table"/>
+                    <button name="action_board" type="object" string="Board" class="btn-secondary" icon="bar_chart"/>
+                    <button name="action_report" type="object" string="Budget vs Actual" class="btn-secondary" icon="table"/>
                     <button name="action_done" type="object" string="Mark done" invisible="state != 'confirmed'"/>
                     <button name="action_draft" type="object" string="Back to draft" invisible="state not in ('confirmed', 'cancelled')"/>
                     <button name="action_cancel" type="object" string="Cancel" invisible="state in ('cancelled', 'done')"/>
@@ -75,7 +75,7 @@
                                     <field name="alert" column_invisible="1"/>
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="company_id" column_invisible="1"/>
-                                    <button name="action_view_actuals" type="object" icon="fa-search" title="Entries behind the actual"/>
+                                    <button name="action_view_actuals" type="object" icon="search" title="Entries behind the actual"/>
                                 </list>
                                 <form>
                                     <group>

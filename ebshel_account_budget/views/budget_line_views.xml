@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_budget_line_list" model="ir.ui.view">
+        <field name="name">ebshel.account.budget.line.list</field>
+        <field name="model">ebshel.account.budget.line</field>
+        <field name="arch" type="xml">
+            <list string="Budget Analysis" create="0" edit="0" decoration-danger="is_over_budget">
+                <field name="budget_id"/>
+                <field name="analytic_account_id"/>
+                <field name="plan_id" optional="hide"/>
+                <field name="date_from" optional="show"/>
+                <field name="date_to" optional="show"/>
+                <field name="budget_type" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="budget_amount" sum="Budget"/>
+                <field name="achieved_amount" sum="Achieved"/>
+                <field name="committed_amount" sum="Committed" optional="show"/>
+                <field name="theoretical_amount" sum="Theoretical" optional="show"/>
+                <field name="available_amount" sum="Available"/>
+                <field name="achieved_percentage" widget="progressbar"/>
+                <field name="state" widget="badge" optional="show" decoration-success="state == 'confirmed'" decoration-info="state == 'draft'"/>
+                <field name="is_over_budget" column_invisible="1"/>
+                <field name="currency_id" column_invisible="1"/>
+                <button name="action_view_analytic_items" type="object" icon="search"
+                        title="Analytic items behind the achieved amount"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_budget_line_search" model="ir.ui.view">
+        <field name="name">ebshel.account.budget.line.search</field>
+        <field name="model">ebshel.account.budget.line</field>
+        <field name="arch" type="xml">
+            <search string="Budget Analysis">
+                <field name="budget_id"/>
+                <field name="analytic_account_id"/>
+                <field name="plan_id"/>
+                <filter name="open" string="Open Budgets" domain="[('state', '=', 'confirmed')]"/>
+                <filter name="current" string="Current Period"
+                        domain="[('date_from', '&lt;=', context_today().strftime('%Y-%m-%d')), ('date_to', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter name="group_budget" string="Budget" context="{'group_by': 'budget_id'}"/>
+                    <filter name="group_analytic" string="Analytic Account" context="{'group_by': 'analytic_account_id'}"/>
+                    <filter name="group_plan" string="Analytic Plan" context="{'group_by': 'plan_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_budget_line_analysis" model="ir.actions.act_window">
+        <field name="name">Budget Analysis</field>
+        <field name="res_model">ebshel.account.budget.line</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_open': 1, 'search_default_current': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">No open budget covers today</p>
+            <p>Open a budget to compare its lines with what is booked and committed.</p>
+        </field>
+    </record>
+</odoo>

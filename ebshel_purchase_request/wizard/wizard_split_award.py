@@ -111,7 +111,7 @@ class PrSplitAwardLine(models.TransientModel):
         'ebshel.purchase.vendor.quotation', compute='_compute_available')
     quotation_id = fields.Many2one(
         'ebshel.purchase.vendor.quotation', string='Awarded Vendor')
-    awarded_qty = fields.Float('Award Qty', digits='Product Unit of Measure')
+    awarded_qty = fields.Float('Award Qty', digits='Product Unit')
     price_unit = fields.Float(
         'Unit Price', compute='_compute_price', digits='Product Price')
     delivery_days = fields.Integer('Lead (days)', compute='_compute_price')

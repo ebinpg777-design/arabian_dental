@@ -3,15 +3,15 @@
     <t t-name="ebshel_account_advanced.FinanceCockpit">
         <div class="o_eaa o_action o_eaa_cockpit">
             <div class="o_eaa_head">
-                <h2><i class="fa fa-tachometer me-2"/>Finance cockpit</h2>
+                <h2><i class="oi me-2" data-icon="speed"/>Finance cockpit</h2>
                 <span class="o_eaa_sub" t-if="this.state.data"><t t-out="this.state.data.label"/> · <t t-out="this.state.data.from"/> → <t t-out="this.state.data.to"/></span>
                 <div class="ms-auto d-flex gap-1 flex-wrap">
                     <span t-foreach="[['month', 'This month'], ['last_month', 'Last month'], ['quarter', 'Quarter'], ['fy', 'Year to date'], ['last_fy', 'Last year']]" t-as="p" t-key="p[0]"
                           t-att-class="'o_eaa_chip' + (this.state.period === p[0] ? ' on' : '')" t-on-click="() => this.setPeriod(p[0])" t-out="p[1]"/>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i t-att-class="'fa fa-refresh' + (this.state.loading ? ' fa-spin' : '')"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="oi" t-att-class="{'oi-spin': this.state.loading}" data-icon="refresh"/></button>
                 </div>
             </div>
-            <div t-if="!this.state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the books…</div>
+            <div t-if="!this.state.data" class="p-4 text-muted"><i class="oi oi-spin me-2" data-icon="autorenew"/>Reading the books…</div>
             <div t-else="" class="o_eaa_body">
                 <t t-set="d" t-value="this.state.data"/>
                 <div class="o_eaa_kpis">
@@ -19,7 +19,7 @@
                         <div class="o_eaa_kl" t-out="k.label"/>
                         <div class="o_eaa_kv"><t t-if="k.unit"><t t-out="k.value === null ? '–' : k.value"/> <small t-out="k.unit"/></t><t t-else="" t-out="this.money(k.value)"/></div>
                         <div class="o_eaa_ks">
-                            <span t-if="k.growth !== undefined and k.growth !== null" t-att-class="this.growthClass(k)"><i t-att-class="'fa ' + (k.growth >= 0 ? 'fa-caret-up' : 'fa-caret-down')"/> <t t-out="Math.abs(k.growth)"/>% </span>
+                            <span t-if="k.growth !== undefined and k.growth !== null" t-att-class="this.growthClass(k)"><i class="oi" t-att-data-icon="k.growth >= 0 ? 'arrow_drop_up' : 'arrow_drop_down'"/> <t t-out="Math.abs(k.growth)"/>% </span>
                             <t t-out="k.sub || (k.growth !== undefined ? d.compare_label : '')"/>
                         </div>
                     </div>
@@ -89,14 +89,14 @@
                     </div>
                     <div class="o_eaa_panel">
                         <div class="o_eaa_ph">Waiting on the team</div>
-                        <div t-if="!d.todo.length" class="o_eaa_empty"><i class="fa fa-check-circle text-success me-1"/>Nothing waiting.</div>
+                        <div t-if="!d.todo.length" class="o_eaa_empty"><i class="oi text-success me-1" data-icon="check_circle"/>Nothing waiting.</div>
                         <div t-foreach="d.todo" t-as="t" t-key="t.key" class="o_eaa_todo" t-on-click="() => this.openTodo(t)">
-                            <span t-att-class="'o_eaa_badge ' + t.tone" t-out="t.count"/><span t-out="t.label"/><i class="fa fa-angle-right ms-auto text-muted"/>
+                            <span t-att-class="'o_eaa_badge ' + t.tone" t-out="t.count"/><span t-out="t.label"/><i class="oi ms-auto text-muted" data-icon="chevron_right"/>
                         </div>
                         <div class="o_eaa_quick">
-                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_bank_rec')"><i class="fa fa-university me-1"/>Reconcile the bank</button>
-                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_entry_studio')"><i class="fa fa-pencil-square-o me-1"/>Write an entry</button>
-                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_close_cockpit')"><i class="fa fa-lock me-1"/>Close the month</button>
+                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_bank_rec')"><i class="oi me-1" data-icon="account_balance"/>Reconcile the bank</button>
+                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_entry_studio')"><i class="oi me-1" data-icon="edit_square"/>Write an entry</button>
+                            <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.go('ebshel_close_cockpit')"><i class="oi me-1" data-icon="lock"/>Close the month</button>
                         </div>
                     </div>
                     <div class="o_eaa_panel">

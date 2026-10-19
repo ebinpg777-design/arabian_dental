@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <!-- Position of one or more funds today: cash, commitments, advances,
+         budget, controls. -->
+    <template id="report_fund_position">
+        <t t-call="web.html_container">
+            <t t-set="company" t-value="docs.company_id[:1] or res_company"/>
+            <t t-call="web.external_layout">
+                <t t-call="ebshel_petty_cash.report_style"/>
+                <div class="page o_pc_report">
+                    <h2>Petty Cash Position</h2>
+                    <div class="o_pc_sub">As of <span t-out="context_timestamp(datetime.datetime.now())" t-options="{'widget': 'datetime'}"/></div>
+                    <table class="table table-sm o_main_table o_pc_table">
+                        <thead>
+                            <tr>
+                                <th>Fund</th>
+                                <th>Custodian</th>
+                                <th class="text-end">Float</th>
+                                <th class="text-end">Cash</th>
+                                <th class="text-end">Committed</th>
+                                <th class="text-end">Available</th>
+                                <th class="text-end">Advances Out</th>
+                                <th class="text-end">To Replenish</th>
+                                <th>Alerts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="docs" t-as="fund">
+                                <t t-set="money" t-value="{'widget': 'monetary', 'display_currency': fund.currency_id}"/>
+                                <td><strong t-field="fund.name"/> <span class="text-muted small" t-field="fund.code"/></td>
+                                <td><span t-field="fund.custodian_id"/></td>
+                                <td class="text-end"><span t-field="fund.float_amount"/></td>
+                                <td class="text-end fw-bold"><span t-field="fund.balance"/></td>
+                                <td class="text-end"><span t-field="fund.pending_amount"/></td>
+                                <td class="text-end"><span t-field="fund.available_amount"/></td>
+                                <td class="text-end"><span t-field="fund.advance_outstanding"/></td>
+                                <td class="text-end"><span t-field="fund.replenish_amount"/></td>
+                                <td>
+                                    <span t-if="fund.is_low" class="o_pc_badge bad">Low</span>
+                                    <span t-if="fund.count_due" class="o_pc_badge warn">Count due</span>
+                                    <span t-if="fund.overdue_advance_count" class="o_pc_badge bad">Overdue advances</span>
+                                    <span t-if="fund.monthly_budget and fund.budget_used_pct &gt; 100" class="o_pc_badge bad">Over budget</span>
+                                    <span t-if="not fund.attention_count" class="o_pc_badge ok">OK</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <t t-foreach="docs" t-as="fund">
+                        <t t-set="money" t-value="{'widget': 'monetary', 'display_currency': fund.currency_id}"/>
+                        <div style="page-break-inside: avoid;">
+                            <h6 class="o_pc_section"><span t-field="fund.name"/></h6>
+                            <div class="row mb-2">
+                                <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Fill level</div><div class="o_pc_big"><span t-out="'{:.0f}%'.format(fund.balance_ratio)"/></div>
+                                    <div class="o_pc_bar"><div t-attf-class="#{'bad' if fund.is_low else ''}" t-att-style="'width: {}%;'.format(fund.balance_ratio)"/></div></div></div>
+                                <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Spent this month</div><div class="o_pc_big"><span t-field="fund.month_spent"/></div></div></div>
+                                <div class="col-3">
+                                    <div class="o_pc_kpi">
+                                        <div class="o_pc_label">Monthly budget</div>
+                                        <t t-if="fund.monthly_budget">
+                                            <div class="o_pc_big"><span t-out="'{:.0f}%'.format(fund.budget_used_pct)"/></div>
+                                            <div class="o_pc_bar"><div t-attf-class="#{'bad' if fund.budget_used_pct &gt; 100 else ''}" t-att-style="'width: {}%;'.format(min(fund.budget_used_pct, 100))"/></div>
+                                            <div class="small text-muted">of <span t-field="fund.monthly_budget"/></div>
+                                        </t>
+                                        <div t-else="" class="o_pc_big text-muted">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Last count</div><div class="o_pc_big"><span t-if="fund.last_count_date" t-field="fund.last_count_date"/><span t-else="">Never</span></div></div></div>
+                            </div>
+                            <table class="table table-sm mb-3">
+                                <tr>
+                                    <td>Waiting for approval: <strong t-out="fund.to_approve_count"/></td>
+                                    <td>Approved, to pay: <strong t-out="fund.to_pay_count"/></td>
+                                    <td>Open advances: <strong t-out="fund.open_advance_count"/>
+                                        <span t-if="fund.overdue_advance_count" class="o_pc_badge bad"><t t-out="fund.overdue_advance_count"/> overdue</span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </t>
+                    <t t-set="signatures" t-value="['Prepared by', 'Reviewed by']"/>
+                    <t t-call="ebshel_petty_cash.report_signatures"/>
+                </div>
+            </t>
+        </t>
+    </template>
+
+</odoo>

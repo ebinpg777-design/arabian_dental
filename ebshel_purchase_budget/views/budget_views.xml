@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Purchased / Invoiced beside Committed: what open requests and orders reserve. -->
+    <record id="view_budget_form_purchase" model="ir.ui.view">
+        <field name="name">ebshel.account.budget.form.purchase</field>
+        <field name="model">ebshel.account.budget</field>
+        <field name="inherit_id" ref="ebshel_account_budget.view_budget_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='line_ids']/list/field[@name='committed_amount']" position="before">
+                <field name="purchased_amount" sum="Purchased" optional="show"/>
+                <field name="invoiced_amount" sum="Invoiced" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_budget_line_list_purchase" model="ir.ui.view">
+        <field name="name">ebshel.account.budget.line.list.purchase</field>
+        <field name="model">ebshel.account.budget.line</field>
+        <field name="inherit_id" ref="ebshel_account_budget.view_budget_line_list"/>
+        <field name="arch" type="xml">
+            <field name="committed_amount" position="before">
+                <field name="purchased_amount" sum="Purchased" optional="show"/>
+                <field name="invoiced_amount" sum="Invoiced" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_analytic_account_form_budget_purchase" model="ir.ui.view">
+        <field name="name">account.analytic.account.form.ebshel.budget.purchase</field>
+        <field name="model">account.analytic.account</field>
+        <field name="inherit_id" ref="ebshel_account_budget.view_analytic_account_form_budget"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='budget_line_ids']/list/field[@name='committed_amount']" position="before">
+                <field name="purchased_amount" sum="Purchased" optional="show"/>
+                <field name="invoiced_amount" sum="Invoiced" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

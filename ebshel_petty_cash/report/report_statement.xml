@@ -7,20 +7,27 @@
                 <t t-foreach="doc._statement_data()" t-as="statement">
                     <t t-set="currency" t-value="statement['currency']"/>
                     <t t-set="company" t-value="statement['fund'].company_id"/>
+                    <t t-set="money" t-value="{'widget': 'monetary', 'display_currency': currency}"/>
                     <t t-call="web.external_layout">
-                        <div class="page">
-                            <h2>Fund Statement - <span t-out="statement['fund'].name"/></h2>
-                            <p>
-                                From <span t-out="doc.date_from" t-options="{'widget': 'date'}"/>
+                        <t t-call="ebshel_petty_cash.report_style"/>
+                        <div class="page o_pc_report">
+                            <h2>Cash Book - <span t-out="statement['fund'].name"/></h2>
+                            <div class="o_pc_sub">
+                                <span t-out="doc.date_from" t-options="{'widget': 'date'}"/>
                                 to <span t-out="doc.date_to" t-options="{'widget': 'date'}"/>
                                 - custodian <span t-out="statement['fund'].custodian_id.name"/>
-                            </p>
-                            <table class="table table-sm o_main_table">
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Opening</div><div class="o_pc_big"><span t-out="statement['opening']" t-options="money"/></div></div></div>
+                                <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Receipts</div><div class="o_pc_big text-success"><span t-out="statement['total_in']" t-options="money"/></div></div></div>
+                                <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Payments</div><div class="o_pc_big text-danger"><span t-out="statement['total_out']" t-options="money"/></div></div></div>
+                                <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Closing</div><div class="o_pc_big"><span t-out="statement['closing']" t-options="money"/></div></div></div>
+                            </div>
+                            <table class="table table-sm o_main_table o_pc_table">
                                 <thead>
                                     <tr>
                                         <th>Date</th>
                                         <th>Entry</th>
-                                        <th>Reference</th>
                                         <th>Label</th>
                                         <th>Partner</th>
                                         <th class="text-end">Receipts</th>
@@ -30,24 +37,26 @@
                                 </thead>
                                 <tbody>
                                     <tr class="fw-bold">
-                                        <td colspan="7">Opening balance</td>
-                                        <td class="text-end"><span t-out="statement['opening']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                        <td colspan="6">Opening balance</td>
+                                        <td class="text-end"><span t-out="statement['opening']" t-options="money"/></td>
                                     </tr>
                                     <tr t-foreach="statement['rows']" t-as="row">
                                         <td><span t-out="row['date']" t-options="{'widget': 'date'}"/></td>
                                         <td><span t-out="row['number']"/></td>
-                                        <td><span t-out="row['reference']"/></td>
                                         <td><span t-out="row['label']"/></td>
                                         <td><span t-out="row['partner']"/></td>
-                                        <td class="text-end"><span t-if="row['in']" t-out="row['in']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
-                                        <td class="text-end"><span t-if="row['out']" t-out="row['out']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
-                                        <td class="text-end"><span t-out="row['balance']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                        <td class="text-end"><span t-if="row['in']" t-out="row['in']" t-options="money"/></td>
+                                        <td class="text-end"><span t-if="row['out']" t-out="row['out']" t-options="money"/></td>
+                                        <td class="text-end"><span t-out="row['balance']" t-options="money"/></td>
+                                    </tr>
+                                    <tr t-if="not statement['rows']">
+                                        <td colspan="7" class="text-center text-muted">No movement in the period.</td>
                                     </tr>
                                     <tr class="fw-bold">
-                                        <td colspan="5">Totals and closing balance</td>
-                                        <td class="text-end"><span t-out="statement['total_in']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
-                                        <td class="text-end"><span t-out="statement['total_out']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
-                                        <td class="text-end"><span t-out="statement['closing']" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                        <td colspan="4">Totals and closing balance</td>
+                                        <td class="text-end"><span t-out="statement['total_in']" t-options="money"/></td>
+                                        <td class="text-end"><span t-out="statement['total_out']" t-options="money"/></td>
+                                        <td class="text-end"><span t-out="statement['closing']" t-options="money"/></td>
                                     </tr>
                                 </tbody>
                             </table>

@@ -22,14 +22,14 @@
             <!-- Back-links to the procurement chain that produced this PO -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_rfq" type="object"
-                        class="oe_stat_button" icon="fa-balance-scale"
+                        class="oe_stat_button" icon="balance"
                         invisible="not rfq_id">
                     <div class="o_stat_info">
                         <span class="o_stat_text">Source RFQ</span>
                     </div>
                 </button>
                 <button name="action_view_requests" type="object"
-                        class="oe_stat_button" icon="fa-clipboard"
+                        class="oe_stat_button" icon="assignment"
                         invisible="request_count == 0">
                     <field name="request_count" string="Requests" widget="statinfo"/>
                 </button>

@@ -1,4 +1,6 @@
 # Part of ebshel_petty_cash. See LICENSE file for full copyright and licensing details.
+from urllib.parse import urlencode
+
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError
 
@@ -151,6 +153,14 @@ class PettyCashDocumentMixin(models.AbstractModel):
                 cancel=True,
             )
 
+    def _petty_cash_qr_src(self):
+        """Image URL of a QR code linking to the document, for printouts."""
+        self.ensure_one()
+        url = f"{self.get_base_url()}/odoo/{self._name}/{self.id}"
+        return "/report/barcode/?" + urlencode(
+            {"barcode_type": "QR", "value": url, "width": 180, "height": 180}
+        )
+
     def action_view_move(self):
         self.ensure_one()
         return {
@@ -172,13 +182,16 @@ class PettyCashDocumentMixin(models.AbstractModel):
                 )
 
 
+
+
 class PettyCashApprovalMixin(models.AbstractModel):
     """Submit / approve / refuse flow of the vouchers, advances and
-    replenishments.
+    replenishments, driven by the approval matrix.
 
     States used: draft, to_approve, approved, refused (plus the document's own
-    downstream states). A document can need two approvals: the second by a
-    petty cash manager, from the company threshold up.
+    downstream states). Submitting builds one approval step per matching
+    approval level; the steps are approved one after the other, each by one or
+    by every approver of its level. No matching level: approved on submission.
     """
 
     _name = "ebshel.petty.cash.approval.mixin"
@@ -191,14 +204,31 @@ class PettyCashApprovalMixin(models.AbstractModel):
         tracking=True,
         index=True,
     )
-    first_approver_id = fields.Many2one("res.users", readonly=True, copy=False, tracking=True)
     approver_id = fields.Many2one(
-        "res.users", string="Approved By", readonly=True, copy=False, tracking=True
+        "res.users", string="Approved By", readonly=True, copy=False, tracking=True,
+        help="Who gave the final approval.",
     )
     approval_date = fields.Datetime(readonly=True, copy=False)
+    submitted_date = fields.Datetime(readonly=True, copy=False)
     refuse_reason = fields.Text(readonly=True, copy=False)
-    needs_second_approval = fields.Boolean(compute="_compute_needs_second_approval")
+    approval_step_ids = fields.One2many(
+        "ebshel.petty.cash.approval.step",
+        "res_id",
+        string="Approval Chain",
+        copy=False,
+        bypass_search_access=True,
+    )
+    current_step_id = fields.Many2one(
+        "ebshel.petty.cash.approval.step", compute="_compute_approval_status", string="Current Level"
+    )
+    approval_progress = fields.Char(compute="_compute_approval_status", string="Approval")
+    pending_approver_ids = fields.Many2many(
+        "res.users", compute="_compute_approval_status", string="Waiting For"
+    )
     can_approve = fields.Boolean(compute="_compute_can_approve")
+    is_my_approval = fields.Boolean(
+        compute="_compute_can_approve", search="_search_is_my_approval", string="Waiting for Me"
+    )
     can_pay = fields.Boolean(
         compute="_compute_can_pay",
         help="The current user may pay out the approved document (custodian or manager).",
@@ -209,47 +239,52 @@ class PettyCashApprovalMixin(models.AbstractModel):
         return name == "tracking" or super()._valid_field_parameter(field, name)
 
     # Hooks -------------------------------------------------------------
+    def _petty_cash_document_type(self):
+        """Key of the document in the approval levels (see DOCUMENT_TYPES)."""
+        raise NotImplementedError
+
     def _petty_cash_approval_amount(self):
         """Amount (fund currency) the approval is about."""
         raise NotImplementedError
 
-    def _petty_cash_auto_approved(self):
-        """True when the document is approved on submission."""
-        return False
-
     def _petty_cash_check_submit(self):
         """Raise if the document cannot be submitted."""
+
+    def _petty_cash_extra_steps(self, levels):
+        """Values of steps added to those of the matching ``levels``."""
+        return []
 
     def _petty_cash_after_approval(self):
         """Called once a document reaches the approved state."""
 
-    def _petty_cash_approver_group(self):
-        return "ebshel_petty_cash.group_petty_cash_approver"
-
-    def _petty_cash_double_validation_applies(self):
-        return True
-
     # Computes ----------------------------------------------------------
-    def _compute_needs_second_approval(self):
+    @api.depends("approval_step_ids.state", "approval_step_ids.approver_ids", "approval_step_ids.approved_user_ids")
+    def _compute_approval_status(self):
         for record in self:
-            company = record.company_id
-            record.needs_second_approval = bool(
-                record._petty_cash_double_validation_applies()
-                and company.petty_cash_double_validation
-                and record.fund_id
-                and company.currency_id.compare_amounts(
-                    record.fund_id._to_company_currency(
-                        record._petty_cash_approval_amount(), record.date
-                    ),
-                    company.petty_cash_double_validation_amount,
-                )
-                >= 0
-            )
+            steps = record.approval_step_ids.filtered(lambda s: s.state != "cancelled")
+            current = steps.filtered(lambda s: s.state == "pending")[:1]
+            record.current_step_id = current
+            record.pending_approver_ids = current.approver_ids - current.approved_user_ids
+            done = len(steps.filtered(lambda s: s.state == "approved"))
+            record.approval_progress = f"{done} / {len(steps)}" if steps else False
 
     @api.depends_context("uid")
     def _compute_can_approve(self):
         for record in self:
             record.can_approve = record.state == "to_approve" and not record._petty_cash_approval_error()
+            record.is_my_approval = bool(
+                record.state == "to_approve"
+                and record.sudo().current_step_id._petty_cash_is_approver(self.env.user)
+            )
+
+    def _search_is_my_approval(self, operator, value):
+        if operator not in ("=", "!=") or not isinstance(value, bool):
+            return NotImplemented
+        steps = self.env["ebshel.petty.cash.approval.step"].sudo().search(
+            [("res_model", "=", self._name), ("is_my_approval", "=", True)]
+        )
+        domain = [("id", "in", steps.mapped("res_id"))]
+        return domain if (operator == "=") == value else ["!", *domain]
 
     @api.depends_context("uid")
     @api.depends("state", "fund_id")
@@ -260,41 +295,114 @@ class PettyCashApprovalMixin(models.AbstractModel):
             )
 
     # Rules -------------------------------------------------------------
+    def _petty_cash_amount_company(self):
+        self.ensure_one()
+        return self.fund_id._to_company_currency(self._petty_cash_approval_amount(), self.date)
+
+    def _petty_cash_group_users(self, group_xmlid):
+        """Internal users of the group with access to the document's company."""
+        self.ensure_one()
+        group = self.env.ref(group_xmlid)
+        return (
+            self.env["res.users"]
+            .sudo()
+            .search(
+                [
+                    ("all_group_ids", "in", group.id),
+                    ("company_ids", "in", self.company_id.id),
+                    ("share", "=", False),
+                ]
+            )
+        )
+
+    def _petty_cash_fallback_approvers(self):
+        """Approvers of a level whose own approvers are all excluded."""
+        self.ensure_one()
+        users = self._petty_cash_group_users("ebshel_petty_cash.group_petty_cash_manager")
+        if not self.company_id.petty_cash_self_approval:
+            users -= self.requested_by_id
+        return users
+
+    def _petty_cash_applicable_levels(self):
+        self.ensure_one()
+        levels = self.env["ebshel.petty.cash.approval.level"].sudo().search(
+            [("company_id", "in", (False, self.company_id.id))]
+        )
+        amount = self._petty_cash_amount_company()
+        return levels.filtered(lambda level: level._petty_cash_applies(self, amount))
+
     def _petty_cash_approval_error(self, user=None):
         """Why ``user`` cannot approve the document now (False if they can)."""
         self.ensure_one()
         user = user or self.env.user
-        is_manager = user.has_group("ebshel_petty_cash.group_petty_cash_manager")
-        if not user.has_group(self._petty_cash_approver_group()):
-            return self.env._("You are not allowed to approve %s.", self._description)
-        fund = self.fund_id
-        if (
-            fund.approver_ids
-            and user not in fund.approver_ids
-            and not is_manager
-            and self._petty_cash_approver_group() != "ebshel_petty_cash.group_petty_cash_manager"
-        ):
-            return self.env._("Only the approvers of %s can approve it.", fund.display_name)
+        if self.state != "to_approve":
+            return self.env._("%s is not waiting for an approval.", self.display_name)
+        step = self.sudo().current_step_id
+        if not step:
+            return self.env._("%s has no approval level waiting.", self.display_name)
+        if not step._petty_cash_is_approver(user):
+            return self.env._(
+                "You are not an approver of the level %(level)s of %(document)s.",
+                level=step.name,
+                document=self.display_name,
+            )
         if self.requested_by_id == user and not self.company_id.petty_cash_self_approval:
             return self.env._("You cannot approve your own request.")
-        if self.first_approver_id:
-            if self.first_approver_id == user:
-                return self.env._("The second approval must come from another person.")
-            if not is_manager:
-                return self.env._("The second approval must come from a petty cash manager.")
+        principal = step._petty_cash_principal(user)
+        if principal in step.approved_user_ids:
+            return self.env._("You already approved the level %s.", step.name)
+        if self.company_id.petty_cash_distinct_approvers:
+            earlier = self.sudo().approval_step_ids.filtered(
+                lambda s: s.state == "approved" and s.sequence < step.sequence
+            )
+            if user in earlier.approved_user_ids | earlier.done_by_id:
+                return self.env._(
+                    "You approved an earlier level of %s: another person must approve this one.",
+                    self.display_name,
+                )
         return False
 
-    def _petty_cash_approvers(self):
-        """Users who receive the approval activity."""
-        self.ensure_one()
-        users = self.fund_id.approver_ids
-        if self._petty_cash_approver_group() == "ebshel_petty_cash.group_petty_cash_manager" or (
-            self.first_approver_id
-        ):
-            users = users.filtered(
-                lambda u: u.has_group("ebshel_petty_cash.group_petty_cash_manager")
-            )
-        return (users - self.requested_by_id - self.first_approver_id).filtered("active")
+    def _petty_cash_create_steps(self):
+        """Build the approval chain of the submitted documents. Returns the
+        documents that need no approval."""
+        Step = self.env["ebshel.petty.cash.approval.step"].sudo()
+        no_approval = self.browse()
+        for record in self:
+            levels = record._petty_cash_applicable_levels()
+            amount = record._petty_cash_amount_company()
+            common = {
+                "res_model": record._name,
+                "res_id": record.id,
+                "document_type": record._petty_cash_document_type(),
+                "document_name": record.name,
+                "company_id": record.company_id.id,
+                "fund_id": record.fund_id.id,
+                "requested_by_id": record.requested_by_id.id,
+                "amount_company": amount,
+                "risk_level": record._fields.get("risk_level") and record.risk_level or False,
+            }
+            values = []
+            for index, level in enumerate(levels, start=1):
+                approvers = level._petty_cash_resolve_approvers(record)
+                if not record.company_id.petty_cash_self_approval:
+                    approvers -= record.requested_by_id
+                values.append(
+                    {
+                        **common,
+                        "level_id": level.id,
+                        "name": level.name,
+                        "sequence": index * 10,
+                        "approval_mode": level.approval_mode,
+                        "approver_ids": [(6, 0, approvers.ids)],
+                    }
+                )
+            for index, extra in enumerate(record._petty_cash_extra_steps(levels), start=len(levels) + 1):
+                values.append({**common, "sequence": index * 10, **extra})
+            if not values:
+                no_approval |= record
+                continue
+            Step.create(values)
+        return no_approval
 
     # Actions -----------------------------------------------------------
     def action_submit(self):
@@ -304,47 +412,69 @@ class PettyCashApprovalMixin(models.AbstractModel):
             record.fund_id._check_open()
             record._petty_cash_check_submit()
         for record in self:
+            record.approval_step_ids.sudo().unlink()
             record.write(
                 {
                     "state": "to_approve",
-                    "first_approver_id": False,
                     "approver_id": False,
                     "approval_date": False,
                     "refuse_reason": False,
+                    "submitted_date": fields.Datetime.now(),
                 }
             )
-            if record._petty_cash_auto_approved():
-                record.message_post(body=self.env._("Approved automatically (within the fund limit)."))
-                record._petty_cash_set_approved(self.env.user)
-            else:
-                record._petty_cash_schedule_approval()
-
-    def _petty_cash_schedule_approval(self):
-        for record in self:
-            for user in record._petty_cash_approvers():
-                record.activity_schedule(
-                    "ebshel_petty_cash.mail_act_petty_cash_approval",
-                    summary=self.env._("Approve %s", record.name),
-                    user_id=user.id,
+        no_approval = self._petty_cash_create_steps()
+        for record in no_approval:
+            record.message_post(body=self.env._("No approval level applies: approved on submission."))
+            record._petty_cash_set_approved(self.env.user)
+        for record in self - no_approval:
+            first = record.approval_step_ids.sorted("sequence")[:1]
+            first._petty_cash_activate()
+            record.message_post(
+                body=self.env._(
+                    "Submitted for approval: %s.",
+                    " → ".join(record.approval_step_ids.sorted("sequence").mapped("name")),
                 )
+            )
 
-    def action_approve(self):
+    def action_approve(self, comment=None):
         for record in self:
-            if record.state != "to_approve":
-                raise UserError(self.env._("Only documents waiting for approval can be approved."))
             error = record._petty_cash_approval_error()
             if error:
                 raise UserError(error)
+        user = self.env.user
         for record in self:
-            record.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval"])
-            if record.needs_second_approval and not record.first_approver_id:
-                record.first_approver_id = self.env.user
-                record.message_post(
-                    body=self.env._("First approval given; a petty cash manager must confirm.")
+            step = record.sudo().current_step_id
+            principal = step._petty_cash_principal(user)
+            approved = step.approved_user_ids | principal
+            on_behalf = (
+                self.env._(" (on behalf of %s)", principal.name) if principal != user else ""
+            )
+            record.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval"], user_id=user.id)
+            values = {"approved_user_ids": [(4, principal.id)]}
+            complete = step.approval_mode == "any" or not (step.approver_ids - approved)
+            if complete:
+                values.update(
+                    {
+                        "state": "approved",
+                        "done_by_id": user.id,
+                        "done_date": fields.Datetime.now(),
+                        "comment": comment or False,
+                    }
                 )
-                record._petty_cash_schedule_approval()
+            step.write(values)
+            record.message_post(
+                body=self.env._("%(level)s approved by %(user)s%(behalf)s.", level=step.name, user=user.name, behalf=on_behalf)
+                + (f" {comment}" if comment else "")
+            )
+            if not complete:
                 continue
-            record._petty_cash_set_approved(self.env.user)
+            record.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval"])
+            following = record.sudo().approval_step_ids.filtered(lambda s: s.state == "waiting").sorted("sequence")[:1]
+            if following:
+                following._petty_cash_activate()
+            else:
+                record._petty_cash_set_approved(user)
+        return True
 
     def _petty_cash_set_approved(self, user):
         self.write(
@@ -367,16 +497,26 @@ class PettyCashApprovalMixin(models.AbstractModel):
         }
 
     def _petty_cash_refuse(self, reason):
+        user = self.env.user
         for record in self:
             if record.state not in ("to_approve", "approved"):
                 raise UserError(self.env._("Only submitted documents can be refused."))
-            if not self.env.user.has_group(record._petty_cash_approver_group()):
-                raise UserError(self.env._("You are not allowed to refuse %s.", record._description))
+            step = record.sudo().current_step_id
+            allowed = (step and step._petty_cash_is_approver(user)) or user.has_group(
+                "ebshel_petty_cash.group_petty_cash_manager"
+            )
+            if not allowed:
+                raise UserError(self.env._("You are not allowed to refuse %s.", record.display_name))
         for record in self:
+            steps = record.sudo().approval_step_ids
+            steps.filtered(lambda s: s.state == "pending").write(
+                {"state": "refused", "done_by_id": user.id, "done_date": fields.Datetime.now(), "comment": reason}
+            )
+            steps.filtered(lambda s: s.state == "waiting").write({"state": "cancelled"})
             record.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval"])
             record.write({"state": "refused", "refuse_reason": reason})
             record.message_post(
-                body=self.env._("Refused: %s", reason),
+                body=self.env._("Refused by %(user)s: %(reason)s", user=user.name, reason=reason),
                 partner_ids=record.requested_by_id.partner_id.ids,
             )
 
@@ -385,16 +525,29 @@ class PettyCashApprovalMixin(models.AbstractModel):
             if record.state not in ("refused", "cancelled", "to_approve"):
                 raise UserError(self.env._("Only refused, cancelled or submitted documents go back to draft."))
             if record.state == "to_approve" and record.requested_by_id != self.env.user and not (
-                self.env.user.has_group(record._petty_cash_approver_group())
+                self.env.user.has_group("ebshel_petty_cash.group_petty_cash_manager")
             ):
                 raise UserError(self.env._("Only the requester can withdraw the request."))
         self.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval"])
+        self.sudo().approval_step_ids.unlink()
         self.write(
             {
                 "state": "draft",
-                "first_approver_id": False,
                 "approver_id": False,
                 "approval_date": False,
+                "submitted_date": False,
                 "move_id": False,
             }
         )
+
+    def _petty_cash_cancel_steps(self):
+        """Close the open approval steps of cancelled documents."""
+        steps = self.sudo().approval_step_ids.filtered(lambda s: s.state in ("waiting", "pending"))
+        steps.write({"state": "cancelled"})
+        self.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval"])
+
+    def unlink(self):
+        steps = self.sudo().approval_step_ids
+        result = super().unlink()
+        steps.unlink()
+        return result

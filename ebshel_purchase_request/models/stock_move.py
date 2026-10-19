@@ -50,7 +50,7 @@ class StockMove(models.Model):
                         {'stock_move_id': move.id})
             if not allocs:
                 continue
-            move_uom = move.product_uom
+            move_uom = move.uom_id
             remaining = move.quantity
             for alloc in allocs:
                 if remaining <= 0:

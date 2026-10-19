@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <!-- A starting matrix: every voucher and advance needs one petty cash
+         approver; replenishments need an administrator. Add levels by amount
+         (e.g. Finance from 500, Director from 5,000) under Configuration. -->
+    <record id="approval_level_approver" model="ebshel.petty.cash.approval.level">
+        <field name="name">Approver</field>
+        <field name="sequence">10</field>
+        <field name="apply_on_expense" eval="True"/>
+        <field name="apply_on_advance" eval="True"/>
+        <field name="apply_on_replenishment" eval="False"/>
+        <field name="approver_type">approvers</field>
+    </record>
+    <record id="approval_level_replenishment" model="ebshel.petty.cash.approval.level">
+        <field name="name">Replenishment Approval</field>
+        <field name="sequence">50</field>
+        <field name="apply_on_expense" eval="False"/>
+        <field name="apply_on_advance" eval="False"/>
+        <field name="apply_on_replenishment" eval="True"/>
+        <field name="approver_type">managers</field>
+    </record>
+</odoo>

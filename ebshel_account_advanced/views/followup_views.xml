@@ -24,7 +24,7 @@
             <form string="Follow-up level">
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_open_partners" type="object" class="oe_stat_button" icon="fa-users">
+                        <button name="action_open_partners" type="object" class="oe_stat_button" icon="group">
                             <field name="partner_count" widget="statinfo" string="Customers"/>
                         </button>
                     </div>

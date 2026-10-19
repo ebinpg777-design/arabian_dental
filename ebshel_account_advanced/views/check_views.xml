@@ -14,10 +14,10 @@
                 <field name="state" widget="badge"/>
                 <field name="user_id" optional="show"/>
                 <field name="currency_id" column_invisible="1"/>
-                <button name="action_open_records" type="object" icon="fa-search" title="Open the records"/>
-                <button name="action_resolve" type="object" icon="fa-check" title="Resolved" invisible="state != 'open'"/>
-                <button name="action_ignore" type="object" icon="fa-eye-slash" title="Ignore" invisible="state != 'open'"/>
-                <button name="action_reopen" type="object" icon="fa-undo" title="Reopen" invisible="state == 'open'"/>
+                <button name="action_open_records" type="object" icon="search" title="Open the records"/>
+                <button name="action_resolve" type="object" icon="check" title="Resolved" invisible="state != 'open'"/>
+                <button name="action_ignore" type="object" icon="visibility_off" title="Ignore" invisible="state != 'open'"/>
+                <button name="action_reopen" type="object" icon="undo" title="Reopen" invisible="state == 'open'"/>
             </list>
         </field>
     </record>

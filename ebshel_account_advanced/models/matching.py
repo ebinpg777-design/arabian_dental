@@ -2,16 +2,12 @@
 """The matching desk: open items paired by amount, reference or sum with a
 confidence score, applied in one click; bank lines matched to the invoices
 they pay."""
-import logging
 import re
 from itertools import combinations
 
 from odoo import api, fields, models, Command, _
 from odoo.exceptions import AccessError, UserError
-from odoo.modules import module as odoo_module
 from odoo.tools import float_compare, float_is_zero
-
-_logger = logging.getLogger(__name__)
 
 
 class MatchDesk(models.AbstractModel):
@@ -190,73 +186,6 @@ class MatchDesk(models.AbstractModel):
         data = self.get_data({'kind': kind, 'min_confidence': min_confidence, 'limit': 1000})
         return self.apply(data['pairs'])
 
-    # ------------------------------------------------------------------ settling
-    @api.model
-    def _settle_lines(self, lines):
-        """Clear one partner's open items on one account the way the office does it:
-        a receipt that quotes an invoice, or matches one to the rupee, goes on that
-        invoice; everything else goes on the oldest invoices first (Odoo's own
-        reconcile order is due date, then date). Returns the partials it made."""
-        AML = self.env['account.move.line']
-        rounding = lines[0].company_id.currency_id.rounding
-        before = lines.matched_debit_ids | lines.matched_credit_ids
-        for pair in self._suggest_for_partner(lines, rounding):
-            if pair['confidence'] < 90:
-                continue
-            group = AML.browse(pair['aml_ids']).filtered(lambda l: not l.reconciled)
-            if any(l.amount_residual > 0 for l in group) and any(l.amount_residual < 0 for l in group):
-                group.reconcile()
-        rest = lines.filtered(lambda l: not l.reconciled)
-        if any(l.amount_residual > 0 for l in rest) and any(l.amount_residual < 0 for l in rest):
-            rest.reconcile()
-        return (lines.matched_debit_ids | lines.matched_credit_ids) - before
-
-    @api.model
-    def _checkpoint(self, processed=0, remaining=None):
-        """Commit a partner's settlement so a crash or a time-out keeps what was done;
-        a test transaction cannot commit, so it is left untouched there."""
-        if odoo_module.current_test:
-            return float('inf')
-        return self.env['ir.cron']._commit_progress(processed, remaining=remaining)
-
-    @api.model
-    def _cron_settle(self, kinds=('receivable', 'payable'), partner_ids=None):
-        """Reconcile every partner's open invoices with its open receipts, in every
-        company, one partner-and-account at a time. Receipts that are plain journal
-        entries never point at an invoice, so nothing else ever clears them.
-
-        Ported from Ortho (e1869906, 2026-10-06). The lab ships the scheduled action
-        SWITCHED OFF: its first run reconciles the whole book at once, which is the
-        accountant's decision to take, not an upgrade's."""
-        stats = {'groups': 0, 'lines': 0, 'partials': 0, 'failed': 0, 'left': 0}
-        for company in self.env['res.company'].search([]):
-            desk = self.with_company(company).sudo()
-            for kind in kinds:
-                groups = desk._open_items(kind, partner_ids).grouped(
-                    lambda l: (l.partner_id.commercial_partner_id.id, l.account_id.id, l.currency_id.id))
-                todo = [g for g in groups.values()
-                        if any(l.amount_residual > 0 for l in g) and any(l.amount_residual < 0 for l in g)]
-                remaining = len(todo)
-                for group in todo:
-                    try:
-                        with self.env.cr.savepoint():
-                            made = desk._settle_lines(group)
-                    except Exception as exc:                            # noqa: BLE001 - one partner must not stop the rest
-                        stats['failed'] += 1
-                        _logger.warning("settle: %s on %s failed: %s", group.partner_id[:1].display_name,
-                                        group.account_id[:1].display_name, exc)
-                        continue
-                    stats['groups'] += 1
-                    stats['lines'] += len(group.filtered('reconciled'))
-                    stats['partials'] += len(made)
-                    remaining -= 1
-                    if desk._checkpoint(1, remaining=remaining) <= 0:
-                        stats['left'] += remaining
-                        _logger.info("settle: out of time, %s partners wait for the next run", remaining)
-                        return stats
-        _logger.info("settle: %s", stats)
-        return stats
-
     # ------------------------------------------------------------------ bank
     @api.model
     def _bank_candidates(self, st):
@@ -368,8 +297,11 @@ class MatchDesk(models.AbstractModel):
             creates.append(dict(base_vals, debit=max(-left, 0.0), credit=max(left, 0.0), amount_currency=-left,
                                 currency_id=company_currency.id))
         move = st.move_id.with_context(force_delete=True, skip_readonly_check=True)
-        move.write({'line_ids': [Command.delete(l.id) for l in (suspense | other)] + [Command.create(v) for v in creates]})
-        new_lines = move.line_ids - liquidity
+        # Only the suspense lines give way: `other` holds what an earlier match already put
+        # there (reconciled with its invoice), and `left` counted the suspense amount alone -
+        # deleting them un-reconciled those invoices and left the entry out of balance.
+        move.write({'line_ids': [Command.delete(l.id) for l in suspense] + [Command.create(v) for v in creates]})
+        new_lines = move.line_ids - liquidity - other
         plan, used = [], set()
         for aml, vals in pairs:
             target = vals['debit'] - vals['credit']

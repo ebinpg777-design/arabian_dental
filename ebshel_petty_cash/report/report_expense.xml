@@ -4,27 +4,46 @@
     <template id="report_expense_document">
         <t t-call="web.external_layout">
             <t t-set="doc" t-value="doc.with_context(lang=doc.requested_by_id.lang or user.lang)"/>
-            <div class="page">
-                <h2>Petty Cash Voucher <span t-field="doc.name"/></h2>
-                <div class="row mt-3 mb-3">
-                    <div class="col-6">
-                        <strong>Fund:</strong> <span t-field="doc.fund_id"/><br/>
-                        <strong>Description:</strong> <span t-field="doc.description"/><br/>
-                        <t t-if="doc.partner_id"><strong>Payee:</strong> <span t-field="doc.partner_id"/><br/></t>
-                        <t t-if="doc.reference"><strong>Receipt:</strong> <span t-field="doc.reference"/><br/></t>
-                        <t t-if="doc.advance_id"><strong>Against advance:</strong> <span t-field="doc.advance_id"/></t>
+            <t t-call="ebshel_petty_cash.report_style"/>
+            <div class="page o_pc_report">
+                <div class="row">
+                    <div class="col-8">
+                        <h2>Petty Cash Voucher <t t-call="ebshel_petty_cash.report_state_badge"/></h2>
+                        <div class="o_pc_sub"><span t-field="doc.name"/> - <span t-field="doc.description"/></div>
                     </div>
-                    <div class="col-6 text-end">
-                        <strong>Date:</strong> <span t-field="doc.date"/><br/>
-                        <strong>Status:</strong> <span t-field="doc.state"/><br/>
-                        <t t-if="doc.paid_date"><strong>Paid:</strong> <span t-field="doc.paid_date" t-options="{'widget': 'date'}"/></t>
+                    <div class="col-4">
+                        <div class="o_pc_amount_box">
+                            <div class="small text-muted">TOTAL PAID</div>
+                            <div class="o_pc_big"><span t-field="doc.amount_total"/></div>
+                        </div>
                     </div>
                 </div>
-                <table class="table table-sm o_main_table">
+                <table class="o_pc_facts">
+                    <tr>
+                        <td class="o_pc_label">Fund</td><td><span t-field="doc.fund_id"/></td>
+                        <td class="o_pc_label">Date</td><td><span t-field="doc.date"/></td>
+                    </tr>
+                    <tr>
+                        <td class="o_pc_label">Payee</td><td><span t-field="doc.partner_id"/></td>
+                        <td class="o_pc_label">Receipt</td><td><span t-field="doc.reference"/></td>
+                    </tr>
+                    <tr>
+                        <td class="o_pc_label">Requested by</td><td><span t-field="doc.requested_by_id"/></td>
+                        <td class="o_pc_label">Paid</td>
+                        <td>
+                            <t t-if="doc.paid_date"><span t-field="doc.paid_date" t-options="{'widget': 'date'}"/> by <span t-field="doc.paid_by_id"/></t>
+                        </td>
+                    </tr>
+                    <tr t-if="doc.advance_id">
+                        <td class="o_pc_label">Against advance</td><td colspan="3"><span t-field="doc.advance_id"/></td>
+                    </tr>
+                </table>
+                <table class="table table-sm o_main_table o_pc_table">
                     <thead>
                         <tr>
                             <th>Category</th>
                             <th>Description</th>
+                            <th>Taxes</th>
                             <th class="text-end">Untaxed</th>
                             <th class="text-end">Tax</th>
                             <th class="text-end">Total</th>
@@ -32,8 +51,9 @@
                     </thead>
                     <tbody>
                         <tr t-foreach="doc.line_ids" t-as="line">
-                            <td><span t-out="line.category_id.name or line.bill_id.name"/></td>
+                            <td><span t-field="line.category_id"/></td>
                             <td><span t-field="line.name"/></td>
+                            <td><span t-out="', '.join(line.tax_ids.mapped('name'))"/></td>
                             <td class="text-end"><span t-field="line.amount_untaxed"/></td>
                             <td class="text-end"><span t-field="line.amount_tax"/></td>
                             <td class="text-end"><span t-field="line.amount_total"/></td>
@@ -41,7 +61,14 @@
                     </tbody>
                 </table>
                 <div class="row">
-                    <div class="col-5 ms-auto">
+                    <div class="col-7">
+                        <p class="small">
+                            <strong>Amount in words:</strong>
+                            <span t-out="doc.currency_id.amount_to_text(doc.amount_total)"/>
+                        </p>
+                        <p class="small text-muted">Receipts attached: <span t-out="doc.attachment_count"/></p>
+                    </div>
+                    <div class="col-5">
                         <table class="table table-sm">
                             <tr><td>Untaxed</td><td class="text-end"><span t-field="doc.amount_untaxed"/></td></tr>
                             <tr><td>Taxes</td><td class="text-end"><span t-field="doc.amount_tax"/></td></tr>
@@ -49,8 +76,10 @@
                         </table>
                     </div>
                 </div>
-                <p>Amount in words: <span t-out="doc.currency_id.amount_to_text(doc.amount_total)"/></p>
-                <t t-call="ebshel_petty_cash.report_approval_trail"/>
+                <div class="row">
+                    <div class="col-10"><t t-call="ebshel_petty_cash.report_approval_trail"/></div>
+                    <div class="col-2"><t t-call="ebshel_petty_cash.report_qr"/></div>
+                </div>
                 <t t-set="signatures" t-value="['Requested by', 'Approved by', 'Paid by (custodian)', 'Received by']"/>
                 <t t-call="ebshel_petty_cash.report_signatures"/>
             </div>

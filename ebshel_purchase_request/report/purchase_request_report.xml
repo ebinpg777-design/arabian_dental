@@ -7,7 +7,6 @@
         <field name="model">ebshel.purchase.request</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">ebshel_purchase_request.report_purchase_request_document</field>
-        <field name="report_file">ebshel_purchase_request.report_purchase_request_document</field>
         <field name="binding_model_id" ref="model_ebshel_purchase_request"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="base.paperformat_euro"/>
@@ -45,24 +44,24 @@
                         <div class="row mb-2">
                             <div class="col-7">
                                 <h2 class="pr-title">Purchase Request</h2>
-                                <div class="pr-ref"><t t-esc="doc.name"/></div>
+                                <div class="pr-ref"><t t-out="doc.name"/></div>
                             </div>
                             <div class="col-5 text-end">
                                 <span class="pr-badge">
-                                    <t t-esc="dict(doc._fields['state'].selection).get(doc.state, doc.state)"/>
+                                    <t t-out="dict(doc._fields['state'].selection).get(doc.state, doc.state)"/>
                                 </span>
                             </div>
                         </div>
 
                         <!-- Meta cards -->
                         <div class="row mb-2">
-                            <div class="col-3"><div class="pr-box"><div class="lbl">Requested By</div><div class="val"><t t-esc="doc.requester_id.name"/></div></div></div>
-                            <div class="col-3"><div class="pr-box"><div class="lbl">Department</div><div class="val"><t t-esc="doc.analytic_account_id.name or '—'"/></div></div></div>
+                            <div class="col-3"><div class="pr-box"><div class="lbl">Requested By</div><div class="val"><t t-out="doc.requester_id.name"/></div></div></div>
+                            <div class="col-3"><div class="pr-box"><div class="lbl">Department</div><div class="val"><t t-out="doc.analytic_account_id.name or '—'"/></div></div></div>
                             <div class="col-3"><div class="pr-box"><div class="lbl">Request Date</div><div class="val"><span t-field="doc.date_request"/></div></div></div>
                             <div class="col-3"><div class="pr-box"><div class="lbl">Required By</div><div class="val"><t t-if="doc.date_required"><span t-field="doc.date_required"/></t><t t-else="">—</t></div></div></div>
                         </div>
                         <t t-if="doc.description">
-                            <div class="pr-box mb-2"><div class="lbl">Purpose / Title</div><div class="val" t-esc="doc.description"/></div>
+                            <div class="pr-box mb-2"><div class="lbl">Purpose / Title</div><div class="val" t-out="doc.description"/></div>
                         </t>
 
                         <!-- Lines -->
@@ -82,16 +81,16 @@
                             <tbody>
                                 <t t-foreach="doc.line_ids" t-as="line">
                                     <tr t-att-style="'text-decoration:line-through;color:#94a3b8;' if line.cancelled else ''">
-                                        <td><t t-esc="line_index + 1"/></td>
+                                        <td><t t-out="line_index + 1"/></td>
                                         <td>
-                                            <strong t-esc="line.product_id.name"/>
-                                            <t t-if="line.name and line.name != line.product_id.name"><br/><span class="pr-mini" t-esc="line.name"/></t>
-                                            <t t-if="line.remarks"><br/><span class="pr-mini text-muted">↳ <t t-esc="line.remarks"/></span></t>
+                                            <strong t-out="line.product_id.name"/>
+                                            <t t-if="line.name and line.name != line.product_id.name"><br/><span class="pr-mini" t-out="line.name"/></t>
+                                            <t t-if="line.remarks"><br/><span class="pr-mini text-muted">↳ <t t-out="line.remarks"/></span></t>
                                         </td>
-                                        <td class="text-end"><t t-esc="line.qty"/></td>
-                                        <td><t t-esc="line.uom_id.name"/></td>
-                                        <td class="text-end"><span t-esc="line.price_unit" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
-                                        <td class="text-end"><span t-esc="line.estimated_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        <td class="text-end"><t t-out="line.qty"/></td>
+                                        <td><t t-out="line.uom_id.name"/></td>
+                                        <td class="text-end"><span t-out="line.price_unit" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        <td class="text-end"><span t-out="line.estimated_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
                                         <td><span t-field="line.date_required"/></td>
                                     </tr>
                                 </t>
@@ -99,7 +98,7 @@
                             <tfoot>
                                 <tr>
                                     <td colspan="5" class="text-end">Estimated Total</td>
-                                    <td class="text-end"><span t-esc="doc.amount_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    <td class="text-end"><span t-out="doc.amount_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -123,18 +122,18 @@
                                 <tbody>
                                     <t t-foreach="track" t-as="line">
                                         <tr>
-                                            <td><t t-esc="line.product_id.name"/></td>
-                                            <td class="text-end"><t t-esc="line.qty"/></td>
-                                            <td class="text-end"><t t-esc="line.purchased_qty"/></td>
-                                            <td class="text-end"><t t-esc="line.qty_done"/></td>
-                                            <td class="text-end"><t t-esc="line.qty_invoiced"/></td>
+                                            <td><t t-out="line.product_id.name"/></td>
+                                            <td class="text-end"><t t-out="line.qty"/></td>
+                                            <td class="text-end"><t t-out="line.purchased_qty"/></td>
+                                            <td class="text-end"><t t-out="line.qty_done"/></td>
+                                            <td class="text-end"><t t-out="line.qty_invoiced"/></td>
                                             <td class="text-center">
                                                 <span t-att-class="'pr-st-full' if line.reception_status=='full' else ('pr-st-partial' if line.reception_status=='partial' else 'pr-st-none')"
-                                                      t-esc="dict(line._fields['reception_status'].selection).get(line.reception_status)"/>
+                                                      t-out="dict(line._fields['reception_status'].selection).get(line.reception_status)"/>
                                             </td>
                                             <td class="text-center">
                                                 <span t-att-class="'pr-st-full' if line.billing_status=='full' else ('pr-st-partial' if line.billing_status=='partial' else 'pr-st-none')"
-                                                      t-esc="dict(line._fields['billing_status'].selection).get(line.billing_status)"/>
+                                                      t-out="dict(line._fields['billing_status'].selection).get(line.billing_status)"/>
                                             </td>
                                         </tr>
                                     </t>
@@ -155,10 +154,10 @@
                                     <t t-foreach="doc.approval_log_ids" t-as="log">
                                         <tr>
                                             <td><span t-field="log.date"/></td>
-                                            <td><t t-esc="log.approver_id.name"/></td>
-                                            <td><t t-esc="log.level_name or ''"/></td>
-                                            <td><t t-esc="dict(log._fields['action'].selection).get(log.action, '')"/></td>
-                                            <td><t t-esc="log.comments or ''"/></td>
+                                            <td><t t-out="log.approver_id.name"/></td>
+                                            <td><t t-out="log.level_name or ''"/></td>
+                                            <td><t t-out="dict(log._fields['action'].selection).get(log.action, '')"/></td>
+                                            <td><t t-out="log.comments or ''"/></td>
                                         </tr>
                                     </t>
                                 </tbody>

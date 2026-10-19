@@ -1,11 +1,12 @@
 # Part of ebshel_petty_cash. See LICENSE file for full copyright and licensing details.
 {
     "name": "Advanced Petty Cash",
-    "version": "20.0.1.0.0",
+    "version": "20.0.2.0.0",
     "category": "Accounting",
-    "summary": "Imprest petty cash funds: vouchers with tax-included receipts, "
-    "multi-level approval, cash advances and settlement, replenishment, "
-    "fund transfers, denomination cash counts - every figure read from the ledger.",
+    "summary": "Imprest petty cash: approval matrix with multi-level approvals, "
+    "delegation and escalation, risk scoring of vouchers, monthly budgets, cash "
+    "advances, replenishment, transfers, cash counts and printed reports - every "
+    "figure read from the ledger.",
     "author": "Ebshel Technologies",
     "maintainer": "Ebshel Technologies",
     "website": "https://ebshel.com",
@@ -21,18 +22,23 @@
         "data/mail_activity_type_data.xml",
         "data/denomination_data.xml",
         "data/ir_cron_data.xml",
+        "data/approval_level_data.xml",
         "report/report_layout.xml",
         "report/report_expense.xml",
         "report/report_advance.xml",
         "report/report_replenishment.xml",
         "report/report_count.xml",
         "report/report_statement.xml",
+        "report/report_fund_position.xml",
+        "report/report_spending.xml",
+        "report/report_aging.xml",
         "report/report_actions.xml",
         "wizard/refuse_wizard_views.xml",
         "wizard/advance_settle_wizard_views.xml",
         "wizard/statement_wizard_views.xml",
         "views/fund_views.xml",
         "views/category_views.xml",
+        "views/approval_views.xml",
         "views/expense_views.xml",
         "views/advance_views.xml",
         "views/replenishment_views.xml",
@@ -43,6 +49,11 @@
         "views/res_config_settings_views.xml",
         "views/menus.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "ebshel_petty_cash/static/src/scss/petty_cash.scss",
+        ],
+    },
     "images": ["static/description/banner.png"],
     "application": True,
 }

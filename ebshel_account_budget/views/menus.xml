@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Accounting > Analytic Budgets -->
+    <menuitem id="menu_budget_root" name="Analytic Budgets" parent="account.menu_finance_entries"
+              sequence="15" groups="account.group_account_readonly"/>
+    <menuitem id="menu_budget" name="Budgets" parent="menu_budget_root" action="action_budget" sequence="1"/>
+    <menuitem id="menu_budget_line_analysis" name="Budget Analysis" parent="menu_budget_root"
+              action="action_budget_line_analysis" sequence="10"/>
+</odoo>

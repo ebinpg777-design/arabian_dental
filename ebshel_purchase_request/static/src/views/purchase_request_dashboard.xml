@@ -5,68 +5,68 @@
          renderer single-root) and pin it to the top via CSS so it stays visible. -->
     <t t-name="ebshel_purchase_request.PRListRenderer"
        t-inherit="web.ListRenderer" t-inherit-mode="primary">
-        <xpath expr="//table[@t-ref='table']" position="before">
-            <PRDashboard list="props.list"/>
+        <xpath expr="//div[hasclass('o_list_renderer')]" position="before">
+            <PRDashboard list="this.props.list"/>
         </xpath>
     </t>
 
     <!-- KPI tiles -->
     <t t-name="ebshel_purchase_request.PRDashboard">
-        <div class="ebshel-pr-dash" t-if="state.data">
+        <div class="ebshel-pr-dash" t-if="this.state.data">
             <div class="ebshel-pr-dash-grid">
                 <!-- Row label -->
                 <div class="ebshel-pr-dash-rowlabel">All</div>
 
                 <!-- ALL tiles -->
                 <div class="ebshel-pr-tile ebshel-pr-tile--info"
-                     t-att-class="state.data.global.draft ? '' : 'ebshel-pr-tile--muted'"
-                     filter_name="draft" t-on-click="setSearchContext" title="All draft requests">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.global.draft"/>
+                     t-att-class="this.state.data.global.draft ? '' : 'ebshel-pr-tile--muted'"
+                     filter_name="draft" t-on-click="this.setSearchContext" title="All draft requests">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.global.draft"/>
                     <div class="ebshel-pr-tile-lbl">New</div>
                 </div>
                 <div class="ebshel-pr-tile"
-                     t-att-class="state.data.global.submitted ? 'ebshel-pr-tile--slate' : 'ebshel-pr-tile--muted'"
-                     filter_name="submitted" t-on-click="setSearchContext" title="Submitted, awaiting approval">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.global.submitted"/>
+                     t-att-class="this.state.data.global.submitted ? 'ebshel-pr-tile--slate' : 'ebshel-pr-tile--muted'"
+                     filter_name="submitted" t-on-click="this.setSearchContext" title="Submitted, awaiting approval">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.global.submitted"/>
                     <div class="ebshel-pr-tile-lbl">Submitted</div>
                 </div>
                 <div class="ebshel-pr-tile"
-                     t-att-class="state.data.global.pending ? 'ebshel-pr-tile--warning' : 'ebshel-pr-tile--muted'"
-                     filter_name="pending_approval" t-on-click="setSearchContext" title="Pending approval">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.global.pending"/>
+                     t-att-class="this.state.data.global.pending ? 'ebshel-pr-tile--warning' : 'ebshel-pr-tile--muted'"
+                     filter_name="pending_approval" t-on-click="this.setSearchContext" title="Pending approval">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.global.pending"/>
                     <div class="ebshel-pr-tile-lbl">Pending Approval</div>
                 </div>
                 <div class="ebshel-pr-tile"
-                     t-att-class="state.data.global.approved ? 'ebshel-pr-tile--success' : 'ebshel-pr-tile--muted'"
-                     filter_name="approved" t-on-click="setSearchContext" title="Approved, ready to source">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.global.approved"/>
+                     t-att-class="this.state.data.global.approved ? 'ebshel-pr-tile--success' : 'ebshel-pr-tile--muted'"
+                     filter_name="approved" t-on-click="this.setSearchContext" title="Approved, ready to source">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.global.approved"/>
                     <div class="ebshel-pr-tile-lbl">Approved</div>
                 </div>
                 <div class="ebshel-pr-tile"
-                     t-att-class="state.data.global.urgent ? 'ebshel-pr-tile--danger' : 'ebshel-pr-tile--muted'"
-                     filter_name="urgent" t-on-click="setSearchContext" title="Urgent / very urgent">
+                     t-att-class="this.state.data.global.urgent ? 'ebshel-pr-tile--danger' : 'ebshel-pr-tile--muted'"
+                     filter_name="urgent" t-on-click="this.setSearchContext" title="Urgent / very urgent">
                     <div class="ebshel-pr-tile-num">
                         <span class="ebshel-pr-star">★</span>
-                        <t t-esc="state.data.global.urgent"/>
+                        <t t-out="this.state.data.global.urgent"/>
                     </div>
                     <div class="ebshel-pr-tile-lbl">Urgent</div>
                 </div>
                 <div class="ebshel-pr-tile"
-                     t-att-class="state.data.global.rejected ? 'ebshel-pr-tile--rejected' : 'ebshel-pr-tile--muted'"
-                     filter_name="rejected" t-on-click="setSearchContext" title="Rejected requests">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.global.rejected"/>
+                     t-att-class="this.state.data.global.rejected ? 'ebshel-pr-tile--rejected' : 'ebshel-pr-tile--muted'"
+                     filter_name="rejected" t-on-click="this.setSearchContext" title="Rejected requests">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.global.rejected"/>
                     <div class="ebshel-pr-tile-lbl">Rejected</div>
                 </div>
                 <div class="ebshel-pr-tile"
-                     t-att-class="state.data.global.closed ? 'ebshel-pr-tile--closed' : 'ebshel-pr-tile--muted'"
-                     filter_name="closed" t-on-click="setSearchContext" title="Closed / fully ordered">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.global.closed"/>
+                     t-att-class="this.state.data.global.closed ? 'ebshel-pr-tile--closed' : 'ebshel-pr-tile--muted'"
+                     filter_name="closed" t-on-click="this.setSearchContext" title="Closed / fully ordered">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.global.closed"/>
                     <div class="ebshel-pr-tile-lbl">Closed</div>
                 </div>
 
                 <!-- Open value metric (non-clickable) -->
                 <div class="ebshel-pr-tile ebshel-pr-tile--metric" title="Open committed value (submitted + approved)">
-                    <div class="ebshel-pr-tile-num" t-esc="fmtMoney(state.data.open_value)"/>
+                    <div class="ebshel-pr-tile-num" t-out="this.fmtMoney(this.state.data.open_value)"/>
                     <div class="ebshel-pr-tile-lbl">Open Value</div>
                 </div>
             </div>
@@ -75,43 +75,43 @@
             <div class="ebshel-pr-dash-grid ebshel-pr-dash-grid--my">
                 <div class="ebshel-pr-dash-rowlabel">My</div>
                 <div class="ebshel-pr-tile ebshel-pr-tile--sm"
-                     t-att-class="state.data.my.draft ? 'ebshel-pr-tile--info' : 'ebshel-pr-tile--muted'"
-                     filter_name="draft,my_requests" t-on-click="setSearchContext" title="My draft requests">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.draft"/>
+                     t-att-class="this.state.data.my.draft ? 'ebshel-pr-tile--info' : 'ebshel-pr-tile--muted'"
+                     filter_name="draft,my_requests" t-on-click="this.setSearchContext" title="My draft requests">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.my.draft"/>
                 </div>
                 <div class="ebshel-pr-tile ebshel-pr-tile--sm"
-                     t-att-class="state.data.my.submitted ? 'ebshel-pr-tile--slate' : 'ebshel-pr-tile--muted'"
-                     filter_name="submitted,my_requests" t-on-click="setSearchContext" title="My submitted requests">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.submitted"/>
+                     t-att-class="this.state.data.my.submitted ? 'ebshel-pr-tile--slate' : 'ebshel-pr-tile--muted'"
+                     filter_name="submitted,my_requests" t-on-click="this.setSearchContext" title="My submitted requests">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.my.submitted"/>
                 </div>
                 <div class="ebshel-pr-tile ebshel-pr-tile--sm"
-                     t-att-class="state.data.my.pending ? 'ebshel-pr-tile--warning' : 'ebshel-pr-tile--muted'"
-                     filter_name="pending_approval" t-on-click="setSearchContext" title="Awaiting my approval">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.pending"/>
+                     t-att-class="this.state.data.my.pending ? 'ebshel-pr-tile--warning' : 'ebshel-pr-tile--muted'"
+                     filter_name="pending_approval" t-on-click="this.setSearchContext" title="Awaiting my approval">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.my.pending"/>
                 </div>
                 <div class="ebshel-pr-tile ebshel-pr-tile--sm"
-                     t-att-class="state.data.my.approved ? 'ebshel-pr-tile--success' : 'ebshel-pr-tile--muted'"
-                     filter_name="approved,my_requests" t-on-click="setSearchContext" title="My approved requests">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.approved"/>
+                     t-att-class="this.state.data.my.approved ? 'ebshel-pr-tile--success' : 'ebshel-pr-tile--muted'"
+                     filter_name="approved,my_requests" t-on-click="this.setSearchContext" title="My approved requests">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.my.approved"/>
                 </div>
                 <div class="ebshel-pr-tile ebshel-pr-tile--sm"
-                     t-att-class="state.data.my.urgent ? 'ebshel-pr-tile--danger' : 'ebshel-pr-tile--muted'"
-                     filter_name="urgent,my_requests" t-on-click="setSearchContext" title="My urgent requests">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.urgent"/>
+                     t-att-class="this.state.data.my.urgent ? 'ebshel-pr-tile--danger' : 'ebshel-pr-tile--muted'"
+                     filter_name="urgent,my_requests" t-on-click="this.setSearchContext" title="My urgent requests">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.my.urgent"/>
                 </div>
                 <div class="ebshel-pr-tile ebshel-pr-tile--sm"
-                     t-att-class="state.data.my.rejected ? 'ebshel-pr-tile--rejected' : 'ebshel-pr-tile--muted'"
-                     filter_name="rejected,my_requests" t-on-click="setSearchContext" title="My rejected requests">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.rejected"/>
+                     t-att-class="this.state.data.my.rejected ? 'ebshel-pr-tile--rejected' : 'ebshel-pr-tile--muted'"
+                     filter_name="rejected,my_requests" t-on-click="this.setSearchContext" title="My rejected requests">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.my.rejected"/>
                 </div>
                 <div class="ebshel-pr-tile ebshel-pr-tile--sm"
-                     t-att-class="state.data.my.closed ? 'ebshel-pr-tile--closed' : 'ebshel-pr-tile--muted'"
-                     filter_name="closed,my_requests" t-on-click="setSearchContext" title="My closed requests">
-                    <div class="ebshel-pr-tile-num" t-esc="state.data.my.closed"/>
+                     t-att-class="this.state.data.my.closed ? 'ebshel-pr-tile--closed' : 'ebshel-pr-tile--muted'"
+                     filter_name="closed,my_requests" t-on-click="this.setSearchContext" title="My closed requests">
+                    <div class="ebshel-pr-tile-num" t-out="this.state.data.my.closed"/>
                 </div>
                 <div class="ebshel-pr-tile ebshel-pr-tile--sm ebshel-pr-tile--metric"
                      title="My open committed value (submitted + approved)">
-                    <div class="ebshel-pr-tile-num" t-esc="fmtMoney(state.data.my_open_value)"/>
+                    <div class="ebshel-pr-tile-num" t-out="this.fmtMoney(this.state.data.my_open_value)"/>
                 </div>
             </div>
         </div>

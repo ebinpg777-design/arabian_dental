@@ -8,20 +8,16 @@ class ResConfigSettings(models.TransientModel):
     petty_cash_advance_account_id = fields.Many2one(
         related="company_id.petty_cash_advance_account_id", readonly=False
     )
-    petty_cash_double_validation = fields.Boolean(
-        related="company_id.petty_cash_double_validation", readonly=False
-    )
-    petty_cash_double_validation_amount = fields.Monetary(
-        related="company_id.petty_cash_double_validation_amount",
-        readonly=False,
-        currency_field="currency_id",
-    )
     petty_cash_self_approval = fields.Boolean(
         related="company_id.petty_cash_self_approval", readonly=False
     )
-    petty_cash_replenish_approval = fields.Boolean(
-        related="company_id.petty_cash_replenish_approval", readonly=False
+    petty_cash_distinct_approvers = fields.Boolean(
+        related="company_id.petty_cash_distinct_approvers", readonly=False
     )
+    petty_cash_risk_review = fields.Boolean(
+        related="company_id.petty_cash_risk_review", readonly=False
+    )
+    petty_cash_late_days = fields.Integer(related="company_id.petty_cash_late_days", readonly=False)
     petty_cash_duplicate_days = fields.Integer(
         related="company_id.petty_cash_duplicate_days", readonly=False
     )

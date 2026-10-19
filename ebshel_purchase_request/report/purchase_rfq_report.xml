@@ -7,7 +7,6 @@
         <field name="model">ebshel.purchase.rfq</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">ebshel_purchase_request.report_rfq_document</field>
-        <field name="report_file">ebshel_purchase_request.report_rfq_document</field>
         <field name="binding_model_id" ref="model_ebshel_purchase_rfq"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="base.paperformat_euro"/>
@@ -40,7 +39,7 @@
                             <div class="col-7">
                                 <h2 class="ebshel-rfq-title">REQUEST FOR QUOTATION</h2>
                                 <div class="ebshel-rfq-sub">
-                                    Reference <strong t-esc="doc.name"/>
+                                    Reference <strong t-out="doc.name"/>
                                 </div>
                             </div>
                             <div class="col-5 text-end">
@@ -71,7 +70,7 @@
                             <div class="col-4">
                                 <div class="ebshel-box">
                                     <div class="lbl">Contact</div>
-                                    <div class="val"><t t-esc="doc.procurement_officer_id.name or doc.company_id.name"/></div>
+                                    <div class="val"><t t-out="doc.procurement_officer_id.name or doc.company_id.name"/></div>
                                 </div>
                             </div>
                         </div>
@@ -98,15 +97,15 @@
                             <tbody>
                                 <t t-foreach="doc.rfq_line_ids" t-as="line">
                                     <tr>
-                                        <td><t t-esc="line_index + 1"/></td>
+                                        <td><t t-out="line_index + 1"/></td>
                                         <td>
-                                            <strong t-esc="line.product_id.name or line.name"/>
+                                            <strong t-out="line.product_id.name or line.name"/>
                                             <t t-if="line.name and line.name != line.product_id.name">
-                                                <br/><span class="ebshel-note" t-esc="line.name"/>
+                                                <br/><span class="ebshel-note" t-out="line.name"/>
                                             </t>
                                         </td>
-                                        <td class="text-end"><t t-esc="line.qty"/></td>
-                                        <td><t t-esc="line.uom_id.name"/></td>
+                                        <td class="text-end"><t t-out="line.qty"/></td>
+                                        <td><t t-out="line.uom_id.name"/></td>
                                         <td><span t-field="line.date_required"/></td>
                                         <td class="ebshel-fill"></td>
                                         <td class="ebshel-fill"></td>

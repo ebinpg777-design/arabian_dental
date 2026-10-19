@@ -12,24 +12,27 @@ class ResCompany(models.Model):
         help="Receivable account holding the cash advances (IOUs) paid out of petty "
         "cash until they are settled. Created on first use when empty.",
     )
-    petty_cash_double_validation = fields.Boolean(
-        string="Petty Cash Second Approval",
-        help="Vouchers and advances from the threshold amount up need a second "
-        "approval by a Petty Cash Manager.",
-    )
-    petty_cash_double_validation_amount = fields.Monetary(
-        string="Second Approval From",
-        currency_field="currency_id",
-        help="In company currency.",
-    )
     petty_cash_self_approval = fields.Boolean(
         string="Allow Petty Cash Self-Approval",
         help="Let approvers approve the documents they requested themselves.",
     )
-    petty_cash_replenish_approval = fields.Boolean(
-        string="Approve Replenishments",
+    petty_cash_distinct_approvers = fields.Boolean(
+        string="One Level per Approver",
         default=True,
-        help="Replenishment requests wait for a Petty Cash Manager's approval.",
+        help="Segregation of duties: a person who approved a level of a document "
+        "cannot approve another level of it.",
+    )
+    petty_cash_risk_review = fields.Boolean(
+        string="Review High-Risk Vouchers",
+        default=True,
+        help="High-risk vouchers get an extra review by a Petty Cash Administrator, "
+        "even when no approval level applies.",
+    )
+    petty_cash_late_days = fields.Integer(
+        string="Late Submission After (Days)",
+        default=30,
+        help="Vouchers submitted more than this many days after their date are "
+        "flagged as a risk. 0 disables the check.",
     )
     petty_cash_duplicate_days = fields.Integer(
         string="Duplicate Voucher Window (Days)",

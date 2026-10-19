@@ -306,13 +306,16 @@ class FollowupDesk(models.AbstractModel):
     @api.model
     def set_responsible(self, partner_id, user_id):
         self._check(write=True)
-        self.env['res.partner'].browse(partner_id).write({'ebshel_followup_responsible_id': user_id or False})
+        # the accounting team may not edit contacts (base.group_partner_manager): the desk,
+        # having checked who is asking, writes its own follow-up fields itself
+        self.env['res.partner'].browse(partner_id)._ebshel_desk_partners().write(
+            {'ebshel_followup_responsible_id': user_id or False})
         return True
 
     @api.model
     def save_note(self, partner_id, note):
         self._check(write=True)
-        self.env['res.partner'].browse(partner_id).write({'ebshel_followup_note': note})
+        self.env['res.partner'].browse(partner_id)._ebshel_desk_partners().write({'ebshel_followup_note': note})
         return True
 
     @api.model

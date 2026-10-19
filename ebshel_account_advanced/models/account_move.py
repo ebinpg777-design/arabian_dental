@@ -37,7 +37,10 @@ class AccountMove(models.Model):
             kind = 'revenue' if move.move_type in ('out_invoice', 'out_refund', 'out_receipt') else 'expense'
             wanted = REVENUE_TYPES if kind == 'revenue' else EXPENSE_TYPES
             for line in move.invoice_line_ids:
-                if not (line.ebshel_deferral_start and line.ebshel_deferral_end) or line.ebshel_deferral_ids \
+                # a cancelled deferral (the invoice was reset and posted again) no longer
+                # defers anything: it must not stop the line from getting a new one
+                live = line.ebshel_deferral_ids.filtered(lambda d: d.state != 'cancelled')
+                if not (line.ebshel_deferral_start and line.ebshel_deferral_end) or live \
                         or line.display_type != 'product' or line.account_id.account_type not in wanted:
                     continue
                 if line.ebshel_deferral_end < line.ebshel_deferral_start:

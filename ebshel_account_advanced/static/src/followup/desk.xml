@@ -3,16 +3,16 @@
     <t t-name="ebshel_account_advanced.FollowupDesk">
         <div class="o_eaa o_action o_eaa_followup">
             <div class="o_eaa_head">
-                <h2><i class="fa fa-bell me-2"/>Collections desk</h2>
+                <h2><i class="oi me-2" data-icon="notifications"/>Collections desk</h2>
                 <span class="o_eaa_sub" t-if="this.state.data">as of <t t-out="this.state.data.today"/><t t-if="!this.state.data.auto"> · automatic reminders are off in the settings</t></span>
                 <div class="ms-auto d-flex gap-1">
-                    <button class="btn btn-sm btn-primary" t-if="this.state.data and this.state.data.can_write" t-on-click="this.sendAllDue"><i class="fa fa-paper-plane me-1"/>Send every reminder due</button>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.open('send')" t-if="this.state.data and this.state.data.can_write" title="Send the selected customers a reminder"><i class="fa fa-envelope"/></button>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.printLetters()" t-if="this.state.data and this.state.data.can_write" title="Print letters for the selected customers"><i class="fa fa-print"/></button>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                    <button class="btn btn-sm btn-primary" t-if="this.state.data and this.state.data.can_write" t-on-click="this.sendAllDue"><i class="oi me-1" data-icon="send"/>Send every reminder due</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.open('send')" t-if="this.state.data and this.state.data.can_write" title="Send the selected customers a reminder"><i class="oi" data-icon="mail"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.printLetters()" t-if="this.state.data and this.state.data.can_write" title="Print letters for the selected customers"><i class="oi" data-icon="print"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="oi" data-icon="refresh"/></button>
                 </div>
             </div>
-            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Reading the ledger…</div>
+            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="oi oi-spin me-2" data-icon="autorenew"/>Reading the ledger…</div>
             <div t-elif="this.state.data" class="o_eaa_body">
                 <div class="o_eaa_kpis">
                     <div class="o_eaa_kpi"><div class="o_eaa_kl">Receivable</div><div class="o_eaa_kv" t-out="this.money(this.state.data.kpis.receivable)"/><div class="o_eaa_ks"><t t-out="this.state.data.total_rows"/> customers</div></div>
@@ -65,19 +65,19 @@
                                 <td class="num" t-out="r.days || ''"/>
                                 <td><span t-att-class="'o_eaa_badge ' + this.stateClass(r.state)" t-out="r.state_label"/></td>
                                 <td class="small"><t t-out="r.level || '–'"/><t t-if="r.suggested and r.suggested.name !== r.level"> → <b t-out="r.suggested.name"/></t></td>
-                                <td class="small"><t t-if="r.promise_date"><i class="fa fa-handshake-o text-info"/> <t t-out="r.promise_date"/></t><t t-elif="r.next_date" t-out="r.next_date"/></td>
+                                <td class="small"><t t-if="r.promise_date"><i class="oi text-info" data-icon="handshake"/> <t t-out="r.promise_date"/></t><t t-elif="r.next_date" t-out="r.next_date"/></td>
                                 <td><select class="form-select form-select-sm" style="font-size:.72rem;padding:.05rem 1.2rem .05rem .3rem" t-on-change="(ev) => this.setResponsible(r, ev)" t-att-disabled="!this.state.data.can_write">
                                     <option value="">–</option>
                                     <option t-foreach="this.state.data.users" t-as="u" t-key="u.id" t-att-value="u.id" t-att-selected="r.responsible_id === u.id" t-out="u.name"/>
                                 </select></td>
                                 <td class="small text-muted"><t t-if="r.last_action"><t t-out="r.last_action.label"/> · <t t-out="r.last_action.date"/></t></td>
                                 <td class="text-nowrap" t-if="this.state.data.can_write">
-                                    <button class="btn btn-sm btn-outline-primary o_eaa_btn" t-on-click="() => this.open('send', r)" title="Send the reminder"><i class="fa fa-envelope"/></button>
-                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('call', r)" title="Log a call"><i class="fa fa-phone"/></button>
-                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('promise', r)" title="Promise to pay"><i class="fa fa-handshake-o"/></button>
-                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('snooze', r)" title="Snooze"><i class="fa fa-clock-o"/></button>
-                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.flag(r, 'on_hold', !r.on_hold)" t-att-title="r.on_hold ? 'Release' : 'Put on hold'"><i t-att-class="'fa ' + (r.on_hold ? 'fa-unlock' : 'fa-lock')"/></button>
-                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.flag(r, 'excluded', !r.excluded)" t-att-title="r.excluded ? 'Remind again' : 'Never remind'"><i t-att-class="'fa ' + (r.excluded ? 'fa-bell' : 'fa-bell-slash')"/></button>
+                                    <button class="btn btn-sm btn-outline-primary o_eaa_btn" t-on-click="() => this.open('send', r)" title="Send the reminder"><i class="oi" data-icon="mail"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('call', r)" title="Log a call"><i class="oi" data-icon="phone"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('promise', r)" title="Promise to pay"><i class="oi" data-icon="handshake"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('snooze', r)" title="Snooze"><i class="oi" data-icon="schedule"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.flag(r, 'on_hold', !r.on_hold)" t-att-title="r.on_hold ? 'Release' : 'Put on hold'"><i class="oi" t-att-data-icon="r.on_hold ? 'lock_open' : 'lock'"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.flag(r, 'excluded', !r.excluded)" t-att-title="r.excluded ? 'Remind again' : 'Never remind'"><i class="oi" t-att-data-icon="r.excluded ? 'notifications' : 'notifications_off'"/></button>
                                 </td>
                             </tr>
                         </tbody>
@@ -88,14 +88,14 @@
             <div class="o_eaa_side" t-if="this.state.detail">
                 <div class="o_eaa_side_h">
                     <h4 t-out="this.state.detail.name"/>
-                    <button class="btn btn-sm btn-link" t-on-click="() => this.openPartner(this.state.detail.id)" title="Open the customer"><i class="fa fa-external-link"/></button>
-                    <button class="btn btn-sm btn-link" t-on-click="() => this.openStatement(this.state.detail.id)" title="Statement of account"><i class="fa fa-file-text-o"/></button>
-                    <button class="btn btn-sm btn-link ms-auto" t-on-click="this.closeDetail"><i class="fa fa-times"/></button>
+                    <button class="btn btn-sm btn-link" t-on-click="() => this.openPartner(this.state.detail.id)" title="Open the customer"><i class="oi" data-icon="open_in_new"/></button>
+                    <button class="btn btn-sm btn-link" t-on-click="() => this.openStatement(this.state.detail.id)" title="Statement of account"><i class="oi" data-icon="description"/></button>
+                    <button class="btn btn-sm btn-link ms-auto" t-on-click="this.closeDetail"><i class="oi" data-icon="close"/></button>
                 </div>
                 <div class="o_eaa_side_b">
                     <div class="small text-muted mb-2">
-                        <span t-if="this.state.detail.emails.length"><i class="fa fa-envelope-o"/> <t t-out="this.state.detail.emails.join(', ')"/></span>
-                        <span t-if="this.state.detail.phone" class="ms-2"><i class="fa fa-phone"/> <t t-out="this.state.detail.phone"/></span>
+                        <span t-if="this.state.detail.emails.length"><i class="oi" data-icon="mail"/> <t t-out="this.state.detail.emails.join(', ')"/></span>
+                        <span t-if="this.state.detail.phone" class="ms-2"><i class="oi" data-icon="phone"/> <t t-out="this.state.detail.phone"/></span>
                         <span t-if="this.state.detail.habit.to_pay !== null and this.state.detail.habit.to_pay !== undefined" class="ms-2">pays in <b t-out="this.state.detail.habit.to_pay"/> days (<t t-out="this.state.detail.habit.late"/> late)</span>
                     </div>
                     <div class="o_eaa_ph">Open items</div>
@@ -157,7 +157,7 @@
                     </t>
                     <div class="d-flex justify-content-end gap-2 mt-3">
                         <button class="btn btn-sm btn-secondary" t-on-click="this.close">Cancel</button>
-                        <button class="btn btn-sm btn-primary" t-on-click="this.submit" t-att-disabled="this.state.busy"><i t-if="this.state.busy" class="fa fa-circle-o-notch fa-spin me-1"/>Confirm</button>
+                        <button class="btn btn-sm btn-primary" t-on-click="this.submit" t-att-disabled="this.state.busy"><i t-if="this.state.busy" class="oi oi-spin me-1" data-icon="autorenew"/>Confirm</button>
                     </div>
                 </div>
             </div>

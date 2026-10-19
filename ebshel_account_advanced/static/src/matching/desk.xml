@@ -3,7 +3,7 @@
     <t t-name="ebshel_account_advanced.MatchDesk">
         <div class="o_eaa o_action o_eaa_match">
             <div class="o_eaa_head">
-                <h2><i class="fa fa-link me-2"/>Matching desk</h2>
+                <h2><i class="oi me-2" data-icon="link"/>Matching desk</h2>
                 <div class="btn-group btn-group-sm">
                     <button t-att-class="'btn ' + (this.state.kind === 'receivable' ? 'btn-primary' : 'btn-outline-primary')" t-on-click="() => this.setKind('receivable')">Customers</button>
                     <button t-att-class="'btn ' + (this.state.kind === 'payable' ? 'btn-primary' : 'btn-outline-primary')" t-on-click="() => this.setKind('payable')">Vendors</button>
@@ -19,12 +19,12 @@
                     <option t-foreach="(this.state.data and this.state.data.bank_journals) || []" t-as="j" t-key="j.id" t-att-value="j.id" t-out="j.name"/>
                 </select>
                 <div class="ms-auto d-flex gap-1" t-if="this.state.data and this.state.data.can_write and this.state.kind !== 'bank'">
-                    <button class="btn btn-sm btn-primary" t-on-click="this.applySure" t-att-disabled="this.state.busy"><i class="fa fa-magic me-1"/>Match every sure pair (≥ 90)</button>
+                    <button class="btn btn-sm btn-primary" t-on-click="this.applySure" t-att-disabled="this.state.busy"><i class="oi me-1" data-icon="wand_stars"/>Match every sure pair (≥ 90)</button>
                     <button class="btn btn-sm btn-outline-primary" t-on-click="() => this.apply(this.selectedPairs)" t-att-disabled="this.state.busy">Match selected (<t t-out="this.selectedPairs.length"/>)</button>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="oi" data-icon="refresh"/></button>
                 </div>
             </div>
-            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Pairing…</div>
+            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="oi oi-spin me-2" data-icon="autorenew"/>Pairing…</div>
             <div t-elif="this.state.data and this.state.data.kind !== 'bank'" class="o_eaa_body">
                 <!-- the body follows the data on screen (data.kind), not the tab just clicked: until the
                      new reading arrives the old one is still there, and its keys are not the new tab's -->
@@ -89,7 +89,7 @@
                             <span class="ms-auto"/>
                             <t t-if="r.best"><span t-att-class="'o_eaa_badge ' + this.confClass(r.best.confidence)"><t t-out="r.best.confidence"/>%</span><span class="small text-muted" t-out="r.best.reason"/></t>
                             <span t-else="" class="o_eaa_badge muted">no candidate</span>
-                            <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.state.open[r.id] = !this.state.open[r.id]" t-if="r.candidates.length"><i t-att-class="'fa ' + (this.state.open[r.id] ? 'fa-chevron-up' : 'fa-chevron-down')"/> <t t-out="r.candidates.length"/> candidate(s)</button>
+                            <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.state.open[r.id] = !this.state.open[r.id]" t-if="r.candidates.length"><i class="oi" t-att-data-icon="this.state.open[r.id] ? 'expand_less' : 'expand_more'"/> <t t-out="r.candidates.length"/> candidate(s)</button>
                             <button class="btn btn-sm btn-primary o_eaa_btn" t-on-click="() => this.matchBank(r)" t-if="this.state.data.can_write and r.candidates.length" t-att-disabled="this.state.busy">Match</button>
                         </div>
                         <table class="o_eaa_table mt-1" t-if="this.state.open[r.id]">

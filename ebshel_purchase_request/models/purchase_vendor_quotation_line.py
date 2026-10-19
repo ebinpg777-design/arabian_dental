@@ -38,7 +38,7 @@ class PurchaseVendorQuotationLine(models.Model):
         compute='_compute_from_rfq_line', store=True, readonly=False,
     )
     qty = fields.Float(
-        'Quantity', digits='Product Unit of Measure',
+        'Quantity', digits='Product Unit',
         compute='_compute_from_rfq_line', store=True, readonly=False,
     )
     uom_id = fields.Many2one(
@@ -47,7 +47,7 @@ class PurchaseVendorQuotationLine(models.Model):
     )
 
     # ── Vendor Pricing ────────────────────────────────────────────────────────
-    price_unit = fields.Monetary('Unit Price', digits='Product Price', default=0.0,currency_field='currency_id')
+    price_unit = fields.Monetary('Unit Price', default=0.0, currency_field='currency_id')
     discount = fields.Float('Discount (%)', digits='Discount', default=0.0)
     tax_ids = fields.Many2many(
         'account.tax', string='Taxes',

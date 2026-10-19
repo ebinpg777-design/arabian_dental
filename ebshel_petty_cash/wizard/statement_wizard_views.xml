@@ -6,9 +6,15 @@
         <field name="model">ebshel.petty.cash.statement.wizard</field>
         <field name="arch" type="xml">
             <form>
+                <field name="report_type" widget="radio" options="{'horizontal': true}" class="mb-3"/>
+                <div class="text-muted mb-3">
+                    <span invisible="report_type != 'cash_book'">Opening balance, every posted movement of the fund with a running balance, and the closing balance - read from the ledger.</span>
+                    <span invisible="report_type != 'spending'">Paid vouchers of the period by category, fund, requester and payee, against the monthly budgets.</span>
+                    <span invisible="report_type != 'aging'">Advances still out at the end date, per holder, by days past their settlement date.</span>
+                </div>
                 <group>
                     <field name="fund_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                    <field name="date_from"/>
+                    <field name="date_from" invisible="report_type == 'aging'"/>
                     <field name="date_to"/>
                 </group>
                 <footer>
@@ -20,7 +26,7 @@
     </record>
 
     <record id="action_statement_wizard" model="ir.actions.act_window">
-        <field name="name">Fund Statement</field>
+        <field name="name">Petty Cash Reports</field>
         <field name="res_model">ebshel.petty.cash.statement.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>

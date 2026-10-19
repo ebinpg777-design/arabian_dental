@@ -9,19 +9,15 @@ from datetime import timedelta
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError
 from odoo.tools import SQL
-from odoo.tools.misc import formatLang
 
 SEVERITIES = [('info', 'Information'), ('warn', 'Warning'), ('error', 'Error')]
 WEIGHTS = {'error': 8, 'warn': 3, 'info': 1}
-# which sign of an open balance means 'money we are holding', per account type
-CREDIT_SIDES = (('asset_receivable', 'credit'), ('liability_payable', 'debit'))
 CHECKS = [
     ('duplicate_bills', 'Possible duplicate vendor bills'),
     ('sequence_gaps', 'Gaps in invoice numbering'),
     ('old_drafts', 'Draft entries older than 30 days'),
     ('locked_drafts', 'Draft entries dated before the lock date'),
     ('payments_unmatched', 'Payments not reconciled after 60 days'),
-    ('credits_unapplied', 'Credit held against a partner with nothing applied to it'),
     ('suspense_items', 'Items sitting on a suspense account'),
     ('no_partner', 'Receivable or payable items without a partner'),
     ('stale_receivables', 'Receivables overdue by more than 180 days'),
@@ -162,79 +158,6 @@ class LedgerScanner(models.AbstractModel):
                                                        ('date', '<', today - timedelta(days=60))])
         return [self._finding('payments_unmatched', 'warn', _('%d payments not reconciled after 60 days', len(payments)),
                               'account.payment', payments.ids, amount=sum(payments.mapped('amount')), extra='all')] if payments else []
-
-    def _credits_unapplied_totals(self, company):
-        """Per side: how much credit is held against a partner, how much of it faces
-        an open item on the same commercial partner, and the lines it sits on.
-
-        Separate from the check itself so the figures can be asserted on, and read,
-        without going through a finding's prose.
-        """
-        totals = {}
-        for account_type, side in CREDIT_SIDES:
-            rows = self.env.execute_query(SQL(
-                """
-                SELECT COALESCE(p.commercial_partner_id, l.partner_id) AS cp,
-                       SUM(CASE WHEN l.amount_residual > 0 THEN l.amount_residual ELSE 0 END) AS debit,
-                       SUM(CASE WHEN l.amount_residual < 0 THEN -l.amount_residual ELSE 0 END) AS credit,
-                       ARRAY_AGG(l.id) FILTER (WHERE l.amount_residual > 0) AS debit_ids,
-                       ARRAY_AGG(l.id) FILTER (WHERE l.amount_residual < 0) AS credit_ids
-                  FROM account_move_line l
-                  JOIN account_account a ON a.id = l.account_id
-                  LEFT JOIN res_partner p ON p.id = l.partner_id
-                 WHERE l.company_id = %s AND a.account_type = %s AND l.parent_state = 'posted'
-                   AND NOT l.reconciled AND l.amount_residual != 0 AND l.partner_id IS NOT NULL
-                 GROUP BY COALESCE(p.commercial_partner_id, l.partner_id)
-                """, company.id, account_type))
-            ids, held_total, clearable, partners = [], 0.0, 0.0, 0
-            # NB: no local may be called `cr` or `uid` in a function that calls _() --
-            # odoo reads the caller's frame looking for a cursor under those names.
-            for _cp, debit, credit, debit_ids, credit_ids in rows:
-                held, facing, held_ids = ((credit, debit, credit_ids) if side == 'credit'
-                                          else (debit, credit, debit_ids))
-                if not held:
-                    continue
-                partners += 1
-                held_total += held
-                clearable += min(held, facing)       # what could be applied right now
-                ids.extend(held_ids or [])
-            totals[account_type] = {'held': held_total, 'clearable': clearable,
-                                    'partners': partners, 'ids': sorted(ids)}
-        return totals
-
-    def _c_credits_unapplied(self, company, today):
-        """Money held against a customer, or paid to a supplier, that no invoice has
-        been applied to.
-
-        `payments_unmatched` asks the same question of `account.payment`, which only
-        sees receipts entered as payments; a credit note, or a receipt posted as a
-        plain journal entry, never appears there. This one reads the ledger, so it
-        sees all three; on a book whose receipts are mostly plain entries (the lab's
-        are, like Ortho's) that is the difference between a fraction of the money and
-        all of it.
-        """
-        titles = {'asset_receivable': _('customer credit not applied to any invoice'),
-                  'liability_payable': _('supplier payments not applied to any bill')}
-        totals = self._credits_unapplied_totals(company)
-        out = []
-        for account_type, _side in CREDIT_SIDES:
-            t = totals[account_type]
-            if not t['ids']:
-                continue
-            detail = _("%(clearable)s of it faces an open item on the same partner and could be "
-                       "cleared today -- the Matching Desk pairs them and applies them in one "
-                       "click. The rest is money held in advance.",
-                       clearable=self._money(company, t['clearable']))
-            out.append(self._finding(
-                'credits_unapplied', 'warn' if t['clearable'] else 'info',
-                _('%(amount)s of %(what)s, over %(partners)s partners',
-                  amount=self._money(company, t['held']), what=titles[account_type],
-                  partners=t['partners']),
-                'account.move.line', t['ids'], amount=t['held'], detail=detail, extra=account_type))
-        return out
-
-    def _money(self, company, amount):
-        return formatLang(self.env, amount, currency_obj=company.currency_id)
 
     def _c_suspense_items(self, company, today):
         accounts = self.env['account.journal'].search([('company_id', '=', company.id)]).mapped('suspense_account_id')

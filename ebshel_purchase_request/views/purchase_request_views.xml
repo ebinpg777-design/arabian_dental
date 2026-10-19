@@ -83,27 +83,27 @@
                     <!-- Smart buttons -->
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_rfqs" type="object"
-                                class="oe_stat_button" icon="fa-file-text-o"
+                                class="oe_stat_button" icon="description"
                                 invisible="rfq_count == 0">
                             <field name="rfq_count" string="RFQs" widget="statinfo"/>
                         </button>
                         <button name="action_view_quotations" type="object"
-                                class="oe_stat_button" icon="fa-list-alt"
+                                class="oe_stat_button" icon="list_alt"
                                 invisible="quotation_count == 0">
                             <field name="quotation_count" string="Quotations" widget="statinfo"/>
                         </button>
                         <button name="action_view_purchase_orders" type="object"
-                                class="oe_stat_button" icon="fa-shopping-cart"
+                                class="oe_stat_button" icon="shopping_cart"
                                 invisible="po_count == 0">
                             <field name="po_count" string="POs" widget="statinfo"/>
                         </button>
                         <button name="action_view_stock_moves" type="object"
-                                class="oe_stat_button" icon="fa-truck"
+                                class="oe_stat_button" icon="local_shipping"
                                 invisible="move_count == 0">
                             <field name="move_count" string="Receipts" widget="statinfo"/>
                         </button>
                         <button name="action_view_allocations" type="object"
-                                class="oe_stat_button" icon="fa-sitemap"
+                                class="oe_stat_button" icon="account_tree"
                                 invisible="allocation_count == 0">
                             <field name="allocation_count" string="Allocations" widget="statinfo"/>
                         </button>
@@ -143,7 +143,7 @@
                         <!-- Workflow progress -->
                         <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-flag-checkered me-1"/>Progress
+                                <i class="oi me-1" data-icon="sports_score"/>Progress
                             </div>
                             <field name="progress_pct" widget="progressbar" readonly="1" nolabel="1"/>
                         </div>
@@ -151,7 +151,7 @@
                         <!-- Estimated value -->
                         <div class="flex-grow-1 border rounded-3 p-2 bg-light" style="min-width:160px">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-money me-1"/>Estimated Value
+                                <i class="oi me-1" data-icon="payments"/>Estimated Value
                             </div>
                             <div class="fs-5 fw-bold text-primary">
                                 <field name="amount_total" readonly="1" class="oe_inline"/>
@@ -165,13 +165,13 @@
                         <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
                              invisible="required_state == 'none'">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-calendar me-1"/>Required By
+                                <i class="oi me-1" data-icon="calendar_today"/>Required By
                             </div>
                             <div>
                                 <field name="date_required" readonly="1" class="oe_inline"/>
                             </div>
                             <span class="badge text-bg-danger" invisible="required_state != 'overdue'">
-                                <i class="fa fa-exclamation-circle me-1"/>Overdue
+                                <i class="oi me-1" data-icon="error"/>Overdue
                             </span>
                             <span class="badge text-bg-danger" invisible="required_state != 'today'">Due today</span>
                             <span class="badge text-bg-warning" invisible="required_state != 'soon'">
@@ -186,7 +186,7 @@
                         <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
                              invisible="po_count == 0">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-truck me-1"/>Received
+                                <i class="oi me-1" data-icon="local_shipping"/>Received
                             </div>
                             <field name="fulfilment_pct" widget="progressbar" readonly="1" nolabel="1"/>
                             <small class="text-muted">of ordered quantity</small>
@@ -196,7 +196,7 @@
                         <div class="flex-grow-1 border rounded-3 p-2" style="min-width:200px"
                              invisible="not dept_has_budget">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-pie-chart me-1"/>Dept Budget
+                                <i class="oi me-1" data-icon="pie_chart"/>Dept Budget
                             </div>
                             <field name="dept_budget_usage_pct" widget="progressbar"
                                    readonly="1" nolabel="1"/>
@@ -211,7 +211,7 @@
                     <!-- Over-budget: company forbids over-budget requests (hard block) -->
                     <div class="alert alert-danger d-flex align-items-center mb-2" role="alert"
                          invisible="not budget_approval_blocked or state in ('rejected', 'cancelled', 'closed')">
-                        <i class="fa fa-exclamation-triangle fa-lg me-2"/>
+                        <i class="oi oi-lg me-2" data-icon="warning"/>
                         <span>This request
                             (<field name="amount_total" readonly="1" class="oe_inline fw-bold"/>)
                             exceeds the budget still available for
@@ -223,7 +223,7 @@
                     <!-- Over-budget: needs administrator budget approval before submitting -->
                     <div class="alert alert-warning d-flex align-items-center mb-2" role="alert"
                          invisible="not budget_approval_required or budget_approval_state == 'pending' or state != 'draft'">
-                        <i class="fa fa-exclamation-triangle fa-lg me-2"/>
+                        <i class="oi oi-lg me-2" data-icon="warning"/>
                         <span>This request
                             (<field name="amount_total" readonly="1" class="oe_inline fw-bold"/>)
                             exceeds the available budget for
@@ -241,7 +241,7 @@
                     <!-- Over-budget: budget approved, may now submit -->
                     <div class="alert alert-success d-flex align-items-center mb-2" role="alert"
                          invisible="budget_approval_state != 'approved' or not dept_over_budget or state != 'draft' or budget_approval_required">
-                        <i class="fa fa-check-circle fa-lg me-2"/>
+                        <i class="oi oi-lg me-2" data-icon="check_circle"/>
                         <span>Budget exceed <b>approved</b>
                             <span invisible="not budget_approved_by">by <field name="budget_approved_by" readonly="1" class="oe_inline fw-bold"/></span>.
                             You may now submit this request for approval.
@@ -250,7 +250,7 @@
                     <!-- Over-budget: budget rejected -->
                     <div class="alert alert-danger d-flex align-items-center mb-2" role="alert"
                          invisible="budget_approval_state != 'rejected' or state != 'draft'">
-                        <i class="fa fa-ban fa-lg me-2"/>
+                        <i class="oi oi-lg me-2" data-icon="block"/>
                         <span>Budget exceed <b>rejected</b>. Reduce the request total to within the department budget before submitting.</span>
                     </div>
 
@@ -321,10 +321,10 @@
                                            decoration-warning="billing_status == 'partial'"
                                            decoration-success="billing_status == 'full'"/>
                                     <field name="state" optional="hide"/>
-                                    <button name="do_cancel" type="object" icon="fa-times"
+                                    <button name="do_cancel" type="object" icon="close"
                                             title="Cancel line"
                                             invisible="cancelled == True or parent.state in ('approved', 'closed')"/>
-                                    <button name="do_uncancel" type="object" icon="fa-undo"
+                                    <button name="do_uncancel" type="object" icon="undo"
                                             title="Restore line"
                                             invisible="cancelled == False or parent.state in ('approved', 'closed')"/>
                                     <field name="currency_id" column_invisible="True"/>
@@ -332,17 +332,17 @@
                                 <form string="Request Line">
                                     <div class="oe_button_box" name="button_box">
                                         <button name="action_view_rfqs" type="object"
-                                                class="oe_stat_button" icon="fa-file-text-o"
+                                                class="oe_stat_button" icon="description"
                                                 invisible="rfq_count == 0">
                                             <field name="rfq_count" string="RFQs" widget="statinfo"/>
                                         </button>
                                         <button name="action_view_purchase_orders" type="object"
-                                                class="oe_stat_button" icon="fa-shopping-cart"
+                                                class="oe_stat_button" icon="shopping_cart"
                                                 invisible="po_count == 0">
                                             <field name="po_count" string="POs" widget="statinfo"/>
                                         </button>
                                         <button name="action_view_allocations" type="object"
-                                                class="oe_stat_button" icon="fa-sitemap"
+                                                class="oe_stat_button" icon="account_tree"
                                                 invisible="allocation_count == 0">
                                             <field name="allocation_count" string="Allocations" widget="statinfo"/>
                                         </button>
@@ -870,17 +870,17 @@
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_rfqs" type="object"
-                                class="oe_stat_button" icon="fa-file-text-o"
+                                class="oe_stat_button" icon="description"
                                 invisible="rfq_count == 0">
                             <field name="rfq_count" string="RFQs" widget="statinfo"/>
                         </button>
                         <button name="action_view_purchase_orders" type="object"
-                                class="oe_stat_button" icon="fa-shopping-cart"
+                                class="oe_stat_button" icon="shopping_cart"
                                 invisible="po_count == 0">
                             <field name="po_count" string="POs" widget="statinfo"/>
                         </button>
                         <button name="action_view_allocations" type="object"
-                                class="oe_stat_button" icon="fa-sitemap"
+                                class="oe_stat_button" icon="account_tree"
                                 invisible="allocation_count == 0">
                             <field name="allocation_count" string="Allocations" widget="statinfo"/>
                         </button>

@@ -3,19 +3,19 @@
     <t t-name="ebshel_account_advanced.BudgetBoard">
         <div class="o_eaa o_action o_eaa_budget">
             <div class="o_eaa_head">
-                <h2><i class="fa fa-bar-chart me-2"/>Budget board</h2>
+                <h2><i class="oi me-2" data-icon="bar_chart"/>Budget board</h2>
                 <select class="form-select form-select-sm" style="width:auto" t-if="this.state.data and this.state.data.budgets.length" t-on-change="this.pick">
                     <option t-foreach="this.state.data.budgets" t-as="b" t-key="b.id" t-att-value="b.id" t-att-selected="this.state.data.budget and b.id === this.state.data.budget.id"><t t-out="b.name"/> (<t t-out="b.from"/> → <t t-out="b.to"/>, <t t-out="b.state"/>)</option>
                 </select>
                 <span class="o_eaa_sub" t-if="this.state.data and this.state.data.budget"><t t-out="this.state.data.budget.elapsed_pct"/>% of the period elapsed · <t t-out="this.state.data.budget.responsible"/></span>
                 <div class="ms-auto d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-secondary" t-if="this.state.data and this.state.data.budget" t-on-click="this.openBudget"><i class="fa fa-pencil me-1"/>Edit</button>
-                    <button class="btn btn-sm btn-outline-secondary" t-if="this.state.data and this.state.data.budget" t-on-click="this.openReport"><i class="fa fa-table me-1"/>Report</button>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="this.newBudget"><i class="fa fa-plus me-1"/>New</button>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-if="this.state.data and this.state.data.budget" t-on-click="this.openBudget"><i class="oi me-1" data-icon="edit"/>Edit</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-if="this.state.data and this.state.data.budget" t-on-click="this.openReport"><i class="oi me-1" data-icon="table"/>Report</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="this.newBudget"><i class="oi me-1" data-icon="add"/>New</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="oi" data-icon="refresh"/></button>
                 </div>
             </div>
-            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Adding up…</div>
+            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="oi oi-spin me-2" data-icon="autorenew"/>Adding up…</div>
             <div t-elif="this.state.data and !this.state.data.budget" class="p-4 text-muted">No budget yet. Create one from the New button: lines are sets of accounts with a planned amount, split by month.</div>
             <div t-elif="this.state.data" class="o_eaa_body">
                 <div class="o_eaa_kpis">
@@ -44,7 +44,7 @@
                     <div class="o_eaa_panel">
                         <div class="o_eaa_ph">Attention</div>
                         <div t-if="!this.state.data.alerts.length" class="o_eaa_empty">Every line is on track.</div>
-                        <div t-foreach="this.state.data.alerts" t-as="a" t-key="a_index" class="small mb-1"><i class="fa fa-exclamation-triangle text-warning me-1"/><t t-out="a"/></div>
+                        <div t-foreach="this.state.data.alerts" t-as="a" t-key="a_index" class="small mb-1"><i class="oi text-warning me-1" data-icon="warning"/><t t-out="a"/></div>
                     </div>
                 </div>
                 <div class="o_eaa_panel mt-2" style="overflow-x:auto">

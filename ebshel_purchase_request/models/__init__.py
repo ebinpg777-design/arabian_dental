@@ -18,7 +18,6 @@ from . import purchase_vendor_quotation
 from . import purchase_vendor_quotation_line
 from . import purchase_order
 from . import purchase_analytic_line
-from . import budget_line
 from . import account_move
 from . import stock_move
 from . import stock_rule

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_budget_list" model="ir.ui.view">
+        <field name="name">ebshel.account.budget.list</field>
+        <field name="model">ebshel.account.budget</field>
+        <field name="arch" type="xml">
+            <list string="Budgets" decoration-muted="state in ('revised', 'canceled')">
+                <field name="name"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="budget_type"/>
+                <field name="user_id" widget="many2one_avatar_user" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="budget_amount" sum="Budget"/>
+                <field name="achieved_amount" sum="Achieved"/>
+                <field name="committed_amount" sum="Committed" optional="show"/>
+                <field name="available_amount" sum="Available"/>
+                <field name="achieved_percentage" widget="progressbar"/>
+                <field name="state" widget="badge" decoration-success="state == 'confirmed'"
+                       decoration-info="state == 'draft'" decoration-muted="state in ('revised', 'done', 'canceled')"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_budget_form" model="ir.ui.view">
+        <field name="name">ebshel.account.budget.form</field>
+        <field name="model">ebshel.account.budget</field>
+        <field name="arch" type="xml">
+            <form string="Budget">
+                <header>
+                    <button name="action_confirm" type="object" string="Open" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_revise" type="object" string="Revise" invisible="state != 'confirmed'"/>
+                    <button name="action_done" type="object" string="Mark as Done" invisible="state != 'confirmed'"/>
+                    <button name="action_draft" type="object" string="Reset to Draft" invisible="state not in ('confirmed', 'canceled')"/>
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state in ('done', 'canceled', 'revised')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_lines" type="object" class="oe_stat_button" icon="bar_chart">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="achieved_percentage" widget="integer"/> %</span>
+                                <span class="o_stat_text">Used</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Department budgets 2027" readonly="state not in ('draft', 'confirmed')"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <label for="date_from" string="Period"/>
+                            <div class="o_row">
+                                <field name="date_from" readonly="state != 'draft'"/>
+                                <span>to</span>
+                                <field name="date_to" readonly="state != 'draft'"/>
+                            </div>
+                            <field name="budget_type" readonly="state != 'draft'"/>
+                            <field name="parent_id" invisible="not parent_id"/>
+                        </group>
+                        <group>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Budget Lines" name="lines">
+                            <field name="line_ids" readonly="state not in ('draft', 'confirmed')">
+                                <list editable="bottom" decoration-danger="is_over_budget">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="analytic_account_id"/>
+                                    <field name="plan_id" optional="hide"/>
+                                    <field name="budget_amount" sum="Budget"/>
+                                    <field name="achieved_amount" sum="Achieved"/>
+                                    <field name="committed_amount" sum="Committed" optional="show"/>
+                                    <field name="theoretical_amount" sum="Theoretical" optional="show"/>
+                                    <field name="available_amount" sum="Available"/>
+                                    <field name="achieved_percentage" widget="progressbar"/>
+                                    <field name="is_over_budget" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="company_id" column_invisible="1"/>
+                                    <button name="action_view_analytic_items" type="object" icon="search"
+                                            title="Analytic items behind the achieved amount"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="budget_amount"/>
+                                <field name="achieved_amount"/>
+                                <field name="committed_amount"/>
+                                <field name="available_amount" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                        <page string="Revisions" name="revisions" invisible="not children_ids">
+                            <field name="children_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="create_date"/>
+                                    <field name="budget_amount"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="note" placeholder="Assumptions, approvals, comments..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_budget_search" model="ir.ui.view">
+        <field name="name">ebshel.account.budget.search</field>
+        <field name="model">ebshel.account.budget</field>
+        <field name="arch" type="xml">
+            <search string="Budgets">
+                <field name="name"/>
+                <field name="line_ids" string="Analytic Account" filter_domain="[('line_ids.analytic_account_id', 'ilike', self)]"/>
+                <field name="user_id"/>
+                <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="open" string="Open" domain="[('state', '=', 'confirmed')]"/>
+                <filter name="done" string="Done" domain="[('state', '=', 'done')]"/>
+                <separator/>
+                <filter name="current" string="Current Period"
+                        domain="[('date_from', '&lt;=', context_today().strftime('%Y-%m-%d')), ('date_to', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="hide_old" string="Hide Revised and Cancelled" domain="[('state', 'not in', ('revised', 'canceled'))]"/>
+                <group>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_type" string="Type" context="{'group_by': 'budget_type'}"/>
+                    <filter name="group_user" string="Responsible" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_budget" model="ir.actions.act_window">
+        <field name="name">Budgets</field>
+        <field name="res_model">ebshel.account.budget</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_hide_old': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a budget</p>
+            <p>Plan an amount per analytic account (department, cost centre, project) for a
+               period, then follow what is achieved, committed and still available.</p>
+        </field>
+    </record>
+</odoo>

@@ -11,6 +11,10 @@
          top-level menu. The reports and assets modules already sit there; this file
          only adds the screens that exist nowhere else, each where people look for it. -->
 
+    <!-- With the full accounting screens installed, the app is Accounting, not Invoicing.
+         The uninstall hook puts the original name back. -->
+    <menuitem id="account.menu_finance" name="Accounting"/>
+
     <!-- Reporting: the cockpit opens the reporting menu -->
     <menuitem id="menu_finance_cockpit" name="Finance Cockpit" parent="account.menu_finance_reports"
               action="action_finance_cockpit" sequence="0"/>

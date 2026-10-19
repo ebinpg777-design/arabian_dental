@@ -36,6 +36,7 @@ Configuration) - there is no separate top-level menu.
     'license': 'OPL-1',
     'price': 149.0,
     'currency': 'USD',
+    'uninstall_hook': '_uninstall_hook',
     'depends': ['account', 'mail', 'analytic', 'ebshel_account_reports', 'ebshel_account_assets'],
     'data': [
         'security/security.xml',

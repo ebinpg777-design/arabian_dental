@@ -7,7 +7,7 @@
     <!-- ══════════════════════════════════════════════════════════════════════
          LOADING STATE
     ══════════════════════════════════════════════════════════════════════ -->
-    <t t-if="state.loading">
+    <t t-if="this.state.loading">
         <div class="cmp-loading-screen">
             <div class="cmp-loading-content">
                 <div class="cmp-loading-spinner">
@@ -21,13 +21,13 @@
     </t>
 
     <!-- ERROR STATE -->
-    <t t-elif="state.error">
+    <t t-elif="this.state.error">
         <div class="cmp-error-screen">
             <div class="cmp-error-card">
                 <div class="cmp-error-icon">⚠️</div>
                 <h4>Could not load comparison</h4>
-                <p class="text-muted" t-esc="state.error"/>
-                <button class="btn btn-outline-primary mt-3" t-on-click="onRefresh">
+                <p class="text-muted" t-out="this.state.error"/>
+                <button class="btn btn-outline-primary mt-3" t-on-click="this.onRefresh">
                     Try Again
                 </button>
             </div>
@@ -37,12 +37,12 @@
     <!-- ══════════════════════════════════════════════════════════════════════
          MAIN VIEW
     ══════════════════════════════════════════════════════════════════════ -->
-    <t t-elif="state.data">
+    <t t-elif="this.state.data">
 
         <!-- ── STICKY HEADER BAR ──────────────────────────────────────────── -->
         <div class="cmp-header">
             <div class="cmp-header-left">
-                <button class="cmp-back-btn" t-on-click="onBackToRFQ">
+                <button class="cmp-back-btn" t-on-click="this.onBackToRFQ">
                     <span class="cmp-back-icon">←</span>
                     <span>Back to RFQ</span>
                 </button>
@@ -52,18 +52,18 @@
                         Vendor Price Comparison
                     </div>
                     <div class="cmp-title-meta">
-                        <span class="cmp-rfq-ref" t-esc="state.data.rfq_name"/>
-                        <span t-att-class="'cmp-state-badge cmp-state-' + state.data.state">
-                            <t t-esc="state.data.state_label"/>
+                        <span class="cmp-rfq-ref" t-out="this.state.data.rfq_name"/>
+                        <span t-att-class="'cmp-state-badge cmp-state-' + this.state.data.state">
+                            <t t-out="this.state.data.state_label"/>
                         </span>
-                        <span class="cmp-meta-chip" t-if="state.data.date_rfq">
-                            📅 <t t-esc="state.data.date_rfq"/>
+                        <span class="cmp-meta-chip" t-if="this.state.data.date_rfq">
+                            📅 <t t-out="this.state.data.date_rfq"/>
                         </span>
-                        <span class="cmp-meta-chip" t-if="state.data.procurement_officer">
-                            👤 <t t-esc="state.data.procurement_officer"/>
+                        <span class="cmp-meta-chip" t-if="this.state.data.procurement_officer">
+                            👤 <t t-out="this.state.data.procurement_officer"/>
                         </span>
-                        <span class="cmp-meta-chip cmp-meta-deadline" t-if="state.data.deadline">
-                            ⏰ Due <t t-esc="state.data.deadline"/>
+                        <span class="cmp-meta-chip cmp-meta-deadline" t-if="this.state.data.deadline">
+                            ⏰ Due <t t-out="this.state.data.deadline"/>
                         </span>
                     </div>
                 </div>
@@ -72,60 +72,60 @@
                 <!-- Sort controls -->
                 <div class="cmp-sort-group">
                     <span class="cmp-sort-label">Sort by</span>
-                    <button t-att-class="'cmp-sort-btn' + (state.sortBy === 'rank' ? ' active' : '')"
+                    <button t-att-class="'cmp-sort-btn' + (this.state.sortBy === 'rank' ? ' active' : '')"
                             t-on-click="() => this.onSortBy('rank')">
                         🏆 Rank
                     </button>
-                    <button t-att-class="'cmp-sort-btn' + (state.sortBy === 'price' ? ' active' : '')"
+                    <button t-att-class="'cmp-sort-btn' + (this.state.sortBy === 'price' ? ' active' : '')"
                             t-on-click="() => this.onSortBy('price')">
                         💰 Price
                     </button>
-                    <button t-att-class="'cmp-sort-btn' + (state.sortBy === 'delivery' ? ' active' : '')"
+                    <button t-att-class="'cmp-sort-btn' + (this.state.sortBy === 'delivery' ? ' active' : '')"
                             t-on-click="() => this.onSortBy('delivery')">
                         🚚 Delivery
                     </button>
-                    <button t-att-class="'cmp-sort-btn' + (state.sortBy === 'score' ? ' active' : '')"
+                    <button t-att-class="'cmp-sort-btn' + (this.state.sortBy === 'score' ? ' active' : '')"
                             t-on-click="() => this.onSortBy('score')">
                         ⭐ Score
                     </button>
                 </div>
                 <div class="cmp-action-group">
-                    <button class="cmp-icon-btn" t-att-class="state.showRadar ? 'cmp-icon-btn--on' : ''"
-                            t-on-click="toggleRadar" title="Radar compare (top vendors)">📡</button>
-                    <button class="cmp-icon-btn" t-on-click="onRefresh" title="Refresh">↺</button>
-                    <button class="cmp-icon-btn" t-on-click="onExportCsv" title="Export to CSV">⬇</button>
-                    <button class="cmp-icon-btn" t-on-click="onPrint" title="Print">🖨</button>
+                    <button class="cmp-icon-btn" t-att-class="this.state.showRadar ? 'cmp-icon-btn--on' : ''"
+                            t-on-click="this.toggleRadar" title="Radar compare (top vendors)">📡</button>
+                    <button class="cmp-icon-btn" t-on-click="this.onRefresh" title="Refresh">↺</button>
+                    <button class="cmp-icon-btn" t-on-click="this.onExportCsv" title="Export to CSV">⬇</button>
+                    <button class="cmp-icon-btn" t-on-click="this.onPrint" title="Print">🖨</button>
                     <!-- Allocate &amp; Order mode -->
-                    <t t-if="canAllocate and !state.allocateMode">
-                        <button class="cmp-alloc-btn" t-on-click="toggleAllocate"
+                    <t t-if="this.canAllocate and !this.state.allocateMode">
+                        <button class="cmp-alloc-btn" t-on-click="this.toggleAllocate"
                                 title="Assign quantities per vendor and create POs">
                             🧮 Allocate &amp; Order
                         </button>
                     </t>
-                    <t t-if="state.allocateMode">
-                        <button class="cmp-icon-btn" t-on-click="autoAssignBest"
+                    <t t-if="this.state.allocateMode">
+                        <button class="cmp-icon-btn" t-on-click="this.autoAssignBest"
                                 title="Give each line to its cheapest vendor">⚡</button>
-                        <button class="cmp-icon-btn" t-on-click="clearAllocation"
+                        <button class="cmp-icon-btn" t-on-click="this.clearAllocation"
                                 title="Clear all quantities">✕</button>
-                        <button class="cmp-po-btn" t-att-disabled="!canGenerate"
-                                t-on-click="onGeneratePOs">
-                            🛒 Generate PO<t t-if="allocatedVendorCount > 1">s</t>
-                            <t t-if="allocatedVendorCount"> (<t t-esc="allocatedVendorCount"/>)</t>
+                        <button class="cmp-po-btn" t-att-disabled="!this.canGenerate"
+                                t-on-click="this.onGeneratePOs">
+                            🛒 Generate PO<t t-if="this.allocatedVendorCount > 1">s</t>
+                            <t t-if="this.allocatedVendorCount"> (<t t-out="this.allocatedVendorCount"/>)</t>
                         </button>
-                        <button class="cmp-view-po-btn" t-on-click="toggleAllocate">Done</button>
+                        <button class="cmp-view-po-btn" t-on-click="this.toggleAllocate">Done</button>
                     </t>
-                    <t t-if="!state.allocateMode and state.data.has_winner and !state.data.has_po">
-                        <button class="cmp-po-btn" t-on-click="onCreatePO">
+                    <t t-if="!this.state.allocateMode and this.state.data.has_winner and !this.state.data.has_po">
+                        <button class="cmp-po-btn" t-on-click="this.onCreatePO">
                             🛒 Create PO
                         </button>
                     </t>
-                    <t t-if="!state.allocateMode and state.data.has_po">
-                        <button class="cmp-view-po-btn" t-on-click="onViewPO">
-                            <t t-if="state.data.po_count > 1">
-                                📋 View POs (<t t-esc="state.data.po_count"/>)
+                    <t t-if="!this.state.allocateMode and this.state.data.has_po">
+                        <button class="cmp-view-po-btn" t-on-click="this.onViewPO">
+                            <t t-if="this.state.data.po_count > 1">
+                                📋 View POs (<t t-out="this.state.data.po_count"/>)
                             </t>
                             <t t-else="">
-                                📋 View PO: <t t-esc="state.data.po_name"/>
+                                📋 View PO: <t t-out="this.state.data.po_name"/>
                             </t>
                         </button>
                     </t>
@@ -134,7 +134,7 @@
         </div>
 
         <!-- ══ AWARD APPROVAL BANNER ═══════════════════════════════════════ -->
-        <t t-if="state.data.award_state === 'pending'">
+        <t t-if="this.state.data.award_state === 'pending'">
             <div class="cmp-approval cmp-approval--pending">
                 <div class="cmp-approval-main">
                     <span class="cmp-approval-icon">⏳</span>
@@ -142,40 +142,40 @@
                         <div class="cmp-approval-title">
                             PO Award awaiting approval
                             <span class="cmp-approval-chip">
-                                <t t-esc="state.data.award_mode === 'split' ? 'Split award' : 'Single winner'"/>
+                                <t t-out="this.state.data.award_mode === 'split' ? 'Split award' : 'Single winner'"/>
                             </span>
                         </div>
                         <div class="cmp-approval-sub">
-                            Proposed by <b t-esc="state.data.award_proposed_by"/>.
-                            <t t-if="state.data.award_note"> “<t t-esc="state.data.award_note"/>”</t>
-                            <t t-if="!state.data.can_approve_award">
+                            Proposed by <b t-out="this.state.data.award_proposed_by"/>.
+                            <t t-if="this.state.data.award_note"> “<t t-out="this.state.data.award_note"/>”</t>
+                            <t t-if="!this.state.data.can_approve_award">
                                 A manager must approve before the purchase order is created.
                             </t>
                         </div>
                     </div>
                 </div>
-                <div class="cmp-approval-actions" t-if="state.data.can_approve_award">
-                    <button class="cmp-approve-btn" t-att-disabled="state.submitting"
-                            t-on-click="approveAward">✅ Approve &amp; Create PO</button>
-                    <button class="cmp-reject-btn" t-att-disabled="state.submitting"
-                            t-on-click="toggleReject">⛔ Reject</button>
+                <div class="cmp-approval-actions" t-if="this.state.data.can_approve_award">
+                    <button class="cmp-approve-btn" t-att-disabled="this.state.submitting"
+                            t-on-click="this.approveAward">✅ Approve &amp; Create PO</button>
+                    <button class="cmp-reject-btn" t-att-disabled="this.state.submitting"
+                            t-on-click="this.toggleReject">⛔ Reject</button>
                 </div>
             </div>
-            <div class="cmp-approval-reject" t-if="state.data.can_approve_award and state.showReject">
+            <div class="cmp-approval-reject" t-if="this.state.data.can_approve_award and this.state.showReject">
                 <textarea class="cmp-reject-input" rows="2"
                           placeholder="Reason for rejection (optional)…"
-                          t-model="state.rejectReason"/>
-                <button class="cmp-reject-confirm" t-att-disabled="state.submitting"
-                        t-on-click="rejectAward">Confirm rejection</button>
+                          t-att-value="this.state.rejectReason" t-on-input="(ev) => this.state.rejectReason = ev.target.value"/>
+                <button class="cmp-reject-confirm" t-att-disabled="this.state.submitting"
+                        t-on-click="this.rejectAward">Confirm rejection</button>
             </div>
         </t>
-        <t t-if="state.data.award_state === 'rejected'">
+        <t t-if="this.state.data.award_state === 'rejected'">
             <div class="cmp-approval cmp-approval--rejected">
                 <span class="cmp-approval-icon">⛔</span>
                 <div>
                     <div class="cmp-approval-title">Previous award proposal was rejected</div>
-                    <div class="cmp-approval-sub" t-if="state.data.award_rejection_reason">
-                        Reason: <t t-esc="state.data.award_rejection_reason"/>
+                    <div class="cmp-approval-sub" t-if="this.state.data.award_rejection_reason">
+                        Reason: <t t-out="this.state.data.award_rejection_reason"/>
                     </div>
                     <div class="cmp-approval-sub">Revise the allocation and re-submit for approval.</div>
                 </div>
@@ -183,81 +183,81 @@
         </t>
 
         <!-- ── CONTROL TOOLBAR (search · spotlight) ────────────────────────── -->
-        <t t-if="state.data.vendors.length > 1">
+        <t t-if="this.state.data.vendors.length > 1">
             <div class="cmp-toolbar">
                 <div class="cmp-search-box">
                     <span class="cmp-search-icon">🔎</span>
                     <input type="text" class="cmp-search-input"
                            placeholder="Search vendors by name…"
-                           t-att-value="state.vendorSearch"
-                           t-on-input="onSearchVendor"/>
-                    <button class="cmp-search-clear" t-if="state.vendorSearch"
-                            t-on-click="clearVendorSearch" title="Clear">✕</button>
+                           t-att-value="this.state.vendorSearch"
+                           t-on-input="this.onSearchVendor"/>
+                    <button class="cmp-search-clear" t-if="this.state.vendorSearch"
+                            t-on-click="this.clearVendorSearch" title="Clear">✕</button>
                 </div>
-                <span class="cmp-hidden-note" t-if="hiddenVendorCount > 0">
-                    <t t-esc="hiddenVendorCount"/> hidden
+                <span class="cmp-hidden-note" t-if="this.hiddenVendorCount > 0">
+                    <t t-out="this.hiddenVendorCount"/> hidden
                 </span>
                 <!-- Active spotlight indicator -->
-                <t t-if="focusedVendor">
+                <t t-if="this.focusedVendor">
                     <span class="cmp-focus-pill">
-                        🔦 Spotlight: <strong t-esc="focusedVendor.vendor_name"/>
-                        <button class="cmp-focus-clear" t-on-click="clearFocus" title="Clear spotlight">✕</button>
+                        🔦 Spotlight: <strong t-out="this.focusedVendor.vendor_name"/>
+                        <button class="cmp-focus-clear" t-on-click="this.clearFocus" title="Clear spotlight">✕</button>
                     </span>
                 </t>
             </div>
         </t>
 
         <!-- ── WHAT-IF BANNER (vendors excluded from analysis) ─────────────── -->
-        <t t-if="excludedCount > 0">
+        <t t-if="this.excludedCount > 0">
             <div class="cmp-whatif">
                 <span class="cmp-whatif-icon">🧪</span>
                 <span class="cmp-whatif-text">
-                    <strong>What-if analysis</strong> — <t t-esc="excludedCount"/> vendor(s) excluded.
-                    Lowest among the remaining: <strong t-esc="formatMoney(liveLowestTotal)"/>.
+                    <strong>What-if analysis</strong> — <t t-out="this.excludedCount"/> vendor(s) excluded.
+                    Lowest among the remaining: <strong t-out="this.formatMoney(this.liveLowestTotal)"/>.
                     Best-price highlighting and the matrix update live.
                 </span>
-                <button class="cmp-whatif-reset" t-on-click="clearExclusions">↺ Reset</button>
+                <button class="cmp-whatif-reset" t-on-click="this.clearExclusions">↺ Reset</button>
             </div>
         </t>
 
         <!-- ── SOURCING DECISION BANNER (single-source vs split) ──────────── -->
-        <t t-if="sourcingDecision and !state.data.has_po and !state.data.has_winner">
-            <div t-att-class="'cmp-decision cmp-decision--' + sourcingDecision.mode">
+        <t t-if="this.sourcingDecision and !this.state.data.has_po and !this.state.data.has_winner">
+            <div t-att-class="'cmp-decision cmp-decision--' + this.sourcingDecision.mode">
                 <div class="cmp-decision-icon">
-                    <t t-if="sourcingDecision.mode === 'split'">🧮</t>
+                    <t t-if="this.sourcingDecision.mode === 'split'">🧮</t>
                     <t t-else="">🎯</t>
                 </div>
                 <div class="cmp-decision-body">
                     <div class="cmp-decision-eyebrow">Recommended sourcing strategy</div>
-                    <div class="cmp-decision-title" t-esc="sourcingDecision.title"/>
-                    <div class="cmp-decision-detail" t-esc="sourcingDecision.detail"/>
+                    <div class="cmp-decision-title" t-out="this.sourcingDecision.title"/>
+                    <div class="cmp-decision-detail" t-out="this.sourcingDecision.detail"/>
                 </div>
-                <button class="cmp-decision-cta" t-if="canAllocate or !state.data.has_winner"
-                        t-on-click="onDecisionCta">
-                    <t t-esc="sourcingDecision.cta"/> →
+                <button class="cmp-decision-cta" t-if="this.canAllocate or !this.state.data.has_winner"
+                        t-on-click="this.onDecisionCta">
+                    <t t-out="this.sourcingDecision.cta"/> →
                 </button>
             </div>
         </t>
 
         <!-- ── SMART INSIGHTS STRIP (KPIs + AI recommendation) ─────────────── -->
-        <t t-if="state.data.vendors.length > 0">
+        <t t-if="this.state.data.vendors.length > 0">
             <div class="cmp-insights">
                 <!-- Recommendation card -->
-                <t t-if="state.data.recommendation">
+                <t t-if="this.state.data.recommendation">
                     <div class="cmp-reco-card">
                         <div class="cmp-reco-head">
                             <span class="cmp-reco-spark">✨</span>
                             <span class="cmp-reco-title">Recommended</span>
                         </div>
-                        <div class="cmp-reco-vendor" t-esc="state.data.recommendation.vendor_name"/>
+                        <div class="cmp-reco-vendor" t-out="this.state.data.recommendation.vendor_name"/>
                         <div class="cmp-reco-reasons">
-                            <t t-foreach="state.data.recommendation.reasons" t-as="reason" t-key="reason_index">
-                                <span class="cmp-reco-chip">✓ <t t-esc="reason"/></span>
+                            <t t-foreach="this.state.data.recommendation.reasons" t-as="reason" t-key="reason_index">
+                                <span class="cmp-reco-chip">✓ <t t-out="reason"/></span>
                             </t>
                         </div>
-                        <t t-if="!state.data.has_winner and !state.data.has_po and recommendedVendor">
+                        <t t-if="!this.state.data.has_winner and !this.state.data.has_po and this.recommendedVendor">
                             <button class="cmp-reco-award"
-                                    t-on-click="() => this.onStartAward(state.data.recommendation.vendor_id)">
+                                    t-on-click="() => this.onStartAward(this.state.data.recommendation.vendor_id)">
                                 🏆 Award this vendor
                             </button>
                         </t>
@@ -267,31 +267,31 @@
                 <div class="cmp-kpi-grid">
                     <div class="cmp-kpi">
                         <div class="cmp-kpi-label">Vendors</div>
-                        <div class="cmp-kpi-value"><t t-esc="state.data.vendor_count"/></div>
-                        <div class="cmp-kpi-sub"><t t-esc="state.data.line_count"/> lines</div>
+                        <div class="cmp-kpi-value"><t t-out="this.state.data.vendor_count"/></div>
+                        <div class="cmp-kpi-sub"><t t-out="this.state.data.line_count"/> lines</div>
                     </div>
                     <div class="cmp-kpi cmp-kpi--best">
                         <div class="cmp-kpi-label">Lowest Quote</div>
-                        <div class="cmp-kpi-value" t-esc="formatMoney(state.data.best_total)"/>
+                        <div class="cmp-kpi-value" t-out="this.formatMoney(this.state.data.best_total)"/>
                         <div class="cmp-kpi-sub">single vendor</div>
                     </div>
                     <div class="cmp-kpi">
                         <div class="cmp-kpi-label">Average</div>
-                        <div class="cmp-kpi-value" t-esc="formatMoney(state.data.avg_total)"/>
+                        <div class="cmp-kpi-value" t-out="this.formatMoney(this.state.data.avg_total)"/>
                         <div class="cmp-kpi-sub">across quotes</div>
                     </div>
-                    <t t-if="state.data.savings and state.data.savings > 0">
+                    <t t-if="this.state.data.savings and this.state.data.savings > 0">
                         <div class="cmp-kpi cmp-kpi--save">
                             <div class="cmp-kpi-label">Max Savings</div>
-                            <div class="cmp-kpi-value" t-esc="formatMoney(state.data.savings)"/>
+                            <div class="cmp-kpi-value" t-out="this.formatMoney(this.state.data.savings)"/>
                             <div class="cmp-kpi-sub">vs most expensive</div>
                         </div>
                     </t>
-                    <t t-if="state.data.split_savings and state.data.split_savings > 0">
+                    <t t-if="this.state.data.split_savings and this.state.data.split_savings > 0">
                         <div class="cmp-kpi cmp-kpi--split">
                             <div class="cmp-kpi-label">Split Savings</div>
-                            <div class="cmp-kpi-value" t-esc="formatMoney(state.data.split_savings)"/>
-                            <div class="cmp-kpi-sub">basket <t t-esc="formatMoney(state.data.split_total)"/></div>
+                            <div class="cmp-kpi-value" t-out="this.formatMoney(this.state.data.split_savings)"/>
+                            <div class="cmp-kpi-sub">basket <t t-out="this.formatMoney(this.state.data.split_total)"/></div>
                         </div>
                     </t>
                 </div>
@@ -299,10 +299,10 @@
         </t>
 
         <!-- ── ALLOCATE &amp; ORDER BANNER ─────────────────────────────────── -->
-        <t t-if="state.allocateMode">
-            <div t-att-class="'cmp-alloc-banner' + (hasOverAllocation ? ' cmp-alloc-banner--error' : '')">
+        <t t-if="this.state.allocateMode">
+            <div t-att-class="'cmp-alloc-banner' + (this.hasOverAllocation ? ' cmp-alloc-banner--error' : '')">
                 <span class="cmp-alloc-banner-icon">🧮</span>
-                <span t-if="!hasOverAllocation">
+                <span t-if="!this.hasOverAllocation">
                     <strong>Allocate &amp; Order.</strong>
                     Type the quantity each vendor should supply per line — one
                     line can be split across several vendors. Each vendor's
@@ -314,7 +314,7 @@
                     Some lines have more quantity assigned than requested
                     (shown in red). Reduce them before generating POs.
                 </span>
-                <span class="cmp-alloc-newnote" t-if="!hasOverAllocation and allocatesNewVendor">
+                <span class="cmp-alloc-newnote" t-if="!this.hasOverAllocation and this.allocatesNewVendor">
                     🆕 A prospective vendor is in this split — it will be
                     registered automatically when the POs are generated.
                 </span>
@@ -322,10 +322,10 @@
         </t>
 
         <!-- No vendors match the search -->
-        <t t-if="state.data.vendors.length > 0 and visibleVendors.length === 0">
+        <t t-if="this.state.data.vendors.length > 0 and this.visibleVendors.length === 0">
             <div class="cmp-nofilter">
                 <span>🔍 No vendors match your search.</span>
-                <button class="cmp-nofilter-clear" t-on-click="clearVendorSearch">
+                <button class="cmp-nofilter-clear" t-on-click="this.clearVendorSearch">
                     Clear search
                 </button>
             </div>
@@ -333,7 +333,7 @@
         <div class="dsh-scrollable-content" style="overflow-x: auto;overflow-y: auto; height: calc(100vh - 150px);">
 
             <!-- ── RADAR COMPARE (top vendors across 4 dimensions) ─────────────── -->
-            <t t-if="state.showRadar and radarData">
+            <t t-if="this.state.showRadar and this.radarData">
                 <div class="cmp-radar-panel">
                     <div class="cmp-radar-head">
                         <span class="cmp-radar-title">📡 Multi-dimension comparison</span>
@@ -341,28 +341,28 @@
                     </div>
                     <div class="cmp-radar-body">
                         <svg viewBox="0 0 220 220" class="cmp-radar-svg">
-                            <t t-foreach="radarData.rings" t-as="ring" t-key="ring_index">
+                            <t t-foreach="this.radarData.rings" t-as="ring" t-key="ring_index">
                                 <polygon t-att-points="ring" class="cmp-radar-ring"/>
                             </t>
-                            <t t-foreach="radarData.axisLines" t-as="ax" t-key="ax_index">
-                                <line t-att-x1="radarData.cx" t-att-y1="radarData.cy"
+                            <t t-foreach="this.radarData.axisLines" t-as="ax" t-key="ax_index">
+                                <line t-att-x1="this.radarData.cx" t-att-y1="this.radarData.cy"
                                     t-att-x2="ax.x" t-att-y2="ax.y" class="cmp-radar-axisline"/>
                             </t>
-                            <t t-foreach="radarData.polys" t-as="p" t-key="p.id">
+                            <t t-foreach="this.radarData.polys" t-as="p" t-key="p.id">
                                 <polygon t-att-points="p.points"
                                         t-att-style="'fill:' + p.color + '33; stroke:' + p.color"
                                         class="cmp-radar-poly"/>
                             </t>
-                            <t t-foreach="radarData.axisLabels" t-as="al" t-key="al_index">
+                            <t t-foreach="this.radarData.axisLabels" t-as="al" t-key="al_index">
                                 <text t-att-x="al.x" t-att-y="al.y" class="cmp-radar-axislabel"
-                                    text-anchor="middle" t-esc="al.lbl"/>
+                                    text-anchor="middle" t-out="al.lbl"/>
                             </t>
                         </svg>
                         <div class="cmp-radar-legend">
-                            <t t-foreach="radarData.polys" t-as="p" t-key="p.id">
+                            <t t-foreach="this.radarData.polys" t-as="p" t-key="p.id">
                                 <span class="cmp-radar-leg">
                                     <span class="cmp-radar-dot" t-att-style="'background:' + p.color"/>
-                                    <t t-esc="p.name"/>
+                                    <t t-out="p.name"/>
                                 </span>
                             </t>
                         </div>
@@ -371,29 +371,29 @@
             </t>
 
             <!-- ── VENDOR SCORECARD ROW ───────────────────────────────────────── -->
-            <div class="cmp-scorecards-wrapper" t-if="visibleVendors.length > 0">
+            <div class="cmp-scorecards-wrapper" t-if="this.visibleVendors.length > 0">
                 <div class="cmp-scorecards-scroll">
-                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
-                        <div t-att-class="getVendorCardClass(vendor)"
-                            t-att-style="'--rank-color: ' + getScoreColor(vendor.rank) + '; animation-delay: ' + (vendor_index * 80) + 'ms'"
+                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
+                        <div t-att-class="this.getVendorCardClass(vendor)"
+                            t-att-style="'--rank-color: ' + this.getScoreColor(vendor.rank) + '; animation-delay: ' + (vendor_index * 80) + 'ms'"
                             t-on-mouseenter="() => this.onHoverVendor(vendor.id)"
-                            t-on-mouseleave="onLeaveVendor">
+                            t-on-mouseleave="this.onLeaveVendor">
 
                             <!-- What-if exclude / restore toggle -->
                             <button class="cmp-card-exclude"
-                                    t-att-class="isExcluded(vendor.id) ? 'cmp-card-exclude--on' : ''"
+                                    t-att-class="this.isExcluded(vendor.id) ? 'cmp-card-exclude--on' : ''"
                                     t-on-click.stop="() => this.toggleExclude(vendor.id)"
-                                    t-att-title="isExcluded(vendor.id) ? 'Restore this vendor to the analysis' : 'Exclude (disqualify) this vendor from the analysis'">
-                                <t t-if="isExcluded(vendor.id)">↺</t>
+                                    t-att-title="this.isExcluded(vendor.id) ? 'Restore this vendor to the analysis' : 'Exclude (disqualify) this vendor from the analysis'">
+                                <t t-if="this.isExcluded(vendor.id)">↺</t>
                                 <t t-else="">⊘</t>
                             </button>
 
                             <!-- Excluded ribbon -->
-                            <div class="cmp-card-excluded-ribbon" t-if="isExcluded(vendor.id)">EXCLUDED</div>
+                            <div class="cmp-card-excluded-ribbon" t-if="this.isExcluded(vendor.id)">EXCLUDED</div>
 
                             <!-- Rank medal -->
                             <div class="cmp-card-rank">
-                                <span class="cmp-rank-medal" t-esc="getRankLabel(vendor.rank)"/>
+                                <span class="cmp-rank-medal" t-out="this.getRankLabel(vendor.rank)"/>
                             </div>
 
                             <!-- Winner crown banner -->
@@ -408,29 +408,29 @@
 
                             <!-- Vendor name -->
                             <div class="cmp-card-vendor-name" t-on-click="() => this.toggleFocus(vendor.id)"
-                                t-att-title="isFocused(vendor.id) ? 'Click to clear spotlight' : 'Click to spotlight this vendor in the table below'">
+                                t-att-title="this.isFocused(vendor.id) ? 'Click to clear spotlight' : 'Click to spotlight this vendor in the table below'">
                                 <span class="cmp-card-vendor-icon">🏢</span>
-                                <span t-esc="vendor.vendor_name"/>
-                                <span class="cmp-focus-dot" t-if="isFocused(vendor.id)">🔦</span>
+                                <span t-out="vendor.vendor_name"/>
+                                <span class="cmp-focus-dot" t-if="this.isFocused(vendor.id)">🔦</span>
                             </div>
 
                             <!-- Total (hero amount) -->
                             <div class="cmp-card-total">
-                                <t t-esc="formatMoney(vendor.total)"/>
+                                <t t-out="this.formatMoney(vendor.total)"/>
                             </div>
                             <div class="cmp-card-untaxed">
-                                excl. tax: <t t-esc="formatMoney(vendor.untaxed)"/>
+                                excl. tax: <t t-out="this.formatMoney(vendor.untaxed)"/>
                             </div>
 
                             <!-- vs average: instant good-deal signal -->
-                            <t t-if="vsAveragePct(vendor) !== null">
-                                <div t-att-class="'cmp-vsavg ' + (vsAveragePct(vendor) &lt; 0 ? 'cmp-vsavg--good' : (vsAveragePct(vendor) &gt; 0 ? 'cmp-vsavg--bad' : 'cmp-vsavg--neutral'))"
+                            <t t-if="this.vsAveragePct(vendor) !== null">
+                                <div t-att-class="'cmp-vsavg ' + (this.vsAveragePct(vendor) &lt; 0 ? 'cmp-vsavg--good' : (this.vsAveragePct(vendor) &gt; 0 ? 'cmp-vsavg--bad' : 'cmp-vsavg--neutral'))"
                                     title="Compared with the average quote on this RFQ">
-                                    <t t-if="vsAveragePct(vendor) &lt; 0">
-                                        ▼ <t t-esc="Math.abs(vsAveragePct(vendor))"/>% below average
+                                    <t t-if="this.vsAveragePct(vendor) &lt; 0">
+                                        ▼ <t t-out="Math.abs(this.vsAveragePct(vendor))"/>% below average
                                     </t>
-                                    <t t-elif="vsAveragePct(vendor) &gt; 0">
-                                        ▲ <t t-esc="vsAveragePct(vendor)"/>% above average
+                                    <t t-elif="this.vsAveragePct(vendor) &gt; 0">
+                                        ▲ <t t-out="this.vsAveragePct(vendor)"/>% above average
                                     </t>
                                     <t t-else="">≈ at the average</t>
                                 </div>
@@ -440,19 +440,19 @@
                             <div class="cmp-card-score-section">
                                 <div class="cmp-card-score-row">
                                     <span class="cmp-card-score-label">Score</span>
-                                    <span class="cmp-card-score-value" t-esc="vendor.score.toFixed(2)"/>
+                                    <span class="cmp-card-score-value" t-out="vendor.score.toFixed(2)"/>
                                 </div>
                                 <div class="cmp-score-track">
                                     <div class="cmp-score-fill"
-                                        t-att-style="'width: ' + getScoreWidth(vendor.score) + '; background: ' + getScoreColor(vendor.rank)"/>
+                                        t-att-style="'width: ' + this.getScoreWidth(vendor.score) + '; background: ' + this.getScoreColor(vendor.rank)"/>
                                 </div>
                             </div>
 
                             <!-- Quote coverage -->
                             <div t-att-class="'cmp-card-coverage' + (vendor.is_full_quote ? ' cmp-card-coverage--full' : ' cmp-card-coverage--partial')"
-                                t-att-title="vendor.lines_quoted + ' of ' + state.data.line_count + ' lines quoted'">
+                                t-att-title="vendor.lines_quoted + ' of ' + this.state.data.line_count + ' lines quoted'">
                                 <t t-if="vendor.is_full_quote">✓ All lines quoted</t>
-                                <t t-else="">⚠ Quoted <t t-esc="vendor.lines_quoted"/>/<t t-esc="state.data.line_count"/> lines</t>
+                                <t t-else="">⚠ Quoted <t t-out="vendor.lines_quoted"/>/<t t-out="this.state.data.line_count"/> lines</t>
                             </div>
 
                             <!-- Auto risk &amp; quality flags -->
@@ -460,7 +460,7 @@
                                 <t t-foreach="vendor.flags" t-as="flag" t-key="flag_index">
                                     <span t-att-class="'cmp-flag cmp-flag--' + flag.level"
                                         t-att-title="flag.label">
-                                        <t t-esc="flag.icon"/> <t t-esc="flag.label"/>
+                                        <t t-out="flag.icon"/> <t t-out="flag.label"/>
                                     </span>
                                 </t>
                             </div>
@@ -471,7 +471,7 @@
                                     <span class="cmp-metric-icon">🚚</span>
                                     <span class="cmp-metric-value">
                                         <t t-if="vendor.delivery_days">
-                                            <t t-esc="vendor.delivery_days"/> days
+                                            <t t-out="vendor.delivery_days"/> days
                                         </t>
                                         <t t-else="">N/A</t>
                                     </span>
@@ -480,7 +480,7 @@
                                     <span class="cmp-metric-icon">💳</span>
                                     <span class="cmp-metric-value">
                                         <t t-if="vendor.payment_terms">
-                                            <t t-esc="vendor.payment_terms"/>
+                                            <t t-out="vendor.payment_terms"/>
                                         </t>
                                         <t t-else="">N/A</t>
                                     </span>
@@ -488,13 +488,13 @@
                                 <t t-if="vendor.vendor_reference">
                                     <div class="cmp-metric">
                                         <span class="cmp-metric-icon">📄</span>
-                                        <span class="cmp-metric-value" t-esc="vendor.vendor_reference"/>
+                                        <span class="cmp-metric-value" t-out="vendor.vendor_reference"/>
                                     </div>
                                 </t>
                                 <t t-if="vendor.date_quotation">
                                     <div class="cmp-metric">
                                         <span class="cmp-metric-icon">📅</span>
-                                        <span class="cmp-metric-value" t-esc="vendor.date_quotation"/>
+                                        <span class="cmp-metric-value" t-out="vendor.date_quotation"/>
                                     </div>
                                 </t>
                             </div>
@@ -502,43 +502,43 @@
                             <!-- Total comparison bar -->
                             <div class="cmp-card-bar-track">
                                 <div class="cmp-card-bar-fill"
-                                    t-att-style="'width: ' + getBarWidth(vendor.total) + '; background: ' + getScoreColor(vendor.rank)"/>
+                                    t-att-style="'width: ' + this.getBarWidth(vendor.total) + '; background: ' + this.getScoreColor(vendor.rank)"/>
                             </div>
 
                             <!-- Winner justification display -->
                             <t t-if="vendor.is_winner and vendor.winner_justification">
                                 <div class="cmp-card-justification">
                                     <span class="cmp-justif-icon">💬</span>
-                                    <em t-esc="vendor.winner_justification"/>
+                                    <em t-out="vendor.winner_justification"/>
                                 </div>
                             </t>
 
                             <!-- Award action section -->
-                            <div class="cmp-card-actions" t-if="!state.data.has_po">
+                            <div class="cmp-card-actions" t-if="!this.state.data.has_po">
                                 <t t-if="!vendor.is_winner">
-                                    <t t-if="state.awardVendorId === vendor.id">
+                                    <t t-if="this.state.awardVendorId === vendor.id">
                                         <!-- Inline award form -->
                                         <div class="cmp-award-form">
                                             <textarea class="cmp-award-textarea"
                                                     placeholder="Why are you selecting this vendor?…"
-                                                    t-model="state.justification"
+                                                    t-att-value="this.state.justification" t-on-input="(ev) => this.state.justification = ev.target.value"
                                                     rows="3"/>
                                             <div class="cmp-award-btns">
                                                 <button class="cmp-confirm-btn"
                                                         t-on-click="() => this.onConfirmAward(false)"
-                                                        t-att-disabled="state.submitting">
-                                                    <t t-if="state.submitting">⏳ Awarding…</t>
+                                                        t-att-disabled="this.state.submitting">
+                                                    <t t-if="this.state.submitting">⏳ Awarding…</t>
                                                     <t t-else="">✓ Confirm Award</t>
                                                 </button>
                                                 <button class="cmp-order-btn"
                                                         t-on-click="() => this.onConfirmAward(true)"
-                                                        t-att-disabled="state.submitting"
+                                                        t-att-disabled="this.state.submitting"
                                                         title="Award this vendor and create the purchase order in one step">
                                                     🛒 Award &amp; Order
                                                 </button>
                                                 <button class="cmp-cancel-btn"
-                                                        t-on-click="onCancelAward"
-                                                        t-att-disabled="state.submitting">
+                                                        t-on-click="this.onCancelAward"
+                                                        t-att-disabled="this.state.submitting">
                                                     ✕
                                                 </button>
                                             </div>
@@ -547,7 +547,7 @@
                                     <t t-else="">
                                         <button t-att-class="'cmp-award-trigger' + (vendor.rank === 1 ? ' cmp-award-trigger--best' : '')"
                                                 t-on-click="() => this.onStartAward(vendor.id)"
-                                                t-att-disabled="state.awardMode and state.awardVendorId !== vendor.id">
+                                                t-att-disabled="this.state.awardMode and this.state.awardVendorId !== vendor.id">
                                             🏆 Select as Winner
                                         </button>
                                     </t>
@@ -567,7 +567,7 @@
             <!-- ── MAIN COMPARISON TABLE ──────────────────────────────────────── -->
             <div class="dsh-scrollable-content" style="overflow-x: auto; height: calc(100vh - 150px);">
                 
-                <div class="cmp-table-section" t-if="visibleVendors.length > 0">
+                <div class="cmp-table-section" t-if="this.visibleVendors.length > 0">
                     <div class="cmp-table-header-row">
                         <h5 class="cmp-section-title">
                             📊 Line-by-Line Price Comparison
@@ -588,15 +588,15 @@
                                         </div>
                                     </th>
                                     <th class="cmp-th-qty">Qty</th>
-                                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
-                                        <th t-att-class="getVendorColClass(vendor)"
+                                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
+                                        <th t-att-class="this.getVendorColClass(vendor)"
                                             t-on-mouseenter="() => this.onHoverVendor(vendor.id)"
-                                            t-on-mouseleave="onLeaveVendor">
+                                            t-on-mouseleave="this.onLeaveVendor">
                                             <div class="cmp-vendor-th-content">
                                                 <div class="cmp-vendor-th-rank">
-                                                    <t t-esc="getRankLabel(vendor.rank)"/>
+                                                    <t t-out="this.getRankLabel(vendor.rank)"/>
                                                 </div>
-                                                <div class="cmp-vendor-th-name" t-esc="vendor.vendor_name"/>
+                                                <div class="cmp-vendor-th-name" t-out="vendor.vendor_name"/>
                                                 <div t-if="vendor.is_winner" class="cmp-vendor-th-winner">
                                                     👑 Winner
                                                 </div>
@@ -606,76 +606,76 @@
                                             </div>
                                             <!-- Colored rank stripe at top of header -->
                                             <div class="cmp-vendor-th-stripe"
-                                                t-att-style="'background: ' + getScoreColor(vendor.rank)"/>
+                                                t-att-style="'background: ' + this.getScoreColor(vendor.rank)"/>
                                         </th>
                                     </t>
                                 </tr>
                             </thead>
                             <tbody>
-                                <t t-foreach="state.data.lines" t-as="line" t-key="line.id">
+                                <t t-foreach="this.state.data.lines" t-as="line" t-key="line.id">
                                     <tr class="cmp-line-row">
                                         <!-- Product info cell -->
                                         <td class="cmp-td-product">
-                                            <div class="cmp-product-name" t-esc="line.product_name"/>
+                                            <div class="cmp-product-name" t-out="line.product_name"/>
                                             <div class="cmp-product-meta">
-                                                <span class="cmp-uom-badge" t-esc="line.uom"/>
+                                                <span class="cmp-uom-badge" t-out="line.uom"/>
                                                 <t t-if="line.date_required">
                                                     <span class="cmp-date-chip">
-                                                        📅 <t t-esc="line.date_required"/>
+                                                        📅 <t t-out="line.date_required"/>
                                                     </span>
                                                 </t>
                                             </div>
                                         </td>
                                         <!-- Qty cell -->
                                         <td class="cmp-td-qty">
-                                            <span class="cmp-qty-badge" t-esc="line.qty"/>
-                                            <t t-if="state.allocateMode">
-                                                <div t-att-class="'cmp-alloc-remain' + (isLineOver(line) ? ' cmp-alloc-remain--over' : (lineRemaining(line) === 0 ? ' cmp-alloc-remain--full' : ''))"
-                                                    t-att-title="'Assigned ' + lineAssigned(line.id) + ' of ' + line.qty">
-                                                    <t t-esc="lineAssigned(line.id)"/>/<t t-esc="line.qty"/>
+                                            <span class="cmp-qty-badge" t-out="line.qty"/>
+                                            <t t-if="this.state.allocateMode">
+                                                <div t-att-class="'cmp-alloc-remain' + (this.isLineOver(line) ? ' cmp-alloc-remain--over' : (this.lineRemaining(line) === 0 ? ' cmp-alloc-remain--full' : ''))"
+                                                    t-att-title="'Assigned ' + this.lineAssigned(line.id) + ' of ' + line.qty">
+                                                    <t t-out="this.lineAssigned(line.id)"/>/<t t-out="line.qty"/>
                                                 </div>
                                             </t>
                                         </td>
                                         <!-- Per-vendor price cells -->
-                                        <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
-                                            <t t-set="ld" t-value="getLineData(line.id, vendor.id)"/>
-                                            <td t-att-class="'cmp-price-cell' + (state.hoveredVendorId === vendor.id ? ' cmp-vendor-col--hovered' : '') + (vendor.is_winner ? ' cmp-price-cell--winner' : '') + (isFocused(vendor.id) ? ' cmp-vendor-col--focused' : '') + (isDimmed(vendor.id) ? ' cmp-vendor-col--dimmed' : '')"
-                                                t-att-style="getCellStyle(line.id, vendor.id)"
+                                        <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
+                                            <t t-set="ld" t-value="this.getLineData(line.id, vendor.id)"/>
+                                            <td t-att-class="'cmp-price-cell' + (this.state.hoveredVendorId === vendor.id ? ' cmp-vendor-col--hovered' : '') + (vendor.is_winner ? ' cmp-price-cell--winner' : '') + (this.isFocused(vendor.id) ? ' cmp-vendor-col--focused' : '') + (this.isDimmed(vendor.id) ? ' cmp-vendor-col--dimmed' : '')"
+                                                t-att-style="this.getCellStyle(line.id, vendor.id)"
                                                 t-on-mouseenter="() => this.onHoverVendor(vendor.id)"
-                                                t-on-mouseleave="onLeaveVendor">
+                                                t-on-mouseleave="this.onLeaveVendor">
                                                 <t t-if="ld and ld.price_unit">
                                                     <!-- Unit price (main value) -->
                                                     <div class="cmp-unit-price">
-                                                        <t t-esc="formatMoney(ld.price_unit)"/>
+                                                        <t t-out="this.formatMoney(ld.price_unit)"/>
                                                     </div>
                                                     <!-- Best price badge -->
-                                                    <t t-if="isBestPrice(line.id, vendor.id)">
+                                                    <t t-if="this.isBestPrice(line.id, vendor.id)">
                                                         <span class="cmp-best-badge">✓ Best</span>
                                                     </t>
                                                     <!-- Price delta badge (% over best) -->
-                                                    <t t-elif="getPriceDelta(line.id, vendor.id)">
+                                                    <t t-elif="this.getPriceDelta(line.id, vendor.id)">
                                                         <span class="cmp-delta-badge">
-                                                            <t t-esc="getPriceDelta(line.id, vendor.id)"/>
+                                                            <t t-out="this.getPriceDelta(line.id, vendor.id)"/>
                                                         </span>
                                                     </t>
                                                     <!-- Discount -->
                                                     <t t-if="ld.discount and ld.discount > 0">
                                                         <span class="cmp-discount-chip">
-                                                            🏷 <t t-esc="ld.discount"/>%
+                                                            🏷 <t t-out="ld.discount"/>%
                                                         </span>
                                                     </t>
                                                     <!-- Allocate: quantity input (all vendors; new ones auto-register) -->
-                                                    <t t-if="state.allocateMode">
+                                                    <t t-if="this.state.allocateMode">
                                                         <div class="cmp-alloc-input-wrap">
                                                             <input type="number" class="cmp-alloc-input"
                                                                 min="0" step="1" t-att-max="line.qty"
-                                                                t-att-value="getAlloc(line.id, vendor.id)"
+                                                                t-att-value="this.getAlloc(line.id, vendor.id)"
                                                                 t-on-input="(ev) => this.setAlloc(line.id, vendor.id, ev.target.value)"/>
                                                             <span class="cmp-alloc-amount"
-                                                                t-if="getAlloc(line.id, vendor.id) > 0"
-                                                                t-esc="formatMoney(cellAmount(line.id, vendor.id))"/>
+                                                                t-if="this.getAlloc(line.id, vendor.id) > 0"
+                                                                t-out="this.formatMoney(this.cellAmount(line.id, vendor.id))"/>
                                                             <span class="cmp-alloc-newhint"
-                                                                t-if="vendor.is_new_vendor and getAlloc(line.id, vendor.id) > 0"
+                                                                t-if="vendor.is_new_vendor and this.getAlloc(line.id, vendor.id) > 0"
                                                                 title="This new vendor will be registered automatically when POs are generated.">
                                                                 auto-registers
                                                             </span>
@@ -696,9 +696,9 @@
                                     <td colspan="2" class="cmp-tfoot-label">
                                         <span class="text-muted">Subtotal (Excl. Tax)</span>
                                     </td>
-                                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
-                                        <td t-att-class="'cmp-subtotal-cell' + (state.hoveredVendorId === vendor.id ? ' cmp-vendor-col--hovered' : '')">
-                                            <t t-esc="formatMoney(vendor.untaxed)"/>
+                                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
+                                        <td t-att-class="'cmp-subtotal-cell' + (this.state.hoveredVendorId === vendor.id ? ' cmp-vendor-col--hovered' : '')">
+                                            <t t-out="this.formatMoney(vendor.untaxed)"/>
                                         </td>
                                     </t>
                                 </tr>
@@ -707,9 +707,9 @@
                                     <td colspan="2" class="cmp-tfoot-label">
                                         <span class="text-muted">Taxes</span>
                                     </td>
-                                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
-                                        <td t-att-class="'cmp-tax-cell' + (state.hoveredVendorId === vendor.id ? ' cmp-vendor-col--hovered' : '')">
-                                            <t t-esc="formatMoney(vendor.tax)"/>
+                                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
+                                        <td t-att-class="'cmp-tax-cell' + (this.state.hoveredVendorId === vendor.id ? ' cmp-vendor-col--hovered' : '')">
+                                            <t t-out="this.formatMoney(vendor.tax)"/>
                                         </td>
                                     </t>
                                 </tr>
@@ -718,30 +718,30 @@
                                     <td colspan="2" class="cmp-tfoot-label cmp-tfoot-label--total">
                                         GRAND TOTAL
                                     </td>
-                                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
-                                        <td t-att-class="getTotalCellClass(vendor)"
+                                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
+                                        <td t-att-class="this.getTotalCellClass(vendor)"
                                             t-on-mouseenter="() => this.onHoverVendor(vendor.id)"
-                                            t-on-mouseleave="onLeaveVendor">
+                                            t-on-mouseleave="this.onLeaveVendor">
                                             <div class="cmp-grand-total-amount">
-                                                <t t-esc="formatMoney(vendor.total)"/>
+                                                <t t-out="this.formatMoney(vendor.total)"/>
                                             </div>
                                             <!-- Mini bar chart in the total cell -->
                                             <div class="cmp-total-mini-bar">
                                                 <div class="cmp-total-mini-fill"
-                                                    t-att-style="'width: ' + getBarWidth(vendor.total) + '; background: ' + getScoreColor(vendor.rank)"/>
+                                                    t-att-style="'width: ' + this.getBarWidth(vendor.total) + '; background: ' + this.getScoreColor(vendor.rank)"/>
                                             </div>
                                         </td>
                                     </t>
                                 </tr>
                                 <!-- Allocation: per-vendor PO total -->
-                                <tr class="cmp-alloc-total-row" t-if="state.allocateMode">
+                                <tr class="cmp-alloc-total-row" t-if="this.state.allocateMode">
                                     <td colspan="2" class="cmp-tfoot-label cmp-tfoot-label--total">
                                         🛒 THIS PO (allocated)
                                     </td>
-                                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
-                                        <td t-att-class="'cmp-alloc-total-cell' + (vendorOrderTotal(vendor.id) > 0 ? ' cmp-alloc-total-cell--active' : '')">
+                                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
+                                        <td t-att-class="'cmp-alloc-total-cell' + (this.vendorOrderTotal(vendor.id) > 0 ? ' cmp-alloc-total-cell--active' : '')">
                                             <div class="cmp-alloc-total-amount">
-                                                <t t-esc="formatMoney(vendorOrderTotal(vendor.id))"/>
+                                                <t t-out="this.formatMoney(this.vendorOrderTotal(vendor.id))"/>
                                             </div>
                                         </td>
                                     </t>
@@ -751,11 +751,11 @@
                                     <td colspan="2" class="cmp-tfoot-label">
                                         🚚 Delivery Days
                                     </td>
-                                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
+                                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
                                         <td class="cmp-meta-cell text-center">
                                             <t t-if="vendor.delivery_days">
                                                 <span class="cmp-meta-chip-table">
-                                                    <t t-esc="vendor.delivery_days"/> d
+                                                    <t t-out="vendor.delivery_days"/> d
                                                 </span>
                                             </t>
                                             <t t-else="">—</t>
@@ -767,10 +767,10 @@
                                     <td colspan="2" class="cmp-tfoot-label">
                                         💳 Payment Terms
                                     </td>
-                                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
+                                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
                                         <td class="cmp-meta-cell text-center">
                                             <t t-if="vendor.payment_terms">
-                                                <span class="cmp-meta-chip-table" t-esc="vendor.payment_terms"/>
+                                                <span class="cmp-meta-chip-table" t-out="vendor.payment_terms"/>
                                             </t>
                                             <t t-else="">—</t>
                                         </td>
@@ -781,12 +781,12 @@
                                     <td colspan="2" class="cmp-tfoot-label">
                                         ⭐ Score / Rank
                                     </td>
-                                    <t t-foreach="visibleVendors" t-as="vendor" t-key="vendor.id">
+                                    <t t-foreach="this.visibleVendors" t-as="vendor" t-key="vendor.id">
                                         <td class="cmp-score-cell text-center">
                                             <div class="cmp-score-display"
-                                                t-att-style="'border-color: ' + getScoreColor(vendor.rank) + '; color: ' + getScoreColor(vendor.rank)">
-                                                <div class="cmp-score-num" t-esc="vendor.score.toFixed(1)"/>
-                                                <div class="cmp-score-rank" t-esc="getRankLabel(vendor.rank)"/>
+                                                t-att-style="'border-color: ' + this.getScoreColor(vendor.rank) + '; color: ' + this.getScoreColor(vendor.rank)">
+                                                <div class="cmp-score-num" t-out="vendor.score.toFixed(1)"/>
+                                                <div class="cmp-score-rank" t-out="this.getRankLabel(vendor.rank)"/>
                                             </div>
                                         </td>
                                     </t>
@@ -799,14 +799,14 @@
         </div>
 
         <!-- ── EMPTY STATE: no quotations received ────────────────────────── -->
-        <t t-if="state.data.vendors.length === 0">
+        <t t-if="this.state.data.vendors.length === 0">
             <div class="cmp-empty-state">
                 <div class="cmp-empty-icon">📭</div>
                 <h5>No quotations yet</h5>
                 <p class="text-muted">
                     Send this RFQ to vendors and mark their responses as "Received" to compare them here.
                 </p>
-                <button class="btn btn-outline-primary" t-on-click="onBackToRFQ">
+                <button class="btn btn-outline-primary" t-on-click="this.onBackToRFQ">
                     ← Back to RFQ
                 </button>
             </div>

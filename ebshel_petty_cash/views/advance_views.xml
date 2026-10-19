@@ -9,19 +9,23 @@
                 <header>
                     <button name="action_submit" type="object" string="Submit" class="btn-primary"
                             invisible="state != 'draft'"/>
-                    <button name="action_approve" type="object" string="Approve" class="btn-primary"
+                    <button name="action_approve" type="object" string="Approve" class="btn-success"
+                            invisible="not can_approve" data-hotkey="a"/>
+                    <button name="action_refuse" type="object" string="Refuse" class="btn-danger"
                             invisible="not can_approve"/>
+                    <button name="action_refuse" type="object" string="Refuse"
+                            invisible="state != 'approved'"
+                            groups="ebshel_petty_cash.group_petty_cash_manager"/>
+                    <button name="action_draft" type="object" string="Withdraw"
+                            invisible="state != 'to_approve'"/>
+                    <button name="action_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('refused', 'cancelled')"/>
                     <button name="action_pay" type="object" string="Pay Out" class="btn-primary"
                             invisible="not can_pay"/>
                     <button name="action_new_expense" type="object" string="Add Voucher"
                             invisible="state != 'paid'"/>
                     <button name="action_settle" type="object" string="Settle" class="btn-primary"
                             invisible="state != 'paid'"/>
-                    <button name="action_refuse" type="object" string="Refuse"
-                            invisible="state not in ('to_approve', 'approved')"
-                            groups="ebshel_petty_cash.group_petty_cash_approver"/>
-                    <button name="action_draft" type="object" string="Reset to Draft"
-                            invisible="state not in ('to_approve', 'refused', 'cancelled')"/>
                     <button name="%(action_report_petty_cash_advance)d" type="action" string="Print"
                             invisible="state in ('draft', 'refused', 'cancelled')"/>
                     <button name="action_cancel" type="object" string="Cancel"
@@ -45,21 +49,29 @@
                     <div class="alert alert-danger mb-2" role="alert" invisible="not is_overdue">
                         This advance is overdue: it should have been settled by <field name="due_date" class="d-inline" readonly="1"/>.
                     </div>
-                    <div class="alert alert-info mb-2" role="status" invisible="state != 'to_approve' or not first_approver_id">
-                        First approval by <field name="first_approver_id" class="d-inline" readonly="1"/>; waiting for a petty cash manager.
+                    <div class="alert alert-info mb-2 d-flex align-items-center gap-2" role="status" invisible="state != 'to_approve'">
+                        <strong>Waiting for approval:</strong>
+                        <field name="current_step_id" class="d-inline" readonly="1" options="{'no_open': True}"/>
+                        <field name="pending_approver_ids" widget="many2many_avatar_user" readonly="1"/>
+                        <span class="ms-auto badge text-bg-info"><field name="approval_progress" class="d-inline"/></span>
                     </div>
                     <div class="alert alert-danger mb-2" role="alert" invisible="state != 'refused'">
                         <strong>Refused:</strong> <field name="refuse_reason" class="d-inline"/>
                     </div>
-                    <div class="oe_title">
-                        <h1><field name="name" readonly="1"/></h1>
+                    <div class="oe_title d-flex align-items-start">
+                        <div class="flex-grow-1">
+                            <h1><field name="name" readonly="1"/></h1>
+                            <h3 class="text-muted fw-normal"><field name="purpose" placeholder="e.g. Site visit expenses"/></h3>
+                        </div>
+                        <div class="text-end">
+                            <div class="small text-muted text-uppercase">Advance</div>
+                            <h1 class="mb-0"><field name="amount" widget="monetary" readonly="state not in ('draft', 'to_approve')"/></h1>
+                        </div>
                     </div>
                     <group>
                         <group>
                             <field name="fund_id" readonly="state not in ('draft', 'to_approve')" options="{'no_create': True}"/>
                             <field name="holder_id" readonly="state not in ('draft', 'to_approve')"/>
-                            <field name="purpose" placeholder="e.g. Site visit expenses"/>
-                            <field name="amount" readonly="state not in ('draft', 'to_approve')"/>
                         </group>
                         <group>
                             <field name="date" readonly="state not in ('draft', 'to_approve')"/>
@@ -93,9 +105,22 @@
                                 </list>
                             </field>
                         </page>
-                        <page string="Approval" name="approval">
+                        <page string="Approval Chain" name="approval" invisible="not approval_step_ids and state == 'draft'">
+                            <field name="approval_step_ids" readonly="1" nolabel="1">
+                                <list decoration-success="state == 'approved'" decoration-danger="state == 'refused'"
+                                      decoration-info="state == 'pending'" decoration-muted="state in ('waiting', 'cancelled')">
+                                    <field name="name"/>
+                                    <field name="approver_ids" widget="many2many_avatar_user"/>
+                                    <field name="approval_mode"/>
+                                    <field name="done_by_id" widget="many2one_avatar_user"/>
+                                    <field name="done_date"/>
+                                    <field name="comment" optional="show"/>
+                                    <field name="state" widget="badge" decoration-success="state == 'approved'"
+                                           decoration-danger="state == 'refused'" decoration-info="state == 'pending'"/>
+                                </list>
+                            </field>
                             <group>
-                                <field name="first_approver_id" invisible="not first_approver_id"/>
+                                <field name="submitted_date"/>
                                 <field name="approver_id"/>
                                 <field name="approval_date"/>
                                 <field name="move_id" groups="account.group_account_readonly"/>
@@ -116,6 +141,12 @@
         <field name="model">ebshel.petty.cash.advance</field>
         <field name="arch" type="xml">
             <list decoration-danger="is_overdue" decoration-muted="state in ('cancelled', 'refused', 'settled')" sample="1">
+                <header>
+                    <button name="action_approve" type="object" string="Approve"
+                            groups="ebshel_petty_cash.group_petty_cash_approver"/>
+                    <button name="action_refuse" type="object" string="Refuse"
+                            groups="ebshel_petty_cash.group_petty_cash_approver"/>
+                </header>
                 <field name="name"/>
                 <field name="date"/>
                 <field name="fund_id"/>
@@ -127,6 +158,8 @@
                 <field name="amount" sum="Total"/>
                 <field name="amount_spent" sum="Total" optional="show"/>
                 <field name="amount_due" sum="Total"/>
+                <field name="approval_progress" optional="show"/>
+                <field name="pending_approver_ids" widget="many2many_avatar_user" optional="hide"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'to_approve'" decoration-warning="state in ('approved', 'paid')"
                        decoration-success="state == 'settled'" decoration-danger="state == 'refused'"/>
@@ -144,6 +177,7 @@
                 <field name="holder_id"/>
                 <filter name="my_advances" string="My Advances"
                         domain="['|', ('requested_by_id', '=', uid), ('holder_id.user_ids', 'in', uid)]"/>
+                <filter name="my_approvals" string="Waiting for Me" domain="[('is_my_approval', '=', True)]"/>
                 <separator/>
                 <filter name="to_approve" string="To Approve" domain="[('state', '=', 'to_approve')]"/>
                 <filter name="to_pay" string="To Pay Out" domain="[('state', '=', 'approved')]"/>
@@ -169,6 +203,13 @@
             <p class="o_view_nocontent_smiling_face">Request a cash advance</p>
             <p>Cash handed out before the spending; the vouchers and the returned cash settle it.</p>
         </field>
+    </record>
+
+    <record id="action_advance_my" model="ir.actions.act_window">
+        <field name="name">My Advances</field>
+        <field name="res_model">ebshel.petty.cash.advance</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_my_advances': 1}</field>
     </record>
 
 </odoo>

@@ -1365,20 +1365,19 @@ class PurchaseRequest(models.Model):
             })
 
         # Department (analytic account) spend — top 6 YTD
-        dept_groups = self.read_group(
+        dept_groups = self._read_group(
             [('state', 'in', ('approved', 'closed')), ('company_id', '=', company_id),
              ('date_request', '>=', period_start)],
-            ['analytic_account_id', 'amount_total:sum'],
-            ['analytic_account_id'],
-            orderby='amount_total desc',
+            ['analytic_account_id'], ['amount_total:sum'],
+            order='amount_total:sum desc',
             limit=6,
         )
-        max_dept = max((g['amount_total'] or 0 for g in dept_groups), default=1) or 1
+        max_dept = max((total or 0 for _dept, total in dept_groups), default=1) or 1
         dept_spend = [{
-            'dept': (g['analytic_account_id'][1] if g['analytic_account_id'] else _('No Department')),
-            'amount': round(g['amount_total'] or 0, 2),
-            'pct': round((g['amount_total'] or 0) / max_dept * 100, 1),
-        } for g in dept_groups]
+            'dept': dept.display_name if dept else _('No Department'),
+            'amount': round(total or 0, 2),
+            'pct': round((total or 0) / max_dept * 100, 1),
+        } for dept, total in dept_groups]
 
         # Vendor leaderboard — top 5 winners YTD
         won_quotes = self.env['ebshel.purchase.vendor.quotation'].search([

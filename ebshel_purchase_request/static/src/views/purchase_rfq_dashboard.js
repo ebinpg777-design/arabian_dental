@@ -5,7 +5,7 @@ import { listView } from "@web/views/list/list_view";
 import { ListRenderer } from "@web/views/list/list_renderer";
 import { useService } from "@web/core/utils/hooks";
 import { debounce } from "@web/core/utils/timing";
-import { Component, onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
+import { Component, onWillStart, onWillUpdateProps, proxy, t, useProps } from "@odoo/owl";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  RFQ list KPI dashboard — colored filter tiles above the RFQ list, modelled
@@ -14,11 +14,11 @@ import { Component, onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
 
 export class RFQDashboard extends Component {
     static template = "ebshel_purchase_request.RFQDashboard";
-    static props = { list: { type: Object, optional: true } };
+    props = useProps({ list: t.object().optional() });
 
     setup() {
         this.orm = useService("orm");
-        this.state = useState({ data: null });
+        this.state = proxy({ data: null });
         // retrieve_dashboard is filter-independent; collapse the prop-update
         // bursts (search keystrokes, filter toggles, pager) into one trailing
         // call instead of a full aggregation per re-render.

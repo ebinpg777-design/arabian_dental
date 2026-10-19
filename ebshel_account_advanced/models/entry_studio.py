@@ -124,9 +124,15 @@ class EntryStudio(models.AbstractModel):
         if any(float(l.get('debit') or 0) and float(l.get('credit') or 0) for l in lines):
             problems.append(_("A line has both a debit and a credit."))
         date = fields.Date.to_date(vals.get('date')) if vals.get('date') else None
-        lock = self.env.company.fiscalyear_lock_date
-        if date and lock and date <= lock:
-            problems.append(_("The date is on or before the lock date %s.", fields.Date.to_string(lock)))
+        # every lock posting would trip on, as account.move checks them: the hard lock, the
+        # sales or purchase lock of the journal, and this user's own (exceptions included)
+        journal = self.env['account.journal'].browse(int(vals['journal_id'])) if vals.get('journal_id') else None
+        locks = self.env.company._get_lock_date_violations(
+            date, fiscalyear=True, sale=bool(journal and journal.type == 'sale'),
+            purchase=bool(journal and journal.type == 'purchase'), tax=False, hard=True) if date else []
+        if locks:
+            problems.append(_("The date is on or before the lock date: %s.",
+                              self.env['res.company']._format_lock_dates(locks)))
         if not vals.get('journal_id'):
             problems.append(_("Choose a journal."))
         needs_partner = self.env['account.account'].browse([l['account_id'] for l in lines if l.get('account_id')]).filtered(

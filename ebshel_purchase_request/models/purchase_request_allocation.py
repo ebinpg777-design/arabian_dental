@@ -40,16 +40,16 @@ class PurchaseRequestAllocation(models.Model):
     )
 
     requested_product_uom_qty = fields.Float(
-        'Allocated Qty', digits='Product Unit of Measure',
+        'Allocated Qty', digits='Product Unit',
         help='Quantity of the request line allocated to this PO line / move.',
     )
     allocated_product_qty = fields.Float(
-        'Received Qty', digits='Product Unit of Measure', copy=False,
+        'Received Qty', digits='Product Unit', copy=False,
         help='Quantity actually received against this allocation.',
     )
     open_product_qty = fields.Float(
         'Open Qty', compute='_compute_open_product_qty', store=True,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
         help='Quantity still expected (allocated − received).',
     )
     purchase_state = fields.Selection(

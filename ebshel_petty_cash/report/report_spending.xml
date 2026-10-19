@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="report_spending_table">
+        <table class="table table-sm o_pc_table">
+            <thead>
+                <tr>
+                    <th t-out="title"/>
+                    <th class="text-end">Vouchers</th>
+                    <th style="width: 30%;"/>
+                    <th class="text-end">Share</th>
+                    <th class="text-end">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr t-foreach="rows" t-as="row">
+                    <td><span t-out="row['name']"/></td>
+                    <td class="text-end"><span t-out="row['count']"/></td>
+                    <td style="vertical-align: middle;"><div class="o_pc_bar"><div t-att-style="'width: {}%;'.format(min(row['share'], 100))"/></div></td>
+                    <td class="text-end small text-muted"><span t-out="'{:.1f}%'.format(row['share'])"/></td>
+                    <td class="text-end"><span t-out="row['amount']" t-options="money"/></td>
+                </tr>
+                <tr t-if="not rows"><td colspan="5" class="text-center text-muted">Nothing paid in the period.</td></tr>
+            </tbody>
+        </table>
+    </template>
+
+    <template id="report_spending">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="data" t-value="doc._spending_data()"/>
+                <t t-set="money" t-value="{'widget': 'monetary', 'display_currency': data['currency']}"/>
+                <t t-set="company" t-value="doc.fund_ids.company_id[:1] or res_company"/>
+                <t t-call="web.external_layout">
+                    <t t-call="ebshel_petty_cash.report_style"/>
+                    <div class="page o_pc_report">
+                        <h2>Petty Cash Spending Summary</h2>
+                        <div class="o_pc_sub">
+                            <span t-out="doc.date_from" t-options="{'widget': 'date'}"/>
+                            to <span t-out="doc.date_to" t-options="{'widget': 'date'}"/>
+                            - <span t-out="', '.join(doc.fund_ids.mapped('name'))"/>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Total spent</div><div class="o_pc_big"><span t-out="data['total']" t-options="money"/></div></div></div>
+                            <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Vouchers</div><div class="o_pc_big"><span t-out="data['voucher_count']"/></div></div></div>
+                            <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">Average voucher</div><div class="o_pc_big"><span t-out="data['average']" t-options="money"/></div></div></div>
+                            <div class="col-3"><div class="o_pc_kpi"><div class="o_pc_label">High-risk vouchers</div><div t-attf-class="o_pc_big #{'text-danger' if data['high_risk'] else ''}"><span t-out="data['high_risk']"/></div></div></div>
+                        </div>
+                        <h6 class="o_pc_section">By category</h6>
+                        <t t-set="title">Category</t>
+                        <t t-set="rows" t-value="data['categories']"/>
+                        <t t-call="ebshel_petty_cash.report_spending_table"/>
+
+                        <h6 class="o_pc_section">By fund, against the budget</h6>
+                        <table class="table table-sm o_pc_table">
+                            <thead>
+                                <tr><th>Fund</th><th class="text-end">Spent</th><th class="text-end">Budget</th><th style="width: 30%;"/><th class="text-end">Used</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="data['funds']" t-as="fund">
+                                    <td><span t-out="fund['name']"/></td>
+                                    <td class="text-end"><span t-out="fund['spent']" t-options="money"/></td>
+                                    <td class="text-end"><span t-if="fund['budget']" t-out="fund['budget']" t-options="money"/><span t-else="" class="text-muted">-</span></td>
+                                    <td style="vertical-align: middle;"><div t-if="fund['budget']" class="o_pc_bar"><div t-attf-class="#{'bad' if fund['used'] &gt; 100 else ''}" t-att-style="'width: {}%;'.format(min(fund['used'], 100))"/></div></td>
+                                    <td class="text-end"><span t-if="fund['budget']" t-out="'{:.0f}%'.format(fund['used'])"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <h6 class="o_pc_section">Top requesters</h6>
+                                <table class="table table-sm o_pc_table">
+                                    <tr t-foreach="data['requesters']" t-as="row">
+                                        <td><span t-out="row['name']"/></td>
+                                        <td class="text-end small text-muted"><span t-out="row['count']"/></td>
+                                        <td class="text-end"><span t-out="row['amount']" t-options="money"/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-6">
+                                <h6 class="o_pc_section">Top payees</h6>
+                                <table class="table table-sm o_pc_table">
+                                    <tr t-foreach="data['payees']" t-as="row">
+                                        <td><span t-out="row['name']"/></td>
+                                        <td class="text-end small text-muted"><span t-out="row['count']"/></td>
+                                        <td class="text-end"><span t-out="row['amount']" t-options="money"/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <p class="small text-muted">Paid vouchers, in company currency.</p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

@@ -36,7 +36,7 @@ class PurchaseRequestLine(models.Model):
     )
     qty = fields.Float(
         'Quantity', required=True, default=1.0,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
     )
     uom_id = fields.Many2one(
         'uom.uom', string='UOM',
@@ -46,7 +46,7 @@ class PurchaseRequestLine(models.Model):
 
     # ── Estimates ─────────────────────────────────────────────────────────────
     price_unit = fields.Monetary(
-        'Est. Unit Price', digits='Product Price', default=0.0,
+        'Est. Unit Price', default=0.0,
         currency_field='currency_id',
     )
     estimated_total = fields.Monetary(
@@ -137,12 +137,12 @@ class PurchaseRequestLine(models.Model):
     # ── RFQ sourcing quantities (supports partial / split RFQs) ───────────────
     qty_in_rfq = fields.Float(
         'In RFQ', compute='_compute_rfq_qty', store=True,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
         help='Quantity already placed on active (non-cancelled) RFQs.',
     )
     qty_to_rfq = fields.Float(
         'To RFQ', compute='_compute_rfq_qty', store=True,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
         help='Requested quantity still available to source on a new RFQ.',
     )
 
@@ -159,22 +159,22 @@ class PurchaseRequestLine(models.Model):
     # ── Fulfilment quantities (OCA-style procurement tracking) ────────────────
     purchased_qty = fields.Float(
         'Ordered Qty', compute='_compute_purchased_qty', store=True,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
         help='Total quantity committed across linked purchase order lines.',
     )
     qty_done = fields.Float(
         'Received Qty', compute='_compute_allocation_qty', store=True,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
         help='Quantity fully received against this line.',
     )
     qty_in_progress = fields.Float(
         'In Progress Qty', compute='_compute_allocation_qty', store=True,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
         help='Quantity ordered but not yet received.',
     )
     pending_qty_to_receive = fields.Float(
         'Pending Qty', compute='_compute_pending_qty', store=True,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
         help='Requested quantity still to be received (requested − received).',
     )
     qty_to_buy = fields.Boolean(
@@ -194,7 +194,7 @@ class PurchaseRequestLine(models.Model):
     # ── Reception & billing tracking (full lifecycle visibility) ──────────────
     qty_invoiced = fields.Float(
         'Billed Qty', compute='_compute_qty_invoiced', store=True,
-        digits='Product Unit of Measure',
+        digits='Product Unit',
         help='Quantity already invoiced/billed across linked purchase order lines.',
     )
     reception_status = fields.Selection([
@@ -341,8 +341,8 @@ class PurchaseRequestLine(models.Model):
             for pol in line.purchase_line_ids:
                 if pol.state == 'cancel':
                     continue
-                if pol.product_uom_id and line.uom_id:
-                    total += pol.product_uom_id._compute_quantity(pol.product_qty, line.uom_id)
+                if pol.uom_id and line.uom_id:
+                    total += pol.uom_id._compute_quantity(pol.product_qty, line.uom_id)
                 else:
                     total += pol.product_qty
             line.purchased_qty = total
@@ -391,8 +391,8 @@ class PurchaseRequestLine(models.Model):
             for pol in line.purchase_line_ids:
                 if pol.state == 'cancel':
                     continue
-                if pol.product_uom_id and line.uom_id:
-                    total += pol.product_uom_id._compute_quantity(pol.qty_invoiced, line.uom_id)
+                if pol.uom_id and line.uom_id:
+                    total += pol.uom_id._compute_quantity(pol.qty_invoiced, line.uom_id)
                 else:
                     total += pol.qty_invoiced
             line.qty_invoiced = total

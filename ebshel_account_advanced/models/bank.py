@@ -20,7 +20,7 @@ import re
 from datetime import timedelta
 
 from odoo import api, fields, models, Command, _
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools import SQL, float_compare, float_is_zero
 
 BOOK_WINDOW_BEFORE = 45        # a cheque can take weeks to reach the bank
@@ -493,6 +493,8 @@ class BankDesk(models.AbstractModel):
         rule = self.env['ebshel.bank.rule'].browse(int(rule_id)).exists()
         if not st or not rule:
             raise UserError(_("Nothing to apply."))
+        if self._is_foreign(st):
+            raise UserError(_("Foreign-currency bank lines are reconciled from the statement itself."))
         if not self._apply_rule(st, rule):
             raise UserError(_("Rule '%s' found nothing to match for this line.", rule.name))
         return True
@@ -505,7 +507,17 @@ class BankDesk(models.AbstractModel):
         return self.env['ebshel.bank.rule']
 
     @api.model
+    def _is_foreign(self, st):
+        """A line reconcile() refuses: in a currency other than the company's."""
+        company_currency = st.company_id.currency_id
+        return bool((st.foreign_currency_id and st.foreign_currency_id != company_currency) or
+                    (st.journal_id.currency_id and st.journal_id.currency_id != company_currency))
+
+    @api.model
     def _apply_rule(self, st, rule):
+        # reconcile() refuses these with an error: a rule simply does not apply to them
+        if self._is_foreign(st):
+            return False
         if rule.action == 'account':
             self.reconcile(st.id, [{'kind': 'account', 'account_id': rule.account_id.id, 'amount': abs(st.amount),
                                     'label': rule.label or st.payment_ref, 'analytic_distribution': rule.analytic_distribution}],
@@ -526,25 +538,41 @@ class BankDesk(models.AbstractModel):
         journal = self._journal(journal_id)
         done = {'rules': 0, 'booked': 0, 'invoices': 0}
         used = set()
+        # Each line in a savepoint of its own, and a line that cannot be done is left for
+        # the user: an error used to leave the savepoint and abort the whole run.
         for st in self.env['account.bank.statement.line'].search([('journal_id', '=', journal.id), ('is_reconciled', '=', False)],
                                                                  order='date, id'):
             rule = self._rule_for(st)
             if rule and rule.auto_apply:
-                with self.env.cr.savepoint():
-                    if self._apply_rule(st, rule):
-                        done['rules'] += 1
-                        continue
+                try:
+                    with self.env.cr.savepoint():
+                        applied = self._apply_rule(st, rule)
+                except (UserError, ValidationError):
+                    applied = False
+                if applied:
+                    done['rules'] += 1
+                    continue
             book = [c for c in self._book_candidates(st, limit=2, exclude=used)]
             if len(book) == 1 or (book and book[0]['confidence'] >= 96 and (len(book) < 2 or book[1]['confidence'] < 96)):
-                used.add(book[0]['id'])
-                self.already_booked(st.id, book[0]['id'])
-                done['booked'] += 1
+                try:
+                    with self.env.cr.savepoint():
+                        self.already_booked(st.id, book[0]['id'])
+                except (UserError, ValidationError):
+                    pass
+                else:
+                    used.add(book[0]['id'])
+                    done['booked'] += 1
+                    continue
+            if self._is_foreign(st):
                 continue
             cands = self.env['ebshel.match.desk']._bank_candidates(st)
             if cands and cands[0]['confidence'] >= min_confidence and (len(cands) < 2 or cands[1]['confidence'] < cands[0]['confidence']):
-                with self.env.cr.savepoint():
-                    self.reconcile(st.id, [{'kind': 'open', 'aml_id': cands[0]['id']}])
-                    done['invoices'] += 1
+                try:
+                    with self.env.cr.savepoint():
+                        self.reconcile(st.id, [{'kind': 'open', 'aml_id': cands[0]['id']}])
+                except (UserError, ValidationError):
+                    continue
+                done['invoices'] += 1
         return done
 
     # ------------------------------------------------------------------ import
@@ -599,9 +627,15 @@ class BankDesk(models.AbstractModel):
         for st in created:
             rule = self._rule_for(st)
             if rule and rule.auto_apply:
-                with self.env.cr.savepoint():
-                    if self._apply_rule(st, rule):
-                        result['ruled'] += 1
+                # a rule that fails on one line leaves that line to match by hand; the
+                # import itself (already done above) must not be rolled back with it
+                try:
+                    with self.env.cr.savepoint():
+                        applied = self._apply_rule(st, rule)
+                except (UserError, ValidationError):
+                    applied = False
+                if applied:
+                    result['ruled'] += 1
         return result
 
     # ------------------------------------------------------------------ ticking and the statement
@@ -694,9 +728,10 @@ class BankDesk(models.AbstractModel):
     def brs_pdf(self, journal_id, date=None):
         self._check()
         journal = self._journal(journal_id)
-        action = self.env.ref('ebshel_account_advanced.action_report_brs').report_action(journal)
-        action['data'] = {'date': date or fields.Date.to_string(fields.Date.context_today(self)), 'journal_id': journal.id}
-        return action
+        # the date goes in through report_action: patched onto the returned action it was
+        # lost whenever report_action handed back the document layout wizard instead
+        return self.env.ref('ebshel_account_advanced.action_report_brs').report_action(journal, data={
+            'date': date or fields.Date.to_string(fields.Date.context_today(self)), 'journal_id': journal.id})
 
 
 class BrsReport(models.AbstractModel):

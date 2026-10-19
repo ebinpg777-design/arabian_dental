@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="report_aging">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="data" t-value="doc._aging_data()"/>
+                <t t-set="money" t-value="{'widget': 'monetary', 'display_currency': data['currency']}"/>
+                <t t-set="company" t-value="doc.fund_ids.company_id[:1] or res_company"/>
+                <t t-call="web.external_layout">
+                    <t t-call="ebshel_petty_cash.report_style"/>
+                    <div class="page o_pc_report">
+                        <h2>Advance Aging</h2>
+                        <div class="o_pc_sub">
+                            Advances not settled on <span t-out="doc.date_to" t-options="{'widget': 'date'}"/>
+                            - <span t-out="', '.join(doc.fund_ids.mapped('name'))"/>
+                        </div>
+                        <div class="row mb-3">
+                            <t t-foreach="data['buckets']" t-as="bucket">
+                                <div class="col">
+                                    <div class="o_pc_kpi">
+                                        <div class="o_pc_label" t-out="bucket[1]"/>
+                                        <div t-attf-class="o_pc_big #{'text-danger' if bucket[0] != 'not_due' and data['totals'][bucket[0]] else ''}">
+                                            <span t-out="data['totals'][bucket[0]]" t-options="money"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                        <h6 class="o_pc_section">By holder</h6>
+                        <table class="table table-sm o_main_table o_pc_table">
+                            <thead>
+                                <tr>
+                                    <th>Holder</th>
+                                    <th t-foreach="data['buckets']" t-as="bucket" class="text-end" t-out="bucket[1]"/>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="data['holders']" t-as="holder">
+                                    <td><span t-out="holder['name']"/></td>
+                                    <td t-foreach="data['buckets']" t-as="bucket" class="text-end">
+                                        <span t-if="holder[bucket[0]]" t-out="holder[bucket[0]]" t-options="money"/>
+                                    </td>
+                                    <td class="text-end fw-bold"><span t-out="holder['total']" t-options="money"/></td>
+                                </tr>
+                                <tr t-if="not data['holders']"><td t-att-colspan="len(data['buckets']) + 2" class="text-center text-muted">No advance outstanding.</td></tr>
+                                <tr class="fw-bold">
+                                    <td>Total</td>
+                                    <td t-foreach="data['buckets']" t-as="bucket" class="text-end"><span t-out="data['totals'][bucket[0]]" t-options="money"/></td>
+                                    <td class="text-end"><span t-out="data['total']" t-options="money"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <t t-if="data['rows']">
+                            <h6 class="o_pc_section">Advances</h6>
+                            <table class="table table-sm o_pc_table">
+                                <thead>
+                                    <tr><th>Advance</th><th>Holder</th><th>Purpose</th><th>Paid</th><th>Settle by</th><th class="text-end">Days late</th><th class="text-end">Still out</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="data['rows']" t-as="row">
+                                        <t t-set="advance" t-value="row['advance']"/>
+                                        <td><span t-field="advance.name"/></td>
+                                        <td><span t-field="advance.holder_id"/></td>
+                                        <td><span t-field="advance.purpose"/></td>
+                                        <td><span t-field="advance.date"/></td>
+                                        <td><span t-field="advance.due_date"/></td>
+                                        <td t-attf-class="text-end #{'text-danger fw-bold' if row['days'] else ''}"><span t-out="row['days']"/></td>
+                                        <td class="text-end"><span t-out="row['amount']" t-options="money"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                        <p class="small text-muted">In company currency.</p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

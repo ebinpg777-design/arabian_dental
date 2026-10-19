@@ -142,10 +142,8 @@ class PettyCashAdvance(models.Model):
     def _petty_cash_approval_amount(self):
         return self.amount
 
-    def _petty_cash_auto_approved(self):
-        self.ensure_one()
-        limit = self.fund_id.auto_approve_limit
-        return bool(limit) and self.currency_id.compare_amounts(self.amount, limit) <= 0
+    def _petty_cash_document_type(self):
+        return "advance"
 
     def _petty_cash_check_submit(self):
         self.ensure_one()
@@ -294,7 +292,8 @@ class PettyCashAdvance(models.Model):
         for advance in self:
             if advance.move_id:
                 self._petty_cash_reverse(advance.move_id)
-            advance.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval", "ebshel_petty_cash.mail_act_petty_cash_settle"])
+            advance._petty_cash_cancel_steps()
+            advance.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_settle"])
             advance.state = "cancelled"
 
     def action_new_expense(self):

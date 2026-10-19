@@ -2,7 +2,7 @@
 
 import { useService } from "@web/core/utils/hooks";
 import { debounce } from "@web/core/utils/timing";
-import { Component, onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
+import { Component, onWillStart, onWillUpdateProps, proxy, t, useProps } from "@odoo/owl";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Purchase Request list KPI dashboard — colored filter tiles above the list,
@@ -11,11 +11,11 @@ import { Component, onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
 
 export class PRDashboard extends Component {
     static template = "ebshel_purchase_request.PRDashboard";
-    static props = { list: { type: Object, optional: true } };
+    props = useProps({ list: t.object().optional() });
 
     setup() {
         this.orm = useService("orm");
-        this.state = useState({ data: null, multiuser: false });
+        this.state = proxy({ data: null, multiuser: false });
         // The embedded dashboard re-receives props on every list re-render
         // (search keystroke, filter toggle, pager). retrieve_dashboard is
         // filter-independent, so collapse those bursts into a single trailing

@@ -128,7 +128,7 @@ class PrBargainWizard(models.TransientModel):
                 't': self._fmt(wl.total_target_price) if wl.total_target_price else '—',
                 'n': wl.item_message or '',
             }
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        base_url = self.get_base_url()
         rfq_url = (
             f"{base_url}/web#id={quotation.rfq_id.id}"
             f"&model=ebshel.purchase.rfq"

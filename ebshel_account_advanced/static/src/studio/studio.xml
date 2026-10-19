@@ -3,13 +3,13 @@
     <t t-name="ebshel_account_advanced.EntryStudio">
         <div class="o_eaa o_action o_eaa_studio">
             <div class="o_eaa_head">
-                <h2><i class="fa fa-pencil-square-o me-2"/>Entry studio</h2>
+                <h2><i class="oi me-2" data-icon="edit_square"/>Entry studio</h2>
                 <span class="o_eaa_sub">a journal entry, typed like a sheet</span>
                 <div class="ms-auto d-flex gap-1" t-if="this.state.setup and this.state.saved">
                     <span class="o_eaa_badge good">saved <a href="#" t-on-click.prevent="() => this.openMove(this.state.saved.id)" t-out="this.state.saved.name"/></span>
                 </div>
             </div>
-            <div t-if="!this.state.setup" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Loading…</div>
+            <div t-if="!this.state.setup" class="p-4 text-muted"><i class="oi oi-spin me-2" data-icon="autorenew"/>Loading…</div>
             <div t-else="" class="o_eaa_body">
                 <t t-set="s" t-value="this.state.setup"/>
                 <div class="o_eaa_grid" style="grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr)">
@@ -25,7 +25,7 @@
                                 <span t-if="s.lock_date" class="small text-muted ms-auto">books locked up to <b t-out="s.lock_date"/></span>
                             </div>
                             <div class="o_eaa_toolbar" t-if="s.templates.length">
-                                <label class="small text-muted"><i class="fa fa-magic me-1"/>Template</label>
+                                <label class="small text-muted"><i class="oi me-1" data-icon="wand_stars"/>Template</label>
                                 <select class="form-select" t-model.proxy="this.state.template_id"><option value="">–</option><option t-foreach="s.templates" t-as="t" t-key="t.id" t-att-value="t.id" t-out="t.name"/></select>
                                 <input type="number" step="0.01" class="form-control" style="width: 130px" placeholder="amount" t-model.proxy="this.state.template_amount"/>
                                 <button class="btn btn-sm btn-outline-primary" t-on-click="this.loadTemplate" t-att-disabled="!this.state.template_id">Fill from the template</button>
@@ -61,14 +61,14 @@
                                         </td>
                                         <td><input type="number" step="0.01" min="0" class="form-control form-control-sm num" t-model.proxy="l.debit" t-on-change="() => this.sideEntered(l, 'debit')" t-on-keydown="(ev) => this.onKey(ev, l_index)"/></td>
                                         <td><input type="number" step="0.01" min="0" class="form-control form-control-sm num" t-model.proxy="l.credit" t-on-change="() => this.sideEntered(l, 'credit')" t-on-keydown="(ev) => this.onKey(ev, l_index)"/></td>
-                                        <td><button class="btn btn-sm btn-link text-danger o_eaa_btn" t-on-click="() => this.removeLine(l_index)" tabindex="-1"><i class="fa fa-times"/></button></td>
+                                        <td><button class="btn btn-sm btn-link text-danger o_eaa_btn" t-on-click="() => this.removeLine(l_index)" tabindex="-1"><i class="oi" data-icon="close"/></button></td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr>
                                         <td colspan="3" t-att-colspan="s.analytic ? 4 : 3">
-                                            <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.addLine()"><i class="fa fa-plus me-1"/>Line</button>
-                                            <button class="btn btn-sm btn-outline-secondary ms-1" t-on-click="this.balance" t-att-disabled="Math.abs(this.totals.diff) &lt; 0.005"><i class="fa fa-balance-scale me-1"/>Balance</button>
+                                            <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.addLine()"><i class="oi me-1" data-icon="add"/>Line</button>
+                                            <button class="btn btn-sm btn-outline-secondary ms-1" t-on-click="this.balance" t-att-disabled="Math.abs(this.totals.diff) &lt; 0.005"><i class="oi me-1" data-icon="balance"/>Balance</button>
                                             <span class="small text-muted ms-2">Paste rows from Excel: account code, label, debit, credit.</span>
                                         </td>
                                         <td class="num"><b t-out="this.money(this.totals.debit)"/></td>
@@ -82,10 +82,10 @@
                                 </tfoot>
                             </table>
                             <div t-if="this.state.problems.length" class="alert alert-warning py-1 px-2 mt-2 small mb-1">
-                                <div t-foreach="this.state.problems" t-as="p" t-key="p_index"><i class="fa fa-exclamation-triangle me-1"/><t t-out="p"/></div>
+                                <div t-foreach="this.state.problems" t-as="p" t-key="p_index"><i class="oi me-1" data-icon="warning"/><t t-out="p"/></div>
                             </div>
                             <div class="d-flex gap-2 align-items-center mt-2" t-if="s.can_write">
-                                <button class="btn btn-primary" t-on-click="() => this.save(true)" t-att-disabled="this.state.busy or !this.canPost"><i class="fa fa-check me-1"/>Post</button>
+                                <button class="btn btn-primary" t-on-click="() => this.save(true)" t-att-disabled="this.state.busy or !this.canPost"><i class="oi me-1" data-icon="check"/>Post</button>
                                 <button class="btn btn-outline-primary" t-on-click="() => this.save(false)" t-att-disabled="this.state.busy">Save as draft</button>
                                 <button class="btn btn-link" t-on-click="this.reset">Clear</button>
                                 <div class="ms-auto d-flex gap-1">

@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, useState, onMounted } from "@odoo/owl";
+import { Component, onMounted, proxy, useProps } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Department / Cost-Centre Insight cockpit
@@ -13,12 +14,12 @@ import { useService } from "@web/core/utils/hooks";
 
 export class DepartmentInsight extends Component {
     static template = "ebshel_purchase_request.DepartmentInsight";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
-        this.state = useState({ loading: true, error: null, data: null });
+        this.state = proxy({ loading: true, error: null, data: null });
         onMounted(() => this._load());
     }
 

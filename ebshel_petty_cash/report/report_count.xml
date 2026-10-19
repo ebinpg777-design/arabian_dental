@@ -3,47 +3,70 @@
 
     <template id="report_count_document">
         <t t-call="web.external_layout">
-            <div class="page">
-                <h2>Cash Count <span t-field="doc.name"/></h2>
-                <div class="row mt-3 mb-3">
-                    <div class="col-6">
-                        <strong>Fund:</strong> <span t-field="doc.fund_id"/><br/>
-                        <strong>Counted by:</strong> <span t-field="doc.counted_by_id"/><br/>
-                        <t t-if="doc.witness_id"><strong>Witness:</strong> <span t-field="doc.witness_id"/></t>
-                    </div>
-                    <div class="col-6 text-end">
-                        <strong>Date:</strong> <span t-field="doc.date"/><br/>
-                        <strong>Status:</strong> <span t-field="doc.state"/>
-                    </div>
-                </div>
-                <table t-if="doc.line_ids" class="table table-sm o_main_table">
-                    <thead>
-                        <tr><th>Denomination</th><th class="text-end">Quantity</th><th class="text-end">Amount</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr t-foreach="doc.line_ids.filtered('quantity')" t-as="line">
-                            <td><span t-field="line.denomination_id"/></td>
-                            <td class="text-end"><span t-field="line.quantity"/></td>
-                            <td class="text-end"><span t-field="line.subtotal"/></td>
-                        </tr>
-                    </tbody>
+            <t t-call="ebshel_petty_cash.report_style"/>
+            <t t-set="draft" t-value="doc.state == 'draft'"/>
+            <t t-set="ledger" t-value="doc.current_book_balance if draft else doc.book_balance"/>
+            <t t-set="difference" t-value="doc.expected_difference if draft else doc.difference"/>
+            <div class="page o_pc_report">
+                <h2>Cash Count Sheet <t t-call="ebshel_petty_cash.report_state_badge"/></h2>
+                <div class="o_pc_sub"><span t-field="doc.name"/> - <span t-field="doc.fund_id"/></div>
+                <table class="o_pc_facts">
+                    <tr>
+                        <td class="o_pc_label">Counted by</td><td><span t-field="doc.counted_by_id"/></td>
+                        <td class="o_pc_label">Date</td><td><span t-field="doc.date"/></td>
+                    </tr>
+                    <tr>
+                        <td class="o_pc_label">Witness</td><td><span t-field="doc.witness_id"/></td>
+                        <td class="o_pc_label">Custodian</td><td><span t-field="doc.fund_id.custodian_id"/></td>
+                    </tr>
                 </table>
-                <div class="row">
-                    <div class="col-6 ms-auto">
-                        <table class="table table-sm">
-                            <tr class="fw-bold"><td>Cash counted</td><td class="text-end"><span t-field="doc.counted_amount"/></td></tr>
-                            <t t-if="doc.state == 'draft'">
-                                <tr><td>Ledger balance (now)</td><td class="text-end"><span t-field="doc.current_book_balance"/></td></tr>
-                                <tr><td>Difference</td><td class="text-end"><span t-field="doc.expected_difference"/></td></tr>
-                            </t>
-                            <t t-else="">
-                                <tr><td>Ledger balance</td><td class="text-end"><span t-field="doc.book_balance"/></td></tr>
-                                <tr><td>Difference</td><td class="text-end"><span t-field="doc.difference"/></td></tr>
-                            </t>
-                        </table>
+                <div class="row mb-3">
+                    <div class="col-4"><div class="o_pc_kpi"><div class="o_pc_label">Cash counted</div><div class="o_pc_big"><span t-field="doc.counted_amount"/></div></div></div>
+                    <div class="col-4">
+                        <div class="o_pc_kpi">
+                            <div class="o_pc_label">Ledger balance<t t-if="draft"> (now)</t></div>
+                            <div class="o_pc_big"><span t-out="ledger" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="o_pc_kpi">
+                            <div class="o_pc_label">Difference</div>
+                            <div t-attf-class="o_pc_big #{'text-danger' if not doc.currency_id.is_zero(difference) else 'text-success'}">
+                                <span t-out="difference" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                            </div>
+                            <div class="small text-muted" t-if="not doc.currency_id.is_zero(difference)">
+                                <t t-if="difference &gt; 0">cash over</t><t t-else="">cash short</t>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <t t-foreach="[('note', 'Notes'), ('coin', 'Coins')]" t-as="kind">
+                    <t t-set="lines" t-value="doc.line_ids.filtered(lambda l: l.quantity and l.kind == kind[0])"/>
+                    <t t-if="lines">
+                        <h6 class="o_pc_section" t-out="kind[1]"/>
+                        <table class="table table-sm o_main_table o_pc_table">
+                            <thead>
+                                <tr><th>Denomination</th><th class="text-end">Quantity</th><th class="text-end">Amount</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="lines" t-as="line">
+                                    <td><span t-field="line.denomination_id"/></td>
+                                    <td class="text-end"><span t-field="line.quantity"/></td>
+                                    <td class="text-end"><span t-field="line.subtotal"/></td>
+                                </tr>
+                                <tr class="fw-bold">
+                                    <td colspan="2">Total</td>
+                                    <td class="text-end"><span t-out="sum(lines.mapped('subtotal'))" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+                </t>
                 <p t-if="doc.note"><strong>Explanation:</strong> <span t-field="doc.note"/></p>
+                <div class="row">
+                    <div class="col-10"/>
+                    <div class="col-2"><t t-call="ebshel_petty_cash.report_qr"/></div>
+                </div>
                 <t t-set="signatures" t-value="['Counted by', 'Witness', 'Reviewed by']"/>
                 <t t-call="ebshel_petty_cash.report_signatures"/>
             </div>

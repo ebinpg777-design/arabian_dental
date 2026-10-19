@@ -157,24 +157,24 @@
 
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_quotations" type="object"
-                                class="oe_stat_button" icon="fa-list-alt"
+                                class="oe_stat_button" icon="list_alt"
                                 invisible="quotation_count == 0">
                             <field name="quotation_count" string="Quotations" widget="statinfo"/>
                         </button>
                         <button name="action_open_comparison_view" type="object"
-                                class="oe_stat_button" icon="fa-balance-scale"
+                                class="oe_stat_button" icon="balance"
                                 invisible="received_count == 0">
                             <div class="o_stat_info">
                                 <span class="o_stat_text">Compare</span>
                             </div>
                         </button>
                         <button name="action_view_requests" type="object"
-                                class="oe_stat_button" icon="fa-clipboard"
+                                class="oe_stat_button" icon="assignment"
                                 invisible="request_count == 0">
                             <field name="request_count" string="Requests" widget="statinfo"/>
                         </button>
                         <button name="action_view_purchase_order" type="object"
-                                class="oe_stat_button" icon="fa-shopping-cart"
+                                class="oe_stat_button" icon="shopping_cart"
                                 invisible="po_count == 0">
                             <field name="po_count" string="Purchase Orders" widget="statinfo"/>
                         </button>
@@ -192,7 +192,7 @@
                         <!-- Workflow progress -->
                         <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-flag-checkered me-1"/>Progress
+                                <i class="oi me-1" data-icon="sports_score"/>Progress
                             </div>
                             <field name="progress_pct" widget="progressbar"
                                    readonly="1" nolabel="1"/>
@@ -202,11 +202,11 @@
                         <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
                              invisible="deadline_state == 'none'">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-clock-o me-1"/>Deadline
+                                <i class="oi me-1" data-icon="schedule"/>Deadline
                             </div>
                             <div>
                                 <span class="badge text-bg-danger" invisible="deadline_state != 'overdue'">
-                                    <i class="fa fa-exclamation-circle me-1"/>Overdue
+                                    <i class="oi me-1" data-icon="error"/>Overdue
                                 </span>
                                 <span class="badge text-bg-danger" invisible="deadline_state != 'today'">
                                     Due today
@@ -224,7 +224,7 @@
                         <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
                              invisible="quotation_count == 0">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-reply-all me-1"/>Vendor Response
+                                <i class="oi me-1" data-icon="reply_all"/>Vendor Response
                             </div>
                             <field name="response_rate" widget="progressbar"
                                    readonly="1" nolabel="1"/>
@@ -238,7 +238,7 @@
                         <div class="flex-grow-1 border rounded-3 p-2 bg-light" style="min-width:160px"
                              invisible="best_quote_total == 0">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-trophy me-1 text-warning"/>Best Quote
+                                <i class="oi me-1 text-warning" data-icon="trophy"/>Best Quote
                             </div>
                             <div class="fs-5 fw-bold text-success">
                                 <field name="best_quote_total" readonly="1" class="oe_inline"/>
@@ -252,7 +252,7 @@
                         <div class="flex-grow-1 border rounded-3 p-2" style="min-width:160px"
                              invisible="potential_savings == 0">
                             <div class="text-muted small text-uppercase mb-1">
-                                <i class="fa fa-line-chart me-1 text-success"/>Spread
+                                <i class="oi me-1 text-success" data-icon="show_chart"/>Spread
                             </div>
                             <div class="fs-5 fw-bold">
                                 <field name="potential_savings" readonly="1" class="oe_inline"/>
@@ -264,17 +264,17 @@
                     <!-- ══ Smart contextual alerts ═══════════════════════════════ -->
                     <div class="alert alert-info d-flex align-items-center mb-2" role="alert"
                          invisible="state != 'draft' or quotation_count > 0">
-                        <i class="fa fa-info-circle fa-lg me-2"/>
+                        <i class="oi oi-lg me-2" data-icon="info"/>
                         <span>Add vendor quotations below, then <b>Send to Vendors</b> to start collecting prices.</span>
                     </div>
                     <div class="alert alert-warning d-flex align-items-center mb-2" role="alert"
                          invisible="deadline_state != 'overdue' or quotation_count == 0">
-                        <i class="fa fa-exclamation-triangle fa-lg me-2"/>
+                        <i class="oi oi-lg me-2" data-icon="warning"/>
                         <span>The quotation deadline has passed. Follow up with vendors or proceed to comparison.</span>
                     </div>
                     <div class="alert alert-success d-flex align-items-center mb-2" role="alert"
                          invisible="potential_savings == 0 or state in ('awarded', 'po_created')">
-                        <i class="fa fa-lightbulb-o fa-lg me-2"/>
+                        <i class="oi oi-lg me-2" data-icon="lightbulb"/>
                         <span>Picking the lowest quote over the highest saves
                             <field name="potential_savings" readonly="1" class="oe_inline fw-bold"/> —
                             best price from <field name="best_vendor_id" readonly="1" class="oe_inline fw-bold"/>.
@@ -356,13 +356,13 @@
                                     <field name="is_winner" optional="show"/>
                                     <field name="currency_id" column_invisible="True"/>
                                     <button name="action_send_quotation" string="Send RFQ"
-                                            type="object" icon="fa-paper-plane"
+                                            type="object" icon="send"
                                             invisible="state != 'draft'"/>
                                     <button name="action_mark_received" string="Mark Received"
-                                            type="object" icon="fa-inbox text-success"
+                                            type="object" icon="inbox" class="text-success"
                                             invisible="state != 'sent' or parent.state != 'sent'"/>
                                     <button name="action_mark_unreceive" string="Mark Unreceived"
-                                            type="object" icon="fa-undo text-danger"
+                                            type="object" icon="undo" class="text-danger"
                                             invisible="state != 'received' or parent.state != 'sent'"/>
                                 </list>
                             </field>

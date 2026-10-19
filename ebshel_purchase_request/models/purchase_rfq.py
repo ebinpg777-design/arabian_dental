@@ -140,12 +140,12 @@ class PurchaseRFQ(models.Model):
     received_count = fields.Integer('Priced Quotations', compute='_compute_received_count',
         help='Quotations for which the vendor has submitted prices (received).')
     line_count = fields.Integer('Lines', compute='_compute_line_count')
-    request_count = fields.Integer('Source Requests', compute='_compute_request_ids')
+    request_count = fields.Integer('Source Request Count', compute='_compute_request_ids')
     purchase_order_ids = fields.Many2many(
         'purchase.order', compute='_compute_purchase_orders',
         string='Purchase Orders',
     )
-    po_count = fields.Integer('Purchase Orders', compute='_compute_purchase_orders')
+    po_count = fields.Integer('Purchase Order Count', compute='_compute_purchase_orders')
     winner_quotation_id = fields.Many2one(
         'ebshel.purchase.vendor.quotation', compute='_compute_winner',
         string='Winning Quotation', store=True,
@@ -447,7 +447,7 @@ class PurchaseRFQ(models.Model):
             # Never order more than the RFQ line requested.
             'product_qty': (min(qline.qty, qline.rfq_line_id.qty)
                             if qline.rfq_line_id else qline.qty),
-            'product_uom_id': qline.uom_id.id,
+            'uom_id': qline.uom_id.id,
             'price_unit': qline.price_unit * (1 - (qline.discount or 0) / 100),
             'tax_ids': [(6, 0, qline.tax_ids.ids)],
             'date_planned': fields.Datetime.to_datetime(qline.delivery_date) or fields.Datetime.now(),
@@ -617,7 +617,7 @@ class PurchaseRFQ(models.Model):
                     'product_id': rfq_line.product_id.id,
                     'name': qline.name if qline else rfq_line.name,
                     'product_qty': qty,
-                    'product_uom_id': rfq_line.uom_id.id,
+                    'uom_id': rfq_line.uom_id.id,
                     'price_unit': price,
                     'tax_ids': [(6, 0, qline.tax_ids.ids)] if qline else False,
                     'date_planned': planned,
@@ -1334,4 +1334,4 @@ class RfqAwardLine(models.Model):
     quotation_id = fields.Many2one(
         'ebshel.purchase.vendor.quotation', string='Awarded Vendor',
         required=True, ondelete='cascade')
-    qty = fields.Float('Awarded Qty', digits='Product Unit of Measure')
+    qty = fields.Float('Awarded Qty', digits='Product Unit')

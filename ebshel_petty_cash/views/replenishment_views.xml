@@ -9,17 +9,21 @@
                 <header>
                     <button name="action_submit" type="object" string="Submit" class="btn-primary"
                             invisible="state != 'draft'"/>
-                    <button name="action_load_expenses" type="object" string="Load Vouchers"
+                    <button name="action_load_expenses" type="object" string="Load Paid Vouchers"
                             invisible="kind != 'replenish' or state not in ('draft', 'to_approve')"/>
-                    <button name="action_approve" type="object" string="Approve" class="btn-primary"
+                    <button name="action_approve" type="object" string="Approve" class="btn-success"
+                            invisible="not can_approve" data-hotkey="a"/>
+                    <button name="action_refuse" type="object" string="Refuse" class="btn-danger"
                             invisible="not can_approve"/>
+                    <button name="action_refuse" type="object" string="Refuse"
+                            invisible="state != 'approved'"
+                            groups="ebshel_petty_cash.group_petty_cash_manager"/>
+                    <button name="action_draft" type="object" string="Withdraw"
+                            invisible="state != 'to_approve'"/>
+                    <button name="action_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('refused', 'cancelled')"/>
                     <button name="action_post" type="object" string="Post" class="btn-primary"
                             invisible="state != 'approved'" groups="ebshel_petty_cash.group_petty_cash_manager"/>
-                    <button name="action_refuse" type="object" string="Refuse"
-                            invisible="state not in ('to_approve', 'approved')"
-                            groups="ebshel_petty_cash.group_petty_cash_manager"/>
-                    <button name="action_draft" type="object" string="Reset to Draft"
-                            invisible="state not in ('to_approve', 'refused', 'cancelled')"/>
                     <button name="%(action_report_petty_cash_replenishment)d" type="action" string="Print"
                             invisible="state == 'draft'"/>
                     <button name="action_cancel" type="object" string="Cancel"
@@ -36,6 +40,12 @@
                     <field name="currency_id" invisible="1"/>
                     <field name="company_id" invisible="1"/>
                     <field name="fund_journal_id" invisible="1"/>
+                    <div class="alert alert-info mb-2 d-flex align-items-center gap-2" role="status" invisible="state != 'to_approve'">
+                        <strong>Waiting for approval:</strong>
+                        <field name="current_step_id" class="d-inline" readonly="1" options="{'no_open': True}"/>
+                        <field name="pending_approver_ids" widget="many2many_avatar_user" readonly="1"/>
+                        <span class="ms-auto badge text-bg-info"><field name="approval_progress" class="d-inline"/></span>
+                    </div>
                     <div class="alert alert-danger mb-2" role="alert" invisible="state != 'refused'">
                         <strong>Refused:</strong> <field name="refuse_reason" class="d-inline"/>
                     </div>
@@ -75,8 +85,22 @@
                                 <field name="expense_total"/>
                             </group>
                         </page>
-                        <page string="Approval" name="approval">
+                        <page string="Approval Chain" name="approval" invisible="not approval_step_ids and state == 'draft'">
+                            <field name="approval_step_ids" readonly="1" nolabel="1">
+                                <list decoration-success="state == 'approved'" decoration-danger="state == 'refused'"
+                                      decoration-info="state == 'pending'" decoration-muted="state in ('waiting', 'cancelled')">
+                                    <field name="name"/>
+                                    <field name="approver_ids" widget="many2many_avatar_user"/>
+                                    <field name="approval_mode"/>
+                                    <field name="done_by_id" widget="many2one_avatar_user"/>
+                                    <field name="done_date"/>
+                                    <field name="comment" optional="show"/>
+                                    <field name="state" widget="badge" decoration-success="state == 'approved'"
+                                           decoration-danger="state == 'refused'" decoration-info="state == 'pending'"/>
+                                </list>
+                            </field>
                             <group>
+                                <field name="submitted_date"/>
                                 <field name="approver_id"/>
                                 <field name="approval_date"/>
                                 <field name="move_id" groups="account.group_account_readonly"/>
@@ -105,6 +129,7 @@
                 <field name="source_journal_id" optional="show" groups="account.group_account_readonly"/>
                 <field name="currency_id" column_invisible="True"/>
                 <field name="amount" sum="Total"/>
+                <field name="approval_progress" optional="show"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'to_approve'" decoration-warning="state == 'approved'"
                        decoration-success="state == 'posted'" decoration-danger="state == 'refused'"/>
@@ -119,6 +144,7 @@
             <search>
                 <field name="name"/>
                 <field name="fund_id"/>
+                <filter name="my_approvals" string="Waiting for Me" domain="[('is_my_approval', '=', True)]"/>
                 <filter name="to_approve" string="To Approve" domain="[('state', '=', 'to_approve')]"/>
                 <filter name="to_post" string="To Post" domain="[('state', '=', 'approved')]"/>
                 <filter name="posted" string="Posted" domain="[('state', '=', 'posted')]"/>

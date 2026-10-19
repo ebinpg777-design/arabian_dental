@@ -15,7 +15,7 @@ class TestPettyCashOperations(PettyCashCommon):
     # Replenishment
     # ------------------------------------------------------------------
     def test_replenishment_claim_covers_the_paid_vouchers(self):
-        self.company.petty_cash_replenish_approval = True
+        self.level_replenishment.active = True
         paid = self._approve_and_pay(self._voucher([(self.cat_office, 115.0)]))
         self._approve_and_pay(self._voucher([(self.cat_travel, 85.0)]))
         self.fund.invalidate_recordset()
@@ -37,7 +37,7 @@ class TestPettyCashOperations(PettyCashCommon):
         )
         replenishment.action_submit()
         self.assertEqual(replenishment.state, "to_approve")
-        # approvers cannot approve replenishments, managers can
+        # the replenishment level is the administrators': approvers cannot approve
         with self.assertRaises(UserError):
             replenishment.with_user(self.approver).action_approve()
         replenishment.with_user(self.manager).action_approve()
@@ -53,7 +53,7 @@ class TestPettyCashOperations(PettyCashCommon):
         self.assertFalse(paid.replenishment_id)
 
     def test_manager_cannot_approve_own_replenishment(self):
-        self.company.petty_cash_replenish_approval = True
+        self.level_replenishment.active = True
         replenishment = (
             self.env["ebshel.petty.cash.replenishment"]
             .with_user(self.manager)
@@ -201,7 +201,38 @@ class TestPettyCashOperations(PettyCashCommon):
             ("ebshel_petty_cash.action_report_petty_cash_advance", advance, advance.name),
             ("ebshel_petty_cash.action_report_petty_cash_replenishment", replenishment, replenishment.name),
             ("ebshel_petty_cash.action_report_petty_cash_count", count, count.name),
-            ("ebshel_petty_cash.action_report_petty_cash_statement", wizard, "Fund Statement"),
+            ("ebshel_petty_cash.action_report_petty_cash_statement", wizard, "Cash Book"),
+            ("ebshel_petty_cash.action_report_petty_cash_spending", wizard, "Spending Summary"),
+            ("ebshel_petty_cash.action_report_petty_cash_aging", wizard, "Advance Aging"),
+            ("ebshel_petty_cash.action_report_petty_cash_fund_position", self.fund, "Petty Cash Position"),
         ):
             html = Report._render_qweb_html(xmlid, records.ids)[0]
             self.assertIn(expected.encode(), html, xmlid)
+
+    def test_spending_and_aging_data(self):
+        self._approve_and_pay(self._voucher([(self.cat_office, 115.0)], partner_id=self.partner_a.id))
+        self._approve_and_pay(self._voucher([(self.cat_travel, 85.0)]))
+        advance = self.env["ebshel.petty.cash.advance"].create(
+            {"fund_id": self.fund.id, "holder_id": self.member.partner_id.id, "purpose": "Trip", "amount": 50.0}
+        )
+        advance.action_submit()
+        self._approve_all(advance)
+        advance.action_pay()
+        advance.write({"date": self.today - timedelta(days=50), "due_date": self.today - timedelta(days=40)})
+        wizard = self.env["ebshel.petty.cash.statement.wizard"].create(
+            {"fund_ids": [Command.set(self.fund.ids)], "date_from": self.today.replace(day=1), "date_to": self.today}
+        )
+        spending = wizard._spending_data()
+        self.assertEqual(spending["total"], 200.0)
+        self.assertEqual(spending["voucher_count"], 2)
+        self.assertEqual(
+            {row["name"]: row["amount"] for row in spending["categories"]},
+            {"Office Supplies": 115.0, "Local Travel": 85.0},
+        )
+        self.assertAlmostEqual(spending["categories"][0]["share"], 57.5)
+        aging = wizard._aging_data()
+        self.assertEqual(aging["total"], 50.0)
+        self.assertEqual(aging["totals"]["31_60"], 50.0)
+        self.assertEqual(aging["rows"][0]["days"], 40)
+        wizard.report_type = "aging"
+        self.assertIn("report_aging", str(wizard.action_print()))

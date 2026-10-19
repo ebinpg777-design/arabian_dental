@@ -9,66 +9,95 @@
                 <field name="currency_id"/>
                 <field name="is_low"/>
                 <field name="state"/>
+                <field name="count_due"/>
+                <field name="monthly_budget"/>
+                <field name="budget_used_pct"/>
+                <field name="overdue_advance_count"/>
+                <field name="attention_count"/>
+                <field name="color"/>
                 <templates>
-                    <t t-name="card">
-                        <div class="d-flex align-items-baseline">
-                            <field name="name" class="fw-bold fs-4 me-2"/>
-                            <field name="code" class="text-muted me-2"/>
-                            <field name="state" widget="label_selection" class="ms-auto"
+                    <t t-name="card" class="o_pc_card p-0">
+                        <div t-attf-class="o_pc_card_head d-flex align-items-center px-3 py-2 #{record.attention_count.raw_value ? 'o_pc_alert' : 'o_pc_ok'}">
+                            <div class="flex-grow-1 text-truncate">
+                                <field name="name" class="fw-bold fs-5"/>
+                                <field name="code" class="ms-2 badge text-bg-light"/>
+                            </div>
+                            <field name="state" widget="label_selection"
                                    options="{'classes': {'draft': 'default', 'open': 'success', 'suspended': 'warning', 'closed': 'danger'}}"/>
                         </div>
-                        <div class="text-muted">
-                            <field name="custodian_id" widget="many2one_avatar_user" options="{'display_avatar_name': True}" readonly="1"/>
-                        </div>
-                        <div class="d-flex mt-3">
-                            <div>
-                                <div class="small text-muted">Cash on hand</div>
-                                <field name="balance" widget="monetary" class="fs-3 fw-bold"/>
+                        <div class="px-3 pt-2">
+                            <div class="d-flex align-items-end">
+                                <div>
+                                    <div class="small text-muted text-uppercase">Cash on hand</div>
+                                    <field name="balance" widget="monetary" class="o_pc_balance fw-bold"/>
+                                </div>
+                                <div class="ms-auto text-end small">
+                                    <div class="text-muted">Float</div>
+                                    <field name="float_amount" widget="monetary" class="fw-bold"/>
+                                </div>
                             </div>
-                            <div class="ms-auto text-end">
-                                <div class="small text-muted">Float</div>
-                                <field name="float_amount" widget="monetary"/>
-                            </div>
-                        </div>
-                        <field name="balance_ratio" widget="progressbar" class="mt-1"/>
-                        <div t-if="record.is_low.raw_value" class="text-danger small mt-1">
-                            <i class="oi" data-icon="warning" title="Low balance" role="img" aria-label="Low balance"/> Below the replenishment threshold
-                        </div>
-                        <div class="row g-1 small mt-2">
-                            <div class="col-6">
-                                <span class="text-muted">Committed</span>
-                                <field name="pending_amount" widget="monetary" class="d-block"/>
-                            </div>
-                            <div class="col-6 text-end">
-                                <span class="text-muted">Advances out</span>
-                                <field name="advance_outstanding" widget="monetary" class="d-block"/>
-                            </div>
-                            <div class="col-6">
-                                <span class="text-muted">Spent this month</span>
-                                <field name="month_spent" widget="monetary" class="d-block"/>
-                            </div>
-                            <div class="col-6 text-end">
-                                <span class="text-muted">Last count</span>
-                                <field name="last_count_date" class="d-block"/>
+                            <field name="balance_ratio" widget="progressbar" class="o_pc_progress mt-1"/>
+                            <div class="d-flex small text-muted mt-1">
+                                <field name="custodian_id" widget="many2one_avatar_user" options="{'display_avatar_name': True}" readonly="1"/>
+                                <span class="ms-auto">Last count: <field name="last_count_date" t-if="record.last_count_date.raw_value"/><t t-else="">never</t></span>
                             </div>
                         </div>
-                        <div class="d-flex flex-wrap gap-2 small mt-2">
-                            <a name="action_view_to_approve" type="object">
-                                <field name="to_approve_count"/> to approve
+                        <div class="row g-0 text-center border-top border-bottom mt-2 o_pc_kpis">
+                            <div class="col-4 py-2 border-end">
+                                <div class="small text-muted">Available</div>
+                                <field name="available_amount" widget="monetary" class="fw-bold"/>
+                            </div>
+                            <div class="col-4 py-2 border-end">
+                                <div class="small text-muted">Advances out</div>
+                                <field name="advance_outstanding" widget="monetary" class="fw-bold"/>
+                            </div>
+                            <div class="col-4 py-2">
+                                <div class="small text-muted">This month</div>
+                                <field name="month_spent" widget="monetary" class="fw-bold"/>
+                            </div>
+                        </div>
+                        <div class="px-3 pt-2" t-if="record.monthly_budget.raw_value">
+                            <div class="d-flex small">
+                                <span class="text-muted">Monthly budget</span>
+                                <span t-attf-class="ms-auto fw-bold #{record.budget_used_pct.raw_value &gt; 100 ? 'text-danger' : record.budget_used_pct.raw_value &gt; 80 ? 'text-warning' : 'text-success'}">
+                                    <t t-out="Math.round(record.budget_used_pct.raw_value)"/>% used
+                                </span>
+                            </div>
+                            <div class="progress o_pc_budget" style="height: 6px;">
+                                <div t-attf-class="progress-bar #{record.budget_used_pct.raw_value &gt; 100 ? 'bg-danger' : record.budget_used_pct.raw_value &gt; 80 ? 'bg-warning' : 'bg-success'}"
+                                     t-attf-style="width: #{Math.min(record.budget_used_pct.raw_value, 100)}%;"/>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1 px-3 pt-2" t-if="record.attention_count.raw_value">
+                            <span t-if="record.is_low.raw_value" class="badge rounded-pill text-bg-danger">Low balance</span>
+                            <span t-if="record.count_due.raw_value" class="badge rounded-pill text-bg-warning">Cash count due</span>
+                            <a t-if="record.overdue_advance_count.raw_value" name="action_view_overdue_advances" type="object"
+                               class="badge rounded-pill text-bg-danger">
+                                <t t-out="record.overdue_advance_count.raw_value"/> overdue advance(s)
+                            </a>
+                            <span t-if="record.monthly_budget.raw_value and record.budget_used_pct.raw_value &gt; 100"
+                                  class="badge rounded-pill text-bg-danger">Over budget</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-3 px-3 py-2 small">
+                            <a name="action_view_approvals" type="object">
+                                <field name="to_approve_count" class="fw-bold"/> to approve
                             </a>
                             <a name="action_view_to_pay" type="object">
-                                <field name="to_pay_count"/> to pay
+                                <field name="to_pay_count" class="fw-bold"/> to pay
                             </a>
                             <a name="action_view_advances" type="object">
-                                <field name="open_advance_count"/> open advances
+                                <field name="open_advance_count" class="fw-bold"/> open advances
                             </a>
                         </div>
-                        <footer t-if="record.state.raw_value == 'open'" class="pt-2">
-                            <div class="d-flex flex-wrap gap-1">
-                                <button name="action_new_expense" type="object" class="btn btn-primary btn-sm">Voucher</button>
+                        <footer t-if="record.state.raw_value == 'open'" class="px-3 pb-3 pt-0">
+                            <div class="d-flex flex-wrap gap-1 w-100">
+                                <button name="action_new_expense" type="object" class="btn btn-primary btn-sm">New Voucher</button>
                                 <button name="action_new_advance" type="object" class="btn btn-secondary btn-sm">Advance</button>
-                                <button name="action_new_replenishment" type="object" class="btn btn-secondary btn-sm">Replenish</button>
+                                <button name="action_new_replenishment" type="object" class="btn btn-secondary btn-sm">Top Up</button>
                                 <button name="action_new_count" type="object" class="btn btn-secondary btn-sm">Count</button>
+                                <button name="action_print_position" type="object" class="btn btn-link btn-sm ms-auto" title="Print fund position">
+                                    <i class="oi" data-icon="print" role="img" aria-label="Print"/>
+                                </button>
                             </div>
                         </footer>
                     </t>
@@ -82,6 +111,9 @@
         <field name="model">ebshel.petty.cash.fund</field>
         <field name="arch" type="xml">
             <list decoration-danger="is_low" decoration-muted="state in ('closed', 'suspended')">
+                <header>
+                    <button name="action_print_position" type="object" string="Print Position"/>
+                </header>
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="code"/>
@@ -93,6 +125,9 @@
                 <field name="balance" sum="Total"/>
                 <field name="advance_outstanding" optional="show"/>
                 <field name="replenish_amount" optional="show"/>
+                <field name="monthly_budget" optional="hide"/>
+                <field name="budget_used_pct" widget="progressbar" optional="show"/>
+                <field name="attention_count" optional="show" decoration-danger="attention_count &gt; 0"/>
                 <field name="is_low" column_invisible="True"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'open'" decoration-warning="state == 'suspended'" decoration-danger="state == 'closed'"/>
@@ -110,7 +145,9 @@
                             invisible="state not in ('draft', 'suspended')" groups="ebshel_petty_cash.group_petty_cash_manager"/>
                     <button name="action_new_replenishment" type="object" string="Replenish" class="btn-primary"
                             invisible="state != 'open'"/>
-                    <button name="action_print_statement" type="object" string="Statement"
+                    <button name="action_print_statement" type="object" string="Reports"
+                            invisible="state == 'draft'"/>
+                    <button name="action_print_position" type="object" string="Print Position"
                             invisible="state == 'draft'"/>
                     <button name="action_suspend" type="object" string="Suspend"
                             invisible="state != 'open'" groups="ebshel_petty_cash.group_petty_cash_manager"/>
@@ -123,6 +160,9 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
+                        <button name="action_view_approvals" type="object" class="oe_stat_button" icon="check_box">
+                            <field name="to_approve_count" widget="statinfo" string="To Approve"/>
+                        </button>
                         <button name="action_view_expenses" type="object" class="oe_stat_button" icon="description">
                             <field name="expense_count" widget="statinfo" string="Vouchers"/>
                         </button>
@@ -142,8 +182,19 @@
                     <field name="active" invisible="1"/>
                     <field name="is_low" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
+                    <field name="count_due" invisible="1"/>
+                    <field name="overdue_advance_count" invisible="1"/>
                     <div class="alert alert-warning mb-2" role="alert" invisible="not is_low">
                         The balance is below the replenishment threshold.
+                        <button name="action_new_replenishment" type="object" class="btn btn-link p-0 align-baseline" string="Top up now"/>
+                    </div>
+                    <div class="alert alert-warning mb-2" role="alert" invisible="not count_due">
+                        A cash count is due.
+                        <button name="action_new_count" type="object" class="btn btn-link p-0 align-baseline" string="Count the cash"/>
+                    </div>
+                    <div class="alert alert-danger mb-2" role="alert" invisible="not overdue_advance_count">
+                        <field name="overdue_advance_count" class="d-inline"/> advance(s) past their settlement date.
+                        <button name="action_view_overdue_advances" type="object" class="btn btn-link p-0 align-baseline" string="See them"/>
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
@@ -161,7 +212,8 @@
                             <field name="source_journal_id" groups="account.group_account_readonly"/>
                         </group>
                         <group string="Position">
-                            <field name="balance"/>
+                            <field name="balance" class="fw-bold"/>
+                            <field name="balance_ratio" widget="progressbar" string="Fill Level"/>
                             <field name="pending_amount"/>
                             <field name="available_amount"/>
                             <field name="advance_outstanding"/>
@@ -175,22 +227,33 @@
                                 <group string="Limits">
                                     <field name="min_balance"/>
                                     <field name="max_expense_amount"/>
-                                    <field name="auto_approve_limit"/>
-                                    <field name="allow_negative"/>
-                                </group>
-                                <group string="Receipts and Automation">
                                     <field name="require_receipt"/>
                                     <field name="receipt_required_amount" invisible="not require_receipt"/>
-                                    <field name="post_on_approval"/>
+                                </group>
+                                <group string="Automation">
                                     <field name="auto_replenish"/>
                                     <field name="count_interval_days"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Budget" name="budget">
+                            <group>
+                                <group string="Monthly Budget">
+                                    <field name="monthly_budget"/>
+                                    <field name="budget_policy" widget="radio" invisible="not monthly_budget"/>
+                                    <field name="user_monthly_limit"/>
+                                </group>
+                                <group string="This Month" invisible="not monthly_budget">
+                                    <field name="month_committed"/>
+                                    <field name="month_spent"/>
+                                    <field name="budget_remaining"/>
+                                    <field name="budget_used_pct" widget="progressbar"/>
                                 </group>
                             </group>
                         </page>
                         <page string="People" name="people">
                             <group>
                                 <field name="user_ids" widget="many2many_avatar_user"/>
-                                <field name="approver_ids" widget="many2many_avatar_user"/>
                             </group>
                         </page>
                         <page string="Spending" name="spending">
@@ -221,6 +284,7 @@
                 <separator/>
                 <filter name="open" string="Open" domain="[('state', '=', 'open')]"/>
                 <filter name="closed" string="Closed" domain="[('state', '=', 'closed')]"/>
+
                 <separator/>
                 <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
                 <group>

@@ -342,7 +342,9 @@ class BudgetBoard(models.AbstractModel):
         for l in budget.line_ids:
             for m in l._month_series():
                 row = months.setdefault(m['from'], {'label': m['label'], 'from': m['from'], 'planned': 0.0, 'actual': 0.0})
-                row['planned'] += m['planned'] if l.kind == budget.kind or budget.kind == 'both' else m['planned']
+                # every line counts, as in the budget's own Planned and Actual totals: the board
+                # draws positive bars only, so netting revenue against expense is not possible here
+                row['planned'] += m['planned']
                 row['actual'] += m['actual']
         series, cp, ca = [], 0.0, 0.0
         for key in sorted(months):

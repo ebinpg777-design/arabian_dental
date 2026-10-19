@@ -1,0 +1,7 @@
+id,name,model_id,group_id/id,operation,domain
+access_budget_readonly,Analytic budget: accounting readers,ebshel.account.budget,account.group_account_readonly,r,
+access_budget_manager,Analytic budget: accounting administrators,ebshel.account.budget,account.group_account_manager,crud,
+rule_budget_company,Analytic budget: multi-company,ebshel.account.budget,,crud,"[('company_id', 'in', company_ids)]"
+access_budget_line_readonly,Analytic budget line: accounting readers,ebshel.account.budget.line,account.group_account_readonly,r,
+access_budget_line_manager,Analytic budget line: accounting administrators,ebshel.account.budget.line,account.group_account_manager,crud,
+rule_budget_line_company,Analytic budget line: multi-company,ebshel.account.budget.line,,crud,"[('company_id', 'in', company_ids)]"

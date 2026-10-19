@@ -1,0 +1,33 @@
+// Petty cash dashboard cards
+.o_petty_cash_dashboard {
+    .o_kanban_record:has(.o_pc_card_head) {
+        padding: 0;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    .o_pc_card_head {
+        border-bottom: 1px solid var(--border-color, #dee2e6);
+        &.o_pc_ok {
+            border-top: 4px solid var(--success, #28a745);
+        }
+        &.o_pc_alert {
+            border-top: 4px solid var(--danger, #dc3545);
+        }
+    }
+    .o_pc_balance {
+        font-size: 1.75rem;
+        line-height: 1.1;
+    }
+    .o_pc_kpis > div {
+        min-width: 0;
+        .o_field_widget {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+    .o_pc_progress .o_progressbar {
+        width: 100%;
+    }
+}

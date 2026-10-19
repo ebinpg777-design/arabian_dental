@@ -22,7 +22,7 @@
         <field name="arch" type="xml">
             <form string="Close period">
                 <header>
-                    <button name="action_cockpit" type="object" string="Open the cockpit" class="btn-primary" icon="fa-tachometer"/>
+                    <button name="action_cockpit" type="object" string="Open the cockpit" class="btn-primary" icon="speed"/>
                     <button name="action_refresh" type="object" string="Run the checks" invisible="state == 'closed'"/>
                     <button name="action_review" type="object" string="Send to review" invisible="state != 'open'"/>
                     <button name="action_close" type="object" string="Close the period" invisible="state == 'closed'" confirm="Every task must be done. The books will be locked up to the period end if the option is ticked. Continue?"/>
@@ -51,7 +51,7 @@
                     </group>
                     <notebook>
                         <page string="Checklist" name="tasks">
-                            <button name="action_generate_tasks" type="object" string="Add the template tasks" class="btn btn-link" icon="fa-plus"/>
+                            <button name="action_generate_tasks" type="object" string="Add the template tasks" class="btn btn-link" icon="add"/>
                             <field name="task_ids">
                                 <list editable="bottom" decoration-success="state == 'done'" decoration-muted="state == 'skipped'" decoration-danger="kind == 'check' and state == 'todo' and count">
                                     <field name="sequence" widget="handle"/>
@@ -64,10 +64,10 @@
                                     <field name="state" widget="badge"/>
                                     <field name="note" optional="show"/>
                                     <field name="currency_id" column_invisible="1"/>
-                                    <button name="action_open" type="object" icon="fa-search" title="Open the records" invisible="not count"/>
-                                    <button name="action_done" type="object" icon="fa-check" title="Done" invisible="state != 'todo'"/>
-                                    <button name="action_skip" type="object" icon="fa-forward" title="Skip" invisible="state != 'todo'"/>
-                                    <button name="action_reset" type="object" icon="fa-undo" title="Back to do" invisible="state == 'todo'"/>
+                                    <button name="action_open" type="object" icon="search" title="Open the records" invisible="not count"/>
+                                    <button name="action_done" type="object" icon="check" title="Done" invisible="state != 'todo'"/>
+                                    <button name="action_skip" type="object" icon="skip_next" title="Skip" invisible="state != 'todo'"/>
+                                    <button name="action_reset" type="object" icon="undo" title="Back to do" invisible="state == 'todo'"/>
                                 </list>
                             </field>
                         </page>

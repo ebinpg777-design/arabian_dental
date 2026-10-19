@@ -78,15 +78,6 @@ class PettyCashFund(models.Model):
         string="Members",
         help="Users who may raise vouchers and advance requests on this fund.",
     )
-    approver_ids = fields.Many2many(
-        "res.users",
-        "ebshel_petty_cash_fund_approver_rel",
-        "fund_id",
-        "user_id",
-        string="Approvers",
-        help="Only these users approve the fund's documents (with the Approver "
-        "right) and they receive the approval activities. Empty: any approver.",
-    )
     category_ids = fields.Many2many(
         "ebshel.petty.cash.category",
         string="Allowed Categories",
@@ -115,24 +106,25 @@ class PettyCashFund(models.Model):
     max_expense_amount = fields.Monetary(
         string="Max per Voucher", help="0 = no limit."
     )
-    auto_approve_limit = fields.Monetary(
-        string="Auto-Approve up to",
-        help="Vouchers up to this amount are approved on submission. "
-        "0 = every voucher needs an approval.",
-    )
     require_receipt = fields.Boolean(string="Receipts Required", default=True)
     receipt_required_amount = fields.Monetary(
         string="Receipt Required Above",
         help="Vouchers above this amount need an attached receipt. 0 = always.",
     )
-    allow_negative = fields.Boolean(
-        string="Allow Negative Balance",
-        help="Let payments exceed the cash on hand (not recommended).",
+    monthly_budget = fields.Monetary(
+        tracking=True,
+        help="Most the fund may spend in a calendar month (vouchers submitted, "
+        "approved or paid). 0 = no budget.",
     )
-    post_on_approval = fields.Boolean(
-        string="Pay on Approval",
-        help="Post vouchers as soon as they are approved, without waiting for "
-        "the custodian.",
+    budget_policy = fields.Selection(
+        [("warn", "Warn (risk flag)"), ("block", "Block")],
+        string="Over Budget",
+        default="warn",
+        required=True,
+    )
+    user_monthly_limit = fields.Monetary(
+        string="Monthly Limit per Person",
+        help="Most one requester may claim from the fund in a calendar month. 0 = no limit.",
     )
     auto_replenish = fields.Boolean(
         string="Auto-Replenishment",
@@ -180,7 +172,23 @@ class PettyCashFund(models.Model):
     month_spent = fields.Monetary(
         compute="_compute_document_figures",
         string="Spent This Month",
-        help="Posted vouchers dated this month.",
+        help="Paid vouchers dated this month.",
+    )
+    month_committed = fields.Monetary(
+        compute="_compute_document_figures",
+        string="Committed This Month",
+        help="Vouchers dated this month, submitted, approved or paid.",
+    )
+    budget_used_pct = fields.Float(compute="_compute_document_figures", string="Budget Used")
+    budget_remaining = fields.Monetary(compute="_compute_document_figures")
+    overdue_advance_count = fields.Integer(compute="_compute_document_figures")
+    count_due = fields.Boolean(
+        compute="_compute_document_figures", help="The cash count interval has passed."
+    )
+    attention_count = fields.Integer(
+        compute="_compute_document_figures",
+        string="Alerts",
+        help="Low balance, count due, overdue advances, budget exceeded.",
     )
 
     _code_company_uniq = models.Constraint(
@@ -235,9 +243,10 @@ class PettyCashFund(models.Model):
         "float_amount",
         "min_balance",
         "max_expense_amount",
-        "auto_approve_limit",
         "receipt_required_amount",
         "count_interval_days",
+        "monthly_budget",
+        "user_monthly_limit",
     )
     def _check_amounts(self):
         for fund in self:
@@ -247,9 +256,10 @@ class PettyCashFund(models.Model):
                     fund.float_amount,
                     fund.min_balance,
                     fund.max_expense_amount,
-                    fund.auto_approve_limit,
                     fund.receipt_required_amount,
                     fund.count_interval_days,
+                    fund.monthly_budget,
+                    fund.user_monthly_limit,
                 )
             ):
                 raise ValidationError(self.env._("The fund limits cannot be negative."))
@@ -412,7 +422,8 @@ class PettyCashFund(models.Model):
                 ["amount_total:sum"],
             )
         }
-        month_start = fields.Date.context_today(self).replace(day=1)
+        today = fields.Date.context_today(self)
+        month_start = today.replace(day=1)
         month_spent = {
             fund.id: total
             for fund, total in grouped(
@@ -421,6 +432,19 @@ class PettyCashFund(models.Model):
                 ["fund_id"],
                 ["amount_total:sum"],
             )
+        }
+        month_committed = {
+            fund.id: total
+            for fund, total in grouped(
+                Expense._name,
+                [("state", "in", ("to_approve", "approved", "posted")), ("date", ">=", month_start)],
+                ["fund_id"],
+                ["amount_total:sum"],
+            )
+        }
+        overdue_advances = {
+            fund.id: count
+            for fund, count in grouped(Advance._name, [("is_overdue", "=", True)], ["fund_id"], ["__count"])
         }
         advance_states = {
             (fund.id, state): (count, amount, due)
@@ -476,6 +500,29 @@ class PettyCashFund(models.Model):
             fund.count_count = counts.get(fund_id, 0)
             fund.last_count_date = last_counts.get(fund_id, False)
             fund.month_spent = month_spent.get(fund_id, 0.0)
+            fund.month_committed = month_committed.get(fund_id, 0.0)
+            fund.budget_remaining = (
+                fund.monthly_budget - fund.month_committed if fund.monthly_budget else 0.0
+            )
+            fund.budget_used_pct = (
+                fund.month_committed / fund.monthly_budget * 100.0 if fund.monthly_budget else 0.0
+            )
+            fund.overdue_advance_count = overdue_advances.get(fund_id, 0)
+            fund.count_due = bool(
+                fund.state == "open"
+                and fund.count_interval_days
+                and (fund.last_count_date or (fund.create_date and fund.create_date.date()) or today)
+                + timedelta(days=fund.count_interval_days)
+                <= today
+            )
+            fund.attention_count = sum(
+                (
+                    fund.is_low,
+                    fund.count_due,
+                    bool(fund.overdue_advance_count),
+                    bool(fund.monthly_budget and fund.budget_used_pct > 100.0),
+                )
+            )
 
     # ------------------------------------------------------------------
     # Rights and checks used by the documents
@@ -511,8 +558,6 @@ class PettyCashFund(models.Model):
     def _check_cash_available(self, amount, date=None):
         """Raise when paying ``amount`` (fund currency) would overdraw the fund."""
         self.ensure_one()
-        if self.allow_negative:
-            return
         balance = self._get_balance()
         if float_compare(amount, balance, precision_rounding=self.currency_id.rounding) > 0:
             raise UserError(
@@ -734,3 +779,24 @@ class PettyCashFund(models.Model):
             if fund.activity_ids.filtered(lambda a: a.activity_type_id == activity_type):
                 continue
             fund.activity_schedule("ebshel_petty_cash.mail_act_petty_cash_count", user_id=fund.custodian_id.id)
+
+    # ------------------------------------------------------------------
+    # Dashboard shortcuts
+    # ------------------------------------------------------------------
+    def action_view_approvals(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Waiting for Approval - %s", self.name),
+            "res_model": "ebshel.petty.cash.approval.step",
+            "view_mode": "list,form",
+            "domain": [("fund_id", "=", self.id), ("state", "=", "pending")],
+        }
+
+    def action_view_overdue_advances(self):
+        return self._action_documents(
+            "ebshel.petty.cash.advance", self.env._("Overdue Advances"), [("is_overdue", "=", True)]
+        )
+
+    def action_print_position(self):
+        return self.env.ref("ebshel_petty_cash.action_report_petty_cash_fund_position").report_action(self)

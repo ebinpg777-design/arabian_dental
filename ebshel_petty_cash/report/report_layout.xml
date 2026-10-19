@@ -1,6 +1,46 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
 
+    <!-- Styles shared by the petty cash documents. -->
+    <template id="report_style">
+        <style>
+            .o_pc_report h2 { margin-bottom: 0; }
+            .o_pc_report .o_pc_sub { color: #6c757d; margin-bottom: 12px; }
+            .o_pc_report .o_pc_badge { display: inline-block; padding: 2px 10px; border-radius: 10px;
+                font-size: 0.8em; font-weight: bold; background: #e9ecef; color: #343a40; vertical-align: middle; }
+            .o_pc_report .o_pc_badge.ok { background: #d1e7dd; color: #0f5132; }
+            .o_pc_report .o_pc_badge.warn { background: #fff3cd; color: #664d03; }
+            .o_pc_report .o_pc_badge.bad { background: #f8d7da; color: #842029; }
+            .o_pc_report .o_pc_facts { width: 100%; border: 1px solid #dee2e6; margin-bottom: 14px; }
+            .o_pc_report .o_pc_facts td { padding: 5px 8px; vertical-align: top; width: 25%; }
+            .o_pc_report .o_pc_facts td.o_pc_label { color: #6c757d; font-size: 0.85em; text-transform: uppercase; }
+            .o_pc_report .o_pc_amount_box { border: 2px solid #343a40; padding: 8px 12px; text-align: right; }
+            .o_pc_report .o_pc_amount_box .o_pc_big { font-size: 1.6em; font-weight: bold; }
+            .o_pc_report .o_pc_kpi { border: 1px solid #dee2e6; padding: 8px; text-align: center; }
+            .o_pc_report .o_pc_kpi .o_pc_big { font-size: 1.3em; font-weight: bold; }
+            .o_pc_report .o_pc_kpi .o_pc_label { color: #6c757d; font-size: 0.8em; text-transform: uppercase; }
+            .o_pc_report .o_pc_bar { background: #e9ecef; height: 8px; width: 100%; }
+            .o_pc_report .o_pc_bar div { background: #0d6efd; height: 8px; }
+            .o_pc_report .o_pc_bar div.bad { background: #dc3545; }
+            .o_pc_report .o_pc_section { margin-top: 16px; border-bottom: 2px solid #343a40; padding-bottom: 2px; }
+            .o_pc_report table.o_pc_table th { background: #f1f3f5; }
+        </style>
+    </template>
+
+    <!-- Status pill of a document `doc`. -->
+    <template id="report_state_badge">
+        <t t-set="badge_class" t-value="{'posted': 'ok', 'settled': 'ok', 'done': 'ok', 'approved': 'warn', 'paid': 'warn', 'to_approve': 'warn', 'confirmed': 'warn', 'refused': 'bad', 'cancelled': 'bad'}.get(doc.state, '')"/>
+        <span t-attf-class="o_pc_badge #{badge_class}" t-field="doc.state"/>
+    </template>
+
+    <!-- QR code pointing at the document in Odoo, to verify a printout. -->
+    <template id="report_qr">
+        <div class="text-center">
+            <img t-att-src="doc._petty_cash_qr_src()" style="width: 90px; height: 90px;" alt="QR"/>
+            <div class="small text-muted">Scan to verify</div>
+        </div>
+    </template>
+
     <!-- Signature boxes: pass `signatures` as a list of labels. -->
     <template id="report_signatures">
         <div class="row mt-5" style="page-break-inside: avoid;">
@@ -13,15 +53,52 @@
         </div>
     </template>
 
-    <!-- Approval trail line of an approvable document `doc`. -->
+    <!-- Approval chain of an approvable document `doc`. -->
     <template id="report_approval_trail">
-        <p class="small text-muted mb-1">
-            Requested by <span t-field="doc.requested_by_id"/>
-            <t t-if="doc.first_approver_id">; first approval <span t-field="doc.first_approver_id"/></t>
-            <t t-if="doc.approver_id">; approved by <span t-field="doc.approver_id"/>
-                <t t-if="doc.approval_date"> on <span t-field="doc.approval_date" t-options="{'widget': 'date'}"/></t>
-            </t>
-        </p>
+        <t t-set="steps" t-value="doc.sudo().approval_step_ids.sorted('sequence')"/>
+        <div style="page-break-inside: avoid;">
+            <h6 class="o_pc_section">Approval</h6>
+            <table class="table table-sm o_pc_table mb-1">
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Decision</th>
+                        <th>By</th>
+                        <th>On</th>
+                        <th>Comment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Requested</td>
+                        <td>Submitted</td>
+                        <td><span t-field="doc.requested_by_id"/></td>
+                        <td><span t-if="doc.submitted_date" t-field="doc.submitted_date" t-options="{'widget': 'date'}"/></td>
+                        <td/>
+                    </tr>
+                    <tr t-foreach="steps" t-as="step">
+                        <td><span t-field="step.name"/></td>
+                        <td>
+                            <t t-set="step_class" t-value="{'approved': 'ok', 'refused': 'bad', 'pending': 'warn'}.get(step.state, '')"/>
+                            <span t-attf-class="o_pc_badge #{step_class}" t-field="step.state"/>
+                        </td>
+                        <td>
+                            <span t-if="step.done_by_id" t-field="step.done_by_id"/>
+                            <span t-else="" class="text-muted" t-out="', '.join(step.approver_ids.mapped('name'))"/>
+                        </td>
+                        <td><span t-if="step.done_date" t-field="step.done_date" t-options="{'widget': 'date'}"/></td>
+                        <td><span t-field="step.comment"/></td>
+                    </tr>
+                    <tr t-if="not steps and doc.approver_id">
+                        <td>Approval</td>
+                        <td><span class="o_pc_badge ok">Approved</span></td>
+                        <td>No approval level applied</td>
+                        <td><span t-if="doc.approval_date" t-field="doc.approval_date" t-options="{'widget': 'date'}"/></td>
+                        <td/>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </template>
 
 </odoo>

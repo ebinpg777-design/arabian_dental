@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, useState, onMounted, onWillUnmount } from "@odoo/owl";
+import { Component, onMounted, onWillUnmount, proxy, useProps } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  RFQ Vendor Price Comparison View
@@ -13,7 +14,7 @@ import { _t } from "@web/core/l10n/translation";
 
 export class RFQComparisonView extends Component {
     static template = "ebshel_purchase_request.RFQComparisonView";
-    static props = ["*"];
+    props = useProps(standardActionServiceProps);
 
     setup() {
         this.orm            = useService("orm");
@@ -26,7 +27,7 @@ export class RFQComparisonView extends Component {
             this.env.config.setDisplayName(this.props.action.name || _t("Vendor Comparison"));
         }
 
-        this.state = useState({
+        this.state = proxy({
             loading:             true,
             error:               null,
             data:                null,

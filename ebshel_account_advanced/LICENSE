@@ -1,0 +1,29 @@
+Odoo Proprietary License v1.0 (OPL-1)
+
+This software and associated files (the "Software") may only be used (executed,
+modified, executed after modifications) if you have purchased a valid licence
+from the authors, typically via Odoo Apps, or if you have received a written
+agreement from the authors of the Software (see the COPYRIGHT below).
+
+You may develop Odoo modules that use the Software as a library (typically by
+depending on it, importing it and using its resources), but without copying any
+source code or material from the Software. You may distribute those modules
+under the licence of your choice, provided that this licence remains applicable
+to the Software itself.
+
+You may not use, modify, distribute or make the Software available to third
+parties in any other way without a valid licence.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The full, authoritative text of this licence is published by Odoo S.A. at:
+https://www.odoo.com/documentation/master/legal/licenses.html
+
+COPYRIGHT
+---------
+Copyright (c) 2026 Ebin P G <ebinpg777@gmail.com>. All rights reserved.

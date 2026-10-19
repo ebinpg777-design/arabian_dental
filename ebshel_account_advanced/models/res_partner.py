@@ -10,11 +10,17 @@ from odoo.tools import SQL, formatLang
 
 from .followup import FOLLOWUP_STATES
 
+# who may see a customer's collection figures: the same groups as the Collections tab
+ACCOUNTING_GROUPS = 'account.group_account_readonly,account.group_account_invoice'
+
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
-    ebshel_followup_level_id = fields.Many2one('ebshel.followup.level', string='Last reminder level', copy=False, tracking=True)
+    # The fields below read the follow-up levels and the log, which only the accounting
+    # team may read: a salesperson opening a contact list with them got an access error.
+    ebshel_followup_level_id = fields.Many2one('ebshel.followup.level', string='Last reminder level', copy=False, tracking=True,
+                                               groups=ACCOUNTING_GROUPS)
     ebshel_followup_next_date = fields.Date('Next reminder', copy=False)
     ebshel_followup_responsible_id = fields.Many2one('res.users', string='Follow-up responsible', copy=False)
     ebshel_followup_excluded = fields.Boolean('Never remind', copy=False, tracking=True)
@@ -23,16 +29,22 @@ class ResPartner(models.Model):
     ebshel_followup_note = fields.Text('Collection notes', copy=False)
     ebshel_promise_date = fields.Date('Promised for', copy=False)
     ebshel_promise_amount = fields.Monetary('Promised amount', copy=False)
-    ebshel_followup_action_ids = fields.One2many('ebshel.followup.action', 'partner_id', string='Follow-up log')
-    ebshel_followup_action_count = fields.Integer(compute='_compute_ebshel_followup')
-    ebshel_due_total = fields.Monetary(compute='_compute_ebshel_followup', string='Open receivable')
-    ebshel_overdue_total = fields.Monetary(compute='_compute_ebshel_followup', string='Overdue')
-    ebshel_overdue_days = fields.Integer(compute='_compute_ebshel_followup', string='Oldest overdue (days)')
+    ebshel_followup_action_ids = fields.One2many('ebshel.followup.action', 'partner_id', string='Follow-up log',
+                                                 groups=ACCOUNTING_GROUPS)
+    ebshel_followup_action_count = fields.Integer(compute='_compute_ebshel_followup', groups=ACCOUNTING_GROUPS)
+    ebshel_due_total = fields.Monetary(compute='_compute_ebshel_followup', string='Open receivable', groups=ACCOUNTING_GROUPS)
+    ebshel_overdue_total = fields.Monetary(compute='_compute_ebshel_followup', string='Overdue', groups=ACCOUNTING_GROUPS)
+    ebshel_overdue_days = fields.Integer(compute='_compute_ebshel_followup', string='Oldest overdue (days)',
+                                         groups=ACCOUNTING_GROUPS)
     ebshel_followup_state = fields.Selection(FOLLOWUP_STATES, compute='_compute_ebshel_followup',
-                                             search='_search_ebshel_followup_state', string='Collection status')
-    ebshel_suggested_level_id = fields.Many2one('ebshel.followup.level', compute='_compute_ebshel_followup', string='Level reached')
-    ebshel_avg_days_to_pay = fields.Float(compute='_compute_ebshel_pay_habits', string='Average days to pay', digits=(16, 1))
-    ebshel_avg_days_late = fields.Float(compute='_compute_ebshel_pay_habits', string='Average days late', digits=(16, 1))
+                                             search='_search_ebshel_followup_state', string='Collection status',
+                                             groups=ACCOUNTING_GROUPS)
+    ebshel_suggested_level_id = fields.Many2one('ebshel.followup.level', compute='_compute_ebshel_followup', string='Level reached',
+                                                groups=ACCOUNTING_GROUPS)
+    ebshel_avg_days_to_pay = fields.Float(compute='_compute_ebshel_pay_habits', string='Average days to pay', digits=(16, 1),
+                                          groups=ACCOUNTING_GROUPS)
+    ebshel_avg_days_late = fields.Float(compute='_compute_ebshel_pay_habits', string='Average days late', digits=(16, 1),
+                                        groups=ACCOUNTING_GROUPS)
 
     # ------------------------------------------------------------------ ledger reads
     @api.model
@@ -166,10 +178,12 @@ class ResPartner(models.Model):
         for partner, row in zip(partners, rows):
             if partner._ebshel_judge(row['due'], row['overdue'], row['oldest'], today, levels=levels)[0] in wanted:
                 matching.append(partner.id)
+        # the rows are per commercial partner, and the compute judges a contact on its
+        # company's ledger: match the family, not only the company itself
         if 'none' in wanted:
-            domain = ['|', ('id', 'in', matching), ('id', 'not in', with_rows)]
+            domain = ['|', ('commercial_partner_id', 'in', matching), ('commercial_partner_id', 'not in', with_rows)]
         else:
-            domain = [('id', 'in', matching)]
+            domain = [('commercial_partner_id', 'in', matching)]
         if operator in ('!=', 'not in'):
             domain = ['!'] + domain
         return domain
@@ -184,6 +198,19 @@ class ResPartner(models.Model):
             partner.ebshel_avg_days_late = h.get('late') or 0.0
 
     # ------------------------------------------------------------------ helpers
+    def _ebshel_desk_partners(self, write=True):
+        """These partners, for the collections desk to write its own fields on.
+
+        The accounting team reads contacts but may not edit them (that is
+        base.group_partner_manager), and in Odoo 20 mail.mail belongs to base.group_system
+        alone: the reminders, the follow-up fields and the PDFs attached to a customer failed
+        for everyone but an administrator. The desk checks who is asking - its own check and
+        the partners' record rules - and then writes as itself. The public actions are
+        callable over RPC, so nothing here may skip the check."""
+        self.env['ebshel.followup.desk']._check(write=write)
+        self.check_access('read')
+        return self.sudo()
+
     def _ebshel_log(self, kind, level=None, note=None, amount=0.0, mail=None, promise_date=None):
         return self.env['ebshel.followup.action'].create({
             'partner_id': (self.commercial_partner_id or self).id, 'kind': kind, 'note': note or False,
@@ -214,7 +241,8 @@ class ResPartner(models.Model):
     def _ebshel_attachments(self, level, items):
         """The statement of account and the overdue invoices as PDF attachments."""
         self.ensure_one()
-        Attachment = self.env['ir.attachment']
+        # attached to the customer, which the accounting team may not edit - see _ebshel_desk_partners
+        Attachment = self.env['ir.attachment'].sudo()
         Report = self.env['ir.actions.report']
         attachments = Attachment
         today = fields.Date.context_today(self)
@@ -248,14 +276,21 @@ class ResPartner(models.Model):
         today = fields.Date.context_today(self)
         attachments = self._ebshel_attachments(level, items)
         company = self.env.company
+        # From the company: the nightly job runs as OdooBot, and its reminders went out
+        # under OdooBot's name and address. A company without an address falls back to
+        # whoever sends it.
+        email_from = company.email_formatted or self.env.user.email_formatted or False
+        # mail.mail is base.group_system's alone - see _ebshel_desk_partners
+        Mail = self.env['mail.mail'].sudo()
         if level.template_id:
             # the reminder goes to `email` and only there: a template that adds its default
             # recipients (use_default_to - the shipped one does) would put the customer in
             # recipient_ids as well, and mail.mail sends email_to and each recipient apart:
             # the same reminder twice, or a failed send to a company without an address
             mail_id = level.template_id.with_context(ebshel_note=note or '', ebshel_level=level.name).send_mail(
-                self.id, force_send=False, email_values={'email_to': email, 'recipient_ids': [], 'auto_delete': False})
-            mail = self.env['mail.mail'].browse(mail_id)
+                self.id, force_send=False, email_values={'email_to': email, 'recipient_ids': [], 'auto_delete': False,
+                                                         'email_from': email_from})
+            mail = Mail.browse(mail_id)
             if attachments:
                 mail.write({'attachment_ids': [(4, a.id) for a in attachments]})
             return mail
@@ -269,9 +304,9 @@ class ResPartner(models.Model):
             escape(self._ebshel_money(total)), self._ebshel_items_table(overdue, today),
             Markup('<p>%s</p>') % escape(note) if note else Markup(''),
             escape(_('Kind regards,')), escape(company.name))
-        return self.env['mail.mail'].create({
+        return Mail.create({
             'subject': _('%(company)s: payment reminder, %(amount)s overdue', company=company.name, amount=self._ebshel_money(total)),
-            'email_from': self.env.user.email_formatted or company.email or False,
+            'email_from': email_from,
             'email_to': email, 'body_html': body, 'model': 'res.partner', 'res_id': self.id,
             'author_id': self.env.user.partner_id.id, 'auto_delete': False,
             'attachment_ids': [(4, a.id) for a in attachments]})
@@ -290,7 +325,8 @@ class ResPartner(models.Model):
                                       note=_('Overdue %s', self._ebshel_money(self.ebshel_overdue_total)), **values)
 
     def _ebshel_after_send(self, level, levels=None):
-        """Move the customer on to the level sent. `levels`: see FollowupLevel._next."""
+        """Move the customer on to the level sent. Called from the actions below, after
+        their access check. `levels`: see FollowupLevel._next."""
         self.ensure_one()
         today = fields.Date.context_today(self)
         vals = {'ebshel_followup_level_id': level.id,
@@ -298,14 +334,14 @@ class ResPartner(models.Model):
         if level.on_hold and not self.ebshel_on_hold:
             vals['ebshel_on_hold'] = True
             self._ebshel_log('hold', level, _('By level %s', level.name))
-        self.write(vals)
+        self._ebshel_desk_partners().write(vals)
 
     # ------------------------------------------------------------------ actions
     def action_ebshel_send_reminder(self, level_id=None, note=None, levels=None):
         """Email (or record) the reminder for the level reached, with its attachments.
         `levels`: the company's levels from Level._of_company(), read once by a caller
-        sending to many customers; read here once otherwise - the level after the one
-        sent used to be searched for once per customer."""
+        sending to many customers; read here otherwise."""
+        self.env['ebshel.followup.desk']._check(write=True)
         Level = self.env['ebshel.followup.level']
         # over RPC this is whatever the caller sent: only a recordset of levels is trusted
         if not isinstance(levels, models.BaseModel) or levels._name != Level._name:
@@ -356,20 +392,23 @@ class ResPartner(models.Model):
         return results
 
     def action_ebshel_log_call(self, note, next_date=None):
+        self.env['ebshel.followup.desk']._check(write=True)
         for partner in self:
             partner = partner.commercial_partner_id or partner
             partner._ebshel_log('call', partner.ebshel_followup_level_id, note, amount=partner.ebshel_overdue_total)
             if next_date:
-                partner.ebshel_followup_next_date = fields.Date.to_date(next_date)
+                partner._ebshel_desk_partners().ebshel_followup_next_date = fields.Date.to_date(next_date)
             partner.message_post(body=_('Collections call: %s', note or ''), subtype_xmlid='mail.mt_note')
         return True
 
     def action_ebshel_promise(self, date, amount=0.0, note=None):
+        self.env['ebshel.followup.desk']._check(write=True)
         date = fields.Date.to_date(date)
         for partner in self:
             partner = partner.commercial_partner_id or partner
-            partner.write({'ebshel_promise_date': date, 'ebshel_promise_amount': amount or partner.ebshel_overdue_total,
-                           'ebshel_followup_next_date': date + timedelta(days=1)})
+            partner._ebshel_desk_partners().write({
+                'ebshel_promise_date': date, 'ebshel_promise_amount': amount or partner.ebshel_overdue_total,
+                'ebshel_followup_next_date': date + timedelta(days=1)})
             partner._ebshel_log('promise', partner.ebshel_followup_level_id, note, amount=amount or partner.ebshel_overdue_total,
                                 promise_date=date)
             partner.message_post(body=_('Promised %(amount)s for %(date)s. %(note)s',
@@ -378,30 +417,34 @@ class ResPartner(models.Model):
         return True
 
     def action_ebshel_snooze(self, days, note=None):
+        self.env['ebshel.followup.desk']._check(write=True)
         today = fields.Date.context_today(self)
         for partner in self:
             partner = partner.commercial_partner_id or partner
-            partner.ebshel_followup_next_date = today + timedelta(days=int(days))
+            partner._ebshel_desk_partners().ebshel_followup_next_date = today + timedelta(days=int(days))
             partner._ebshel_log('snooze', partner.ebshel_followup_level_id, note or _('%s days', days))
         return True
 
     def action_ebshel_set_exclusion(self, excluded, note=None):
+        self.env['ebshel.followup.desk']._check(write=True)
         for partner in self:
             partner = partner.commercial_partner_id or partner
-            partner.ebshel_followup_excluded = excluded
+            partner._ebshel_desk_partners().ebshel_followup_excluded = excluded
             partner._ebshel_log('exclude' if excluded else 'include', None, note)
         return True
 
     def action_ebshel_set_hold(self, on_hold, note=None):
+        self.env['ebshel.followup.desk']._check(write=True)
         for partner in self:
             partner = partner.commercial_partner_id or partner
-            partner.ebshel_on_hold = on_hold
+            partner._ebshel_desk_partners().ebshel_on_hold = on_hold
             partner._ebshel_log('hold' if on_hold else 'release', None, note)
         return True
 
     def action_ebshel_print_letter(self, level_id=None, log=True):
         """The reminder letters as a PDF. log=False only prints them: the letters of a
         reminder just sent, which already logged them and moved the customers on."""
+        self.env['ebshel.followup.desk']._check(write=log)
         partners = self.mapped('commercial_partner_id') | self.filtered(lambda p: not p.commercial_partner_id)
         Level = self.env['ebshel.followup.level']
         for partner in (partners if log else ()):
@@ -409,9 +452,10 @@ class ResPartner(models.Model):
             partner._ebshel_log('letter', level or None, None, amount=partner.ebshel_overdue_total)
             if level:
                 partner._ebshel_after_send(level)
-        action = self.env.ref('ebshel_account_advanced.action_report_followup_letter').report_action(partners)
-        action['context'] = dict(action.get('context') or {}, ebshel_level_id=level_id)
-        return action
+        # the level rides in the report's own context: patched onto the returned action it
+        # was lost whenever report_action handed back the document layout wizard instead
+        report = self.env.ref('ebshel_account_advanced.action_report_followup_letter')
+        return report.with_context(ebshel_level_id=level_id).report_action(partners)
 
     def action_ebshel_open_items(self):
         self.ensure_one()

@@ -29,6 +29,14 @@ access_count_approver,Petty cash count: approvers see all,ebshel.petty.cash.coun
 rule_count_company,Petty cash count: multi-company,ebshel.petty.cash.count,,crud,"[('company_id', 'in', company_ids)]"
 access_count_line_user,Petty cash count line: held fund,ebshel.petty.cash.count.line,group_petty_cash_user,crud,"[('count_id.fund_id.custodian_id', '=', user.id)]"
 access_count_line_approver,Petty cash count line: approvers see all,ebshel.petty.cash.count.line,group_petty_cash_approver,crud,
-access_refuse_wizard_approver,Petty cash refuse wizard,ebshel.petty.cash.refuse.wizard,group_petty_cash_approver,cru,
+access_refuse_wizard_user,Petty cash refuse wizard,ebshel.petty.cash.refuse.wizard,group_petty_cash_user,cru,
 access_settle_wizard_user,Petty cash advance settle wizard,ebshel.petty.cash.advance.settle.wizard,group_petty_cash_user,cru,
 access_statement_wizard_user,Petty cash statement wizard,ebshel.petty.cash.statement.wizard,group_petty_cash_user,cru,
+access_level_user,Petty cash approval level: users read,ebshel.petty.cash.approval.level,group_petty_cash_user,r,
+access_level_manager,Petty cash approval level: managers,ebshel.petty.cash.approval.level,group_petty_cash_manager,crud,
+rule_level_company,Petty cash approval level: multi-company,ebshel.petty.cash.approval.level,,crud,"['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]"
+access_step_user,Petty cash approval step: users read,ebshel.petty.cash.approval.step,group_petty_cash_user,r,
+rule_step_company,Petty cash approval step: multi-company,ebshel.petty.cash.approval.step,,crud,"[('company_id', 'in', company_ids)]"
+access_delegation_approver_read,Petty cash delegation: own and received,ebshel.petty.cash.delegation,group_petty_cash_approver,r,"['|', ('user_id', '=', user.id), ('delegate_id', '=', user.id)]"
+access_delegation_approver,Petty cash delegation: own,ebshel.petty.cash.delegation,group_petty_cash_approver,cud,"[('user_id', '=', user.id)]"
+access_delegation_manager,Petty cash delegation: managers,ebshel.petty.cash.delegation,group_petty_cash_manager,crud,

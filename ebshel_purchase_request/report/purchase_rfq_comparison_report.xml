@@ -20,7 +20,6 @@
         <field name="model">ebshel.purchase.rfq</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">ebshel_purchase_request.report_rfq_comparison_document</field>
-        <field name="report_file">ebshel_purchase_request.report_rfq_comparison_document</field>
         <field name="binding_model_id" ref="model_ebshel_purchase_rfq"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="ebshel_purchase_request.paperformat_a4_landscape"/>
@@ -60,32 +59,32 @@
                         <div class="row mb-1">
                             <div class="col-7">
                                 <h2 class="cmp-title">Vendor Price Comparison</h2>
-                                <div class="cmp-ref"><t t-esc="doc.name"/></div>
+                                <div class="cmp-ref"><t t-out="doc.name"/></div>
                             </div>
                             <div class="col-5 text-end cmp-ref">
                                 RFQ Date <span t-field="doc.date_rfq"/><br/>
-                                Officer: <t t-esc="doc.procurement_officer_id.name or '—'"/>
+                                Officer: <t t-out="doc.procurement_officer_id.name or '—'"/>
                             </div>
                         </div>
 
                         <!-- Summary band -->
                         <div class="cmp-band">
-                            <div class="cmp-kpi"><div class="lbl">Vendors</div><div class="val"><t t-esc="len(vendors)"/></div></div>
+                            <div class="cmp-kpi"><div class="lbl">Vendors</div><div class="val"><t t-out="len(vendors)"/></div></div>
                             <div class="cmp-kpi cmp-kpi--save"><div class="lbl">Lowest Quote</div>
-                                <div class="val"><span t-esc="best_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></div></div>
+                                <div class="val"><span t-out="best_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></div></div>
                             <div class="cmp-kpi cmp-kpi--save"><div class="lbl">Max Savings</div>
-                                <div class="val"><span t-esc="(worst_total - best_total)" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></div></div>
+                                <div class="val"><span t-out="(worst_total - best_total)" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></div></div>
                             <t t-if="vendors">
                                 <div class="cmp-kpi cmp-kpi--reco">
                                     <div class="lbl">Recommended</div>
-                                    <div class="val" t-esc="vendors[0].vendor_id.name or vendors[0].new_vendor_name"/>
+                                    <div class="val" t-out="vendors[0].vendor_id.name or vendors[0].new_vendor_name"/>
                                 </div>
                             </t>
                         </div>
 
                         <t t-if="doc.request_ids">
                             <p class="cmp-ref mb-2">Source Requests:
-                                <t t-foreach="doc.request_ids" t-as="req"><span t-esc="req.name"/><t t-if="not req_last">, </t></t>
+                                <t t-foreach="doc.request_ids" t-as="req"><span t-out="req.name"/><t t-if="not req_last">, </t></t>
                             </p>
                         </t>
 
@@ -98,8 +97,8 @@
                                     <th>UoM</th>
                                     <t t-foreach="vendors" t-as="vendor">
                                         <th t-att-class="'cmp-win' if vendor.is_winner else ''">
-                                            <t t-esc="vendor.vendor_id.name or vendor.new_vendor_name"/>
-                                            <br/><small>Rank #<t t-esc="vendor.rank"/></small>
+                                            <t t-out="vendor.vendor_id.name or vendor.new_vendor_name"/>
+                                            <br/><small>Rank #<t t-out="vendor.rank"/></small>
                                             <t t-if="vendor.is_winner"><br/><small>[ SELECTED ]</small></t>
                                         </th>
                                     </t>
@@ -110,16 +109,16 @@
                                     <t t-set="row_prices" t-value="[v.line_ids.filtered(lambda l: l.rfq_line_id == rfq_line)[:1].price_unit for v in vendors if v.line_ids.filtered(lambda l: l.rfq_line_id == rfq_line and l.price_unit &gt; 0)]"/>
                                     <t t-set="row_best" t-value="min(row_prices) if row_prices else 0"/>
                                     <tr>
-                                        <td style="text-align:left"><t t-esc="rfq_line.product_id.name or rfq_line.name"/></td>
-                                        <td class="text-center"><t t-esc="rfq_line.qty"/></td>
-                                        <td class="text-center"><t t-esc="rfq_line.uom_id.name"/></td>
+                                        <td style="text-align:left"><t t-out="rfq_line.product_id.name or rfq_line.name"/></td>
+                                        <td class="text-center"><t t-out="rfq_line.qty"/></td>
+                                        <td class="text-center"><t t-out="rfq_line.uom_id.name"/></td>
                                         <t t-foreach="vendors" t-as="vendor">
                                             <t t-set="vline" t-value="vendor.line_ids.filtered(lambda l: l.rfq_line_id == rfq_line)[:1]"/>
                                             <td class="text-end" t-att-class="('cmp-best' if (vline and vline.price_unit == row_best and row_best &gt; 0) else ('cmp-win' if vendor.is_winner else ''))">
                                                 <t t-if="vline and vline.price_unit">
-                                                    <span t-esc="vline.price_unit" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                    <span t-out="vline.price_unit" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
                                                     <t t-if="vline.price_unit == row_best and row_best &gt; 0"> <span class="cmp-bestmark">(BEST)</span></t>
-                                                    <t t-if="vline.discount"><br/><small>(<t t-esc="vline.discount"/>% disc.)</small></t>
+                                                    <t t-if="vline.discount"><br/><small>(<t t-out="vline.discount"/>% disc.)</small></t>
                                                 </t>
                                                 <t t-else="">—</t>
                                             </td>
@@ -131,20 +130,20 @@
                                 <tr class="cmp-meta-row">
                                     <td colspan="3" style="text-align:left">Subtotal (excl. tax)</td>
                                     <t t-foreach="vendors" t-as="vendor">
-                                        <td class="text-end"><span t-esc="vendor.amount_untaxed" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        <td class="text-end"><span t-out="vendor.amount_untaxed" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
                                     </t>
                                 </tr>
                                 <tr class="cmp-meta-row">
                                     <td colspan="3" style="text-align:left">Taxes</td>
                                     <t t-foreach="vendors" t-as="vendor">
-                                        <td class="text-end"><span t-esc="vendor.amount_tax" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        <td class="text-end"><span t-out="vendor.amount_tax" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
                                     </t>
                                 </tr>
                                 <tr class="cmp-total-row">
                                     <td colspan="3" style="text-align:left">GRAND TOTAL</td>
                                     <t t-foreach="vendors" t-as="vendor">
                                         <td class="text-end" t-att-style="'text-decoration:underline;' if vendor.amount_total == best_total and best_total &gt; 0 else ''">
-                                            <span t-esc="vendor.amount_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                            <span t-out="vendor.amount_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
                                             <t t-if="vendor.amount_total == best_total and best_total &gt; 0"> (best)</t>
                                         </td>
                                     </t>
@@ -152,25 +151,25 @@
                                 <tr class="cmp-meta-row">
                                     <td colspan="3" style="text-align:left">Coverage (lines quoted)</td>
                                     <t t-foreach="vendors" t-as="vendor">
-                                        <td class="text-center"><t t-esc="len(vendor.line_ids.filtered(lambda l: l.price_unit &gt; 0))"/>/<t t-esc="line_count"/></td>
+                                        <td class="text-center"><t t-out="len(vendor.line_ids.filtered(lambda l: l.price_unit &gt; 0))"/>/<t t-out="line_count"/></td>
                                     </t>
                                 </tr>
                                 <tr class="cmp-meta-row">
                                     <td colspan="3" style="text-align:left">Delivery (days)</td>
                                     <t t-foreach="vendors" t-as="vendor">
-                                        <td class="text-center"><t t-esc="vendor.delivery_days or '—'"/></td>
+                                        <td class="text-center"><t t-out="vendor.delivery_days or '—'"/></td>
                                     </t>
                                 </tr>
                                 <tr class="cmp-meta-row">
                                     <td colspan="3" style="text-align:left">Payment Terms</td>
                                     <t t-foreach="vendors" t-as="vendor">
-                                        <td class="text-center"><t t-esc="vendor.payment_term_id.name or '—'"/></td>
+                                        <td class="text-center"><t t-out="vendor.payment_term_id.name or '—'"/></td>
                                     </t>
                                 </tr>
                                 <tr class="cmp-rank-row">
                                     <td colspan="3" style="text-align:left">Score / Rank</td>
                                     <t t-foreach="vendors" t-as="vendor">
-                                        <td><t t-esc="round(vendor.score, 1)"/> · #<t t-esc="vendor.rank"/></td>
+                                        <td><t t-out="round(vendor.score, 1)"/> · #<t t-out="vendor.rank"/></td>
                                     </t>
                                 </tr>
                             </tfoot>
@@ -178,15 +177,15 @@
 
                         <t t-if="doc.winner_quotation_id">
                             <div style="border:1px solid #333; padding:8px 12px; margin-top:14px;">
-                                <strong>Selected Vendor: <t t-esc="doc.winner_quotation_id.vendor_id.name or doc.winner_quotation_id.new_vendor_name"/></strong>
+                                <strong>Selected Vendor: <t t-out="doc.winner_quotation_id.vendor_id.name or doc.winner_quotation_id.new_vendor_name"/></strong>
                                 <t t-if="doc.winner_quotation_id.winner_justification">
-                                    <br/>Justification: <t t-esc="doc.winner_quotation_id.winner_justification"/>
+                                    <br/>Justification: <t t-out="doc.winner_quotation_id.winner_justification"/>
                                 </t>
                             </div>
                         </t>
                         <!-- Signature block for a standard procurement document -->
                         <div class="row" style="margin-top:40px;">
-                            <div class="col-4">Prepared by: <span t-esc="doc.procurement_officer_id.name or ''"/>
+                            <div class="col-4">Prepared by: <span t-out="doc.procurement_officer_id.name or ''"/>
                                 <div style="border-top:1px solid #333; margin-top:28px; width:80%;"/></div>
                             <div class="col-4 offset-4 text-end">Approved by:
                                 <div style="border-top:1px solid #333; margin-top:28px; width:80%; margin-left:auto;"/></div>

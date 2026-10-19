@@ -37,7 +37,7 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_open_entries" type="object" class="oe_stat_button" icon="fa-book" invisible="not move_count">
+                        <button name="action_open_entries" type="object" class="oe_stat_button" icon="book" invisible="not move_count">
                             <field name="move_count" widget="statinfo" string="Entries"/>
                         </button>
                     </div>
@@ -83,7 +83,7 @@
                                     <field name="state" widget="badge"/>
                                     <field name="move_id" optional="show"/>
                                     <field name="currency_id" column_invisible="1"/>
-                                    <button name="action_post" type="object" string="Recognise" icon="fa-check" invisible="state != 'draft'"/>
+                                    <button name="action_post" type="object" string="Recognise" icon="check" invisible="state != 'draft'"/>
                                 </list>
                             </field>
                         </page>

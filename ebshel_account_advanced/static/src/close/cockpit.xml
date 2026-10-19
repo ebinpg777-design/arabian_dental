@@ -3,14 +3,14 @@
     <t t-name="ebshel_account_advanced.CloseCockpit">
         <div class="o_eaa o_action o_eaa_close">
             <div class="o_eaa_head">
-                <h2><i class="fa fa-tachometer me-2"/>Close cockpit</h2>
+                <h2><i class="oi me-2" data-icon="speed"/>Close cockpit</h2>
                 <select class="form-select form-select-sm" style="width:auto" t-if="this.state.data and this.state.data.periods.length" t-on-change="this.pick">
                     <option t-foreach="this.state.data.periods" t-as="p" t-key="p.id" t-att-value="p.id" t-att-selected="this.state.data.period and p.id === this.state.data.period.id"><t t-out="p.name"/> · <t t-out="p.state"/> · <t t-out="p.progress"/>%</option>
                 </select>
                 <div class="ms-auto d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="this.startCreate" t-if="this.state.data and this.state.data.can_write"><i class="fa fa-plus me-1"/>New period</button>
-                    <button class="btn btn-sm btn-outline-secondary" t-if="this.state.data and this.state.data.period" t-on-click="this.openPeriod"><i class="fa fa-pencil"/></button>
-                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="this.startCreate" t-if="this.state.data and this.state.data.can_write"><i class="oi me-1" data-icon="add"/>New period</button>
+                    <button class="btn btn-sm btn-outline-secondary" t-if="this.state.data and this.state.data.period" t-on-click="this.openPeriod"><i class="oi" data-icon="edit"/></button>
+                    <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.load()"><i class="oi" data-icon="refresh"/></button>
                 </div>
             </div>
             <div t-if="this.state.creating" class="o_eaa_body pb-0">
@@ -22,7 +22,7 @@
                     <button class="btn btn-sm btn-secondary" t-on-click="() => this.state.creating = false">Cancel</button>
                 </div>
             </div>
-            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Running the checks…</div>
+            <div t-if="this.state.loading and !this.state.data" class="p-4 text-muted"><i class="oi oi-spin me-2" data-icon="autorenew"/>Running the checks…</div>
             <div t-elif="this.state.data and !this.state.data.period" class="p-4 text-muted">No close period yet. Create one for last month: the checklist comes from the templates and every check counts what is still to fix.</div>
             <div t-elif="this.state.data" class="o_eaa_body">
                 <div class="o_eaa_grid" style="grid-template-columns: 300px minmax(0, 1fr)">
@@ -35,11 +35,11 @@
                         </svg>
                         <div><b t-out="this.state.data.period.name"/> <span t-att-class="'o_eaa_badge ' + (this.state.data.period.state === 'closed' ? 'good' : this.state.data.period.state === 'review' ? 'warn' : 'info')" t-out="this.state.data.period.state"/></div>
                         <div class="small text-muted"><t t-out="this.state.data.period.from"/> → <t t-out="this.state.data.period.to"/> · <t t-out="this.state.data.period.done"/>/<t t-out="this.state.data.period.total"/> done</div>
-                        <div class="small text-danger mt-1" t-if="this.state.data.period.blocking"><i class="fa fa-exclamation-circle"/> <t t-out="this.state.data.period.blocking"/> check(s) still find something</div>
+                        <div class="small text-danger mt-1" t-if="this.state.data.period.blocking"><i class="oi" data-icon="error"/> <t t-out="this.state.data.period.blocking"/> check(s) still find something</div>
                         <div class="small text-muted mt-1" t-if="this.state.data.period.closed_on">closed <t t-out="this.state.data.period.closed_on"/> by <t t-out="this.state.data.period.closed_by"/></div>
                         <div class="mt-2 d-flex flex-column gap-1" t-if="this.state.data.can_write">
-                            <button class="btn btn-sm btn-primary" t-if="this.state.data.period.state !== 'closed'" t-on-click="this.closePeriod" t-att-disabled="this.state.busy or this.state.data.period.done &lt; this.state.data.period.total"><i class="fa fa-lock me-1"/>Close the period<t t-if="this.state.data.period.lock_books and !this.state.data.can_lock"> (manager)</t></button>
-                            <button class="btn btn-sm btn-outline-secondary" t-else="" t-on-click="this.reopen"><i class="fa fa-unlock me-1"/>Reopen</button>
+                            <button class="btn btn-sm btn-primary" t-if="this.state.data.period.state !== 'closed'" t-on-click="this.closePeriod" t-att-disabled="this.state.busy or this.state.data.period.done &lt; this.state.data.period.total"><i class="oi me-1" data-icon="lock"/>Close the period<t t-if="this.state.data.period.lock_books and !this.state.data.can_lock"> (manager)</t></button>
+                            <button class="btn btn-sm btn-outline-secondary" t-else="" t-on-click="this.reopen"><i class="oi me-1" data-icon="lock_open"/>Reopen</button>
                         </div>
                         <div class="mt-3 text-start small">
                             <div class="o_eaa_ph">Lock dates</div>
@@ -52,17 +52,17 @@
                         <div class="o_eaa_panel mb-2">
                             <div class="o_eaa_ph">Automatic checks <span class="text-muted">— live counts; a check ticks itself when it finds nothing</span></div>
                             <div t-foreach="this.checks" t-as="t" t-key="t.id" t-att-class="'o_eaa_check ' + t.state + (t.blocking ? ' blocking' : '')">
-                                <div class="ic"><i t-att-class="'fa ' + (t.state === 'done' ? 'fa-check' : t.state === 'skipped' ? 'fa-forward' : t.blocking ? 'fa-exclamation' : 'fa-circle-o')"/></div>
+                                <div class="ic"><i class="oi" t-att-data-icon="t.state === 'done' ? 'check' : t.state === 'skipped' ? 'skip_next' : t.blocking ? 'priority_high' : 'radio_button_unchecked'"/></div>
                                 <div class="nm"><t t-out="t.name"/>
                                     <span t-if="t.count" t-att-class="'o_eaa_badge ms-1 ' + (t.state === 'todo' ? 'bad' : 'muted')"><t t-out="t.count"/><t t-if="t.amount"> · <t t-out="this.money(t.amount)"/></t></span>
                                     <div t-if="this.state.noteFor === t.id" class="mt-1"><input class="form-control form-control-sm" placeholder="Why it is skipped / a note" t-model.proxy="this.state.note"/></div>
                                     <div t-elif="t.note" class="small text-muted" t-out="t.note"/>
                                 </div>
                                 <div class="acts">
-                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.count" t-on-click="() => this.openTask(t)" title="Open the records"><i class="fa fa-search"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.count" t-on-click="() => this.openTask(t)" title="Open the records"><i class="oi" data-icon="search"/></button>
                                     <t t-if="this.state.data.can_write and this.state.data.period.state !== 'closed'">
-                                        <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.state === 'todo'" t-on-click="() => this.skipTask(t)" title="Skip with a note"><i class="fa fa-forward"/></button>
-                                        <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.state !== 'todo'" t-on-click="() => this.setTask(t, 'todo')" title="Back to do"><i class="fa fa-undo"/></button>
+                                        <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.state === 'todo'" t-on-click="() => this.skipTask(t)" title="Skip with a note"><i class="oi" data-icon="skip_next"/></button>
+                                        <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.state !== 'todo'" t-on-click="() => this.setTask(t, 'todo')" title="Back to do"><i class="oi" data-icon="undo"/></button>
                                     </t>
                                 </div>
                             </div>
@@ -70,7 +70,7 @@
                         <div class="o_eaa_panel">
                             <div class="o_eaa_ph">Tasks</div>
                             <div t-foreach="this.manual" t-as="t" t-key="t.id" t-att-class="'o_eaa_check ' + t.state">
-                                <div class="ic"><i t-att-class="'fa ' + (t.state === 'done' ? 'fa-check' : t.state === 'skipped' ? 'fa-forward' : 'fa-circle-o')"/></div>
+                                <div class="ic"><i class="oi" t-att-data-icon="t.state === 'done' ? 'check' : t.state === 'skipped' ? 'skip_next' : 'radio_button_unchecked'"/></div>
                                 <div class="nm"><t t-out="t.name"/>
                                     <div t-if="this.state.noteFor === t.id" class="mt-1"><input class="form-control form-control-sm" placeholder="Note" t-model.proxy="this.state.note"/></div>
                                     <div t-elif="t.note" class="small text-muted" t-out="t.note"/>
@@ -81,9 +81,9 @@
                                     <option t-foreach="this.state.data.users" t-as="u" t-key="u.id" t-att-value="u.id" t-att-selected="t.owner_id === u.id" t-out="u.name"/>
                                 </select>
                                 <div class="acts" t-if="this.state.data.can_write and this.state.data.period.state !== 'closed'">
-                                    <button class="btn btn-sm btn-outline-success o_eaa_btn" t-if="t.state === 'todo'" t-on-click="() => this.setTask(t, 'done')" title="Done"><i class="fa fa-check"/></button>
-                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.state === 'todo'" t-on-click="() => this.skipTask(t)" title="Skip with a note"><i class="fa fa-forward"/></button>
-                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.state !== 'todo'" t-on-click="() => this.setTask(t, 'todo')" title="Back to do"><i class="fa fa-undo"/></button>
+                                    <button class="btn btn-sm btn-outline-success o_eaa_btn" t-if="t.state === 'todo'" t-on-click="() => this.setTask(t, 'done')" title="Done"><i class="oi" data-icon="check"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.state === 'todo'" t-on-click="() => this.skipTask(t)" title="Skip with a note"><i class="oi" data-icon="skip_next"/></button>
+                                    <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-if="t.state !== 'todo'" t-on-click="() => this.setTask(t, 'todo')" title="Back to do"><i class="oi" data-icon="undo"/></button>
                                 </div>
                             </div>
                         </div>

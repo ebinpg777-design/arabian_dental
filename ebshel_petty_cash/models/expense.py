@@ -1,13 +1,15 @@
 # Part of ebshel_petty_cash. See LICENSE file for full copyright and licensing details.
 from datetime import timedelta
 
+from markupsafe import Markup
+
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 
 class PettyCashExpense(models.Model):
     """A petty cash voucher: one payment out of the fund, split over expense
-    lines (and open vendor bills), approved before it is paid."""
+    lines, approved before it is paid."""
 
     _name = "ebshel.petty.cash.expense"
     _description = "Petty Cash Voucher"
@@ -41,17 +43,9 @@ class PettyCashExpense(models.Model):
         string="Payee",
         tracking=True,
         check_company=True,
-        help="Shop or person paid. Required to pay vendor bills.",
+        help="Shop or person paid.",
     )
     reference = fields.Char(string="Receipt Reference", copy=False)
-    price_mode = fields.Selection(
-        [("included", "Tax Included"), ("excluded", "Tax Excluded")],
-        string="Amounts",
-        default="included",
-        required=True,
-        help="Tax Included: the line amounts are receipt totals; the tax is "
-        "extracted from them.",
-    )
     line_ids = fields.One2many(
         "ebshel.petty.cash.expense.line", "expense_id", string="Lines", copy=True
     )
@@ -90,6 +84,19 @@ class PettyCashExpense(models.Model):
         string="Possible Duplicates",
     )
     is_duplicate = fields.Boolean(compute="_compute_duplicate_ids")
+    category_ids = fields.Many2many(
+        "ebshel.petty.cash.category", compute="_compute_category_ids", string="Categories"
+    )
+    # Risk assessment, made on submission
+    risk_score = fields.Integer(readonly=True, copy=False, aggregator="avg")
+    risk_level = fields.Selection(
+        [("low", "Low"), ("medium", "Medium"), ("high", "High")],
+        readonly=True,
+        copy=False,
+        index=True,
+    )
+    risk_flags = fields.Text(readonly=True, copy=False)
+    risk_flags_html = fields.Html(compute="_compute_risk_flags_html", string="Risk Findings")
 
     # ------------------------------------------------------------------
     # Amounts (the same tax engine that posts the entry)
@@ -98,7 +105,6 @@ class PettyCashExpense(models.Model):
         """Base lines of the taxes computation, one per voucher line."""
         self.ensure_one()
         AccountTax = self.env["account.tax"]
-        special_mode = "total_included" if self.price_mode == "included" else "total_excluded"
         rate = self._petty_cash_rate() if self.fund_id else 1.0
         return [
             AccountTax._prepare_base_line_for_taxes_computation(
@@ -109,9 +115,9 @@ class PettyCashExpense(models.Model):
                 tax_ids=line.tax_ids,
                 currency_id=self.currency_id or self.env.company.currency_id,
                 rate=rate,
-                special_mode=special_mode,
+                special_mode="total_included",
                 account_id=line.account_id,
-                partner_id=line.bill_id.commercial_partner_id or self.partner_id,
+                partner_id=self.partner_id,
                 analytic_distribution=line.analytic_distribution,
                 product_id=self.env["product.product"],
                 product_uom_id=self.env["uom.uom"],
@@ -131,7 +137,6 @@ class PettyCashExpense(models.Model):
     @api.depends(
         "line_ids.amount",
         "line_ids.tax_ids",
-        "price_mode",
         "currency_id",
         "date",
         "fund_id",
@@ -174,6 +179,20 @@ class PettyCashExpense(models.Model):
         for expense in self:
             expense.attachment_count = counts.get(expense.id, 0)
 
+    @api.depends("line_ids.category_id")
+    def _compute_category_ids(self):
+        for expense in self:
+            expense.category_ids = expense.line_ids.category_id
+
+    def _compute_risk_flags_html(self):
+        for expense in self:
+            flags = (expense.risk_flags or "").splitlines()
+            expense.risk_flags_html = (
+                Markup("<ul class='mb-0'>%s</ul>") % Markup().join(Markup("<li>%s</li>") % flag for flag in flags)
+                if flags
+                else False
+            )
+
     @api.depends("amount_total", "partner_id", "reference", "date", "fund_id")
     def _compute_duplicate_ids(self):
         for expense in self:
@@ -214,10 +233,8 @@ class PettyCashExpense(models.Model):
     def _petty_cash_approval_amount(self):
         return self.amount_total
 
-    def _petty_cash_auto_approved(self):
-        self.ensure_one()
-        limit = self.fund_id.auto_approve_limit
-        return bool(limit) and self.currency_id.compare_amounts(self.amount_total, limit) <= 0
+    def _petty_cash_document_type(self):
+        return "expense"
 
     def _needs_receipt(self):
         self.ensure_one()
@@ -259,17 +276,203 @@ class PettyCashExpense(models.Model):
             raise UserError(self.env._("Attach the receipt to %s before submitting it.", self.name))
         if self.advance_id and self.advance_id.state != "paid":
             raise UserError(self.env._("The advance %s is not open.", self.advance_id.name))
-        if self.is_duplicate:
+        over_budget = self._check_budget()
+        score, flags = self._petty_cash_assess_risk(over_budget=over_budget)
+        self.write(
+            {
+                "risk_score": score,
+                "risk_level": "high" if score >= 50 else "medium" if score >= 25 else "low",
+                "risk_flags": "\n".join(flags) or False,
+            }
+        )
+        if flags:
             self.message_post(
-                body=self.env._(
-                    "Possible duplicate of %s.",
-                    ", ".join(self.duplicate_ids.mapped("name")),
+                body=Markup("%s<ul>%s</ul>")
+                % (
+                    self.env._("Risk assessment: %s / 100", score),
+                    Markup().join(Markup("<li>%s</li>") % flag for flag in flags),
                 )
             )
 
-    def _petty_cash_after_approval(self):
-        to_post = self.filtered(lambda e: e.fund_id.post_on_approval)
-        to_post._post()
+    # ------------------------------------------------------------------
+    # Budget and risk
+    # ------------------------------------------------------------------
+    def _month_domain(self):
+        self.ensure_one()
+        month_start = self.date.replace(day=1)
+        next_month = (month_start + timedelta(days=32)).replace(day=1)
+        return [
+            ("id", "!=", self.id),
+            ("fund_id", "=", self.fund_id.id),
+            ("state", "in", ("to_approve", "approved", "posted")),
+            ("date", ">=", month_start),
+            ("date", "<", next_month),
+        ]
+
+    def _check_budget(self):
+        """Enforce the fund's monthly budget and per-person limit. Returns the
+        amount over a budget set to warn (0.0 when within)."""
+        self.ensure_one()
+        fund = self.fund_id
+        currency = self.currency_id
+        Expense = self.sudo()
+        if fund.user_monthly_limit:
+            claimed = sum(
+                Expense.search([*self._month_domain(), ("requested_by_id", "=", self.requested_by_id.id)]).mapped(
+                    "amount_total"
+                )
+            )
+            if currency.compare_amounts(claimed + self.amount_total, fund.user_monthly_limit) > 0:
+                raise UserError(
+                    self.env._(
+                        "%(user)s would claim %(total)s from %(fund)s this month, over the "
+                        "%(limit)s limit per person.",
+                        user=self.requested_by_id.name,
+                        total=currency.format(claimed + self.amount_total),
+                        fund=fund.display_name,
+                        limit=currency.format(fund.user_monthly_limit),
+                    )
+                )
+        if not fund.monthly_budget:
+            return 0.0
+        committed = sum(Expense.search(self._month_domain()).mapped("amount_total"))
+        over = currency.round(committed + self.amount_total - fund.monthly_budget)
+        if currency.compare_amounts(over, 0.0) <= 0:
+            return 0.0
+        if fund.budget_policy == "block":
+            raise UserError(
+                self.env._(
+                    "%(voucher)s would take %(fund)s %(over)s over its monthly budget of %(budget)s.",
+                    voucher=self.name,
+                    fund=fund.display_name,
+                    over=currency.format(over),
+                    budget=currency.format(fund.monthly_budget),
+                )
+            )
+        return over
+
+    def _petty_cash_assess_risk(self, over_budget=0.0):
+        """Score (0-100) and findings of the voucher's red flags."""
+        self.ensure_one()
+        _ = self.env._
+        currency = self.currency_id
+        company_currency = self.company_id.currency_id
+        today = fields.Date.context_today(self)
+        amount_company = self._petty_cash_amount_company()
+        Expense = self.sudo()
+        score = 0
+        flags = []
+
+        def flag(points, message):
+            nonlocal score
+            score += points
+            flags.append(message)
+
+        if self.is_duplicate:
+            flag(40, _("Possible duplicate of %s.", ", ".join(self.duplicate_ids.mapped("name"))))
+        if not self.attachment_count:
+            flag(15, _("No receipt attached."))
+        if self.date.weekday() >= 5:
+            flag(10, _("Dated on a weekend."))
+        if currency.compare_amounts(self.amount_total, 100.0) >= 0 and currency.is_zero(
+            self.amount_total % 50.0
+        ):
+            flag(10, _("Round amount (%s).", currency.format(self.amount_total)))
+        late_days = self.company_id.petty_cash_late_days
+        if late_days and (today - self.date).days > late_days:
+            flag(15, _("Submitted %s days after the spending.", (today - self.date).days))
+        if over_budget:
+            flag(20, _("Over the monthly budget of the fund by %s.", currency.format(over_budget)))
+
+        # amounts just under an approval threshold, alone or split over the day
+        thresholds = sorted(
+            {
+                level.min_amount
+                for level in self.env["ebshel.petty.cash.approval.level"].sudo().search(
+                    [("company_id", "in", (False, self.company_id.id)), ("min_amount", ">", 0)]
+                )
+                if level._petty_cash_applies(self, level.min_amount)
+            }
+        )
+        if self.fund_id.max_expense_amount:
+            thresholds.append(self.fund_id._to_company_currency(self.fund_id.max_expense_amount, self.date))
+        for threshold in thresholds:
+            if company_currency.compare_amounts(amount_company, threshold) < 0 and (
+                company_currency.compare_amounts(amount_company, threshold * 0.9) >= 0
+            ):
+                flag(25, _("Just under the %s approval threshold.", company_currency.format(threshold)))
+                break
+        same_day = Expense.search(
+            [
+                ("id", "!=", self.id),
+                ("requested_by_id", "=", self.requested_by_id.id),
+                ("fund_id", "=", self.fund_id.id),
+                ("date", "=", self.date),
+                ("state", "in", ("to_approve", "approved", "posted")),
+                ("company_id", "=", self.company_id.id),
+            ]
+        )
+        if same_day:
+            combined = amount_company + sum(same_day.mapped("amount_total_company"))
+            crossed = [
+                t
+                for t in thresholds
+                if company_currency.compare_amounts(amount_company, t) < 0
+                and company_currency.compare_amounts(combined, t) >= 0
+            ]
+            if crossed:
+                flag(
+                    30,
+                    _(
+                        "Possible split: with %(others)s the same day, %(total)s crosses the %(threshold)s threshold.",
+                        others=", ".join(same_day.mapped("name")),
+                        total=company_currency.format(combined),
+                        threshold=company_currency.format(crossed[0]),
+                    ),
+                )
+            else:
+                flag(10, _("Several vouchers the same day: %s.", ", ".join(same_day.mapped("name"))))
+
+        history = Expense.search(
+            [
+                ("id", "!=", self.id),
+                ("requested_by_id", "=", self.requested_by_id.id),
+                ("company_id", "=", self.company_id.id),
+                ("state", "=", "posted"),
+                ("date", ">=", self.date - timedelta(days=90)),
+            ]
+        )
+        if len(history) >= 3:
+            average = sum(history.mapped("amount_total_company")) / len(history)
+            if company_currency.compare_amounts(amount_company, 3 * average) > 0:
+                flag(
+                    15,
+                    _(
+                        "%(amount)s is more than three times the requester's average (%(average)s).",
+                        amount=company_currency.format(amount_company),
+                        average=company_currency.format(average),
+                    ),
+                )
+        return min(score, 100), flags
+
+    def _petty_cash_extra_steps(self, levels):
+        """A high-risk voucher gets a review by the administrators when no
+        administrators' level is in its chain already."""
+        self.ensure_one()
+        if not (
+            self.company_id.petty_cash_risk_review
+            and self.risk_level == "high"
+            and "managers" not in levels.mapped("approver_type")
+        ):
+            return []
+        approvers = self._petty_cash_fallback_approvers()
+        return [
+            {
+                "name": self.env._("Risk Review"),
+                "approval_mode": "any",
+                "approver_ids": [(6, 0, approvers.ids)],
+            }
+        ]
 
     # ------------------------------------------------------------------
     # Payment
@@ -298,13 +501,12 @@ class PettyCashExpense(models.Model):
                     "paid_date": fields.Datetime.now(),
                 }
             )
-            expense._reconcile_bills()
             expense.message_post(body=self.env._("Paid from %s.", expense.fund_id.display_name))
         self.fund_id._notify_low_balance()
 
     def _prepare_move_lines(self):
-        """Expense lines with their tax lines, the vendor bill lines and the
-        credit of the cash account (or of the advance)."""
+        """Expense lines with their tax lines and the credit of the cash
+        account (or of the advance)."""
         self.ensure_one()
         AccountTax = self.env["account.tax"]
         company = self.company_id
@@ -325,14 +527,13 @@ class PettyCashExpense(models.Model):
                 {
                     "name": f"{self.name}: {line.name or line.category_id.name or ''}",
                     "account_id": line.account_id.id,
-                    "partner_id": (line.bill_id.commercial_partner_id or self.partner_id).id,
+                    "partner_id": self.partner_id.id,
                     "analytic_distribution": line.analytic_distribution,
                     "tax_ids": [Command.set(line.tax_ids.ids)],
                     "tax_tag_ids": to_update["tax_tag_ids"],
                     "amount_currency": to_update["amount_currency"],
                     "balance": to_update["balance"],
                     "currency_id": self.currency_id.id,
-                    "petty_cash_bill_id": line.bill_id.id,
                 }
             )
         for tax_line in tax_results["tax_lines_to_add"]:
@@ -358,18 +559,6 @@ class PettyCashExpense(models.Model):
         )
         return move_lines
 
-    def _reconcile_bills(self):
-        for expense in self.sudo():
-            for bill in expense.line_ids.bill_id:
-                lines = expense.move_id.line_ids.filtered(
-                    lambda aml, b=bill: aml.petty_cash_bill_id == b
-                )
-                bill_lines = bill.line_ids.filtered(
-                    lambda aml, accounts=lines.account_id: aml.account_id in accounts
-                    and not aml.reconciled
-                )
-                (lines + bill_lines).reconcile()
-
     def action_cancel(self):
         for expense in self:
             if expense.state not in ("draft", "to_approve", "approved", "posted"):
@@ -391,7 +580,7 @@ class PettyCashExpense(models.Model):
                 expense.message_post(
                     body=self.env._("Entry %s reversed.", expense.move_id.sudo().name)
                 )
-            expense.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval"])
+            expense._petty_cash_cancel_steps()
             expense.write({"state": "cancelled", "replenishment_id": False})
 
     def action_view_attachments(self):
@@ -416,7 +605,7 @@ class PettyCashExpense(models.Model):
         }
 
     def write(self, vals):
-        locked = {"line_ids", "fund_id", "price_mode", "advance_id", "partner_id", "date"}
+        locked = {"line_ids", "fund_id", "advance_id", "partner_id", "date"}
         if locked & set(vals) and not self.env.su:
             for expense in self:
                 if expense.state not in ("draft", "to_approve"):
@@ -448,17 +637,11 @@ class PettyCashExpenseLine(models.Model):
     partner_id = fields.Many2one(related="expense_id.partner_id", store=True, string="Payee")
     category_id = fields.Many2one(
         "ebshel.petty.cash.category",
+        required=True,
         check_company=True,
         index=True,
     )
-    bill_id = fields.Many2one(
-        "account.move",
-        string="Vendor Bill",
-        check_company=True,
-        domain="[('move_type', '=', 'in_invoice'), ('state', '=', 'posted'), "
-        "('payment_state', 'in', ('not_paid', 'partial')), ('currency_id', '=', currency_id)]",
-        help="Pay this open vendor bill from the cash box.",
-    )
+    category_note = fields.Text(related="category_id.note", string="Guidance")
     name = fields.Char(string="Description")
     account_id = fields.Many2one(
         "account.account",
@@ -480,7 +663,7 @@ class PettyCashExpenseLine(models.Model):
     )
     amount = fields.Monetary(
         required=True,
-        help="Receipt amount, tax included or excluded as set on the voucher.",
+        help="Receipt amount, taxes included.",
     )
     amount_untaxed = fields.Monetary(compute="_compute_line_amounts", store=True, string="Untaxed")
     amount_tax = fields.Monetary(compute="_compute_line_amounts", store=True, string="Tax")
@@ -493,16 +676,10 @@ class PettyCashExpenseLine(models.Model):
     )
     company_currency_id = fields.Many2one(related="company_id.currency_id", string="Company Currency")
 
-    @api.depends("category_id", "bill_id")
+    @api.depends("category_id")
     def _compute_account_taxes(self):
         for line in self:
-            if line.bill_id:
-                payable = line.bill_id.line_ids.filtered(
-                    lambda aml: aml.account_id.account_type == "liability_payable"
-                )[:1]
-                line.account_id = payable.account_id
-                line.tax_ids = False
-            elif line.category_id:
+            if line.category_id:
                 line.account_id = line.category_id.account_id
                 line.tax_ids = line.category_id.tax_ids
 
@@ -516,16 +693,9 @@ class PettyCashExpenseLine(models.Model):
             if distribution:
                 line.analytic_distribution = distribution
 
-    @api.onchange("bill_id")
-    def _onchange_bill_id(self):
-        if self.bill_id:
-            self.amount = self.bill_id.amount_residual
-            self.name = self.bill_id.ref or self.bill_id.name
-
     @api.depends(
         "amount",
         "tax_ids",
-        "expense_id.price_mode",
         "expense_id.currency_id",
         "expense_id.date",
     )
@@ -573,68 +743,32 @@ class PettyCashExpenseLine(models.Model):
             if line.currency_id.compare_amounts(line.amount, 0.0) < 0:
                 raise ValidationError(self.env._("Voucher line amounts cannot be negative."))
 
-    @api.constrains("category_id", "bill_id")
-    def _check_category_or_bill(self):
-        for line in self:
-            if not line.category_id and not line.bill_id:
-                raise ValidationError(self.env._("Each voucher line needs a category or a vendor bill."))
-
     def _check_line(self):
         """Checks run on submission (the voucher may still change before)."""
         for line in self:
             expense = line.expense_id
             fund = expense.fund_id
             category = line.category_id
-            if category:
-                if fund.category_ids and category not in fund.category_ids:
-                    raise UserError(
-                        self.env._(
-                            "The category %(category)s is not allowed on %(fund)s.",
-                            category=category.name,
-                            fund=fund.display_name,
-                        )
+            if fund.category_ids and category not in fund.category_ids:
+                raise UserError(
+                    self.env._(
+                        "The category %(category)s is not allowed on %(fund)s.",
+                        category=category.name,
+                        fund=fund.display_name,
                     )
-                if category.partner_required and not expense.partner_id:
-                    raise UserError(
-                        self.env._("The category %s needs a payee on the voucher.", category.name)
+                )
+            if category.partner_required and not expense.partner_id:
+                raise UserError(
+                    self.env._("The category %s needs a payee on the voucher.", category.name)
+                )
+            if category.max_amount and line.company_currency_id.compare_amounts(
+                line.amount_total_company, category.max_amount
+            ) > 0:
+                raise UserError(
+                    self.env._(
+                        "The line %(line)s exceeds the %(limit)s limit of %(category)s.",
+                        line=line.name or category.name,
+                        limit=line.company_currency_id.format(category.max_amount),
+                        category=category.name,
                     )
-                if category.max_amount and line.company_currency_id.compare_amounts(
-                    line.amount_total_company, category.max_amount
-                ) > 0:
-                    raise UserError(
-                        self.env._(
-                            "The line %(line)s exceeds the %(limit)s limit of %(category)s.",
-                            line=line.name or category.name,
-                            limit=line.company_currency_id.format(category.max_amount),
-                            category=category.name,
-                        )
-                    )
-            if line.bill_id:
-                bill = line.bill_id
-                if bill.state != "posted" or bill.payment_state not in ("not_paid", "partial"):
-                    raise UserError(self.env._("The bill %s is not open any more.", bill.name))
-                if bill.currency_id != expense.currency_id:
-                    raise UserError(
-                        self.env._("The bill %s is not in the fund currency.", bill.name)
-                    )
-                if line.currency_id.compare_amounts(line.amount, bill.amount_residual) > 0:
-                    raise UserError(
-                        self.env._(
-                            "%(amount)s is more than the %(residual)s due on %(bill)s.",
-                            amount=line.currency_id.format(line.amount),
-                            residual=line.currency_id.format(bill.amount_residual),
-                            bill=bill.name,
-                        )
-                    )
-
-
-class AccountMoveLine(models.Model):
-    _inherit = "account.move.line"
-
-    petty_cash_bill_id = fields.Many2one(
-        "account.move",
-        readonly=True,
-        copy=False,
-        index="btree_not_null",
-        help="Vendor bill paid by this petty cash line.",
-    )
+                )

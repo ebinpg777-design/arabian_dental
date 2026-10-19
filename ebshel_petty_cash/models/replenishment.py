@@ -133,19 +133,14 @@ class PettyCashReplenishment(models.Model):
     def _petty_cash_approval_amount(self):
         return self.amount
 
-    def _petty_cash_approver_group(self):
-        return "ebshel_petty_cash.group_petty_cash_manager"
-
-    def _petty_cash_double_validation_applies(self):
-        return False
-
-    def _petty_cash_auto_approved(self):
-        return not self.company_id.petty_cash_replenish_approval
+    def _petty_cash_document_type(self):
+        return "replenishment"
 
     def _petty_cash_check_submit(self):
         self.ensure_one()
         if not self.counterpart_account_id:
             raise UserError(self.env._("Choose the bank journal of %s.", self.name))
+        self.action_load_expenses()
 
     # ------------------------------------------------------------------
     # Actions
@@ -212,7 +207,7 @@ class PettyCashReplenishment(models.Model):
                     replenishment.fund_id._check_cash_available(replenishment.amount)
                 self._petty_cash_reverse(replenishment.move_id)
             replenishment.expense_ids.sudo().replenishment_id = False
-            replenishment.activity_unlink(["ebshel_petty_cash.mail_act_petty_cash_approval"])
+            replenishment._petty_cash_cancel_steps()
             replenishment.state = "cancelled"
 
     def write(self, vals):
@@ -230,6 +225,6 @@ class PettyCashReplenishment(models.Model):
         self.ensure_one()
         totals = {}
         for line in self.expense_ids.line_ids:
-            key = line.category_id.name or self.env._("Vendor bills")
+            key = line.category_id.name
             totals[key] = totals.get(key, 0.0) + line.amount_total
         return sorted(totals.items())
