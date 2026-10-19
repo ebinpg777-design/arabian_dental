@@ -28,6 +28,14 @@
     table, thead, tbody, tfoot, tr, th, td { border-style: none; border-width: 0; }
     td, th { padding: 0; }
 
+    // ---- the sheet: the closing block at the foot of the page ----------------
+    table.oi-sheet {
+        td.oi-sheet-top { vertical-align: top; }
+        // 1px: a row with a fixed height smaller than its content keeps its content's
+        // height, and the surplus of the table's height goes to the auto row above
+        td.oi-sheet-foot { vertical-align: bottom; height: 1px; }
+    }
+
     // ---- letterhead card --------------------------------------------------
     // Two columns that balance: logo, marks and tax ids on the left; the contact
     // lines on the right, the block pushed to the right edge but reading
@@ -121,6 +129,11 @@
         td.oi-slno { font-weight: 400; color: $muted; }
         .oi-rate { font-size: 7.8pt; font-weight: 400; color: $muted; line-height: 1.1; }
         td.oi-linetotal { color: $head; background: $card; }
+        // the foot: every column summed, a rule of the head's colour above it
+        tfoot td { padding: 7px 6px; border: 1px solid $line; border-top: 2px solid $head;
+            background: $card; font-weight: 700; color: $head; text-transform: uppercase;
+            letter-spacing: .3px; font-size: 9.6pt; }
+        tfoot td.oi-linetotal { background: #e9ecee; }
         td.oi-teethcell { padding: 4px 6px; }
         td.oi-hsn { font-size: 9pt; font-weight: 400; }
     }

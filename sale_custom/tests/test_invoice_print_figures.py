@@ -67,6 +67,23 @@ class TestInvoicePrintFigures(AccountTestInvoicingCommon):
         self.assertAlmostEqual(sum(amount for _rate, amount in cells.values()), move.amount_tax, 2,
                                msg="the GST columns hold the posted tax to the paisa")
 
+    def test_every_column_is_summed(self):
+        move = self._invoice(self.clinic, 380.95, self.day)
+        move.button_draft()
+        move.write({'invoice_line_ids': [(0, 0, {
+            'name': 'Second', 'quantity': 2, 'price_unit': 100.0, 'tax_ids': [(6, 0, self.gst.ids)]})]})
+        move.action_post()
+        tot = move._dental_column_totals()
+        self.assertEqual(tot['qty'], 3)
+        self.assertAlmostEqual(tot['taxable'], 580.95, 2)
+        self.assertAlmostEqual(tot['gst']['SGST'], 14.52, 2)
+        self.assertAlmostEqual(tot['gst']['CGST'], 14.52, 2)
+        self.assertAlmostEqual(tot['total'], 609.99, 2)
+        self.assertAlmostEqual(tot['taxable'] + sum(tot['gst'].values()), tot['total'], 2)
+        html = self.env['ir.actions.report']._render_qweb_html('account.account_invoices', move.ids)[0].decode()
+        self.assertIn('oi-sum', html)
+        self.assertIn('oi-sheet-foot', html, "the closing block sits in the sheet's foot row")
+
     def test_amount_in_words_capitalised(self):
         move = self._invoice(self.clinic, 380.95, self.day)
         words = move._dental_words(move.amount_total)

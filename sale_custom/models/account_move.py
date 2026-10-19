@@ -269,6 +269,26 @@ class AccountMove(models.Model):
             table[line.id] = cells
         return groups, table
 
+    def _dental_column_totals(self):
+        """The foot of the line table: quantity, taxable value, each GST column and the
+        line totals summed (client, 2026-10-19: "add total in each column of item")."""
+        self.ensure_one()
+        names, table = self._dental_gst_table()
+        lines = self.invoice_line_ids.filtered(lambda l: l.display_type == 'product')
+        gst = {name: 0.0 for name in names}
+        for line in lines:
+            for name, (_rate, amount) in table.get(line.id, {}).items():
+                gst[name] = gst.get(name, 0.0) + amount
+        qty = sum(lines.mapped('quantity'))
+        digits = self.env['account.move.line']._fields['quantity'].get_digits(self.env)
+        return {
+            'qty': qty,
+            'qty_text': formatLang(self.env, qty, digits=digits[1] if digits else 2),
+            'taxable': sum(lines.mapped('price_subtotal')),
+            'gst': gst,
+            'total': sum(lines.mapped('price_total')),
+        }
+
     def _dental_words(self, amount):
         """The amount in words with every word capitalised but "and" - "Four Hundred
         Rupees and Zero Paise" (client, 2026-10-19). `convert` itself is left as it is

@@ -28,6 +28,20 @@
             <t t-set="show_tax" t-value="bool(o.amount_tax) or any(l.tax_ids for l in lines)"/>
             <t t-set="paid" t-value="o.amount_total - o.amount_residual"/>
             <div class="page lab-invoice">
+                <!-- The sheet: one table as tall as the page's body, the invoice proper in
+                     its top row and the closing block - words, totals, bank, pay, sign,
+                     terms - in a bottom row that sits at the foot of the page however
+                     short the invoice is (client, 2026-10-19: "move this part to the
+                     bottom of the sheet"). wkhtmltopdf gives a row's surplus height to
+                     the auto row above it, which is what pushes the foot down. An invoice
+                     longer than a page simply flows on, the foot after its last line.
+                     343mm, not the page's 279: Odoo lets wkhtmltopdf "smart-shrink" the
+                     body, so a millimetre here is about 0.77 on paper. Found by probing
+                     (2026-10-19): 346 still fits a page, 349 spills; 343 ends the terms
+                     ~275 mm down, a safe 10 mm above the footer bar. Re-probe if the
+                     paper format's margins or the shrinking ever change. -->
+                <table class="oi-sheet" style="height:343mm;">
+                    <tr><td class="oi-sheet-top">
 
                 <!-- letterhead, in the body: the design puts it in a card at the top of
                      the page, and a body block cannot be clipped by the header band -->
@@ -248,7 +262,29 @@
                             <td t-if="gst_names" class="num oi-linetotal"><span t-out="o._dental_money(l.price_total)"/></td>
                         </tr>
                     </tbody>
+                    <!-- every column summed (client, 2026-10-19: "add total in each
+                         column of item") -->
+                    <t t-set="tot" t-value="o._dental_column_totals()"/>
+                    <tfoot>
+                        <tr class="oi-sum">
+                            <td/>
+                            <td>Total</td>
+                            <td t-if="show_hsn"/>
+                            <td t-if="show_patient"/>
+                            <td t-if="show_ul"/>
+                            <td t-if="show_teeth"/>
+                            <td class="num"><t t-out="tot['qty_text']"/></td>
+                            <td/>
+                            <td t-if="show_disc"/>
+                            <td class="num"><span t-out="o._dental_money(tot['taxable'])"/></td>
+                            <td t-foreach="gst_names" t-as="g" class="num"><span t-out="o._dental_money(tot['gst'].get(g, 0.0))"/></td>
+                            <td t-if="gst_names" class="num oi-linetotal"><span t-out="o._dental_money(tot['total'])"/></td>
+                        </tr>
+                    </tfoot>
                 </table>
+
+                    </td></tr>
+                    <tr><td class="oi-sheet-foot">
 
                 <!-- ── words + totals ──────────────────────────────────────
                      The sums the lab's invoice always ended with: the taxable value,
@@ -359,6 +395,9 @@
                     <span t-if="o.fiscal_position_id.note" t-field="o.fiscal_position_id.note"/>
                     <span t-if="o.narration" t-field="o.narration"/>
                 </div>
+
+                    </td></tr>
+                </table>
             </div>
         </t>
     </template>
