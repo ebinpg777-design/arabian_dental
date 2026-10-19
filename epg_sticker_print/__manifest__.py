@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Sticker & Label Printing',
-    'version': '20.0.2.0.0',
+    'version': '20.0.2.1.0',
     'category': 'Sales',
     'summary': 'Shipping / destination stickers for sale orders: customer, order or route labels, '
                'live preview, barcode or QR, roll and A4-sheet formats, copies',

@@ -382,14 +382,24 @@ class StickerEngine(models.AbstractModel):
         if work:
             meta_texts.append(work + (' + %s more' % sticker['more'] if sticker['more'] else ''))
 
+        # The head line: the order number at the SAME size as the details, bold (client,
+        # 2026-10-19: "increase the order number font, same font size as patient name
+        # and others") - it is what the bench looks for; "Destination" / "Sales Route"
+        # stay small captions. Its height is part of the ladder, not taken from the
+        # details afterwards, so a large number cannot squeeze the last line out.
+        is_order = sticker.get('kind') == 'order'
+
         def needs(addr_pt):
             name_pt, meta_pt = addr_pt * 1.15, addr_pt
+            small = round(max(addr_pt * 0.62, 7.0), 1)
+            title_pt = addr_pt if is_order else small
+            head = round(max(title_pt * PT_MM * 1.25, z['head']), 1)
             # line boxes as the template sets them: name 1.1, address 1.18, details 1.25
             body = (self._lines_for(sticker['name'], name_pt, w, bold=True) * name_pt * PT_MM * 1.08
                     + self._lines_for(address_text, addr_pt, w) * addr_pt * PT_MM * 1.12)
             meta = sum(self._lines_for(t, meta_pt, w) for t in meta_texts) * meta_pt * PT_MM * 1.15
             gap = addr_pt * PT_MM * 0.25 if meta_texts else 0.0       # air between the two
-            return body, meta, gap
+            return body, meta, gap, head, small, title_pt
 
         # A cushion, not the bare estimate: this is a MEASUREMENT of what wkhtmltopdf
         # will render, not the render itself, and a step that clears `avail` by a
@@ -400,27 +410,23 @@ class StickerEngine(models.AbstractModel):
         # its usual size (their margin was already generous) while pushing the
         # knife-edge cases to the next size down, which typically has real headroom
         # rather than another sliver. (client, 2026-08-29)
-        avail_safe = avail * 0.97
+        total = z['head'] + avail                             # the whole usable height
         chosen = None
         for addr_pt in (26.0, 25.0, 24.0, 23.0, 22.0, 21.0, 20.0, 19.0, 18.0, 17.0, 16.0, 15.5,
                         15.0, 14.5, 14.0, 13.5, 13.0, 12.5, 12.0, 11.5, 11.0, 10.5, 10.0, 9.5,
                         9.0, 8.5, 8.0, 7.5, 7.0):
-            body, meta, gap = needs(addr_pt)
-            if body + gap + meta <= avail_safe:
+            body, meta, gap, head, small, title_pt = needs(addr_pt)
+            if body + gap + meta <= (total - head) * 0.97:
                 chosen = addr_pt
                 break
         addr_pt = chosen or 7.0
-        body, meta, gap = needs(addr_pt)
+        body, meta, gap, head, small, title_pt = needs(addr_pt)
+        z['head'] = head
+        avail = max(total - head, 0.0)
         z['body'] = round(min(body + gap, avail), 1)
         z['meta_h'] = round(max(avail - z['body'], 0.0), 1)
-        small = round(max(addr_pt * 0.62, 7.0), 1)
-        head = round(small * PT_MM * 1.25, 1)
-        if head > z['head']:                 # take the extra from the bands below
-            extra = head - z['head']
-            z['head'] = head
-            z['meta_h'] = round(max(z['meta_h'] - extra, 0.0), 1)
         return dict(z, name=round(addr_pt * 1.15, 1), address=round(addr_pt, 1),
-                    meta=round(addr_pt, 1), small=small)
+                    meta=round(addr_pt, 1), small=small, title=round(title_pt, 1))
 
     @api.model
     def layout_vars(self, fmt):

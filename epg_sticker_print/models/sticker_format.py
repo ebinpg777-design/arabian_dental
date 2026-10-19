@@ -129,6 +129,13 @@ class StickerFormat(models.Model):
             self._sync_paperformat()
         return res
 
+    def action_print_test_grid(self):
+        """The label outlines on plain paper, to hold against a sheet (client, 2026-10-19:
+        a print landed off the labels and the sheet's true measurements were unknown)."""
+        self.ensure_one()
+        return self.env.ref('epg_sticker_print.action_report_sticker_grid').with_context(
+            epg_sticker_paperformat_id=self.paperformat_id.id).report_action(self, config=False)
+
     @api.model
     def get_default(self):
         return (self.search([('is_default', '=', True)], limit=1)

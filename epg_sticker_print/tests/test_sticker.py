@@ -608,3 +608,34 @@ class TestStickerTraySheet(TransactionCase):
         self.assertEqual(html.count(b'class="epg-sticker"'), 2)
         self.assertIn(b'padding:8.5mm 0 0 7.5mm', html, "the grid is pushed to where the labels are")
         self.assertLess(html.index(b'epg-sticker-blank'), html.index(b'class="epg-sticker"'), "first cell blank")
+
+    def test_the_order_number_prints_at_the_details_size(self):
+        """(client, 2026-10-19: "increase the order number font ... same font size as
+        patient name and others")"""
+        order = self.orders[0]
+        by_order = self.Engine.build(order, {'mode': 'order', 'show_patient': True}, fmt=self.fmt)[0]
+        self.assertEqual(by_order['fit']['title'], by_order['fit']['meta'], "the order number as big as the details")
+        self.assertGreaterEqual(by_order['fit']['head'], by_order['fit']['title'] * self.Engine.PT_MM * 1.25 - 0.1,
+                                "and the head band holds it")
+        z = self.Engine.zones(self.fmt, has_code=True)
+        fit = by_order['fit']
+        self.assertLessEqual(fit['head'] + fit['body'] + fit['meta_h'], z['inner_h'] + 0.1,
+                             "the three bands still share the label's height")
+        by_clinic = self.Engine.build(order, {'mode': 'customer'}, fmt=self.fmt)[0]
+        self.assertEqual(by_clinic['fit']['title'], by_clinic['fit']['small'], "'Destination' stays a small caption")
+        report = self.env.ref('epg_sticker_print.action_report_sticker')
+        html = report._render_qweb_html(report.report_name, order.ids,
+                                        data={'mode': 'order', 'ids': order.ids, 'format_id': self.fmt.id})[0].decode()
+        self.assertIn('font-size:%spt;font-weight:bold;color:#000' % fit['title'], html)
+
+    def test_the_test_grid_prints_the_formats_outlines_on_its_page(self):
+        action = self.fmt.action_print_test_grid()
+        self.assertEqual(action['report_name'], 'epg_sticker_print.report_sticker_grid')
+        report = self.env.ref('epg_sticker_print.action_report_sticker_grid')
+        self.assertEqual(report.with_context(action['context']).get_paperformat(), self.fmt.paperformat_id,
+                         "on the format's own page size")
+        html = report.with_context(action['context'])._render_qweb_html(report.report_name, self.fmt.ids)[0].decode()
+        self.assertEqual(html.count('epg-grid-cell'), 24)
+        self.assertIn('padding:8.5mm 0 0 7.5mm', html)
+        self.assertIn('50 mm', html)
+        self.assertIn('row 8, col 3', html)

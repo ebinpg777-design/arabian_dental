@@ -8,4 +8,11 @@
         <field name="print_report_name">'Stickers'</field>
         <!-- paper format comes from the chosen sticker format (see ir_actions_report.py) -->
     </record>
+    <record id="action_report_sticker_grid" model="ir.actions.report">
+        <field name="name">Sticker test grid</field>
+        <field name="model">epg.sticker.format</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">epg_sticker_print.report_sticker_grid</field>
+        <field name="print_report_name">'Sticker test grid - %s' % object.name</field>
+    </record>
 </odoo>

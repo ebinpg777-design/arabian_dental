@@ -19,6 +19,12 @@
         <field name="model">epg.sticker.format</field>
         <field name="arch" type="xml">
             <form>
+                <header>
+                    <!-- plain paper, then hold it against a label sheet: are the outlines on
+                         the labels? the 50 mm rule says whether the printer shrank the page -->
+                    <button name="action_print_test_grid" type="object" string="Print test grid"
+                            class="btn-secondary" icon="fa-print"/>
+                </header>
                 <sheet>
                     <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
                     <div class="oe_title"><h1><field name="name" placeholder="e.g. Roll 100 x 60 mm"/></h1></div>

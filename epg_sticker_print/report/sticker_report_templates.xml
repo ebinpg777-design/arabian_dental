@@ -29,7 +29,9 @@
                              the line - a block beside a float - ending in "..." if it must. -->
                         <div t-attf-style="height:{{f['head']}}mm;overflow:hidden;font-size:{{f['small']}}pt;color:#555;text-transform:uppercase;letter-spacing:.3px;line-height:1.1;white-space:nowrap;">
                             <span t-if="sticker.get('priority')" t-attf-style="float:right;font-weight:bold;color:#fff;background:#c0392b;padding:0 1.2mm;"><t t-out="sticker['priority']"/></span>
-                            <span style="float:left;">
+                            <!-- the order number in the details' size, bold and black; a
+                                 caption title ("Destination") stays small and grey -->
+                            <span t-attf-style="float:left;{{'font-size:%spt;font-weight:bold;color:#000;text-transform:none;letter-spacing:0;' % f.get('title', f['small']) if sticker.get('kind') == 'order' else ''}}">
                                 <span t-out="sticker['title']"/>
                                 <!-- says out loud that this one leaves the clinic's route -->
                                 <b t-if="sticker.get('to_patient')"> | TO PATIENT</b>
@@ -97,6 +99,51 @@
     <template id="sticker_preview">
         <t t-call="epg_sticker_print.sticker_preview_label"/>
         <div class="text-muted small mt-1">Preview of sticker 1 of <t t-out="total"/></div>
+    </template>
+
+    <!-- The test grid: the format's label outlines, numbered, on its page - printed on
+         plain paper and held against a label sheet to see whether the grid sits on the
+         labels, and a 50 mm rule to catch a printer driver that shrinks the page
+         ("fit to page"). Sales > Configuration > Sticker Formats > Print test grid. -->
+    <template id="report_sticker_grid">
+        <t t-call="web.html_container">
+            <meta charset="utf-8"/>
+            <style>
+                html, body, #wrapwrap, main { margin: 0 !important; padding: 0 !important;
+                    font-size: 0; line-height: 0; }
+            </style>
+            <t t-foreach="docs" t-as="fmt">
+                <t t-set="off" t-value="fmt._grid_offsets()"/>
+                <div class="page" t-attf-style="{{'page-break-after:always;' if not fmt_last else ''}}margin:0;padding:{{off[1]}}mm 0 0 {{off[0]}}mm;">
+                    <table t-attf-style="border-collapse:collapse;table-layout:fixed;width:{{fmt.grid_width_mm}}mm;">
+                        <colgroup>
+                            <col t-foreach="range(fmt.columns)" t-as="c"
+                                 t-attf-style="width:{{fmt.width_mm + (fmt.gap_mm if c &lt; fmt.columns - 1 else 0)}}mm;"/>
+                        </colgroup>
+                        <tr t-foreach="range(fmt.rows)" t-as="r">
+                            <td t-foreach="range(fmt.columns)" t-as="c"
+                                t-attf-style="border:none;padding:0;{{'padding-right:%smm;' % fmt.gap_mm if fmt.gap_mm and not c_last else ''}}{{'padding-bottom:%smm;' % fmt.row_gap_mm if fmt.row_gap_mm and not r_last else ''}}vertical-align:top;">
+                                <div class="epg-grid-cell" t-attf-style="box-sizing:border-box;width:{{fmt.width_mm}}mm;height:{{fmt.height_mm}}mm;border:0.3mm dashed #666;padding:1.5mm 2mm;font-family:'Liberation Sans',Helvetica,Arial,sans-serif;font-size:9pt;line-height:1.25;color:#222;overflow:hidden;">
+                                    <div><b t-out="r * fmt.columns + c + 1"/> <span style="color:#777;">row <t t-out="r + 1"/>, col <t t-out="c + 1"/></span></div>
+                                    <t t-if="r == 0 and c == 0">
+                                        <div style="margin-top:2mm;width:50mm;border-top:0.6mm solid #000;"/>
+                                        <div style="font-size:7.5pt;">50 mm &#8212; shorter on paper? turn off "fit to page"</div>
+                                    </t>
+                                    <t t-if="r == 0 and c == (1 if fmt.columns &gt; 1 else 0)">
+                                        <div style="font-size:7.5pt;margin-top:1mm;color:#444;">
+                                            <t t-out="fmt.name"/><br/>
+                                            label <t t-out="fmt.width_mm"/> x <t t-out="fmt.height_mm"/> mm,
+                                            gaps <t t-out="fmt.gap_mm"/> / <t t-out="fmt.row_gap_mm"/> mm,<br/>
+                                            grid at <t t-out="off[0]"/> mm from the left, <t t-out="off[1]"/> mm from the top
+                                        </div>
+                                    </t>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </t>
+        </t>
     </template>
 
     <!-- The PDF: rolls = one label per page; sheets = a fixed grid, one page per N labels. -->
