@@ -103,17 +103,6 @@
         // ("S75260, S75188, S75284, S75280") and ran over the invoice date
         .oi-metaval { white-space: nowrap; }
         .oi-metaval.oi-wrap { white-space: normal; } }
-    // sales code chip, sitting above the address block
-    // Sales code + patient: a white chip sitting on the Bill To card's tint — the
-    // approved look; no full-width band (client, 2026-08-18).
-    .oi-codechip { display: inline-block; background: #fff; border-radius: 6px;
-        padding: 4px 14px; margin-top: 7px;
-        table { width: auto; }
-        td { white-space: nowrap; }
-        td.oi-chip-patient { padding-left: 20px; }
-        td + td.oi-chip-patient { border-left: 1px solid $line; }
-        .oi-label { margin-right: 10px; }
-        .oi-codeval { font-size: 13pt; font-weight: 700; color: $head; vertical-align: -1px; } }
     .oi-partyname { font-size: 15pt; font-weight: 700; color: $head; line-height: 1.2; margin: 2px 0 1px; }
     .oi-partyline { font-size: 12.5pt; line-height: 1.3; }
     .oi-partysub { font-size: 10pt; color: $muted; margin-top: 4px; }

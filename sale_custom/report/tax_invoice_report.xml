@@ -153,22 +153,9 @@
                                     <span t-if="o.partner_id.dci_number">DCI No: <span t-field="o.partner_id.dci_number"/></span>
                                 </div>
 
-                                <!-- white chip on the card's tint (approved design): sales code and
-                                     patient side by side, a light divider between them -->
-                                <div class="oi-codechip" t-if="('team_id' in o._fields and o.team_id) or len(patients) == 1">
-                                    <table>
-                                        <tr>
-                                            <td t-if="'team_id' in o._fields and o.team_id">
-                                                <span class="oi-label">Sales code</span>
-                                                <span class="oi-codeval"><span t-field="o.team_id.name"/></span>
-                                            </td>
-                                            <td t-if="len(patients) == 1" class="oi-chip-patient">
-                                                <span class="oi-label">Patient</span>
-                                                <span class="oi-codeval"><t t-out="patients[0]"/></span>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
+                                <!-- No sales-code / patient chip under the address any more
+                                     (client, 2026-10-19): the patient is on every line of the
+                                     table, and the route is nothing the clinic needs to read. -->
                             </div>
                         </td>
                         <!-- Just the barcode: no caption, no frame, no number under the
