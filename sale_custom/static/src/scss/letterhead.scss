@@ -47,4 +47,11 @@ $oc-line: #dde3e9;
     // Two tight lines, so the band takes only the millimetres it needs and the
     // body keeps the rest of the page. (client, 2026-09-16)
     td { border: none; padding: 0; line-height: 1.15; }
+
+    // a document in Arabian Dental Lab's colours (the tax invoice, 2026-10-19); the
+    // others keep their navy until they are recoloured too
+    &.lab-brand {
+        border-top-color: #ed1c24;
+        .oc-foot-strong { color: #ed1c24; }
+    }
 }

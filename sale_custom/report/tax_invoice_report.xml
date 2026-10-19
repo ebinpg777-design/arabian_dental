@@ -10,6 +10,7 @@
         <t t-call="sale_custom.external_layout_lab"
             mo="{'widget': 'monetary', 'display_currency': cur}"
             footer_note.translate="Thank you for your business."
+            footer_class="'lab-brand'"
             hide_letterhead="True">
             <t t-set="o" t-value="o.with_context(lang=o.partner_id.lang)"/>
             <t t-set="cur" t-value="o.currency_id"/>
@@ -30,34 +31,40 @@
 
                 <!-- letterhead, in the body: the design puts it in a card at the top of
                      the page, and a body block cannot be clipped by the header band -->
+                <!-- one row: the logo on the left, who and where on the right (2026-10-19 -
+                     a logo row above the address pushed the pay card onto a second page) -->
                 <div class="oi-letterhead">
                     <table>
                         <tr>
                             <td style="vertical-align:middle;">
-                                <div class="oi-logobox" t-if="o.company_id.logo1">
-                                    <img class="oi-logo" t-att-src="image_data_uri(o.company_id.logo1)"/>
+                                <!-- the invoice logo, else the company's own: an invoice
+                                     with no logo at all printed no lab name anywhere -->
+                                <t t-set="head_logo" t-value="o.company_id.logo1 or o.company_id.logo"/>
+                                <div class="oi-logobox" t-if="head_logo">
+                                    <img class="oi-logo" t-att-src="image_data_uri(head_logo)"/>
                                 </div>
+                                <div t-else="" class="oi-companyname" t-out="o.company_id.name"/>
                             </td>
-                            <td style="text-align:right;vertical-align:middle;">
+                            <td class="oi-whowhere" style="text-align:right;vertical-align:middle;">
                                 <div class="oi-logobox" t-if="o.company_id.logo2">
                                     <img class="oi-cert" t-att-src="image_data_uri(o.company_id.logo2)"/>
+                                </div>
+                                <div class="oi-company">
+                                    <t t-set="sparts" t-value="[' '.join(x.split()).replace(' ,', ',').strip(' ,') for x in [o.company_id.street or '', o.company_id.street2 or ''] if x.strip(' ,')]"/>
+                                    <div t-out="', '.join(sparts)"/>
+                                    <div>
+                                        <t t-set="cparts" t-value="[x.strip() for x in [o.company_id.city or '', o.company_id.state_id.name or ''] if x and x.strip()]"/>
+                                        <span t-out="', '.join(cparts)"/><t t-if="o.company_id.zip"> - <span t-field="o.company_id.zip"/></t>
+                                    </div>
+                                </div>
+                                <div class="oi-ids">
+                                    <span t-if="o.company_id.pan_number">PAN: <span t-field="o.company_id.pan_number"/></span>
+                                    <span t-if="o.company_id.pan_number and o.company_id.gst_number">   </span>
+                                    <span t-if="o.company_id.gst_number">GSTIN: <span t-field="o.company_id.gst_number"/></span>
                                 </div>
                             </td>
                         </tr>
                     </table>
-                    <div class="oi-company">
-                        <t t-set="sparts" t-value="[' '.join(x.split()).replace(' ,', ',').strip(' ,') for x in [o.company_id.street or '', o.company_id.street2 or ''] if x.strip(' ,')]"/>
-                        <div t-out="', '.join(sparts)"/>
-                        <div>
-                            <t t-set="cparts" t-value="[x.strip() for x in [o.company_id.city or '', o.company_id.state_id.name or ''] if x and x.strip()]"/>
-                            <span t-out="', '.join(cparts)"/><t t-if="o.company_id.zip"> - <span t-field="o.company_id.zip"/></t>
-                        </div>
-                    </div>
-                    <div class="oi-ids">
-                        <span t-if="o.company_id.pan_number">PAN: <span t-field="o.company_id.pan_number"/></span>
-                        <span t-if="o.company_id.pan_number and o.company_id.gst_number">   </span>
-                        <span t-if="o.company_id.gst_number">GSTIN: <span t-field="o.company_id.gst_number"/></span>
-                    </div>
                 </div>
                 <div class="oi-rule"/>
 

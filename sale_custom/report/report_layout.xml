@@ -94,7 +94,8 @@
         <!-- One tight line: contact details left, page number right. (Was three stacked
              lists, which ate ~20 mm at the foot of every page.) -->
         <!-- Footer bar: contact details, and the page number on the right. -->
-        <div class="footer lab-footerbar">
+        <!-- `footer_class`: a document in the lab's brand colours passes lab-brand -->
+        <div t-attf-class="footer lab-footerbar {{footer_class or ''}}">
             <table style="width:100%;border-collapse:collapse;">
                 <tr>
                     <td>Phone: <span t-field="company.phone"/></td>

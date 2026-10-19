@@ -88,18 +88,14 @@ class ResCompany(models.Model):
     # inline (data URI) instead of the old `<img src="/sale_custom/static/...">`: that
     # made wkhtmltopdf fetch the image over HTTP from the server's own base URL on every
     # print - slow, and a hang when the box cannot reach that URL.
+    # No default (2026-10-19): the module used to ship a QR image and install it on
+    # every company - Ortho Creation's UPI code, carried over in the fork - so the
+    # lab's invoices and statements asked clinics to pay Ortho. A company shows no
+    # pay card until its own QR is uploaded.
     payment_qr = fields.Binary(
         'Payment QR', copy=False, attachment=True,
-        default=lambda self: self._default_payment_qr(),
         help="Shown on invoices and statements. Upload the clinic-facing UPI QR here.")
 
-    @api.model
-    def _default_payment_qr(self):
-        try:
-            with tools.file_open('sale_custom/static/src/img/payment.png', 'rb') as f:
-                return base64.b64encode(f.read()).decode()
-        except (OSError, IOError):
-            return False
     company_warning = fields.Boolean('Company Warning', copy=False)
 
 
