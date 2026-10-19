@@ -2,7 +2,7 @@
 
 Custom addons for **Arabian Dental Lab**, Manjeri, Kerala (Odoo 19.0 Community).
 
-The suite was forked from the Ortho Creation lab suite on 2026-09-22 and renamed: every
+The suite was forked from another dental lab's suite on 2026-09-22 and renamed: every
 `ortho_*` module is now `lab_*`, every `ortho.*` model is `lab.*`, and the branding,
 address, phone numbers and web addresses are the lab's own. The business model is the
 same — field executives on routes, clinic visits, cash collection, work-centre scanning,
@@ -371,8 +371,7 @@ instances/arabian_dental/start.sh -d arabian_dental -u lab_website --test-enable
 
 ## Inherited documents
 
-`MIGRATION_RUNBOOK.md` now describes this lab's Odoo 17 → 19 migration. `docs/` and
-`Field_Executive_Guide/` were written for the
-original lab and carry its history; the text has been rebranded but the figures,
-database names and screenshots are from that project. Treat them as reference for how
-the modules work, not as a record of this lab.
+`MIGRATION_RUNBOOK.md` describes this lab's own Odoo 17 → 19 migration. The Field
+Executive Guide that came over in the fork was removed on 2026-10-19: its screenshots,
+figures and video were taken on the original lab's system and showed that company's
+name, clinics and users. A guide for this lab is made from this lab's database.

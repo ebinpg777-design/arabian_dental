@@ -88,10 +88,10 @@ class TestLinksOpen(LinkSetup, TransactionCase):
 
     def test_links_start_with_the_senders_public_address(self):
         params = self.env['ir.config_parameter'].sudo()
-        params.set_str('web.base.url', 'http://192.168.0.27:8069')
+        params.set_str('web.base.url', 'http://192.168.1.10:8069')
         self.assertIn('private network address', self.account._link_problem())
         message = self.template.send(self.partner)
-        self.assertIn('http://192.168.0.27:8069/wa/r/', message._link_text())
+        self.assertIn('http://192.168.1.10:8069/wa/r/', message._link_text())
         self.assertTrue(any('private network' in w for w in message._send_warnings()),
                         "said before every send")
         self.assertIn('private network', self.env['epg.whatsapp.desk'].get_desk()['link_problem'])

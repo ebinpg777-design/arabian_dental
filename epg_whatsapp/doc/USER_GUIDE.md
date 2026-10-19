@@ -63,7 +63,7 @@ What the paid API used to report on its own is brought back with links:
 
 | Field | What to put |
 | --- | --- |
-| **Public Address for Links** | **Set this first.** The address doctors reach from outside - `https://arabiandentallab.com`. Every document, reply, payment and button link in a message starts with it. Left empty, Odoo uses its own address, which on the lab's network is something like `http://192.168.0.27:8069` - a link a doctor's phone cannot open. The sender form, the Desk and every send warn in red while that is the case. |
+| **Public Address for Links** | **Set this first.** The address doctors reach from outside - `https://arabiandentallab.com`. Every document, reply, payment and button link in a message starts with it. Left empty, Odoo uses its own address, which on the lab's network is something like `http://192.168.1.10:8069` - a link a doctor's phone cannot open. The sender form, the Desk and every send warn in red while that is the case. |
 
 ![The Desk while the address is not set](images/wa5_desk_warning.png)
 | **Our WhatsApp Number** | The lab's WhatsApp number. It is shown on every send, so the person sending can check the right WhatsApp is logged in. |
