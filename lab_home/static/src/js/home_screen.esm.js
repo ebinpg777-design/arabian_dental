@@ -13,7 +13,7 @@
  */
 import {patch} from "@web/core/utils/patch";
 import {registry} from "@web/core/registry";
-import { proxy } from "@odoo/owl";
+import { onMounted, onPatched, onWillUnmount, proxy } from "@odoo/owl";
 import {useService} from "@web/core/utils/hooks";
 import {session} from "@web/session";
 import {HomeMenu} from "@ebshel_backend_theme/webclient/home_menu/home_menu";
@@ -46,6 +46,41 @@ patch(HomeMenu.prototype, {
         // still failing tomorrow, and this warning should come back rather than
         // be turned off once and forgotten.
         this.alertState = proxy({dismissed: false});
+
+        // The apps scroll above the wordmark's band, and while more of them are
+        // below, the bottom edge fades out instead of cutting a row in half
+        // (home_screen.scss). Scrolled to the end, or with every app on screen,
+        // there is nothing to hint at and nothing fades. Scroll and resize move
+        // the edge; a search narrowing the apps re-renders, hence onPatched.
+        this.labUpdateMoreBelow = () => this.labSetMoreBelow();
+        onMounted(() => {
+            const root = this.rootRef();
+            if (!root) {
+                return;
+            }
+            root.addEventListener("scroll", this.labUpdateMoreBelow, {passive: true});
+            this.labResizeObserver = new ResizeObserver(this.labUpdateMoreBelow);
+            this.labResizeObserver.observe(root);
+            this.labSetMoreBelow();
+        });
+        onPatched(() => this.labSetMoreBelow());
+        onWillUnmount(() => {
+            this.rootRef()?.removeEventListener("scroll", this.labUpdateMoreBelow);
+            this.labResizeObserver?.disconnect();
+        });
+    },
+
+    /**
+     * A data attribute rather than a class: OWL owns the root's class list
+     * (the template sets it), and leaves attributes it never wrote alone.
+     */
+    labSetMoreBelow() {
+        const root = this.rootRef();
+        if (!root) {
+            return;
+        }
+        const below = root.scrollHeight - root.clientHeight - root.scrollTop;
+        root.toggleAttribute("data-lab-more-below", below > 1);
     },
 
     get visibleHomeAlerts() {

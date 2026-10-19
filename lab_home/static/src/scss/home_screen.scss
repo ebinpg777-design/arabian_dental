@@ -137,6 +137,24 @@ body.o_lab_wall_dark {
         > .o_home_menu {
             flex: 1 1 0;
             min-height: 0;
+
+            // While more apps are below (home_screen.esm.js sets the attribute),
+            // the last 4rem fade out rather than a row being cut flat against
+            // the band: "it cuts icons" (client, 2026-10-19, who chose the fade
+            // over smaller icons or moving the wordmark to the top). The second
+            // layer keeps the scrollbar, in the right-hand 1.25rem, unfaded.
+            &[data-lab-more-below] {
+                $fade: linear-gradient(to bottom, #000 calc(100% - 4rem), transparent);
+                $solid: linear-gradient(#000, #000);
+                -webkit-mask-image: $fade, $solid;
+                mask-image: $fade, $solid;
+                -webkit-mask-size: calc(100% - 1.25rem) 100%, 1.25rem 100%;
+                mask-size: calc(100% - 1.25rem) 100%, 1.25rem 100%;
+                -webkit-mask-position: left top, right top;
+                mask-position: left top, right top;
+                -webkit-mask-repeat: no-repeat;
+                mask-repeat: no-repeat;
+            }
         }
 
         // Full strength, and the box is the artwork's own proportion: 1500x193 is
