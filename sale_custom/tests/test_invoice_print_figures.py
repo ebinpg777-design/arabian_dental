@@ -126,3 +126,23 @@ class TestInvoicePrintFigures(AccountTestInvoicingCommon):
         for text in ('SGST', 'CGST', 'Round off', 'Old balance', 'Total balance', 'oi-palmer', 'Bill amount'):
             self.assertIn(text, html)
         self.assertNotIn('Taxable value', html, "the GST is in the columns, not repeated in the totals")
+
+    def test_the_letterhead_lines(self):
+        company = self.env.company
+        company.write({'street': 'Lab Tower,Main Road', 'street2': 'Market Junction ,', 'city': 'Example Town',
+                       'zip': '600001', 'phone': '0400 100 200', 'email': 'lab@example.com',
+                       'letterhead_address': False, 'letterhead_phones': False, 'letterhead_emails': False})
+        rows = company._lab_letterhead()
+        self.assertEqual([lines for _icon, lines in rows], [
+            ['Lab Tower, Main Road, Market Junction', 'Example Town - 600001'],
+            ['0400 100 200'], ['lab@example.com']], "empty fields fall back to the company's own")
+        self.assertTrue(all(icon.startswith('data:image/svg+xml;base64,') for icon, _lines in rows),
+                        "the icons travel inside the page")
+        company.write({'letterhead_phones': '0400 100 200\n\n  0900   111 222 , 0900 333 444  ',
+                       'letterhead_emails': 'accounts@example.com\nlab@example.com'})
+        rows = company._lab_letterhead()
+        self.assertEqual(rows[1][1], ['0400 100 200', '0900 111 222 , 0900 333 444'],
+                         "one printed line per typed line, blank lines dropped")
+        self.assertEqual(rows[2][1], ['accounts@example.com', 'lab@example.com'])
+        company.write({'phone': False, 'letterhead_phones': False})
+        self.assertEqual(len(company._lab_letterhead()), 2, "no phone at all: no phone line")

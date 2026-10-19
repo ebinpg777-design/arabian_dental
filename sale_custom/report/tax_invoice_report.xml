@@ -33,35 +33,38 @@
                      the page, and a body block cannot be clipped by the header band -->
                 <!-- one row: the logo on the left, who and where on the right (2026-10-19 -
                      a logo row above the address pushed the pay card onto a second page) -->
+                <!-- Two balanced columns (client, 2026-10-19: "remove unwanted spaces,
+                     align properly"): who the lab is on the left - logo, certification
+                     marks, tax ids - and how to reach it on the right, address, phones and
+                     e-mails each behind its icon as on the lab's own stationery. The lines
+                     come from the company's Letterhead fields, written as they should
+                     print. The marks once sat above the contact lines and made the card
+                     tall enough to push a five-line invoice onto a second page. -->
                 <div class="oi-letterhead">
                     <table>
                         <tr>
-                            <td style="vertical-align:middle;">
+                            <td class="oi-lhlogo">
                                 <!-- the invoice logo, else the company's own: an invoice
                                      with no logo at all printed no lab name anywhere -->
                                 <t t-set="head_logo" t-value="o.company_id.logo1 or o.company_id.logo"/>
-                                <div class="oi-logobox" t-if="head_logo">
-                                    <img class="oi-logo" t-att-src="image_data_uri(head_logo)"/>
-                                </div>
+                                <img t-if="head_logo" class="oi-logo" t-att-src="image_data_uri(head_logo)"/>
                                 <div t-else="" class="oi-companyname" t-out="o.company_id.name"/>
-                            </td>
-                            <td class="oi-whowhere" style="text-align:right;vertical-align:middle;">
-                                <div class="oi-logobox" t-if="o.company_id.logo2">
+                                <div t-if="o.company_id.logo2" class="oi-lhcerts">
                                     <img class="oi-cert" t-att-src="image_data_uri(o.company_id.logo2)"/>
                                 </div>
-                                <div class="oi-company">
-                                    <t t-set="sparts" t-value="[' '.join(x.split()).replace(' ,', ',').strip(' ,') for x in [o.company_id.street or '', o.company_id.street2 or ''] if x.strip(' ,')]"/>
-                                    <div t-out="', '.join(sparts)"/>
-                                    <div>
-                                        <t t-set="cparts" t-value="[x.strip() for x in [o.company_id.city or '', o.company_id.state_id.name or ''] if x and x.strip()]"/>
-                                        <span t-out="', '.join(cparts)"/><t t-if="o.company_id.zip"> - <span t-field="o.company_id.zip"/></t>
-                                    </div>
+                                <div t-if="o.company_id.gst_number or o.company_id.pan_number" class="oi-ids">
+                                    <span t-if="o.company_id.gst_number">GSTIN <b t-field="o.company_id.gst_number"/></span>
+                                    <span t-if="o.company_id.gst_number and o.company_id.pan_number"> · </span>
+                                    <span t-if="o.company_id.pan_number">PAN <b t-field="o.company_id.pan_number"/></span>
                                 </div>
-                                <div class="oi-ids">
-                                    <span t-if="o.company_id.pan_number">PAN: <span t-field="o.company_id.pan_number"/></span>
-                                    <span t-if="o.company_id.pan_number and o.company_id.gst_number">   </span>
-                                    <span t-if="o.company_id.gst_number">GSTIN: <span t-field="o.company_id.gst_number"/></span>
-                                </div>
+                            </td>
+                            <td class="oi-lhinfo">
+                                <table class="oi-lhblock">
+                                    <tr t-foreach="o.company_id._lab_letterhead()" t-as="row">
+                                        <td class="oi-lhicon"><img t-att-src="row[0]"/></td>
+                                        <td class="oi-lhtext"><div t-foreach="row[1]" t-as="line" t-out="line"/></td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                     </table>
@@ -186,21 +189,24 @@
                      lab always printed. -->
                 <t t-set="gst" t-value="o._dental_gst_table() if show_tax else ([], {})"/>
                 <t t-set="gst_names" t-value="gst[0]"/>
+                <!-- Widths: every column but Description is held to what its figures
+                     need, so the description takes the rest; at the old widths it wrapped
+                     onto three lines and a five-line invoice ran onto a second page. -->
                 <table class="oi-lines oi-gst">
                     <thead>
                         <tr>
-                            <th class="mid" style="width:4%">#</th>
+                            <th class="mid" style="width:3%">#</th>
                             <th>Description</th>
                             <th t-if="show_hsn" class="mid" style="width:8%">HSN</th>
-                            <th t-if="show_patient" style="width:12%">Patient</th>
-                            <th t-if="show_ul" class="mid" style="width:5%">Jaw</th>
-                            <th t-if="show_teeth" class="mid">Teeth</th>
+                            <th t-if="show_patient" style="width:10%">Patient</th>
+                            <th t-if="show_ul" class="mid" style="width:4%">Jaw</th>
+                            <th t-if="show_teeth" class="mid" style="width:8%">Teeth</th>
                             <th class="num" style="width:5%">Qty</th>
-                            <th class="num" style="width:9%">Rate</th>
+                            <th class="num" style="width:8%">Rate</th>
                             <th t-if="show_disc" class="num" style="width:6%">Disc %</th>
-                            <th class="num" style="width:10%"><t t-if="gst_names">Taxable</t><t t-else="">Amount</t></th>
-                            <th t-foreach="gst_names" t-as="g" class="num" style="width:8%"><t t-out="g"/></th>
-                            <th t-if="gst_names" class="num" style="width:11%">Total</th>
+                            <th class="num" style="width:9%"><t t-if="gst_names">Taxable</t><t t-else="">Amount</t></th>
+                            <th t-foreach="gst_names" t-as="g" class="num" style="width:7%"><t t-out="g"/></th>
+                            <th t-if="gst_names" class="num" style="width:10%">Total</th>
                         </tr>
                     </thead>
                     <tbody>

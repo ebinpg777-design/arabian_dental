@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import base64
+import re
 
 from odoo import api, fields, models, tools
+from odoo.tools import file_open
 
 
 class ResPartner(models.Model):
@@ -97,6 +99,54 @@ class ResCompany(models.Model):
         help="Shown on invoices and statements. Upload the clinic-facing UPI QR here.")
 
     company_warning = fields.Boolean('Company Warning', copy=False)
+
+    # The letterhead's contact block, written the way the lab wants it printed - one
+    # line per line, as on its own stationery (client, 2026-10-19: "add more
+    # information in header by adding more fields in the company"). Each falls back to
+    # the company's own address / phone / e-mail when left empty.
+    letterhead_address = fields.Text(
+        'Letterhead Address',
+        help="The address on invoices, one line per line. Empty: the company address.")
+    letterhead_phones = fields.Text(
+        'Letterhead Phones',
+        help="Phone numbers on invoices, one line per line. Empty: the company phone.")
+    letterhead_emails = fields.Text(
+        'Letterhead E-mails',
+        help="E-mail addresses on invoices, one line per line. Empty: the company e-mail.")
+
+    _LETTERHEAD_ICONS = {'address': 'lh_location.svg', 'phones': 'lh_phone.svg', 'emails': 'lh_mail.svg'}
+
+    def _lab_letterhead(self):
+        """[(icon data URI, [lines])] for the letterhead's contact block, empty kinds left
+        out. The icons travel inside the page as data URIs: a /static URL makes
+        wkhtmltopdf fetch it from the server on every print (see payment_qr)."""
+        self.ensure_one()
+
+        def lines(text):
+            return [' '.join(line.split()) for line in (text or '').splitlines() if line.strip()]
+
+        address = lines(self.letterhead_address)
+        if not address:
+            # "ADL Tower,Karikkad" as typed in the address fields: a space after
+            # every comma, none before
+            tidy = lambda s: re.sub(r'\s*,\s*', ', ', ' '.join((s or '').split())).strip(' ,')
+            first = ', '.join(x for x in (tidy(self.street), tidy(self.street2)) if x)
+            second = ', '.join(x for x in (tidy(self.city), self.state_id.name or '') if x)
+            if self.zip:
+                second = '%s - %s' % (second, self.zip) if second else self.zip
+            address = [x for x in (first, second) if x]
+        blocks = {
+            'address': address,
+            'phones': lines(self.letterhead_phones) or lines(self.phone),
+            'emails': lines(self.letterhead_emails) or lines(self.email),
+        }
+        result = []
+        for kind in ('address', 'phones', 'emails'):
+            if blocks[kind]:
+                with file_open('sale_custom/static/src/img/' + self._LETTERHEAD_ICONS[kind], 'rb') as f:
+                    icon = 'data:image/svg+xml;base64,' + base64.b64encode(f.read()).decode()
+                result.append((icon, blocks[kind]))
+        return result
 
 
 class ProductTemplate(models.Model):
