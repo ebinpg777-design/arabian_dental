@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="sale_custom.LabCardStockField">
+        <div class="o_lab_stock" role="radiogroup" aria-label="Card stock">
+            <t t-foreach="this.options" t-as="option" t-key="option.value">
+                <button type="button" role="radio" class="o_lab_stock_tile"
+                        t-att-class="{ o_lab_stock_on: option.value === this.value }"
+                        t-att-aria-checked="option.value === this.value ? 'true' : 'false'"
+                        t-att-disabled="this.props.readonly"
+                        t-on-click="() => this.select(option.value)">
+                    <span class="o_lab_stock_art" aria-hidden="true">
+                        <!-- a small card: the printed design in grey with the values in
+                             black, or the whole design in colour -->
+                        <svg viewBox="0 0 86 54">
+                            <rect x="1" y="1" width="84" height="52" rx="5" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
+                            <t t-if="option.value === 'pre_printed'">
+                                <rect x="10" y="6" width="44" height="3" rx="1.5" fill="#cbd5e1"/>
+                                <rect x="8" y="16" width="14" height="2.4" rx="1.2" fill="#cbd5e1"/>
+                                <rect x="8" y="24" width="14" height="2.4" rx="1.2" fill="#cbd5e1"/>
+                                <rect x="8" y="32" width="14" height="2.4" rx="1.2" fill="#cbd5e1"/>
+                                <rect x="8" y="40" width="14" height="2.4" rx="1.2" fill="#cbd5e1"/>
+                                <path d="M28 19.5 H58 M28 27.5 H58 M28 35.5 H58 M28 43.5 H58" stroke="#cbd5e1" stroke-width="1"/>
+                                <rect x="29" y="14.5" width="20" height="3.6" rx="1" fill="#111827"/>
+                                <rect x="29" y="22.5" width="25" height="3.6" rx="1" fill="#111827"/>
+                                <rect x="29" y="30.5" width="13" height="3.6" rx="1" fill="#111827"/>
+                                <rect x="29" y="38.5" width="18" height="3.6" rx="1" fill="#111827"/>
+                                <path d="M70 12 L80 15 L80 25 C80 30 75 33 70 35 C65 33 60 30 60 25 L60 15 Z" fill="#e5e7eb"/>
+                            </t>
+                            <t t-else="">
+                                <rect x="10" y="6" width="44" height="3" rx="1.5" fill="#111827"/>
+                                <rect x="8" y="16" width="14" height="2.4" rx="1.2" fill="#374151"/>
+                                <rect x="8" y="24" width="14" height="2.4" rx="1.2" fill="#374151"/>
+                                <rect x="8" y="32" width="14" height="2.4" rx="1.2" fill="#374151"/>
+                                <rect x="8" y="40" width="14" height="2.4" rx="1.2" fill="#374151"/>
+                                <path d="M28 19.5 H58 M28 27.5 H58 M28 35.5 H58 M28 43.5 H58" stroke="#374151" stroke-width="1"/>
+                                <path d="M70 12 L80 15 L80 25 C80 30 75 33 70 35 C65 33 60 30 60 25 L60 15 Z" fill="#d9ad45" stroke="#8a6512" stroke-width=".8"/>
+                                <rect x="62" y="42" width="18" height="5" rx="1" fill="#ed1c24"/>
+                            </t>
+                        </svg>
+                    </span>
+                    <span class="o_lab_stock_text">
+                        <span class="o_lab_stock_title" t-out="option.label"/>
+                        <span class="o_lab_stock_hint" t-out="option.hint"/>
+                    </span>
+                    <span class="o_lab_stock_check" aria-hidden="true"/>
+                </button>
+            </t>
+        </div>
+    </t>
+
+</templates>

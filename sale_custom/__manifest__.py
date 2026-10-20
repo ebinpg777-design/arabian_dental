@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Sales Custom',
-    'version': '20.0.1.51.0',
+    'version': '20.0.1.52.0',
     'category': 'Sales',
     'summary': 'Dental lab customization: per-patient orders, MRP job cards, GST invoicing, daily sales',
     'description': """
@@ -39,6 +39,7 @@ Re-implemented for Odoo 19. Provides:
         'report/delivery_slip_report.xml',
         'report/registration_ack_report.xml',
         'report/authentication_card_report.xml',
+        'wizard/auth_card_wizard_views.xml',
         'report/daily_sales_summary_report.xml',
         'report/report_actions.xml',
         'report/dispatch_register_report.xml',
@@ -72,6 +73,9 @@ Re-implemented for Odoo 19. Provides:
             'sale_custom/static/src/scss/fdi_teeth_field.scss',
             'sale_custom/static/src/js/fdi_teeth_field.js',
             'sale_custom/static/src/xml/fdi_teeth_field.xml',
+            'sale_custom/static/src/scss/auth_card_wizard.scss',
+            'sale_custom/static/src/js/auth_card_stock_field.js',
+            'sale_custom/static/src/xml/auth_card_stock_field.xml',
         ],
         'web.report_assets_common': [
             'sale_custom/static/src/scss/letterhead.scss',

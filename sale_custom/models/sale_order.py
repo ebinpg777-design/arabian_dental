@@ -509,11 +509,7 @@ class SaleOrder(models.Model):
         else the day the case went out, else the order day. Names in capitals, as
         the lab's cards are typed."""
         self.ensure_one()
-        if issue_date:
-            when = fields.Date.to_date(issue_date)
-        else:
-            when = getattr(self, 'effective_date', False) or self.date_order
-            when = fields.Datetime.context_timestamp(self, when) if when else None
+        when = fields.Date.to_date(issue_date) if issue_date else self._card_issue_date()
         partner = self.partner_id
         doctor = (partner.billing_name or partner.commercial_partner_id.billing_name
                   or partner.name) if 'billing_name' in partner._fields else partner.name
@@ -530,6 +526,17 @@ class SaleOrder(models.Model):
             'emails': letterhead.get('emails', [])[-1:],
             'website': website,
         }
+
+    def _card_issue_date(self):
+        """The day a card for this order carries unless told otherwise: the day the
+        case went out, else the order day - as a date in the user's time zone."""
+        self.ensure_one()
+        when = getattr(self, 'effective_date', False) or self.date_order
+        return fields.Datetime.context_timestamp(self, when).date() if when else False
+
+    def action_open_auth_card_wizard(self):
+        """The "Authentication Card" button, on the form and on a selection in the list."""
+        return self.env['lab.auth.card.wizard']._open_for(self)
 
     def _lab_route(self):
         """The clinic's own Sales Route."""

@@ -219,8 +219,8 @@
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sale_custom.report_authentication_card</field>
         <field name="print_report_name">'Authentication Card - %s' % (object.name or '').replace('/', '_')</field>
-        <field name="binding_model_id" ref="sale.model_sale_order"/>
-        <field name="binding_type">report</field>
+        <!-- printed through the Authentication Card button now (its wizard) -->
+        <field name="binding_model_id" eval="False"/>
         <field name="paperformat_id" ref="paperformat_card"/>
     </record>
 
@@ -230,8 +230,8 @@
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sale_custom.report_authentication_card_values</field>
         <field name="print_report_name">'Authentication Card - %s' % (object.name or '').replace('/', '_')</field>
-        <field name="binding_model_id" ref="sale.model_sale_order"/>
-        <field name="binding_type">report</field>
+        <!-- printed through the Authentication Card button now (its wizard) -->
+        <field name="binding_model_id" eval="False"/>
         <field name="paperformat_id" ref="paperformat_card_values"/>
     </record>
 
@@ -241,8 +241,8 @@
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sale_custom.report_authentication_card_invoice</field>
         <field name="print_report_name">'Authentication Cards - %s' % (object.name or '').replace('/', '_')</field>
-        <field name="binding_model_id" ref="account.model_account_move"/>
-        <field name="binding_type">report</field>
+        <!-- printed through the Authentication Card button now (its wizard) -->
+        <field name="binding_model_id" eval="False"/>
         <field name="paperformat_id" ref="paperformat_card"/>
     </record>
 
@@ -252,8 +252,53 @@
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sale_custom.report_authentication_card_invoice_values</field>
         <field name="print_report_name">'Authentication Cards - %s' % (object.name or '').replace('/', '_')</field>
-        <field name="binding_model_id" ref="account.model_account_move"/>
-        <field name="binding_type">report</field>
+        <!-- printed through the Authentication Card button now (its wizard) -->
+        <field name="binding_model_id" eval="False"/>
+        <field name="paperformat_id" ref="paperformat_card_values"/>
+    </record>
+
+    <!-- the Authentication Card wizard: the cards it lists, in its order, each with its
+         own issue date, copies side by side -->
+    <template id="report_authentication_card_wizard">
+        <t t-call="web.html_container">
+            <t t-set="values_only" t-value="False"/>
+            <t t-foreach="docs" t-as="wiz">
+                <t t-foreach="wiz._cards_to_print()" t-as="entry">
+                    <t t-set="o" t-value="entry[0]"/>
+                    <t t-set="card" t-value="entry[1]"/>
+                    <t t-call="sale_custom.report_authentication_card_document"/>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_authentication_card_wizard_values">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="wiz">
+                <t t-foreach="wiz._cards_to_print()" t-as="entry">
+                    <t t-set="o" t-value="entry[0]"/>
+                    <t t-set="card" t-value="entry[1]"/>
+                    <t t-call="sale_custom.report_authentication_card_values_document"/>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_auth_card_wizard_blank" model="ir.actions.report">
+        <field name="name">Authentication Cards (blank cards)</field>
+        <field name="model">lab.auth.card.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_authentication_card_wizard</field>
+        <field name="print_report_name">'Authentication Cards'</field>
+        <field name="paperformat_id" ref="paperformat_card"/>
+    </record>
+
+    <record id="action_report_auth_card_wizard_values" model="ir.actions.report">
+        <field name="name">Authentication Cards (pre-printed stock)</field>
+        <field name="model">lab.auth.card.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_authentication_card_wizard_values</field>
+        <field name="print_report_name">'Authentication Cards'</field>
         <field name="paperformat_id" ref="paperformat_card_values"/>
     </record>
 

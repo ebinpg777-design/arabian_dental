@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Print Authentication Cards (client, 2026-10-20): one button on orders and
+     invoices - form and list - and this wizard: the stock (pre-printed or blank),
+     the orders with a switch each, the date each card carries, copies, and a live
+     preview of the cards. -->
+<odoo>
+
+    <!-- the cards as they will print, drawn small: the pre-printed stock shows the
+         lab's printed design ghosted with the values in black on it -->
+    <template id="auth_card_wizard_preview">
+        <div t-attf-class="o_lab_cards {{ 'o_lab_cards_blank' if blank else 'o_lab_cards_pre' }}">
+            <t t-foreach="cards" t-as="card">
+                <div class="o_lab_card">
+                    <div class="o_lab_card_design">
+                        <div class="o_lab_card_title">AUTHENTICATION CARD</div>
+                        <div class="o_lab_card_badge">
+                            <svg viewBox="0 0 100 118" aria-hidden="true">
+                                <path d="M8 96 L26 84 L30 106 L18 112 Z" fill="#b8861b"/>
+                                <path d="M92 96 L74 84 L70 106 L82 112 Z" fill="#b8861b"/>
+                                <path d="M50 4 L92 16 L92 60 C92 82 72 96 50 104 C28 96 8 82 8 60 L8 16 Z" fill="#d9ad45" stroke="#8a6512" stroke-width="2"/>
+                                <text x="50" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#3f2d05">100%</text>
+                                <text x="50" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#3f2d05">QUALITY</text>
+                            </svg>
+                        </div>
+                        <div class="o_lab_card_foot">
+                            <div t-foreach="emails" t-as="email" t-out="email"/>
+                            <div t-if="website" t-out="website"/>
+                        </div>
+                        <img t-if="logo" class="o_lab_card_logo" t-att-src="logo" alt=""/>
+                    </div>
+                    <div class="o_lab_card_rows">
+                        <t t-foreach="[('PATIENT NAME', card['patient']), ('DOCTOR NAME', card['doctor']), ('JOB ID', card['job']), ('ISSUE DATE', card['issue_date'])]" t-as="row">
+                            <div class="o_lab_card_row">
+                                <span class="o_lab_card_label"><t t-out="row[0]"/> :</span>
+                                <span class="o_lab_card_value" t-out="row[1] or '—'"/>
+                            </div>
+                        </t>
+                    </div>
+                    <span t-if="copies > 1" class="o_lab_card_copies">× <t t-out="copies"/></span>
+                </div>
+            </t>
+            <div t-if="more" class="o_lab_card o_lab_card_more">
+                <span>+ <t t-out="more"/> more</span>
+            </div>
+        </div>
+    </template>
+
+    <record id="view_auth_card_wizard_form" model="ir.ui.view">
+        <field name="name">lab.auth.card.wizard.form</field>
+        <field name="model">lab.auth.card.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Authentication Cards" class="o_lab_card_wizard">
+                <field name="source" invisible="1"/>
+                <div class="o_lab_card_hero">
+                    <div class="o_lab_card_hero_text">
+                        <div class="o_lab_card_kicker">Authentication Cards</div>
+                        <div class="o_lab_card_lead">
+                            <span invisible="source != 'invoice'">The orders these invoices bill, each dated with its invoice.</span>
+                            <span invisible="source == 'invoice'">One card per order; switch off any order you do not want.</span>
+                        </div>
+                    </div>
+                    <div class="o_lab_card_stats">
+                        <div class="o_lab_card_stat o_lab_card_stat_main">
+                            <field name="card_count" class="o_lab_card_stat_value"/>
+                            <span class="o_lab_card_stat_label">cards to print</span>
+                        </div>
+                        <div class="o_lab_card_stat">
+                            <span class="o_lab_card_stat_value"><field name="selected_count"/>/<field name="order_count"/></span>
+                            <span class="o_lab_card_stat_label">orders</span>
+                        </div>
+                        <div class="o_lab_card_stat">
+                            <field name="route_count" class="o_lab_card_stat_value"/>
+                            <span class="o_lab_card_stat_label">routes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <field name="stock" widget="lab_card_stock" nolabel="1"/>
+
+                <div class="row g-4 mt-1">
+                    <div class="col-lg-7">
+                        <div class="o_lab_card_section">
+                            <span class="o_lab_card_section_title">Orders</span>
+                            <span class="o_lab_card_section_hint">grouped by Sales Route</span>
+                            <span class="ms-auto d-flex gap-2">
+                                <button name="action_select_all" type="object" string="Select all" class="btn btn-sm btn-light"/>
+                                <button name="action_select_none" type="object" string="Clear" class="btn btn-sm btn-light"/>
+                            </span>
+                        </div>
+                        <field name="line_ids" nolabel="1" class="o_lab_card_lines">
+                            <list editable="bottom" create="0" delete="0" decoration-muted="not selected">
+                                <field name="sequence" column_invisible="1"/>
+                                <field name="selected" widget="boolean_toggle" nolabel="1" width="60px"/>
+                                <!-- force_save: a read-only field is not sent when the wizard saves -->
+                                <field name="order_id" readonly="1" force_save="1" options="{'no_open': True}"/>
+                                <field name="patient" readonly="1"/>
+                                <field name="doctor" readonly="1"/>
+                                <field name="route_id" readonly="1" optional="show" options="{'no_open': True}"/>
+                                <field name="issue_date"/>
+                                <field name="invoice_id" readonly="1" force_save="1" optional="hide" options="{'no_open': True}"/>
+                            </list>
+                        </field>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="o_lab_card_section">
+                            <span class="o_lab_card_section_title">Preview</span>
+                            <span class="o_lab_card_section_hint" invisible="stock != 'pre_printed'">your printed card, our values in black</span>
+                            <span class="o_lab_card_section_hint" invisible="stock != 'blank'">the whole card</span>
+                        </div>
+                        <field name="preview_html" nolabel="1" readonly="1" class="o_lab_card_preview"/>
+                        <div class="o_lab_card_copies_row">
+                            <label for="copies"/>
+                            <field name="copies" class="o_lab_card_copies_input"/>
+                        </div>
+                    </div>
+                </div>
+                <footer>
+                    <button name="action_print" type="object" string="Print Cards" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- the button: on the order and invoice forms, and on a selection in their lists -->
+    <record id="view_order_form_auth_card" model="ir.ui.view">
+        <field name="name">sale.order.form.auth.card</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_open_auth_card_wizard" type="object" string="Authentication Card"
+                        invisible="state == 'cancel'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_move_form_auth_card" model="ir.ui.view">
+        <field name="name">account.move.form.auth.card</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_open_auth_card_wizard" type="object" string="Authentication Card"
+                        invisible="move_type != 'out_invoice' or state == 'cancel'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- every order list (quotations, orders, the dashboard list) inherits the base
+         sale_order_tree, whose header already holds "Create Invoices": a list keeps only
+         one header, so the button goes INTO that one -->
+    <record id="sale_order_tree_auth_card" model="ir.ui.view">
+        <field name="name">sale.order.list.base.auth.card</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="/list/header" position="inside">
+                <button name="action_open_auth_card_wizard" type="object" string="Authentication Card"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_invoice_tree_auth_card" model="ir.ui.view">
+        <field name="name">account.move.list.auth.card</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="/list/header" position="inside">
+                <button name="action_open_auth_card_wizard" type="object" string="Authentication Card"
+                        invisible="context.get('default_move_type') not in ('out_invoice', 'out_refund')"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

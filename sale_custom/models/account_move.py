@@ -230,6 +230,10 @@ class AccountMove(models.Model):
             return name
         return shown + '\n' + name
 
+    def action_open_auth_card_wizard(self):
+        """The "Authentication Card" button: one card per order these invoices bill."""
+        return self.env['lab.auth.card.wizard']._open_for(self)
+
     def _card_orders(self):
         """The orders these invoices bill - one authentication card each (client,
         2026-10-20). Read off the invoice lines; an invoice typed in by hand with

@@ -1,0 +1,333 @@
+// The Authentication Card wizard (client, 2026-10-20): a header with the counts,
+// the stock as two tiles, the orders on the left and the cards on the right.
+$-lab-red: #ed1c24;
+$-lab-ink: #111827;
+$-lab-muted: #6b7280;
+$-lab-line: #e5e7eb;
+
+.o_lab_card_wizard {
+    // -- the header: what this is, and what will print
+    .o_lab_card_hero {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem 2rem;
+        margin: -.25rem 0 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        background: linear-gradient(120deg, rgba($-lab-red, .07), rgba($-lab-red, .01) 60%, #fff);
+        border: 1px solid rgba($-lab-red, .12);
+    }
+
+    .o_lab_card_kicker {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: $-lab-ink;
+        letter-spacing: -.01em;
+    }
+
+    .o_lab_card_lead {
+        margin-top: .15rem;
+        color: $-lab-muted;
+    }
+
+    .o_lab_card_stats {
+        display: flex;
+        gap: .75rem;
+        margin-left: auto;
+    }
+
+    .o_lab_card_stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 84px;
+        padding: .5rem .85rem;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid $-lab-line;
+    }
+
+    .o_lab_card_stat_value,
+    .o_lab_card_stat_value span {
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.15;
+        color: $-lab-ink;
+    }
+
+    .o_lab_card_stat_main {
+        border-color: rgba($-lab-red, .35);
+
+        .o_lab_card_stat_value,
+        .o_lab_card_stat_value span {
+            color: $-lab-red;
+        }
+    }
+
+    .o_lab_card_stat_label {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: $-lab-muted;
+    }
+
+    // -- section titles over the list and the preview
+    .o_lab_card_section {
+        display: flex;
+        align-items: baseline;
+        gap: .6rem;
+        margin-bottom: .5rem;
+    }
+
+    .o_lab_card_section_title {
+        font-weight: 700;
+        color: $-lab-ink;
+    }
+
+    .o_lab_card_section_hint {
+        font-size: .85rem;
+        color: $-lab-muted;
+    }
+
+    .o_lab_card_lines .o_list_renderer {
+        border: 1px solid $-lab-line;
+        border-radius: 12px;
+        max-height: 420px;
+    }
+
+    .o_lab_card_copies_row {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        margin-top: .75rem;
+
+        .o_lab_card_copies_input {
+            max-width: 5rem;
+        }
+    }
+}
+
+// -- the stock tiles, across the whole dialog
+.o_field_lab_card_stock {
+    display: block;
+    width: 100%;
+}
+
+.o_lab_stock {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: .75rem;
+    width: 100%;
+}
+
+.o_lab_stock_tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .85rem 2.75rem .85rem 1rem;
+    text-align: left;
+    background: #fff;
+    border: 2px solid $-lab-line;
+    border-radius: 14px;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+
+    &:hover:not(:disabled) {
+        border-color: rgba($-lab-red, .4);
+        box-shadow: 0 6px 18px rgba(16, 24, 40, .08);
+    }
+
+    &.o_lab_stock_on {
+        border-color: $-lab-red;
+        box-shadow: 0 0 0 4px rgba($-lab-red, .1);
+    }
+}
+
+.o_lab_stock_art svg {
+    display: block;
+    width: 96px;
+    height: auto;
+    filter: drop-shadow(0 2px 4px rgba(16, 24, 40, .12));
+}
+
+.o_lab_stock_text {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.o_lab_stock_title {
+    font-weight: 700;
+    color: $-lab-ink;
+}
+
+.o_lab_stock_hint {
+    font-size: .85rem;
+    line-height: 1.35;
+    color: $-lab-muted;
+}
+
+.o_lab_stock_check {
+    position: absolute;
+    top: .75rem;
+    right: .75rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    border: 2px solid $-lab-line;
+
+    .o_lab_stock_on & {
+        border-color: $-lab-red;
+        background: $-lab-red;
+        box-shadow: inset 0 0 0 3px #fff;
+    }
+}
+
+// -- the cards, drawn at 3.5 px per millimetre (an 86 x 54 mm card is 300 x 189)
+.o_lab_card_preview {
+    width: 100%;
+}
+
+.o_lab_cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 300px));
+    gap: .85rem;
+    max-height: 430px;
+    overflow-y: auto;
+    padding: .25rem .25rem .5rem;
+}
+
+.o_lab_card {
+    position: relative;
+    width: 300px;
+    height: 189px;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid $-lab-line;
+    background-color: #fff;
+    // the faint pattern of the printed cards
+    background-image: radial-gradient(rgba(17, 24, 39, .06) 1.2px, transparent 1.3px);
+    background-size: 14px 14px;
+    box-shadow: 0 6px 18px rgba(16, 24, 40, .1);
+    font-family: Arial, Helvetica, sans-serif;
+    color: $-lab-ink;
+}
+
+.o_lab_card_title {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    width: 225px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+}
+
+.o_lab_card_badge svg {
+    position: absolute;
+    top: 30px;
+    right: 14px;
+    width: 52px;
+    height: 61px;
+}
+
+.o_lab_card_foot {
+    position: absolute;
+    left: 14px;
+    bottom: 8px;
+    font-size: 7.5px;
+    line-height: 1.35;
+    color: #374151;
+}
+
+.o_lab_card_logo {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    height: 24px;
+    width: auto;
+}
+
+// the four rows sit under the title, left of the badge
+.o_lab_card_rows {
+    position: absolute;
+    top: 34px;
+    left: 14px;
+}
+
+.o_lab_card_row {
+    display: flex;
+    align-items: flex-end;
+    height: 23px;
+}
+
+.o_lab_card_label {
+    width: 86px;
+    flex: none;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .2px;
+    padding-bottom: 2px;
+}
+
+.o_lab_card_value {
+    width: 128px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    border-bottom: 1px solid #1f2937;
+    padding-bottom: 1px;
+}
+
+.o_lab_card_copies {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: $-lab-ink;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+// the pre-printed stock: the printed design ghosted, our values in black on it
+.o_lab_cards_pre {
+    .o_lab_card_design,
+    .o_lab_card_label {
+        opacity: .35;
+        filter: grayscale(1);
+    }
+
+    .o_lab_card_value {
+        border-bottom-color: rgba(31, 41, 55, .3);
+        font-weight: 400;
+    }
+}
+
+.o_lab_cards_blank .o_lab_card_value {
+    font-weight: 700;
+}
+
+.o_lab_card_more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-style: dashed;
+    background-image: none;
+    box-shadow: none;
+    color: $-lab-muted;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.o_lab_card_empty {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: $-lab-muted;
+    border: 1px dashed $-lab-line;
+    border-radius: 12px;
+}
