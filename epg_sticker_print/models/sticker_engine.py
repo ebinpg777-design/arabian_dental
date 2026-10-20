@@ -382,17 +382,18 @@ class StickerEngine(models.AbstractModel):
         if work:
             meta_texts.append(work + (' + %s more' % sticker['more'] if sticker['more'] else ''))
 
-        # The head line: the order number at the SAME size as the details, bold (client,
-        # 2026-10-19: "increase the order number font, same font size as patient name
-        # and others") - it is what the bench looks for; "Destination" / "Sales Route"
-        # stay small captions. Its height is part of the ladder, not taken from the
-        # details afterwards, so a large number cannot squeeze the last line out.
+        # The head line: the order number is the BIGGEST text on the sticker, bold -
+        # 1.4x the details (2026-10-19 it was made equal to them, 2026-10-20 the client
+        # asked for it larger still) - it is what the bench looks for; "Destination" /
+        # "Sales Route" stay small captions. Its height is part of the ladder, not taken
+        # from the details afterwards, so a large number cannot squeeze the last line
+        # out: when space is short the whole ladder steps down together.
         is_order = sticker.get('kind') == 'order'
 
         def needs(addr_pt):
             name_pt, meta_pt = addr_pt * 1.15, addr_pt
             small = round(max(addr_pt * 0.62, 7.0), 1)
-            title_pt = addr_pt if is_order else small
+            title_pt = addr_pt * 1.4 if is_order else small
             head = round(max(title_pt * PT_MM * 1.25, z['head']), 1)
             # line boxes as the template sets them: name 1.1, address 1.18, details 1.25
             body = (self._lines_for(sticker['name'], name_pt, w, bold=True) * name_pt * PT_MM * 1.08

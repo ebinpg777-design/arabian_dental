@@ -614,7 +614,8 @@ class TestStickerTraySheet(TransactionCase):
         patient name and others")"""
         order = self.orders[0]
         by_order = self.Engine.build(order, {'mode': 'order', 'show_patient': True}, fmt=self.fmt)[0]
-        self.assertEqual(by_order['fit']['title'], by_order['fit']['meta'], "the order number as big as the details")
+        self.assertAlmostEqual(by_order['fit']['title'], by_order['fit']['meta'] * 1.4, delta=0.11,
+                               msg="the order number 1.4x the details (client, 2026-10-20)")
         self.assertGreaterEqual(by_order['fit']['head'], by_order['fit']['title'] * self.Engine.PT_MM * 1.25 - 0.1,
                                 "and the head band holds it")
         z = self.Engine.zones(self.fmt, has_code=True)
