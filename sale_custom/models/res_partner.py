@@ -18,6 +18,14 @@ class ResPartner(models.Model):
         'crm.team', string='Sales Route', index=True, tracking=True,
         help="The route (sales team) this clinic belongs to. New orders for this "
              "clinic take their Sales Route from here.")
+    # -- v17 dental_sale's clinic fields (client, 2026-10-20) ------------------------
+    # The migration had turned the doctor text into a child contact flagged is_doctor
+    # (540 of them, never used) and kept the district only as a tag; the lab wants the
+    # Odoo 17 fields back on the clinic itself.
+    doctor_name = fields.Char(string='Doctor', help="The doctor at this clinic.")
+    billing_name = fields.Char(
+        string='Billing Name', help="The name the clinic is billed under, when it differs.")
+    district_id = fields.Many2one('lab.district', string='District', index=True)
 
     # -- Sales Route in partner pickers (client, 2026-08-17) -------------------------
     # In every partner many2one / many2many the dropdown entry reads

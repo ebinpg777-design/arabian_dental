@@ -16,3 +16,5 @@ access_dental_dispatch_register,dental.dispatch.register,dental.dispatch.registe
 access_sale_order_list_report,sale.order.list.report,sale.order.list.report,base.group_user,crud,
 access_sale_order_count_report,sale.order.count.report,sale.order.count.report,base.group_user,crud,
 access_sale_order_change_customer,sale.order.change.customer,sale.order.change.customer,sales_team.group_sale_salesman,cru,
+access_lab_district_user,lab.district.user,lab.district,base.group_user,r,
+access_lab_district_sale,lab.district.sale,lab.district,sales_team.group_sale_manager,crud,

@@ -1116,11 +1116,13 @@ class MigrationBackend(models.Model):
     # ------------------------------------------------------------------ dental_sale partner fields
     def _sync_doctor_contacts(self, cur, cache, stats):
         """dental_sale kept the doctor as two text fields on the clinic (doctor_name,
-        doctor_contact_no). The suite models a doctor as a CONTACT of the clinic —
-        it is what the portal login, the WhatsApp desk and the visit screens key
-        on — so each named doctor becomes a child contact flagged is_doctor.
+        doctor_contact_no). They stay there, as the clinic's Doctor field.
 
-        Idempotent by (clinic, doctor name): the child has no source id of its own.
+        Until 2026-10-20 this made each named doctor a child contact flagged
+        is_doctor; the lab never used them (540 contacts, none referenced) and asked
+        for the Odoo 17 field back instead. A solo doctor whose clinic record IS the
+        doctor is still flagged is_doctor. doctor_contact_no was 0 on every v17
+        partner, so it is not carried.
         """
         try:
             cur.execute("""SELECT id, doctor_name, doctor_contact_no FROM res_partner
@@ -1130,7 +1132,7 @@ class MigrationBackend(models.Model):
             stats.append("Doctor contacts        SKIPPED (%s)" % e)
             return
         Partner = self.env['res.partner'].with_context(active_test=False)
-        created = updated = skipped = 0
+        written = skipped = 0
         for r in rows:
             clinic_id = self._resolve(cache, 'res.partner', r['id'])
             name = ' '.join((r['doctor_name'] or '').split())
@@ -1138,33 +1140,15 @@ class MigrationBackend(models.Model):
                 skipped += 1
                 continue
             clinic = Partner.browse(clinic_id)
-            if clinic.name.strip().upper() == name.upper():
-                # a solo doctor whose clinic record IS the doctor: no child needed
-                if not clinic.is_doctor:
-                    clinic.write({'is_doctor': True})
-                skipped += 1
-                continue
-            vals = {'name': name, 'parent_id': clinic_id, 'type': 'contact',
-                    'is_doctor': True, 'is_clinic': False, 'company_id': False,
-                    'customer_rank': 0}
-            phone = str(r['doctor_contact_no']) if r.get('doctor_contact_no') else ''
-            if phone and phone not in ('0', 'None'):
-                vals['phone'] = phone
-            try:
-                with self.env.cr.savepoint():
-                    child = Partner.search([('parent_id', '=', clinic_id),
-                                            ('name', '=ilike', name)], limit=1)
-                    if child:
-                        child.write(self._valid(Partner, vals))
-                        updated += 1
-                    else:
-                        Partner.create(self._valid(Partner, vals))
-                        created += 1
-            except Exception as e:
-                skipped += 1
-                _logger.warning("doctor contact for partner %s: %s", r['id'], e)
-        stats.append("Doctor contacts        created=%d updated=%d skipped=%d"
-                     % (created, updated, skipped))
+            vals = {}
+            if clinic.doctor_name != name:
+                vals['doctor_name'] = name
+            if clinic.name.strip().upper() == name.upper() and not clinic.is_doctor:
+                vals['is_doctor'] = True        # a solo doctor: the clinic IS the doctor
+            if vals:
+                clinic.write(vals)
+                written += 1
+        stats.append("Doctor names           written=%d skipped=%d" % (written, skipped))
 
     def _sync_partner_properties(self, cur, cache, stats):
         """Company-dependent partner settings, which v17 keeps in ir_property and
@@ -1861,6 +1845,11 @@ class MigrationBackend(models.Model):
             # smbg_contact's "Partner ID" is a reference the clinic was quoted.
             if not vals.get('ref') and row.get('customer_id'):
                 vals['ref'] = row['customer_id']
+            # dental_sale's clinic fields stay on the clinic (client, 2026-10-20)
+            for field_name in ('billing_name', 'doctor_name'):
+                text = ' '.join(str(row.get(field_name) or '').split())
+                if text:
+                    vals[field_name] = text
             # Who the customer is, in the suite's terms: every billed customer is a
             # CLINIC (the account the work is invoiced to); one whose name is a
             # doctor's is a doctor as well. Solo practices are both.
@@ -1883,6 +1872,12 @@ class MigrationBackend(models.Model):
                 if tag not in ids:
                     ids.append(tag)
                 vals['category_id'] = [(6, 0, ids)]
+                # and as the District field, named like the tag (v17 res.district)
+                district_name = self.env['res.partner.category'].browse(tag).name
+                District = self.env['lab.district'].with_context(active_test=False)
+                district = District.search([('name', '=', district_name)], limit=1) \
+                    or District.create({'name': district_name})
+                vals['district_id'] = district.id
 
     def _hook_product_template(self, row, vals, phase, is_new, cache):
         if phase == 'scalars':

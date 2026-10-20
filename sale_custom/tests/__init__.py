@@ -14,3 +14,4 @@ from . import test_change_customer
 from . import test_invoice_print_figures
 from . import test_invoice_journal
 from . import test_authentication_card
+from . import test_clinic_fields

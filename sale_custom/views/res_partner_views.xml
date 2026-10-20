@@ -26,11 +26,15 @@
                                  and (is_clinic or customer_rank &gt; 0
                                       or context.get('res_partner_search_mode') == 'customer'
                                       or context.get('default_customer_rank'))"/>
+                <!-- v17 dental_sale's clinic fields (client, 2026-10-20) -->
+                <field name="district_id" options="{'no_create': True}" invisible="parent_id"/>
             </xpath>
 
             <field name="category_id" position="after">
                 <field name="is_clinic"/>
                 <field name="is_doctor"/>
+                <field name="doctor_name" invisible="parent_id"/>
+                <field name="billing_name" invisible="parent_id"/>
                 <field name="gst_number"/>
                 <field name="pan_number"/>
                 <field name="dci_number"/>
@@ -68,6 +72,8 @@
             <field name="user_id" position="after">
                 <field name="team_id" string="Sales Route"/>
                 <field name="is_clinic" string="Clinic"/>
+                <field name="district_id" string="District"/>
+                <field name="doctor_name" string="Doctor"/>
             </field>
             <!-- Odoo 20 dropped the Individuals / Companies filters (type_company):
                  the clinic filters follow "Subject to VAT" instead. -->
@@ -79,6 +85,7 @@
             </filter>
             <filter name="salesperson" position="after">
                 <filter name="group_team" string="Sales Route" context="{'group_by': 'team_id'}"/>
+                <filter name="group_district" string="District" context="{'group_by': 'district_id'}"/>
             </filter>
         </field>
     </record>
