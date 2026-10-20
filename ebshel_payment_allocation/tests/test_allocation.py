@@ -38,6 +38,12 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
         )
         form.payment_type = payment_type
         form.partner_id = partner
+        # some installations require more on a payment (a sales team, say): fill
+        # what the form asks for so the suite also passes there
+        if "team_id" in form._view["fields"]:
+            team = self.env["crm.team"].search([], limit=1)
+            if team:
+                form.team_id = team
         return form
 
     @staticmethod
