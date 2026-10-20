@@ -532,7 +532,10 @@ class TestStickerTraySheet(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.fmt = cls.env.ref('epg_sticker_print.format_a4_3x8_65x35')
+        # a copy of the shipped A4 3 x 8 sheet: a real database already keeps a tray
+        # sheet for the shipped one (one per format), and the tests must not collide
+        # with - or move on - the counter's own half-used sheet
+        cls.fmt = cls.env.ref('epg_sticker_print.format_a4_3x8_65x35').copy({'name': 'Test A4 3 x 8', 'is_default': False})
         cls.Engine = cls.env['epg.sticker.engine']
         cls.Sheet = cls.env['epg.sticker.sheet']
         cls.product = cls.env['product.product'].create({'name': 'Tray Appliance', 'type': 'consu', 'list_price': 100.0})
