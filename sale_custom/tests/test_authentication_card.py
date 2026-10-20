@@ -77,3 +77,20 @@ class TestAuthenticationCard(TransactionCase):
             'invoice_line_ids': [(0, 0, {'name': 'Crown', 'quantity': 1, 'price_unit': 100.0})],
         })
         self.assertEqual(invoice._card_orders(), self.order_b)
+
+    def test_the_doctor_line_is_the_billing_name_as_odoo_17_printed(self):
+        if 'billing_name' not in self.clinic._fields:
+            self.skipTest("no billing name on contacts in this database")
+        self.clinic.billing_name = 'Dr. Nisam Abhayam'
+        self.assertEqual(self.order_a._card_values()['doctor'], 'DR. NISAM ABHAYAM')
+
+    def test_a_card_from_an_invoice_carries_the_invoice_date(self):
+        card = self.order_a._card_values(issue_date=fields.Date.to_date('2026-08-08'))
+        self.assertEqual(card['issue_date'], '08/08/2026')
+
+    def test_the_pre_printed_stock_prints_on_odoo_17s_80_by_50_page(self):
+        for xmlid in ('sale_custom.action_report_authentication_card_values',
+                      'sale_custom.action_report_authentication_card_invoice_values'):
+            paper = self.env.ref(xmlid).paperformat_id
+            self.assertEqual((paper.page_width, paper.page_height, paper.margin_top, paper.margin_left),
+                             (80, 50, 0, 0), xmlid)
