@@ -1,3 +1,0 @@
-id,name,model_id,group_id/id,operation,domain
-restrict_employee_public_own,Employee directory: your own record unless you have Employees access,hr.employee.public,,crud,"[('user_id', '=', user.id)] if not (user.has_group('hr.group_hr_user') or user.has_group('base.group_system')) else []"
-restrict_employee_own,Employees: your own record unless you have Employees access,hr.employee,,crud,"[('user_id', '=', user.id)] if not (user.has_group('hr.group_hr_user') or user.has_group('base.group_system')) else []"

@@ -16,28 +16,32 @@ class TestEmployeePrivacy(TransactionCase):
         cls.other = Employee.create({"name": "Somebody Else"})
 
     def _directory(self, user):
-        return self.env["hr.employee.public"].with_user(user).search([]).mapped("name")
+        return self.env["hr.employee.public"].with_user(user)
 
-    def test_a_user_without_employees_access_sees_only_themselves(self):
-        self.assertEqual(self._directory(self.plain), ["Plain Person"])
-        # the employee model itself: nothing but their own, and not writable
-        self.assertEqual(
-            self.env["hr.employee"].with_user(self.plain).sudo(False).search([]).mapped("name")
-            if self.env["hr.employee"].with_user(self.plain).has_access("read") else [],
-            [],
-        )
+    def test_a_user_without_employees_access_lists_only_themselves(self):
+        directory = self._directory(self.plain)
+        self.assertEqual(directory.search([]).mapped("name"), ["Plain Person"])
+        self.assertEqual(directory.search_count([]), 1)
+        self.assertEqual([name for _id, name in directory.name_search("")], ["Plain Person"])
+        self.assertEqual([name for _id, name in directory.name_search("Somebody")], [])
+        groups = directory.read_group([], ["department_id"], ["__count"])
+        self.assertEqual(sum(count for _department, count in groups), 1)
+
+    def test_a_colleague_named_on_a_record_still_reads(self):
+        # narrowed lists, not blocked reads: what a work order or a desk shows stays shown
+        other = self._directory(self.plain).browse(self.other.id)
+        self.assertEqual(other.name, "Somebody Else")
 
     def test_an_employees_officer_sees_everyone(self):
-        names = self._directory(self.officer)
+        names = self._directory(self.officer).search([]).mapped("name")
         for name in ("Plain Person", "The Officer", "Somebody Else"):
             self.assertIn(name, names)
-        self.assertIn("Somebody Else", self.env["hr.employee"].with_user(self.officer).search([]).mapped("name"))
 
     def test_a_system_administrator_is_not_restricted(self):
-        names = self._directory(self.admin)
+        names = self._directory(self.admin).search([]).mapped("name")
         for name in ("Plain Person", "Somebody Else"):
             self.assertIn(name, names)
 
     def test_a_user_without_an_employee_sees_nobody(self):
         lonely = new_test_user(self.env, login="privacy_lonely", groups="base.group_user")
-        self.assertEqual(self._directory(lonely), [])
+        self.assertEqual(self._directory(lonely).search([]).mapped("name"), [])
