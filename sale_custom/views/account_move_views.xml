@@ -64,4 +64,18 @@
             </field>
         </field>
     </record>
+    <!-- Patient in the invoice search box (client, 2026-10-20: "able to search patients
+         in Invoice search"). patient_names is the stored, per-invoice list of the
+         line patients, so one ilike finds every invoice the patient is on. -->
+    <record id="view_account_invoice_filter_patient" model="ir.ui.view">
+        <field name="name">account.move.search.patient</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <field name="ref" position="after">
+                <field name="patient_names" string="Patient"/>
+            </field>
+        </field>
+    </record>
+
 </odoo>
