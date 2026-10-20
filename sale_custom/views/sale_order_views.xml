@@ -84,6 +84,10 @@
 
             <field name="partner_id" position="after">
                 <field name="patient"/>
+                <!-- On the face of the order, not in a tab: who worked the case is asked
+                     about every day (client, 2026-10-20). -->
+                <field name="technician_ids" widget="many2many_tags"
+                       options="{'no_create': True}"/>
                 <field name="priority"/>
                 <field name="is_3d_model_print"/>
                 <!-- Courier straight to the patient: the address box only appears when
@@ -127,8 +131,6 @@
                             <field name="modification"/>
                             <field name="instruction"/>
                             <field name="register_person_id"/>
-                            <field name="technician_ids" widget="many2many_tags"
-                                   options="{'no_create': True}"/>
                         </group>
                         <group string="Work">
                             <field name="is_rework"/>
@@ -201,6 +203,7 @@
                 <field name="patient" optional="show"/>
                 <field name="date_due" string="Due" optional="show"/>
                 <field name="product_names" string="Products" optional="show"/>
+                <field name="technician_ids" string="Technicians" widget="many2many_tags" optional="show"/>
                 <field name="is_3d_model_print" string="3D Print" optional="hide" widget="boolean_toggle" readonly="1"/>
             </field>
             <!-- How much of this order has actually been billed. The list
@@ -232,6 +235,9 @@
                 <field name="patient" optional="show"/>
                 <field name="date_due" string="Due" optional="show"/>
                 <field name="product_names" string="Products" optional="show"/>
+                <!-- the Orders menu lists with THIS view in Odoo 20 (its dashboard list
+                     inherits the quotation list), so the column belongs here too -->
+                <field name="technician_ids" string="Technicians" widget="many2many_tags" optional="show"/>
                 <field name="is_3d_model_print" string="3D Print" optional="hide" widget="boolean_toggle" readonly="1"/>
             </field>
             <!-- How much of this order has actually been billed. The list
@@ -271,10 +277,12 @@
                  menus share this search view). -->
             <field name="patient" position="after">
                 <field name="create_uid" string="Created by"/>
+                <field name="technician_ids" string="Technician"/>
             </field>
             <filter name="salesperson" position="after">
                 <filter name="group_create_uid" string="Created by" context="{'group_by': 'create_uid'}"/>
                 <filter name="group_team" string="Sales Route" context="{'group_by': 'team_id'}"/>
+                <filter name="group_technician" string="Technician" context="{'group_by': 'technician_ids'}"/>
             </filter>
         </field>
     </record>

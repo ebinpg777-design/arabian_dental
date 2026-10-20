@@ -28,7 +28,7 @@ dental_sale's fields land on the suite's own:
   order.shade_name (res.shade)           -> line.color_scheme (product.colour)
   order.material_name                    -> order.instruction ("Material: VITA")
   order.sale_priority                    -> order.priority
-  order.technitian_name (m2m)            -> order.technician_ids
+  order.technitian_name (m2m)            -> order.technician_ids (re-compared every run: _txn_technicians)
   line.jaw                               -> line.ul
   line.quad1..4 / t_no / quarter         -> line.teeth (FDI numbers)
   the same on invoice lines              -> account.move.line.patient / ul / teeth
@@ -1090,6 +1090,62 @@ class MigrationBackend(models.Model):
         cur.execute('SELECT id FROM "%s" WHERE id = ANY(%%s)' % table, (list(mapped),))
         alive = {r['id'] for r in cur.fetchall()}
         return {src: dst for src, dst in mapped.items() if src not in alive}
+
+    def _txn_technicians(self, cur, cache, stats):
+        """Every order's technicians, made equal to the source's.
+
+        The sale-order step copies them with the order, but only for orders it
+        rewrites - and a technician contact deleted in the old system (a misspelt name
+        replaced by the right one) takes its links with it there without
+        touching the orders, so an incremental run never revisited them: 11 links
+        to three deleted contacts were still here on 2026-10-20. This compares the
+        whole relation, order by order, and corrects only the differences. Orders
+        the source no longer has are left alone (the deleted step reports those);
+        a technician whose contact was never migrated is not invented.
+        (client, 2026-10-20: "migrate the technician names for existing orders")
+        """
+        source = self._rel(cur, 'res_partner_sale_order_rel', 'sale_order_id', 'res_partner_id')
+        cur.execute("SELECT id FROM sale_order")
+        source_orders = {r['id'] for r in cur.fetchall()}
+        cr = self.env.cr
+        cr.execute("SELECT id, x_src_id FROM sale_order WHERE x_src_id IS NOT NULL")
+        order_of = {src: oid for oid, src in cr.fetchall()}
+        cr.execute("""SELECT so.x_src_id, r.partner_id FROM sale_order_technician_rel r
+                       JOIN sale_order so ON so.id = r.order_id
+                      WHERE so.x_src_id IS NOT NULL""")
+        have = {}
+        for src, partner in cr.fetchall():
+            have.setdefault(src, set()).add(partner)
+        checked = corrected = added = removed = unmapped = 0
+        for src_order, oid in order_of.items():
+            if src_order not in source_orders:
+                continue
+            checked += 1
+            want = set()
+            for src_partner in source.get(src_order, []):
+                partner = self._resolve(cache, 'res.partner', src_partner)
+                if partner:
+                    want.add(partner)
+                else:
+                    unmapped += 1
+            current = have.get(src_order, set())
+            if want == current:
+                continue
+            corrected += 1
+            drop, add = current - want, want - current
+            if drop:
+                cr.execute("DELETE FROM sale_order_technician_rel WHERE order_id = %s AND partner_id IN %s",
+                           (oid, tuple(drop)))
+                removed += len(drop)
+            for partner in add:
+                cr.execute("""INSERT INTO sale_order_technician_rel (order_id, partner_id)
+                              VALUES (%s, %s) ON CONFLICT DO NOTHING""", (oid, partner))
+                added += 1
+        if corrected:
+            self.env['sale.order'].invalidate_model(['technician_ids'])
+        cr.commit()
+        stats.append("Technicians            orders checked=%d corrected=%d links added=%d removed=%d"
+                     " source contacts not migrated=%d" % (checked, corrected, added, removed, unmapped))
 
     def _txn_deleted(self, cur, cache, stats):
         """Documents the source DELETED since the last migration.

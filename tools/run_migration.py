@@ -97,7 +97,7 @@ for phase in phases:
         # an incremental run first cancels what the source deleted since, so the
         # reconcile phase can match the invoices it frees with their new receipts
         stats = backend._txn_run((['deleted'] if backend.txn_changed_since else [])
-                                 + ['share_records', 'sale_orders', 'purchases', 'invoices',
+                                 + ['share_records', 'sale_orders', 'technicians', 'purchases', 'invoices',
                                     'journal_entries', 'reconcile', 'cheques'])
         show('DOCUMENTS (GL)', stats)
     elif phase == 'ops':
