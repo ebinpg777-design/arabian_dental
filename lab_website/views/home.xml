@@ -36,7 +36,12 @@
                             <div class="carousel-indicators o_lab_hero_dots">
                                 <button t-foreach="content['hero']" t-as="slide" type="button" data-bs-target="#labHero"
                                         t-attf-data-bs-slide-to="#{slide_index}" t-att-class="'active' if slide_first else None"
-                                        t-att-aria-current="'true' if slide_first else None" t-attf-aria-label="Slide #{slide_index + 1}"/>
+                                        t-att-aria-current="'true' if slide_first else None"
+                                        t-att-aria-selected="'true' if slide_first else 'false'"
+                                        t-attf-aria-label="Slide #{slide_index + 1}"/>
+                                <!-- aria-selected: Odoo 20's CarouselSlider moves it on every slide and
+                                     threw "Cannot read properties of null (reading 'setAttribute')"
+                                     when no indicator carried it (2026-10-20) -->
                             </div>
                             <div class="o_lab_hero_arrows">
                                 <button class="carousel-control-prev" type="button" data-bs-target="#labHero" data-bs-slide="prev" aria-label="Previous slide"><i class="fa fa-long-arrow-left"/></button>
@@ -272,7 +277,7 @@
                                             </div>
                                         </div>
                                         <div class="carousel-indicators o_lab_hero_dots">
-                                            <button t-foreach="content['testimonials']" t-as="q" type="button" data-bs-target="#labQuotes" t-attf-data-bs-slide-to="#{q_index}" t-att-class="'active' if q_first else None"/>
+                                            <button t-foreach="content['testimonials']" t-as="q" type="button" data-bs-target="#labQuotes" t-attf-data-bs-slide-to="#{q_index}" t-att-class="'active' if q_first else None" t-att-aria-selected="'true' if q_first else 'false'"/>
                                         </div>
                                     </div>
                                 </t>
