@@ -14,17 +14,51 @@ from ..models.migration_spec import (DISTRICT_ALIASES, JAW_MAP, PRIORITY_MAP,
 @tagged('post_install', '-at_install')
 class TestDentalFieldMapping(TransactionCase):
 
+    # The cases below are real Odoo 17 rows (profiled 2026-10-20 after S75319 showed
+    # "12, 2" and "1543, 543" for teeth 12 and 15, 14, 13).
+
     def test_quadrant_digits_become_fdi_numbers(self):
         # "4 3" in the 1st quadrant column means teeth 14 and 13
         self.assertEqual(teeth_from_quadrants({'quad1': '4 3', 'quad2': '2 4 5'}),
                          '14, 13, 22, 24, 25')
 
-    def test_tooth_numbers_already_in_fdi_pass_through(self):
-        self.assertEqual(teeth_from_quadrants({'t_no': '46,47'}), '46, 47')
-        self.assertEqual(teeth_from_quadrants({'quad1': '14 13'}), '14, 13')
+    def test_every_digit_in_a_quadrant_is_a_tooth(self):
+        # S75319: "543" is teeth 5, 4, 3 - not tooth "1543"; t_no only repeats them
+        self.assertEqual(teeth_from_quadrants({'quad1': '543', 't_no': '543', 'quarter': 'q1'}),
+                         '15, 14, 13')
+        self.assertEqual(teeth_from_quadrants({'quad1': '2', 't_no': '2', 'quarter': 'q1'}), '12')
+        self.assertEqual(teeth_from_quadrants({'quad1': '7 6 5 4 3 21'}),
+                         '17, 16, 15, 14, 13, 12, 11')
+        # "31" in the 1st quadrant is teeth 3 and 1 there, not tooth 31 of the 3rd
+        self.assertEqual(teeth_from_quadrants({'quad1': '31'}), '13, 11')
 
-    def test_quadrants_and_free_text_combine_without_repeats(self):
-        self.assertEqual(teeth_from_quadrants({'quad3': '6', 't_no': '36, 45'}), '36, 45')
+    def test_a_full_fdi_number_typed_in_its_quadrant(self):
+        # two digits starting with the column's quadrant: a neighbouring second digit
+        # is two adjacent teeth ("12" - its t_no reads 11, 12, 21, 22), any other one
+        # FDI number ("46"; "25 6 7" = 25, 26, 27)
+        self.assertEqual(teeth_from_quadrants({'quad1': '12', 'quad2': '12', 't_no': '11,12,21,22'}),
+                         '11, 12, 21, 22')
+        self.assertEqual(teeth_from_quadrants({'quad4': '46'}), '46')
+        self.assertEqual(teeth_from_quadrants({'quad2': '25 6 7'}), '25, 26, 27')
+
+    def test_t_no_is_ignored_next_to_quadrant_teeth(self):
+        # a count ("4" for four teeth) or the same teeth again - never extra teeth
+        self.assertEqual(teeth_from_quadrants({'quad2': '3  4  5  6', 't_no': '4', 'quarter': 'q1'}),
+                         '23, 24, 25, 26')
+        self.assertEqual(teeth_from_quadrants({'quad3': '1 2', 'quad4': '6 5 4 2 1',
+                                               't_no': '31.32.41.42.44.45.46'}),
+                         '31, 32, 46, 45, 44, 42, 41')
+
+    def test_t_no_alone(self):
+        # FDI numbers pass through, whatever the separators
+        self.assertEqual(teeth_from_quadrants({'t_no': '46,47'}), '46, 47')
+        self.assertEqual(teeth_from_quadrants({'t_no': '11,12,13,14.15,15,,16'}),
+                         '11, 12, 13, 14, 15, 16')
+        # bare digits take the line's quarter as their quadrant
+        self.assertEqual(teeth_from_quadrants({'t_no': '6', 'quarter': 'q4'}), '46')
+        self.assertEqual(teeth_from_quadrants({'t_no': '5,6,7', 'quarter': 'q1'}), '15, 16, 17')
+        # without a quarter a bare digit cannot be placed: kept as typed
+        self.assertEqual(teeth_from_quadrants({'t_no': '6'}), '6')
 
     def test_a_quarter_alone_is_kept_as_a_quarter(self):
         self.assertEqual(teeth_from_quadrants({'quarter': 'q2'}), 'Q2')

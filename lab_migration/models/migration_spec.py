@@ -342,27 +342,48 @@ JAW_MAP = {'upper': 'upper', 'lower': 'lower', 'upper_lower': 'ul'}
 
 
 def teeth_from_quadrants(row):
-    """FDI tooth numbers from dental_sale's four quadrant fields plus its free-text
-    tooth number, in one string.
+    """FDI tooth numbers ("15, 14, 13") from dental_sale's tooth fields, in one string -
+    what a technician reads on the job card and what the invoice prints.
 
-    The source keeps "4 3" in the 1st-quadrant column to mean teeth 14 and 13 (FDI:
-    quadrant digit then tooth digit) and "46,47" already in FDI form in ``t_no``.
-    The single string this returns ("14, 13, 46, 47") is what a technician reads
-    on the job card and what the invoice prints.
+    How Odoo 17 kept them, profiled over all 59,424 order lines that have teeth
+    (2026-10-20, after "12, 2" and "1543, 543" turned up on S75319):
+
+    * quad1..quad4 hold the teeth of that quadrant, ONE DIGIT EACH (1-8): "5 4 3",
+      "543" and "7 6 5 4 3 21" all list single teeth, so every digit is a tooth and
+      FDI = quadrant digit + tooth digit. The one exception, 33 of 121,000 tokens: two
+      digits starting with the column's own quadrant. "46" in quad4 or "25 6 7" in
+      quad2 is the FDI number typed in full (46; 25, 26, 27), while "12" in quad1 is
+      teeth 1 and 2 (its t_no reads "11,12,..."): a neighbouring second digit (12,
+      23, 34, 21) is two adjacent teeth, any other is one FDI number.
+    * t_no has no single meaning: an FDI list ("24,25,26"), a count of the teeth ("4"
+      next to "3 4 5 6") or the quadrant digits again ("543"). It is read only when
+      the quadrant columns are empty: two-digit FDI numbers as they are, bare digits
+      with the line's quarter (q1..q4) as their quadrant ("5,6,7" + q4 = 45, 46, 47),
+      anything else as typed.
+    * quarter alone, with no tooth at all, is the quadrant itself: "Q2".
     """
     import re
     teeth = []
-    for quadrant in (1, 2, 3, 4):
-        raw = (row.get('quad%d' % quadrant) or '').strip()
-        for tooth in re.split(r'[\s,;/]+', raw):
-            if tooth.isdigit():
-                # a bare "4" is tooth 4 of that quadrant; "14" is already FDI
-                teeth.append(tooth if len(tooth) == 2 else '%d%s' % (quadrant, tooth))
-    raw = (row.get('t_no') or '').strip()
-    for tooth in re.split(r'[\s,;/]+', raw):
-        if tooth:
-            teeth.append(tooth)
-    if row.get('quarter') and not teeth:
-        teeth.append(row['quarter'].upper())
+    for quadrant in '1234':
+        for token in re.findall(r'[0-9]+', row.get('quad' + quadrant) or ''):
+            if (len(token) == 2 and token[0] == quadrant and token[1] in '12345678'
+                    and abs(int(token[1]) - int(quadrant)) != 1):
+                teeth.append(token)                      # the FDI number in full
+            else:
+                teeth.extend(quadrant + digit for digit in token if digit in '12345678')
+    quarter = (row.get('quarter') or '').strip().lower()
+    quadrant = quarter[1:] if re.fullmatch(r'q[1-4]', quarter) else ''
+    if not teeth:
+        for token in re.split(r'[\s,;/.:]+', (row.get('t_no') or '').strip()):
+            if not token:
+                continue
+            if re.fullmatch(r'[1-4][1-8]', token):
+                teeth.append(token)                      # already FDI
+            elif quadrant and re.fullmatch(r'[1-8]+', token):
+                teeth.extend(quadrant + digit for digit in token)
+            else:
+                teeth.append(token)                      # as typed: cannot be placed
+    if quarter and not teeth:
+        teeth.append(quarter.upper())
     # keep order of entry, drop repeats
     return ', '.join(dict.fromkeys(teeth))
