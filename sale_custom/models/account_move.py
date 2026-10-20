@@ -230,6 +230,24 @@ class AccountMove(models.Model):
             return name
         return shown + '\n' + name
 
+    def _card_orders(self):
+        """The orders these invoices bill - one authentication card each (client,
+        2026-10-20). Read off the invoice lines; an invoice typed in by hand with
+        only the order's name as its origin still finds it."""
+        orders = self.env['sale.order']
+        for move in self:
+            found = move.invoice_line_ids.sale_line_ids.order_id
+            if not found and move.invoice_origin:
+                # the invoice's own partner: order numbers were not unique on the
+                # migrated book, and a clinic is never billed another clinic's case
+                names = [name.strip() for name in move.invoice_origin.split(',') if name.strip()]
+                found = self.env['sale.order'].search([
+                    ('name', 'in', names),
+                    ('partner_id.commercial_partner_id', '=', move.commercial_partner_id.id),
+                ])
+            orders |= found
+        return orders.sorted('name')
+
     def convert(self, amount, cur):
         """Amount in words in the Odoo-10 Indian 'X Rupees and Y Paise' format."""
         currency = self.env['res.currency'].search([('name', '=', cur)], limit=1) \

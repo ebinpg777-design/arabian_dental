@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+from odoo import fields
+from odoo.tests import TransactionCase, tagged
+
+
+@tagged('post_install', '-at_install')
+class TestAuthenticationCard(TransactionCase):
+    """The card printed with a finished case: from the order, and from the invoice
+    for every order it bills."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.clinic = cls.env['res.partner'].create({'name': 'Abhayam DC'})
+        product = cls.env['product.product'].create({'name': 'Crown', 'type': 'consu', 'list_price': 100.0})
+
+        def order(patient):
+            return cls.env['sale.order'].create({
+                'partner_id': cls.clinic.id, 'patient': patient,
+                'order_line': [(0, 0, {'product_id': product.id, 'product_uom_qty': 1})],
+            })
+
+        cls.order_a = order('Nisam')
+        cls.order_b = order('Riya')
+        cls.Report = cls.env['ir.actions.report']
+
+    def _html(self, report, records):
+        html, _kind = self.Report._render_qweb_html(report, records.ids)
+        return html.decode()
+
+    def test_the_card_says_who_what_and_when(self):
+        card = self.order_a._card_values()
+        when = fields.Datetime.context_timestamp(self.order_a, self.order_a.date_order)
+        self.assertEqual(card, {
+            'patient': 'NISAM', 'doctor': 'ABHAYAM DC', 'job': self.order_a.name,
+            'issue_date': when.strftime('%d/%m/%Y'),
+        })
+        html = self._html('sale_custom.report_authentication_card', self.order_a)
+        for text in ('AUTHENTICATION CARD', 'PATIENT NAME', 'NISAM', 'ABHAYAM DC',
+                     self.order_a.name, card['issue_date'], 'QUALITY'):
+            self.assertIn(text, html)
+
+    def test_pre_printed_stock_gets_the_values_only(self):
+        html = self._html('sale_custom.report_authentication_card_values', self.order_a)
+        self.assertNotIn('AUTHENTICATION CARD', html)
+        self.assertNotIn('PATIENT NAME', html)
+        self.assertNotIn('QUALITY', html)
+        self.assertIn('NISAM', html)
+        self.assertIn(self.order_a.name, html)
+
+    def test_an_invoice_prints_one_card_per_order(self):
+        invoice = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': self.clinic.id,
+            'invoice_line_ids': [
+                (0, 0, {'name': 'Crown', 'quantity': 1, 'price_unit': 100.0,
+                        'sale_line_ids': [(6, 0, self.order_a.order_line.ids)]}),
+                (0, 0, {'name': 'Crown', 'quantity': 1, 'price_unit': 100.0,
+                        'sale_line_ids': [(6, 0, self.order_b.order_line.ids)]}),
+            ],
+        })
+        self.assertEqual(invoice._card_orders(), self.order_a | self.order_b)
+        html = self._html('sale_custom.report_authentication_card_invoice', invoice)
+        self.assertEqual(html.count('AUTHENTICATION CARD'), 2)
+        for text in (self.order_a.name, self.order_b.name, 'NISAM', 'RIYA'):
+            self.assertIn(text, html)
+
+    def test_an_invoice_typed_in_from_an_order_name_still_finds_it(self):
+        invoice = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': self.clinic.id,
+            'invoice_origin': self.order_b.name,
+            'invoice_line_ids': [(0, 0, {'name': 'Crown', 'quantity': 1, 'price_unit': 100.0})],
+        })
+        self.assertEqual(invoice._card_orders(), self.order_b)

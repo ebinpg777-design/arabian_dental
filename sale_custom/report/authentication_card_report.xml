@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Authentication Card (client, 2026-10-20, from a photo of the lab's card):
+     a CR80 plastic card - "AUTHENTICATION CARD", patient, doctor / clinic, job id,
+     issue date; the lab's logo, a "100 % QUALITY ASSURED" badge, e-mail and website.
+     Printed from an order (one card) or from an invoice (one card per order it
+     bills). Two prints: the full design for blank white cards, and "pre-printed
+     stock", which puts only the four values on a card that already carries the
+     design. -->
+<odoo>
+
+    <record id="paperformat_card" model="report.paperformat">
+        <field name="name">Lab Authentication Card (CR80)</field>
+        <field name="default" eval="False"/>
+        <!-- a custom size: the lab's wkhtmltopdf is the patched build (stickers use
+             custom sizes too); 85.6 x 54 mm rounded to whole millimetres -->
+        <field name="format">custom</field>
+        <field name="page_width">86</field>
+        <field name="page_height">54</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">3</field>
+        <field name="margin_bottom">3</field>
+        <field name="margin_left">3</field>
+        <field name="margin_right">3</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+        <field name="disable_shrinking" eval="True"/>
+    </record>
+
+    <!-- one card -->
+    <template id="report_authentication_card_document">
+        <t t-set="card" t-value="o._card_values()"/>
+        <!-- div.article: how Odoo's reports mark one record's page (and keep the
+             page UTF-8: without it wkhtmltopdf read the badge's stars as latin-1) -->
+        <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+        <!-- the style travels inside the article: Odoo builds the PDF from the
+             articles alone and drops anything outside them -->
+        <t t-call="sale_custom.report_authentication_card_style"/>
+        <div t-att-class="'lab-card' + (' lab-card-values' if values_only else '')">
+            <t t-if="not values_only">
+                <!-- a faint tooth pattern behind everything: fill-opacity on the path,
+                     CSS opacity on the element is ignored by the PDF engine -->
+                <svg class="lab-card-bg lab-static" viewBox="0 0 312 180" preserveAspectRatio="none">
+                    <defs>
+                        <pattern id="lab-teeth" width="24" height="24" patternUnits="userSpaceOnUse">
+                            <path transform="translate(5 5) scale(.6)" fill="#000" fill-opacity=".055"
+                                  d="M12 3c-1.6 0-2.4-.9-4.3-.9C5 2.1 3 4.3 3 7.6c0 4.4 2.3 8.9 3.6 11.9.6 1.4 2.3 1.4 2.8 0 .6-1.7.9-4.4 2.6-4.4s2 2.7 2.6 4.4c.5 1.4 2.2 1.4 2.8 0C18.7 16.5 21 12 21 7.6 21 4.3 19 2.1 16.3 2.1c-1.9 0-2.7.9-4.3.9z"/>
+                        </pattern>
+                    </defs>
+                    <rect width="312" height="180" fill="url(#lab-teeth)"/>
+                </svg>
+                <div class="lab-card-title lab-static">AUTHENTICATION CARD</div>
+            </t>
+            <t t-foreach="[('PATIENT NAME', card['patient']), ('DOCTOR NAME', card['doctor']), ('JOB ID', card['job']), ('ISSUE DATE', card['issue_date'])]" t-as="row">
+                <div class="lab-row" t-attf-style="top: {{ 8 + row_index * 7 }}mm">
+                    <t t-if="not values_only">
+                        <span class="lab-label lab-static" t-out="row[0]"/>
+                        <span class="lab-colon lab-static">:</span>
+                    </t>
+                    <!-- a long name (a doctor and a town) shrinks to fit the 31 mm box:
+                         bold capitals run ~0.235 mm per character per point; the very
+                         long ones wrap onto two lines rather than go below 5 pt -->
+                    <t t-set="chars" t-value="len(row[1]) or 1"/>
+                    <t t-set="size" t-value="max(5.0, min(8.5, 31.0 / (chars * 0.235)))"/>
+                    <span t-attf-class="lab-value {{ 'lab-value-wrap' if chars > 26 else '' }}"
+                          t-attf-style="font-size: {{ '%.1f' % size }}pt" t-out="row[1]"/>
+                </div>
+            </t>
+            <t t-if="not values_only">
+                <!-- the quality badge: a gold shield with a ribbon -->
+                <svg class="lab-badge lab-static" viewBox="0 0 100 118">
+                    <defs>
+                        <linearGradient id="lab-gold" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#f3d57a"/>
+                            <stop offset=".55" stop-color="#d4a73a"/>
+                            <stop offset="1" stop-color="#a97c18"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M8 96 L26 84 L30 106 L18 112 Z" fill="#b8861b"/>
+                    <path d="M92 96 L74 84 L70 106 L82 112 Z" fill="#b8861b"/>
+                    <path d="M50 4 L92 16 L92 60 C92 82 72 96 50 104 C28 96 8 82 8 60 L8 16 Z" fill="url(#lab-gold)" stroke="#8a6512" stroke-width="2"/>
+                    <path d="M50 12 L84 22 L84 60 C84 77 68 89 50 96 C32 89 16 77 16 60 L16 22 Z" fill="none" stroke="#fff3c4" stroke-width="1.5" stroke-opacity=".8"/>
+                    <!-- five stars drawn, not typed: no glyph or encoding to go wrong -->
+                    <t t-foreach="[26, 38, 50, 62, 74]" t-as="cx">
+                        <polygon t-attf-points="{{cx}},21 {{cx+1.6}},25 {{cx+6}},25.4 {{cx+2.6}},28.3 {{cx+3.7}},32.6 {{cx}},30.3 {{cx-3.7}},32.6 {{cx-2.6}},28.3 {{cx-6}},25.4 {{cx-1.6}},25" fill="#5b4208"/>
+                    </t>
+                    <text x="50" y="56" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" fill="#3f2d05">100%</text>
+                    <text x="50" y="71" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="bold" fill="#3f2d05">QUALITY</text>
+                    <text x="50" y="82" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#5b4208">ASSURED</text>
+                </svg>
+                <div class="lab-contact lab-static">
+                    <div t-foreach="card['emails']" t-as="email" t-out="email"/>
+                    <div t-if="card['website']" t-out="card['website']"/>
+                </div>
+                <!-- the letterhead logo (the horizontal wordmark the invoice prints), else
+                     the company's own -->
+                <t t-set="card_logo" t-value="o.company_id.logo1 or o.company_id.logo"/>
+                <img t-if="card_logo" class="lab-logo lab-static" t-att-src="image_data_uri(card_logo)" alt="Logo"/>
+            </t>
+        </div>
+        </div>
+    </template>
+
+    <template id="report_authentication_card_style">
+        <style>
+            html, body { margin: 0; padding: 0; }
+            /* 86 x 54 mm page, 3 mm margins: the card box stays a hair inside the
+               printable 80 x 48 mm, or the engine rounds up and adds a blank page */
+            .article { page-break-inside: avoid; }
+            .article + .article { page-break-before: always; }
+            .lab-card { position: relative; width: 78mm; height: 45mm; overflow: hidden;
+                        font-family: Arial, Helvetica, sans-serif; color: #111; }
+            .lab-card-bg { position: absolute; left: 0; top: 0; width: 78mm; height: 45mm; }
+            .lab-card-title { position: absolute; left: 0; top: 0; width: 58mm; text-align: center;
+                              font-size: 9pt; font-weight: bold; letter-spacing: 1.2px; }
+            .lab-row { position: absolute; left: 1mm; width: 58mm; height: 7mm; }
+            .lab-label { position: absolute; left: 0; top: 1.2mm; width: 23mm; font-size: 6.5pt;
+                         font-weight: bold; letter-spacing: .3px; }
+            .lab-colon { position: absolute; left: 23.5mm; top: 1.2mm; font-size: 6.5pt; font-weight: bold; }
+            .lab-value { position: absolute; left: 26mm; top: 0; width: 32mm; height: 5.6mm; font-size: 8.5pt;
+                         font-weight: bold; white-space: nowrap; overflow: hidden;
+                         border-bottom: .3mm solid #222; }
+            .lab-value-wrap { white-space: normal; line-height: 1.1; top: -.6mm; }
+            .lab-card-values .lab-value { border-bottom: none; }
+            .lab-badge { position: absolute; right: 1.5mm; top: 5mm; width: 15mm; height: 17.7mm; }
+            .lab-contact { position: absolute; left: 1mm; bottom: .5mm; font-size: 5.6pt; line-height: 1.35; color: #222; }
+            /* sized by height, whatever the logo file's proportions */
+            .lab-logo { position: absolute; right: 2.5mm; bottom: .8mm; height: 7mm; width: auto; }
+        </style>
+    </template>
+
+    <template id="report_authentication_card">
+        <t t-call="web.html_container">
+            <t t-set="values_only" t-value="False"/>
+            <t t-foreach="docs" t-as="o">
+                <t t-call="sale_custom.report_authentication_card_document"/>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_authentication_card_values">
+        <t t-call="web.html_container">
+            <t t-set="values_only" t-value="True"/>
+            <t t-foreach="docs" t-as="o">
+                <t t-call="sale_custom.report_authentication_card_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- from an invoice: one card per order it bills -->
+    <template id="report_authentication_card_invoice">
+        <t t-call="web.html_container">
+            <t t-set="values_only" t-value="False"/>
+            <t t-foreach="docs._card_orders()" t-as="o">
+                <t t-call="sale_custom.report_authentication_card_document"/>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_authentication_card_invoice_values">
+        <t t-call="web.html_container">
+            <t t-set="values_only" t-value="True"/>
+            <t t-foreach="docs._card_orders()" t-as="o">
+                <t t-call="sale_custom.report_authentication_card_document"/>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_authentication_card" model="ir.actions.report">
+        <field name="name">Authentication Card</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_authentication_card</field>
+        <field name="print_report_name">'Authentication Card - %s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_card"/>
+    </record>
+
+    <record id="action_report_authentication_card_values" model="ir.actions.report">
+        <field name="name">Authentication Card (pre-printed stock)</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_authentication_card_values</field>
+        <field name="print_report_name">'Authentication Card - %s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_card"/>
+    </record>
+
+    <record id="action_report_authentication_card_invoice" model="ir.actions.report">
+        <field name="name">Authentication Cards</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_authentication_card_invoice</field>
+        <field name="print_report_name">'Authentication Cards - %s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_card"/>
+    </record>
+
+    <record id="action_report_authentication_card_invoice_values" model="ir.actions.report">
+        <field name="name">Authentication Cards (pre-printed stock)</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_custom.report_authentication_card_invoice_values</field>
+        <field name="print_report_name">'Authentication Cards - %s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_card"/>
+    </record>
+
+</odoo>

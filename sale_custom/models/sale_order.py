@@ -500,6 +500,28 @@ class SaleOrder(models.Model):
             parts = [order.name, order.partner_id.name, order.patient]
             order.display_name = ' · '.join(p for p in parts if p)
 
+    # -- the authentication card (client, 2026-10-20) ---------------------------------
+    def _card_values(self):
+        """What the card says: the patient, the clinic or doctor the case is for, the
+        job number and the issue date - the day the case went out when it has, else
+        the order day. Names in capitals, as the lab's cards are typed."""
+        self.ensure_one()
+        when = getattr(self, 'effective_date', False) or self.date_order
+        when = fields.Datetime.context_timestamp(self, when) if when else None
+        # the e-mails the letterhead prints (the lab's, not the company record's
+        # login address), and the website without its scheme
+        letterhead = {kind: lines for kind, _icon, lines in self.company_id._lab_letterhead()}
+        website = (self.company_id.website or '').replace('https://', '').replace('http://', '').rstrip('/')
+        return {
+            'patient': (self.patient or '').strip().upper(),
+            'doctor': (self.partner_id.name or '').strip().upper(),
+            'job': self.name or '',
+            'issue_date': when.strftime('%d/%m/%Y') if when else '',
+            # the general address: the letterhead lists accounts first, the lab's own last
+            'emails': letterhead.get('emails', [])[-1:],
+            'website': website,
+        }
+
     def _lab_route(self):
         """The clinic's own Sales Route."""
         self.ensure_one()

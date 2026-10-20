@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Sales Custom',
-    'version': '20.0.1.49.7',
+    'version': '20.0.1.49.8',
     'category': 'Sales',
     'summary': 'Dental lab customization: per-patient orders, MRP job cards, GST invoicing, daily sales',
     'description': """
@@ -38,6 +38,7 @@ Re-implemented for Odoo 19. Provides:
         'report/production_slip_report.xml',
         'report/delivery_slip_report.xml',
         'report/registration_ack_report.xml',
+        'report/authentication_card_report.xml',
         'report/daily_sales_summary_report.xml',
         'report/report_actions.xml',
         'report/dispatch_register_report.xml',
