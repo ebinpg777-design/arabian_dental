@@ -28,7 +28,21 @@ class TestFiscalYearNumbers(TransactionCase):
         self.assertEqual(move.state, 'posted')
         self.assertTrue(move.name.endswith('/2026-27/001'))
 
-    def test_outside_the_replay_odoo_checks_as_usual(self):
+    # Outside the replay the numbers go through Odoo's own date check - which, with
+    # sale_custom (a dependency) reading "2026-27" as the lab's April-March fiscal
+    # year, accepts a number of the invoice's own fiscal year and still refuses one
+    # of another year. The company's fiscal year end decides which year a date is in,
+    # so the tests set the lab's (March) rather than inherit the database's.
+    def test_outside_the_replay_the_labs_fiscal_year_number_posts(self):
+        self.env.company.fiscalyear_last_month = '3'
         move = self._move(self.env)
+        move.action_post()
+        self.assertEqual(move.state, 'posted')
+        self.assertTrue(move.name.endswith('/2026-27/001'))
+
+    def test_outside_the_replay_another_years_number_is_refused(self):
+        self.env.company.fiscalyear_last_month = '3'
+        move = self._move(self.env)
+        move.name = '%s/2025-26/001' % move.journal_id.code
         with self.assertRaises(ValidationError):
             move.action_post()
