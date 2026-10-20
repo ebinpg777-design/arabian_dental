@@ -31,10 +31,16 @@ class TestAuthenticationCard(TransactionCase):
     def test_the_card_says_who_what_and_when(self):
         card = self.order_a._card_values()
         when = fields.Datetime.context_timestamp(self.order_a, self.order_a.date_order)
-        self.assertEqual(card, {
+        self.assertEqual({key: card[key] for key in ('patient', 'doctor', 'job', 'issue_date')}, {
             'patient': 'NISAM', 'doctor': 'ABHAYAM DC', 'job': self.order_a.name,
             'issue_date': when.strftime('%d/%m/%Y'),
         })
+        # the foot of the card: the lab's general e-mail (the letterhead's last) and
+        # the website without its scheme
+        company = self.order_a.company_id
+        self.assertLessEqual(len(card['emails']), 1)
+        self.assertEqual(card['website'], (company.website or '').replace('https://', '')
+                         .replace('http://', '').rstrip('/'))
         html = self._html('sale_custom.report_authentication_card', self.order_a)
         for text in ('AUTHENTICATION CARD', 'PATIENT NAME', 'NISAM', 'ABHAYAM DC',
                      self.order_a.name, card['issue_date'], 'QUALITY'):
