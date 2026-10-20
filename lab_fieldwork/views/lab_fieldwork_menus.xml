@@ -185,7 +185,7 @@
               parent="menu_fw_analyse" sequence="10" action="action_performance"
               groups="lab_fieldwork.group_fieldwork_manager"/>
 
-    <menuitem id="menu_fw_perf_team" name="Team Performance"
+    <menuitem id="menu_fw_perf_team" name="Route Performance"
               parent="menu_fw_analyse" sequence="20" action="action_performance_team"
               groups="lab_fieldwork.group_fieldwork_manager"/>
 

@@ -16,7 +16,7 @@ class ResPartner(models.Model):
     # sale.order._compute_team_id prefers it (see models/sale_order.py).
     team_id = fields.Many2one(
         'crm.team', string='Sales Route', index=True, tracking=True,
-        help="The route (sales team) this clinic belongs to. New orders for this "
+        help="The Sales Route this clinic belongs to. New orders for this "
              "clinic take their Sales Route from here.")
     # -- v17 dental_sale's clinic fields (client, 2026-10-20) ------------------------
     # The migration had turned the doctor text into a child contact flagged is_doctor

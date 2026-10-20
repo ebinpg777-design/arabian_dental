@@ -21,7 +21,7 @@ class LabPerformance(models.Model):
     _rec_name = 'user_id'
 
     user_id = fields.Many2one('res.users', string='Executive', readonly=True)
-    team_id = fields.Many2one('crm.team', string='Sales Team', readonly=True)
+    team_id = fields.Many2one('crm.team', string='Sales Route', readonly=True)
     beat_id = fields.Many2one('lab.beat', string='Beat', readonly=True)
     month = fields.Date(readonly=True)
     company_id = fields.Many2one('res.company', readonly=True)

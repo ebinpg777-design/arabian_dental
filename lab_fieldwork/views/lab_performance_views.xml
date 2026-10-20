@@ -73,7 +73,7 @@
                         domain="[('planned', '&gt;', 0), ('completion', '&lt;', 70)]"/>
                 <group>
                     <filter name="g_user" string="Executive" context="{'group_by': 'user_id'}"/>
-                    <filter name="g_team" string="Sales Team" context="{'group_by': 'team_id'}"/>
+                    <filter name="g_team" string="Sales Route" context="{'group_by': 'team_id'}"/>
                     <filter name="g_month" string="Month" context="{'group_by': 'month'}"/>
                     <filter name="g_beat" string="Beat" context="{'group_by': 'beat_id'}"/>
                 </group>
@@ -93,7 +93,7 @@
     </record>
 
     <record id="action_performance_team" model="ir.actions.act_window">
-        <field name="name">Team Performance</field>
+        <field name="name">Route Performance</field>
         <field name="res_model">lab.performance</field>
         <field name="view_mode">pivot,graph,list</field>
         <field name="context">{'search_default_g_team': 1, 'search_default_filter_month': 1}</field>

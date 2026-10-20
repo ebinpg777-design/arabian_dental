@@ -71,7 +71,7 @@
                     <filter name="group_month" string="Invoice Month" context="{'group_by': 'invoice_month'}"/>
                     <filter name="group_due" string="Due Date" context="{'group_by': 'date_due'}"/>
                     <filter name="group_user" string="Salesperson" context="{'group_by': 'user_id'}"/>
-                    <filter name="group_team" string="Sales Team" context="{'group_by': 'team_id'}"/>
+                    <filter name="group_team" string="Sales Route" context="{'group_by': 'team_id'}"/>
                 </group>
             </search>
         </field>

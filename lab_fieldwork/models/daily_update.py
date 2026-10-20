@@ -236,7 +236,7 @@ class LabDailyUpdate(models.Model):
     last_nudge_at = fields.Datetime(readonly=True, copy=False)
 
     # The marketing desk's own verdict on the day, given at approval. Feeds the
-    # weekly report and Team Performance with a quality dimension the raw counts
+    # weekly report and Route Performance with a quality dimension the raw counts
     # never had.
     marketing_score = fields.Selection(
         [('1', '1 - Poor'), ('2', '2'), ('3', '3 - Fair'),

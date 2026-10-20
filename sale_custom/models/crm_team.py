@@ -7,4 +7,4 @@ class CrmTeam(models.Model):
 
     use_quotations = fields.Boolean(
         'Sales', default=True,
-        help="Check this box to manage sales in this sales team.")
+        help="Check this box to manage sales in this sales route.")

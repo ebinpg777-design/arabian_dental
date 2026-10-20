@@ -45,7 +45,7 @@
                 <field name="name" string="Case"/>
                 <field name="partner_id" string="Customer"/>
                 <field name="patient"/>
-                <field name="team_id" string="Route"/>
+                <field name="team_id" string="Sales Route"/>
                 <field name="priority" string="Priority"/>
                 <filter name="due_today" string="Due today"
                         domain="[('date_due', '=', context_today().strftime('%Y-%m-%d'))]"/>

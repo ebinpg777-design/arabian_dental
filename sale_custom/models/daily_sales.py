@@ -51,7 +51,7 @@ class DailySales(models.Model):
         currency_field="currency_id", string='Payment', store=True,
         tracking=True, compute='_compute_all', readonly=False)
     team_id = fields.Many2one(
-        'crm.team', string='Sales Team', default=_get_default_team,
+        'crm.team', string='Sales Route', default=_get_default_team,
         readonly=True)
     sales_line_ids = fields.One2many(
         'daily.sales.line', 'sales_id', string='Daily Sales Lines', copy=True)
@@ -130,4 +130,4 @@ class DailySalesLine(models.Model):
     is_new_clinic = fields.Boolean(string='New Clinic')
     payment_amount = fields.Monetary(currency_field="currency_id", string='Payment')
     team_id = fields.Many2one(
-        'crm.team', related='sales_id.team_id', store=True, string='Sales Team')
+        'crm.team', related='sales_id.team_id', store=True, string='Sales Route')

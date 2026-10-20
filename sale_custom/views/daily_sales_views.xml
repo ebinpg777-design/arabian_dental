@@ -181,7 +181,7 @@
                     <filter string="Month" name="month" domain="[]" context="{'group_by': 'date:month'}"/>
                     <filter string="Date" name="date_group" domain="[]" context="{'group_by': 'date:day'}"/>
                     <filter string="Sales Person" name="salesperson" domain="[]" context="{'group_by': 'sales_person_id'}"/>
-                    <filter string="Sales Team" name="team" domain="[]" context="{'group_by': 'team_id'}"/>
+                    <filter string="Sales Route" name="team" domain="[]" context="{'group_by': 'team_id'}"/>
                 </group>
             </search>
         </field>
@@ -241,7 +241,7 @@
                     <filter string="Sales Person" name="salesperson" domain="[]" context="{'group_by': 'sales_person_id'}"/>
                     <filter string="Clinic" name="clinic" domain="[]" context="{'group_by': 'partner_id'}"/>
                     <filter string="Doctor" name="doctor" domain="[]" context="{'group_by': 'contact_id'}"/>
-                    <filter string="Sales Team" name="team" domain="[]" context="{'group_by': 'team_id'}"/>
+                    <filter string="Sales Route" name="team" domain="[]" context="{'group_by': 'team_id'}"/>
                 </group>
             </search>
         </field>

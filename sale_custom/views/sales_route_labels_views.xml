@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Sales Team" reads "Sales Route" everywhere (client, 2026-10-20): the views that
+     spell the label out (filters, group-bys, search fields, the route's own form,
+     list and member screens), the menu and the actions. Field labels are in
+     models/sales_route_labels.py. Elements are found by stable attributes: Odoo 20
+     refuses a translated one (string, title, placeholder) as a selector. -->
+<odoo>
+
+    <!-- the route itself -->
+    <record id="crm_team_view_form_sales_route" model="ir.ui.view">
+        <field name="name">crm.team.form.sales.route</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="string">Sales Route</attribute>
+            </xpath>
+            <xpath expr="//label[@for='name']" position="attributes">
+                <attribute name="string">Sales Route</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="crm_team_view_tree_sales_route" model="ir.ui.view">
+        <field name="name">crm.team.list.sales.route</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="/list" position="attributes">
+                <attribute name="string">Sales Routes</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- route members -->
+    <record id="crm_team_member_view_kanban_sales_route" model="ir.ui.view">
+        <field name="name">crm.team.member.kanban.sales.route</field>
+        <field name="model">crm.team.member</field>
+        <field name="inherit_id" ref="sales_team.crm_team_member_view_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//i[@data-icon='group']" position="attributes">
+                <attribute name="title">Sales Route</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="crm_team_member_view_form_sales_route" model="ir.ui.view">
+        <field name="name">crm.team.member.form.sales.route</field>
+        <field name="model">crm.team.member</field>
+        <field name="inherit_id" ref="sales_team.crm_team_member_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//i[@data-icon='group']" position="attributes">
+                <attribute name="title">Sales Route</attribute>
+            </xpath>
+            <xpath expr="//field[@id='crm_team_id']" position="attributes">
+                <attribute name="placeholder">Sales Route</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="crm_team_member_view_search_sales_route" model="ir.ui.view">
+        <field name="name">crm.team.member.search.sales.route</field>
+        <field name="model">crm.team.member</field>
+        <field name="inherit_id" ref="sales_team.crm_team_member_view_search"/>
+        <field name="arch" type="xml">
+            <filter name="groupby_crm_team_id" position="attributes">
+                <attribute name="string">Sales Route</attribute>
+            </filter>
+        </field>
+    </record>
+
+    <!-- searches and group-bys -->
+    <record id="view_sales_order_filter_sales_route" model="ir.ui.view">
+        <field name="name">sale.order.search.sales.route</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="/search/field[@name='team_id']" position="attributes">
+                <attribute name="string">Sales Route</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_product_search_sales_route" model="ir.ui.view">
+        <field name="name">sale.report.search.sales.route</field>
+        <field name="model">sale.report</field>
+        <field name="inherit_id" ref="sale.view_order_product_search"/>
+        <field name="arch" type="xml">
+            <filter name="sales_channel" position="attributes">
+                <attribute name="string">Sales Route</attribute>
+            </filter>
+        </field>
+    </record>
+
+    <record id="account_invoice_groupby_sales_route" model="ir.ui.view">
+        <field name="name">account.move.groupby.sales.route</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="sale.account_invoice_groupby_inherit"/>
+        <field name="arch" type="xml">
+            <filter name="sales_channel" position="attributes">
+                <attribute name="string">Sales Route</attribute>
+            </filter>
+        </field>
+    </record>
+
+    <record id="view_account_invoice_report_search_sales_route" model="ir.ui.view">
+        <field name="name">account.invoice.report.search.sales.route</field>
+        <field name="model">account.invoice.report</field>
+        <field name="inherit_id" ref="sale.view_account_invoice_report_search_inherit"/>
+        <field name="arch" type="xml">
+            <filter name="sales_channel" position="attributes">
+                <attribute name="string">Sales Route</attribute>
+            </filter>
+        </field>
+    </record>
+
+    <!-- the menu and the actions -->
+    <record id="sale.sales_team_config" model="ir.ui.menu">
+        <field name="name">Sales Routes</field>
+    </record>
+
+    <record id="sales_team.crm_team_action_config" model="ir.actions.act_window">
+        <field name="name">Sales Routes</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a Sales Route</p>
+            <p>Use Sales Routes to organise the clinics by the route that serves them and to draw up reports.</p>
+        </field>
+    </record>
+
+    <record id="sales_team.crm_team_action_pipeline" model="ir.actions.act_window">
+        <field name="name">Sales Routes</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Define a new Sales Route</p>
+            <p>Use Sales Routes to organise the clinics by the route that serves them.</p>
+        </field>
+    </record>
+
+    <record id="sales_team.crm_team_member_action" model="ir.actions.act_window">
+        <field name="name">Sales Route Members</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a new salesman</p>
+            <p>Link salespersons to Sales Routes.</p>
+        </field>
+    </record>
+
+</odoo>

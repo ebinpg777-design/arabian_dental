@@ -22,7 +22,7 @@ class LabOutstandingReport(models.Model):
     commercial_partner_id = fields.Many2one(
         'res.partner', string='Invoicing Entity', readonly=True)
     user_id = fields.Many2one('res.users', string='Salesperson', readonly=True)
-    team_id = fields.Many2one('crm.team', string='Sales Team', readonly=True)
+    team_id = fields.Many2one('crm.team', string='Sales Route', readonly=True)
     journal_id = fields.Many2one('account.journal', string='Journal', readonly=True)
     company_id = fields.Many2one('res.company', readonly=True)
     currency_id = fields.Many2one('res.currency', readonly=True)
