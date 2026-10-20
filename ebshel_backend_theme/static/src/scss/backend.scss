@@ -257,6 +257,16 @@ body:not(.o_home_menu_background) .o_main_navbar,
     }
 }
 
+// A picture filling the card's side (employees, the employee directory, lunch
+// products, ...) is at least a square. Core sizes it only when it is an
+// <img class="o_card_image_fill">; Odoo 20 draws the employee photo as a
+// background-image field, so a card with nothing but a name shrank to one line
+// and squashed the photo into a strip (seen 2026-10-20 on an employee with no
+// job, e-mail or phone).
+.o_kanban_renderer aside.o_card_aside_full > .o_field_background_image {
+    min-height: $o-kanban-image-fill-width;
+}
+
 // == Menus and dialogs: rounder, lifted
 .o-dropdown--menu.dropdown-menu, .o_popover.popover {
     border-color: rgba(16, 24, 40, .08);
