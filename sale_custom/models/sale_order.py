@@ -768,7 +768,9 @@ class SaleOrder(models.Model):
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
-    color_scheme = fields.Many2one('product.colour', string='Colour')
+    # "Shade" is the dental word for it (client, 2026-10-20); the field and the
+    # product.colour model keep their technical names.
+    color_scheme = fields.Many2one('product.colour', string='Shade')
     is_urgent = fields.Boolean(string='Urgent', default=False)
     is_urgent_service = fields.Boolean(string='Urgent Service', default=False)
     priority = fields.Selection(
@@ -840,9 +842,9 @@ class SaleOrderLine(models.Model):
 
 class ProductColour(models.Model):
     _name = 'product.colour'
-    _description = "Colour"
+    _description = "Shade"
 
-    name = fields.Char(string='Colour Name', required=True)
+    name = fields.Char(string='Shade Name', required=True)
     description = fields.Text(string='Description')
     active = fields.Boolean(string='Active', default=True)
 

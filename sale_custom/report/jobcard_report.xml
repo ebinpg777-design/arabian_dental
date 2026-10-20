@@ -78,7 +78,7 @@
                                     <span t-field="o.uom_id.name"/>
                                 </div>
                                 <div class="col-5">
-                                    <strong>Colour:</strong>
+                                    <strong>Shade:</strong>
                                     <span t-field="o.color_scheme"/>
                                 </div>
                                 <div class="col-3">

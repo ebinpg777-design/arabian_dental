@@ -19,7 +19,7 @@
         <field name="name">product.colour.form</field>
         <field name="model">product.colour</field>
         <field name="arch" type="xml">
-            <form string="Colour">
+            <form string="Shade">
                 <sheet>
                     <div class="oe_title">
                         <h1><field name="name"/></h1>
@@ -41,7 +41,7 @@
         <field name="name">product.colour.list</field>
         <field name="model">product.colour</field>
         <field name="arch" type="xml">
-            <list string="Colour">
+            <list string="Shade">
                 <field name="name"/>
                 <field name="description"/>
             </list>
@@ -49,7 +49,7 @@
     </record>
 
     <record id="action_product_colour" model="ir.actions.act_window">
-        <field name="name">Colours</field>
+        <field name="name">Shades</field>
         <field name="res_model">product.colour</field>
         <field name="view_mode">list,form</field>
     </record>

@@ -27,7 +27,7 @@
                     <thead>
                         <tr>
                             <th>Product</th>
-                            <th>Colour</th>
+                            <th>Shade</th>
                             <th>Jaw</th>
                             <th>Teeth</th>
                             <th class="text-end">Qty</th>
