@@ -77,8 +77,16 @@ class StickerEngine(models.AbstractModel):
         return rows[:limit], more
 
     @api.model
+    def _route_order(self, team, name):
+        """Sort key for a run: the Sales Route first, so each route's stickers come off
+        the printer together and are bundled without sorting by hand (client,
+        2026-10-20); within a route by `name`; stickers with no route last."""
+        return (not team, (team.name or '').lower() if team else '', (name or '').lower())
+
+    @api.model
     def build(self, orders, options, fmt=None):
-        """Return the list of sticker dicts (copies already expanded)."""
+        """Return the list of sticker dicts (copies already expanded), grouped by Sales
+        Route (see `_route_order`)."""
         opts = dict(self.default_options(), **(options or {}))
         opts['_format'] = fmt or opts.get('_format')
         mode = opts['mode']
@@ -88,7 +96,12 @@ class StickerEngine(models.AbstractModel):
         bc = lambda value: self.barcode_data_uri(opts['barcode_type'], value, 900, 180 if opts['barcode_type'] != 'qr' else 600)  # noqa: E731
 
         if mode == 'customer':
-            for partner in orders.mapped('partner_id').sorted('display_name'):
+            # a clinic's route here is the route of its orders in this run
+            route_of = {}
+            for order in orders.sorted('name'):
+                route_of.setdefault(order.partner_id, order.team_id)
+            for partner in orders.mapped('partner_id').sorted(
+                    key=lambda p: self._route_order(route_of.get(p), p.display_name)):
                 porders = orders.filtered(lambda o: o.partner_id == partner).sorted('name')
                 refs = ', '.join(porders.mapped('name'))
                 patients = ', '.join(p for p in porders.mapped('patient') if p) if 'patient' in orders._fields else ''
@@ -119,7 +132,7 @@ class StickerEngine(models.AbstractModel):
                                  'address': [], 'phone': '', 'route': '', 'refs': refs, 'count': len(no_team),
                                  'patient': '', 'lines': [], 'more': 0, 'barcode': bc(refs), 'sender': sender, 'to_patient': False, 'clinic': ''})
         else:  # order
-            for order in orders.sorted('name'):
+            for order in orders.sorted(key=lambda o: self._route_order(o.team_id, o.name)):
                 partner = order.partner_id
                 lines, more = self._order_lines(order, opts.get('max_lines', 6)) if opts['show_lines'] else ([], 0)
                 # A case going to the patient carries the patient's address and name,
@@ -187,7 +200,7 @@ class StickerEngine(models.AbstractModel):
             return partner.team_id or partner.commercial_partner_id.team_id
 
         if mode == 'customer':
-            for partner in partners.sorted('display_name'):
+            for partner in partners.sorted(key=lambda p: self._route_order(_route(p), p.display_name)):
                 stickers.append({
                     'kind': 'customer', 'title': _('Destination'), 'name': partner.name,
                     'address': self._address_lines(partner),

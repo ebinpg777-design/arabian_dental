@@ -28,8 +28,9 @@ class TestStickerPrint(TransactionCase):
 
     def test_customer_mode_groups_orders(self):
         st = self.Engine.build(self.o1 | self.o2 | self.o3, {'mode': 'customer'})
-        self.assertEqual([s['name'] for s in st], ['DR ONE', 'DR TWO'])
-        one = st[0]
+        # grouped by Sales Route: DR TWO is on EKM, DR ONE on KLM (client, 2026-10-20)
+        self.assertEqual([s['name'] for s in st], ['DR TWO', 'DR ONE'])
+        one = st[1]
         self.assertEqual(one['count'], 2)
         self.assertIn(self.o1.name, one['refs']); self.assertIn(self.o2.name, one['refs'])
         self.assertTrue(one['barcode'].startswith('data:image/png;base64,'), "barcode is inline, never a URL")
@@ -651,3 +652,56 @@ class TestStickerTraySheet(TransactionCase):
         self.assertIn('padding:8.5mm 0 0 7.5mm', html)
         self.assertIn('50 mm', html)
         self.assertIn('row 8, col 3', html)
+
+
+@tagged('post_install', '-at_install')
+class TestStickerRouteOrder(TransactionCase):
+    """A run of stickers comes out grouped by Sales Route, so each route's labels are
+    bundled straight off the printer (client, 2026-10-20)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Engine = cls.env['epg.sticker.engine']
+        Team = cls.env['crm.team']
+        cls.wayanad = Team.create({'name': 'WAYANAD'})
+        cls.calicut = Team.create({'name': 'CALICUT'})
+        product = cls.env['product.product'].create({'name': 'Crown', 'type': 'consu', 'list_price': 10})
+        Partner = cls.env['res.partner']
+        cls.dr_w = Partner.create({'name': 'AAA Clinic', 'street': '1 Road', 'team_id': cls.wayanad.id})
+        cls.dr_c = Partner.create({'name': 'ZZZ Clinic', 'street': '2 Road', 'team_id': cls.calicut.id})
+        cls.dr_none = Partner.create({'name': 'MMM Clinic', 'street': '3 Road'})
+
+        def order(partner, team):
+            return cls.env['sale.order'].create({
+                'partner_id': partner.id, 'team_id': team.id if team else False,
+                'order_line': [(0, 0, {'product_id': product.id, 'product_uom_qty': 1})]})
+
+        # numbered so that the routes interleave: W, C, -, W, C
+        cls.o_w1 = order(cls.dr_w, cls.wayanad)
+        cls.o_c1 = order(cls.dr_c, cls.calicut)
+        cls.o_none = order(cls.dr_none, None)
+        cls.o_w2 = order(cls.dr_w, cls.wayanad)
+        cls.o_c2 = order(cls.dr_c, cls.calicut)
+        cls.orders = cls.o_w1 | cls.o_c1 | cls.o_none | cls.o_w2 | cls.o_c2
+        cls.o_none.team_id = False
+
+    def test_one_per_order_is_grouped_by_route_then_number(self):
+        stickers = self.Engine.build(self.orders, {'mode': 'order', 'barcode_type': 'none'})
+        expected = ((self.o_c1 | self.o_c2).sorted('name').mapped('name')
+                    + (self.o_w1 | self.o_w2).sorted('name').mapped('name')
+                    + [self.o_none.name])
+        self.assertEqual([s['title'] for s in stickers], expected, "CALICUT, then WAYANAD, no route last")
+
+    def test_copies_stay_together(self):
+        stickers = self.Engine.build(self.o_c1 | self.o_w1, {'mode': 'order', 'barcode_type': 'none', 'copies': 2})
+        self.assertEqual([s['title'] for s in stickers],
+                         [self.o_c1.name, self.o_c1.name, self.o_w1.name, self.o_w1.name])
+
+    def test_one_per_customer_is_grouped_by_route(self):
+        stickers = self.Engine.build(self.orders, {'mode': 'customer', 'barcode_type': 'none'})
+        self.assertEqual([s['name'] for s in stickers], ['ZZZ Clinic', 'AAA Clinic', 'MMM Clinic'])
+
+    def test_clinic_labels_without_orders_are_grouped_by_route(self):
+        stickers = self.Engine.build_from_partners(self.dr_w | self.dr_c | self.dr_none, {'mode': 'customer'})
+        self.assertEqual([s['name'] for s in stickers], ['ZZZ Clinic', 'AAA Clinic', 'MMM Clinic'])
