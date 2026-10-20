@@ -1,0 +1,4 @@
+id,name,model_id,group_id/id,operation,domain
+access_payment_allocation_readonly,Payment allocation: read,account.payment.allocation,account.group_account_readonly,r,
+access_payment_allocation_invoice,Payment allocation: billing,account.payment.allocation,account.group_account_invoice,crud,
+rule_payment_allocation_company,Payment allocation: multi-company,account.payment.allocation,,crud,"[('company_id', 'in', company_ids)]"

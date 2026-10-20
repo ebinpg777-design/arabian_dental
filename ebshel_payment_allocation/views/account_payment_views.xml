@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of ebshel_payment_allocation. See LICENSE file for full copyright and licensing details. -->
+<odoo>
+
+    <record id="view_account_payment_form_allocation" model="ir.ui.view">
+        <field name="name">account.payment.form.allocation</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <notebook name="payment_notebook" position="inside">
+                <!-- The partner's open invoices or bills. Shown while the payment can
+                     still settle something, and afterwards for what it did settle. -->
+                <page name="allocation" string="Open Invoices &amp; Bills"
+                      invisible="not partner_id or payment_type not in ('inbound', 'outbound') or (state != 'draft' and not allocation_ids)">
+                    <field name="amount_from_allocation" invisible="1"/>
+                    <div class="alert alert-danger py-2 mb-2" role="alert" invisible="not allocation_warning">
+                        <field name="allocation_warning" nolabel="1"/>
+                    </div>
+                    <div class="alert alert-info py-2 mb-2" role="alert" invisible="not allocation_note">
+                        <field name="allocation_note" nolabel="1"/>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-3 mb-2" name="allocation_figures">
+                        <span><field name="open_items_count" class="fw-bold"/> open</span>
+                        <span>Open amount <field name="open_items_total" class="fw-bold"/></span>
+                        <span>Allocated <field name="allocated_amount" class="fw-bold"/></span>
+                        <span>Unallocated <field name="unallocated_amount" class="fw-bold"/></span>
+                        <span class="ms-auto d-flex gap-2" invisible="state != 'draft'">
+                            <button name="action_allocate_all" type="object" string="Select All"
+                                    class="btn btn-sm btn-secondary" invisible="not allocation_ids"/>
+                            <button name="action_allocate_none" type="object" string="Clear"
+                                    class="btn btn-sm btn-secondary" invisible="not allocation_ids"/>
+                            <button name="action_refresh_open_items" type="object" string="Refresh"
+                                    class="btn btn-sm btn-link" invisible="not id"/>
+                        </span>
+                    </div>
+                    <field name="allocation_ids" readonly="state != 'draft'" nolabel="1">
+                        <list editable="bottom" create="0" delete="0"
+                              decoration-muted="amount_open == 0" decoration-info="selected">
+                            <!-- the open item itself: never shown, but the lines the form
+                                 builds are saved with it -->
+                            <field name="move_line_id" column_invisible="1"/>
+                            <field name="selected"/>
+                            <field name="move_id" string="Invoice / Bill" readonly="1"/>
+                            <field name="date" readonly="1"/>
+                            <field name="date_due" readonly="1"
+                                   decoration-danger="date_due and date_due &lt; context_today().strftime('%Y-%m-%d') and amount_open &gt; 0"/>
+                            <field name="ref" readonly="1" optional="show"/>
+                            <field name="payment_state" widget="badge" readonly="1" optional="hide"
+                                   decoration-success="payment_state == 'paid'"
+                                   decoration-warning="payment_state == 'partial'"/>
+                            <field name="amount" readonly="1" sum="Total"/>
+                            <field name="amount_open" readonly="1" sum="Open"/>
+                            <field name="allocate" sum="Allocated"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
+            </notebook>
+        </field>
+    </record>
+
+</odoo>
