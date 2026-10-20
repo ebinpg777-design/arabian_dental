@@ -6,7 +6,7 @@
 ##############################################################################
 {
     'name': 'Purchase Request Management',
-    'version': '20.0.1.1.0',
+    'version': '20.0.1.1.1',
     'category': 'Purchase',
     'summary': (
         'Full procurement flow: purchase requests, multi-level approvals, '

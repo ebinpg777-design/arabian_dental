@@ -10,6 +10,7 @@
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_quotations" type="object"
                         class="oe_stat_button" icon="list_alt"
+                        groups="ebshel_purchase_request.group_pr_user"
                         invisible="quotation_count == 0">
                     <field name="quotation_count" string="Quotations" widget="statinfo"/>
                 </button>

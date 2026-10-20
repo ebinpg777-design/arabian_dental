@@ -6,8 +6,13 @@ from odoo import api, fields, models, _
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
+    # Restricted like purchase's own purchase_order_count: the count is read from
+    # quotations the user must be allowed to see, so for anyone outside the purchase
+    # request groups the field (and its button) simply does not exist - without this
+    # every partner form raised an access error for them (client, 2026-10-20).
     quotation_count = fields.Integer(
-        'Vendor Quotations', compute='_compute_quotation_count')
+        'Vendor Quotations', compute='_compute_quotation_count',
+        groups='ebshel_purchase_request.group_pr_user')
 
     def _compute_quotation_count(self):
         # One grouped query for the whole recordset instead of a search_count per
