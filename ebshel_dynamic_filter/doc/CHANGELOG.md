@@ -2,6 +2,21 @@
 
 All notable changes to *Dynamic Filter Tiles*.
 
+## 20.0.2.5.0
+
+### Added
+
+* **Several values per search panel category.** A category of the search panel (Sales Team,
+  Product Category, Department...) held one value; now every value has a tick. Ticking adds
+  it to the selection - the records of all ticked values show, the domain reads `in` (or
+  `child_of` for a tree) - and clicking a value's name still selects that value alone.
+  Selection chips, the section count and clear, and saved selections handle several values
+  (older saved selections still read the same). The counts beside the values ignore their
+  own section's selection, as before, so they stay meaningful while several are ticked.
+* **"Select several values"** in the panel menu switches it on or off, per model, like the
+  other panel options (on by default); switching it off keeps the first value of each
+  category. "Classic look" switches it off with the rest.
+
 ## 20.0.2.4.0
 
 Port to Odoo 20. Same features as 19.0.2.4.0.

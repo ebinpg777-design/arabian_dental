@@ -618,6 +618,21 @@
     }
 }
 
+// Several values per category: the tick in front of each value, and the
+// ticked rows lit like the active one (the name still selects one value)
+.o_search_panel .o_dft_sp_multi {
+    flex: none;
+    margin: 0 .35rem 0 .15rem;
+    cursor: pointer;
+    // the row's own click selects one value; the tick must not pass it on
+    position: relative;
+    z-index: 1;
+}
+
+.o_search_panel .o_dft_sp_row.o_dft_sp_ticked {
+    background-color: color-mix(in srgb, var(--primary, #714B67) 8%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .o_dft_sp_chip {
         animation: none;

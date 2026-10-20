@@ -38,7 +38,7 @@ on any model, with no XML and no code.
 | **Portable** | Export a ribbon as JSON, import it into another database — fields are matched by name. |
 | **Tile styles** | Four flat styles, picked per user under "Tile style" in the tile menu: Accent (default - white card, colour bar on the left), Card, Midnight (dark) and Pastel. |
 | **Live changes** | A tile whose number moves at a refresh under the same filter flashes and shows the change ("+2") for a few seconds. |
-| **Smart search panel** | Odoo's own search panel (the left column of Employees, Products…), slimmer (188 px), gets a *find in panel* box (Enter applies the first match), removable selection chips, count bars, starred values on top, select all / invert, sort by count or name, hide-empty, collapsible sections, saved selections, a one-click group-by, and pin-as-tile / section-to-tiles shortcuts. "Classic look" switches it off. |
+| **Smart search panel** | Odoo's own search panel (the left column of Employees, Products…), slimmer (188 px), gets a *find in panel* box (Enter applies the first match), removable selection chips, **several values per category** (tick to add, the name selects one; "Select several values" in the panel menu switches it off), count bars, starred values on top, select all / invert, sort by count or name, hide-empty, collapsible sections, saved selections, a one-click group-by, and pin-as-tile / section-to-tiles shortcuts. "Classic look" switches it off. |
 | **Managing at scale** | "Manage all tiles" carries a search panel: drill down by model on the left, then narrow by owner, restricted-to group, trend source or company — each with a live count, no typing. |
 
 ---

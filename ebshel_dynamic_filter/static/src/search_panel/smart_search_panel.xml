@@ -88,6 +88,14 @@
                                     </t>
                                 </t>
                                 <div class="dropdown-divider"/>
+                                <div class="dropdown-header">Selection</div>
+                                <t t-component="this.DftDropdownItem" closingMode="'none'"
+                                   onSelected="() => this.dftSetOption('multiSelect', !this.dft.options.multiSelect)">
+                                    <i class="oi oi-fw o_dft_sp_check" role="img" aria-hidden="true"
+                                       t-att-data-icon="this.dft.options.multiSelect ? 'check' : ''"/>
+                                    Select several values
+                                </t>
+                                <div class="dropdown-divider"/>
                                 <div class="dropdown-header">Show</div>
                                 <t t-component="this.DftDropdownItem" closingMode="'none'"
                                    onSelected="() => this.dftSetOption('bars', !this.dft.options.bars)">
@@ -237,6 +245,20 @@
         <xpath expr="//li[hasclass('o_search_panel_category_value')]/header" position="attributes">
             <attribute name="class" add="o_dft_sp_row" separator=" "/>
             <attribute name="t-att-style">this.dftBarStyle(section, value)</attribute>
+            <!-- several values may be active at once (multi_category_model.js) -->
+            <attribute name="t-att-class">{'active text-black fw-bold': this.dftIsActive(section, valueId), 'o_dft_sp_ticked': this.dftMultiOn and valueId !== false and this.dftIsActive(section, valueId)}</attribute>
+        </xpath>
+        <!-- the tick: adds the value to the selection or takes it out; the name
+             still selects that value alone -->
+        <xpath expr="//li[hasclass('o_search_panel_category_value')]/header/div[hasclass('o_search_panel_label')]" position="before">
+            <input t-if="this.dftMultiOn and valueId !== false" type="checkbox"
+                   class="form-check-input o_dft_sp_multi" tabindex="-1"
+                   t-att-checked="this.dftIsActive(section, valueId)"
+                   title="Tick to select several" aria-label="Select several"
+                   t-on-click.stop="() => this.dftToggleMulti(section, value)"/>
+        </xpath>
+        <xpath expr="//small[hasclass('o_search_panel_counter')]" position="attributes">
+            <attribute name="t-att-class">{'text-muted': !this.dftIsActive(section, valueId)}</attribute>
         </xpath>
         <xpath expr="//button[hasclass('o_toggle_fold')]/i" position="attributes">
             <attribute name="t-attf-data-icon">{{ (this.state.expanded[section.id][valueId] or this.dftForceOpen()) ? 'arrow_drop_down' : 'arrow_right' }}</attribute>

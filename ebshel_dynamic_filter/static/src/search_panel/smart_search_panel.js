@@ -25,6 +25,9 @@ const DEFAULT_OPTIONS = {
     hideEmpty: false,
     bars: true,
     compact: false,
+    // several values ticked in one category (multi_category_model.js); off =
+    // Odoo's one value per category
+    multiSelect: true,
 };
 
 /** Case- and accent-insensitive form of a label, for matching. */
@@ -100,6 +103,8 @@ export function splitMatches(text, query) {
  *  - the current selection as removable chips at the top,
  *  - count bars: each value's share of its section, drawn behind the value,
  *  - sort by most records or by name, hide the empty values, compact density,
+ *  - several values per category: tick them (the name still selects that value
+ *    alone) - "Select several values" in the panel menu switches it off,
  *  - saved selections: name a combination of panel values, get it back later,
  *  - the bridge to filter tiles: pin a value as a tile, or turn a whole
  *    section into a tile set, in one click.
@@ -182,15 +187,60 @@ patch(SearchPanel.prototype, {
     },
 
     dftSetOption(name, value) {
+        const multiBefore = this.dftMultiOn;
         this.dft.options[name] = value;
         this.dftWriteJSON(this.dftKey("options"), this.dft.options);
         if (name === "enhanced" && !value) {
             this.dft.query = "";
         }
+        if (multiBefore && !this.dftMultiOn) {
+            // back to one value per category: each keeps the first it had
+            for (const section of this.sections) {
+                if (section.type === "category" && this.dftCategoryValueIds(section).length > 1) {
+                    this.env.searchModel.setCategoryValues(section.id, this.dftCategoryValueIds(section).slice(0, 1));
+                }
+            }
+        }
     },
 
     get dftOn() {
         return this.dft.options.enhanced;
+    },
+
+    // ------------------------------------------------------------------
+    // Several values per category
+    // ------------------------------------------------------------------
+    get dftMultiOn() {
+        return this.dftOn && this.dft.options.multiSelect;
+    },
+
+    dftCategoryValueIds(section) {
+        return this.env.searchModel.dftCategoryValueIds
+            ? this.env.searchModel.dftCategoryValueIds(section)
+            : section.activeValueId ? [section.activeValueId] : [];
+    },
+
+    /** Is this value (false = "All") part of the category's selection? */
+    dftIsActive(section, valueId) {
+        const ids = this.dftCategoryValueIds(section);
+        if (valueId === false) {
+            return !ids.length;
+        }
+        return this.dftMultiOn ? ids.includes(valueId) : this.state.active[section.id] === valueId;
+    },
+
+    /** The checkbox: add the value to the selection, or take it out. */
+    dftToggleMulti(section, value) {
+        this.env.searchModel.toggleCategoryValues(section.id, value.id);
+    },
+
+    /** Clicking a value's name selects that value alone, even out of several. */
+    async toggleCategory(category, value) {
+        const several = this.dftCategoryValueIds(category).length > 1;
+        await super.toggleCategory(...arguments);
+        if (several && category.activeValueId === value.id) {
+            this.env.searchModel.toggleCategoryValue(category.id, value.id);
+        }
     },
 
     get dftQuery() {
@@ -270,7 +320,7 @@ patch(SearchPanel.prototype, {
     dftSelectedCount(section) {
         const active = this.state.active[section.id];
         if (section.type === "category") {
-            return active ? 1 : 0;
+            return this.dftCategoryValueIds(section).length;
         }
         return active ? Object.values(active).filter(Boolean).length : 0;
     },
@@ -506,19 +556,19 @@ patch(SearchPanel.prototype, {
             const chips = [];
             for (const section of this.sections) {
                 if (section.type === "category") {
-                    if (!section.activeValueId || !section.values.has(section.activeValueId)) {
-                        continue;
+                    for (const valueId of this.dftCategoryValueIds(section)) {
+                        if (!section.values.has(valueId)) {
+                            continue;
+                        }
+                        const path = [...this.getAncestorValueIds(section, valueId), valueId]
+                            .map((id) => section.values.get(id).display_name);
+                        chips.push({
+                            key: `c${section.id}_${valueId}`,
+                            label: path.join(" › "),
+                            section,
+                            valueId,
+                        });
                     }
-                    const path = [
-                        ...this.getAncestorValueIds(section, section.activeValueId),
-                        section.activeValueId,
-                    ].map((id) => section.values.get(id).display_name);
-                    chips.push({
-                        key: `c${section.id}`,
-                        label: path.join(" › "),
-                        section,
-                        valueId: section.activeValueId,
-                    });
                 } else if (section.values) {
                     for (const [id, value] of section.values) {
                         if (value.checked) {
@@ -539,7 +589,11 @@ patch(SearchPanel.prototype, {
     dftRemoveChip(chip) {
         const { section, valueId } = chip;
         if (section.type === "category") {
-            this.clearSelection(section.id);
+            if (this.dftCategoryValueIds(section).length > 1) {
+                this.env.searchModel.toggleCategoryValues(section.id, valueId);
+            } else {
+                this.clearSelection(section.id);
+            }
             return;
         }
         if (this.state.active[section.id]) {
@@ -558,8 +612,11 @@ patch(SearchPanel.prototype, {
         for (const section of this.sections) {
             const key = this.dftSectionKey(section);
             if (section.type === "category") {
-                if (section.activeValueId) {
-                    categories[key] = section.activeValueId;
+                const ids = this.dftCategoryValueIds(section);
+                if (ids.length) {
+                    // one value as before; several as a list (older saved
+                    // selections hold one id and still read the same way)
+                    categories[key] = ids.length > 1 ? ids : ids[0];
                 }
             } else if (section.values) {
                 const ids = [...section.values.values()].filter((v) => v.checked).map((v) => v.id);
@@ -603,8 +660,13 @@ patch(SearchPanel.prototype, {
             }
             const key = this.dftSectionKey(section);
             if (real.type === "category") {
-                const wanted = preset.categories && preset.categories[key];
-                real.activeValueId = wanted && real.values.has(wanted) ? wanted : false;
+                const raw = preset.categories && preset.categories[key];
+                let wanted = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter((id) => real.values.has(id));
+                if (!this.dftMultiOn) {
+                    wanted = wanted.slice(0, 1);
+                }
+                real.activeValueIds = wanted;
+                real.activeValueId = wanted[0] || false;
             } else if (real.values) {
                 const wanted = new Set((preset.filters && preset.filters[key]) || []);
                 for (const [id, value] of real.values) {
@@ -618,7 +680,10 @@ patch(SearchPanel.prototype, {
     },
 
     dftPresetSize(preset) {
-        let count = Object.keys(preset.categories || {}).length;
+        let count = 0;
+        for (const ids of Object.values(preset.categories || {})) {
+            count += Array.isArray(ids) ? ids.length : 1;
+        }
         for (const ids of Object.values(preset.filters || {})) {
             count += ids.length;
         }
