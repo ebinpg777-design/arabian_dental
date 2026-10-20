@@ -69,7 +69,14 @@ class TestStickerPrint(TransactionCase):
     def test_wizard_defaults_preview_and_print(self):
         wiz = self.env['epg.sticker.print.wizard'].with_context(active_model='sale.order', active_ids=(self.o1 | self.o3).ids).create({})
         self.assertEqual(wiz.order_ids, self.o1 | self.o3)
+        # one sticker per order, with the patient and the work lines (client, 2026-10-20)
+        self.assertEqual(wiz.mode, 'order')
+        self.assertEqual(
+            (wiz.show_patient, wiz.show_lines, wiz.show_phone, wiz.show_route, wiz.show_sender),
+            (True, True, False, False, False))
         self.assertEqual(wiz.sticker_count, 2)
+        # the order button opens one-per-order whatever the selection size
+        self.assertEqual((self.o1 | self.o3).action_print_sticker()['context']['default_mode'], 'order')
         self.assertIn('DR ONE', str(wiz.preview_html))
         wiz.write({'mode': 'order', 'copies': 2}); self.assertEqual(wiz.sticker_count, 4)
         action = wiz.action_print()
@@ -149,6 +156,7 @@ class TestStickerWizardPartners(TransactionCase):
         self.assertEqual(wiz.partner_ids, self.dr_one)
         self.assertFalse(wiz.order_ids,
                          "a doctor can have hundreds of orders - the counter picks")
+        self.assertEqual(wiz.mode, 'customer', "no order behind it: the clinic label, not one-per-order")
 
     def test_the_order_picker_narrows_to_the_chosen_clinics(self):
         wiz = self._wizard()

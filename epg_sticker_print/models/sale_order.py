@@ -10,5 +10,6 @@ class SaleOrder(models.Model):
             'type': 'ir.actions.act_window', 'name': _('Print Stickers'),
             'res_model': 'epg.sticker.print.wizard', 'view_mode': 'form', 'target': 'new',
             'context': {'active_model': 'sale.order', 'active_ids': self.ids,
-                        'default_order_ids': [(6, 0, self.ids)], 'default_mode': 'order' if len(self) == 1 else 'customer'},
+                        # one sticker per order, however many are picked (client, 2026-10-20)
+                        'default_order_ids': [(6, 0, self.ids)], 'default_mode': 'order'},
         }

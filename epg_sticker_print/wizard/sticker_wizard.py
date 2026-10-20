@@ -44,19 +44,20 @@ class StickerPrintWizard(models.TransientModel):
     # "these partners and their contacts" on its own.
     order_domain = fields.Char(compute='_compute_order_choice')
     available_count = fields.Integer(compute='_compute_order_choice')
-    mode = fields.Selection(MODES, string='One sticker per', required=True, default='customer')
+    mode = fields.Selection(MODES, string='One sticker per', required=True,
+                            default=lambda self: self._default_mode())
     format_id = fields.Many2one('epg.sticker.format', string='Label Format', required=True,
                                 default=lambda self: self.env['epg.sticker.format'].get_default())
     copies = fields.Integer(default=1, required=True)
     barcode_type = fields.Selection(BARCODES, string='Code', default='code128', required=True)
-    # A DESPATCH sticker, not a case sheet: the address and the phone are what
-    # the courier needs, and everything else printed by default was being
-    # unticked one box at a time before every run. Only the phone starts on;
-    # the rest are there for whoever wants them. (client, 2026-09-12)
+    # What starts ticked is what the lab prints on nearly every run, so nobody
+    # unticks boxes one at a time first: the patient and the work lines - the
+    # sticker goes on the case (client, 2026-10-20; on 2026-09-12, when it was a
+    # despatch label, only the phone started on). The rest are there on demand.
     show_route = fields.Boolean(string='Sales route', default=False)
-    show_phone = fields.Boolean(string='Phone', default=True)
-    show_patient = fields.Boolean(string='Patient', default=False)
-    show_lines = fields.Boolean(string='Work lines (order stickers)', default=False)
+    show_phone = fields.Boolean(string='Phone', default=False)
+    show_patient = fields.Boolean(string='Patient', default=True)
+    show_lines = fields.Boolean(string='Work lines (order stickers)', default=True)
     show_sender = fields.Boolean(string='Sender (company)', default=False)
     sticker_count = fields.Integer(compute='_compute_preview')
     preview_html = fields.Html(compute='_compute_preview', sanitize=False)
@@ -100,6 +101,16 @@ class StickerPrintWizard(models.TransientModel):
             # an invoice billed without an order still has a clinic to send to
             return self._invoices_from_context().partner_id.ids
         return orders.partner_id.ids
+
+    @api.model
+    def _default_mode(self):
+        """One sticker per order (client, 2026-10-20) - except where the wizard opens
+        on clinics with no order behind them (Contacts, or an invoice billed without
+        an order): one-per-order needs an order for its number, product and patient,
+        so it would have nothing to print there, and the clinic label is the point."""
+        if not self._default_orders() and self._default_partners():
+            return 'customer'
+        return 'order'
 
     @api.model
     def _default_orders(self):
