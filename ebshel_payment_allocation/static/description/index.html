@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<body>
+<section class="oe_container" style="max-width:1140px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#222;background:#fff;">
+
+    <div style="background:linear-gradient(135deg,#714B67 0%,#875A7B 46%,#017E84 100%);border-radius:30px;padding:50px 40px;margin:24px 0 34px;color:#ffffff;box-shadow:0 24px 70px rgba(113,75,103,.24);">
+        <div style="display:inline-block;padding:8px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.30);font-size:13px;font-weight:800;margin-bottom:16px;">Accounting &bull; Payments &bull; Odoo 20 Community</div>
+        <h1 style="font-size:46px;line-height:1.12;margin:0 0 16px;font-weight:900;letter-spacing:-.9px;color:#ffffff;">Payment Allocation to Invoices &amp; Bills</h1>
+        <p style="font-size:18px;max-width:760px;margin:0;color:rgba(255,255,255,.92);">Start from the money. A customer payment or vendor payment lists the partner's open invoices or bills with their open amounts; tick what it pays, confirm, and the payment is reconciled with exactly those invoices.</p>
+    </div>
+
+    <div style="margin-bottom:35px;">
+        <table style="width:100%;border-collapse:separate;border-spacing:12px;">
+            <tr>
+                <td style="width:25%;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:14px;padding:18px;text-align:center;vertical-align:top;">
+                    <h3 style="margin:0;color:#714B67;font-size:22px;">On the form</h3>
+                    <p style="margin:5px 0 0 0;color:#666;font-size:14px;">Open items listed on the payment itself</p>
+                </td>
+                <td style="width:25%;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:14px;padding:18px;text-align:center;vertical-align:top;">
+                    <h3 style="margin:0;color:#017E84;font-size:22px;">Open amounts</h3>
+                    <p style="margin:5px 0 0 0;color:#666;font-size:14px;">What is still unpaid, live, per invoice</p>
+                </td>
+                <td style="width:25%;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:14px;padding:18px;text-align:center;vertical-align:top;">
+                    <h3 style="margin:0;color:#714B67;font-size:22px;">Part payments</h3>
+                    <p style="margin:5px 0 0 0;color:#666;font-size:14px;">Any amount on any invoice</p>
+                </td>
+                <td style="width:25%;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:14px;padding:18px;text-align:center;vertical-align:top;">
+                    <h3 style="margin:0;color:#017E84;font-size:22px;">Reconciled</h3>
+                    <p style="margin:5px 0 0 0;color:#666;font-size:14px;">One journal item per invoice, matched on confirm</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="text-align:center;margin:40px 0;">
+        <p style="margin:0 0 8px 0;color:#017E84;font-size:13px;font-weight:bold;letter-spacing:1px;">THE OTHER DIRECTION</p>
+        <h2 style="margin:0 0 12px 0;font-size:34px;line-height:1.25;color:#111;font-weight:800;">Odoo pays invoices from the invoice. Your cashier starts from the receipt.</h2>
+        <p style="margin:0 auto;max-width:780px;font-size:17px;color:#666;line-height:1.7;">
+            The Register Payment wizard needs you to find the invoices first. When a customer hands over an amount, or a vendor payment leaves the bank, the natural question is the other way round: <em>which of this partner's open invoices does this money settle?</em> This module answers it on the payment form.
+        </p>
+    </div>
+
+    <div style="margin-bottom:40px;">
+        <table style="width:100%;border-collapse:separate;border-spacing:16px;">
+            <tr>
+                <td style="width:33%;vertical-align:top;border:1px solid #E5E7EB;border-radius:16px;padding:22px;background:#fff;">
+                    <div style="font-size:28px;margin-bottom:8px;">&#9745;</div>
+                    <h3 style="margin:0 0 8px 0;font-size:19px;color:#111;">Tick what the money is for</h3>
+                    <p style="margin:0;color:#666;font-size:14px;">Every open invoice or bill of the partner, oldest first, with date, due date (overdue in red), reference, amount and open amount. Tick an item and its whole open amount is allocated; lower it for a part payment. Instalments are separate items.</p>
+                </td>
+                <td style="width:33%;vertical-align:top;border:1px solid #E5E7EB;border-radius:16px;padding:22px;background:#fff;">
+                    <div style="font-size:28px;margin-bottom:8px;">&#8644;</div>
+                    <h3 style="margin:0 0 8px 0;font-size:19px;color:#111;">The amount and the allocation agree</h3>
+                    <p style="margin:0;color:#666;font-size:14px;">The payment amount follows the allocations until you type one. Then ticking fills only what is left of it, lowering it trims the newest allocations, and what you do not allocate stays as an open credit on the partner's account - the form tells you.</p>
+                </td>
+                <td style="width:33%;vertical-align:top;border:1px solid #E5E7EB;border-radius:16px;padding:22px;background:#fff;">
+                    <div style="font-size:28px;margin-bottom:8px;">&#9878;</div>
+                    <h3 style="margin:0 0 8px 0;font-size:19px;color:#111;">Clean accounting</h3>
+                    <p style="margin:0;color:#666;font-size:14px;">Confirming books one receivable or payable item per allocation, named after the invoice, and reconciles each with it - partial allocations give partial payments, the invoice's payment state follows. Reset to draft and confirm again whenever you like.</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="background:#111827;border-radius:20px;padding:35px;margin:40px 0;color:#fff;">
+        <div style="text-align:center;margin-bottom:28px;">
+            <h2 style="margin:0 0 10px 0;font-size:32px;color:#fff;">Nothing slips through</h2>
+        </div>
+        <table style="width:100%;border-collapse:separate;border-spacing:18px;">
+            <tr>
+                <td style="width:50%;vertical-align:top;background:#1F2937;border-radius:16px;padding:24px;">
+                    <span style="display:inline-block;background:#FEE2E2;color:#991B1B;padding:6px 12px;border-radius:20px;font-weight:bold;margin-bottom:12px;font-size:12px;">Standard Odoo</span>
+                    <p style="margin:8px 0;color:#ddd;">&#10060; A payment typed in by hand is matched to invoices later, by hand, line by line.</p>
+                    <p style="margin:8px 0;color:#ddd;">&#10060; Nobody sees the partner's open invoices while recording the money.</p>
+                    <p style="margin:8px 0;color:#ddd;">&#10060; A part payment of two invoices means a reconciliation session.</p>
+                </td>
+                <td style="width:50%;vertical-align:top;background:#fff;border-radius:16px;padding:24px;color:#111;">
+                    <span style="display:inline-block;background:#DCFCE7;color:#166534;padding:6px 12px;border-radius:20px;font-weight:bold;margin-bottom:12px;font-size:12px;">With Payment Allocation</span>
+                    <p style="margin:8px 0;color:#333;">&#9989; The open invoices are on the payment; tick, confirm, done.</p>
+                    <p style="margin:8px 0;color:#333;">&#9989; Select All, Clear and Refresh for the whole list; the figures above it always add up.</p>
+                    <p style="margin:8px 0;color:#333;">&#9989; An invoice paid elsewhere since the list was built, or an allocation above its open amount, is refused with a message naming it.</p>
+                    <p style="margin:8px 0;color:#333;">&#9989; Payments made by the wizard, the bank or any code are untouched.</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="margin:40px 0;">
+        <div style="text-align:center;margin-bottom:30px;">
+            <h2 style="font-size:32px;color:#111;font-weight:800;">Visual Guide</h2>
+        </div>
+        <div style="margin-bottom:40px;text-align:center;">
+            <h3 style="color:#714B67;">1. Open invoices on the payment, two of them ticked</h3>
+            <img src="screenshot_form.png" style="width:100%;border:1px solid #E5E7EB;border-radius:10px;margin-top:10px;" alt="A customer payment with the Open Invoices &amp; Bills tab"/>
+        </div>
+        <div style="margin-bottom:40px;text-align:center;">
+            <h3 style="color:#714B67;">2. After confirmation: what the payment settled</h3>
+            <img src="screenshot_confirmed.png" style="width:100%;border:1px solid #E5E7EB;border-radius:10px;margin-top:10px;" alt="The confirmed payment keeps the allocated invoices"/>
+        </div>
+    </div>
+
+    <div style="margin:40px 0;border:1px solid #E5E7EB;border-radius:16px;padding:24px;background:#F8FAFC;">
+        <h3 style="margin:0 0 10px 0;font-size:19px;color:#111;">Good to know</h3>
+        <p style="margin:6px 0;color:#444;font-size:14px;">&bull; Works for customer payments and vendor payments, invoices, bills, credit notes and refunds; items in another currency or on another receivable/payable account are not offered.</p>
+        <p style="margin:6px 0;color:#444;font-size:14px;">&bull; Depends on Invoicing (<code>account</code>) only; Odoo 20 Community. Billing users allocate, read-only accountants see; multi-company safe.</p>
+        <p style="margin:6px 0;color:#444;font-size:14px;">&bull; Plays with Ebshel's <em>Payments for Multiple Vendors &amp; Customers</em>: a multi-partner payment is split by partner instead, and says so if items were ticked.</p>
+    </div>
+
+    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:20px;padding:40px;text-align:center;margin-top:50px;">
+        <h2 style="margin:0 0 10px 0;color:#111;font-size:26px;">Ebshel Technologies</h2>
+        <p style="margin:0;color:#666;font-size:15px;">Payment Allocation to Invoices &amp; Bills is built and supported by Ebshel Technologies.</p>
+    </div>
+</section>
+</body>
+</html>

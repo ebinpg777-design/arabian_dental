@@ -253,7 +253,11 @@
                         <tr t-foreach="lines" t-as="l">
                             <t t-set="cells" t-value="gst[1].get(l.id, {})"/>
                             <td class="mid oi-slno"><t t-out="l_index + 1"/></td>
-                            <td><span t-field="l.name"/></td>
+                            <!-- Odoo 20 keeps only the EXTRA description in line.name (blank for
+                                 most products); the product's own name comes from the helper, as
+                                 the standard print-out's `label` does (client, 2026-10-20:
+                                 "Description is not coming in the invoice printout"). -->
+                            <td><span t-out="o._dental_label(l)" style="white-space:pre-line"/></td>
                             <td t-if="show_hsn" class="mid oi-hsn"><span t-field="l.product_id.hsn_number"/></td>
                             <td t-if="show_patient"><span t-field="l.patient"/></td>
                             <td t-if="show_teeth" class="mid oi-teethcell">

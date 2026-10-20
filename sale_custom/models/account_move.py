@@ -207,6 +207,29 @@ class AccountMove(models.Model):
             return 'sale_custom.report_dental_invoice_document'
         return super()._get_name_invoice_report()
 
+    def _dental_label(self, line):
+        """What the print-out calls the line: the product, then any extra description.
+
+        Odoo 20 no longer repeats the product name in `line.name` - it holds only the
+        product's sales description, so it is blank for most of the lab's products and
+        the invoice printed an empty Description column for every line made on Odoo 20
+        (client, 2026-10-20). Migrated lines still carry the product name from v17
+        (sometimes with a trailing space, or an old spelling behind the same [code]),
+        so a name that already starts with the product is printed as it is.
+        """
+        name = (line.name or '').strip()
+        product = line.product_id
+        if not product:
+            return name
+        shown = product.display_name
+        if not name:
+            return shown
+        first = name.splitlines()[0].strip()
+        code = (product.default_code or '').strip()
+        if first.lower() == shown.lower() or (code and first.startswith('[%s]' % code)):
+            return name
+        return shown + '\n' + name
+
     def convert(self, amount, cur):
         """Amount in words in the Odoo-10 Indian 'X Rupees and Y Paise' format."""
         currency = self.env['res.currency'].search([('name', '=', cur)], limit=1) \
@@ -216,8 +239,10 @@ class AccountMove(models.Model):
         res = res.replace('INR', 'Rupees').replace('Cents', 'Paise').replace('Cent', 'Paise')
         # match v10: always show the paise part. Case-blind: Odoo writes "fifty paise"
         # in lower case, and a case-sensitive test printed "Fifty Paise and Zero
-        # Paise" on every amount with paise in it (found 2026-10-19).
-        if res and 'paise' not in res.lower():
+        # Paise" on every amount with paise in it (found 2026-10-19). Odoo 20 says
+        # "One Paisa" for a single paisa - matched on the stem, or 650.01 printed
+        # "One Paisa and Zero Paise" (live invoice 20001, 2026-10-20).
+        if res and 'pais' not in res.lower():
             res += ' and Zero Paise'
         return res
 
