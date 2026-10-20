@@ -12,3 +12,4 @@ from . import test_order_list_selection
 from . import test_order_line_cast
 from . import test_change_customer
 from . import test_invoice_print_figures
+from . import test_invoice_journal

@@ -1,8 +1,32 @@
 # -*- coding: utf-8 -*-
 import re
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 from odoo.tools.misc import formatLang
+
+
+class AccountJournal(models.Model):
+    _inherit = "account.journal"
+
+    # v17 dental_sale: a clinic with no GSTIN (consumer / unregistered) is invoiced in
+    # B2C, a GST-registered one (regular / composition) in B2B - 20,302 invoices and
+    # refunds since April 2026 followed it without exception. Any other treatment
+    # (overseas, SEZ, ...) keeps Odoo's default journal.
+    _LAB_JOURNAL_BY_GST_TREATMENT = {
+        'consumer': 'B2C', 'unregistered': 'B2C',
+        'regular': 'B2B', 'composition': 'B2B',
+    }
+
+    @api.model
+    def _lab_gst_journal(self, treatment, company):
+        """The B2B or B2C sales journal of `company` for a GST treatment; empty when the
+        treatment has no series of its own or the journal does not exist."""
+        code = self._LAB_JOURNAL_BY_GST_TREATMENT.get(treatment)
+        if not code:
+            return self.browse()
+        return self.search([('code', '=', code), ('type', '=', 'sale'),
+                            *self._check_company_domain(company)], limit=1)
 
 
 class AccountMove(models.Model):
@@ -28,6 +52,39 @@ class AccountMove(models.Model):
     def _compute_patient_names(self):
         for move in self:
             move.patient_names = ', '.join(move._dental_patients())
+
+    # -- B2B / B2C by GST treatment (v17 dental_sale, client 2026-10-20: "Invoice
+    # sequences are not correct") ---------------------------------------------------
+    # Without it Odoo 20 numbered new invoices in the first sales journal, which on the
+    # live book was Opening Invoices (OB/2026/00001).
+    @api.onchange('l10n_in_gst_treatment', 'partner_id')
+    def _onchange_gst_treatment_lab_journal(self):
+        # only while it has never been numbered: Odoo refuses to move a posted-once
+        # invoice to another journal
+        if (self.state != 'draft' or self.posted_before or (self.name and self.name != '/')
+                or not self.is_sale_document(include_receipts=False)):
+            return
+        journal = self.env['account.journal']._lab_gst_journal(
+            self.l10n_in_gst_treatment, self.company_id)
+        if journal:
+            self.journal_id = journal
+
+    def action_post(self):
+        # v17 refused a customer invoice in the wrong series; the migration replays the
+        # lab's history as it was and is not checked
+        if not self.env.context.get('migration_replay'):
+            Journal = self.env['account.journal']
+            for move in self.filtered(lambda m: m.move_type == 'out_invoice'):
+                expected = Journal._lab_gst_journal(move.l10n_in_gst_treatment, move.company_id)
+                if expected and move.journal_id != expected:
+                    raise ValidationError(_(
+                        "Journal mismatch: %(invoice)s is for a clinic with GST treatment "
+                        "\"%(treatment)s\", which is invoiced in the %(expected)s journal, not %(journal)s.",
+                        invoice=move.display_name,
+                        treatment=dict(move._fields['l10n_in_gst_treatment']._description_selection(self.env)).get(
+                            move.l10n_in_gst_treatment, move.l10n_in_gst_treatment),
+                        expected=expected.name, journal=move.journal_id.name))
+        return super().action_post()
 
     # What the invoice is FOR, in one cell.
     #

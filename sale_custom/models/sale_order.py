@@ -558,6 +558,7 @@ class SaleOrder(models.Model):
         if rest:
             super(SaleOrder, rest)._compute_team_id()
 
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -742,12 +743,26 @@ class SaleOrder(models.Model):
 
 
     def _create_invoices(self, final=False, grouped=False):
-        """Resolve every line's work number once, then invoice as usual."""
+        """Resolve every line's work number once, then invoice as usual - in the B2B or
+        B2C series of the invoice's GST treatment."""
         # Odoo 20 dropped the `date` argument of _create_invoices.
         work_numbers = self.env['sale.order.line']._lab_work_numbers(self.order_line)
-        return super(SaleOrder, self.with_context(
+        moves = super(SaleOrder, self.with_context(
             lab_work_numbers=work_numbers))._create_invoices(
                 final=final, grouped=grouped)
+        # The treatment is the one l10n_in computes on the invoice itself (the clinic's,
+        # else "regular" with a valid GSTIN, else "consumer") - the same value
+        # account.move.action_post checks, so the two can never disagree. A journal
+        # chosen on the order by hand is kept.
+        Journal = self.env['account.journal']
+        for move in moves.filtered(lambda m: m.state == 'draft' and not m.posted_before
+                                   and (not m.name or m.name == '/')):
+            if move.line_ids.sale_line_ids.order_id.journal_id:
+                continue
+            journal = Journal._lab_gst_journal(move.l10n_in_gst_treatment, move.company_id)
+            if journal and move.journal_id != journal:
+                move.journal_id = journal
+        return moves
 
 
 class SaleOrderLine(models.Model):
