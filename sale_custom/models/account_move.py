@@ -70,13 +70,17 @@ class AccountMove(models.Model):
             self.journal_id = journal
 
     def action_post(self):
-        # v17 refused a customer invoice in the wrong series; the migration replays the
-        # lab's history as it was and is not checked
+        # v17 refused a customer invoice in the wrong series. Only a B2B / B2C mix-up is
+        # refused here: an invoice deliberately put in another sales journal (Opening
+        # Invoices holds the migrated opening drafts) still posts. The migration replays
+        # the lab's history as it was and is not checked.
         if not self.env.context.get('migration_replay'):
             Journal = self.env['account.journal']
             for move in self.filtered(lambda m: m.move_type == 'out_invoice'):
                 expected = Journal._lab_gst_journal(move.l10n_in_gst_treatment, move.company_id)
-                if expected and move.journal_id != expected:
+                other = Journal._lab_gst_journal(
+                    'unregistered' if expected.code == 'B2B' else 'regular', move.company_id)
+                if expected and other and move.journal_id == other:
                     raise ValidationError(_(
                         "Journal mismatch: %(invoice)s is for a clinic with GST treatment "
                         "\"%(treatment)s\", which is invoiced in the %(expected)s journal, not %(journal)s.",

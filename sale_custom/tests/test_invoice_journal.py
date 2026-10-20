@@ -111,6 +111,14 @@ class TestInvoiceJournal(TransactionCase):
         with self.assertRaisesRegex(ValidationError, 'Journal mismatch'):
             invoice.action_post()
 
+    def test_another_sales_journal_chosen_by_hand_still_posts(self):
+        # Opening Invoices holds migrated opening drafts for unregistered clinics
+        opening = self.env['account.journal'].create({'name': 'IJ Openings', 'code': 'IJOB', 'type': 'sale', 'sequence': 1001})
+        invoice = self._order(self.plain)._create_invoices()
+        invoice.journal_id = opening
+        invoice.action_post()
+        self.assertEqual(invoice.state, 'posted')
+
     def test_the_migration_replay_is_not_checked(self):
         invoice = self._order(self.plain)._create_invoices()
         invoice.journal_id = self.b2b
