@@ -59,16 +59,34 @@ class ResPartner(models.Model):
         ]
         return list(dict.fromkeys(names))
 
-    @api.depends('team_id.name', 'phone')
+    @staticmethod
+    def _picker_text(text, limit=40):
+        """`text` made safe for the dropdown's markup (Odoo reads --x-- as muted,
+        **x** as bold, `x` as a badge and tabs / line breaks as layout) and short
+        enough to keep one clinic on one line."""
+        text = ' '.join((text or '').split())
+        text = re.sub(r'-{2,}', '-', text).replace('**', '*').replace('`', "'")
+        return text if len(text) <= limit else text[:limit - 1].rstrip() + '…'
+
+    @api.depends('team_id.name', 'phone', 'city')
     @api.depends_context('formatted_display_name', 'show_address')
     def _compute_display_name(self):
         super()._compute_display_name()
         ctx = self.env.context
         if ctx.get('formatted_display_name'):
+            # "DR. INIYAN & DR. BHAVANA   Coonoor   COONOOR": the city tells two clinics
+            # of one name apart at a glance (client, 2026-10-20: "show the city ... it
+            # makes it easy to identify the customer")
             for partner in self:
+                label = partner.display_name
+                city = partner.city or partner.commercial_partner_id.city
                 route = partner.team_id.name or partner.commercial_partner_id.team_id.name
+                # a town that is also the route's name is said once, not twice
+                if city and not (route and city.strip().lower() == route.strip().lower()):
+                    label = f"{label}\t--{self._picker_text(city)}--"
                 if route:
-                    partner.display_name = f"{partner.display_name}\t--{route}--"
+                    label = f"{label}\t--{route}--"
+                partner.display_name = label
         elif ctx.get('show_address'):
             # The address block under "Customer" on orders and invoices (client,
             # 2026-08-17): the phone belongs there — the counter calls the clinic from
