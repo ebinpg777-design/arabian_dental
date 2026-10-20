@@ -27,9 +27,49 @@
         <field name="disable_shrinking" eval="True"/>
     </record>
 
+    <!-- The pre-printed stock: the values only, where Odoo 17's "Patient Card"
+         (patient_card_print) put them - that print lined up with the lab's
+         pre-printed cards, the first one of this layout did not (client, 2026-10-20,
+         a photo: every value one row too high and too far along its line). The page
+         is Odoo 17's 80 x 50 mm, which the card printer is set up for; the positions
+         are measured from Odoo 17's own PDF (values 25.9 mm from the left, rows 6.33
+         mm apart, regular 9.6 pt Arial), with no margins so nothing else can move
+         them. -->
+    <record id="paperformat_card_values" model="report.paperformat">
+        <field name="name">Lab Authentication Card - pre-printed stock (80 x 50 mm)</field>
+        <field name="default" eval="False"/>
+        <field name="format">custom</field>
+        <field name="page_width">80</field>
+        <field name="page_height">50</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">0</field>
+        <field name="margin_bottom">0</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+        <field name="disable_shrinking" eval="True"/>
+    </record>
+
+    <template id="report_authentication_card_values_document">
+        <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+            <style>
+                html, body { margin: 0; padding: 0; }
+                /* positioned against the page itself, not the layout's container */
+                .lab-card-v { position: absolute; left: 26.06mm; margin: 0; padding: 0;
+                              font-family: Arial, Helvetica, sans-serif; font-weight: normal;
+                              font-size: 9.62pt; line-height: 1; color: #000;
+                              white-space: nowrap; }
+            </style>
+            <t t-foreach="[card['patient'], card['doctor'], card['job'], card['issue_date']]" t-as="value">
+                <div class="lab-card-v" t-attf-style="top: {{ '%.2f' % (15.64 + value_index * 6.334) }}mm" t-out="value"/>
+            </t>
+        </div>
+    </template>
+
     <!-- one card -->
     <template id="report_authentication_card_document">
-        <t t-set="card" t-value="o._card_values()"/>
         <!-- div.article: how Odoo's reports mark one record's page (and keep the
              page UTF-8: without it wkhtmltopdf read the badge's stars as latin-1) -->
         <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
@@ -133,6 +173,7 @@
         <t t-call="web.html_container">
             <t t-set="values_only" t-value="False"/>
             <t t-foreach="docs" t-as="o">
+                <t t-set="card" t-value="o._card_values()"/>
                 <t t-call="sale_custom.report_authentication_card_document"/>
             </t>
         </t>
@@ -140,28 +181,34 @@
 
     <template id="report_authentication_card_values">
         <t t-call="web.html_container">
-            <t t-set="values_only" t-value="True"/>
             <t t-foreach="docs" t-as="o">
-                <t t-call="sale_custom.report_authentication_card_document"/>
+                <t t-set="card" t-value="o._card_values()"/>
+                <t t-call="sale_custom.report_authentication_card_values_document"/>
             </t>
         </t>
     </template>
 
-    <!-- from an invoice: one card per order it bills -->
+    <!-- from an invoice: one card per order it bills, issued on the invoice date
+         (what Odoo 17's card printed) -->
     <template id="report_authentication_card_invoice">
         <t t-call="web.html_container">
             <t t-set="values_only" t-value="False"/>
-            <t t-foreach="docs._card_orders()" t-as="o">
-                <t t-call="sale_custom.report_authentication_card_document"/>
+            <t t-foreach="docs" t-as="inv">
+                <t t-foreach="inv._card_orders()" t-as="o">
+                    <t t-set="card" t-value="o._card_values(issue_date=inv.invoice_date)"/>
+                    <t t-call="sale_custom.report_authentication_card_document"/>
+                </t>
             </t>
         </t>
     </template>
 
     <template id="report_authentication_card_invoice_values">
         <t t-call="web.html_container">
-            <t t-set="values_only" t-value="True"/>
-            <t t-foreach="docs._card_orders()" t-as="o">
-                <t t-call="sale_custom.report_authentication_card_document"/>
+            <t t-foreach="docs" t-as="inv">
+                <t t-foreach="inv._card_orders()" t-as="o">
+                    <t t-set="card" t-value="o._card_values(issue_date=inv.invoice_date)"/>
+                    <t t-call="sale_custom.report_authentication_card_values_document"/>
+                </t>
             </t>
         </t>
     </template>
@@ -185,7 +232,7 @@
         <field name="print_report_name">'Authentication Card - %s' % (object.name or '').replace('/', '_')</field>
         <field name="binding_model_id" ref="sale.model_sale_order"/>
         <field name="binding_type">report</field>
-        <field name="paperformat_id" ref="paperformat_card"/>
+        <field name="paperformat_id" ref="paperformat_card_values"/>
     </record>
 
     <record id="action_report_authentication_card_invoice" model="ir.actions.report">
@@ -207,7 +254,7 @@
         <field name="print_report_name">'Authentication Cards - %s' % (object.name or '').replace('/', '_')</field>
         <field name="binding_model_id" ref="account.model_account_move"/>
         <field name="binding_type">report</field>
-        <field name="paperformat_id" ref="paperformat_card"/>
+        <field name="paperformat_id" ref="paperformat_card_values"/>
     </record>
 
 </odoo>

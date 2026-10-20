@@ -501,20 +501,29 @@ class SaleOrder(models.Model):
             order.display_name = ' · '.join(p for p in parts if p)
 
     # -- the authentication card (client, 2026-10-20) ---------------------------------
-    def _card_values(self):
-        """What the card says: the patient, the clinic or doctor the case is for, the
-        job number and the issue date - the day the case went out when it has, else
-        the order day. Names in capitals, as the lab's cards are typed."""
+    def _card_values(self, issue_date=None):
+        """What the card says: the patient, the doctor, the job number and the issue
+        date. The doctor is the clinic's billing name (what Odoo 17's card printed:
+        "DR. SRINIVASAN", not "DR. SRINIVASAN, <town>"), else its name. The issue date
+        is `issue_date` when given (an invoice prints its own date, as Odoo 17 did),
+        else the day the case went out, else the order day. Names in capitals, as
+        the lab's cards are typed."""
         self.ensure_one()
-        when = getattr(self, 'effective_date', False) or self.date_order
-        when = fields.Datetime.context_timestamp(self, when) if when else None
+        if issue_date:
+            when = fields.Date.to_date(issue_date)
+        else:
+            when = getattr(self, 'effective_date', False) or self.date_order
+            when = fields.Datetime.context_timestamp(self, when) if when else None
+        partner = self.partner_id
+        doctor = (partner.billing_name or partner.commercial_partner_id.billing_name
+                  or partner.name) if 'billing_name' in partner._fields else partner.name
         # the e-mails the letterhead prints (the lab's, not the company record's
         # login address), and the website without its scheme
         letterhead = {kind: lines for kind, _icon, lines in self.company_id._lab_letterhead()}
         website = (self.company_id.website or '').replace('https://', '').replace('http://', '').rstrip('/')
         return {
             'patient': (self.patient or '').strip().upper(),
-            'doctor': (self.partner_id.name or '').strip().upper(),
+            'doctor': (doctor or '').strip().upper(),
             'job': self.name or '',
             'issue_date': when.strftime('%d/%m/%Y') if when else '',
             # the general address: the letterhead lists accounts first, the lab's own last
