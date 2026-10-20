@@ -30,6 +30,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta
 
+from .field_app import APP_LIVE_SECONDS
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
@@ -586,18 +587,39 @@ class LabMyDayLive(models.AbstractModel):
     _inherit = 'lab.my.day'
 
     @api.model
-    def tracking_state(self):
+    def tracking_state(self, client=None, app_version=None):
         """Plus what the trail noticed: the km so far, how fresh the last fix is, and
         the nudges - a planned clinic the phone is standing in, an open visit the
-        phone has walked away from."""
+        phone has walked away from.
+
+        `client` says who is asking. 'app' is the Lab app's own page (2026-10-20,
+        models/field_app.py): it gets its tracking service's settings back as
+        `native` - provisioning the phone on the first ask - and its page never
+        watches by itself. Anyone else gets the Traccar settings if that app is on,
+        or stands down while the Lab app is evidently posting (`app_live`): two GPS
+        watches on one phone is double the battery for the same trail.
+        """
         state = super().tracking_state()
         user = self.env.user
-        # With the tracking app on, the browser stands down: two GPS watches on one
-        # phone is double the battery for the same trail. (2026-10-19)
-        state['app'] = user._fw_app_setup() if state.get('enabled') else None
-        if state['app']:
+        state.update({'app': None, 'native': None, 'app_mode': False, 'app_live': False})
+        if state.get('enabled'):
+            if client == 'app':
+                state['native'] = user._fw_native_config(app_version)
+            else:
+                state['app'] = user._fw_app_setup()
+                if not state['app']:
+                    age = user._fw_native_last_fix_age()
+                    state['app_live'] = age is not None and age <= APP_LIVE_SECONDS
+        if state['native'] or state['app'] or state['app_live']:
             state['enabled'] = False
             state['app_mode'] = True
+        me = user.sudo()
+        state['native_app'] = {
+            'version': me.fw_native_app_version or '',
+            'last_fix_age_s': user._fw_native_last_fix_age(),
+        } if me.fw_native_app else None
+        # For the nudge on My Day (Android, outside the app): None until an APK is up.
+        state['app_download'] = self.env['lab.field.app']._info()
         Ping = self.env['lab.location.ping'].sudo()
         day = Ping._today_for(user)
         points = Ping._day_points(user, day)

@@ -11,6 +11,18 @@ import { formatMonetary } from "@web/views/fields/formatters";
 import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
 import { MyTrail } from "@lab_fieldwork/js/my_trail";
 
+/** "1.2.10" is newer than "1.2.9": compared part by part, as numbers. */
+function newerVersion(candidate, current) {
+    const a = String(candidate).split(".").map((part) => parseInt(part, 10) || 0);
+    const b = String(current).split(".").map((part) => parseInt(part, 10) || 0);
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+        if ((a[i] || 0) !== (b[i] || 0)) {
+            return (a[i] || 0) > (b[i] || 0);
+        }
+    }
+    return false;
+}
+
 // How often the "Where I am" card re-reads the recorder: often enough that "last fix
 // 2 min ago" is true, rare enough to cost nothing. No RPC - the numbers are local.
 const WHERE_TICK_MS = 30000;
@@ -383,6 +395,104 @@ export class LabMyDay extends Component {
                 + "saving is off for it.";
         }
         return "";
+    }
+
+    // ------------------------------------------------------------- the Lab app
+    /** The Lab app's own recorder: this page runs inside the app. (2026-10-20) */
+    get nativeStatus() {
+        const s = this.whereStatus;
+        return s && s.native ? s : null;
+    }
+
+    /** The Lab app on this person's phone is posting, and this page is not it. */
+    get appLive() {
+        const server = this.state.where.server;
+        return Boolean(server && server.app_live);
+    }
+
+    get appLiveLine() {
+        const server = this.state.where.server;
+        const age = server && server.native_app ? server.native_app.last_fix_age_s : null;
+        if (age === null || age === undefined) {
+            return "no position from the app yet";
+        }
+        return `last position ${this.ago(this.state.where.now - age * 1000)}`;
+    }
+
+    /** Only what the executive can fix, each with the button that fixes it. */
+    get nativeProblem() {
+        const s = this.nativeStatus;
+        if (!s) {
+            return "";
+        }
+        if (s.permission === "denied") {
+            return "Location is not allowed for the app, so your route is not being recorded.";
+        }
+        if (s.permission === "ask") {
+            return "The app has not been allowed to use your location yet.";
+        }
+        if (s.permission === "coarse") {
+            return "Only an approximate location is allowed for the app: allow the precise one.";
+        }
+        if (!s.recording && this.onDuty) {
+            return "The app is not recording. Allow location and notifications, then open My Day again.";
+        }
+        return "";
+    }
+
+    get nativeBatteryHint() {
+        const s = this.nativeStatus;
+        return s && s.recording && s.batteryOptimised
+            ? "Battery saving may stop the app once the screen locks: allow it to run unrestricted."
+            : "";
+    }
+
+    nativeAllow() {
+        try {
+            this.tracker.native.requestPermissions();
+        } catch {
+            // An older shell without the call: the phone's own settings remain.
+        }
+    }
+
+    nativeBattery() {
+        try {
+            this.tracker.native.openBatterySettings();
+        } catch {
+            // As above.
+        }
+    }
+
+    /** A newer build of the app than the one this page runs in, or "". */
+    get appUpdate() {
+        const s = this.nativeStatus;
+        const server = this.state.where.server;
+        const latest = server && server.native && server.native.latest_version;
+        if (!s || !latest || !s.version || !newerVersion(latest, s.version)) {
+            return "";
+        }
+        return latest;
+    }
+
+    /** The app, offered on an Android phone that is not running it. */
+    get appOffer() {
+        const server = this.state.where.server;
+        const agent = navigator.userAgent || "";
+        if (!server || !server.app_download || this.nativeStatus || this.appLive
+            || !/Android/i.test(agent) || /ADLField\//.test(agent)) {
+            return null;
+        }
+        return server.app_download;
+    }
+
+    /** The browser's honest limit, named when it bit. */
+    get gapNotice() {
+        const gap = this.whereStatus.gap;
+        if (!gap) {
+            return "";
+        }
+        const minutes = Math.max(1, Math.round(gap.seconds / 60));
+        return `Not recorded for ${minutes} min while the phone was locked or another app was in front.`;
     }
 
     get whereProblem() {

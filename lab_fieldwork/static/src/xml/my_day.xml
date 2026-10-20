@@ -200,7 +200,27 @@
 
                 <div class="o_fw_where">
                     <div class="o_fw_where_row">
-                        <t t-if="this.appSetup">
+                        <t t-if="this.nativeStatus">
+                            <!-- this page runs inside the Lab app: its service records (2026-10-20) -->
+                            <span t-if="this.whereStatus.recording" class="o_fw_tracking"
+                                  title="The app records your route, even with the screen off, and stops when you end your day.">
+                                <i class="fa fa-mobile"/> app recording
+                            </span>
+                            <span t-else="" class="o_fw_tracking o_fw_tracking_off"
+                                  title="The day is running but the app is not recording.">
+                                <i class="fa fa-mobile"/> app not recording
+                            </span>
+                            <span class="o_fw_where_line" t-out="this.whereLine"/>
+                        </t>
+                        <t t-elif="this.appLive">
+                            <!-- the Lab app on the phone is posting; this browser stands down -->
+                            <span class="o_fw_tracking"
+                                  title="ADL FieldX on your phone records your route; this page does not need to.">
+                                <i class="fa fa-mobile"/> app recording
+                            </span>
+                            <span class="o_fw_where_line" t-out="this.appLiveLine"/>
+                        </t>
+                        <t t-elif="this.appSetup">
                             <!-- the Traccar Client app records instead of this page -->
                             <span class="o_fw_tracking"
                                   title="The Traccar Client app records your route, even with the screen off.">
@@ -246,9 +266,32 @@
                         <i class="fa fa-exclamation-triangle me-1" title="Not receiving"/>
                         <t t-out="this.appProblem"/>
                     </div>
-                    <div t-if="!this.appSetup and this.whereProblem" class="o_fw_warn">
+                    <div t-if="!this.appSetup and !this.nativeStatus and !this.appLive and this.whereProblem" class="o_fw_warn">
                         <i class="fa fa-exclamation-triangle me-1" title="Not recording"/>
                         <t t-out="this.whereProblem"/>
+                    </div>
+                    <div t-if="this.nativeProblem" class="o_fw_warn">
+                        <i class="fa fa-exclamation-triangle me-1" title="Not recording"/>
+                        <t t-out="this.nativeProblem"/>
+                        <button class="o_fw_where_btn ms-1" t-on-click="() => this.nativeAllow()">Allow location</button>
+                    </div>
+                    <div t-if="this.nativeBatteryHint" class="o_fw_app_note">
+                        <i class="fa fa-battery-half me-1" title="Battery saving"/>
+                        <t t-out="this.nativeBatteryHint"/>
+                        <button class="o_fw_where_btn ms-1" t-on-click="() => this.nativeBattery()">Battery settings</button>
+                    </div>
+                    <div t-if="this.appUpdate" class="o_fw_app_note">
+                        <i class="fa fa-arrow-circle-up me-1" title="Update"/>
+                        Version <t t-out="this.appUpdate"/> of ADL FieldX is out.
+                        <a href="/lab_fieldwork/app">Get it</a>
+                    </div>
+                    <div t-if="this.gapNotice" class="o_fw_app_note">
+                        <i class="fa fa-pause-circle me-1" title="Not recorded"/>
+                        <t t-out="this.gapNotice"/>
+                    </div>
+                    <div t-if="this.appOffer" class="o_fw_app_note o_fw_app_offer">
+                        <i class="fa fa-mobile me-1" title="The app"/>
+                        Record with the screen off: <a href="/lab_fieldwork/app">get the ADL FieldX app</a>.
                     </div>
                     <MyTrail t-if="this.state.where.trail" userId="this.userId"/>
                 </div>

@@ -64,6 +64,16 @@
                         <button name="action_fw_set_exception" type="object" string="Switch off" class="btn btn-sm btn-secondary"
                                 context="{'fw_exception': 'camera', 'fw_value': False}" invisible="not fw_camera_exception"/>
                     </div>
+                    <!-- the Lab app (2026-10-20): set by the app itself the first time it
+                         is opened - the switch is the executive's phone, not this form -->
+                    <label for="fw_native_app" string="ADL FieldX"/>
+                    <div class="d-flex align-items-center gap-2">
+                        <field name="fw_native_app" readonly="1" nolabel="1" widget="boolean"/>
+                        <span invisible="not fw_native_app" class="badge text-bg-success">Installed</span>
+                        <span invisible="not fw_native_app_version" class="text-muted small">
+                            v<field name="fw_native_app_version" readonly="1" nolabel="1" class="d-inline"/>
+                        </span>
+                    </div>
                     <!-- the free Traccar Client app (2026-10-19): switched by button like
                          the exceptions above, for the same reason -->
                     <label for="fw_gps_app"/>

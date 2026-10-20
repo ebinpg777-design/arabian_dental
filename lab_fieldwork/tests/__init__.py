@@ -18,3 +18,4 @@ from . import test_cash_in_route
 from . import test_partner_access
 from . import test_live_map
 from . import test_gps_app
+from . import test_field_app

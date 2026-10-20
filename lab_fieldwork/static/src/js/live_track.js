@@ -62,6 +62,24 @@ const QUEUE_MAX = 2000;
 const RETRY_UNAVAILABLE_MS = 30000;
 // The web client is told how often to ask the server whether to watch at all.
 const POLL_MS = 300000;
+// The browser fallback: back in front after this long in the background, the gap is
+// named on the card - and, on Android, the app that would have closed it is offered.
+const GAP_NOTICE_S = 120;
+
+/**
+ * The Lab app's bridge (2026-10-20). Inside the app's WebView, Android injects
+ * `window.LabApp`; everywhere else it is undefined. Through it the page turns the
+ * app's own recorder - a native service that keeps going with the screen off - on
+ * and off, so a day started here starts it and a day ended anywhere stops it. The
+ * contract is in projects/adl_field_app/README.md: version(), start(configJson),
+ * stop(), status() -> json, requestPermissions(), openBatterySettings().
+ */
+export function nativeBridge() {
+    const bridge = window.LabApp;
+    return bridge && typeof bridge.start === "function" && typeof bridge.status === "function"
+        ? bridge
+        : null;
+}
 
 export class LiveTracker {
     constructor(orm, notification) {
@@ -88,6 +106,19 @@ export class LiveTracker {
         this.batteryManager = null;
         this.sent = 0;                 // fixes the server took delivery of this session
         this.kept = 0;                 // ...and how many of those it kept
+        // Inside the Lab app the native recorder does the watching and this page
+        // only says when. Outside it is null, and everything below runs as before.
+        this.native = nativeBridge();
+        this.nativeVersion = "";
+        if (this.native) {
+            try {
+                this.nativeVersion = String(this.native.version() || "");
+            } catch {
+                // An older shell without version(): still the shell.
+            }
+        }
+        this.hiddenSince = null;       // when the page went to the background
+        this.lastGap = null;           // { seconds, at }: the last silence worth naming
         // Whatever a previous page left behind is ours to deliver, recording or not:
         // the server files each fix against the attendance window it was taken in.
         this.restoreQueue();
@@ -99,6 +130,9 @@ export class LiveTracker {
 
     /** For the My Day card: what the recorder is doing, in four numbers. */
     getStatus() {
+        if (this.native) {
+            return this.nativeStatus();
+        }
         return {
             recording: this.recording,
             lastFix: this.seen ? { ...this.seen } : null,
@@ -107,6 +141,39 @@ export class LiveTracker {
             kept: this.kept,
             denied: this.denied,
             battery: this.battery,
+            gap: this.lastGap,
+        };
+    }
+
+    /** The native recorder's numbers in the same shape, plus what only it knows. */
+    nativeStatus() {
+        let s = {};
+        try {
+            s = JSON.parse(this.native.status() || "{}") || {};
+        } catch {
+            s = {};
+        }
+        const fix = s.last_fix;
+        return {
+            native: true,
+            version: this.nativeVersion,
+            recording: Boolean(s.running),
+            lastFix: fix
+                ? {
+                      latitude: fix.latitude,
+                      longitude: fix.longitude,
+                      accuracy_m: fix.accuracy_m || 0,
+                      at: fix.at || Date.now(),
+                  }
+                : null,
+            queued: s.queued || 0,
+            sent: s.sent || 0,
+            kept: s.kept || 0,
+            denied: s.permission === "denied",
+            permission: s.permission || "unknown",
+            batteryOptimised: Boolean(s.battery_optimised),
+            battery: Number.isFinite(s.battery) ? s.battery : null,
+            gap: null,
         };
     }
 
@@ -121,8 +188,11 @@ export class LiveTracker {
      */
     async refresh() {
         let state;
+        // The app's page says so, and says which build it is: the server answers
+        // with the service's settings instead of a watch for this page.
+        const kwargs = this.native ? { client: "app", app_version: this.nativeVersion } : {};
         try {
-            state = await this.orm.silent.call("lab.my.day", "tracking_state", []);
+            state = await this.orm.silent.call("lab.my.day", "tracking_state", [], kwargs);
         } catch {
             // A failed check is not a reason to start recording, nor to throw away a
             // watch that is working: leave things exactly as they are and ask again.
@@ -140,7 +210,9 @@ export class LiveTracker {
                 this.armFlush();
             }
         }
-        if (this.enabled && this.onDuty) {
+        if (this.native) {
+            this.driveNative(state);
+        } else if (this.enabled && this.onDuty) {
             this.start();
         } else {
             this.stop();
@@ -153,7 +225,39 @@ export class LiveTracker {
         return state;
     }
 
+    /**
+     * Inside the Lab app the decision is the same - on while the day runs, off
+     * otherwise - but the recorder is the app's service. Every refresh re-sends the
+     * settings: the service treats a repeated start as "carry on with these", so a
+     * changed cadence or a replaced device id reaches the phone within one poll.
+     */
+    driveNative(state) {
+        if (!this.native) {
+            return;
+        }
+        try {
+            if (state && state.native && this.onDuty) {
+                // The service posts to the server this page came from - not to
+                // web.base.url, which may be stale (an http:// address behind the
+                // domain, say) and is not what the phone has just proved reachable.
+                const config = {
+                    ...state.native,
+                    server_url: window.location.origin + state.native.path,
+                };
+                this.native.start(JSON.stringify(config));
+            } else {
+                this.native.stop();
+            }
+        } catch {
+            // The bridge threw (an old shell, a WebView half torn down): nothing a
+            // web page can do about it; the next refresh tries again.
+        }
+    }
+
     start() {
+        if (this.native) {
+            return;                    // the app records; this page never watches itself
+        }
         if (this.recording || !navigator.geolocation) {
             return;
         }
@@ -199,7 +303,44 @@ export class LiveTracker {
         this.flush();
         this.last = null;
         this.seen = null;
+        this.lastGap = null;
+        this.hiddenSince = null;
         this.restartedAfterTimeout = false;
+    }
+
+    // ------------------------------------------------------------- the background
+    wentBackground() {
+        this.hiddenSince = Date.now();
+    }
+
+    /**
+     * Back in front after a spell in the background: the watch was suspended for
+     * that long, so say so - My Day names the gap and, on Android, offers the app
+     * that would have closed it - and ask for one fix right now, so the gap ends
+     * where the phone is and not where the next fifty metres happen.
+     */
+    cameToFront() {
+        const since = this.hiddenSince;
+        this.hiddenSince = null;
+        if (!this.recording || this.native || !since) {
+            return;
+        }
+        const seconds = Math.round((Date.now() - since) / 1000);
+        if (seconds >= GAP_NOTICE_S) {
+            this.lastGap = { seconds, at: Date.now() };
+        }
+        this.fixNow();
+    }
+
+    fixNow() {
+        if (!this.recording || !navigator.geolocation) {
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => this.take(position.coords, position.timestamp),
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+        );
     }
 
     // ------------------------------------------------------------------ the watch
@@ -538,11 +679,13 @@ export const liveTrackService = {
         // post what is in hand before the tab is discarded.
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
+                tracker.cameToFront();
                 tracker.refresh();
                 if (tracker.recording) {
                     tracker.requestWakeLock();
                 }
             } else {
+                tracker.wentBackground();
                 tracker.flush();
             }
         });

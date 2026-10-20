@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The page an executive gets the Lab app from (controllers/field_app.py, 2026-10-20).
+     Plain HTML on purpose: it is opened from a WhatsApp link on a phone, before the
+     app exists on it. -->
+<odoo>
+    <template id="field_app_page" name="Lab App">
+        <t t-out="doctype"/>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title>ADL FieldX</title>
+                <style>
+                    :root { color-scheme: light; }
+                    body { margin: 0; padding: 24px 16px 40px; background: #f6f7f9; color: #111827;
+                           font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.45; }
+                    main { max-width: 440px; margin: 0 auto; background: #fff; border-radius: 18px;
+                           padding: 28px 22px 24px; box-shadow: 0 10px 30px rgba(16, 24, 40, .08); }
+                    .logo { display: block; height: 72px; width: auto; margin: 0 auto 14px; }
+                    h1 { margin: 0 0 4px; font-size: 1.35rem; text-align: center; letter-spacing: -.01em; }
+                    h1 span { display: block; font-size: .95rem; font-weight: 600; color: #ed1c24; letter-spacing: .08em;
+                              text-transform: uppercase; }
+                    .meta { text-align: center; color: #6b7280; margin: 0 0 18px; font-size: .95rem; }
+                    .btn { display: block; text-align: center; background: #ed1c24; color: #fff; text-decoration: none;
+                           font-weight: 700; font-size: 1.05rem; padding: 14px 18px; border-radius: 12px; }
+                    .btn:active { background: #c4121a; }
+                    .note { border-radius: 12px; padding: 12px 14px; margin: 16px 0 0; font-size: .95rem; }
+                    .ok { background: #ecfdf5; color: #065f46; }
+                    .warn { background: #fff7ed; color: #9a3412; }
+                    ol { padding-left: 22px; margin: 18px 0 0; }
+                    li { margin: 8px 0; }
+                    .small { color: #6b7280; font-size: .85rem; margin-top: 18px; }
+                </style>
+            </head>
+            <body>
+                <main>
+                    <img class="logo" src="/web/binary/company_logo" alt=""/>
+                    <h1><span>ADL FieldX</span>Arabian Dental Lab</h1>
+
+                    <t t-if="in_app">
+                        <p class="note ok">
+                            You are using the app<t t-if="in_app_version"> (version <t t-out="in_app_version"/>)</t>.
+                            Your route is recorded while your day is running, even with the screen off.
+                        </p>
+                        <t t-if="info and info['version'] and info['version'] != in_app_version">
+                            <p class="meta" style="margin-top:18px">Version <b t-out="info['version']"/> is out
+                                (<t t-out="info['size_mb']"/> MB).</p>
+                            <a class="btn" t-att-href="info['download_url']">Update the app</a>
+                            <p class="small">Install it over the one you have; you stay signed in.</p>
+                        </t>
+                    </t>
+                    <t t-elif="not info">
+                        <p class="note warn">The app is not available yet. Ask the office.</p>
+                        <p class="small">Until then, keep My Day open in Chrome while you travel: the route is
+                            recorded while the page is in front.</p>
+                    </t>
+                    <t t-else="">
+                        <p class="meta">
+                            <t t-if="info['version']">Version <b t-out="info['version']"/> · </t><t t-out="info['size_mb']"/> MB · Android
+                        </p>
+                        <a class="btn" t-att-href="info['download_url']">Download the app</a>
+                        <p t-if="not android" class="note warn">This app is for Android phones. On an iPhone, keep
+                            using the site in Safari: the route is recorded while My Day is in front.</p>
+                        <ol>
+                            <li>Download, then open the file from the notification or from Downloads.</li>
+                            <li>If the phone asks, allow Chrome to <b>install unknown apps</b>, then install.</li>
+                            <li>Open the app and sign in with your usual login.</li>
+                            <li>Allow <b>location</b> and <b>notifications</b> when asked. On some phones (Xiaomi,
+                                Vivo, Oppo, Realme) also allow the app to run in the background / switch off
+                                battery saving for it, or it is stopped when the screen locks.</li>
+                        </ol>
+                        <p class="small">Your route is recorded only between <b>Start my day</b> and
+                            <b>End the day</b>, and the app shows a notification the whole time it records.</p>
+                    </t>
+                </main>
+            </body>
+        </html>
+    </template>
+</odoo>

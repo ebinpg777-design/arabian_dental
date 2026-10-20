@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Positions from the free Traccar Client app (client, 2026-10-19: "able to track
-using the free Traccar Client app").
+"""Positions from a tracking app: the lab's own Lab app (models/field_app.py,
+2026-10-20) or the free Traccar Client app (client, 2026-10-19: "able to track using
+the free Traccar Client app").
 
 A web page cannot track once the phone is locked; a native app can. Traccar Client
 (Android / iPhone, free) sends its position to a URL every minute or so, screen off,
@@ -124,8 +125,11 @@ class FieldGpsController(http.Controller):
         device_id = str(device_id or found or '')
         if len(device_id) < MIN_DEVICE_ID:
             return request.make_response('unknown device', status=403)
+        # The Lab app (2026-10-20, models/field_app.py) provisions the same identifier
+        # itself; the Traccar switch is only for Traccar.
         user = request.env['res.users'].sudo().search(
-            [('fw_gps_device_id', '=', device_id), ('fw_gps_app', '=', True)], limit=1)
+            [('fw_gps_device_id', '=', device_id),
+             '|', ('fw_gps_app', '=', True), ('fw_native_app', '=', True)], limit=1)
         if not user:
             _logger.info("field GPS: position for an unknown device %s", device_id)
             return request.make_response('unknown device', status=403)
@@ -135,4 +139,10 @@ class FieldGpsController(http.Controller):
         if pings and not user.fw_location_exception:
             kept = request.env['lab.location.ping'].with_user(user).with_company(user.company_id) \
                 .with_context(fw_ping_source='app').record(pings)
-        return request.make_response('OK %s' % kept, headers=[('Content-Type', 'text/plain')])
+        # Whether the day is still running, for the Lab app: it stops its service on
+        # "off", so a day ended on the office computer stops the phone as well. The
+        # app reports in even with nothing to send, to hear this.
+        running = request.env['lab.my.day'].with_user(user).with_company(user.company_id) \
+            ._attendance_payload().get('state') == 'checked_in'
+        return request.make_response('OK %s' % kept, headers=[
+            ('Content-Type', 'text/plain'), ('X-Lab-Track', 'on' if running else 'off')])

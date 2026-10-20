@@ -183,3 +183,9 @@
     code { font-size: .8rem; word-break: break-all; }
 }
 
+// The Lab app on My Day (2026-10-20): what only it can say, and the offer of it.
+.o_fw_where .o_fw_app_note {
+    margin-top: .5rem; font-size: .8125rem; color: #4b5563;
+    a { color: #2563eb; font-weight: 600; }
+}
+.o_fw_where .o_fw_app_offer { color: #1f2937; }

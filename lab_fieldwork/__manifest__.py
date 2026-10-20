@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.5.21.1',
+    'version': '20.0.5.22.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -78,6 +78,7 @@ in the server, not merely in the form.
         'views/collect_cash_views.xml',
         'views/fieldwork_settings_views.xml',
         'views/res_config_settings_views.xml',
+        'views/field_app_templates.xml',
         # The day-sheet flow (2026-08-29): actions must exist before the menus
         # that point at them; the migration function runs after the groups it
         # rehomes people into.

@@ -116,6 +116,15 @@ class LabFieldworkSettings(models.TransientModel):
         help="Collected cash older than this is chased: a red chip on My Day, a "
              "to-do for the executive, and the person's row on the Ops Desk. "
              "0 never chases by age.")
+    # The Lab app (2026-10-20): the APK the executives install, served from the page
+    # /lab_fieldwork/app. models/field_app.py keeps it; this page only takes it in.
+    fw_app_apk = fields.Binary('Upload a New APK', attachment=False)  # ADL FieldX
+    fw_app_apk_filename = fields.Char()
+    fw_app_version = fields.Char(
+        'App Version', size=32,
+        help="Shown on the download page; an older app says a newer one is out.")
+    fw_app_info = fields.Char('Current App', readonly=True)
+    fw_app_url = fields.Char('Download Page', readonly=True)
     fw_cash_ceiling = fields.Float(
         'Hand over above',
         help="Collected cash at or above this amount is chased whatever its age. "
@@ -131,6 +140,14 @@ class LabFieldworkSettings(models.TransientModel):
         for name, key, default, kind in PARAMS:
             raw = get('lab_fieldwork.%s' % key)
             res[name] = default if raw in (None, False, '') else _cast(raw, kind, default)
+        App = self.env['lab.field.app']
+        info = App._info()
+        res['fw_app_version'] = App._version()
+        res['fw_app_info'] = _(
+            "version %(version)s · %(size)s MB · uploaded %(when)s",
+            version=info['version'] or '?', size=info['size_mb'], when=info['uploaded'][:10],
+        ) if info else _("No app uploaded yet")
+        res['fw_app_url'] = get('web.base.url', '').rstrip('/') + '/lab_fieldwork/app'
         return res
 
     # ------------------------------------------------------------------ write
@@ -146,6 +163,11 @@ class LabFieldworkSettings(models.TransientModel):
             if kind == 'bool':
                 value = 'True' if value else 'False'
             params.set_str('lab_fieldwork.%s' % key, value)
+        App = self.env['lab.field.app']
+        if self.fw_app_apk:
+            App._store(bytes(self.fw_app_apk), self.fw_app_version, self.fw_app_apk_filename)
+        else:
+            App._set_version(self.fw_app_version)
         if self._bands() != before:
             # The coverage bands are compiled into a SQL view's CASE expression, so a
             # saved band that does not rebuild the view is a setting that silently does

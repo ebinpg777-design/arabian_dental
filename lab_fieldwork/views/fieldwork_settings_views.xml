@@ -112,6 +112,22 @@
                         the activities. A sheet that outstays the SLA on either desk is
                         raised with the administrators, once.
                     </div>
+
+                    <group string="ADL FieldX (the app)" name="app">
+                        <field name="fw_app_info"/>
+                        <field name="fw_app_version"/>
+                        <field name="fw_app_apk" filename="fw_app_apk_filename"/>
+                        <field name="fw_app_apk_filename" invisible="1"/>
+                        <field name="fw_app_url" widget="url"/>
+                    </group>
+                    <div class="text-muted small ps-1">
+                        ADL FieldX, the executives' app, is this site in a shell, with one
+                        addition: it keeps recording an executive's route with the screen
+                        off, which a web page cannot. Upload each new build here with its
+                        version. Executives get it from the download page (send them the
+                        link), and My Day tells anyone on an older version that a newer one
+                        is out. Positions are kept only between Start my day and End the day.
+                    </div>
                 </sheet>
                 <footer>
                     <button name="action_save" type="object" string="Save"
