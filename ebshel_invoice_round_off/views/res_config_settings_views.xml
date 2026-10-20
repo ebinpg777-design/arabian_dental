@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of ebshel_invoice_round_off. See LICENSE file for full copyright and licensing details. -->
+<odoo>
+
+    <record id="res_config_settings_view_form_round_off" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.round.off</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//setting[@id='smallest_coinage_currency']" position="after">
+                <setting id="invoice_round_off_method" string="Round Off"
+                         help="The Round Off button on invoices and bills makes the total a whole amount with this rounding method.">
+                    <div class="content-group">
+                        <div class="row mt8">
+                            <label for="invoice_round_off_id" string="Rounding Method" class="col-lg-5 o_light_label"/>
+                            <field name="invoice_round_off_id" options="{'no_create': True}"/>
+                        </div>
+                    </div>
+                </setting>
+                <setting id="invoice_round_off_auto"
+                         help="Every new customer invoice is rounded off as it is created.">
+                    <field name="invoice_round_off_auto"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

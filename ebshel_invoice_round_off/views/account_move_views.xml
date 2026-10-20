@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of ebshel_invoice_round_off. See LICENSE file for full copyright and licensing details. -->
+<odoo>
+
+    <record id="view_move_form_round_off" model="ir.ui.view">
+        <field name="name">account.move.form.round.off</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="round_off_available" invisible="1"/>
+                <field name="round_off_applied" invisible="1"/>
+                <button name="action_round_off" type="object" string="Round Off"
+                        class="btn-secondary" groups="account.group_account_invoice"
+                        invisible="not round_off_available or round_off_applied"
+                        help="Make the total a whole amount: a rounding line takes the difference."/>
+                <button name="action_remove_round_off" type="object" string="Remove Round Off"
+                        class="btn-secondary" groups="account.group_account_invoice"
+                        invisible="not round_off_available or not round_off_applied"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
