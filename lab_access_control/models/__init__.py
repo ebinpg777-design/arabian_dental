@@ -2,3 +2,4 @@
 from . import lab_lock_mixin
 from . import res_users_tz
 from . import ir_http
+from . import ir_ui_menu
