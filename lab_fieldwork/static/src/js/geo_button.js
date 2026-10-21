@@ -57,8 +57,19 @@ export class FwGeoButton extends Component {
         this.state.busy = true;
         try {
             const record = this.props.record;
-            if (record.isDirty) {
-                await record.save();
+            // A visit must exist before it can be started. save() answers false when a
+            // required field is empty (no clinic chosen) - the form then shows what is
+            // missing, and nothing is sent: sending anyway asked the server to start
+            // visit "false" and the executive met a server traceback (client,
+            // 2026-10-21, Shajimon). A brand-new visit nobody has typed in yet is not
+            // "dirty", but it is not saved either.
+            if (record.isDirty || record.isNew) {
+                if (!(await record.save())) {
+                    return;
+                }
+            }
+            if (!record.resId) {
+                return;
             }
             // An excused phone is not asked, and not warned. (client, 2026-09-28)
             const exempt = Boolean(session.fw_location_exception);
