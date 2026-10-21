@@ -107,8 +107,10 @@
         // size smaller - the zebra stripe counted item rows too and made the
         // documents alternate at random. (client, 2026-10-21)
         &.epg-itemwise tbody tr.epg-row-doc td { background: #f3f6f8; }
-        tr.epg-row-item td { background: #fff !important; font-size: 8.6pt; color: #444;
-                             padding-top: 1px; padding-bottom: 1px; border-bottom: 1px dotted $rule; }
+        // The ledger's own row padding: at 1px the item rows read as squeezed
+        // between their documents. (client, 2026-10-21)
+        tr.epg-row-item td { background: #fff !important; font-size: 9pt; color: #444; line-height: 1.35;
+                             padding-top: 4px; padding-bottom: 4px; border-bottom: 1px dotted $rule; }
         tr.epg-row-item td.epg-item { padding-left: 14px; }
     }
 

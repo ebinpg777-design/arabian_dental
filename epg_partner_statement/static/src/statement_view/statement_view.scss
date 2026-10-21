@@ -112,7 +112,7 @@ $esv-accent: #714b67;
     .o_esv_late { font-size: .66rem; color: $esv-bad; font-weight: 600; }
     // item-wise: the items under their document, a step quieter (client, 2026-10-21)
     .o_esv_table tr.doc td { background: #f7f9fb; }
-    .o_esv_table tr.o_esv_item td { padding-top: .12rem; padding-bottom: .12rem; font-size: .74rem; color: #555;
+    .o_esv_table tr.o_esv_item td { padding-top: .3rem; padding-bottom: .3rem; font-size: .76rem; color: #555;
         border-bottom: 1px dotted #eef1f5; &.o_esv_desc { padding-left: 1.1rem; } }
     .o_esv_card_items { margin-top: .15rem; padding-left: .5rem; border-left: 2px solid #eef1f5; font-size: .7rem; color: #555;
         > div { display: flex; justify-content: space-between; gap: .5rem;
