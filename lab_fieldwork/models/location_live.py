@@ -378,6 +378,29 @@ class LabLocationPingLive(models.Model):
         return out
 
     @api.model
+    def _cron_close_halts(self):
+        """Every few minutes: close the halt of a phone that stopped and then went
+        quiet, and open the one a parked phone has earned. This used to run for every
+        executive on every read of the live map, which made a board poll cost a full
+        day of pings per person. (2026-10-21)"""
+        if not self._auto_arrive_enabled():
+            return
+        users = self.env['res.users']
+        # On duty = an attendance still open (attendance_state is computed, not
+        # searchable); plus anyone whose halt is still open.
+        executives = self.env['lab.desk']._executives()
+        users |= self.env['hr.attendance'].sudo().search(
+            [('check_out', '=', False), ('employee_id.user_id', 'in', executives.ids)]
+        ).mapped('employee_id.user_id')
+        users |= self.env['lab.location.halt'].sudo().search(
+            [('ended_at', '=', False)]).mapped('user_id')
+        for user in users.filtered('active'):
+            try:
+                self.sudo()._detect_halts(user, self._today_for(user))
+            except Exception:                                  # noqa: BLE001
+                _logger.exception("halt detection failed for %s", user.login)
+
+    @api.model
     def _map_home(self):
         """Where the map opens when nobody has a position yet: the company's pin,
         else the middle of its pinned clinics, else central Kerala."""
@@ -395,10 +418,16 @@ class LabLocationPingLive(models.Model):
         return {'lat': 10.5, 'lon': 76.2, 'zoom': 8}
 
     @api.model
-    def get_live_map(self, day=None, user_ids=None):
+    def get_live_map(self, day=None, user_ids=None, max_points=None):
         """Everything the live map and the executive's own mini-map draw (see the
         module docstring for the shape). A manager sees the team; an executive only
-        themselves - the call refuses anything else rather than filtering quietly."""
+        themselves - the call refuses anything else rather than filtering quietly.
+
+        `max_points` caps each trail (MAX_TRAIL_POINTS by default): Field Live asks
+        for a light overview of everyone and the full trail of the person in focus
+        (2026-10-21). Halts are no longer re-detected on every read: the batch that
+        arrives does it, and the five-minute cron closes the halt of a phone that
+        went quiet (_cron_close_halts)."""
         me = self.env.user
         if not self._is_manager() and user_ids and set(user_ids) != {me.id}:
             raise AccessError(_("Only field managers can see where others are."))
@@ -414,8 +443,6 @@ class LabLocationPingLive(models.Model):
         executives, clinics = [], {}
         for index, user in enumerate(users):
             points = self._day_points(user, day)
-            if is_today and self._auto_arrive_enabled():
-                self._detect_halts(user, day)       # a phone that went quiet still closes its halt
             visits = Visit.search([('user_id', '=', user.id), ('date', '=', day),
                                    ('state', '!=', 'cancel')], order='id')
             open_visit = visits.filtered(lambda v: v.state == 'open')[:1]
@@ -430,9 +457,10 @@ class LabLocationPingLive(models.Model):
             last = points[-1] if points else None
             status, label, since = self._status_of(user, last, open_visit, on_duty, is_today, now)
             legs, gaps = split_legs(points)
+            budget = max(50, int(max_points or MAX_TRAIL_POINTS))
             trail_points = sum(len(leg) for leg in legs)
-            if trail_points > MAX_TRAIL_POINTS:
-                keep = max(1, MAX_TRAIL_POINTS * 1 // max(1, len(legs)))
+            if trail_points > budget:
+                keep = max(1, budget // max(1, len(legs)))
                 legs = [downsample(leg, keep) for leg in legs]
             doors = []
             for visit in visits:

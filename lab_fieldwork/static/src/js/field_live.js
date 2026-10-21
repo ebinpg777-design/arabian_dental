@@ -27,9 +27,9 @@ import { LiveMap } from "@lab_fieldwork/js/live_map";
  * does not carry.
  */
 
-// After a push the full payload (statuses, alerts, facts) is re-read once things
-// have settled, not on every single fix of a moving phone.
-const RELOAD_AFTER_PUSH_MS = 8000;
+// After a push the full payload (statuses, alerts, facts) is re-read once, a
+// little later - never more than once per this interval however many phones post.
+const RELOAD_AFTER_PUSH_MS = 15000;
 const MOVING_KMH = 4;
 const STATUS_RANK = { moving: 0, at_clinic: 1, stopped: 2, offline: 3, off: 4 };
 const STATUS_WORDS = {
@@ -194,16 +194,51 @@ export class FieldLive extends LiveMap {
             }
         }
         this.state.pushes++;
-        this.redraw();
+        // Only this one marker and trail move now; the full redraw waits for the reload.
+        if (this.map && this.state.replayAt === null && this.executives.includes(ex)) {
+            this.drawExecutive(ex, null);
+            this.followFocus();
+        }
         this.scheduleReload();
     }
 
+    /** One reload per interval, however many pushes arrive meanwhile. */
     scheduleReload() {
-        clearTimeout(this.reloadTimer);
+        if (this.reloadTimer) {
+            return;
+        }
         this.reloadTimer = setTimeout(() => {
             this.reloadTimer = null;
             this.tick();
         }, RELOAD_AFTER_PUSH_MS);
+    }
+
+    /**
+     * The overview carries a light trail per person; the person in focus gets the
+     * full one, fetched once and kept until the next reload.
+     */
+    async loadTrail(ex) {
+        if (!ex || ex.full_trail || this.state.view === "trends") {
+            return;
+        }
+        try {
+            const data = await this.orm.call("lab.location.ping", "get_live_map", [], {
+                day: this.state.day || null,
+                user_ids: [ex.user_id],
+            });
+            const full = (data.executives || []).find((e) => e.user_id === ex.user_id);
+            const current = ((this.state.data && this.state.data.executives) || [])
+                .find((e) => e.user_id === ex.user_id);
+            if (full && current) {
+                Object.assign(current, {
+                    legs: full.legs, gaps: full.gaps, overspeed_points: full.overspeed_points,
+                    full_trail: true,
+                });
+                this.redraw();
+            }
+        } catch (error) {
+            console.warn("field live: full trail not loaded", error?.message || error);
+        }
     }
 
     // --------------------------------------------------------------- what is shown
@@ -317,8 +352,19 @@ export class FieldLive extends LiveMap {
         return (this.state.data && this.state.data.day_start_epoch) || 0;
     }
 
-    /** The clock across the top: the working day, stretched to what was recorded. */
+    /** The clock across the top: the working day, stretched to what was recorded.
+        Computed once per render - every band asks for it twice. */
     get axis() {
+        const key = [this.state.data, this.state.show, this.state.query, this.state.focusId];
+        if (this.axisCache && key.every((part, i) => part === this.axisCache.key[i])) {
+            return this.axisCache.axis;
+        }
+        const axis = this.computeAxis();
+        this.axisCache = { key, axis };
+        return axis;
+    }
+
+    computeAxis() {
         let start = AXIS_START;
         let end = AXIS_END;
         for (const ex of this.executives) {
@@ -551,6 +597,7 @@ export class FieldLive extends LiveMap {
         if (this.state.focusId === ex.user_id) {
             this.state.storyOpen = true;
             setTimeout(() => this.map && this.map.invalidateSize(), 250);
+            this.loadTrail(ex);
         }
     }
 

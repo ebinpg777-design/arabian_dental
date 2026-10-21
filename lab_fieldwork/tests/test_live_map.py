@@ -207,3 +207,27 @@ class TestLiveLayer(LiveTrackCase):
         self.assertEqual(Ping._status_of(self.exec_user, None, none, True, True, now)[0], 'offline')
         self.assertEqual(Ping._status_of(self.exec_user, None, none, False, True, now)[0], 'off')
         self.assertEqual(Ping._status_of(self.exec_user, fresh_moving, none, True, False, now)[0], 'off')
+
+    def test_the_cron_reads_the_phones_that_went_quiet(self):
+        """Halts used to be re-detected on every read of the live map; the batch
+        that arrives does it now, and the five-minute cron does the rest - for the
+        on-duty phones and for anyone with a halt still open. (2026-10-21)"""
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=60)
+        self._start_day(user, now - timedelta(minutes=30))
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.halt_minutes', '10')
+        # fifteen minutes parked, then silence: the batch opened the halt...
+        self._pings(user, now, [(10.0, 76.0, s, 0.0) for s in (0, 300, 600, 900)])
+        halts = self.env['lab.location.halt'].sudo().search([('user_id', '=', user.id)])
+        self.assertEqual(len(halts), 1)
+        self.assertFalse(halts.ended_at, "still there as far as the trail knows")
+        # ...and the cron, with nothing new, changes nothing (idempotent)
+        self.env['lab.location.ping']._cron_close_halts()
+        self.assertEqual(self.env['lab.location.halt'].sudo().search_count([('user_id', '=', user.id)]), 1)
+        # the phone moves on; the read of the map no longer detects anything, the cron does
+        self._pings(user, now + timedelta(minutes=20), [(10.3, 76.3, 0, 30.0)])
+        self.env['lab.location.ping']._cron_close_halts()
+        halts = self.env['lab.location.halt'].sudo().search([('user_id', '=', user.id)])
+        self.assertEqual(len(halts), 1)
+        self.assertTrue(halts.ended_at, "the halt was closed")
+        self.assertEqual(halts.minutes, 15)

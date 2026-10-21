@@ -54,6 +54,7 @@ LONG_VISIT_MINUTES = 90     # checked in, not out
 KM_VARIANCE_PCT = 30        # claim vs trail
 OVERSPEED_TIMES = 3
 STORY_MAX = 80
+OVERVIEW_POINTS = 300       # trail points per person in the overview; the focus gets the full trail
 PULSE_HOURS = range(7, 21)
 TREND_DAYS = 14
 WAITING_STATES = ('submitted', 'ops_approved', 'ops_checked')
@@ -75,7 +76,9 @@ class LabFieldLive(models.AbstractModel):
         Ping = self.env['lab.location.ping']
         if not Ping._is_manager():
             raise AccessError(_("Only field managers open Field Live."))
-        board = Ping.get_live_map(day=day, user_ids=user_ids)
+        # A light trail per person for the overview; the person in focus is fetched
+        # in full by the screen (get_live_map for one user).
+        board = Ping.get_live_map(day=day, user_ids=user_ids, max_points=OVERVIEW_POINTS)
         day = fields.Date.to_date(board['day'])
         is_today = bool(board['is_today'])
         now = fields.Datetime.now()
@@ -90,6 +93,7 @@ class LabFieldLive(models.AbstractModel):
             [('date', '=', day), ('user_id', 'in', users.ids)])}
         offline_s = Ping._offline_minutes() * 60
         limit = Ping._speed_limit()
+        records = self._day_records(users, day, is_today)
         # The clock the bands hang on: the manager's local midnight, as an epoch.
         day_start = epoch(local_midnight_utc(self.env, day, self.env.user))
         day_end = epoch(local_midnight_utc(self.env, day + timedelta(days=1), self.env.user))
@@ -121,7 +125,7 @@ class LabFieldLive(models.AbstractModel):
             phone = self._phone_of(user, ex, offline_s)
             ex['phone_app'] = phone
             phones.append(dict(phone, user_id=user.id, name=user.name, on_duty=ex['on_duty']))
-            story, bands, split = self._day_of(user, day, ex, sheet, now, is_today, day_end)
+            story, bands, split = self._day_of(user, day, ex, sheet, now, is_today, day_end, records)
             ex['story'], ex['bands'], ex['split'] = story, bands, split
             ex['alerts'] = self._alerts_of(user, ex, row, trip, is_today, now, offline_s, limit)
             alerts.extend(ex['alerts'])
@@ -166,7 +170,37 @@ class LabFieldLive(models.AbstractModel):
         }
 
     @api.model
-    def _day_of(self, user, day, ex, sheet, now, is_today, day_end):
+    def _day_records(self, users, day, is_today):
+        """The day's attendances, visits and cash for everyone at once - four
+        queries for the team instead of four per person (2026-10-21)."""
+        start = local_midnight_utc(self.env, day, self.env.user)
+        end = local_midnight_utc(self.env, day + timedelta(days=1), self.env.user)
+        employees = self.env['hr.employee'].sudo().search([('user_id', 'in', users.ids)])
+        employee_of = {}
+        for employee in employees:
+            employee_of.setdefault(employee.user_id.id, employee)
+        attendances = defaultdict(list)
+        if employees:
+            # Every attendance that touches the day, clipped to it later: a day
+            # started before midnight and still running belongs to this morning too.
+            for att in self.env['hr.attendance'].sudo().search(
+                    [('employee_id', 'in', employees.ids), ('check_in', '<', end),
+                     '|', ('check_out', '=', False), ('check_out', '>=', start)], order='check_in'):
+                attendances[att.employee_id.user_id.id].append(att)
+        visits = defaultdict(list)
+        for visit in self.env['lab.visit'].sudo().search(
+                [('user_id', 'in', users.ids), ('date', '=', day), ('state', '!=', 'cancel')],
+                order='check_in, id'):
+            visits[visit.user_id.id].append(visit)
+        cash = defaultdict(list)
+        for collection in self.env['lab.cash.collection'].sudo().search(
+                [('user_id', 'in', users.ids), ('date', '=', day)], order='create_date'):
+            cash[collection.user_id.id].append(collection)
+        return {'employee': employee_of, 'attendances': attendances, 'visits': visits, 'cash': cash,
+                'start': start, 'end': end}
+
+    @api.model
+    def _day_of(self, user, day, ex, sheet, now, is_today, day_end, records):
         """The day three ways from the same records: as a story (events, oldest
         first), as bands on the clock, and as minutes split between the clinics,
         the road, the stops and the silence. Every event comes from a record or a
@@ -174,17 +208,11 @@ class LabFieldLive(models.AbstractModel):
         events, bands = [], []
         # An open span runs to now today, and to the end of the day for a day gone.
         open_until = epoch(now) if is_today else day_end
-        employee = self.env['hr.employee'].sudo().search([('user_id', '=', user.id)], limit=1)
+        employee = records['employee'].get(user.id)
         duty_minutes = 0
         if employee:
-            start = local_midnight_utc(self.env, day, user)
-            end = local_midnight_utc(self.env, day + timedelta(days=1), user)
-            # Every attendance that touches the day, clipped to it: a day started
-            # before midnight and still running belongs to this morning too.
-            attendances = self.env['hr.attendance'].sudo().search(
-                [('employee_id', '=', employee.id), ('check_in', '<', end),
-                 '|', ('check_out', '=', False), ('check_out', '>=', start)],
-                order='check_in')
+            start = records['start']
+            attendances = records['attendances'].get(user.id, [])
             day_start_epoch = epoch(start)
             for att in attendances:
                 began = epoch(att.check_in)
@@ -201,9 +229,7 @@ class LabFieldLive(models.AbstractModel):
                               'label': _('On duty')})
                 duty_minutes += (until - since) // 60
         outcomes = dict(OUTCOMES)
-        visits = self.env['lab.visit'].sudo().search(
-            [('user_id', '=', user.id), ('date', '=', day), ('state', '!=', 'cancel')],
-            order='check_in, id')
+        visits = records['visits'].get(user.id, [])
         clinic_minutes = 0
         for visit in visits:
             clinic = visit.partner_id.display_name
@@ -265,8 +291,7 @@ class LabFieldLive(models.AbstractModel):
             bands.append({'kind': 'gap', 'from_epoch': gap['from_epoch'], 'to_epoch': gap['to_epoch'],
                           'label': _('Not recorded')})
             gap_minutes += gap['minutes']
-        for cash in self.env['lab.cash.collection'].sudo().search(
-                [('user_id', '=', user.id), ('date', '=', day)], order='create_date'):
+        for cash in records['cash'].get(user.id, []):
             events.append({'kind': 'cash', 'epoch': epoch(cash.create_date),
                            'title': _('Cash taken'), 'amount': cash.amount,
                            'detail': cash.partner_id.display_name})

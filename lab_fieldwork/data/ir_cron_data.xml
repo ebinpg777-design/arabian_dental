@@ -38,6 +38,19 @@
             the executive, in their own name. Daily: the policy is in days.
             (client, 2026-09-18)
         -->
+        <!-- A phone that stopped and then went quiet: its halt is closed, or opened,
+             here every five minutes instead of on every read of Field Live
+             (2026-10-21, location_live.py _cron_close_halts). -->
+        <record id="cron_close_halts" model="ir.cron">
+            <field name="name">Field Work: close the halts of phones that went quiet</field>
+            <field name="model_id" ref="model_lab_location_ping"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_close_halts()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
         <record id="cron_cash_reminders" model="ir.cron">
             <field name="name">Field Work: chase collected cash not handed over</field>
             <field name="model_id" ref="model_lab_cash_handover"/>
