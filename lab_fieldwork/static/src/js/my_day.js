@@ -795,6 +795,7 @@ export class LabMyDay extends Component {
                 this.state.day || false,
             ]);
             row.visited_today = true;
+            row.visit_under_way = true;
             this.notification.add(
                 _t("%s is on today's round.", row.name), { type: "success" });
             await this.load();

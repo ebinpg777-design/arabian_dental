@@ -621,10 +621,14 @@ class LabMyDay(models.AbstractModel):
 
         money = self._clinic_open_money(ordered)
         orders = self._clinic_open_orders(ordered)
-        visited_today = set(self.env['lab.visit'].search([
+        todays = self.env['lab.visit'].search([
             ('user_id', '=', self.env.uid),
             ('date', '=', fields.Date.context_today(self)),
-            ('state', '!=', 'cancel')]).mapped('partner_id').ids)
+            ('state', '!=', 'cancel')])
+        visited_today = set(todays.mapped('partner_id').ids)
+        # The visit "New visit" would reopen rather than start (see add_stop).
+        under_way = set(todays.filtered(
+            lambda v: v.state in ('planned', 'open')).mapped('partner_id').ids)
         rows = [{
             'id': p.id,
             'name': p.display_name,
@@ -643,6 +647,7 @@ class LabMyDay(models.AbstractModel):
             'open_order_value': orders.get(p.id, {}).get('value', 0.0),
             'favourite': p.id in stars,
             'visited_today': p.id in visited_today,
+            'visit_under_way': p.id in under_way,
             'map_url': self._clinic_map_url(p),
         } for p in ordered]
         return {
@@ -722,11 +727,16 @@ class LabMyDay(models.AbstractModel):
         ).id in self.env.user.fw_route_ids.ids
         if not partner.exists() or not (partner.is_clinic or on_my_route):
             raise UserError(_("That is not a clinic on your round."))
+        # Only a visit still under way is reused. Pressing twice on a slow connection
+        # is the normal case, not the exception - but once the visit is completed,
+        # going back to the same clinic or doctor later that day is a second visit.
+        # (client, 2026-10-21: "Multiple visit in a clinic/doctor in a day should be
+        # possible")
         existing = self.env['lab.visit'].search([
             ('user_id', '=', self.env.uid), ('date', '=', today),
-            ('partner_id', '=', partner.id), ('state', '!=', 'cancel')], limit=1)
+            ('partner_id', '=', partner.id), ('state', 'in', ('planned', 'open'))],
+            order='id desc', limit=1)
         if existing:
-            # Pressing twice on a slow connection is the normal case, not the exception.
             return existing.id
         beat = self.env['lab.beat'].search(
             [('user_id', '=', self.env.uid), ('partner_ids', 'in', partner.id)], limit=1)

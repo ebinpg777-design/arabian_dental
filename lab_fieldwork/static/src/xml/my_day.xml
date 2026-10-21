@@ -466,7 +466,8 @@
                             <button class="o_fw_clinic_go" t-att-disabled="this.state.busy"
                                     t-on-click="(ev) => this.newVisitFor(c, ev)">
                                 <i class="fa fa-plus me-1"/>
-                                <t t-if="c.visited_today">On today's round</t>
+                                <t t-if="c.visit_under_way">On today's round</t>
+                                <t t-elif="c.visited_today">Visit again</t>
                                 <t t-else="">New visit</t>
                             </button>
                             <a t-if="c.map_url" class="o_fw_clinic_ico"

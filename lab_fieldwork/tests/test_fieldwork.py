@@ -979,6 +979,16 @@ class TestFieldwork(TransactionCase):
         second = MyDay.add_stop(self.clinic.id)
         self.assertEqual(first, second)
 
+    def test_a_completed_visit_lets_the_clinic_be_visited_again(self):
+        """Back at the same clinic later that day is a second visit (client, 2026-10-21)."""
+        MyDay = self.env['lab.my.day'].with_user(self.exec_user)
+        first = MyDay.add_stop(self.clinic.id)
+        self.env['lab.visit'].sudo().browse(first).write({'state': 'done'})
+        second = MyDay.add_stop(self.clinic.id)
+        self.assertNotEqual(first, second, "a completed visit is not reopened")
+        self.assertEqual(MyDay.add_stop(self.clinic.id), second,
+                         "and a second press does not double the second visit")
+
     def test_a_stop_can_only_be_added_for_a_clinic(self):
         someone = self.env['res.partner'].create({'name': 'Not a Clinic'})
         with self.assertRaises(UserError):
@@ -2555,6 +2565,15 @@ class TestDoctorsOnMyRound(TransactionCase):
         first = self.Day.with_user(self.exec_user).add_stop(self.here.id)
         second = self.Day.with_user(self.exec_user).add_stop(self.here.id)
         self.assertEqual(first, second)
+
+    def test_the_card_offers_a_second_visit_once_the_first_is_done(self):
+        visit_id = self.Day.with_user(self.exec_user).add_stop(self.here.id)
+        row = next(r for r in self._rows()['rows'] if r['id'] == self.here.id)
+        self.assertTrue(row['visit_under_way'], "On today's round: it reopens the visit")
+        self.env['lab.visit'].sudo().browse(visit_id).write({'state': 'done'})
+        row = next(r for r in self._rows()['rows'] if r['id'] == self.here.id)
+        self.assertTrue(row['visited_today'])
+        self.assertFalse(row['visit_under_way'], "Visit again: it starts a new one")
 
     # ------------------------------------------------------------- the money
     def test_open_receivable_is_the_countback_not_a_residual(self):
