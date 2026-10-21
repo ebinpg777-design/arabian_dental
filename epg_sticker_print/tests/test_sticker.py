@@ -103,6 +103,7 @@ class TestStickerPrint(TransactionCase):
             'epg_sticker_print.report_sticker', None,
             data=dict(action['data'], context=action['context']))[0]
         self.assertIn(b'<b>Bakiya Lakshmi</b>', html)
+        self.assertNotIn(b'<b>Patient</b>', html, "the caption stays in the line's own weight")
 
     def test_wizard_from_picking(self):
         self.o1.action_confirm()
