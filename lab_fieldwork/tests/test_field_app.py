@@ -181,3 +181,147 @@ class TestFieldApp(HttpCase):
         defaults = self.env['lab.fieldwork.settings'].with_user(self.fw_admin) \
             .default_get(['fw_app_info'])
         self.assertIn('No app', defaults['fw_app_info'])
+
+
+def _ipa(devices=('00008030-001A2B3C4D5E6F70', '00008110-000A1B2C3D4E5F60'), version='1.0.0',
+         bundle='com.arabiandentallab.field', all_devices=False):
+    """A minimal iPhone build: Info.plist (binary, as Xcode writes it) and a signed
+    profile - here only the XML plist inside its envelope, which is all that is read."""
+    import io
+    import plistlib
+    import zipfile
+    from datetime import datetime
+    info = plistlib.dumps({'CFBundleIdentifier': bundle, 'CFBundleShortVersionString': version,
+                           'CFBundleVersion': '7', 'CFBundleDisplayName': 'ADL FieldX'},
+                          fmt=plistlib.FMT_BINARY)
+    provision = {'ExpirationDate': datetime(2027, 10, 21, 9, 0, 0), 'Name': 'ADL FieldX Ad Hoc'}
+    if devices:
+        provision['ProvisionedDevices'] = list(devices)
+    if all_devices:
+        provision['ProvisionsAllDevices'] = True
+    envelope = b'0\x82\x10\x00signed-data' + plistlib.dumps(provision) + b'\x00\x01signature'
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w') as archive:
+        archive.writestr('Payload/ADLFieldX.app/Info.plist', info)
+        archive.writestr('Payload/ADLFieldX.app/embedded.mobileprovision', envelope)
+        archive.writestr('Payload/ADLFieldX.app/ADLFieldX', b'\xcf\xfa\xed\xfe binary')
+    return buffer.getvalue()
+
+
+IPHONE = ('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 '
+          '(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1')
+
+
+@tagged('post_install', '-at_install')
+class TestFieldAppIphone(HttpCase):
+    """The iPhone on the same link (client, 2026-10-21: "create the iOS app also, with a
+    download button on the same link")."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        env = cls.env(su=True)
+        cls.exec_user = env['res.users'].create({
+            'login': 'field_ios_exec', 'password': 'field_ios_exec_pw', 'name': 'Field iOS Exec',
+            'group_ids': [(4, env.ref('lab_fieldwork.group_fieldwork_executive').id),
+                          (4, env.ref('base.group_user').id)]})
+        cls.fw_admin = env['res.users'].create({
+            'login': 'field_ios_admin', 'name': 'Field iOS Admin',
+            'group_ids': [(4, env.ref('lab_fieldwork.group_fieldwork_admin').id),
+                          (4, env.ref('base.group_user').id)]})
+        cls.App = env['lab.field.app']
+
+    def _settings(self, **vals):
+        Settings = self.env['lab.fieldwork.settings'].with_user(self.fw_admin)
+        Settings.create(vals).action_save()
+        return Settings
+
+    def _page(self, agent=IPHONE):
+        self.authenticate('field_ios_exec', 'field_ios_exec_pw')
+        return self.url_open('/lab_fieldwork/app', headers={'User-Agent': agent})
+
+    def test_the_build_is_read_and_refused_when_it_cannot_install_from_a_link(self):
+        from ..models.field_app import read_ipa
+        meta = read_ipa(_ipa(), self.env)
+        self.assertEqual((meta['bundle_id'], meta['version'], meta['devices'], meta['expires']),
+                         ('com.arabiandentallab.field', '1.0.0', 2, '2027-10-21'))
+        self.assertTrue(read_ipa(_ipa(devices=(), all_devices=True), self.env)['all_devices'])
+        with self.assertRaises(UserError):
+            read_ipa(b'hello', self.env)
+        with self.assertRaises(UserError):
+            read_ipa(APK, self.env)
+        with self.assertRaises(UserError, msg="an App Store / TestFlight build lists no iPhones"):
+            read_ipa(_ipa(devices=()), self.env)
+
+    def test_an_uploaded_build_installs_from_the_same_page(self):
+        build = _ipa()
+        self._settings(fw_ios_ipa=base64.b64encode(build).decode(), fw_ios_ipa_filename='adl.ipa')
+        info = self.App._ios_info()
+        self.assertEqual((info['kind'], info['version'], info['devices']), ('ipa', '1.0.0', '2'))
+        self.assertTrue(info['install_url'].startswith('itms-services://?action=download-manifest&url=https%3A')
+                        or info['install_url'].startswith('itms-services://?action=download-manifest&url=http%3A'))
+        token = self.App._param('ios_token')
+        # what the iPhone's installer fetches, without a login
+        manifest = self.url_open('/lab_fieldwork/app/ios/%s/manifest.plist' % token)
+        self.assertEqual(manifest.status_code, 200)
+        import plistlib
+        item = plistlib.loads(manifest.content)['items'][0]
+        self.assertEqual(item['metadata']['bundle-identifier'], 'com.arabiandentallab.field')
+        self.assertEqual(item['metadata']['bundle-version'], '1.0.0')
+        self.assertTrue(item['assets'][0]['url'].endswith('/lab_fieldwork/app/ios/%s/ADLFieldX.ipa' % token))
+        got = self.url_open('/lab_fieldwork/app/ios/%s/ADLFieldX.ipa' % token)
+        self.assertEqual((got.status_code, got.content), (200, build))
+        self.assertEqual(self.url_open('/lab_fieldwork/app/ios/wrong-token/manifest.plist').status_code, 404)
+        self.assertEqual(self.url_open('/lab_fieldwork/app/ios/wrong-token/ADLFieldX.ipa').status_code, 404)
+        # the page, on an iPhone: the iPhone button, not the APK
+        page = self._page()
+        self.assertIn('Install on iPhone', page.text)
+        self.assertIn('itms-services://', page.text)
+        self.assertNotIn('Download the app', page.text)
+        # a new build is a new link: the one sent with the old build stops working
+        self._settings(fw_ios_ipa=base64.b64encode(_ipa(version='1.0.1')).decode())
+        self.assertEqual(self.url_open('/lab_fieldwork/app/ios/%s/manifest.plist' % token).status_code, 404)
+        self.assertEqual(self.App._latest_version('ios'), '1.0.1')
+
+    def test_a_testflight_link_and_removing_the_build(self):
+        with self.assertRaises(UserError):
+            self._settings(fw_ios_link='http://testflight.apple.com/join/ABC')
+        self._settings(fw_ios_link='https://testflight.apple.com/join/ABC')
+        info = self.App._ios_info()
+        self.assertEqual((info['kind'], info['install_url']), ('link', 'https://testflight.apple.com/join/ABC'))
+        self.assertIn('testflight.apple.com/join/ABC', self._page().text)
+        # an uploaded build wins over the link; removed, the link is back
+        self._settings(fw_ios_ipa=base64.b64encode(_ipa()).decode(),
+                       fw_ios_link='https://testflight.apple.com/join/ABC')
+        self.assertEqual(self.App._ios_info()['kind'], 'ipa')
+        token = self.App._param('ios_token')
+        self._settings(fw_ios_remove=True, fw_ios_link='https://testflight.apple.com/join/ABC')
+        self.assertEqual(self.App._ios_info()['kind'], 'link')
+        self.assertEqual(self.url_open('/lab_fieldwork/app/ios/%s/manifest.plist' % token).status_code, 404)
+
+    def test_without_an_iphone_app_the_page_shows_the_home_screen_way(self):
+        page = self._page()
+        self.assertIn('Add to Home Screen', page.text)
+        self.assertNotIn('itms-services', page.text)
+        # a computer sees both phones; an Android phone only its own
+        desktop = self._page('Mozilla/5.0 (X11; Linux x86_64) Chrome/130.0')
+        self.assertIn('Android phones', desktop.text)
+        self.assertIn('iPhone', desktop.text)
+        android = self._page('Mozilla/5.0 (Linux; Android 14; RMX3085) Chrome/130.0 Mobile')
+        self.assertNotIn('Add to Home Screen', android.text)
+
+    def test_each_phone_hears_of_its_own_newer_build(self):
+        from ..models.field_app import platform_of
+        self.assertEqual(platform_of(IPHONE), 'ios')
+        self.assertEqual(platform_of(IPHONE + ' ADLField/1.0.0'), 'ios')
+        self.assertEqual(platform_of('Mozilla/5.0 (Linux; Android 14) ADLField/1.0.1'), 'android')
+        self.App._set_version('1.0.1')
+        self._settings(fw_ios_ipa=base64.b64encode(_ipa(version='1.0.0')).decode())
+        self.assertEqual((self.App._latest_version('android'), self.App._latest_version('ios')), ('1.0.1', '1.0.0'))
+        # inside the iPhone app the page offers the iPhone update, never the APK
+        self._settings(fw_ios_ipa=base64.b64encode(_ipa(version='1.0.2')).decode())
+        page = self._page(IPHONE + ' ADLField/1.0.0')
+        self.assertIn('You are using the app', page.text)
+        self.assertIn('Version <b>1.0.2</b> is out', page.text)
+        self.assertIn('itms-services://', page.text)
+        self.assertNotIn('/lab_fieldwork/app/download', page.text)

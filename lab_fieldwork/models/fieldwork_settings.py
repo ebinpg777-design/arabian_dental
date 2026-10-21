@@ -125,6 +125,18 @@ class LabFieldworkSettings(models.TransientModel):
         help="Shown on the download page; an older app says a newer one is out.")
     fw_app_info = fields.Char('Current App', readonly=True)
     fw_app_url = fields.Char('Download Page', readonly=True)
+    # The iPhone (client, 2026-10-21): an Ad Hoc build installed from the same page, or
+    # a TestFlight / App Store link. models/field_app.py keeps them.
+    fw_ios_ipa = fields.Binary('Upload an iPhone Build (.ipa)', attachment=False)
+    fw_ios_ipa_filename = fields.Char()
+    fw_ios_link = fields.Char(
+        'iPhone Link',
+        help="A TestFlight or App Store link for ADL FieldX on iPhone. Used when no "
+             "iPhone build is uploaded here.")
+    fw_ios_remove = fields.Boolean(
+        'Remove the iPhone Build',
+        help="Stop offering the uploaded iPhone build (the link above, if any, is offered instead).")
+    fw_ios_info = fields.Char('Current iPhone App', readonly=True)
     fw_cash_ceiling = fields.Float(
         'Hand over above',
         help="Collected cash at or above this amount is chased whatever its age. "
@@ -148,6 +160,19 @@ class LabFieldworkSettings(models.TransientModel):
             version=info['version'] or '?', size=info['size_mb'], when=info['uploaded'][:10],
         ) if info else _("No app uploaded yet")
         res['fw_app_url'] = get('web.base.url', '').rstrip('/') + '/lab_fieldwork/app'
+        res['fw_ios_link'] = App._param('ios_link')
+        ios = App._ios_info()
+        if not ios:
+            res['fw_ios_info'] = _("No iPhone app yet: iPhones are shown how to add the site to the home screen")
+        elif ios['kind'] == 'ipa':
+            res['fw_ios_info'] = _(
+                "version %(version)s · %(size)s MB · installs on %(devices)s · profile expires %(expires)s",
+                version=ios['version'] or '?', size=ios['size_mb'],
+                devices=_("every iPhone (enterprise)") if ios['devices'] == 'all'
+                else _("%s registered iPhone(s)", ios['devices']),
+                expires=ios['expires'] or '?')
+        else:
+            res['fw_ios_info'] = _("TestFlight / App Store link")
         return res
 
     # ------------------------------------------------------------------ write
@@ -168,6 +193,11 @@ class LabFieldworkSettings(models.TransientModel):
             App._store(bytes(self.fw_app_apk), self.fw_app_version, self.fw_app_apk_filename)
         else:
             App._set_version(self.fw_app_version)
+        if self.fw_ios_remove:
+            App._ios_remove()
+        if self.fw_ios_ipa:
+            App._ios_store(bytes(self.fw_ios_ipa))
+        App._ios_set_link(self.fw_ios_link)
         if self._bands() != before:
             # The coverage bands are compiled into a SQL view's CASE expression, so a
             # saved band that does not rebuild the view is a setting that silently does

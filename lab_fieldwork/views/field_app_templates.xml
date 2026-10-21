@@ -30,6 +30,8 @@
                     ol { padding-left: 22px; margin: 18px 0 0; }
                     li { margin: 8px 0; }
                     .small { color: #6b7280; font-size: .85rem; margin-top: 18px; }
+                    section + section { margin-top: 26px; padding-top: 18px; border-top: 1px solid #eef0f3; }
+                    h2.os { font-size: 1rem; margin: 0 0 8px; color: #374151; }
                 </style>
             </head>
             <body>
@@ -42,35 +44,84 @@
                             You are using the app<t t-if="in_app_version"> (version <t t-out="in_app_version"/>)</t>.
                             Your route is recorded while your day is running, even with the screen off.
                         </p>
-                        <t t-if="info and info['version'] and info['version'] != in_app_version">
-                            <p class="meta" style="margin-top:18px">Version <b t-out="info['version']"/> is out
-                                (<t t-out="info['size_mb']"/> MB).</p>
-                            <a class="btn" t-att-href="info['download_url']">Update the app</a>
+                        <!-- the newer build for THIS phone: an iPhone is never offered the APK -->
+                        <t t-set="mine" t-value="ios_info if ios else info"/>
+                        <t t-if="mine and mine['version'] and mine['version'] != in_app_version">
+                            <p class="meta" style="margin-top:18px">Version <b t-out="mine['version']"/> is out.</p>
+                            <a class="btn" t-att-href="mine['install_url'] if ios else mine['download_url']">Update the app</a>
                             <p class="small">Install it over the one you have; you stay signed in.</p>
                         </t>
                     </t>
-                    <t t-elif="not info">
-                        <p class="note warn">The app is not available yet. Ask the office.</p>
-                        <p class="small">Until then, keep My Day open in Chrome while you travel: the route is
-                            recorded while the page is in front.</p>
-                    </t>
                     <t t-else="">
-                        <p class="meta">
-                            <t t-if="info['version']">Version <b t-out="info['version']"/> · </t><t t-out="info['size_mb']"/> MB · Android
-                        </p>
-                        <a class="btn" t-att-href="info['download_url']">Download the app</a>
-                        <p t-if="not android" class="note warn">This app is for Android phones. On an iPhone, keep
-                            using the site in Safari: the route is recorded while My Day is in front.</p>
-                        <ol>
-                            <li>Download, then open the file from the notification or from Downloads.</li>
-                            <li>If the phone asks, allow Chrome to <b>install unknown apps</b>, then install.</li>
-                            <li>Open the app and sign in with your usual login.</li>
-                            <li>Allow <b>location</b> and <b>notifications</b> when asked. On some phones (Xiaomi,
-                                Vivo, Oppo, Realme) also allow the app to run in the background / switch off
-                                battery saving for it, or it is stopped when the screen locks.</li>
-                        </ol>
+                        <!-- Android: an Android phone, or a computer (both phones shown there) -->
+                        <section t-if="not ios">
+                            <h2 t-if="desktop" class="os">Android phones</h2>
+                            <t t-if="not info">
+                                <p class="note warn">The app is not available yet. Ask the office.</p>
+                                <p class="small">Until then, keep My Day open in Chrome while you travel: the route is
+                                    recorded while the page is in front.</p>
+                            </t>
+                            <t t-else="">
+                                <p class="meta">
+                                    <t t-if="info['version']">Version <b t-out="info['version']"/> · </t><t t-out="info['size_mb']"/> MB · Android
+                                </p>
+                                <a class="btn" t-att-href="info['download_url']">Download the app</a>
+                                <ol>
+                                    <li>Download, then open the file from the notification or from Downloads.</li>
+                                    <li>If the phone asks, allow Chrome to <b>install unknown apps</b>, then install.</li>
+                                    <li>Open the app and sign in with your usual login.</li>
+                                    <li>Allow <b>location</b> and <b>notifications</b> when asked. On some phones (Xiaomi,
+                                        Vivo, Oppo, Realme) also allow the app to run in the background / switch off
+                                        battery saving for it, or it is stopped when the screen locks.</li>
+                                </ol>
+                            </t>
+                        </section>
+
+                        <!-- iPhone (client, 2026-10-21): the same link. Apple installs only an app
+                             signed by the lab's Apple Developer account - an Ad Hoc build from
+                             this site on the iPhones it registers, or TestFlight / the App Store -
+                             and until there is one, the site on the home screen. -->
+                        <section t-if="ios or desktop">
+                            <h2 t-if="desktop" class="os">iPhone</h2>
+                            <t t-if="ios_info">
+                                <p class="meta">
+                                    <t t-if="ios_info['version']">Version <b t-out="ios_info['version']"/> · </t>iPhone
+                                </p>
+                                <a class="btn" t-att-href="ios_info['install_url']">Install on iPhone</a>
+                                <ol t-if="ios_info['kind'] == 'ipa'">
+                                    <li>Tap <b>Install on iPhone</b>, then <b>Install</b>. The app appears on the home screen.</li>
+                                    <li>If the iPhone says the app cannot be installed, this iPhone is not registered
+                                        for it yet: tell the office.</li>
+                                    <li>Open the app and sign in with your usual login.</li>
+                                    <li>Allow <b>location</b>: <b>Allow While Using App</b>, and when the iPhone asks later,
+                                        <b>Change to Always Allow</b>, so the route keeps recording with the screen off.</li>
+                                </ol>
+                                <ol t-else="">
+                                    <li>Tap <b>Install on iPhone</b>: Apple's TestFlight or App Store page opens. Install
+                                        TestFlight first if it asks.</li>
+                                    <li>Install ADL FieldX, open it and sign in with your usual login.</li>
+                                    <li>Allow <b>location</b>: <b>Allow While Using App</b>, and when the iPhone asks later,
+                                        <b>Change to Always Allow</b>, so the route keeps recording with the screen off.</li>
+                                </ol>
+                            </t>
+                            <t t-else="">
+                                <p class="note warn">The iPhone app is not available yet. Until it is, put the site on your
+                                    home screen: it opens like an app.</p>
+                                <!-- The home screen keeps the page it was added FROM: added here, it
+                                     would open this page. So the first step opens My Day. -->
+                                <a class="btn" href="/odoo/action-lab_fieldwork.action_my_day">Open My Day</a>
+                                <ol>
+                                    <li>Tap <b>Open My Day</b> above, in <b>Safari</b>.</li>
+                                    <li>On My Day, tap the <b>Share</b> button, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+                                    <li>From then on open it from the home screen. Allow <b>location</b> when My Day asks.</li>
+                                </ol>
+                                <p class="small">On an iPhone the route is recorded while My Day is open on the screen;
+                                    the iPhone app records with the screen off.</p>
+                            </t>
+                        </section>
                         <p class="small">Your route is recorded only between <b>Start my day</b> and
-                            <b>End the day</b>, and the app shows a notification the whole time it records.</p>
+                            <b>End the day</b><t t-if="not ios">, and the Android app shows a notification the whole
+                            time it records</t>.</p>
                     </t>
                 </main>
             </body>

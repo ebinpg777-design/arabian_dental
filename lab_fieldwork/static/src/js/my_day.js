@@ -474,15 +474,18 @@ export class LabMyDay extends Component {
         return latest;
     }
 
-    /** The app, offered on an Android phone that is not running it. */
+    /** The app, offered on a phone that is not running it: the APK on Android, the
+     *  iPhone build (or its TestFlight link) on an iPhone, once there is one. */
     get appOffer() {
         const server = this.state.where.server;
         const agent = navigator.userAgent || "";
-        if (!server || !server.app_download || this.nativeStatus || this.appLive
-            || !/Android/i.test(agent) || /ADLField\//.test(agent)) {
+        if (!server || this.nativeStatus || this.appLive || /ADLField\//.test(agent)) {
             return null;
         }
-        return server.app_download;
+        if (/iPhone|iPad|iPod/.test(agent)) {
+            return server.ios_download || null;
+        }
+        return /Android/i.test(agent) ? server.app_download || null : null;
     }
 
     /** The browser's honest limit, named when it bit. */

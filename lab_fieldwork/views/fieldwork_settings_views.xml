@@ -119,6 +119,11 @@
                         <field name="fw_app_apk" filename="fw_app_apk_filename"/>
                         <field name="fw_app_apk_filename" invisible="1"/>
                         <field name="fw_app_url" widget="url"/>
+                        <field name="fw_ios_info"/>
+                        <field name="fw_ios_ipa" filename="fw_ios_ipa_filename"/>
+                        <field name="fw_ios_ipa_filename" invisible="1"/>
+                        <field name="fw_ios_link" widget="url" placeholder="https://testflight.apple.com/join/…"/>
+                        <field name="fw_ios_remove"/>
                     </group>
                     <div class="text-muted small ps-1">
                         ADL FieldX, the executives' app, is this site in a shell, with one
@@ -127,6 +132,11 @@
                         version. Executives get it from the download page (send them the
                         link), and My Day tells anyone on an older version that a newer one
                         is out. Positions are kept only between Start my day and End the day.
+                        For iPhones, Apple installs only an app signed with the lab's Apple
+                        Developer account: upload its Ad Hoc build here (it installs from the
+                        same page on the iPhones the build registers), or enter its TestFlight /
+                        App Store link. Without either, iPhones are shown how to put the site
+                        on the home screen.
                     </div>
                 </sheet>
                 <footer>

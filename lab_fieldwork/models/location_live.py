@@ -656,6 +656,8 @@ class LabMyDayLive(models.AbstractModel):
         } if me.fw_native_app else None
         # For the nudge on My Day (Android, outside the app): None until an APK is up.
         state['app_download'] = self.env['lab.field.app']._info()
+        # ...and on an iPhone, the iPhone app (an Ad Hoc build or a TestFlight link)
+        state['ios_download'] = self.env['lab.field.app']._ios_info()
         Ping = self.env['lab.location.ping'].sudo()
         day = Ping._today_for(user)
         points = Ping._day_points(user, day)
