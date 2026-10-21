@@ -3,6 +3,8 @@ from datetime import timedelta
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.fields import Domain
+from odoo.tools.sql import escape_psql
 from odoo.tools.misc import formatLang
 
 
@@ -881,10 +883,71 @@ class SaleOrderLine(models.Model):
 class ProductColour(models.Model):
     _name = 'product.colour'
     _description = "Shade"
+    # Short names first. Every shade that matches a search CONTAINS what was typed,
+    # so the shortest match is the exact one: "A2" ahead of "A2,A3" and "2M2,A2".
+    # Ordered by id, the plain A2 sat behind dozens of typed-in combinations, on
+    # the second or third page of Search More - which lists in this order, not in
+    # name_search's. (client, 2026-10-21)
+    _order = 'name_length, name, id'
 
     name = fields.Char(string='Shade Name', required=True)
+    name_length = fields.Integer(compute='_compute_name_length', store=True)
     description = fields.Text(string='Description')
     active = fields.Boolean(string='Active', default=True)
+
+    @api.depends('name')
+    def _compute_name_length(self):
+        for shade in self:
+            shade.name_length = len((shade.name or '').strip())
+
+    @api.model
+    def _shade_key(self, name):
+        """A shade's name as the lab means it: "A2, A3", "a2,a3" and "A2 ,A3" are one."""
+        return ''.join((name or '').split()).upper()
+
+    @api.constrains('name')
+    def _check_name_unique(self):
+        """A new shade may not be another spelling of one that exists.
+
+        762 shades on the live list, most of them combinations typed into orders,
+        several of them twice ("A2,A1" and "A2, A1"). Shades are added from the
+        master list now, and this keeps that list from growing duplicates again.
+        Existing duplicates are not touched: only a created or renamed shade is checked.
+        """
+        for shade in self:
+            key = self._shade_key(shade.name)
+            twins = self.with_context(active_test=False).search(
+                [('id', '!=', shade.id), ('name', '=ilike', escape_psql(shade.name.strip()[:1]) + '%')])
+            twin = twins.filtered(lambda s: self._shade_key(s.name) == key)[:1]
+            if twin:
+                raise ValidationError(_(
+                    'The shade "%(name)s" already exists as "%(existing)s".',
+                    name=shade.name, existing=twin.name))
+
+    @api.model
+    @api.readonly
+    def name_search(self, name='', domain=None, operator='ilike', limit=100):
+        """The exact shade first, then shades starting with what was typed, then the rest.
+
+        Typing "A2" listed every shade containing A2, in creation order, and the
+        dropdown's eight lines were all combinations. (client, 2026-10-21)
+        """
+        term = (name or '').strip()
+        if not term or operator != 'ilike':
+            return super().name_search(name, domain, operator, limit)
+        found = []
+        # escaped: a % or _ typed into the box is a character, not a wildcard
+        pattern = escape_psql(term)
+        for op, value in (('=ilike', pattern), ('=ilike', pattern + '%'),
+                          ('=ilike', '%' + pattern + '%')):
+            if limit and len(found) >= limit:
+                break
+            shades = self.search_fetch(
+                Domain('name', op, value) & Domain(domain or Domain.TRUE)
+                & Domain('id', 'not in', [shade_id for shade_id, _name in found]),
+                ['display_name'], limit=limit and limit - len(found))
+            found += [(shade.id, shade.display_name) for shade in shades.sudo()]
+        return found
 
 
 class SendThrough(models.Model):

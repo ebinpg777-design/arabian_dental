@@ -178,13 +178,17 @@
                 <field name="ul" optional="show"/>
                 <field name="teeth" optional="show" widget="fdi_teeth"/>
                 <field name="cast" optional="show"/>
-                <field name="color_scheme" optional="show"/>
+                <!-- Shades are picked, not invented: typing a new name here created a
+                     shade for every spelling of a combination (762 on the live list).
+                     New shades are added under Sales > Configuration > Dental Masters.
+                     (client, 2026-10-21) -->
+                <field name="color_scheme" optional="show" options="{'no_create': True}"/>
             </xpath>
             <xpath expr="//field[@name='order_line']/form//div[@name='ordered_qty']" position="after">
                 <field name="ul"/>
                 <field name="teeth" widget="fdi_teeth"/>
                 <field name="cast"/>
-                <field name="color_scheme"/>
+                <field name="color_scheme" options="{'no_create': True}"/>
             </xpath>
         </field>
     </record>
