@@ -1,0 +1,118 @@
+// Salesperson Summary - print stylesheet (web.report_assets_common).
+// Tables, not flexbox, for every layout: wkhtmltopdf's WebKit ignores flex.
+.sps {
+    $accent: #1f6f8b;
+    $accent-soft: #e8f1f5;
+    $ink: #1d2733;
+    $muted: #6c757d;
+    $rule: #d9dee3;
+    $good: #067647;
+    $good-soft: #e6f4ec;
+    $fair: #b45309;
+    $fair-soft: #fdf1e2;
+    $low: #b42318;
+    $low-soft: #fdecea;
+
+    font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 9.5pt;
+    color: $ink;
+    line-height: 1.35;
+
+    // reboot's zero-width solid borders print as hairlines: off, then drawn on purpose
+    table, thead, tbody, tfoot, tr, th, td { border-style: none; border-width: 0; }
+
+    .sps-muted { color: $muted; }
+    .sps-good { color: $good; }
+    .sps-strong { font-weight: 700; }
+    .sps-left { text-align: left; }
+    .sps-right { text-align: right; }
+    .sps-center { text-align: center; }
+
+    // title band
+    table.sps-head { width: 100%; border-collapse: collapse; margin: 0 0 8px;
+        border-top: 3px solid $accent; border-bottom: 1px solid $rule;
+        td { vertical-align: top; padding: 7px 0 8px; }
+        td.sps-head-l { width: 55%; }
+        td.sps-head-r { width: 45%; text-align: right; font-size: 8.8pt; line-height: 1.5; }
+    }
+    .sps-eyebrow { font-size: 7.6pt; text-transform: uppercase; letter-spacing: .8px; color: $muted; }
+    h2.sps-title { font-size: 19pt; font-weight: 700; color: $accent; margin: 1px 0 2px; line-height: 1.1; }
+    .sps-period { font-size: 10pt; font-weight: 600; }
+    .sps-label { font-size: 7.4pt; text-transform: uppercase; letter-spacing: .5px; color: $muted; margin-right: 3px; }
+
+    // the period in figures
+    table.sps-kpis { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 5px 0; margin: 0 0 10px; }
+    td.sps-kpi { border: 1px solid $rule; border-radius: 4px; padding: 5px 8px; vertical-align: top;
+        .sps-kpi-value { font-size: 11.5pt; font-weight: 700; margin-top: 1px; white-space: nowrap; }
+        &.sps-kpi-good .sps-kpi-value { color: $good; }
+        &.sps-kpi-main { background: $accent; border-color: $accent; color: #fff;
+            .sps-kpi-label { color: rgba(255, 255, 255, .88); } .sps-kpi-value { font-size: 12.5pt; } }
+        &.sps-kpi-rate { background: $accent-soft; border-color: $accent-soft;
+            .sps-kpi-value { color: $accent; font-size: 13pt; } }
+    }
+    .sps-kpi-label { font-size: 7.2pt; text-transform: uppercase; letter-spacing: .4px; color: $muted; }
+
+    .sps-section { font-size: 8.4pt; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+                   color: $accent; margin: 4px 0 4px; }
+
+    // the tables
+    table.sps-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 10px;
+        thead th { background: $accent; color: #fff; font-size: 7.8pt; font-weight: 600; text-transform: uppercase;
+                   letter-spacing: .3px; padding: 5px 4px; text-align: center; vertical-align: bottom;
+                   white-space: normal; word-break: normal; }
+        thead th.sps-left { text-align: left; }
+        thead th.sps-right { text-align: right; }
+        tbody td { padding: 5px 5px; border-bottom: 1px solid $rule; vertical-align: middle; }
+        tbody tr:nth-child(even) td { background: #f8fafb; }
+        tbody tr.sps-nobody td { color: $muted; font-style: italic; }
+        td.sps-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        td.sps-name, .sps-name { font-weight: 600; }
+        .sps-place { font-size: 7.8pt; color: $muted; }
+        tr.sps-total td { background: $accent-soft; font-weight: 700; border-top: 2px solid $accent; padding: 6px 5px; }
+        tr { page-break-inside: avoid; }
+    }
+    .sps-rank { display: inline-block; min-width: 16px; padding: 0 4px; border-radius: 8px; background: $accent-soft;
+                color: $accent; font-size: 8pt; font-weight: 700; text-align: center; }
+    td.sps-rate { text-align: center; white-space: nowrap; }
+    .sps-pill { display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 8pt; font-weight: 700; }
+    .sps-pill-good { background: $good-soft; color: $good; }
+    .sps-pill-fair { background: $fair-soft; color: $fair; }
+    .sps-pill-low { background: $low-soft; color: $low; }
+
+    // share of the outstanding: a bar with the figure under it
+    td.sps-share { padding-right: 2px; }
+    .sps-sharebar { height: 6px; background: #edf1f4; border-radius: 3px; overflow: hidden;
+        div { height: 6px; background: $accent; border-radius: 3px; } }
+    .sps-sharetext { font-size: 7.6pt; color: $muted; margin-top: 1px; }
+
+    // billed against received
+    .sps-chart { page-break-inside: avoid; margin-top: 6px; }
+    .sps-legend { float: right; font-weight: 400; text-transform: none; letter-spacing: 0; color: $muted; font-size: 8pt; }
+    .sps-key { display: inline-block; width: 10px; height: 8px; border-radius: 2px; margin: 0 3px 0 10px; }
+    .sps-key-billed, .sps-bar-billed { background: $accent; }
+    .sps-key-received, .sps-bar-received { background: #3aa76d; }
+    table.sps-bars { width: 100%; border-collapse: collapse; margin-bottom: 10px;
+        td { padding: 3px 4px; vertical-align: middle; border-bottom: 1px dotted $rule; }
+        td.sps-bars-name { width: 22%; font-weight: 600; font-size: 8.8pt; }
+        td.sps-bars-track { width: 62%; }
+        td.sps-bars-vals { width: 16%; text-align: right; font-size: 8pt; white-space: nowrap; line-height: 1.25; }
+    }
+    .sps-bar { height: 7px; border-radius: 0 3px 3px 0; }
+    .sps-bar-billed { margin-bottom: 2px; }
+
+    // detailed: one block per salesperson
+    .sps-newpage { page-break-before: always; }
+    table.sps-person-head { width: 100%; border-collapse: collapse; margin: 6px 0 5px; page-break-inside: avoid;
+        page-break-after: avoid; background: $accent-soft; border-left: 4px solid $accent;
+        td { padding: 6px 8px; vertical-align: middle; }
+        td.sps-person-rank { width: 6%; text-align: center; }
+        td.sps-person-name { width: 34%; }
+        td.sps-person-fig { width: 15%; text-align: right; white-space: nowrap; b { font-size: 10pt; } }
+        td.sps-person-due b { color: $accent; font-size: 11pt; }
+    }
+    .sps-rank-big { font-size: 11pt; min-width: 24px; padding: 2px 6px; background: $accent; color: #fff; border-radius: 12px; }
+    .sps-person-title { font-size: 12pt; font-weight: 700; }
+
+    .sps-note { font-size: 7.4pt; color: $muted; border-top: 1px dashed $rule; padding-top: 4px; margin-top: 8px; }
+    .sps-empty { text-align: center; color: $muted; padding: 30px 0; font-style: italic; }
+}

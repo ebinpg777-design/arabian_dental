@@ -1,0 +1,3 @@
+id,name,model_id,group_id/id,operation,domain
+access_salesperson_summary_wizard_invoice,salesperson.summary.wizard,salesperson.summary.wizard,account.group_account_invoice,crud,
+access_salesperson_summary_wizard_readonly,salesperson.summary.wizard readonly,salesperson.summary.wizard,account.group_account_readonly,crud,

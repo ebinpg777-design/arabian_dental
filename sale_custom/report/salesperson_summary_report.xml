@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The Salesperson Summary (ebshel_salesperson_summary) on the lab letterhead:
+         the letterhead card at the top of the body, and the paper format that leaves
+         no header band above it - the dispatch register's arrangement. -->
+    <template id="salesperson_summary_letterhead" inherit_id="ebshel_salesperson_summary.letterhead">
+        <xpath expr="." position="inside">
+            <t t-call="sale_custom.letterhead_block"/>
+        </xpath>
+    </template>
+
+    <record id="ebshel_salesperson_summary.action_report_salesperson_summary" model="ir.actions.report">
+        <field name="paperformat_id" ref="paperformat_lab_invoice"/>
+    </record>
+</odoo>

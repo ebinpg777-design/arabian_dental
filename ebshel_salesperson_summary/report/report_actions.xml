@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Printed from the wizard (Accounting > Reporting > Salesperson Summary), never
+         from a record's Print menu: the period and the salespersons are always chosen. -->
+    <record id="action_report_salesperson_summary" model="ir.actions.report">
+        <field name="name">Salesperson Summary</field>
+        <field name="model">salesperson.summary.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ebshel_salesperson_summary.report_salesperson_summary</field>
+        <field name="print_report_name">'Salesperson Summary %s to %s' % (object.date_from.strftime('%d-%m-%Y'), object.date_to.strftime('%d-%m-%Y'))</field>
+    </record>
+</odoo>

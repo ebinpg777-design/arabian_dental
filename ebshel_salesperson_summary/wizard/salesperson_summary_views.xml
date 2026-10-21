@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_salesperson_summary_wizard" model="ir.ui.view">
+        <field name="name">salesperson.summary.wizard.form</field>
+        <field name="model">salesperson.summary.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Salesperson Summary">
+                <group>
+                    <group string="Period">
+                        <field name="period"/>
+                        <label for="date_from" string="Dates"/>
+                        <div class="o_row">
+                            <field name="date_from" class="oe_inline"/> <span>→</span>
+                            <field name="date_to" class="oe_inline"/>
+                        </div>
+                        <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                    <group string="Report">
+                        <field name="user_ids" widget="many2many_tags" options="{'no_create': True}"
+                               placeholder="Every salesperson"/>
+                        <field name="layout" widget="radio"/>
+                        <field name="page_per_salesperson" invisible="layout != 'detailed'"/>
+                    </group>
+                </group>
+                <div class="alert alert-info mb-0" role="status" invisible="not summary">
+                    <field name="summary" readonly="1"/>
+                </div>
+                <footer>
+                    <button name="action_view" type="object" string="View" class="btn-primary" icon="fa-eye" data-hotkey="v"/>
+                    <button name="action_print" type="object" string="Print PDF" icon="fa-print" data-hotkey="q"/>
+                    <button name="action_export_xlsx" type="object" string="Export Excel" icon="fa-file-excel-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_salesperson_summary_wizard" model="ir.actions.act_window">
+        <field name="name">Salesperson Summary</field>
+        <field name="res_model">salesperson.summary.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_salesperson_summary" name="Salesperson Summary"
+              parent="account.menu_finance_reports" sequence="85"
+              action="action_salesperson_summary_wizard"
+              groups="account.group_account_invoice,account.group_account_readonly"/>
+</odoo>

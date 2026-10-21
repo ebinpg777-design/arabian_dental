@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Empty here. A database whose letterhead is drawn in the page body (and whose
+         layout leaves the page header out) inherits this to put it at the top. -->
+    <template id="letterhead"/>
+
+    <!-- One figure cell: two decimals, no currency (the header says which). -->
+    <template id="figure">
+        <td t-attf-class="sps-num #{cls or ''}"><span t-out="value" t-options="{'widget': 'float', 'precision': 2}"/></td>
+    </template>
+
+    <template id="rate_pill">
+        <td class="sps-rate">
+            <span t-if="rate is not None" t-attf-class="sps-pill sps-pill-#{rate_class(rate)}"><t t-out="'%.1f' % rate"/>%</span>
+            <span t-else="" class="sps-muted">-</span>
+        </td>
+    </template>
+
+    <template id="report_salesperson_summary">
+        <t t-call="web.html_container">
+            <t t-call="{{layout}}" o="wizard" hide_letterhead="True" footer_note.translate="Salesperson Summary">
+                <t t-set="totals" t-value="data['totals']"/>
+                <t t-set="groups" t-value="data['groups']"/>
+                <t t-set="mo" t-value="{'widget': 'monetary', 'display_currency': currency}"/>
+                <div class="page sps">
+                    <t t-call="ebshel_salesperson_summary.letterhead"/>
+
+                    <!-- what this is on the left, for whom and when on the right -->
+                    <table class="sps-head">
+                        <tr>
+                            <td class="sps-head-l">
+                                <div class="sps-eyebrow">Receivables by salesperson</div>
+                                <h2 class="sps-title">Salesperson Summary</h2>
+                                <div class="sps-period">
+                                    <span t-out="wizard.date_from" t-options="{'widget': 'date'}"/> → <span t-out="wizard.date_to" t-options="{'widget': 'date'}"/>
+                                </div>
+                            </td>
+                            <td class="sps-head-r">
+                                <div><span class="sps-label">Company</span> <b t-out="company.name"/></div>
+                                <div><span class="sps-label">Salespersons</span> <t t-out="people"/></div>
+                                <div><span class="sps-label">Report</span>
+                                    <t t-if="wizard.layout == 'detailed'">Detailed, by customer</t><t t-else="">Summary</t>
+                                    · amounts in <t t-out="currency.name"/></div>
+                                <div class="sps-muted">Printed <span t-out="printed_on" t-options="{'widget': 'date'}"/></div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <t t-if="not groups">
+                        <p class="sps-empty">Nothing to report for this period: no customer of these salespersons has a balance or a movement.</p>
+                    </t>
+                    <t t-else="">
+                        <!-- the period in five figures and a rate -->
+                        <table class="sps-kpis">
+                            <tr>
+                                <td class="sps-kpi"><div class="sps-kpi-label">Opening balance</div><div class="sps-kpi-value" t-out="totals['opening']" t-options="mo"/></td>
+                                <td class="sps-kpi"><div class="sps-kpi-label">Billed</div><div class="sps-kpi-value" t-out="totals['billed']" t-options="mo"/></td>
+                                <td class="sps-kpi sps-kpi-good"><div class="sps-kpi-label">Received</div><div class="sps-kpi-value" t-out="totals['received']" t-options="mo"/></td>
+                                <td class="sps-kpi"><div class="sps-kpi-label">Returns &amp; adjustments</div><div class="sps-kpi-value" t-out="totals['adjusted']" t-options="mo"/></td>
+                                <td class="sps-kpi sps-kpi-main"><div class="sps-kpi-label">Outstanding on <span t-out="wizard.date_to" t-options="{'widget': 'date'}"/></div><div class="sps-kpi-value" t-out="totals['closing']" t-options="mo"/></td>
+                                <td class="sps-kpi sps-kpi-rate">
+                                    <div class="sps-kpi-label">Collected</div>
+                                    <div class="sps-kpi-value"><t t-if="totals['rate'] is not None"><t t-out="'%.1f' % totals['rate']"/>%</t><t t-else="">-</t></div>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- one line per salesperson -->
+                        <div class="sps-section">By salesperson</div>
+                        <table class="sps-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:4%">#</th>
+                                    <th style="width:17%" class="sps-left">Salesperson</th>
+                                    <th style="width:8.5%">Customers</th>
+                                    <th style="width:11%" class="sps-right">Opening</th>
+                                    <th style="width:11%" class="sps-right">Billed</th>
+                                    <th style="width:11%" class="sps-right">Received</th>
+                                    <th style="width:9%" class="sps-right">Returns &amp; Adj.</th>
+                                    <th style="width:11.5%" class="sps-right">Outstanding</th>
+                                    <th style="width:8.5%">Collected</th>
+                                    <th style="width:8.5%" class="sps-left">Share</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="groups" t-as="g" t-attf-class="#{'sps-nobody' if not g['user'] else ''}">
+                                    <td class="sps-center"><span class="sps-rank" t-out="g['rank']"/></td>
+                                    <td class="sps-left sps-name" t-out="g['name']"/>
+                                    <td class="sps-center"><t t-out="g['count']"/></td>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="g['opening']"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="g['billed']"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="g['received']" cls="'sps-good'"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="g['adjusted']"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="g['closing']" cls="'sps-strong'"/>
+                                    <t t-call="ebshel_salesperson_summary.rate_pill" rate="g['rate']"/>
+                                    <td class="sps-share">
+                                        <div class="sps-sharebar"><div t-attf-style="width:#{'%.1f' % g['share_bar']}%"/></div>
+                                        <div class="sps-sharetext"><t t-out="'%.1f' % g['share']"/>%</div>
+                                    </td>
+                                </tr>
+                                <!-- the total is the table's last BODY row: wkhtmltopdf repeats a
+                                     tfoot at the foot of every page, so a total there printed
+                                     under a list that went on overleaf -->
+                                <tr class="sps-total">
+                                    <td/>
+                                    <td class="sps-left">Total</td>
+                                    <td class="sps-center" t-out="totals['customers']"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="totals['opening']"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="totals['billed']"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="totals['received']"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="totals['adjusted']"/>
+                                    <t t-call="ebshel_salesperson_summary.figure" value="totals['closing']"/>
+                                    <t t-call="ebshel_salesperson_summary.rate_pill" rate="totals['rate']"/>
+                                    <td class="sps-share"><div class="sps-sharetext">100%</div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- what was billed against what came in, per salesperson -->
+                        <div class="sps-chart">
+                            <div class="sps-section">Billed and received in the period
+                                <span class="sps-legend"><i class="sps-key sps-key-billed"/>Billed <i class="sps-key sps-key-received"/>Received</span>
+                            </div>
+                            <table class="sps-bars">
+                                <tr t-foreach="groups" t-as="g">
+                                    <td class="sps-bars-name" t-out="g['name']"/>
+                                    <td class="sps-bars-track">
+                                        <div class="sps-bar sps-bar-billed" t-attf-style="width:#{'%.1f' % g['billed_bar']}%;#{'' if g['billed'] > 0 else 'visibility:hidden;'}"/>
+                                        <div class="sps-bar sps-bar-received" t-attf-style="width:#{'%.1f' % g['received_bar']}%;#{'' if g['received'] > 0 else 'visibility:hidden;'}"/>
+                                    </td>
+                                    <td class="sps-bars-vals">
+                                        <div><span t-out="g['billed']" t-options="{'widget': 'float', 'precision': 2}"/></div>
+                                        <div class="sps-good"><span t-out="g['received']" t-options="{'widget': 'float', 'precision': 2}"/></div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- detailed: every salesperson with their customers -->
+                        <t t-if="wizard.layout == 'detailed'">
+                            <t t-foreach="groups" t-as="g">
+                                <div t-attf-class="sps-person #{'sps-newpage' if (wizard.page_per_salesperson or g_first) else ''}">
+                                    <table class="sps-person-head">
+                                        <tr>
+                                            <td class="sps-person-rank"><span class="sps-rank sps-rank-big" t-out="g['rank']"/></td>
+                                            <td class="sps-person-name">
+                                                <div class="sps-person-title" t-out="g['name']"/>
+                                                <div class="sps-muted"><t t-out="g['count']"/> customer(s) · <t t-out="g['billed_customers']"/> billed in the period</div>
+                                            </td>
+                                            <td class="sps-person-fig"><div class="sps-kpi-label">Billed</div><b t-out="g['billed']" t-options="mo"/></td>
+                                            <td class="sps-person-fig"><div class="sps-kpi-label">Received</div><b class="sps-good" t-out="g['received']" t-options="mo"/></td>
+                                            <td class="sps-person-fig sps-person-due"><div class="sps-kpi-label">Outstanding</div><b t-out="g['closing']" t-options="mo"/></td>
+                                            <td class="sps-person-fig">
+                                                <div class="sps-kpi-label">Collected</div>
+                                                <span t-if="g['rate'] is not None" t-attf-class="sps-pill sps-pill-#{rate_class(g['rate'])}"><t t-out="'%.1f' % g['rate']"/>%</span>
+                                                <span t-else="" class="sps-muted">-</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <table class="sps-table sps-customers">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:4%">#</th>
+                                                <th style="width:30%" class="sps-left">Customer</th>
+                                                <th style="width:11%" class="sps-right">Opening</th>
+                                                <th style="width:11%" class="sps-right">Billed</th>
+                                                <th style="width:11%" class="sps-right">Received</th>
+                                                <th style="width:10%" class="sps-right">Returns &amp; Adj.</th>
+                                                <th style="width:13%" class="sps-right">Outstanding</th>
+                                                <th style="width:10%">Collected</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-foreach="g['customers']" t-as="c">
+                                                <td class="sps-center sps-muted" t-out="c_index + 1"/>
+                                                <td class="sps-left">
+                                                    <div class="sps-name" t-out="c['name']"/>
+                                                    <div t-if="c['place']" class="sps-place" t-out="c['place']"/>
+                                                </td>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="c['opening']"/>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="c['billed']"/>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="c['received']" cls="'sps-good'"/>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="c['adjusted']"/>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="c['closing']" cls="'sps-strong'"/>
+                                                <t t-call="ebshel_salesperson_summary.rate_pill" rate="c['rate']"/>
+                                            </tr>
+                                            <tr class="sps-total">
+                                                <td/>
+                                                <td class="sps-left"><t t-out="g['name']"/> - total</td>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="g['opening']"/>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="g['billed']"/>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="g['received']"/>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="g['adjusted']"/>
+                                                <t t-call="ebshel_salesperson_summary.figure" value="g['closing']"/>
+                                                <t t-call="ebshel_salesperson_summary.rate_pill" rate="g['rate']"/>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </t>
+                        </t>
+
+                        <div class="sps-note">
+                            Customers are counted under the salesperson on the customer. Billed = debits in the period;
+                            received = credits booked in bank, cash or card journals; returns &amp; adjustments = other credits
+                            (credit notes, write-offs). Outstanding = opening + billed - received - returns &amp; adjustments.
+                            Collected = received out of opening + billed.
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

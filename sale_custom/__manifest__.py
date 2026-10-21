@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Sales Custom',
-    'version': '20.0.1.55.0',
+    'version': '20.0.1.56.0',
     'category': 'Sales',
     'summary': 'Dental lab customization: per-patient orders, MRP job cards, GST invoicing, daily sales',
     'description': """
@@ -29,6 +29,8 @@ Re-implemented for Odoo 19. Provides:
         'l10n_in',
         # the GST e-invoice report; the lab names its buyer by the billing name
         'ebshel_einvoice_report',
+        # the Salesperson Summary, printed on the lab letterhead
+        'ebshel_salesperson_summary',
     ],
     'data': [
         'data/ir_sequence_data.xml',
@@ -45,6 +47,7 @@ Re-implemented for Odoo 19. Provides:
         'report/daily_sales_summary_report.xml',
         'report/report_actions.xml',
         'report/dispatch_register_report.xml',
+        'report/salesperson_summary_report.xml',
         'report/order_list_report.xml',
         'report/order_count_report.xml',
         'views/sale_order_views.xml',
