@@ -33,6 +33,16 @@ class StickerEngine(models.AbstractModel):
     def barcode_data_uri(self, barcode_type, value, width, height):
         if not value or barcode_type == 'none':
             return False
+        if barcode_type == 'code128':
+            # Vector, not a picture (client, 2026-10-21: "print sticker not working"):
+            # wkhtmltopdf shrinks the rotated PNG to ~1 pixel per bar while building the
+            # PDF - 900 px became 137, and fewer still at a higher dpi - and the widths it
+            # was left with no longer spell Code 128, so no scanner could read the label
+            # whatever the printer. Bars drawn as an SVG stay exact rectangles at any
+            # printer's resolution.
+            svg = self.code128_svg(value)
+            if svg:
+                return 'data:image/svg+xml;base64,' + base64.b64encode(svg.encode()).decode()
         symbology = 'QR' if barcode_type == 'qr' else 'Code128'
         try:
             png = self.env['ir.actions.report'].barcode(symbology, value, width=width, height=height,
@@ -40,6 +50,34 @@ class StickerEngine(models.AbstractModel):
         except Exception:  # noqa: BLE001 - a bad value must not kill the print
             return False
         return 'data:image/png;base64,' + base64.b64encode(png).decode()
+
+    @api.model
+    def code128_svg(self, value, quiet=10):
+        """A Code 128 symbol as SVG, one unit per module, `quiet` modules of white at
+        each end. The encoding is reportlab's (always installed with Odoo); its
+        decomposition spells bars in capitals and spaces in small letters, a-d being
+        one to four modules wide. None when the value cannot be encoded."""
+        try:
+            from reportlab.graphics.barcode.code128 import Code128
+            symbol = Code128(str(value), quiet=0)
+            symbol.validate()
+            symbol.encode()
+            symbol.decompose()
+            runs = [(char.isupper(), 'abcd'.index(char.lower()) + 1) for char in symbol.decomposed]
+        except Exception:  # noqa: BLE001 - the PNG path is still there
+            return None
+        if not runs or not symbol.valid:
+            return None
+        total = sum(width for _bar, width in runs) + 2 * quiet
+        position, rects = quiet, []
+        for is_bar, width in runs:
+            if is_bar:
+                rects.append('<rect x="%d" y="0" width="%d" height="100"/>' % (position, width))
+            position += width
+        return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %(t)d 100" width="%(t)d" '
+                'height="100" preserveAspectRatio="none" shape-rendering="crispEdges">'
+                '<rect width="%(t)d" height="100" fill="#fff"/><g fill="#000">%(r)s</g></svg>'
+                % {'t': total, 'r': ''.join(rects)})
 
     def _address_lines(self, partner):
         """Address parts, tidied so they wrap: the migrated data has "GOLD,MK SQUARE,,"

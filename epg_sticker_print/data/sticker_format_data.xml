@@ -16,6 +16,15 @@
             <field name="margin_mm">1.5</field>
             <field name="columns">1</field><field name="rows">1</field>
         </record>
+        <!-- the roll the lab actually feeds (client, 2026-10-21, "sticker is 60mm * 4mm":
+             60 x 40). Made the default once by migrations/20.0.2.3.0. -->
+        <record id="format_roll_60x40" model="epg.sticker.format">
+            <field name="name">Roll 60 × 40 mm</field>
+            <field name="sequence">12</field>
+            <field name="width_mm">60</field><field name="height_mm">40</field>
+            <field name="margin_mm">1.5</field>
+            <field name="columns">1</field><field name="rows">1</field>
+        </record>
         <record id="format_roll_50x30" model="epg.sticker.format">
             <field name="name">Roll 50 × 30 mm</field>
             <field name="sequence">20</field>

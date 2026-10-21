@@ -33,7 +33,8 @@ class TestStickerPrint(TransactionCase):
         one = st[1]
         self.assertEqual(one['count'], 2)
         self.assertIn(self.o1.name, one['refs']); self.assertIn(self.o2.name, one['refs'])
-        self.assertTrue(one['barcode'].startswith('data:image/png;base64,'), "barcode is inline, never a URL")
+        self.assertTrue(one['barcode'].startswith('data:image/svg+xml;base64,'),
+                        "barcode is inline, never a URL - and vector, so it survives the PDF")
         self.assertEqual(one['route'], 'KLM'); self.assertEqual(one['phone'], '111')
 
     def test_order_mode_lines_and_toggles(self):
@@ -705,3 +706,31 @@ class TestStickerRouteOrder(TransactionCase):
     def test_clinic_labels_without_orders_are_grouped_by_route(self):
         stickers = self.Engine.build_from_partners(self.dr_w | self.dr_c | self.dr_none, {'mode': 'customer'})
         self.assertEqual([s['name'] for s in stickers], ['ZZZ Clinic', 'AAA Clinic', 'MMM Clinic'])
+
+
+@tagged('post_install', '-at_install')
+class TestVectorBarcode(TransactionCase):
+    """The Code 128 on a sticker is drawn as vector bars (client, 2026-10-21): as a PNG,
+    wkhtmltopdf shrank it to ~1 pixel per bar and no scanner could read the label."""
+
+    def test_the_bars_spell_code_128(self):
+        import base64
+        import re
+        Engine = self.env['epg.sticker.engine']
+        uri = Engine.barcode_data_uri('code128', 'S75828', 900, 180)
+        self.assertTrue(uri.startswith('data:image/svg+xml;base64,'))
+        svg = base64.b64decode(uri.split(',', 1)[1]).decode()
+        bars = [(int(x), int(w)) for x, w in re.findall(r'<rect x="(\d+)" y="0" width="(\d+)"', svg)]
+        total = int(re.search(r'viewBox="0 0 (\d+) 100"', svg).group(1))
+        self.assertTrue(bars and all(1 <= w <= 4 for _x, w in bars), "Code 128 bars are 1-4 modules")
+        self.assertEqual(bars[:3], [(10, 2), (13, 1), (16, 1)],
+                         "ten modules of quiet zone, then start code B: 2 1 1 2 1 4")
+        self.assertEqual(bars[-1][0] + bars[-1][1], total - 10, "and ten after the stop code")
+        # a value Code 128 cannot carry goes the old way rather than drawing nonsense
+        self.assertIsNone(Engine.code128_svg('café €'))
+        self.assertFalse(Engine.barcode_data_uri('none', 'S1', 900, 180))
+
+    def test_the_lab_roll_is_there(self):
+        roll = self.env.ref('epg_sticker_print.format_roll_60x40')
+        self.assertEqual((roll.width_mm, roll.height_mm, roll.columns, roll.rows), (60, 40, 1, 1))
+        self.assertTrue(roll.paperformat_id, "a format prints on its own paper size")
