@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.5.22.0',
+    'version': '20.0.6.0.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -22,19 +22,22 @@ there, leave — and everything else is derived from it or generated for them.
 * **Targets** — a monthly number per person, with achievement measured from real
   visits and orders rather than typed in.
 
-* **Three role desks** — each senior role opens its own screen. The *Ops Desk* leads
-  with the day sheets waiting to be signed (clean days in one tap, exceptions with
-  their reasons unfolded) above the live field board. The *Marketing Desk* leads with
-  the days waiting to be judged — score with a tap, approve with the next — above the
-  new doors, route momentum and the clinics slipping away. The *Command Center* shows
-  the administrator whether the machine itself is running: both desks' backlogs, the
-  SLA, who holds each desk, the crons' pulse, and the policy calibration.
+* **Field Live** — the one screen the managers and the CEO open: where every
+  executive is right now (pushed from the phones, not polled), each one's day as
+  facts and as a timeline, the team's numbers across the top, the alerts worth a
+  word (no signal, a long stop, a phone dying, a day not started, a claim far from
+  the trail, cash past the policy), which phones run the ADL FieldX app, and a feed
+  of what is happening. Beside the map, three reports on the same day: everyone's
+  day on one clock, a scoreboard by person and by route, and the trends — the
+  fortnight's visits, cases, money and km, day by day and person by person, and the
+  month so far. The three role desks it replaced (Ops Desk, Marketing Desk, Command
+  Center) were removed on 2026-10-20.
 
 * **Day Sheets** — each executive's day assembles itself at day close from the visits,
   travel, cases and attendance it produced, and crosses two desks in order: the
   **Operational Manager** vouches that the day happened as recorded, then the
-  **Marketing Manager** judges the activities. The week of both is filed and mailed to
-  the Field Work Administrator every Monday.
+  **Marketing Manager** judges the activities, each from the Approvals menu. The week
+  of both is filed and mailed to the Field Work Administrator every Monday.
 
 Four roles, and each sees a *different application* rather than the same one with
 pieces greyed out. The roles are parallel, not stacked: a manager never sees the
@@ -62,7 +65,6 @@ in the server, not merely in the form.
         'data/ir_sequence_data.xml',
         'data/ir_cron_data.xml',
         'views/my_day_views.xml',
-        'views/desk_views.xml',
         'views/res_users_views.xml',
         'views/lab_beat_views.xml',
         'views/lab_case_views.xml',
@@ -89,6 +91,7 @@ in the server, not merely in the form.
         'data/daily_flow_data.xml',
         'views/lab_fieldwork_menus.xml',
         'views/live_map_views.xml',
+        'views/field_live_views.xml',
         # After the menus: its menuitem hangs off menu_fw_approvals.
         'views/desk_cover_views.xml',
         # After the menus too: it hangs off menu_fw_ops and the Petty Cash app.
@@ -129,17 +132,17 @@ in the server, not merely in the form.
             'lab_fieldwork/static/src/js/new_clinics.js',
             'lab_fieldwork/static/src/xml/my_day.xml',
             'lab_fieldwork/static/src/xml/new_clinics.xml',
-            'lab_fieldwork/static/src/js/desks.js',
-            'lab_fieldwork/static/src/xml/desks.xml',
             # The field, live (2026-10-19): the manager's live map and the
             # executive's own trail card on My Day. Leaflet (above) is already loaded.
             'lab_fieldwork/static/src/scss/live_map.scss',
             'lab_fieldwork/static/src/js/live_map.js',
             'lab_fieldwork/static/src/xml/live_map.xml',
+            'lab_fieldwork/static/src/scss/field_live.scss',
+            'lab_fieldwork/static/src/js/field_live.js',
+            'lab_fieldwork/static/src/xml/field_live.xml',
             'lab_fieldwork/static/src/scss/my_trail.scss',
             'lab_fieldwork/static/src/js/my_trail.js',
             'lab_fieldwork/static/src/xml/my_trail.xml',
-            'lab_fieldwork/static/src/scss/desks.scss',
         ],
     },
     'installable': True,

@@ -1216,12 +1216,15 @@ class TestFieldwork(TransactionCase):
         self.assertEqual(len(trend), 6)
         self.assertEqual(set(trend[0]), {'label', 'visits', 'cases', 'value'})
 
-    def test_only_the_administrator_gets_the_command_center(self):
-        """Field Health's replacement (2026-08-31) keeps its ownership: the
-        screen that judges the rules belongs to whoever can change them."""
-        self.assertIn('Command Center', self._menu_names(self.admin_user))
-        self.assertNotIn('Command Center', self._menu_names(self.manager))
-        self.assertNotIn('Command Center', self._menu_names(self.exec_user))
+    def test_every_manager_gets_field_live_and_nobody_gets_the_desks(self):
+        """Field Live (2026-10-20) replaced the three role desks: one screen for
+        every manager role and the administrator, none for an executive."""
+        for who in (self.admin_user, self.manager):
+            names = self._menu_names(who)
+            self.assertIn('Field Live', names)
+            for gone in ('Command Center', 'Ops Desk', 'Marketing Desk', 'Live Map'):
+                self.assertNotIn(gone, names)
+        self.assertNotIn('Field Live', self._menu_names(self.exec_user))
 
     # ------------------------------------------------------- phone / mobile
     def _wa_field(self):

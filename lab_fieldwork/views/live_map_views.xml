@@ -79,10 +79,8 @@
     </record>
 
     <!-- Both under Operations, managers only: Live Map first, where the day is. -->
-    <menuitem id="menu_fw_ops_live_map" name="Live Map"
-              parent="lab_fieldwork.menu_fw_ops" sequence="1"
-              action="action_live_map"
-              groups="lab_fieldwork.group_fieldwork_manager"/>
+    <!-- the Live Map menu was replaced by Field Live (field_live_views.xml,
+         2026-10-20); the action stays for anything that linked to it -->
     <menuitem id="menu_fw_ops_halts" name="Halts"
               parent="lab_fieldwork.menu_fw_ops" sequence="12"
               action="action_location_halts"

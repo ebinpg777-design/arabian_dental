@@ -1,0 +1,548 @@
+// Field Live (2026-10-20, reports and the wide-screen fixes 2026-10-21): the
+// strip, the rail, the map and the reports over it, the story.
+// The marker, popup and door styles are the Live Map's (live_map.scss) and
+// draw inside this canvas unchanged.
+$fl-ink: #111827;
+$fl-muted: #6b7280;
+$fl-line: #e5e7eb;
+$fl-bg: #f3f4f6;
+$fl-card: #fff;
+$fl-brand: #ed1c24;
+$fl-moving: #0f9d58;
+$fl-clinic: #2563eb;
+$fl-stopped: #d99b00;
+$fl-offline: #6c757d;
+$fl-halt: #fd7e14;
+$fl-danger: #dc2626;
+$fl-warn: #d97706;
+$fl-info: #2563eb;
+
+.o_fw_fl {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: $fl-bg;
+    color: $fl-ink;
+    font-size: .875rem;
+
+    // ------------------------------------------------------------ the head
+    // Three groups that wrap as a whole: the title, the view switcher, the tools.
+    // Nothing here has a fixed width that a narrower window could push off-screen.
+    .o_fw_fl_head {
+        display: flex;
+        align-items: center;
+        gap: .6rem 1rem;
+        padding: .5rem 1rem;
+        background: $fl-card;
+        border-bottom: 1px solid $fl-line;
+        flex-wrap: wrap;
+    }
+    .o_fw_fl_title {
+        flex: 0 0 auto;
+        h4 { margin: 0; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: .4rem; }
+    }
+    .o_fw_fl_live_dot {
+        width: 9px; height: 9px; border-radius: 50%; background: $fl-moving;
+        box-shadow: 0 0 0 0 rgba($fl-moving, .5);
+        animation: o_fw_fl_pulse 2s infinite;
+    }
+    .o_fw_fl_sub { font-size: .75rem; color: $fl-muted; white-space: nowrap; }
+    .o_fw_fl_lost { color: $fl-danger; font-weight: 600; }
+    .o_fw_fl_pastday { color: #b45309; font-weight: 600; }
+    .o_fw_fl_views {
+        display: inline-flex; padding: .15rem; border-radius: 10px; background: $fl-bg; border: 1px solid $fl-line;
+        button {
+            display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .7rem; border: 0; border-radius: 8px;
+            background: transparent; color: $fl-muted; font-weight: 600; font-size: .78rem; cursor: pointer; white-space: nowrap;
+            &:hover { color: $fl-ink; }
+        }
+        .o_fw_fl_view_on { background: $fl-card; color: $fl-ink; box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+    }
+    .o_fw_fl_tools {
+        display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-left: auto; min-width: 0;
+        justify-content: flex-end;
+    }
+    .o_fw_fl_search {
+        display: inline-flex; align-items: center; gap: .35rem; margin: 0;
+        padding: .15rem .55rem; border: 1px solid $fl-line; border-radius: 999px; background: $fl-bg;
+        .fa { color: $fl-muted; font-size: .8rem; }
+        input { border: 0; background: transparent; outline: none; width: 150px; font-size: .8rem; min-width: 0; }
+    }
+    .o_fw_fl_chips { display: inline-flex; gap: .25rem; }
+    .o_fw_fl_chip {
+        display: inline-flex; align-items: center; gap: .3rem;
+        padding: .22rem .65rem; border-radius: 999px; border: 1px solid $fl-line;
+        background: $fl-card; color: $fl-ink; font-size: .78rem; line-height: 1.2; cursor: pointer; white-space: nowrap;
+        &:hover { border-color: #cbd5e1; }
+    }
+    .o_fw_fl_chip_on { background: $fl-ink; border-color: $fl-ink; color: #fff; }
+    .o_fw_fl_chip_focus { border-color: $fl-brand; }
+    .o_fw_fl_btn {
+        display: inline-flex; align-items: center; gap: .25rem;
+        padding: .25rem .6rem; border-radius: 8px; border: 1px solid $fl-line;
+        background: $fl-card; color: $fl-ink; font-size: .78rem; cursor: pointer; text-decoration: none; white-space: nowrap;
+        &:hover { background: $fl-bg; color: $fl-ink; }
+        &:disabled { opacity: .4; cursor: default; }
+    }
+    .o_fw_fl_btn_go { border-color: $fl-brand; color: $fl-brand; font-weight: 600; }
+    // The day: a word to read, the native date picker underneath it to click.
+    .o_fw_fl_daynav { display: inline-flex; align-items: center; gap: .2rem; }
+    .o_fw_fl_dayword {
+        position: relative; display: inline-flex; align-items: center; gap: .35rem; margin: 0;
+        padding: .25rem .6rem; border: 1px solid $fl-line; border-radius: 8px; background: $fl-card;
+        font-size: .78rem; font-weight: 600; white-space: nowrap; cursor: pointer;
+        .fa { color: $fl-muted; }
+        &:hover { background: $fl-bg; }
+    }
+    .o_fw_fl_date {
+        position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; margin: 0;
+    }
+    .o_fw_fl_sheet_toggle { display: none; }
+    .o_fw_fl_dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+
+    // ------------------------------------------------------------ the strip
+    // A grid that wraps: thirteen tiles fit any width without a scrollbar.
+    .o_fw_fl_strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+        gap: .45rem;
+        padding: .55rem 1rem;
+        background: $fl-card;
+        border-bottom: 1px solid $fl-line;
+    }
+    .o_fw_fl_tile {
+        min-width: 0;
+        display: flex; flex-direction: column; gap: .05rem;
+        padding: .45rem .7rem;
+        border-radius: 12px;
+        background: $fl-bg;
+        border: 1px solid transparent;
+        cursor: default;
+        &:hover { border-color: $fl-line; }
+    }
+    .o_fw_fl_tile_n { font-size: 1.2rem; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        small { font-size: .8rem; font-weight: 600; color: $fl-muted; } }
+    .o_fw_fl_tile_l { font-size: .7rem; color: $fl-muted; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o_fw_fl_tile_moving .o_fw_fl_tile_n { color: $fl-moving; }
+    .o_fw_fl_tile_clinic .o_fw_fl_tile_n { color: $fl-clinic; }
+    .o_fw_fl_tile_stopped .o_fw_fl_tile_n { color: $fl-stopped; }
+    .o_fw_fl_tile_offline .o_fw_fl_tile_n { color: $fl-offline; }
+    .o_fw_fl_tile_warn { background: #fff7ed; .o_fw_fl_tile_n { color: $fl-warn; } }
+    .o_fw_fl_tile_danger { background: #fef2f2; .o_fw_fl_tile_n { color: $fl-danger; } }
+    .o_fw_fl_bar {
+        display: block; height: 4px; border-radius: 2px; background: $fl-line; margin-top: .3rem; overflow: hidden;
+        i { display: block; height: 100%; background: $fl-moving; }
+    }
+    .o_fw_fl_pulse_bars {
+        display: flex; align-items: flex-end; gap: 1px; height: 26px;
+        i { flex: 1 1 0; background: $fl-line; border-radius: 2px 2px 0 0; min-height: 2px; }
+        .o_fw_fl_pulse_on { background: $fl-clinic; }
+    }
+
+    // ------------------------------------------------------------ the body
+    .o_fw_fl_body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        position: relative;
+    }
+    .o_fw_fl_rail {
+        flex: 0 0 320px;
+        display: flex; flex-direction: column;
+        min-height: 0;
+        background: $fl-card;
+        border-right: 1px solid $fl-line;
+        transition: flex-basis .2s ease;
+        &.o_fw_fl_rail_closed { flex-basis: 0; overflow: hidden; border: 0; }
+    }
+    .o_fw_fl_tabs {
+        display: flex; gap: .2rem; padding: .45rem .5rem; border-bottom: 1px solid $fl-line;
+        button {
+            flex: 1 1 0; min-width: 0; padding: .3rem .3rem; border: 0; border-radius: 8px; background: transparent;
+            color: $fl-muted; font-weight: 600; font-size: .76rem; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; gap: .25rem; white-space: nowrap;
+            &:hover { background: $fl-bg; }
+        }
+        .o_fw_fl_tab_on { background: $fl-ink; color: #fff; &:hover { background: $fl-ink; } }
+        .o_fw_fl_tab_danger .o_fw_fl_tab_n { background: $fl-danger; color: #fff; }
+    }
+    .o_fw_fl_tab_n {
+        font-size: .66rem; padding: .05rem .38rem; border-radius: 999px; background: $fl-line; color: $fl-ink;
+    }
+    .o_fw_fl_list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: .5rem; }
+    .o_fw_fl_msg { padding: 1rem .6rem; color: $fl-muted; font-size: .85rem; }
+    .o_fw_fl_muted { color: $fl-muted; }
+    .o_fw_fl_warn_text { color: $fl-warn; font-weight: 600; }
+    .o_fw_fl_empty {
+        display: flex; flex-direction: column; align-items: center; gap: .35rem; text-align: center;
+        padding: 1.6rem 1rem; color: $fl-muted; font-size: .82rem;
+        .fa { font-size: 1.6rem; color: #cbd5e1; margin-bottom: .2rem; }
+        b { color: #374151; }
+        span { max-width: 300px; line-height: 1.4; }
+    }
+
+    // ---------- the people cards
+    .o_fw_fl_card {
+        padding: .55rem .65rem; margin-bottom: .45rem;
+        border-radius: 12px; background: $fl-card; border: 1px solid $fl-line;
+        cursor: pointer; transition: box-shadow .15s ease, border-color .15s ease;
+        &:hover { border-color: #cbd5e1; box-shadow: 0 4px 14px rgba(16, 24, 40, .06); }
+    }
+    .o_fw_fl_card_on { border-color: $fl-ink; box-shadow: 0 0 0 2px rgba($fl-ink, .08); }
+    .o_fw_fl_card_dim { opacity: .55; }
+    .o_fw_fl_card_off { opacity: .6; }
+    .o_fw_fl_card_top { display: flex; align-items: center; gap: .55rem; }
+    .o_fw_fl_avatar {
+        flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
+        border: 2px solid $fl-line; background: $fl-bg;
+        img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    }
+    .o_fw_fl_avatar_lg { width: 46px; height: 46px; }
+    .o_fw_fl_who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+    .o_fw_fl_name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o_fw_fl_route { font-size: .72rem; color: $fl-muted; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o_fw_fl_badge {
+        flex: 0 0 auto; font-size: .68rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px;
+        background: $fl-line; color: $fl-ink; white-space: nowrap;
+        small { font-weight: 500; opacity: .85; }
+    }
+    .o_fw_fl_badge_moving { background: $fl-moving; color: #fff; }
+    .o_fw_fl_badge_at_clinic { background: $fl-clinic; color: #fff; }
+    .o_fw_fl_badge_stopped { background: $fl-stopped; color: #fff; }
+    .o_fw_fl_badge_offline { background: $fl-offline; color: #fff; }
+    .o_fw_fl_card_line {
+        display: flex; align-items: baseline; gap: .4rem; margin-top: .3rem; font-size: .78rem;
+        > span:first-child { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    }
+    .o_fw_fl_since { flex: 0 0 auto; color: $fl-muted; font-size: .72rem; }
+    .o_fw_fl_c_clinic { color: $fl-clinic; }
+    .o_fw_fl_c_halt { color: $fl-halt; }
+    .o_fw_fl_c_speed { color: $fl-danger; }
+    .o_fw_fl_card_stats {
+        display: flex; flex-wrap: wrap; gap: .25rem .7rem; margin-top: .3rem; font-size: .75rem; color: #374151;
+        .fa { color: $fl-muted; margin-right: .15rem; }
+        .o_fw_fl_c_halt .fa { color: $fl-halt; }
+        .o_fw_fl_c_speed .fa { color: $fl-danger; }
+    }
+    .o_fw_fl_card_phone {
+        display: flex; align-items: center; gap: .6rem; margin-top: .35rem; padding-top: .35rem;
+        border-top: 1px dashed $fl-line; font-size: .72rem; color: $fl-muted;
+    }
+    .o_fw_fl_bat_ok { color: $fl-moving; }
+    .o_fw_fl_bat_mid { color: $fl-warn; }
+    .o_fw_fl_bat_low { color: $fl-danger; font-weight: 700; }
+    .o_fw_fl_silent { color: $fl-danger; font-weight: 600; }
+    .o_fw_fl_app {
+        padding: .05rem .4rem; border-radius: 999px; background: $fl-bg; border: 1px solid $fl-line;
+        font-size: .68rem; white-space: nowrap;
+    }
+    .o_fw_fl_app_on { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; font-weight: 600; }
+    .o_fw_fl_tel { color: $fl-ink; text-decoration: none; padding: .1rem .3rem; &:hover { color: $fl-brand; } }
+    .o_fw_fl_card_alerts { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
+    .o_fw_fl_pill {
+        font-size: .68rem; font-weight: 600; padding: .1rem .45rem; border-radius: 999px; white-space: nowrap;
+    }
+    .o_fw_fl_pill_danger { background: #fef2f2; color: $fl-danger; }
+    .o_fw_fl_pill_warning { background: #fff7ed; color: $fl-warn; }
+    .o_fw_fl_pill_info { background: #eff6ff; color: $fl-info; }
+
+    // ---------- the day split: at clinics / on the road / stopped / not recorded
+    .o_fw_fl_split {
+        display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: $fl-line;
+        i { display: block; height: 100%; }
+    }
+    .o_fw_fl_split_sm { margin-top: .4rem; height: 6px; }
+    .o_fw_fl_split_clinic { background: $fl-clinic; }
+    .o_fw_fl_split_road { background: $fl-moving; }
+    .o_fw_fl_split_stopped { background: $fl-halt; }
+    .o_fw_fl_split_unrecorded { background: repeating-linear-gradient(45deg, #9ca3af 0 3px, #e5e7eb 3px 6px); }
+    .o_fw_fl_key_i {
+        display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin: 0 .25rem 0 .1rem; vertical-align: -1px;
+    }
+    .o_fw_fl_split_legend {
+        display: flex; flex-wrap: wrap; gap: .25rem .8rem; margin-top: .4rem; font-size: .72rem; color: #374151;
+    }
+
+    // ---------- the alerts feed
+    .o_fw_fl_alert {
+        display: flex; gap: .55rem; padding: .5rem .6rem; margin-bottom: .4rem;
+        border-radius: 10px; background: $fl-card; border: 1px solid $fl-line; border-left-width: 4px;
+        cursor: pointer;
+        &:hover { background: $fl-bg; }
+    }
+    .o_fw_fl_alert_danger { border-left-color: $fl-danger; .o_fw_fl_alert_icon { color: $fl-danger; } }
+    .o_fw_fl_alert_warning { border-left-color: $fl-warn; .o_fw_fl_alert_icon { color: $fl-warn; } }
+    .o_fw_fl_alert_info { border-left-color: $fl-info; .o_fw_fl_alert_icon { color: $fl-info; } }
+    .o_fw_fl_alert_icon { margin-top: .15rem; }
+    .o_fw_fl_alert_body { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+    .o_fw_fl_alert_title { font-size: .8rem; }
+    .o_fw_fl_alert_detail { font-size: .74rem; color: $fl-muted; }
+    .o_fw_fl_alert_link { font-size: .72rem; color: $fl-info; font-weight: 600; }
+
+    // ---------- the phones
+    .o_fw_fl_phones_sum { padding: .3rem .4rem .55rem; font-size: .8rem; }
+    .o_fw_fl_phone {
+        display: grid; grid-template-columns: 1fr auto; gap: .15rem .5rem; align-items: center;
+        padding: .45rem .55rem; margin-bottom: .35rem; border-radius: 10px;
+        background: $fl-card; border: 1px solid $fl-line; font-size: .76rem; cursor: pointer;
+        &:hover { background: $fl-bg; }
+        .o_fw_fl_phone_name { font-weight: 700; grid-column: 1; }
+        .o_fw_fl_app { grid-column: 2; justify-self: end; }
+        .o_fw_fl_phone_age { grid-column: 2; justify-self: end; color: $fl-muted; }
+    }
+    .o_fw_fl_phone_silent { border-color: #fecaca; background: #fff5f5; }
+    .o_fw_fl_phone_off { opacity: .6; }
+    .o_fw_fl_phones_note { padding: .6rem .5rem; font-size: .72rem; color: $fl-muted; line-height: 1.4; }
+
+    // ---------- the feed
+    .o_fw_fl_feed {
+        display: flex; gap: .55rem; padding: .45rem .55rem; margin-bottom: .3rem; border-radius: 10px;
+        background: $fl-card; border: 1px solid $fl-line; cursor: pointer;
+        &:hover { background: $fl-bg; }
+        .o_fw_fl_feed_icon {
+            flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center;
+            justify-content: center; font-size: .72rem; background: $fl-bg; color: $fl-muted;
+        }
+    }
+    .o_fw_fl_feed_body { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+    .o_fw_fl_feed_head { display: flex; align-items: center; gap: .35rem; font-size: .74rem; }
+    .o_fw_fl_feed_time { margin-left: auto; color: $fl-muted; font-variant-numeric: tabular-nums; }
+    .o_fw_fl_feed_title { font-size: .8rem; }
+    .o_fw_fl_feed_detail { font-size: .72rem; color: $fl-muted; }
+    .o_fw_fl_ev_visit_in .o_fw_fl_feed_icon, .o_fw_fl_ev_visit_out .o_fw_fl_feed_icon { color: $fl-clinic; }
+    .o_fw_fl_feed .o_fw_fl_door_far { color: $fl-danger; }
+    .o_fw_fl_feed .fa-pause-circle { color: $fl-halt; }
+    .o_fw_fl_feed .fa-tachometer { color: $fl-danger; }
+    .o_fw_fl_feed .fa-money { color: $fl-moving; }
+
+    // ---------- the map
+    .o_fw_fl_canvas_wrap { flex: 1 1 auto; min-width: 0; position: relative; display: flex; flex-direction: column; }
+    .o_fw_fl_canvas { flex: 1 1 auto; min-height: 240px; background: #e8ecef; }
+    .o_fw_fl_replay {
+        position: absolute; left: .75rem; right: .75rem; bottom: 2.4rem; z-index: 800;
+        display: flex; align-items: center; gap: .5rem; padding: .35rem .6rem;
+        background: rgba(255, 255, 255, .94); border: 1px solid $fl-line; border-radius: 10px;
+    }
+    .o_fw_fl_slider { flex: 1 1 auto; min-width: 100px; }
+    .o_fw_fl_replay_end { font-size: .72rem; color: $fl-muted; font-variant-numeric: tabular-nums; }
+    .o_fw_fl_replay_clock { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .o_fw_fl_legend {
+        position: absolute; left: .5rem; bottom: .4rem; z-index: 800;
+        display: flex; flex-wrap: wrap; gap: .2rem .6rem; padding: .25rem .5rem;
+        background: rgba(255, 255, 255, .9); border-radius: 8px; font-size: .66rem; color: #374151;
+    }
+    .o_fw_fl_key { display: inline-flex; align-items: center; gap: .25rem;
+        i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .15); display: inline-block; }
+        &.o_fw_fl_key_door i { border-radius: 2px; }
+        &.o_fw_fl_key_gap i { border: 1px dashed #6b7280; }
+    }
+
+    // ---------- the reports, over the map
+    .o_fw_fl_report {
+        // above Leaflet's own controls (z-index 1000 inside the canvas)
+        position: absolute; inset: 0; z-index: 1001; overflow: auto;
+        padding: .8rem 1rem 1.2rem; background: $fl-bg;
+    }
+    .o_fw_fl_report_head {
+        display: flex; align-items: baseline; flex-wrap: wrap; gap: .3rem 1rem; margin-bottom: .6rem;
+        h5 { margin: 0; font-size: .95rem; font-weight: 700; }
+        .o_fw_fl_muted { font-size: .74rem; }
+    }
+    .o_fw_fl_report_head_2 { margin-top: 1.2rem; }
+
+    // the timeline
+    .o_fw_fl_tl { background: $fl-card; border: 1px solid $fl-line; border-radius: 12px; padding: .4rem .6rem .6rem; }
+    .o_fw_fl_tl_row {
+        display: grid; grid-template-columns: 200px 1fr; gap: .6rem; align-items: center;
+        padding: .3rem 0; border-top: 1px solid $fl-bg;
+        &:first-child { border-top: 0; }
+    }
+    .o_fw_fl_tl_row_on { background: #f8fafc; }
+    .o_fw_fl_tl_axis { padding: 0 0 .15rem; .o_fw_fl_tl_track { height: 16px; background: transparent; } }
+    .o_fw_fl_tl_name { display: flex; align-items: center; gap: .45rem; min-width: 0; cursor: pointer; }
+    .o_fw_fl_tl_track {
+        position: relative; height: 30px; border-radius: 6px; background: $fl-bg; overflow: hidden;
+    }
+    .o_fw_fl_tl_tick {
+        position: absolute; top: 0; transform: translateX(-50%); font-size: .66rem; color: $fl-muted; font-variant-numeric: tabular-nums;
+    }
+    .o_fw_fl_tl_grid { position: absolute; top: 0; bottom: 0; width: 1px; background: $fl-line; }
+    .o_fw_fl_band {
+        position: absolute; top: 0; bottom: 0; border-radius: 4px; overflow: hidden; white-space: nowrap;
+        font-size: .64rem; line-height: 30px; padding: 0 .3rem; color: #fff; box-sizing: border-box;
+    }
+    .o_fw_fl_band_duty { top: 9px; bottom: 9px; background: #cbd5e1; border-radius: 6px; }
+    .o_fw_fl_band_visit { top: 4px; bottom: 4px; line-height: 22px; background: $fl-clinic; }
+    .o_fw_fl_band_halt { top: 4px; bottom: 4px; background: $fl-halt; }
+    .o_fw_fl_band_gap { top: 6px; bottom: 6px; background: repeating-linear-gradient(45deg, #9ca3af 0 3px, #e5e7eb 3px 6px); }
+    .o_fw_fl_band_speed { top: 0; bottom: 0; background: $fl-danger; padding: 0; }
+    .o_fw_fl_band_open { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .6); }
+    .o_fw_fl_band_link { cursor: pointer; &:hover { filter: brightness(1.08); } }
+    .o_fw_fl_tl_now { position: absolute; top: 0; bottom: 0; width: 2px; background: $fl-brand; z-index: 2; }
+
+    // tables
+    .o_fw_fl_table_wrap { overflow: auto; background: $fl-card; border: 1px solid $fl-line; border-radius: 12px; }
+    .o_fw_fl_table {
+        width: 100%; border-collapse: collapse; font-size: .78rem;
+        th, td { padding: .45rem .6rem; border-bottom: 1px solid $fl-bg; white-space: nowrap; }
+        th {
+            position: sticky; top: 0; background: $fl-card; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em;
+            color: $fl-muted; font-weight: 700; cursor: pointer; user-select: none;
+            .fa { margin-left: .2rem; opacity: .5; }
+        }
+        tfoot td { background: $fl-bg; border-top: 1px solid $fl-line; }
+        tbody tr:hover { background: #f8fafc; }
+        .o_fw_fl_num { text-align: right; font-variant-numeric: tabular-nums; }
+        .o_fw_fl_th_name { cursor: pointer; }
+        .o_fw_fl_tr_on td { background: #eef2ff; }
+        .o_fw_fl_tr_off td { opacity: .6; }
+        .o_fw_fl_split { width: 110px; }
+    }
+    .o_fw_fl_routes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .6rem; }
+    .o_fw_fl_rt {
+        background: $fl-card; border: 1px solid $fl-line; border-radius: 12px; padding: .6rem .75rem;
+        .o_fw_fl_rt_name { font-size: .85rem; margin-bottom: .35rem; }
+        .o_fw_fl_rt_stats {
+            display: flex; flex-wrap: wrap; gap: .4rem .9rem;
+            span { display: inline-flex; align-items: baseline; gap: .25rem; }
+            b { font-size: .95rem; }
+            small { font-size: .68rem; color: $fl-muted; }
+        }
+    }
+
+    // the trends
+    .o_fw_fl_charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .6rem; }
+    .o_fw_fl_chart {
+        background: $fl-card; border: 1px solid $fl-line; border-radius: 12px; padding: .6rem .75rem .4rem;
+    }
+    .o_fw_fl_chart_head {
+        display: flex; justify-content: space-between; align-items: baseline; font-size: .74rem; color: $fl-muted;
+        b { font-size: 1rem; color: $fl-ink; }
+    }
+    .o_fw_fl_chart_bars { display: flex; align-items: flex-end; gap: 3px; height: 84px; margin-top: .4rem; }
+    .o_fw_fl_chart_col {
+        flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0;
+        i { display: block; width: 100%; background: $fl-clinic; border-radius: 3px 3px 0 0; opacity: .85; }
+        .o_fw_fl_chart_live { background: $fl-moving; }
+        small { font-size: .6rem; color: $fl-muted; margin-top: .2rem; white-space: nowrap; }
+    }
+    .o_fw_fl_dots_wrap { overflow: auto; background: $fl-card; border: 1px solid $fl-line; border-radius: 12px; }
+    .o_fw_fl_dots {
+        border-collapse: collapse; font-size: .74rem; width: 100%;
+        th { font-size: .62rem; color: $fl-muted; font-weight: 600; padding: .35rem .3rem; text-align: center; white-space: nowrap; }
+        td { padding: .2rem .3rem; text-align: center; border-top: 1px solid $fl-bg; }
+        .o_fw_fl_th_name { text-align: left; cursor: pointer; white-space: nowrap; }
+    }
+    .o_fw_fl_dotcell {
+        display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
+        font-size: .66rem; font-weight: 700;
+    }
+    .o_fw_fl_dot_none { background: $fl-bg; }
+    .o_fw_fl_dot_clean { background: #d1fae5; color: #065f46; }
+    .o_fw_fl_dot_flag { background: #fef3c7; color: #92400e; }
+    .o_fw_fl_dot_live { background: #dbeafe; color: #1e40af; }
+    .o_fw_fl_key_i.o_fw_fl_dot_clean, .o_fw_fl_key_i.o_fw_fl_dot_flag, .o_fw_fl_key_i.o_fw_fl_dot_live { border-radius: 50%; }
+
+    // ---------- the story
+    .o_fw_fl_story {
+        flex: 0 0 360px;
+        display: flex; flex-direction: column; min-height: 0;
+        background: $fl-card; border-left: 1px solid $fl-line; overflow-y: auto;
+    }
+    .o_fw_fl_story_head {
+        display: flex; align-items: center; gap: .6rem; padding: .7rem .8rem .4rem;
+        .o_fw_fl_badge { align-self: flex-start; margin-top: .2rem; }
+    }
+    .o_fw_fl_story_close { margin-left: auto; align-self: flex-start; }
+    .o_fw_fl_story_actions { display: flex; flex-wrap: wrap; gap: .3rem; padding: .2rem .8rem .6rem; }
+    .o_fw_fl_facts {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; padding: 0 .8rem .6rem;
+    }
+    .o_fw_fl_fact {
+        display: flex; flex-direction: column; padding: .4rem .45rem; border-radius: 10px; background: $fl-bg;
+        b { font-size: .95rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        span { font-size: .64rem; color: $fl-muted; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    }
+    .o_fw_fl_fact_warn { background: #fff7ed; b { color: $fl-warn; } }
+    .o_fw_fl_story_split { padding: 0 .8rem .6rem; }
+    .o_fw_fl_story_phone {
+        display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin: 0 .8rem .5rem;
+        padding: .45rem .55rem; border-radius: 10px; border: 1px dashed $fl-line; font-size: .74rem; color: $fl-muted;
+    }
+    .o_fw_fl_story_alerts { padding: 0 .8rem; }
+    .o_fw_fl_story_title {
+        padding: .5rem .8rem .3rem; font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+        text-transform: uppercase; color: $fl-muted;
+    }
+    .o_fw_fl_timeline {
+        list-style: none; margin: 0; padding: 0 .8rem 1rem 1.9rem; position: relative;
+        &::before { content: ""; position: absolute; left: 1.17rem; top: .4rem; bottom: .8rem; width: 2px; background: $fl-line; }
+    }
+    .o_fw_fl_ev {
+        position: relative; display: flex; align-items: flex-start; gap: .5rem; padding: .3rem 0 .3rem .6rem;
+        .o_fw_fl_ev_icon {
+            position: absolute; left: -1.05rem; top: .38rem; width: 20px; height: 20px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center; font-size: .62rem;
+            background: $fl-card; border: 2px solid $fl-line; color: $fl-muted;
+        }
+    }
+    .o_fw_fl_ev_link { cursor: pointer; &:hover .o_fw_fl_ev_title { text-decoration: underline; } }
+    .o_fw_fl_ev_time { flex: 0 0 3.6rem; font-size: .72rem; color: $fl-muted; font-variant-numeric: tabular-nums; padding-top: .1rem; white-space: nowrap; }
+    .o_fw_fl_ev_body { display: flex; flex-direction: column; min-width: 0; }
+    .o_fw_fl_ev_title { font-size: .8rem; }
+    .o_fw_fl_ev_amount { color: $fl-moving; }
+    .o_fw_fl_ev_detail { font-size: .72rem; color: $fl-muted; }
+    .o_fw_fl_ev_start .o_fw_fl_ev_icon, .o_fw_fl_ev_end .o_fw_fl_ev_icon { border-color: $fl-ink; color: $fl-ink; }
+    .o_fw_fl_ev_visit_in .o_fw_fl_ev_icon, .o_fw_fl_ev_visit_out .o_fw_fl_ev_icon { border-color: $fl-clinic; color: $fl-clinic; }
+    .o_fw_fl_ev_halt .o_fw_fl_ev_icon { border-color: $fl-halt; color: $fl-halt; }
+    .o_fw_fl_ev_speed .o_fw_fl_ev_icon { border-color: $fl-danger; color: $fl-danger; }
+    .o_fw_fl_ev_cash .o_fw_fl_ev_icon { border-color: $fl-moving; color: $fl-moving; }
+    .o_fw_fl_ev_gap .o_fw_fl_ev_icon { border-style: dashed; }
+    .o_fw_fl_ev_open .o_fw_fl_ev_title { color: $fl-halt; font-weight: 600; }
+    .o_fw_fl_door_far { border-color: $fl-danger !important; color: $fl-danger !important; }
+    .o_fw_fl_door_nofix { border-color: $fl-stopped !important; color: $fl-stopped !important; }
+
+    // ------------------------------------------------------------ smaller screens
+    @media (max-width: 1199.98px) {
+        .o_fw_fl_rail { flex-basis: 280px; }
+        .o_fw_fl_story {
+            position: absolute; top: 0; right: 0; bottom: 0; width: 360px; max-width: 100%; z-index: 1101;
+            box-shadow: -8px 0 24px rgba(16, 24, 40, .12);
+        }
+        .o_fw_fl_tl_row { grid-template-columns: 150px 1fr; }
+    }
+    @media (max-width: 767.98px) {
+        .o_fw_fl_head { padding: .4rem .6rem; gap: .35rem .6rem; }
+        .o_fw_fl_sheet_toggle { display: inline-flex; }
+        .o_fw_fl_sub { display: none; }
+        .o_fw_fl_views { order: 3; width: 100%; justify-content: space-between;
+            button { flex: 1 1 0; justify-content: center; padding: .3rem .3rem; span { display: none; } } }
+        // one row that scrolls sideways, not three rows of controls
+        .o_fw_fl_tools { width: 100%; margin-left: 0; justify-content: flex-start; order: 4; flex-wrap: nowrap; overflow-x: auto; padding-bottom: .1rem; scrollbar-width: none; }
+        .o_fw_fl_search input { width: 110px; }
+        .o_fw_fl_strip { display: flex; overflow-x: auto; padding: .4rem .6rem; scrollbar-width: thin; }
+        .o_fw_fl_tile { flex: 0 0 auto; min-width: 96px; }
+        .o_fw_fl_pulse { min-width: 150px; }
+        .o_fw_fl_body { flex-direction: column; }
+        .o_fw_fl_rail {
+            position: absolute; left: 0; right: 0; bottom: 0; z-index: 1100; flex-basis: auto;
+            max-height: 62%; border-right: 0; border-top: 1px solid $fl-line;
+            border-radius: 16px 16px 0 0; box-shadow: 0 -8px 24px rgba(16, 24, 40, .14);
+            &.o_fw_fl_rail_closed { display: none; }
+        }
+        .o_fw_fl_story { width: 100%; z-index: 1101; }
+        .o_fw_fl_facts { grid-template-columns: repeat(2, 1fr); }
+        .o_fw_fl_legend { display: none; }
+        .o_fw_fl_report { padding: .6rem .6rem 1rem; }
+        .o_fw_fl_tl_row { grid-template-columns: 110px 1fr; gap: .3rem; }
+        .o_fw_fl_tl_name .o_fw_fl_avatar { display: none; }
+        .o_fw_fl_tl_tick:nth-child(even) { display: none; }      // every other hour fits
+    }
+}
+
+@keyframes o_fw_fl_pulse {
+    0% { box-shadow: 0 0 0 0 rgba(15, 157, 88, .45); }
+    70% { box-shadow: 0 0 0 8px rgba(15, 157, 88, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(15, 157, 88, 0); }
+}

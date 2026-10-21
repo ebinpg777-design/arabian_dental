@@ -40,5 +40,6 @@ from . import location_live
 # After location_ping and location_live: it imports the ping module (whose
 # lab.my.day extension must follow my_day) and extends the users model they built.
 from . import field_app
+from . import field_live
 from . import weekly_report
 from . import ir_http

@@ -1,0 +1,689 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+<!--
+    Field Live: the numbers across the top, the people (or the alerts, the phones,
+    the feed) down the left, the map - or one of the reports over it - in the
+    middle, the day story of whoever is in focus on the right. On a phone the
+    rail is a bottom sheet and the story a full overlay; the map keeps the screen.
+-->
+<t t-name="lab_fieldwork.FieldLive">
+    <div class="o_fw_fl o_action o_action_delegate_scroll"
+         t-att-class="{ 'o_fw_fl_has_story': this.showStory }">
+
+        <!-- ================================================== the head -->
+        <div class="o_fw_fl_head">
+            <button type="button" class="o_fw_fl_btn o_fw_fl_sheet_toggle"
+                    t-att-title="this.state.panelOpen ? 'Hide the list' : 'Show the list'"
+                    t-on-click="() => this.togglePanel()">
+                <i class="fa fa-bars" aria-hidden="true"/>
+            </button>
+            <div class="o_fw_fl_title">
+                <h4>
+                    Field Live
+                    <span t-if="this.state.isToday and !this.state.lost" class="o_fw_fl_live_dot"
+                          t-att-title="this.state.pushes ? this.state.pushes + ' positions received live' : 'Live'"/>
+                </h4>
+                <div class="o_fw_fl_sub">
+                    <span t-if="this.state.lost" class="o_fw_fl_lost">
+                        <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>connection lost – retrying…
+                    </span>
+                    <span t-elif="this.state.isToday">
+                        <t t-if="this.state.updatedAt">updated <t t-out="this.state.updatedAt"/></t>
+                        <t t-if="this.state.pushes"> · <t t-out="this.state.pushes"/> live</t>
+                    </span>
+                    <span t-else="" class="o_fw_fl_pastday">
+                        <i class="fa fa-history me-1" aria-hidden="true"/>past day
+                    </span>
+                </div>
+            </div>
+            <div class="o_fw_fl_views" role="tablist" aria-label="View">
+                <button type="button" t-att-class="{ 'o_fw_fl_view_on': this.state.view === 'map' }"
+                        t-on-click="() => this.setView('map')"><i class="fa fa-map-o" aria-hidden="true"/><span>Map</span></button>
+                <button type="button" t-att-class="{ 'o_fw_fl_view_on': this.state.view === 'timeline' }"
+                        t-on-click="() => this.setView('timeline')"><i class="fa fa-clock-o" aria-hidden="true"/><span>Timeline</span></button>
+                <button type="button" t-att-class="{ 'o_fw_fl_view_on': this.state.view === 'scoreboard' }"
+                        t-on-click="() => this.setView('scoreboard')"><i class="fa fa-trophy" aria-hidden="true"/><span>Scoreboard</span></button>
+                <button type="button" t-att-class="{ 'o_fw_fl_view_on': this.state.view === 'trends' }"
+                        t-on-click="() => this.setView('trends')"><i class="fa fa-line-chart" aria-hidden="true"/><span>Trends</span></button>
+            </div>
+            <div class="o_fw_fl_tools">
+                <label class="o_fw_fl_search">
+                    <i class="fa fa-search" aria-hidden="true"/>
+                    <input type="search" placeholder="Find a person or route"
+                           t-att-value="this.state.query" t-on-input="(ev) => this.onQuery(ev)"/>
+                </label>
+                <div class="o_fw_fl_chips" role="group" aria-label="Show">
+                    <button type="button" class="o_fw_fl_chip"
+                            t-att-class="this.state.show === 'duty' ? 'o_fw_fl_chip_on' : ''"
+                            t-on-click="() => this.setShow('duty')">On duty</button>
+                    <button type="button" class="o_fw_fl_chip"
+                            t-att-class="this.state.show === 'all' ? 'o_fw_fl_chip_on' : ''"
+                            t-on-click="() => this.setShow('all')">Everyone</button>
+                </div>
+                <button t-if="this.focused" type="button" class="o_fw_fl_chip o_fw_fl_chip_focus"
+                        title="Show everyone again" t-on-click="() => this.clearFocus()">
+                    <span class="o_fw_fl_dot" t-attf-style="background: {{ this.focused.colour }}"/>
+                    <t t-out="this.focused.name"/>
+                    <i class="fa fa-times ms-1" aria-hidden="true"/>
+                </button>
+                <button t-if="this.focused and this.state.isToday" type="button" class="o_fw_fl_chip"
+                        t-att-class="this.state.follow ? 'o_fw_fl_chip_on' : ''"
+                        title="Keep this person in view" t-on-click="() => this.toggleFollow()">
+                    <i class="fa fa-crosshairs" aria-hidden="true"/> Follow
+                </button>
+                <div class="o_fw_fl_daynav" role="group" aria-label="Day">
+                    <button type="button" class="o_fw_fl_btn" title="The day before" t-on-click="() => this.shiftDay(-1)">
+                        <i class="fa fa-chevron-left" aria-hidden="true"/>
+                    </button>
+                    <label class="o_fw_fl_dayword" t-att-title="this.state.day">
+                        <i class="fa fa-calendar-o" aria-hidden="true"/>
+                        <span t-out="this.dayWord"/>
+                        <input type="date" class="o_fw_fl_date" t-att-value="this.state.day" t-att-max="this.todayIso"
+                               t-on-change="(ev) => this.pickDate(ev.target.value)"/>
+                    </label>
+                    <button type="button" class="o_fw_fl_btn" title="The day after"
+                            t-att-disabled="this.state.isToday" t-on-click="() => this.shiftDay(1)">
+                        <i class="fa fa-chevron-right" aria-hidden="true"/>
+                    </button>
+                    <button t-if="!this.state.isToday" type="button" class="o_fw_fl_btn o_fw_fl_btn_go"
+                            t-on-click="() => this.goToday()">Today</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================== the strip -->
+        <div t-if="this.kpis" class="o_fw_fl_strip">
+            <div class="o_fw_fl_tile o_fw_fl_tile_moving" t-on-click="() => this.setRail('people')">
+                <span class="o_fw_fl_tile_n" t-out="this.kpis.moving"/>
+                <span class="o_fw_fl_tile_l">on the road</span>
+            </div>
+            <div class="o_fw_fl_tile o_fw_fl_tile_clinic" t-on-click="() => this.setRail('people')">
+                <span class="o_fw_fl_tile_n" t-out="this.kpis.at_clinic"/>
+                <span class="o_fw_fl_tile_l">at clinics</span>
+            </div>
+            <div class="o_fw_fl_tile o_fw_fl_tile_stopped" t-on-click="() => this.setRail('people')">
+                <span class="o_fw_fl_tile_n" t-out="this.kpis.stopped"/>
+                <span class="o_fw_fl_tile_l">stopped</span>
+            </div>
+            <div class="o_fw_fl_tile o_fw_fl_tile_offline" t-on-click="() => this.setRail('phones')">
+                <span class="o_fw_fl_tile_n" t-out="this.kpis.offline"/>
+                <span class="o_fw_fl_tile_l">no signal</span>
+            </div>
+            <div class="o_fw_fl_tile" t-att-class="{ 'o_fw_fl_tile_warn': this.kpis.not_started }"
+                 t-on-click="() => this.setRail('alerts')">
+                <span class="o_fw_fl_tile_n" t-out="this.kpis.not_started"/>
+                <span class="o_fw_fl_tile_l">not started</span>
+            </div>
+            <div class="o_fw_fl_tile">
+                <span class="o_fw_fl_tile_n">
+                    <t t-out="this.kpis.visits_done"/><small>/<t t-out="this.kpis.visits_planned"/></small>
+                </span>
+                <span class="o_fw_fl_tile_l">visits done</span>
+                <span class="o_fw_fl_bar"><i t-attf-style="width: {{ this.pct(this.kpis.visits_done, this.kpis.visits_planned) }}%"/></span>
+            </div>
+            <div class="o_fw_fl_tile">
+                <span class="o_fw_fl_tile_n" t-out="this.kpis.cases"/>
+                <span class="o_fw_fl_tile_l">cases · <t t-out="this.money(this.kpis.case_value)"/></span>
+            </div>
+            <div class="o_fw_fl_tile">
+                <span class="o_fw_fl_tile_n" t-out="this.money(this.kpis.collected)"/>
+                <span class="o_fw_fl_tile_l">collected today</span>
+            </div>
+            <div class="o_fw_fl_tile" t-att-class="{ 'o_fw_fl_tile_warn': this.kpis.cash_with_field > 0 }">
+                <span class="o_fw_fl_tile_n" t-out="this.money(this.kpis.cash_with_field)"/>
+                <span class="o_fw_fl_tile_l">cash in the field</span>
+            </div>
+            <div class="o_fw_fl_tile">
+                <span class="o_fw_fl_tile_n"><t t-out="this.km(this.kpis.km)"/><small> km</small></span>
+                <span class="o_fw_fl_tile_l">on the trail<t t-if="this.kpis.claimed_km"> · <t t-out="this.km(this.kpis.claimed_km)"/> claimed</t></span>
+            </div>
+            <div class="o_fw_fl_tile">
+                <span class="o_fw_fl_tile_n" t-out="this.hoursWord(this.kpis.clinic_minutes)"/>
+                <span class="o_fw_fl_tile_l">at clinics today</span>
+            </div>
+            <div class="o_fw_fl_tile" t-att-class="{ 'o_fw_fl_tile_danger': this.kpis.danger, 'o_fw_fl_tile_warn': !this.kpis.danger and this.kpis.alerts }"
+                 t-on-click="() => this.setRail('alerts')">
+                <span class="o_fw_fl_tile_n" t-out="this.kpis.alerts"/>
+                <span class="o_fw_fl_tile_l">alerts</span>
+            </div>
+            <div class="o_fw_fl_tile" t-on-click="() => this.setRail('phones')">
+                <span class="o_fw_fl_tile_n"><t t-out="this.kpis.on_app"/><small>/<t t-out="this.kpis.roster"/></small></span>
+                <span class="o_fw_fl_tile_l">on ADL FieldX</span>
+            </div>
+            <div class="o_fw_fl_tile o_fw_fl_pulse" title="Clinic check-ins by hour">
+                <span class="o_fw_fl_pulse_bars">
+                    <i t-foreach="this.kpis.pulse" t-as="slot" t-key="slot.hour"
+                       t-attf-style="height: {{ this.pulseHeight(slot.count) }}%"
+                       t-att-class="{ 'o_fw_fl_pulse_on': slot.count }"
+                       t-attf-title="{{ this.hourLabel(slot.hour) }}:00 · {{ slot.count }}"/>
+                </span>
+                <span class="o_fw_fl_tile_l">check-ins by hour · 07–20</span>
+            </div>
+        </div>
+
+        <!-- ================================================== the body -->
+        <div class="o_fw_fl_body">
+            <aside class="o_fw_fl_rail" t-att-class="this.state.panelOpen ? '' : 'o_fw_fl_rail_closed'">
+                <div class="o_fw_fl_tabs" role="tablist">
+                    <button type="button" role="tab" t-att-class="{ 'o_fw_fl_tab_on': this.state.rail === 'people' }"
+                            t-on-click="() => this.setRail('people')">
+                        People <span class="o_fw_fl_tab_n" t-out="this.executives.length"/>
+                    </button>
+                    <button type="button" role="tab" t-att-class="{ 'o_fw_fl_tab_on': this.state.rail === 'alerts', 'o_fw_fl_tab_danger': this.dangerCount }"
+                            t-on-click="() => this.setRail('alerts')">
+                        Alerts <span class="o_fw_fl_tab_n" t-out="this.alerts.length"/>
+                    </button>
+                    <button type="button" role="tab" t-att-class="{ 'o_fw_fl_tab_on': this.state.rail === 'phones', 'o_fw_fl_tab_danger': this.silentPhones }"
+                            t-on-click="() => this.setRail('phones')">
+                        Phones <span class="o_fw_fl_tab_n" t-out="this.phones.length"/>
+                    </button>
+                    <button type="button" role="tab" t-att-class="{ 'o_fw_fl_tab_on': this.state.rail === 'feed' }"
+                            t-on-click="() => this.setRail('feed')">
+                        Feed <span class="o_fw_fl_tab_n" t-out="this.feed.length"/>
+                    </button>
+                </div>
+
+                <!-- people -->
+                <div t-if="this.state.rail === 'people'" class="o_fw_fl_list">
+                    <div t-if="this.state.loading and !this.state.data" class="o_fw_fl_msg">
+                        <i class="fa fa-circle-o-notch fa-spin me-2" aria-hidden="true"/>Finding everyone…
+                    </div>
+                    <div t-elif="!this.executives.length" class="o_fw_fl_empty">
+                        <i class="fa fa-map-o" aria-hidden="true"/>
+                        <t t-if="this.state.query"><b>Nobody matches "<t t-out="this.state.query"/>".</b></t>
+                        <t t-elif="this.state.show === 'duty'">
+                            <b>Nobody is on duty right now.</b>
+                            <span>Executives appear here the moment they press <i>Start my day</i>; switch to <i>Everyone</i> to see the whole roster.</span>
+                        </t>
+                        <t t-else=""><b>No field executive to show.</b><span>Give someone the Executive role under Configuration ▸ Field Roles.</span></t>
+                    </div>
+                    <div t-foreach="this.executives" t-as="ex" t-key="ex.user_id"
+                         class="o_fw_fl_card"
+                         t-att-class="{
+                            'o_fw_fl_card_on': this.state.focusId === ex.user_id,
+                            'o_fw_fl_card_dim': this.state.focusId and this.state.focusId !== ex.user_id,
+                            'o_fw_fl_card_off': ex.status === 'off',
+                         }"
+                         t-on-click="() => this.focus(ex)">
+                        <div class="o_fw_fl_card_top">
+                            <span class="o_fw_fl_avatar" t-attf-style="border-color: {{ ex.colour }}">
+                                <img t-att-src="ex.avatar" t-att-alt="ex.name" loading="lazy"/>
+                            </span>
+                            <span class="o_fw_fl_who">
+                                <span class="o_fw_fl_name" t-out="ex.name"/>
+                                <span t-if="ex.route" class="o_fw_fl_route" t-out="ex.route"/>
+                            </span>
+                            <span class="o_fw_fl_badge" t-attf-class="o_fw_fl_badge_{{ ex.status }}" t-out="this.statusWord(ex)"/>
+                        </div>
+                        <div class="o_fw_fl_card_line">
+                            <span t-if="ex.at_clinic" class="o_fw_fl_c_clinic">
+                                <i class="fa fa-map-marker me-1" aria-hidden="true"/><t t-out="ex.at_clinic.name"/>
+                            </span>
+                            <span t-elif="ex.next and this.state.isToday">
+                                <i class="fa fa-arrow-right me-1" aria-hidden="true"/><t t-out="ex.next.name"/>
+                                <span t-if="ex.next.eta_min !== null and ex.next.eta_min !== undefined" class="o_fw_fl_muted"> · ~<t t-out="this.round(ex.next.eta_min)"/> min</span>
+                            </span>
+                            <span t-elif="ex.facts and ex.facts.where" class="o_fw_fl_muted" t-out="ex.facts.where"/>
+                            <span class="o_fw_fl_since" t-out="this.sinceLabel(ex)"/>
+                        </div>
+                        <div class="o_fw_fl_card_stats">
+                            <span title="Visits done / planned">
+                                <i class="fa fa-check-square-o" aria-hidden="true"/>
+                                <t t-out="ex.visits_done"/>/<t t-out="ex.visits_planned"/>
+                            </span>
+                            <span title="Distance on the trail"><i class="fa fa-road" aria-hidden="true"/> <t t-out="this.km(ex.km)"/> km</span>
+                            <span t-if="ex.facts and ex.facts.cases" title="Cases today"><i class="fa fa-cube" aria-hidden="true"/> <t t-out="ex.facts.cases"/></span>
+                            <span t-if="ex.facts and ex.facts.collected" title="Collected today"><i class="fa fa-inr" aria-hidden="true"/> <t t-out="this.money(ex.facts.collected)"/></span>
+                            <span t-if="ex.halt_minutes" class="o_fw_fl_c_halt" title="Minutes stopped away from clinics"><i class="fa fa-pause-circle-o" aria-hidden="true"/> <t t-out="this.round(ex.halt_minutes)"/> min</span>
+                            <span t-if="ex.overspeed" class="o_fw_fl_c_speed" title="Over the speed limit"><i class="fa fa-tachometer" aria-hidden="true"/> <t t-out="ex.overspeed"/></span>
+                        </div>
+                        <div t-if="ex.split and ex.split.duty" class="o_fw_fl_split o_fw_fl_split_sm" t-att-title="'On duty ' + this.hoursWord(ex.split.duty)">
+                            <i t-foreach="this.splitParts(ex)" t-as="part" t-key="part.key"
+                               t-attf-class="o_fw_fl_split_{{ part.key }}" t-attf-style="width: {{ part.pct }}%"
+                               t-attf-title="{{ part.label }} · {{ this.hoursWord(part.minutes) }}"/>
+                        </div>
+                        <div class="o_fw_fl_card_phone" t-if="ex.phone_app">
+                            <span t-att-class="this.batteryClass(ex.phone_app.battery)" title="Phone battery">
+                                <i t-attf-class="fa {{ this.batteryIcon(ex.phone_app.battery) }}" aria-hidden="true"/>
+                                <t t-if="ex.phone_app.battery !== null and ex.phone_app.battery !== undefined"><t t-out="this.round(ex.phone_app.battery)"/>%</t>
+                                <t t-else="">—</t>
+                            </span>
+                            <span t-att-class="{ 'o_fw_fl_silent': ex.phone_app.silent }" title="Last position">
+                                <i class="fa fa-signal" aria-hidden="true"/> <t t-out="this.lastSeen(ex)"/>
+                            </span>
+                            <span class="o_fw_fl_app" t-att-class="{ 'o_fw_fl_app_on': ex.phone_app.on_app }" t-out="this.phoneWord(ex.phone_app)"/>
+                            <a t-if="ex.phone" t-attf-href="tel:{{ ex.phone }}" class="o_fw_fl_tel ms-auto"
+                               t-att-title="ex.phone" t-on-click.stop=""><i class="fa fa-phone" aria-hidden="true"/></a>
+                        </div>
+                        <div t-if="ex.alerts and ex.alerts.length" class="o_fw_fl_card_alerts">
+                            <span t-foreach="ex.alerts" t-as="alert" t-key="alert.key"
+                                  t-attf-class="o_fw_fl_pill o_fw_fl_pill_{{ alert.level }}" t-att-title="alert.detail">
+                                <i t-attf-class="fa {{ this.levelIcon(alert.level) }} me-1" aria-hidden="true"/><t t-out="alert.title"/>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- alerts -->
+                <div t-if="this.state.rail === 'alerts'" class="o_fw_fl_list">
+                    <div t-if="!this.alerts.length" class="o_fw_fl_empty">
+                        <i class="fa fa-check-circle" aria-hidden="true"/>
+                        <b>Nothing needs a word right now.</b>
+                        <span>No signal on duty, long stops, dying phones, days not started, visits left open, claims far from the trail and cash past the policy appear here.</span>
+                    </div>
+                    <div t-foreach="this.alerts" t-as="alert" t-key="alert_index"
+                         t-attf-class="o_fw_fl_alert o_fw_fl_alert_{{ alert.level }}"
+                         t-on-click="() => this.openAlert(alert)">
+                        <i t-attf-class="fa {{ this.levelIcon(alert.level) }} o_fw_fl_alert_icon" aria-hidden="true"/>
+                        <span class="o_fw_fl_alert_body">
+                            <span class="o_fw_fl_alert_title">
+                                <b t-if="alert.name" t-out="alert.name"/><t t-if="alert.name"> · </t><t t-out="alert.title"/>
+                            </span>
+                            <span t-if="alert.detail" class="o_fw_fl_alert_detail" t-out="alert.detail"/>
+                            <span t-if="alert.label" class="o_fw_fl_alert_link" t-out="alert.label"/>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- phones: the check with the app -->
+                <div t-if="this.state.rail === 'phones'" class="o_fw_fl_list">
+                    <div class="o_fw_fl_phones_sum">
+                        <b t-out="this.onAppPhones"/> of <t t-out="this.phones.length"/> on ADL FieldX
+                        <span t-if="this.silentPhones" class="o_fw_fl_silent"> · <b t-out="this.silentPhones"/> silent on duty</span>
+                    </div>
+                    <div t-if="!this.phones.length" class="o_fw_fl_empty"><i class="fa fa-mobile" aria-hidden="true"/><b>No phone to show.</b></div>
+                    <div t-foreach="this.phones" t-as="phone" t-key="phone.user_id"
+                         class="o_fw_fl_phone" t-att-class="{ 'o_fw_fl_phone_silent': phone.silent, 'o_fw_fl_phone_off': !phone.on_duty }"
+                         t-on-click="() => this.focusUser(phone.user_id)">
+                        <span class="o_fw_fl_phone_name" t-out="phone.name"/>
+                        <span class="o_fw_fl_app" t-att-class="{ 'o_fw_fl_app_on': phone.on_app }" t-out="this.phoneWord(phone)"/>
+                        <span t-att-class="this.batteryClass(phone.battery)">
+                            <i t-attf-class="fa {{ this.batteryIcon(phone.battery) }}" aria-hidden="true"/>
+                            <t t-if="phone.battery !== null and phone.battery !== undefined"> <t t-out="this.round(phone.battery)"/>%</t>
+                        </span>
+                        <span class="o_fw_fl_phone_age" t-att-class="{ 'o_fw_fl_silent': phone.silent }">
+                            <i class="fa fa-signal" aria-hidden="true"/> <t t-out="this.ageLabel(phone.last_age_s)"/>
+                            <t t-if="phone.silent"> · silent</t>
+                            <t t-elif="!phone.on_duty"> · off duty</t>
+                        </span>
+                    </div>
+                    <div class="o_fw_fl_phones_note">
+                        A phone on ADL FieldX records with the screen off. One still on the browser
+                        records only while My Day is in front; a silent phone on the app is usually
+                        battery saving — the app's My Day shows a Battery settings button.
+                    </div>
+                </div>
+
+                <!-- feed: what is happening, newest first -->
+                <div t-if="this.state.rail === 'feed'" class="o_fw_fl_list">
+                    <div t-if="!this.feed.length" class="o_fw_fl_empty">
+                        <i class="fa fa-rss" aria-hidden="true"/>
+                        <b>Nothing recorded yet today.</b>
+                        <span>Days starting, doors, stops, cash taken and days ending appear here as they happen.</span>
+                    </div>
+                    <div t-foreach="this.feed" t-as="event" t-key="event_index" class="o_fw_fl_feed"
+                         t-on-click="() => this.focusUser(event.user_id)">
+                        <i class="fa o_fw_fl_feed_icon" t-att-class="this.eventIconClass(event)" aria-hidden="true"/>
+                        <span class="o_fw_fl_feed_body">
+                            <span class="o_fw_fl_feed_head">
+                                <span class="o_fw_fl_dot" t-attf-style="background: {{ event.colour }}"/>
+                                <b t-out="event.name"/>
+                                <span class="o_fw_fl_feed_time" t-out="this.clock(event.epoch)"/>
+                            </span>
+                            <span class="o_fw_fl_feed_title">
+                                <t t-out="event.title"/>
+                                <b t-if="event.amount" class="o_fw_fl_ev_amount"> <t t-out="this.money(event.amount)"/></b>
+                            </span>
+                            <span t-if="event.detail" class="o_fw_fl_feed_detail" t-out="event.detail"/>
+                        </span>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="o_fw_fl_canvas_wrap">
+                <div class="o_fw_fl_canvas" t-ref="this.mapRef"/>
+                <!-- Replay: the slider runs over the recording itself, not the clock;
+                     today it plays the day so far and comes back to live. -->
+                <div t-if="this.state.view === 'map' and this.state.range" class="o_fw_fl_replay">
+                    <button type="button" class="o_fw_fl_btn" t-on-click="() => this.togglePlay()"
+                            t-att-title="this.state.playing ? 'Pause' : 'Replay the day'">
+                        <i t-if="this.state.playing" class="fa fa-pause" aria-hidden="true"/>
+                        <i t-else="" class="fa fa-play" aria-hidden="true"/>
+                    </button>
+                    <span class="o_fw_fl_replay_end" t-out="this.clock(this.state.range.min)"/>
+                    <input type="range" class="o_fw_fl_slider"
+                           t-att-min="this.state.range.min" t-att-max="this.state.range.max" step="60"
+                           t-att-value="this.state.replayAt === null ? this.state.range.max : this.state.replayAt"
+                           t-on-input="(ev) => this.onReplay(ev)"/>
+                    <span class="o_fw_fl_replay_end" t-out="this.clock(this.state.range.max)"/>
+                    <span t-if="this.state.replayAt !== null" class="o_fw_fl_replay_clock" t-out="this.replayLabel"/>
+                    <button t-if="this.state.replayAt !== null" type="button" class="o_fw_fl_btn"
+                            title="Back to now" t-on-click="() => this.exitReplay()">
+                        <t t-if="this.state.isToday">Back to live</t><t t-else="">Whole day</t>
+                    </button>
+                </div>
+                <div t-if="this.state.view === 'map'" class="o_fw_fl_legend">
+                    <span t-foreach="this.legend" t-as="item" t-key="item.label"
+                          t-attf-class="o_fw_fl_key o_fw_fl_key_{{ item.kind }}">
+                        <i t-attf-style="background: {{ item.colour }}"/><t t-out="item.label"/>
+                    </span>
+                </div>
+
+                <!-- ====================================== the reports, over the map -->
+                <div t-if="this.state.view === 'timeline'" class="o_fw_fl_report">
+                    <div class="o_fw_fl_report_head">
+                        <h5>The day on one clock</h5>
+                        <span class="o_fw_fl_muted">on duty · <i class="o_fw_fl_key_i o_fw_fl_band_visit"/> at a clinic · <i class="o_fw_fl_key_i o_fw_fl_band_halt"/> stopped · <i class="o_fw_fl_key_i o_fw_fl_band_gap"/> not recorded · <i class="o_fw_fl_key_i o_fw_fl_band_speed"/> over the limit</span>
+                    </div>
+                    <div t-if="!this.executives.length" class="o_fw_fl_empty"><i class="fa fa-clock-o" aria-hidden="true"/><b>Nobody to show for this day.</b></div>
+                    <div t-else="" class="o_fw_fl_tl">
+                        <div class="o_fw_fl_tl_row o_fw_fl_tl_axis">
+                            <div class="o_fw_fl_tl_name"/>
+                            <div class="o_fw_fl_tl_track">
+                                <span t-foreach="this.axis.hours" t-as="hour" t-key="hour" class="o_fw_fl_tl_tick"
+                                      t-attf-style="left: {{ ((hour - this.axis.start) / (this.axis.end - this.axis.start)) * 100 }}%">
+                                    <t t-out="this.hourLabel(hour)"/>
+                                </span>
+                            </div>
+                        </div>
+                        <div t-foreach="this.executives" t-as="ex" t-key="ex.user_id" class="o_fw_fl_tl_row"
+                             t-att-class="{ 'o_fw_fl_tl_row_on': this.state.focusId === ex.user_id }">
+                            <div class="o_fw_fl_tl_name" t-on-click="() => this.focus(ex, false)">
+                                <span class="o_fw_fl_avatar" t-attf-style="border-color: {{ ex.colour }}"><img t-att-src="ex.avatar" t-att-alt="ex.name" loading="lazy"/></span>
+                                <span class="o_fw_fl_who">
+                                    <span class="o_fw_fl_name" t-out="ex.name"/>
+                                    <span class="o_fw_fl_route"><t t-out="this.statusWord(ex)"/><t t-if="ex.split and ex.split.duty"> · <t t-out="this.hoursWord(ex.split.duty)"/> on duty</t></span>
+                                </span>
+                            </div>
+                            <div class="o_fw_fl_tl_track">
+                                <span t-foreach="this.axis.hours" t-as="hour" t-key="hour" class="o_fw_fl_tl_grid"
+                                      t-attf-style="left: {{ ((hour - this.axis.start) / (this.axis.end - this.axis.start)) * 100 }}%"/>
+                                <span t-foreach="ex.bands || []" t-as="band" t-key="band_index"
+                                      t-attf-class="o_fw_fl_band o_fw_fl_band_{{ band.kind }}"
+                                      t-att-class="{ 'o_fw_fl_band_open': band.open, 'o_fw_fl_band_link': band.visit_id or band.halt_id }"
+                                      t-att-style="this.bandStyle(band)" t-att-title="this.bandTitle(band)"
+                                      t-on-click="() => this.openBand(band)">
+                                    <t t-if="band.kind === 'visit'" t-out="band.label"/>
+                                </span>
+                                <span t-if="this.nowPct !== null" class="o_fw_fl_tl_now" t-attf-style="left: {{ this.nowPct }}%"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div t-if="this.state.view === 'scoreboard'" class="o_fw_fl_report">
+                    <div class="o_fw_fl_report_head">
+                        <h5>Scoreboard · <t t-out="this.dayWord"/></h5>
+                        <span class="o_fw_fl_muted">click a column to sort · click a name to focus</span>
+                    </div>
+                    <div t-if="!this.executives.length" class="o_fw_fl_empty"><i class="fa fa-trophy" aria-hidden="true"/><b>Nobody to show for this day.</b></div>
+                    <div t-else="" class="o_fw_fl_table_wrap">
+                        <table class="o_fw_fl_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_fw_fl_th_name" t-on-click="() => this.setSort('name')">Executive <i t-attf-class="fa {{ this.sortIcon('name') }}"/></th>
+                                    <th t-on-click="() => this.setSort('route')">Route <i t-attf-class="fa {{ this.sortIcon('route') }}"/></th>
+                                    <th>Status</th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('visits')">Visits <i t-attf-class="fa {{ this.sortIcon('visits') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('cases')">Cases <i t-attf-class="fa {{ this.sortIcon('cases') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('collected')">Collected <i t-attf-class="fa {{ this.sortIcon('collected') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('cash')">Cash held <i t-attf-class="fa {{ this.sortIcon('cash') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('km')">Trail km <i t-attf-class="fa {{ this.sortIcon('km') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('claimed')">Claimed <i t-attf-class="fa {{ this.sortIcon('claimed') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('clinic')">At clinics <i t-attf-class="fa {{ this.sortIcon('clinic') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('halts')">Stopped <i t-attf-class="fa {{ this.sortIcon('halts') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('speed')">Over limit <i t-attf-class="fa {{ this.sortIcon('speed') }}"/></th>
+                                    <th>Day</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="this.scoreRows" t-as="ex" t-key="ex.user_id"
+                                    t-att-class="{ 'o_fw_fl_tr_on': this.state.focusId === ex.user_id, 'o_fw_fl_tr_off': ex.status === 'off' }">
+                                    <td class="o_fw_fl_th_name" t-on-click="() => this.focus(ex, false)">
+                                        <span class="o_fw_fl_dot" t-attf-style="background: {{ ex.colour }}"/> <b t-out="ex.name"/>
+                                    </td>
+                                    <td t-out="ex.route || '—'"/>
+                                    <td><span class="o_fw_fl_badge" t-attf-class="o_fw_fl_badge_{{ ex.status }}" t-out="this.statusWord(ex)"/></td>
+                                    <td class="o_fw_fl_num"><b t-out="ex.visits_done"/><span class="o_fw_fl_muted">/<t t-out="ex.visits_planned"/></span></td>
+                                    <td class="o_fw_fl_num" t-out="ex.facts ? ex.facts.cases : 0"/>
+                                    <td class="o_fw_fl_num" t-out="this.money(ex.facts ? ex.facts.collected : 0)"/>
+                                    <td class="o_fw_fl_num" t-att-class="{ 'o_fw_fl_warn_text': ex.facts and ex.facts.cash_with > 0 }" t-out="this.money(ex.facts ? ex.facts.cash_with : 0)"/>
+                                    <td class="o_fw_fl_num" t-out="this.km(ex.km)"/>
+                                    <td class="o_fw_fl_num" t-att-class="{ 'o_fw_fl_warn_text': ex.trip and (ex.trip.variance_pct > 30 or ex.trip.variance_pct &lt; -30) }">
+                                        <t t-if="ex.trip" t-out="this.km(ex.trip.claimed_km)"/><t t-else="">—</t>
+                                    </td>
+                                    <td class="o_fw_fl_num" t-out="this.hoursWord(ex.split ? ex.split.clinic : 0)"/>
+                                    <td class="o_fw_fl_num" t-att-class="{ 'o_fw_fl_warn_text': ex.halt_minutes >= 20 }" t-out="this.hoursWord(ex.halt_minutes)"/>
+                                    <td class="o_fw_fl_num" t-att-class="{ 'o_fw_fl_warn_text': ex.overspeed }" t-out="ex.overspeed"/>
+                                    <td>
+                                        <div t-if="ex.split and ex.split.duty" class="o_fw_fl_split" t-att-title="'On duty ' + this.hoursWord(ex.split.duty)">
+                                            <i t-foreach="this.splitParts(ex)" t-as="part" t-key="part.key"
+                                               t-attf-class="o_fw_fl_split_{{ part.key }}" t-attf-style="width: {{ part.pct }}%"
+                                               t-attf-title="{{ part.label }} · {{ this.hoursWord(part.minutes) }}"/>
+                                        </div>
+                                        <span t-else="" class="o_fw_fl_muted">—</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3"><b><t t-out="this.scoreTotals.people"/> people</b></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.scoreTotals.visits"/><span class="o_fw_fl_muted">/<t t-out="this.scoreTotals.planned"/></span></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.scoreTotals.cases"/></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.money(this.scoreTotals.collected)"/></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.money(this.scoreTotals.cash)"/></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.km(this.scoreTotals.km)"/></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.km(this.scoreTotals.claimed)"/></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.hoursWord(this.scoreTotals.clinic)"/></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.hoursWord(this.scoreTotals.halts)"/></td>
+                                    <td class="o_fw_fl_num"><b t-out="this.scoreTotals.speed"/></td>
+                                    <td/>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div t-if="this.routes.length" class="o_fw_fl_report_head o_fw_fl_report_head_2">
+                        <h5>By route</h5>
+                    </div>
+                    <div t-if="this.routes.length" class="o_fw_fl_routes">
+                        <div t-foreach="this.routes" t-as="route" t-key="route.route" class="o_fw_fl_rt">
+                            <div class="o_fw_fl_rt_name"><b t-out="route.route"/><span class="o_fw_fl_muted"> · <t t-out="route.duty"/>/<t t-out="route.people"/> on duty</span></div>
+                            <div class="o_fw_fl_rt_stats">
+                                <span><b><t t-out="route.visits_done"/></b><small>/<t t-out="route.visits_planned"/> visits</small></span>
+                                <span><b t-out="route.cases"/><small>cases</small></span>
+                                <span><b t-out="this.money(route.collected)"/><small>collected</small></span>
+                                <span><b t-out="this.money(route.cash_with)"/><small>cash held</small></span>
+                                <span><b><t t-out="this.km(route.km)"/></b><small>km</small></span>
+                                <span t-if="route.halt_minutes"><b t-out="this.hoursWord(route.halt_minutes)"/><small>stopped</small></span>
+                            </div>
+                            <span class="o_fw_fl_bar"><i t-attf-style="width: {{ this.pct(route.visits_done, route.visits_planned) }}%"/></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div t-if="this.state.view === 'trends'" class="o_fw_fl_report">
+                    <div class="o_fw_fl_report_head">
+                        <h5>The fortnight to <t t-out="this.dayWord"/></h5>
+                        <span class="o_fw_fl_muted">from the day sheets · today from the live board</span>
+                    </div>
+                    <div t-if="this.trend" class="o_fw_fl_charts">
+                        <t t-foreach="[['visits', 'Visits done', ''], ['cases', 'Cases', ''], ['collected', 'Collected', 'money'], ['gps_km', 'Km on the trail', 'km']]" t-as="chart" t-key="chart[0]">
+                            <div class="o_fw_fl_chart">
+                                <div class="o_fw_fl_chart_head">
+                                    <span t-out="chart[1]"/>
+                                    <b>
+                                        <t t-if="chart[2] === 'money'" t-out="this.money(this.trendTotal(chart[0]))"/>
+                                        <t t-elif="chart[2] === 'km'"><t t-out="this.km(this.trendTotal(chart[0]))"/> km</t>
+                                        <t t-else="" t-out="this.trendTotal(chart[0])"/>
+                                    </b>
+                                </div>
+                                <div class="o_fw_fl_chart_bars">
+                                    <span t-foreach="this.trend.days" t-as="day" t-key="day.date" class="o_fw_fl_chart_col"
+                                          t-attf-title="{{ day.date }} · {{ chart[2] === 'money' ? this.money(day[chart[0]]) : day[chart[0]] }}">
+                                        <i t-attf-style="height: {{ this.trendHeight(day, chart[0]) }}%" t-att-class="{ 'o_fw_fl_chart_live': day.live }"/>
+                                        <small t-out="this.dayNum(day.date)"/>
+                                    </span>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <div class="o_fw_fl_report_head o_fw_fl_report_head_2">
+                        <h5>Day by day, person by person</h5>
+                        <span class="o_fw_fl_muted"><i class="o_fw_fl_key_i o_fw_fl_dot_clean"/> clean day · <i class="o_fw_fl_key_i o_fw_fl_dot_flag"/> with issues · <i class="o_fw_fl_key_i o_fw_fl_dot_live"/> running now · the number is visits</span>
+                    </div>
+                    <div t-if="this.trend and this.trend.people.length" class="o_fw_fl_dots_wrap">
+                        <table class="o_fw_fl_dots">
+                            <thead>
+                                <tr>
+                                    <th/>
+                                    <th t-foreach="this.trend.days" t-as="day" t-key="day.date" t-out="this.dayLabel(day.date)"/>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="this.trend.people" t-as="person" t-key="person.user_id">
+                                    <td class="o_fw_fl_th_name" t-on-click="() => this.focusUser(person.user_id)"><b t-out="person.name"/></td>
+                                    <td t-foreach="person.days" t-as="cell" t-key="cell_index">
+                                        <span class="o_fw_fl_dotcell" t-att-class="this.dotClass(cell)"
+                                              t-att-title="this.dotTitle(cell, this.trend.days[cell_index].date)">
+                                            <t t-if="cell" t-out="cell.visits"/>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div t-else="" class="o_fw_fl_empty"><i class="fa fa-calendar-o" aria-hidden="true"/><b>No day sheets in the fortnight yet.</b><span>A day sheet is filed at every day close; the dots fill in from the first one.</span></div>
+
+                    <div class="o_fw_fl_report_head o_fw_fl_report_head_2">
+                        <h5>This month so far</h5>
+                        <span class="o_fw_fl_muted">from the day sheets, ranked by visits</span>
+                    </div>
+                    <div t-if="this.month.length" class="o_fw_fl_table_wrap">
+                        <table class="o_fw_fl_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_fw_fl_th_name">Executive</th>
+                                    <th class="o_fw_fl_num">Days</th>
+                                    <th class="o_fw_fl_num">Clean</th>
+                                    <th class="o_fw_fl_num">Streak</th>
+                                    <th class="o_fw_fl_num">Visits</th>
+                                    <th class="o_fw_fl_num">Cases</th>
+                                    <th class="o_fw_fl_num">Case value</th>
+                                    <th class="o_fw_fl_num">Collected</th>
+                                    <th class="o_fw_fl_num">Km claimed</th>
+                                    <th class="o_fw_fl_num">Km trail</th>
+                                    <th class="o_fw_fl_num">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="this.month" t-as="row" t-key="row.user_id">
+                                    <td class="o_fw_fl_th_name" t-on-click="() => this.focusUser(row.user_id)"><b t-out="row.name"/></td>
+                                    <td class="o_fw_fl_num" t-out="row.days"/>
+                                    <td class="o_fw_fl_num" t-out="row.clean"/>
+                                    <td class="o_fw_fl_num" t-out="row.streak"/>
+                                    <td class="o_fw_fl_num"><b t-out="row.visits"/></td>
+                                    <td class="o_fw_fl_num" t-out="row.cases"/>
+                                    <td class="o_fw_fl_num" t-out="this.money(row.value)"/>
+                                    <td class="o_fw_fl_num" t-out="this.money(row.collected)"/>
+                                    <td class="o_fw_fl_num" t-out="this.km(row.km)"/>
+                                    <td class="o_fw_fl_num" t-out="this.km(row.gps_km)"/>
+                                    <td class="o_fw_fl_num" t-out="row.score || '—'"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div t-else="" class="o_fw_fl_empty"><i class="fa fa-trophy" aria-hidden="true"/><b>No day sheet filed this month yet.</b></div>
+                </div>
+            </div>
+
+            <!-- the story of the person in focus -->
+            <aside t-if="this.showStory" class="o_fw_fl_story">
+                <t t-set="ex" t-value="this.focused"/>
+                <div class="o_fw_fl_story_head">
+                    <span class="o_fw_fl_avatar o_fw_fl_avatar_lg" t-attf-style="border-color: {{ ex.colour }}">
+                        <img t-att-src="ex.avatar" t-att-alt="ex.name"/>
+                    </span>
+                    <span class="o_fw_fl_who">
+                        <span class="o_fw_fl_name" t-out="ex.name"/>
+                        <span class="o_fw_fl_route"><t t-out="ex.route || ''"/><t t-if="ex.route"> · </t><t t-out="this.dayWord"/></span>
+                        <span class="o_fw_fl_badge" t-attf-class="o_fw_fl_badge_{{ ex.status }}"><t t-out="this.statusWord(ex)"/> <small t-out="this.sinceLabel(ex)"/></span>
+                    </span>
+                    <button type="button" class="o_fw_fl_btn o_fw_fl_story_close" title="Close" t-on-click="() => this.toggleStory()">
+                        <i class="fa fa-times" aria-hidden="true"/>
+                    </button>
+                </div>
+                <div class="o_fw_fl_story_actions">
+                    <a t-if="ex.phone" t-attf-href="tel:{{ ex.phone }}" class="o_fw_fl_btn"><i class="fa fa-phone me-1" aria-hidden="true"/>Call</a>
+                    <button type="button" class="o_fw_fl_btn" t-on-click="() => this.openVisits(ex)"><i class="fa fa-list me-1" aria-hidden="true"/>Visits</button>
+                    <button t-if="ex.trip" type="button" class="o_fw_fl_btn" t-on-click="() => this.openRecord('lab.trip', ex.trip.id)"><i class="fa fa-motorcycle me-1" aria-hidden="true"/>Trip</button>
+                    <button t-if="ex.sheet" type="button" class="o_fw_fl_btn" t-on-click="() => this.openRecord('lab.daily.update', ex.sheet.id)"><i class="fa fa-file-text-o me-1" aria-hidden="true"/>Day sheet</button>
+                    <button t-else="" type="button" class="o_fw_fl_btn" t-on-click="() => this.openSheet(ex)"><i class="fa fa-file-text-o me-1" aria-hidden="true"/>Day sheet</button>
+                </div>
+                <div t-if="ex.facts" class="o_fw_fl_facts">
+                    <div class="o_fw_fl_fact"><b><t t-out="ex.visits_done"/>/<t t-out="ex.visits_planned"/></b><span>visits</span></div>
+                    <div class="o_fw_fl_fact"><b t-out="ex.facts.cases"/><span>cases · <t t-out="this.money(ex.facts.value)"/></span></div>
+                    <div class="o_fw_fl_fact"><b t-out="this.money(ex.facts.collected)"/><span>collected</span></div>
+                    <div class="o_fw_fl_fact" t-att-class="{ 'o_fw_fl_fact_warn': ex.facts.cash_with > 0 }"><b t-out="this.money(ex.facts.cash_with)"/><span>cash with them</span></div>
+                    <div class="o_fw_fl_fact"><b><t t-out="this.km(ex.km)"/> km</b><span>on the trail</span></div>
+                    <div class="o_fw_fl_fact" t-att-class="{ 'o_fw_fl_fact_warn': ex.trip and ex.trip.variance_pct and (ex.trip.variance_pct > 30 or ex.trip.variance_pct &lt; -30) }">
+                        <b><t t-if="ex.trip"><t t-out="this.km(ex.trip.claimed_km)"/> km</t><t t-else="">—</t></b>
+                        <span>claimed<t t-if="ex.trip and ex.trip.variance_pct"> · <t t-out="this.round(ex.trip.variance_pct)"/>%</t></span>
+                    </div>
+                    <div class="o_fw_fl_fact" t-att-class="{ 'o_fw_fl_fact_warn': ex.halt_minutes >= 20 }"><b><t t-out="this.round(ex.halt_minutes)"/> min</b><span>stopped away</span></div>
+                    <div class="o_fw_fl_fact" t-att-class="{ 'o_fw_fl_fact_warn': ex.overspeed }"><b t-out="ex.overspeed"/><span>over the limit</span></div>
+                </div>
+                <div t-if="ex.split and ex.split.duty" class="o_fw_fl_story_split">
+                    <div class="o_fw_fl_split" t-att-title="'On duty ' + this.hoursWord(ex.split.duty)">
+                        <i t-foreach="this.splitParts(ex)" t-as="part" t-key="part.key"
+                           t-attf-class="o_fw_fl_split_{{ part.key }}" t-attf-style="width: {{ part.pct }}%"
+                           t-attf-title="{{ part.label }} · {{ this.hoursWord(part.minutes) }}"/>
+                    </div>
+                    <div class="o_fw_fl_split_legend">
+                        <span t-foreach="this.splitParts(ex)" t-as="part" t-key="part.key">
+                            <i t-attf-class="o_fw_fl_key_i o_fw_fl_split_{{ part.key }}"/><t t-out="part.label"/> <b t-out="this.hoursWord(part.minutes)"/>
+                        </span>
+                        <span class="o_fw_fl_muted">of <b t-out="this.hoursWord(ex.split.duty)"/> on duty</span>
+                    </div>
+                </div>
+                <div t-if="ex.phone_app" class="o_fw_fl_story_phone">
+                    <span class="o_fw_fl_app" t-att-class="{ 'o_fw_fl_app_on': ex.phone_app.on_app }" t-out="this.phoneWord(ex.phone_app)"/>
+                    <span t-att-class="this.batteryClass(ex.phone_app.battery)">
+                        <i t-attf-class="fa {{ this.batteryIcon(ex.phone_app.battery) }}" aria-hidden="true"/>
+                        <t t-if="ex.phone_app.battery !== null and ex.phone_app.battery !== undefined"> <t t-out="this.round(ex.phone_app.battery)"/>%</t>
+                    </span>
+                    <span t-att-class="{ 'o_fw_fl_silent': ex.phone_app.silent }"><i class="fa fa-signal" aria-hidden="true"/> <t t-out="this.lastSeen(ex)"/></span>
+                    <span t-if="ex.last and ex.last.accuracy_m" class="o_fw_fl_muted">±<t t-out="this.round(ex.last.accuracy_m)"/> m</span>
+                    <span t-if="ex.sheet" class="o_fw_fl_muted ms-auto" t-out="ex.sheet.label"/>
+                </div>
+                <div t-if="ex.alerts and ex.alerts.length" class="o_fw_fl_story_alerts">
+                    <div t-foreach="ex.alerts" t-as="alert" t-key="alert.key" t-attf-class="o_fw_fl_alert o_fw_fl_alert_{{ alert.level }}">
+                        <i t-attf-class="fa {{ this.levelIcon(alert.level) }} o_fw_fl_alert_icon" aria-hidden="true"/>
+                        <span class="o_fw_fl_alert_body">
+                            <span class="o_fw_fl_alert_title" t-out="alert.title"/>
+                            <span t-if="alert.detail" class="o_fw_fl_alert_detail" t-out="alert.detail"/>
+                        </span>
+                    </div>
+                </div>
+                <div class="o_fw_fl_story_title">The day, as recorded</div>
+                <div t-if="!this.story.length" class="o_fw_fl_msg">Nothing recorded yet.</div>
+                <ol class="o_fw_fl_timeline">
+                    <li t-foreach="this.story" t-as="event" t-key="event_index"
+                        class="o_fw_fl_ev" t-att-class="this.eventClass(event)"
+                        t-on-click="() => this.openEvent(event)">
+                        <span class="o_fw_fl_ev_time" t-out="this.clock(event.epoch)"/>
+                        <i class="fa o_fw_fl_ev_icon" t-att-class="this.eventIconClass(event)" aria-hidden="true"/>
+                        <span class="o_fw_fl_ev_body">
+                            <span class="o_fw_fl_ev_title">
+                                <t t-out="event.title"/>
+                                <b t-if="event.amount" class="o_fw_fl_ev_amount"> <t t-out="this.money(event.amount)"/></b>
+                            </span>
+                            <span t-if="event.detail" class="o_fw_fl_ev_detail" t-out="event.detail"/>
+                        </span>
+                    </li>
+                </ol>
+            </aside>
+        </div>
+    </div>
+</t>
+</templates>

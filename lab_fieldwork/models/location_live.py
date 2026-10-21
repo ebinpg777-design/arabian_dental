@@ -602,15 +602,23 @@ class LabMyDayLive(models.AbstractModel):
         state = super().tracking_state()
         user = self.env.user
         state.update({'app': None, 'native': None, 'app_mode': False, 'app_live': False})
+        in_app = client == 'app'
         if state.get('enabled'):
-            if client == 'app':
-                state['native'] = user._fw_native_config(app_version)
+            if in_app:
+                # The phone is provisioned whenever the app asks; the recorder's
+                # settings go out only while the day is running. Start my day is
+                # when recording starts and End the day is when it stops, and in
+                # between the app is handed nothing it could record with.
+                # (client, 2026-10-20)
+                config = user._fw_native_config(app_version)
+                state['native'] = config if state.get('on_duty') else None
             else:
                 state['app'] = user._fw_app_setup()
                 if not state['app']:
                     age = user._fw_native_last_fix_age()
                     state['app_live'] = age is not None and age <= APP_LIVE_SECONDS
-        if state['native'] or state['app'] or state['app_live']:
+        if in_app or state['app'] or state['app_live']:
+            # Inside the app the page never watches by itself, running day or not.
             state['enabled'] = False
             state['app_mode'] = True
         me = user.sudo()

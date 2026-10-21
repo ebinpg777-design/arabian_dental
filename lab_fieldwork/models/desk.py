@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Three desks, three screens — each role's whole morning in one call.
+"""The read layer behind Field Live - and, until 2026-10-20, behind the three role
+desks (Ops Desk, Marketing Desk, Command Center), whose screens were removed.
+The payload builders they used stay callable; the shared helpers (`_executives`,
+`_field_board`, `_ops_alerts`, `_leaderboard`, `_cash_held`) feed models/field_live.py.
+
+Three desks, three screens — each role's whole morning in one call.
 
 The old Control Tower and Field Health tried to serve every manager from the same
 two screens, which meant every manager scrolled past the other desk's problems to

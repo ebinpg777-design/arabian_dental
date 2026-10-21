@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Field Live (2026-10-20): the one screen for the field managers and the CEO -
+     where everyone is right now, how each day is going, what needs a word. It
+     replaced the three role desks and the Live Map. -->
+<odoo>
+    <record id="action_field_live" model="ir.actions.client">
+        <field name="name">Field Live</field>
+        <field name="tag">lab_field_live</field>
+    </record>
+
+    <!-- First item on every manager's menu: the two manager roles and the
+         administrator all imply the base manager group. -->
+    <menuitem id="menu_fw_field_live" name="Field Live"
+              parent="menu_fieldwork_root" sequence="1"
+              action="action_field_live"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+</odoo>

@@ -690,6 +690,10 @@ export const liveTrackService = {
             }
         });
         window.addEventListener("pagehide", () => tracker.flush());
+        // The Lab app says the location permission was just granted: ask the
+        // server again, and start the recorder only if the day is running - the
+        // app itself never starts recording. (client, 2026-10-20)
+        window.addEventListener("labapp", () => tracker.refresh());
 
         return tracker;
     },

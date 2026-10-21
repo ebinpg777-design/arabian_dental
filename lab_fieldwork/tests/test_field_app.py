@@ -71,6 +71,19 @@ class TestFieldApp(HttpCase):
         self.assertEqual(state['native_app']['version'], '1.0.0')
         self.assertIsNone(state['native_app']['last_fix_age_s'], "nothing posted yet")
 
+    def test_the_app_is_handed_the_recorder_only_while_the_day_runs(self):
+        """Start my day starts recording, End the day stops it (client, 2026-10-20)."""
+        state = self._state(client='app', app_version='1.0.1')
+        self.assertIsNone(state['native'], "no day running: nothing to record with")
+        self.assertTrue(state['app_mode'] and not state['enabled'],
+                        "...and the page never watches by itself inside the app")
+        self.assertTrue(self.exec_user.sudo().fw_native_app, "provisioned all the same")
+        self._on_duty()
+        self.assertTrue(self._state(client='app', app_version='1.0.1')['native'])
+        self.env['hr.attendance'].sudo().search(
+            [('employee_id', '=', self.employee.id)]).write({'check_out': fields.Datetime.now()})
+        self.assertIsNone(self._state(client='app', app_version='1.0.1')['native'])
+
     def test_a_browser_watches_until_the_app_is_heard_from(self):
         self._on_duty()
         self.assertTrue(self._state()['enabled'])
@@ -97,7 +110,7 @@ class TestFieldApp(HttpCase):
         self.exec_user.sudo().fw_location_exception = True
         state = self._state(client='app', app_version='1.0.0')
         self.assertIsNone(state['native'], "an excused phone is never watched, app or browser")
-        self.assertFalse(state['app_mode'])
+        self.assertFalse(state['enabled'], "...and inside the app the page never watches either")
         self.exec_user.sudo().fw_location_exception = False
         self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.track_live', 'False')
         self.assertIsNone(self._state(client='app', app_version='1.0.0')['native'])

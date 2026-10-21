@@ -73,25 +73,9 @@
               action="action_new_clinics"
               groups="lab_fieldwork.group_fieldwork_executive"/>
 
-    <!-- ==================================================================
-         EACH DESK'S OWN SCREEN — first item on its owner's menu. Fresh
-         xmlids on purpose: a reused id would drag the old menu's stale group
-         links along (menuitem groups are Command.link, never a replace).
-         ================================================================== -->
-    <menuitem id="menu_fw_ops_desk" name="Ops Desk"
-              parent="menu_fieldwork_root" sequence="1"
-              action="action_ops_desk"
-              groups="lab_fieldwork.group_fieldwork_ops_manager"/>
-
-    <menuitem id="menu_fw_marketing_desk" name="Marketing Desk"
-              parent="menu_fieldwork_root" sequence="1"
-              action="action_marketing_desk"
-              groups="lab_fieldwork.group_fieldwork_marketing_manager"/>
-
-    <menuitem id="menu_fw_admin_desk" name="Command Center"
-              parent="menu_fieldwork_root" sequence="2"
-              action="action_admin_desk"
-              groups="lab_fieldwork.group_fieldwork_admin"/>
+    <!-- The three role desks (Ops Desk, Marketing Desk, Command Center) were
+         removed on 2026-10-20: Field Live (views/field_live_views.xml) is the one
+         screen every manager and the CEO open first. -->
 
     <!-- ==================================================================
          APPROVALS — the two desks side by side, each seeing its own queue.
@@ -194,9 +178,8 @@
               groups="lab_fieldwork.group_fieldwork_manager"/>
 
     <!-- ==================================================================
-         ADMINISTRATOR — the rules, and the record of whether the split is
-         working: the Command Center above, and the weekly report both desks
-         feed.
+         ADMINISTRATOR — the rules, and the weekly report both approval
+         queues feed.
          ================================================================== -->
     <menuitem id="menu_fw_weekly" name="Weekly Reports"
               parent="menu_fieldwork_root" sequence="3"

@@ -409,69 +409,6 @@ class TestDesks(DailyFlowCase):
         self.assertEqual(kinds, ['ops', 'submitted'],
                          "newest first: the ops signature above the submission")
 
-    def test_each_desk_menu_belongs_to_its_role_alone(self):
-        ops_menus = self._visible_menu_ids(self.ops_user)
-        mkt_menus = self._visible_menu_ids(self.mkt_user)
-        admin_menus = self._visible_menu_ids(self.admin_user)
-        ops_desk = self.env.ref('lab_fieldwork.menu_fw_ops_desk').id
-        mkt_desk = self.env.ref('lab_fieldwork.menu_fw_marketing_desk').id
-        command = self.env.ref('lab_fieldwork.menu_fw_admin_desk').id
-        self.assertIn(ops_desk, ops_menus)
-        self.assertNotIn(mkt_desk, ops_menus)
-        self.assertIn(mkt_desk, mkt_menus)
-        self.assertNotIn(ops_desk, mkt_menus)
-        self.assertNotIn(command, ops_menus)
-        self.assertNotIn(command, mkt_menus)
-        # The administrator implies both desks and owns the third screen.
-        for menu in (ops_desk, mkt_desk, command):
-            self.assertIn(menu, admin_menus)
-
-
-@tagged('post_install', '-at_install')
-class TestDeskBrowser(HttpCase):
-    """Load each desk in a real browser.
-
-    An Owl expression error or a broken template is invisible to every
-    server-side check and white-screens the client - only a browser sees it.
-    (same reasoning as lab_delivery's My Day browser test)
-    """
-
-    def _render(self, action_xmlid):
-        # base.user_admin implies both desks via the fieldwork Administrator
-        # role - granted here so the test does not depend on the database's own
-        # role assignments.
-        admin = self.env.ref('base.user_admin')
-        admin.write({'group_ids': [
-            (4, self.env.ref('lab_fieldwork.group_fieldwork_admin').id)]})
-        self.browser_js(
-            "/odoo/action-%s" % action_xmlid,
-            """
-            (async () => {
-                for (let i = 0; i < 150; i++) {
-                    // Odoo 19 counts a browser test as passed only when the
-                    // page logs this exact line; a promise that merely resolves
-                    // is waited on until the timeout and reported as a failure.
-                    if (document.querySelector('.o_fwd_grid')) {
-                        console.log('test successful');
-                        return;
-                    }
-                    await new Promise(r => setTimeout(r, 100));
-                }
-                throw new Error('the desk never rendered past loading');
-            })()
-            """,
-            login="admin")
-
-    def test_the_ops_desk_renders(self):
-        self._render("lab_fieldwork.action_ops_desk")
-
-    def test_the_marketing_desk_renders(self):
-        self._render("lab_fieldwork.action_marketing_desk")
-
-    def test_the_command_center_renders(self):
-        self._render("lab_fieldwork.action_admin_desk")
-
-
 @tagged('post_install', '-at_install')
 class TestDeskCover(DailyFlowCase):
     """Cover: who signs a desk while its manager is away.
@@ -523,8 +460,9 @@ class TestDeskCover(DailyFlowCase):
         self.mkt_user.invalidate_recordset()
         self.assertFalse(self.mkt_user.has_group(
             'lab_fieldwork.group_fieldwork_ops_manager'))
-        ops_desk = self.env.ref('lab_fieldwork.menu_fw_ops_desk').id
-        self.assertNotIn(ops_desk, self._visible_menu_ids(self.mkt_user))
+        # an ops-only menu (the Ops Desk itself is gone since 2026-10-20)
+        ops_only = self.env.ref('lab_fieldwork.menu_fw_ops_approvals').id
+        self.assertNotIn(ops_only, self._visible_menu_ids(self.mkt_user))
 
     def test_a_cover_for_a_desk_its_manager_does_not_hold_is_refused(self):
         with self.assertRaises(ValidationError):
@@ -538,27 +476,6 @@ class TestDeskCover(DailyFlowCase):
         cover = self._cover(self.ops_user, self.mkt_user, 'ops')
         with self.assertRaises(UserError):
             cover.with_user(self.mkt_user).write({'reason': 'mine now'})
-
-    def test_the_command_center_shows_who_is_standing_in(self):
-        cover = self._cover(self.ops_user, self.mkt_user, 'ops', reason='Leave')
-        board = self.env['lab.desk'].with_user(
-            self.admin_user).get_admin_desk()['covers']
-        # This cover among whatever else the database is running.
-        mine = next(r for r in board['running'] if r['id'] == cover.id)
-        self.assertEqual(mine['delegate'], self.mkt_user.name)
-        self.assertEqual(mine['manager'], self.ops_user.name)
-        self.assertEqual(mine['reason'], 'Leave')
-
-    def test_the_stand_in_is_told_whose_desk_they_are_on(self):
-        self._cover(self.ops_user, self.mkt_user, 'ops', reason='Leave')
-        banner = self.env['lab.desk'].with_user(
-            self.mkt_user).get_ops_desk()['cover']
-        self.assertTrue(banner)
-        self.assertEqual(banner['manager'], self.ops_user.name)
-        # And nobody else is told they are covering.
-        self.assertFalse(self.env['lab.desk'].with_user(
-            self.admin_user).get_ops_desk()['cover'])
-
 
 @tagged('post_install', '-at_install')
 class TestNudge(DailyFlowCase):

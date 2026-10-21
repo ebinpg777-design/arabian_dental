@@ -4,6 +4,8 @@ halts, speed, the trip's km, and the one call the live map draws from.
 (client, 2026-10-19: "implement live GPS in field executive visits and travel")"""
 from datetime import timedelta
 
+from freezegun import freeze_time
+
 from odoo import fields
 from odoo.exceptions import AccessError
 from odoo.tests import tagged
@@ -23,6 +25,16 @@ def walk(start_lat, start_lon, steps, metres_each=100.0, seconds_each=30, speed=
 
 @tagged('post_install', '-at_install')
 class TestLiveLayer(LiveTrackCase):
+
+    def setUp(self):
+        super().setUp()
+        # 11:00 in Kolkata on the real date: every scenario here places pings
+        # "N minutes ago" and reads the day they fall in, which after midnight IST
+        # is yesterday for half of them. (2026-10-21, the suite run at 00:43)
+        day = fields.Date.context_today(self.exec_user)
+        self._freezer = freeze_time(day.strftime('%Y-%m-%d') + ' 05:30:00')
+        self._freezer.start()
+        self.addCleanup(self._freezer.stop)
 
     def _start_day(self, user, when):
         """On duty since `when` and still on duty now (an open attendance)."""

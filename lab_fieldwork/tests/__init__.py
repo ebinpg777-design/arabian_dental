@@ -19,3 +19,4 @@ from . import test_partner_access
 from . import test_live_map
 from . import test_gps_app
 from . import test_field_app
+from . import test_field_live
