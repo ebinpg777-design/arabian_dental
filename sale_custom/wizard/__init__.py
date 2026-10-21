@@ -5,3 +5,4 @@ from . import order_list_wizard
 from . import order_count_wizard
 from . import change_customer
 from . import auth_card_wizard
+from . import einvoice_report

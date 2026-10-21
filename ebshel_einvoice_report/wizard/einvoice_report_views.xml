@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="einvoice_report_wizard_form" model="ir.ui.view">
+        <field name="name">einvoice.report.wizard.form</field>
+        <field name="model">einvoice.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="GST E-Invoice Report">
+                <group>
+                    <group>
+                        <label for="date_from" string="Period"/>
+                        <div class="o_row">
+                            <field name="date_from"/>
+                            <span class="text-muted">to</span>
+                            <field name="date_to"/>
+                        </div>
+                        <field name="include_credit_notes"/>
+                    </group>
+                    <group>
+                        <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"
+                               groups="base.group_multi_company"/>
+                    </group>
+                </group>
+                <div class="alert alert-info mb-0" role="status" invisible="not summary">
+                    <field name="summary" nolabel="1" class="d-inline"/>
+                </div>
+                <div class="text-muted small mt-2">
+                    Registered, SEZ, deemed export and export customers. Two sheets: Buyer
+                    Details (one row per document) and E-Invoice Items (one row per line), in
+                    the column layout of the e-invoice bulk upload.
+                </div>
+                <footer>
+                    <button name="action_download" string="Download Excel" type="object"
+                            class="btn-primary" icon="fa-download" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_einvoice_report" model="ir.actions.act_window">
+        <field name="name">GST E-Invoice Report</field>
+        <field name="res_model">einvoice.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_einvoice_report"
+              name="E-Invoice Report"
+              parent="account.menu_finance_reports"
+              action="action_einvoice_report"
+              sequence="90"
+              groups="account.group_account_invoice"/>
+</odoo>
