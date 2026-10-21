@@ -7,15 +7,24 @@
             <form string="Dispatch Register">
                 <group>
                     <group>
-                        <field name="date"/>
                         <field name="team_ids" widget="many2many_tags"
+                               placeholder="Every route, one page each"
                                options="{'no_create': True}"/>
+                        <label for="date"/>
+                        <div class="o_row">
+                            <field name="date"/>
+                            <span class="text-muted">to</span>
+                            <field name="date_to" placeholder="same day"/>
+                        </div>
                     </group>
                     <group>
                         <field name="include_draft"/>
                         <field name="company_id" groups="base.group_multi_company"/>
                     </group>
                 </group>
+                <div class="alert alert-info mb-0" role="status" invisible="not summary">
+                    <i class="fa fa-truck me-2" title="Dispatch"/><field name="summary" nolabel="1" class="d-inline"/>
+                </div>
                 <footer>
                     <button name="action_print" string="Print Register" type="object"
                             class="btn-primary" data-hotkey="q" icon="fa-print"/>

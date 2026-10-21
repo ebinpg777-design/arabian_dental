@@ -17,3 +17,4 @@ from . import test_authentication_card
 from . import test_clinic_fields
 from . import test_partner_picker
 from . import test_sales_route_labels
+from . import test_dispatch_register

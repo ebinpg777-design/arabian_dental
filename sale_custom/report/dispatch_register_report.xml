@@ -1,99 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!--
-        Daily Dispatch Register. One page-flow per day: summary tiles, then a block per
-        Sales Route with a tick column for the physical hand-over, then sign-off boxes.
-        Same design language as the tax invoice (navy on light cards, tables not flex).
+        Dispatch Register (client, 2026-10-21): the v17 sheet the dispatch table ticks -
+        one row per invoice line, boxes for Invoiced / Packed / Despatch, a Remarks
+        column - one Sales Route per page, each page opening with the letterhead and
+        the route, and closing with the sign-off strip.
+
+        The layout flags (hide_letterhead, footer_note) go on the t-call of
+        external_layout_lab itself: in Odoo 20 a t-call's attributes reach only the
+        template it calls, so set on web.html_container they never arrived - the page
+        header was drawn over the letterhead and the footer lost its note.
     -->
-    <!-- title row, repeated at the top of every route's page -->
     <template id="dispatch_register_title">
         <table class="odr-title">
             <tr>
                 <td style="vertical-align:bottom;">
                     <div class="oi-title">DISPATCH REGISTER</div>
-                    <div class="odr-sub">Invoices dispatched route-wise ·
-                        printed <t t-out="printed_on"/></div>
+                    <div class="odr-sub">Route-wise · printed <t t-out="printed_on"/></div>
                 </td>
                 <td style="text-align:right;vertical-align:bottom;">
-                    <div class="oi-numlabel">Dispatch date</div>
-                    <div class="oi-number"><span t-field="wizard.date"/></div>
-                    <div class="odr-countchip" t-if="route_count is not None">
-                        <t t-out="route_count"/> invoice<t t-if="route_count != 1">s</t> on this route
-                    </div>
+                    <div class="oi-numlabel">Invoice date</div>
+                    <div class="oi-number odr-date"><t t-out="date_label"/></div>
                 </td>
             </tr>
         </table>
     </template>
 
     <template id="report_dispatch_register">
-        <t t-call="web.html_container"
-            o="wizard"
-            hide_letterhead="True"
-            footer_note.translate="Dispatch register"
-            route_count="None">
-            <t t-call="sale_custom.external_layout_lab">
+        <t t-call="web.html_container">
+            <t t-call="sale_custom.external_layout_lab"
+                o="wizard"
+                hide_letterhead="True"
+                footer_note.translate="Dispatch Register">
                 <div class="page lab-invoice odr">
-                    <t t-call="sale_custom.letterhead_block"/>
-
                     <t t-if="not groups">
+                        <t t-call="sale_custom.letterhead_block"/>
                         <t t-call="sale_custom.dispatch_register_title"/>
-                        <p class="odr-empty">No invoices dated <span t-field="wizard.date"/>.</p>
+                        <p class="odr-empty">
+                            No invoices dated <t t-out="date_label"/><t t-if="route_filter"> for <t t-out="route_filter"/></t>.
+                        </p>
                     </t>
 
                     <t t-foreach="groups" t-as="g">
-                        <!-- one route per page, and the title block repeats on each: the
-                             sheet is handed to that route's runner as a document of its own -->
+                        <!-- one route per page: the sheet is handed to that route's runner -->
                         <div t-attf-class="odr-route {{'' if g_first else 'odr-newpage'}}">
-                            <t t-call="sale_custom.dispatch_register_title" route_count="len(g['moves'])"/>
-                            <table class="odr-route-head">
-                                <tr>
-                                    <td><i class="fa fa-map-marker"/> <t t-out="g['name']"/></td>
-                                    <td style="text-align:right;">
-                                        <t t-out="len(g['moves'])"/> invoice<t t-if="len(g['moves']) != 1">s</t>
-                                         ·  <t t-out="money(g['total'])"/>
-                                    </td>
-                                </tr>
-                            </table>
+                            <t t-call="sale_custom.letterhead_block"/>
+                            <t t-call="sale_custom.dispatch_register_title"/>
                             <table class="odr-lines">
+                                <colgroup>
+                                    <col style="width:13%"/>
+                                    <col style="width:8.5%"/>
+                                    <col style="width:15.5%"/>
+                                    <col style="width:11.5%"/>
+                                    <col style="width:19.5%"/>
+                                    <col style="width:7.5%"/>
+                                    <col style="width:7.5%"/>
+                                    <col style="width:7.5%"/>
+                                    <col style="width:9.5%"/>
+                                </colgroup>
                                 <thead>
-                                    <tr>
-                                        <th class="tick"> </th>
-                                        <th style="width:11%">Invoice</th>
-                                        <th style="width:22%">Clinic</th>
-                                        <th style="width:15%">Patient(s)</th>
-                                        <th>Works</th>
-                                        <th style="width:10%">Source</th>
-                                        <th class="num" style="width:11%">Amount</th>
-                                        <th class="num" style="width:10%">Due</th>
-                                        <th class="mid" style="width:7%">Status</th>
+                                    <!-- the route rides in the head, so it repeats on every
+                                         page a long route runs over -->
+                                    <tr class="odr-banner">
+                                        <th colspan="5">
+                                            <span class="odr-pin"/>ROUTE · <t t-out="g['name']"/>
+                                        </th>
+                                        <th colspan="4" class="odr-banner-count">
+                                            <t t-out="g['invoice_count']"/> invoice<t t-if="g['invoice_count'] != 1">s</t>
+                                            · <t t-out="g['item_count']"/> item<t t-if="g['item_count'] != 1">s</t>
+                                        </th>
+                                    </tr>
+                                    <tr class="odr-cols">
+                                        <th>Invoice No</th>
+                                        <th>Date</th>
+                                        <th>Dr. Name</th>
+                                        <th>Pt. Name</th>
+                                        <th>Product</th>
+                                        <th class="mid">Invoiced</th>
+                                        <th class="mid">Packed</th>
+                                        <th class="mid">Despatch</th>
+                                        <th>Remarks</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr t-foreach="g['moves']" t-as="m">
-                                        <t t-set="st" t-value="status(m)"/>
-                                        <td class="tick"><span class="odr-box"/></td>
-                                        <td class="odr-doc"><t t-out="m.name if m.state != 'draft' else (m.name or 'Draft')"/></td>
-                                        <td><t t-out="m.partner_id.name"/></td>
-                                        <td><t t-out="m.patient_names or ''"/></td>
-                                        <td class="odr-works"><t t-out="works(m)"/></td>
-                                        <td><t t-out="m.invoice_origin or ''"/></td>
-                                        <td class="num"><t t-out="money(-m.amount_total if m.move_type == 'out_refund' else m.amount_total)"/></td>
-                                        <td class="num"><t t-out="money(m.amount_residual) if m.amount_residual else ''"/></td>
-                                        <td class="mid"><span t-attf-class="odr-chip {{st[1]}}"><t t-out="st[0]"/></span></td>
-                                    </tr>
-                                    <tr class="odr-subtotal">
-                                        <td class="tick"/>
-                                        <td colspan="5">Route total — <t t-out="g['name']"/></td>
-                                        <td class="num"><t t-out="money(g['total'])"/></td>
-                                        <td class="num"><t t-out="money(g['due'])"/></td>
-                                        <td/>
-                                    </tr>
+                                    <t t-foreach="g['invoices']" t-as="inv">
+                                        <tr t-foreach="inv['rows']" t-as="r"
+                                            t-att-class="'odr-first' if r_first else 'odr-more'">
+                                            <td class="odr-doc">
+                                                <t t-out="inv['number']"/>
+                                                <span t-if="inv['draft']" class="odr-draft">draft</span>
+                                            </td>
+                                            <td class="odr-nowrap"><t t-out="inv['date']"/></td>
+                                            <td><t t-out="inv['doctor']"/></td>
+                                            <td><t t-out="r['patient']"/></td>
+                                            <td><t t-out="r['product']"/></td>
+                                            <td class="mid"><span class="odr-box"/></td>
+                                            <td class="mid"><span class="odr-box"/></td>
+                                            <td class="mid"><span class="odr-box"/></td>
+                                            <td/>
+                                        </tr>
+                                    </t>
                                 </tbody>
+                            </table>
+
+                            <table class="odr-sign">
+                                <tr>
+                                    <td><div class="odr-sign-line"/>Packed by</td>
+                                    <td><div class="odr-sign-line"/>Checked by</td>
+                                    <td><div class="odr-sign-line"/>Despatched by</td>
+                                    <td><div class="odr-sign-line"/>Received by · date &amp; time</td>
+                                </tr>
                             </table>
                         </div>
                     </t>
-
-
                 </div>
             </t>
         </t>
@@ -104,7 +123,7 @@
         <field name="model">dental.dispatch.register</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sale_custom.report_dispatch_register</field>
-        <field name="print_report_name">'Dispatch Register %s' % (object.date or '')</field>
+        <field name="print_report_name">'Dispatch Register %s%s' % (object.date or '', (' - ' + object.team_ids.name) if len(object.team_ids) == 1 else '')</field>
         <field name="paperformat_id" ref="paperformat_lab_invoice"/>
     </record>
 </odoo>

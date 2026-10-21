@@ -9,11 +9,15 @@
         dispatch register.
     -->
     <template id="report_order_list">
-        <t t-call="web.html_container"
-            o="wizard"
-            hide_letterhead="True"
-            footer_note.translate="Order list">
-            <t t-call="sale_custom.external_layout_lab">
+        <!-- the layout flags go on external_layout_lab's own t-call: set on
+             html_container they never reached it (Odoo 20 hands a t-call's
+             attributes to that template only), so the page header was drawn over
+             the letterhead and the footer lost its note (2026-10-21) -->
+        <t t-call="web.html_container">
+            <t t-call="sale_custom.external_layout_lab"
+                o="wizard"
+                hide_letterhead="True"
+                footer_note.translate="Order list">
                 <div class="page lab-invoice oll">
                     <t t-call="sale_custom.letterhead_block"/>
 
