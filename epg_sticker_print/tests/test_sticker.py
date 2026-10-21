@@ -91,6 +91,19 @@ class TestStickerPrint(TransactionCase):
         self.assertIn(b'DR ONE', html); self.assertIn(b'DR TWO', html)
         self.assertEqual(html.count(b'epg-sticker"'), 4, "2 orders x 2 copies")
 
+    def test_the_patient_name_prints_in_bold(self):
+        """The bench looks for the patient first. (client, 2026-10-21)"""
+        if 'patient' not in self.o1._fields:
+            self.skipTest("no patient on sales orders in this database")
+        self.o1.patient = 'Bakiya Lakshmi'
+        wiz = self.env['epg.sticker.print.wizard'].with_context(
+            active_model='sale.order', active_ids=self.o1.ids).create({'mode': 'order'})
+        action = wiz.action_print()
+        html = self.env['ir.actions.report'].with_context(action['context'])._render_qweb_html(
+            'epg_sticker_print.report_sticker', None,
+            data=dict(action['data'], context=action['context']))[0]
+        self.assertIn(b'<b>Bakiya Lakshmi</b>', html)
+
     def test_wizard_from_picking(self):
         self.o1.action_confirm()
         picking = self.o1.picking_ids[:1]
