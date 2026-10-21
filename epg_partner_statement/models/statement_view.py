@@ -56,7 +56,10 @@ class PartnerStatementView(models.AbstractModel):
                 'due': fields.Date.to_string(line['due']), 'days_overdue': line['days_overdue'],
                 'debit': line['debit'], 'credit': line['credit'], 'balance': line['balance'],
                 'residual': line['residual'], 'paid': bool(line['paid']),
+                'items': line.get('items') or [],
             } for line in block['lines']]
+            out['total_qty'] = block.get('total_qty', 0.0)
+            out['item_patients'] = block.get('item_patients', False)
         return out
 
     @api.model
@@ -98,6 +101,7 @@ class PartnerStatementView(models.AbstractModel):
             'date_to': fields.Date.to_string(options['date_to']),
             'open_items_only': options['open_items_only'],
             'show_ageing': bool(options['show_ageing']),
+            'itemwise': options['itemwise'],
             'entered_from': fields.Datetime.to_string(options['created_from']) if options.get('created_from') else False,
             'entered_to': fields.Datetime.to_string(options['created_to']) if options.get('created_to') else False,
             'labels': self.labels(options['statement_type']),
@@ -131,14 +135,7 @@ class PartnerStatementView(models.AbstractModel):
         partners = self._view_partners(partner_ids)
         if not partners:
             raise UserError(_("No partner to print."))
-        options = self.normalize_options(data)
-        return self.env.ref('epg_partner_statement.action_report_partner_statement').report_action(
-            partners, data={
-                'ids': partners.ids, 'statement_type': options['statement_type'],
-                'date_from': str(options['date_from']), 'date_to': str(options['date_to']),
-                'company_id': options['company'].id, 'open_items_only': options['open_items_only'],
-                'show_ageing': options['show_ageing'], **self.entered_data(options)},
-            config=False)
+        return self.print_action(partners, self.normalize_options(data))
 
     @api.model
     def view_xlsx(self, partner_ids, data):
@@ -148,10 +145,7 @@ class PartnerStatementView(models.AbstractModel):
             raise UserError(_("No partner to export."))
         options = self.normalize_options(data)
         content = self.render_xlsx(partners, options)
-        name = _('Statements %(start)s to %(end)s.xlsx', start=options['date_from'], end=options['date_to'])
-        if len(partners) == 1:
-            name = _('Statement %(name)s %(start)s to %(end)s.xlsx', name=partners.name,
-                     start=options['date_from'], end=options['date_to'])
+        name = self.xlsx_name(partners, options)
         attachment = self.env['ir.attachment'].create({
             'name': name, 'type': 'binary', 'raw': content,
             'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

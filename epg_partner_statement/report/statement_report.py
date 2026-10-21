@@ -37,3 +37,15 @@ class ReportPartnerStatement(models.AbstractModel):
             'payment_qr': company.payment_qr if 'payment_qr' in company._fields else False,
             'signature': company.invoice_signature if 'invoice_signature' in company._fields else False,
         }
+
+
+class ReportPartnerStatementItemwise(models.AbstractModel):
+    """The same statement, item-wise. A report of its own only because a report's
+    paper format (landscape, for the extra columns) belongs to the report."""
+    _name = 'report.epg_partner_statement.report_statement_itemwise'
+    _inherit = 'report.epg_partner_statement.report_statement'
+    _description = 'Item-wise Partner Statement (PDF)'
+
+    @api.model
+    def _get_report_values(self, docids, data=None):
+        return super()._get_report_values(docids, dict(data or {}, itemwise=True))

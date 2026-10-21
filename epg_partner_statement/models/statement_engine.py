@@ -34,6 +34,8 @@ PERIOD_PRESETS = [
     ('last_12', 'Last 12 months'),
     ('custom', 'Custom'),
 ]
+# the documents whose lines an item-wise statement lists
+ITEM_DOCUMENTS = ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')
 AGEING_BUCKETS = [
     ('not_due', 'Not due', None, 0),
     ('d1_30', '1-30 days', 1, 30),
@@ -145,7 +147,7 @@ class PartnerStatement(models.AbstractModel):
         """Build the statement for `partners`.
 
         options: statement_type, date_from, date_to, company (record), open_items_only,
-                 show_ageing.
+                 show_ageing, itemwise (optional: each invoice's items under its row).
         Returns {partner_id: {'partner', 'blocks': [block], 'ageing': [...], 'has_data'}}
         where block = {'currency', 'opening', 'lines', 'closing', 'total_debit',
                        'total_credit', 'ageing'}.
@@ -250,6 +252,8 @@ class PartnerStatement(models.AbstractModel):
                     label = label or origin or move.ref or ''
                 bucket['lines'].append({
                     'date': line.date,
+                    # item-wise: which rows are documents with items to list
+                    'move_type': move.move_type,
                     # what the statement SHOWS. An opening-balance line is dated the
                     # migration date, which tells the reader nothing; original_date
                     # carries the date the document had in Odoo 10. The accounting
@@ -277,6 +281,8 @@ class PartnerStatement(models.AbstractModel):
                 })
                 bucket['total_debit'] += debit
                 bucket['total_credit'] += credit
+            if options.get('itemwise'):
+                self._attach_items(buckets.values())
             blocks = []
             for bucket in buckets.values():
                 running = bucket['opening']
@@ -297,6 +303,54 @@ class PartnerStatement(models.AbstractModel):
                 'identifiers': self._partner_identifiers(partner),
             }
         return result
+
+    @api.model
+    def _attach_items(self, buckets):
+        """Item-wise: what each invoice billed, listed under its row.
+
+        The lab's Odoo 17 "Itemwise Account Statement Report", folded into this
+        statement as an option (client, 2026-10-21): product, patient, quantity,
+        rate (the unit price as invoiced) and amount (the line total with tax, so a
+        document's items add up to its row). One search per statement for every
+        document on it. An invoice split over two due dates has two rows; its
+        items are listed once, under the first.
+        """
+        Line = self.env['account.move.line']
+        rows = [row for bucket in buckets for row in bucket['lines']]
+        move_ids = list({row['move_id'] for row in rows if row['move_type'] in ITEM_DOCUMENTS})
+        has_patient = 'patient' in Line._fields
+        items = defaultdict(list)
+        if move_ids:
+            for line in Line.search([('move_id', 'in', move_ids), ('display_type', '=', 'product')],
+                                    order='move_id, sequence, id'):
+                name = (line.product_id.name or (line.name or '').split('\n')[0]).strip()
+                # A line with no product is an item only if it says what it is and
+                # costs something: the lab's books carry "/" lines, worth nothing or
+                # standing in for a whole migrated invoice, that name nothing.
+                if not line.product_id and (name in ('', '/') or not line.price_total):
+                    continue
+                items[line.move_id.id].append({
+                    'name': name,
+                    'patient': ((line.patient or '').strip() if has_patient else ''),
+                    'quantity': line.quantity,
+                    'price_unit': line.price_unit,
+                    'discount': line.discount,
+                    'amount': line.price_total,
+                })
+        listed = set()
+        for bucket in buckets:
+            total_qty = 0.0
+            for row in bucket['lines']:
+                row['items'] = [] if row['move_id'] in listed else items.get(row['move_id'], [])
+                listed.add(row['move_id'])
+                if row['items']:
+                    # the items ARE the description now, patients included
+                    row['name'], row['patient'] = '', ''
+                    sign = -1 if row['move_type'] in ('out_refund', 'in_refund') else 1
+                    total_qty += sign * sum(item['quantity'] for item in row['items'])
+            bucket['total_qty'] = total_qty
+            bucket['item_patients'] = any(
+                item['patient'] for row in bucket['lines'] for item in row['items'])
 
     @api.model
     def _address_lines(self, partner):
@@ -372,6 +426,7 @@ class PartnerStatement(models.AbstractModel):
             'company': company,
             'open_items_only': bool(data.get('open_items_only')),
             'show_ageing': data.get('show_ageing', True),
+            'itemwise': bool(data.get('itemwise')),
             # Optional, and None when absent: a falsy value must mean "no
             # bound", never "the epoch".
             'created_from': fields.Datetime.to_datetime(data['created_from'])
@@ -410,9 +465,18 @@ class PartnerStatement(models.AbstractModel):
         return out
 
     @api.model
-    def render_pdf(self, partners, options):
-        report = self.env.ref('epg_partner_statement.action_report_partner_statement')
-        data = dict({
+    def report_for(self, options):
+        """The PDF the statement prints as. Item-wise has three more columns, and
+        a landscape page of its own to hold them."""
+        return self.env.ref('epg_partner_statement.action_report_partner_statement_itemwise'
+                            if options.get('itemwise')
+                            else 'epg_partner_statement.action_report_partner_statement')
+
+    @api.model
+    def report_data(self, partners, options):
+        """The report `data` for these partners: the wizard, the screen and the
+        e-mail all print from this, so none of them can drop an option."""
+        return dict({
             'ids': partners.ids,
             'statement_type': options['statement_type'],
             'date_from': str(options['date_from']),
@@ -420,7 +484,27 @@ class PartnerStatement(models.AbstractModel):
             'company_id': options['company'].id,
             'open_items_only': options['open_items_only'],
             'show_ageing': options['show_ageing'],
-        }, **self.entered_data(options))
+        }, **self.entered_data(options), **({'itemwise': True} if options.get('itemwise') else {}))
+
+    @api.model
+    def print_action(self, partners, options):
+        return self.report_for(options).report_action(
+            partners, data=self.report_data(partners, options), config=False)
+
+    @api.model
+    def xlsx_name(self, partners, options):
+        if len(partners) == 1:
+            name = _('Statement %(name)s %(start)s to %(end)s.xlsx', name=partners.name,
+                     start=options['date_from'], end=options['date_to'])
+        else:
+            name = _('Statements %(start)s to %(end)s.xlsx',
+                     start=options['date_from'], end=options['date_to'])
+        return (_('Item-wise %s', name) if options.get('itemwise') else name)
+
+    @api.model
+    def render_pdf(self, partners, options):
+        report = self.report_for(options)
+        data = self.report_data(partners, options)
         pdf, _ext = report.sudo()._render_qweb_pdf(report.report_name, partners.ids, data=data)
         return pdf
 
@@ -435,6 +519,17 @@ class PartnerStatement(models.AbstractModel):
         money = wb.add_format({'num_format': '#,##0.00'})
         money_b = wb.add_format({'num_format': '#,##0.00', 'bold': True})
         datef = wb.add_format({'num_format': 'yyyy-mm-dd'})
+        item_f = wb.add_format({'indent': 1, 'font_color': '#555555'})
+        item_money = wb.add_format({'num_format': '#,##0.00', 'font_color': '#555555'})
+        # Item-wise inserts the patient after the description and the item figures
+        # before the money columns; the standard layout is unchanged.
+        itemwise = options.get('itemwise')
+        patients = itemwise and 'patient' in self.env['account.move.line']._fields
+        cols = (['date', 'doc', 'ref', 'jrnl', 'desc'] + (['patient'] if patients else []) + ['due']
+                + (['qty', 'rate', 'amount'] if itemwise else []) + ['debit', 'credit', 'balance', 'open'])
+        C = {key: index for index, key in enumerate(cols)}
+        widths = {'date': 11, 'doc': 16, 'ref': 16, 'jrnl': 8, 'desc': 36, 'patient': 20, 'due': 11,
+                  'qty': 7, 'rate': 11, 'amount': 13, 'debit': 13, 'credit': 13, 'balance': 13, 'open': 13}
         used = set()
         for partner in partners:
             st = statements[partner.id]
@@ -444,10 +539,10 @@ class PartnerStatement(models.AbstractModel):
                 n += 1; name = f"{title[:25]} {n}"
             used.add(name.lower())
             ws = wb.add_worksheet(name)
-            ws.set_column(0, 0, 11); ws.set_column(1, 2, 16); ws.set_column(3, 3, 8); ws.set_column(4, 4, 36)
-            ws.set_column(5, 5, 11); ws.set_column(6, 9, 13)
+            for key, index in C.items():
+                ws.set_column(index, index, widths[key])
             ws.write(0, 0, partner.display_name, bold)
-            ws.write(1, 0, _('Statement %(type)s  %(start)s - %(end)s',
+            ws.write(1, 0, (_('Item-wise ') if itemwise else '') + _('Statement %(type)s  %(start)s - %(end)s',
                              type=dict(STATEMENT_TYPES)[options['statement_type']],
                              start=format_date(self.env, options['date_from']), end=format_date(self.env, options['date_to'])))
             r = 3
@@ -455,29 +550,47 @@ class PartnerStatement(models.AbstractModel):
                 cur = block['currency'].name
                 ws.write(r, 0, _('Currency: %s', cur), bold); r += 1
                 lbl = self.labels(options['statement_type'])
-                headers = [_('Date'), _('Document'), _('Reference'), _('Jrnl'), _('Description'), _('Due'),
-                           lbl['debit'], lbl['credit'], _('Balance'), lbl['open']]
-                for c, h in enumerate(headers):
-                    ws.write(r, c, h, head)
+                headers = {'date': _('Date'), 'doc': _('Document'), 'ref': _('Reference'), 'jrnl': _('Jrnl'),
+                           'desc': _('Description'), 'patient': _('Patient'), 'due': _('Due'),
+                           'qty': _('Qty'), 'rate': _('Rate'), 'amount': _('Amount'),
+                           'debit': lbl['debit'], 'credit': lbl['credit'], 'balance': _('Balance'),
+                           'open': lbl['open']}
+                for key, c in C.items():
+                    ws.write(r, c, headers[key], head)
                 r += 1
+                desc, bal = C['desc'], C['balance']
                 if not options['open_items_only']:
-                    ws.write(r, 4, _('Opening balance'), bold); ws.write(r, 8, block['opening'], money_b); r += 1
+                    ws.write(r, desc, _('Opening balance'), bold); ws.write(r, bal, block['opening'], money_b); r += 1
                 for l in block['lines']:
-                    ws.write_datetime(r, 0, fields.Datetime.to_datetime(l['doc_date']), datef)
-                    ws.write(r, 1, l['move']); ws.write(r, 2, l['ref']); ws.write(r, 3, l['journal'])
-                    ws.write(r, 4, l['name'] + (f" ({l['patient']})" if l['patient'] else ''))
-                    ws.write_datetime(r, 5, fields.Datetime.to_datetime(l['due']), datef)
-                    ws.write(r, 6, l['debit'], money); ws.write(r, 7, l['credit'], money)
-                    ws.write(r, 8, l['balance'], money); ws.write(r, 9, l['residual'], money)
+                    ws.write_datetime(r, C['date'], fields.Datetime.to_datetime(l['doc_date']), datef)
+                    ws.write(r, C['doc'], l['move']); ws.write(r, C['ref'], l['ref']); ws.write(r, C['jrnl'], l['journal'])
+                    if patients:
+                        ws.write(r, desc, l['name']); ws.write(r, C['patient'], l['patient'])
+                    else:
+                        ws.write(r, desc, l['name'] + (f" ({l['patient']})" if l['patient'] else ''))
+                    ws.write_datetime(r, C['due'], fields.Datetime.to_datetime(l['due']), datef)
+                    ws.write(r, C['debit'], l['debit'], money); ws.write(r, C['credit'], l['credit'], money)
+                    ws.write(r, bal, l['balance'], money); ws.write(r, C['open'], l['residual'], money)
                     r += 1
-                ws.write(r, 4, lbl['due'], bold); ws.write(r, 8, block['closing'], money_b); r += 2
+                    for item in (l.get('items') or []) if itemwise else []:
+                        ws.write(r, desc, item['name'], item_f)
+                        if patients:
+                            ws.write(r, C['patient'], item['patient'], item_f)
+                        ws.write(r, C['qty'], item['quantity'], item_f)
+                        ws.write(r, C['rate'], item['price_unit'], item_money)
+                        ws.write(r, C['amount'], item['amount'], item_money)
+                        r += 1
+                ws.write(r, desc, lbl['due'], bold)
+                if itemwise:
+                    ws.write(r, C['qty'], block.get('total_qty', 0.0), bold)
+                ws.write(r, bal, block['closing'], money_b); r += 2
                 if options.get('show_ageing'):
-                    ws.write(r, 4, _('Ageing (open items by due date)'), bold); r += 1
+                    ws.write(r, desc, _('Ageing (open items by due date)'), bold); r += 1
                     for label, amount, _late in block['ageing_rows']:
-                        ws.write(r, 4, label); ws.write(r, 8, amount, money); r += 1
+                        ws.write(r, desc, label); ws.write(r, bal, amount, money); r += 1
                     if block['credits_open']:
-                        ws.write(r, 4, _('Less: unallocated payments / credits')); ws.write(r, 8, -block['credits_open'], money); r += 1
-                    ws.write(r, 4, _('Total open'), bold); ws.write(r, 8, block['ageing_total'], money_b); r += 2
+                        ws.write(r, desc, _('Less: unallocated payments / credits')); ws.write(r, bal, -block['credits_open'], money); r += 1
+                    ws.write(r, desc, _('Total open'), bold); ws.write(r, bal, block['ageing_total'], money_b); r += 2
             if not st['blocks']:
                 ws.write(r, 0, _('No entries for this period.'))
         wb.close()

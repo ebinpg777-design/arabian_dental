@@ -109,6 +109,9 @@
 
                         <div t-if="!st.has_data" class="o_esv_none">No entries for this period.</div>
                         <div t-foreach="st.blocks" t-as="b" t-key="b_index" class="o_esv_block">
+                            <!-- item-wise: Patient (when the items name one), Qty, Rate, Amount -->
+                            <t t-set="pc" t-value="s.itemwise and b.item_patients"/>
+                            <t t-set="ic" t-value="s.itemwise ? (pc ? 4 : 3) : 0"/>
                             <div class="o_esv_mini">
                                 <div t-if="!s.open_items_only" class="k_open"><span>Opening</span><b t-out="this.money(b.opening, b.currency)"/></div>
                                 <div class="k_debit"><span t-out="s.labels.debit_total"/><b t-out="this.money(b.total_debit, b.currency)"/></div>
@@ -147,6 +150,12 @@
                                             <em t-elif="l.debit and l.paid" class="o_esv_paid"> · paid</em></span>
                                         <span class="o_esv_card_bal" t-out="this.money(l.balance, b.currency)"/>
                                     </div>
+                                    <div t-if="s.itemwise and l.items.length" class="o_esv_card_items">
+                                        <div t-foreach="l.items" t-as="it" t-key="it_index">
+                                            <span><t t-out="it.name"/><t t-if="it.patient"> · <t t-out="it.patient"/></t></span>
+                                            <span class="num"><t t-out="this.qty(it.quantity)"/> × <t t-out="this.num(it.price_unit)"/> = <b t-out="this.num(it.amount)"/></span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="o_esv_card total">
                                     <div class="o_esv_card_t"><span t-out="s.labels.due"/><b t-out="this.money(b.closing, b.currency)"/></div>
@@ -155,34 +164,52 @@
                             <div class="o_esv_tablewrap">
                                 <table class="o_esv_table">
                                     <thead><tr>
-                                        <th>Date</th><th>Document</th><th>Description</th><th>Due</th>
+                                        <th>Date</th><th>Document</th><th>Description</th><th t-if="pc">Patient</th><th>Due</th>
+                                        <t t-if="s.itemwise"><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></t>
                                         <th class="num" t-out="s.labels.debit"/><th class="num" t-out="s.labels.credit"/><th class="num">Balance</th>
                                     </tr></thead>
                                     <tbody>
                                         <tr t-if="!s.open_items_only" class="o_esv_open">
-                                            <td t-out="this.date(s.date_from)"/><td colspan="5">Opening balance</td>
+                                            <td t-out="this.date(s.date_from)"/><td t-att-colspan="5 + ic">Opening balance</td>
                                             <td class="num" t-out="this.money(b.opening, b.currency)"/>
                                         </tr>
-                                        <tr t-foreach="b.lines" t-as="l" t-key="l_index" t-on-click="() => this.openMove(l)"
-                                            t-att-class="(l.move_id ? 'link' : '') + (l.days_overdue ? ' late' : '')">
+                                        <t t-foreach="b.lines" t-as="l" t-key="l_index">
+                                        <tr t-on-click="() => this.openMove(l)"
+                                            t-att-class="(l.move_id ? 'link' : '') + (l.days_overdue ? ' late' : '') + (s.itemwise ? ' doc' : '')">
                                             <td class="nowrap" t-out="this.date(l.date)"/>
                                             <td class="nowrap"><b t-out="l.move"/><div class="o_esv_kind" t-out="l.kind"/></td>
                                             <td class="o_esv_desc">
                                                 <span t-out="l.name"/><span t-if="l.patient" class="o_esv_pat"> · <t t-out="l.patient"/></span>
                                                 <div t-if="l.ref and l.ref !== l.move" class="o_esv_ref" t-out="l.ref"/>
                                             </td>
+                                            <td t-if="pc"/>
                                             <td class="nowrap">
                                                 <t t-out="this.date(l.due)"/>
                                                 <div t-if="l.days_overdue" class="o_esv_late"><t t-out="l.days_overdue"/> days late</div>
                                                 <div t-elif="l.debit and l.paid" class="o_esv_paid"><i class="fa fa-check"/> paid</div>
                                             </td>
+                                            <t t-if="s.itemwise"><td/><td/><td/></t>
                                             <td class="num" t-out="l.debit ? this.money(l.debit, b.currency) : ''"/>
                                             <td class="num good" t-out="l.credit ? this.money(l.credit, b.currency) : ''"/>
                                             <td class="num strong" t-out="this.money(l.balance, b.currency)"/>
                                         </tr>
+                                        <t t-if="s.itemwise">
+                                            <tr t-foreach="l.items" t-as="it" t-key="it_index" class="o_esv_item">
+                                                <td/><td/>
+                                                <td class="o_esv_desc" t-out="it.name"/>
+                                                <td t-if="pc" t-out="it.patient"/>
+                                                <td/>
+                                                <td class="num" t-out="this.qty(it.quantity)"/>
+                                                <td class="num" t-out="this.num(it.price_unit)"/>
+                                                <td class="num" t-out="this.num(it.amount)"/>
+                                                <td/><td/><td/>
+                                            </tr>
+                                        </t>
+                                        </t>
                                     </tbody>
                                     <tfoot><tr>
-                                        <td colspan="4" t-out="s.labels.due"/>
+                                        <td t-att-colspan="4 + (pc ? 1 : 0)" t-out="s.labels.due"/>
+                                        <t t-if="s.itemwise"><td class="num" t-out="this.qty(b.total_qty)"/><td/><td/></t>
                                         <td class="num" t-out="this.money(b.total_debit, b.currency)"/>
                                         <td class="num good" t-out="this.money(b.total_credit, b.currency)"/>
                                         <td class="num strong" t-out="this.money(b.closing, b.currency)"/>

@@ -30,6 +30,7 @@
                         <field name="company_id" groups="base.group_multi_company"/>
                         <field name="open_items_only"/>
                         <field name="show_ageing" invisible="open_items_only"/>
+                        <field name="itemwise"/>
                         <!-- WHEN IT WAS TYPED, kept apart from the period above:
                              on this ledger a migrated document is dated years
                              before the moment it entered Odoo, and the office

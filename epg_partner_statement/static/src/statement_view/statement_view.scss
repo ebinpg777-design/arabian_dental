@@ -110,6 +110,14 @@ $esv-accent: #714b67;
     .o_esv_pat { color: $esv-muted; }
     .o_esv_ref { font-size: .68rem; color: $esv-muted; }
     .o_esv_late { font-size: .66rem; color: $esv-bad; font-weight: 600; }
+    // item-wise: the items under their document, a step quieter (client, 2026-10-21)
+    .o_esv_table tr.doc td { background: #f7f9fb; }
+    .o_esv_table tr.o_esv_item td { padding-top: .12rem; padding-bottom: .12rem; font-size: .74rem; color: #555;
+        border-bottom: 1px dotted #eef1f5; &.o_esv_desc { padding-left: 1.1rem; } }
+    .o_esv_card_items { margin-top: .15rem; padding-left: .5rem; border-left: 2px solid #eef1f5; font-size: .7rem; color: #555;
+        > div { display: flex; justify-content: space-between; gap: .5rem;
+            > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .num { flex: 0 0 auto; font-variant-numeric: tabular-nums; } } }
     .o_esv_paid { font-size: .66rem; color: $esv-good; font-weight: 600; }
 }
 html .o_web_client > .o_action_manager > .o_action.o_esv { overflow-y: auto; min-height: 0; }

@@ -66,11 +66,12 @@ class StatementReportController(ReportController):
         ids = options.get('ids') or []
         date_from, date_to = options.get('date_from'), options.get('date_to')
         span = (' %s to %s' % (date_from, date_to)) if date_from and date_to else ''
+        prefix = _('Item-wise ') if 'report_statement_itemwise' in url else ''
         if len(ids) != 1:
             # A run of many clinics is one document about no one clinic; say how
             # many, so a folder of them is still tellable apart.
-            return _('Statements%(span)s (%(count)s clinics).pdf',
-                     span=span, count=len(ids)) if ids else None
+            return prefix + _('Statements%(span)s (%(count)s clinics).pdf',
+                              span=span, count=len(ids)) if ids else None
         partner = request.env['res.partner'].browse(ids[0]).exists()
         if not partner:
             return None
@@ -80,4 +81,4 @@ class StatementReportController(ReportController):
         # A filename is not a path: a clinic called "DR X / EKM" must not invent
         # a directory, and the header is quoted on one line.
         clean = ' '.join(name.replace('/', '-').replace('\\', '-').split())
-        return _('Statement %(name)s%(span)s.pdf', name=clean[:80], span=span)
+        return prefix + _('Statement %(name)s%(span)s.pdf', name=clean[:80], span=span)

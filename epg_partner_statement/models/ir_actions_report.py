@@ -23,6 +23,8 @@ _logger = logging.getLogger(__name__)
 # for a busy clinic, large enough that a 251-clinic run is ~13 processes, not 251.
 BATCH_SIZE = 20
 PARAM = 'epg_partner_statement.pdf_batch_size'
+STATEMENT_REPORTS = ('epg_partner_statement.report_statement',
+                     'epg_partner_statement.report_statement_itemwise')
 
 
 class IrActionsReport(models.Model):
@@ -55,7 +57,7 @@ class IrActionsReport(models.Model):
     @api.model
     def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
         report = self._get_report(report_ref)
-        if report.report_name != 'epg_partner_statement.report_statement':
+        if report.report_name not in STATEMENT_REPORTS:
             return super()._render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
 
         batch = self._epg_statement_batch_size()

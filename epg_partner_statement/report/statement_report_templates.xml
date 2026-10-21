@@ -6,6 +6,8 @@
                 <t t-set="st" t-value="statements.get(o.id)"/>
                 <t t-set="blocks" t-value="st and st['blocks'] or []"/>
                 <t t-set="open_mode" t-value="options['open_items_only']"/>
+                <!-- item-wise: each invoice's items under its row (client, 2026-10-21) -->
+                <t t-set="itemwise" t-value="options.get('itemwise')"/>
                 <t t-call="{{layout}}" hide_letterhead="True">
                     <!-- The letterhead is drawn here, not in the page header band: it is
                          too tall for the band and used to overlap the first lines of the
@@ -40,6 +42,7 @@
                             <tr>
                                 <td class="epg-head-l">
                                     <h2 class="epg-title">
+                                        <t t-if="itemwise">Item-wise </t>
                                         <t t-if="open_mode">Open Items Statement</t>
                                         <t t-else="">Statement of Account</t>
                                     </h2>
@@ -91,8 +94,27 @@
                             </table>
 
                             <!-- ledger -->
-                            <table class="epg-ledger">
-                                <thead>
+                            <!-- item-wise adds Patient (when the items name one), Qty, Rate and
+                                 Amount; pcol / icols say how many cells that is, for the spans -->
+                            <t t-set="pcol" t-value="itemwise and block.get('item_patients')"/>
+                            <t t-set="icols" t-value="(4 if pcol else 3) if itemwise else 0"/>
+                            <table t-attf-class="epg-ledger #{'epg-itemwise' if itemwise else ''}">
+                                <thead t-if="itemwise">
+                                    <tr>
+                                        <th style="width:7%">Date</th>
+                                        <th style="width:11.5%">Document</th>
+                                        <th t-attf-style="width:#{18 if pcol else 28}%">Description</th>
+                                        <th t-if="pcol" style="width:10%">Patient</th>
+                                        <th style="width:8.5%">Due</th>
+                                        <th class="num" style="width:4.5%">Qty</th>
+                                        <th class="num" style="width:7.5%">Rate</th>
+                                        <th class="num" style="width:8%">Amount</th>
+                                        <th class="num" style="width:8.5%" t-out="labels['debit']"/>
+                                        <th class="num" style="width:8.5%" t-out="labels['credit']"/>
+                                        <th class="num" style="width:8%"><t t-if="open_mode"><span t-out="labels['open']"/></t><t t-else="">Balance</t></th>
+                                    </tr>
+                                </thead>
+                                <thead t-else="">
                                     <tr>
                                         <!--
                                             Widths rebalanced for what the columns
@@ -122,14 +144,15 @@
                                 <tbody>
                                     <tr t-if="not open_mode" class="epg-row-open">
                                         <td><span t-out="date_from" t-options="{'widget': 'date'}"/></td>
-                                        <td colspan="3">Opening balance</td>
+                                        <td t-att-colspan="3 + icols">Opening balance</td>
                                         <td class="num"/><td class="num"/>
                                         <td class="num"><span t-out="block['opening']" t-options="mo"/></td>
                                     </tr>
                                     <tr t-if="not block['lines'] and not open_mode">
-                                        <td colspan="7" class="epg-sub text-center">No transactions in this period.</td>
+                                        <td t-att-colspan="7 + icols" class="epg-sub text-center">No transactions in this period.</td>
                                     </tr>
-                                    <tr t-foreach="block['lines']" t-as="l">
+                                    <t t-foreach="block['lines']" t-as="l">
+                                    <tr t-att-class="'epg-row-doc' if itemwise else None">
                                         <td><span t-out="l['doc_date']" t-options="{'widget': 'date'}"/></td>
                                         <td class="epg-doc">
                                             <span t-out="l['move']"/>
@@ -143,17 +166,38 @@
                                             <span t-out="l['name']"/>
                                             <div t-if="l['patient']" class="epg-sub">Patients: <span t-out="l['patient']"/></div>
                                         </td>
+                                        <td t-if="pcol"/>
                                         <td class="epg-due">
                                             <span t-out="l['due']" t-options="{'widget': 'date'}"/>
                                             <span t-if="l['days_overdue']" class="epg-overdue"><span t-out="l['days_overdue']"/>d</span>
                                         </td>
+                                        <t t-if="itemwise"><td class="num"/><td class="num"/><td class="num"/></t>
                                         <td class="num"><span t-if="l['debit']" t-out="l['debit']" t-options="mo"/></td>
                                         <td class="num"><span t-if="l['credit']" t-out="l['credit']" t-options="mo"/></td>
                                         <td class="num"><span t-out="l['residual'] if open_mode else l['balance']" t-options="mo"/></td>
                                     </tr>
+                                    <!-- what the invoice billed: rate as invoiced, amount with tax,
+                                         so the items add up to the row above -->
+                                    <t t-if="itemwise">
+                                        <tr t-foreach="l.get('items') or []" t-as="it" class="epg-row-item">
+                                            <td/><td/>
+                                            <td class="epg-item" t-out="it['name']"/>
+                                            <td t-if="pcol" t-out="it['patient']"/>
+                                            <td/>
+                                            <td class="num" t-out="int(it['quantity']) if it['quantity'] == int(it['quantity']) else it['quantity']"/>
+                                            <td class="num"><span t-out="it['price_unit']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                            <td class="num"><span t-out="it['amount']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                            <td/><td/><td/>
+                                        </tr>
+                                    </t>
+                                    </t>
                                     <tr class="epg-row-total">
                                         <td><span t-out="date_to" t-options="{'widget': 'date'}"/></td>
-                                        <td colspan="3"><t t-if="open_mode">Total <span t-out="labels['due']"/></t><t t-else="">Closing balance — <span t-out="labels['due']"/></t></td>
+                                        <td t-att-colspan="3 + (1 if pcol else 0)"><t t-if="open_mode">Total <span t-out="labels['due']"/></t><t t-else="">Closing balance — <span t-out="labels['due']"/></t></td>
+                                        <t t-if="itemwise">
+                                            <t t-set="tq" t-value="block.get('total_qty', 0.0)"/>
+                                            <td class="num" t-out="int(tq) if tq == int(tq) else tq"/><td class="num"/><td class="num"/>
+                                        </t>
                                         <td class="num"><span t-out="block['total_debit']" t-options="mo"/></td>
                                         <td class="num"><span t-out="block['total_credit']" t-options="mo"/></td>
                                         <td class="num"><span t-out="block['ageing_total'] if open_mode else block['closing']" t-options="mo"/></td>
@@ -224,5 +268,10 @@
                 </t>
             </t>
         </t>
+    </template>
+
+    <!-- The item-wise print: the statement above, on its own (landscape) report. -->
+    <template id="report_statement_itemwise">
+        <t t-call="epg_partner_statement.report_statement"/>
     </template>
 </odoo>

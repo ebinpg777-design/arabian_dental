@@ -52,6 +52,13 @@ class PartnerStatementWizard(models.TransientModel):
         help="List only what is still unpaid (with days overdue and the amount left) instead "
              "of the full ledger for the period.")
     show_ageing = fields.Boolean(string='Ageing summary', default=False)
+    # The lab's Odoo 17 "Itemwise Account Statement Report" as an option of this
+    # statement rather than a report of its own: same ledger, with what each
+    # invoice billed listed under it. (client, 2026-10-21)
+    itemwise = fields.Boolean(
+        string='Item-wise',
+        help="List the items billed under each invoice: product, patient, quantity, "
+             "rate and amount (with tax). Printed on a landscape page.")
     # WHEN IT WAS TYPED, not what it is dated. On this ledger the two are years
     # apart for migrated paper, and the office needs both questions: "the
     # statement for August" and "only what we have entered since the import".
@@ -113,6 +120,7 @@ class PartnerStatementWizard(models.TransientModel):
             'company': self.company_id,
             'open_items_only': self.open_items_only,
             'show_ageing': self.show_ageing,
+            'itemwise': self.itemwise,
             'created_from': self.created_from or None,
             'created_to': self.created_to or None,
         }
@@ -253,7 +261,7 @@ class PartnerStatementWizard(models.TransientModel):
                     'statement_type': options['statement_type'],
                     'date_from': str(options['date_from']), 'date_to': str(options['date_to']),
                     'company_id': options['company'].id, 'open_items_only': options['open_items_only'],
-                    'show_ageing': options['show_ageing'],
+                    'show_ageing': options['show_ageing'], 'itemwise': options['itemwise'],
                     **self.env['epg.partner.statement'].entered_data(options)},
                 'routes': self.team_ids.mapped('name'),
             },
@@ -261,24 +269,13 @@ class PartnerStatementWizard(models.TransientModel):
 
     def action_print(self):
         partners = self._checked_partners()
-        options = self._options()
-        return self.env.ref('epg_partner_statement.action_report_partner_statement').report_action(
-            partners, data={
-                'ids': partners.ids, 'statement_type': options['statement_type'],
-                'date_from': str(options['date_from']), 'date_to': str(options['date_to']),
-                'company_id': options['company'].id, 'open_items_only': options['open_items_only'],
-                'show_ageing': options['show_ageing'],
-                **self.env['epg.partner.statement'].entered_data(options)},
-            config=False)
+        return self.env['epg.partner.statement'].print_action(partners, self._options())
 
     def action_export_xlsx(self):
         partners = self._checked_partners()
         options = self._options()
         content = self.env['epg.partner.statement'].render_xlsx(partners, options)
-        name = _('Statements %(start)s to %(end)s.xlsx', start=options['date_from'], end=options['date_to'])
-        if len(partners) == 1:
-            name = _('Statement %(name)s %(start)s to %(end)s.xlsx', name=partners.name,
-                     start=options['date_from'], end=options['date_to'])
+        name = self.env['epg.partner.statement'].xlsx_name(partners, options)
         attachment = self.env['ir.attachment'].create({
             'name': name, 'type': 'binary', 'raw': content,
             'res_model': self._name, 'res_id': self.id,

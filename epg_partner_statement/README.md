@@ -8,6 +8,7 @@ that same data.
 |---|---|
 | Ledger per partner & currency: opening, running balance, closing due | wizard → *Print PDF* |
 | Open items only (unpaid, days overdue, amount left) | wizard option |
+| Item-wise: each invoice's items under its row (product, patient, qty, rate, amount with tax; qty total), landscape PDF, Excel and on screen - replaces the Odoo 17 *Itemwise Account Statement Report* | wizard option *Item-wise* |
 | Ageing summary (Not due / 1-30 / 31-60 / 61-90 / 90+) | on the statement |
 | Excel workbook (sheet per partner) | wizard → *Export Excel* |
 | E-mail with PDF attached, logged in the partner chatter | wizard → *Send by E-mail* |

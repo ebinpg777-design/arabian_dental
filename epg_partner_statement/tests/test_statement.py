@@ -645,3 +645,145 @@ class TestStatementViewIsAccountingOnly(TestPartnerStatement):
         self._invoice(120, self.today)
         inv = self._user('stmt_inv_print', 'account.group_account_invoice')
         self.assertTrue(self._wizard().with_user(inv).action_print())
+
+
+@tagged('post_install', '-at_install')
+class TestItemwiseStatement(TransactionCase):
+    """The Odoo 17 "Itemwise Account Statement Report" as an option of the statement:
+    each invoice's items under its row, on a landscape page. (client, 2026-10-21)"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company = cls.env.company
+        cls.partner = cls.env['res.partner'].create({
+            'name': 'Itemwise Clinic', 'is_company': True, 'property_payment_term_id': False})
+        cls.crown = cls.env['product.product'].create({'name': 'Metal Ceramic Crown', 'type': 'service'})
+        cls.model = cls.env['product.product'].create({'name': 'Printed Model', 'type': 'service'})
+        cls.Engine = cls.env['epg.partner.statement']
+        cls.today = fields.Date.today()
+        cls.has_patient = 'patient' in cls.env['account.move.line']._fields
+
+    def _move(self, lines, move_type='out_invoice', **vals):
+        move = self.env['account.move'].create(dict({
+            'move_type': move_type, 'partner_id': self.partner.id, 'invoice_date': self.today,
+            'date': self.today,
+            'invoice_line_ids': [(0, 0, dict({'tax_ids': [(6, 0, [])]}, **line)) for line in lines],
+        }, **vals))
+        move.action_post()
+        return move
+
+    def _line(self, product, qty, price, patient=None):
+        line = {'product_id': product.id, 'quantity': qty, 'price_unit': price}
+        if patient and self.has_patient:
+            line['patient'] = patient
+        return line
+
+    def _options(self, **kw):
+        return dict({'statement_type': 'receivable', 'date_from': self.today, 'date_to': self.today,
+                     'company': self.company, 'open_items_only': False, 'show_ageing': False,
+                     'itemwise': True}, **kw)
+
+    def _block(self, **kw):
+        return self.Engine.compute(self.partner, self._options(**kw))[self.partner.id]['blocks'][0]
+
+    def _wizard(self, **vals):
+        return self.env['epg.partner.statement.wizard'].create(dict({
+            'partner_ids': [(6, 0, self.partner.ids)], 'statement_type': 'receivable', 'period': 'custom',
+            'date_from': self.today, 'date_to': self.today, 'company_id': self.company.id}, **vals))
+
+    def test_the_items_are_listed_under_their_invoice(self):
+        invoice = self._move([self._line(self.crown, 2, 650, 'Latha'), self._line(self.model, 1, 50, 'Latha')])
+        row = next(r for r in self._block()['lines'] if r['entry'] == invoice.name)
+        self.assertEqual([(i['name'], i['quantity'], i['price_unit'], i['amount']) for i in row['items']],
+                         [('Metal Ceramic Crown', 2.0, 650.0, 1300.0), ('Printed Model', 1.0, 50.0, 50.0)])
+        self.assertEqual(sum(i['amount'] for i in row['items']), row['debit'],
+                         "the items add up to the row: the amount is with tax")
+        self.assertEqual(row['name'], '', "the items are the description now, not repeated above them")
+        if self.has_patient:
+            self.assertEqual({i['patient'] for i in row['items']}, {'Latha'})
+
+    def test_a_line_that_names_nothing_is_not_an_item(self):
+        invoice = self._move([self._line(self.crown, 1, 650),
+                              {'name': '/', 'quantity': 1, 'price_unit': 0},
+                              {'name': 'Courier charge', 'quantity': 1, 'price_unit': 40}])
+        row = next(r for r in self._block()['lines'] if r['entry'] == invoice.name)
+        self.assertEqual([i['name'] for i in row['items']], ['Metal Ceramic Crown', 'Courier charge'])
+
+    def test_the_quantity_total_nets_off_credit_notes(self):
+        self._move([self._line(self.crown, 3, 650)])
+        self._move([self._line(self.crown, 1, 650)], move_type='out_refund')
+        self.assertEqual(self._block()['total_qty'], 2.0)
+
+    def test_an_invoice_on_two_due_dates_lists_its_items_once(self):
+        term = self.env['account.payment.term'].create({'name': 'Two halves', 'line_ids': [
+            (0, 0, {'value': 'percent', 'value_amount': 50.0, 'nb_days': 0}),
+            (0, 0, {'value': 'percent', 'value_amount': 50.0, 'nb_days': 30})]})
+        invoice = self._move([self._line(self.crown, 1, 600)], invoice_payment_term_id=term.id)
+        rows = [r for r in self._block()['lines'] if r['entry'] == invoice.name]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(sum(len(r['items']) for r in rows), 1)
+
+    def test_the_standard_statement_is_unchanged(self):
+        invoice = self._move([self._line(self.crown, 2, 650)])
+        row = next(r for r in self._block(itemwise=False)['lines'] if r['entry'] == invoice.name)
+        self.assertNotIn('items', row)
+        action = self._wizard().action_print()
+        self.assertEqual(action['report_name'], 'epg_partner_statement.report_statement')
+        self.assertNotIn('itemwise', action['data'])
+
+    def test_the_wizard_prints_the_landscape_report(self):
+        self._move([self._line(self.crown, 2, 650)])
+        action = self._wizard(itemwise=True).action_print()
+        self.assertEqual(action['report_name'], 'epg_partner_statement.report_statement_itemwise')
+        self.assertTrue(action['data']['itemwise'])
+        report = self.env.ref('epg_partner_statement.action_report_partner_statement_itemwise')
+        self.assertEqual(report.paperformat_id.orientation, 'Landscape')
+
+    def test_the_printed_page_carries_the_items_and_the_columns(self):
+        self._move([self._line(self.crown, 2, 650, 'Latha')])
+        report = self.env.ref('epg_partner_statement.action_report_partner_statement_itemwise')
+        data = self.Engine.report_data(self.partner, self._options())
+        html = self.env['ir.actions.report']._render_qweb_html(report.report_name, self.partner.ids, data=data)[0]
+        html = html.decode()
+        for text in ('Item-wise', 'Metal Ceramic Crown', '>Qty<', '>Rate<', '>Amount<', '1,300.00'):
+            self.assertIn(text, html)
+        if self.has_patient:
+            self.assertIn('Latha', html)
+        # the standard print is the standard print
+        plain = self.env['ir.actions.report']._render_qweb_html(
+            'epg_partner_statement.report_statement', self.partner.ids,
+            data=self.Engine.report_data(self.partner, self._options(itemwise=False)))[0].decode()
+        self.assertNotIn('>Qty<', plain)
+        self.assertNotIn('Item-wise', plain)
+
+    def test_the_excel_has_the_item_columns_and_rows(self):
+        import io
+        try:
+            import openpyxl
+        except ImportError:
+            self.skipTest("openpyxl is not installed")
+        self._move([self._line(self.crown, 2, 650), self._line(self.model, 1, 50)])
+        sheet = openpyxl.load_workbook(io.BytesIO(self.Engine.render_xlsx(self.partner, self._options()))).active
+        rows = [[c for c in r] for r in sheet.iter_rows(values_only=True)]
+        header = next(r for r in rows if r[0] == 'Date')
+        for title in ('Qty', 'Rate', 'Amount', 'Balance'):
+            self.assertIn(title, header)
+        qty, amount, desc = header.index('Qty'), header.index('Amount'), header.index('Description')
+        items = [(r[desc], r[qty], r[amount]) for r in rows if r[qty] and r[desc] and r[0] is None]
+        self.assertIn(('Metal Ceramic Crown', 2, 1300), items)
+        self.assertIn(('Printed Model', 1, 50), items)
+        name = self.Engine.xlsx_name(self.partner, self._options())
+        self.assertTrue(name.startswith('Item-wise Statement'))
+
+    def test_the_screen_shows_the_items_and_prints_item_wise(self):
+        self._move([self._line(self.crown, 2, 650)])
+        data = self._wizard(itemwise=True).action_view()['params']['data']
+        self.assertTrue(data['itemwise'])
+        st = self.Engine.view_statement(self.partner.id, data)
+        line = st['blocks'][0]['lines'][0]
+        self.assertEqual(line['items'][0]['name'], 'Metal Ceramic Crown')
+        self.assertEqual(st['blocks'][0]['total_qty'], 2.0)
+        self.assertTrue(self.Engine.view_summary(self.partner.ids, data)['itemwise'])
+        action = self.Engine.view_print(self.partner.ids, data)
+        self.assertEqual(action['report_name'], 'epg_partner_statement.report_statement_itemwise')

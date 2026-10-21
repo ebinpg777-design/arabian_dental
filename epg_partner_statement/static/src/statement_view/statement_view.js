@@ -163,6 +163,13 @@ export class StatementView extends Component {
     date(value) {
         return value ? formatDate(deserializeDate(value)) : "";
     }
+    // item-wise figures: no currency on every item line, as on the print
+    num(value) {
+        return formatFloat(value || 0, { digits: [false, 2] });
+    }
+    qty(value) {
+        return Number.isInteger(value) ? String(value) : formatFloat(value || 0, { digits: [false, 2] });
+    }
     get periodText() {
         const s = this.state.summary;
         return s ? `${this.date(s.date_from)} – ${this.date(s.date_to)}` : "";
@@ -177,6 +184,9 @@ export class StatementView extends Component {
         }
         if (s.open_items_only) {
             bits.push(_t("open items only"));
+        }
+        if (s.itemwise) {
+            bits.push(_t("item-wise"));
         }
         if (s.entered_from || s.entered_to) {
             bits.push(_t("entered %(from)s – %(to)s", { from: s.entered_from ? this.date(s.entered_from.slice(0, 10)) : "…", to: s.entered_to ? this.date(s.entered_to.slice(0, 10)) : "…" }));
