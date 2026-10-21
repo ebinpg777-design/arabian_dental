@@ -66,7 +66,8 @@ class StatementReportController(ReportController):
         ids = options.get('ids') or []
         date_from, date_to = options.get('date_from'), options.get('date_to')
         span = (' %s to %s' % (date_from, date_to)) if date_from and date_to else ''
-        prefix = _('Item-wise ') if 'report_statement_itemwise' in url else ''
+        prefix = (_('Patient-wise ') if options.get('patientwise')
+                  else _('Item-wise ') if 'report_statement_itemwise' in url else '')
         if len(ids) != 1:
             # A run of many clinics is one document about no one clinic; say how
             # many, so a folder of them is still tellable apart.

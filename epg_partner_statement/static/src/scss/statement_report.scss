@@ -142,4 +142,15 @@
     .epg-note { font-size: 7.6pt; color: $muted; margin-top: 5px; border-top: 1px dashed $rule; padding-top: 3px; }
 
     .epg-empty { text-align: center; color: $muted; padding: 20px 0; font-style: italic; }
+
+    // patient-wise: a band per patient with the total on its right, the works under it
+    // (client, 2026-10-21)
+    .epg-pw-title { font-size: 8.6pt; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+                    color: $accent; margin: 6px 0 3px; }
+    .epg-pw-count { float: right; font-weight: 400; text-transform: none; letter-spacing: 0; color: $muted; }
+    table.epg-ledger tr.epg-row-patient td { background: $accent-soft !important; border-top: 1px solid $accent;
+                                              font-weight: 700; padding-top: 5px; padding-bottom: 5px;
+                                              page-break-after: avoid; }
+    .epg-pt-name { font-size: 10.2pt; color: $accent; }
+    .epg-pw-note { font-size: 7.8pt; color: $muted; margin: -2px 0 8px; }
 }

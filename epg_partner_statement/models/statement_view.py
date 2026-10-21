@@ -101,7 +101,9 @@ class PartnerStatementView(models.AbstractModel):
             'date_to': fields.Date.to_string(options['date_to']),
             'open_items_only': options['open_items_only'],
             'show_ageing': bool(options['show_ageing']),
-            'itemwise': options['itemwise'],
+            # the screen lists items for both: a patient-wise run shows each item's patient
+            'itemwise': options['itemwise'] or options['patientwise'],
+            'patientwise': options['patientwise'],
             'entered_from': fields.Datetime.to_string(options['created_from']) if options.get('created_from') else False,
             'entered_to': fields.Datetime.to_string(options['created_to']) if options.get('created_to') else False,
             'labels': self.labels(options['statement_type']),

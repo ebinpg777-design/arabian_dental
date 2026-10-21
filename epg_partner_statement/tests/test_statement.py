@@ -787,3 +787,79 @@ class TestItemwiseStatement(TransactionCase):
         self.assertTrue(self.Engine.view_summary(self.partner.ids, data)['itemwise'])
         action = self.Engine.view_print(self.partner.ids, data)
         self.assertEqual(action['report_name'], 'epg_partner_statement.report_statement_itemwise')
+
+    # ------------------------------------------------------------ patient-wise
+    # Designed new (client, 2026-10-21): the Odoo 17 server had no patient-wise statement.
+
+    def _patient_setup(self):
+        if not self.has_patient:
+            self.skipTest("no patient on invoice lines in this database")
+        self._move([self._line(self.crown, 2, 650, 'Latha'), self._line(self.model, 1, 50, 'Latha')])
+        self._move([self._line(self.crown, 1, 650, 'latha '), self._line(self.crown, 1, 650, 'Ramesh'),
+                    self._line(self.model, 1, 50)])
+        self._move([self._line(self.model, 1, 50, 'Latha')], move_type='out_refund')
+        journal = self.env['account.journal'].search(
+            [('type', '=', 'bank'), ('company_id', '=', self.company.id)], limit=1)
+        payment = self.env['account.payment'].create({
+            'payment_type': 'inbound', 'partner_type': 'customer', 'partner_id': self.partner.id,
+            'amount': 500.0, 'date': self.today, 'journal_id': journal.id})
+        payment.action_post()
+
+    def test_patientwise_groups_the_works_by_patient(self):
+        self._patient_setup()
+        block = self._block(itemwise=False, patientwise=True)
+        names = [p['name'] for p in block['patients']]
+        self.assertEqual(names, ['Latha', 'Ramesh', 'Without patient name'],
+                         "alphabetical, one Latha however it was typed, the nameless last")
+        latha = block['patients'][0]
+        self.assertEqual(latha['total'], 1300.0 + 50.0 + 650.0 - 50.0, "a credit note is a negative work")
+        self.assertEqual((latha['documents'], latha['qty']), (3, 3.0))
+        self.assertAlmostEqual(block['patients_total'], 1950.0 + 650.0 + 50.0)
+        self.assertTrue(any(r['credit'] == 500.0 for r in block['other_rows']),
+                        "a payment belongs to no patient: it is listed apart")
+
+    def test_one_patients_statement(self):
+        self._patient_setup()
+        block = self._block(itemwise=False, patientwise=True, patient='rame')
+        self.assertEqual([p['name'] for p in block['patients']], ['Ramesh'])
+
+    def test_the_patientwise_print(self):
+        self._patient_setup()
+        action = self._wizard(patientwise=True).action_print()
+        self.assertEqual(action['report_name'], 'epg_partner_statement.report_statement',
+                         "the portrait statement: six columns fit")
+        self.assertTrue(action['data']['patientwise'])
+        render = self.env['ir.actions.report']._render_qweb_html
+        html = render(action['report_name'], self.partner.ids, data=action['data'])[0].decode()
+        for text in ('Patient-wise', 'Works by patient', 'Latha', 'Ramesh', 'Payments, credits and other entries',
+                     'epg-summary'):
+            self.assertIn(text, html)
+        data = self._wizard(patientwise=True, patient='Ramesh').action_print()['data']
+        self.assertEqual(data['patient'], 'Ramesh')
+        html = render(action['report_name'], self.partner.ids, data=data)[0].decode()
+        self.assertIn('Ramesh', html)
+        self.assertNotIn('Latha', html)
+        self.assertNotIn('class="epg-summary"', html, "the clinic's balance is not one patient's")
+
+    def test_the_patientwise_excel(self):
+        import io
+        try:
+            import openpyxl
+        except ImportError:
+            self.skipTest("openpyxl is not installed")
+        self._patient_setup()
+        options = self._options(itemwise=False, patientwise=True)
+        sheet = openpyxl.load_workbook(io.BytesIO(self.Engine.render_xlsx(self.partner, options))).active
+        rows = [r for r in sheet.iter_rows(values_only=True)]
+        self.assertTrue(any(r[0] == 'Patient' and r[3] == 'Item' for r in rows))
+        self.assertTrue(any(r[0] == 'All patients' and r[6] == 2650.0 for r in rows))
+        self.assertTrue(self.Engine.xlsx_name(self.partner, options).startswith('Patient-wise Statement'))
+
+    def test_item_wise_and_patient_wise_are_one_or_the_other(self):
+        from odoo.tests import Form
+        with Form(self.env['epg.partner.statement.wizard']) as wizard:
+            wizard.itemwise = True
+            wizard.patientwise = True
+            self.assertFalse(wizard.itemwise)
+            wizard.itemwise = True
+            self.assertFalse(wizard.patientwise)

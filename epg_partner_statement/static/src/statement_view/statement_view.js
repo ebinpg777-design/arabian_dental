@@ -185,7 +185,9 @@ export class StatementView extends Component {
         if (s.open_items_only) {
             bits.push(_t("open items only"));
         }
-        if (s.itemwise) {
+        if (s.patientwise) {
+            bits.push(_t("patient-wise"));
+        } else if (s.itemwise) {
             bits.push(_t("item-wise"));
         }
         if (s.entered_from || s.entered_to) {

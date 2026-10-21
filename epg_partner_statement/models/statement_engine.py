@@ -281,8 +281,10 @@ class PartnerStatement(models.AbstractModel):
                 })
                 bucket['total_debit'] += debit
                 bucket['total_credit'] += credit
-            if options.get('itemwise'):
+            if options.get('itemwise') or options.get('patientwise'):
                 self._attach_items(buckets.values())
+            if options.get('patientwise'):
+                self._group_by_patient(buckets.values(), options.get('patient'))
             blocks = []
             for bucket in buckets.values():
                 running = bucket['opening']
@@ -351,6 +353,49 @@ class PartnerStatement(models.AbstractModel):
             bucket['total_qty'] = total_qty
             bucket['item_patients'] = any(
                 item['patient'] for row in bucket['lines'] for item in row['items'])
+
+    @api.model
+    def _group_by_patient(self, buckets, patient=None):
+        """Patient-wise: the period's works gathered under their patient.
+
+        Designed new (client, 2026-10-21) - the Odoo 17 server had no patient-wise
+        statement. Every item of the statement's documents goes under the patient
+        named on its invoice line (spelt in any case or spacing), credit notes as
+        negative works; patients in alphabetical order, items without a patient
+        last. Payments cannot be split by patient: the rows with no items (payments,
+        credits, journal entries) stay a list of their own, `other_rows`.
+        `patient` narrows the statement to the patients whose name contains it.
+        """
+        needle = ' '.join((patient or '').lower().split())
+        nobody = _("Without patient name")
+        for bucket in buckets:
+            patients = {}
+            for row in bucket['lines']:
+                sign = -1 if row['move_type'] in ('out_refund', 'in_refund') else 1
+                for item in row.get('items') or []:
+                    name = ' '.join((item['patient'] or '').split())
+                    key = name.lower()
+                    if needle and needle not in key:
+                        continue
+                    group = patients.setdefault(key, {
+                        'name': name or nobody, 'nameless': not name, 'lines': [],
+                        'total': 0.0, 'qty': 0.0, 'documents': set()})
+                    group['lines'].append({
+                        'date': row['doc_date'], 'move': row['move'], 'move_id': row['move_id'],
+                        'kind': row['kind'], 'name': item['name'],
+                        'quantity': sign * item['quantity'], 'price_unit': item['price_unit'],
+                        'amount': sign * item['amount'],
+                    })
+                    group['total'] += sign * item['amount']
+                    group['qty'] += sign * item['quantity']
+                    group['documents'].add(row['move_id'])
+            ordered = sorted(patients.values(), key=lambda g: (g['nameless'], g['name'].lower()))
+            for group in ordered:
+                group['documents'] = len(group['documents'])
+            bucket['patients'] = ordered
+            bucket['patients_total'] = sum(group['total'] for group in ordered)
+            bucket['patients_qty'] = sum(group['qty'] for group in ordered)
+            bucket['other_rows'] = [row for row in bucket['lines'] if not row.get('items')]
 
     @api.model
     def _address_lines(self, partner):
@@ -427,6 +472,8 @@ class PartnerStatement(models.AbstractModel):
             'open_items_only': bool(data.get('open_items_only')),
             'show_ageing': data.get('show_ageing', True),
             'itemwise': bool(data.get('itemwise')),
+            'patientwise': bool(data.get('patientwise')),
+            'patient': (data.get('patient') or '').strip() if data.get('patientwise') else '',
             # Optional, and None when absent: a falsy value must mean "no
             # bound", never "the epoch".
             'created_from': fields.Datetime.to_datetime(data['created_from'])
@@ -484,7 +531,20 @@ class PartnerStatement(models.AbstractModel):
             'company_id': options['company'].id,
             'open_items_only': options['open_items_only'],
             'show_ageing': options['show_ageing'],
-        }, **self.entered_data(options), **({'itemwise': True} if options.get('itemwise') else {}))
+        }, **self.entered_data(options), **self.layout_data(options))
+
+    @api.model
+    def layout_data(self, options):
+        """Item-wise / patient-wise as report `data`, or nothing for the standard
+        statement - so its print URL stays what it always was."""
+        out = {}
+        if options.get('itemwise'):
+            out['itemwise'] = True
+        if options.get('patientwise'):
+            out['patientwise'] = True
+            if options.get('patient'):
+                out['patient'] = options['patient']
+        return out
 
     @api.model
     def print_action(self, partners, options):
@@ -499,6 +559,8 @@ class PartnerStatement(models.AbstractModel):
         else:
             name = _('Statements %(start)s to %(end)s.xlsx',
                      start=options['date_from'], end=options['date_to'])
+        if options.get('patientwise'):
+            return _('Patient-wise %s', name)
         return (_('Item-wise %s', name) if options.get('itemwise') else name)
 
     @api.model
@@ -521,6 +583,8 @@ class PartnerStatement(models.AbstractModel):
         datef = wb.add_format({'num_format': 'yyyy-mm-dd'})
         item_f = wb.add_format({'indent': 1, 'font_color': '#555555'})
         item_money = wb.add_format({'num_format': '#,##0.00', 'font_color': '#555555'})
+        band = wb.add_format({'bold': True, 'bg_color': '#E8F1F5'})
+        band_money = wb.add_format({'num_format': '#,##0.00', 'bold': True, 'bg_color': '#E8F1F5'})
         # Item-wise inserts the patient after the description and the item figures
         # before the money columns; the standard layout is unchanged.
         itemwise = options.get('itemwise')
@@ -541,8 +605,13 @@ class PartnerStatement(models.AbstractModel):
             ws = wb.add_worksheet(name)
             for key, index in C.items():
                 ws.set_column(index, index, widths[key])
+            if options.get('patientwise'):
+                # patient, date, document, item, qty, rate, amount
+                for index, width in enumerate((26, 11, 18, 40, 7, 13, 14)):
+                    ws.set_column(index, index, width)
             ws.write(0, 0, partner.display_name, bold)
-            ws.write(1, 0, (_('Item-wise ') if itemwise else '') + _('Statement %(type)s  %(start)s - %(end)s',
+            ws.write(1, 0, (_('Patient-wise ') if options.get('patientwise') else _('Item-wise ') if itemwise else '')
+                     + _('Statement %(type)s  %(start)s - %(end)s',
                              type=dict(STATEMENT_TYPES)[options['statement_type']],
                              start=format_date(self.env, options['date_from']), end=format_date(self.env, options['date_to'])))
             r = 3
@@ -550,6 +619,11 @@ class PartnerStatement(models.AbstractModel):
                 cur = block['currency'].name
                 ws.write(r, 0, _('Currency: %s', cur), bold); r += 1
                 lbl = self.labels(options['statement_type'])
+                if options.get('patientwise'):
+                    r = self._xlsx_patients(ws, r, block, options, lbl, {
+                        'bold': bold, 'head': head, 'money': money, 'money_b': money_b, 'date': datef,
+                        'band': band, 'band_money': band_money})
+                    continue
                 headers = {'date': _('Date'), 'doc': _('Document'), 'ref': _('Reference'), 'jrnl': _('Jrnl'),
                            'desc': _('Description'), 'patient': _('Patient'), 'due': _('Due'),
                            'qty': _('Qty'), 'rate': _('Rate'), 'amount': _('Amount'),
@@ -595,6 +669,45 @@ class PartnerStatement(models.AbstractModel):
                 ws.write(r, 0, _('No entries for this period.'))
         wb.close()
         return buf.getvalue()
+
+    @api.model
+    def _xlsx_patients(self, ws, r, block, options, lbl, f):
+        """One block of a patient-wise sheet: the period in figures, every patient
+        with their works, then the payments and other entries. Returns the next row."""
+        if not options.get('patient'):
+            for label, value in ((_('Opening balance'), block['opening']), (lbl['debit_total'], block['total_debit']),
+                                 (lbl['credit_total'], block['total_credit']), (lbl['due'], block['closing'])):
+                ws.write(r, 0, label, f['bold']); ws.write(r, 6, value, f['money_b']); r += 1
+            r += 1
+        for c, title in enumerate([_('Patient'), _('Date'), _('Document'), _('Item'), _('Qty'), _('Rate'), _('Amount')]):
+            ws.write(r, c, title, f['head'])
+        r += 1
+        for patient in block.get('patients') or []:
+            ws.write(r, 0, patient['name'], f['band'])
+            ws.write(r, 1, _('%s document(s)', patient['documents']), f['band'])
+            for c in (2, 3, 5):
+                ws.write(r, c, '', f['band'])
+            ws.write(r, 4, patient['qty'], f['band']); ws.write(r, 6, patient['total'], f['band_money']); r += 1
+            for line in patient['lines']:
+                ws.write(r, 0, patient['name'])
+                ws.write_datetime(r, 1, fields.Datetime.to_datetime(line['date']), f['date'])
+                ws.write(r, 2, line['move']); ws.write(r, 3, line['name']); ws.write(r, 4, line['quantity'])
+                ws.write(r, 5, line['price_unit'], f['money']); ws.write(r, 6, line['amount'], f['money'])
+                r += 1
+        ws.write(r, 0, _('All patients'), f['bold']); ws.write(r, 4, block.get('patients_qty', 0.0), f['bold'])
+        ws.write(r, 6, block.get('patients_total', 0.0), f['money_b']); r += 2
+        if not options.get('patient') and block.get('other_rows'):
+            ws.write(r, 0, _('Payments, credits and other entries'), f['bold']); r += 1
+            for c, title in enumerate([_('Date'), _('Document'), _('Type'), _('Description'), '', lbl['debit'], lbl['credit']]):
+                ws.write(r, c, title, f['head'])
+            r += 1
+            for row in block['other_rows']:
+                ws.write_datetime(r, 0, fields.Datetime.to_datetime(row['doc_date']), f['date'])
+                ws.write(r, 1, row['move']); ws.write(r, 2, row['kind']); ws.write(r, 3, row['name'] or row['ref'])
+                ws.write(r, 5, row['debit'], f['money']); ws.write(r, 6, row['credit'], f['money'])
+                r += 1
+            r += 1
+        return r
 
     # ------------------------------------------------------------------ e-mail
     @api.model

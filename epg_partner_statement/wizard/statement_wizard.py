@@ -59,6 +59,16 @@ class PartnerStatementWizard(models.TransientModel):
         string='Item-wise',
         help="List the items billed under each invoice: product, patient, quantity, "
              "rate and amount (with tax). Printed on a landscape page.")
+    # Designed new, client 2026-10-21 (the Odoo 17 server had none): the period's
+    # works under each patient - what a clinic asks for when it bills its patients.
+    patientwise = fields.Boolean(
+        string='Patient-wise',
+        help="Group the period's works by patient: every patient with their invoices, "
+             "items and total; payments and other entries listed after.")
+    patient = fields.Char(
+        string='Patient',
+        help="Only the patients whose name contains this - one patient's statement. "
+             "Leave empty for every patient.")
     # WHEN IT WAS TYPED, not what it is dated. On this ledger the two are years
     # apart for migrated paper, and the office needs both questions: "the
     # statement for August" and "only what we have entered since the import".
@@ -92,6 +102,16 @@ class PartnerStatementWizard(models.TransientModel):
             wiz.partner_count = len(partners)
             wiz.email_count = len(partners.filtered('email'))
 
+    @api.onchange('itemwise')
+    def _onchange_itemwise(self):
+        if self.itemwise:
+            self.patientwise = False
+
+    @api.onchange('patientwise')
+    def _onchange_patientwise(self):
+        if self.patientwise:
+            self.itemwise = False
+
     @api.onchange('period', 'company_id')
     def _onchange_period(self):
         if self.period and self.period != 'custom':
@@ -120,7 +140,9 @@ class PartnerStatementWizard(models.TransientModel):
             'company': self.company_id,
             'open_items_only': self.open_items_only,
             'show_ageing': self.show_ageing,
-            'itemwise': self.itemwise,
+            'itemwise': self.itemwise and not self.patientwise,
+            'patientwise': self.patientwise,
+            'patient': (self.patient or '').strip() if self.patientwise else '',
             'created_from': self.created_from or None,
             'created_to': self.created_to or None,
         }
@@ -261,7 +283,8 @@ class PartnerStatementWizard(models.TransientModel):
                     'statement_type': options['statement_type'],
                     'date_from': str(options['date_from']), 'date_to': str(options['date_to']),
                     'company_id': options['company'].id, 'open_items_only': options['open_items_only'],
-                    'show_ageing': options['show_ageing'], 'itemwise': options['itemwise'],
+                    'show_ageing': options['show_ageing'],
+                    **self.env['epg.partner.statement'].layout_data(options),
                     **self.env['epg.partner.statement'].entered_data(options)},
                 'routes': self.team_ids.mapped('name'),
             },

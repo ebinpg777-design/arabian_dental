@@ -8,6 +8,9 @@
                 <t t-set="open_mode" t-value="options['open_items_only']"/>
                 <!-- item-wise: each invoice's items under its row (client, 2026-10-21) -->
                 <t t-set="itemwise" t-value="options.get('itemwise')"/>
+                <!-- patient-wise: the works under each patient (client, 2026-10-21) -->
+                <t t-set="patientwise" t-value="options.get('patientwise')"/>
+                <t t-set="one_patient" t-value="options.get('patient')"/>
                 <t t-call="{{layout}}" hide_letterhead="True">
                     <!-- The letterhead is drawn here, not in the page header band: it is
                          too tall for the band and used to overlap the first lines of the
@@ -42,6 +45,7 @@
                             <tr>
                                 <td class="epg-head-l">
                                     <h2 class="epg-title">
+                                        <t t-if="patientwise">Patient-wise </t>
                                         <t t-if="itemwise">Item-wise </t>
                                         <t t-if="open_mode">Open Items Statement</t>
                                         <t t-else="">Statement of Account</t>
@@ -49,6 +53,7 @@
                                     <div class="epg-headmeta">
                                         <b t-out="statement_type_label"/>
                                         <div><span t-out="date_from" t-options="{'widget': 'date'}"/> → <span t-out="date_to" t-options="{'widget': 'date'}"/></div>
+                                        <div t-if="one_patient">Patient <b t-out="one_patient"/></div>
                                         <div class="epg-printed">Printed <span t-out="printed_on" t-options="{'widget': 'date'}"/><t t-if="o.ref"> · Ref <span t-field="o.ref"/></t></div>
                                     </div>
                                 </td>
@@ -75,8 +80,9 @@
                             <t t-set="mo" t-value="{'widget': 'monetary', 'display_currency': cur}"/>
                             <h5 t-if="len(blocks) > 1" class="mt-2">Currency: <span t-out="cur.name"/></h5>
 
-                            <!-- summary strip -->
-                            <table class="epg-summary">
+                            <!-- summary strip - not on one patient's statement: the clinic's
+                                 balance and payments are not that patient's -->
+                            <table class="epg-summary" t-if="not one_patient">
                                 <tr>
                                 <t t-if="not open_mode">
                                     <td class="epg-card"><div class="epg-card-label">Opening balance</div><div class="epg-card-value" t-out="block['opening']" t-options="mo"/></td>
@@ -93,6 +99,10 @@
                                 </tr>
                             </table>
 
+                            <t t-if="patientwise">
+                                <t t-call="epg_partner_statement.statement_patients"/>
+                            </t>
+                            <t t-else="">
                             <!-- ledger -->
                             <!-- item-wise adds Patient (when the items name one), Qty, Rate and
                                  Amount; pcol / icols say how many cells that is, for the spans -->
@@ -204,6 +214,7 @@
                                     </tr>
                                 </tbody>
                             </table>
+                            </t>
 
                             <!-- ageing -->
                             <t t-if="options.get('show_ageing') and (block['ageing_gross'] or block['credits_open'])">
@@ -268,6 +279,83 @@
                 </t>
             </t>
         </t>
+    </template>
+
+    <!-- Patient-wise (client, 2026-10-21; designed new - the Odoo 17 server had no
+         patient-wise statement): the period's works under each patient, then what was
+         paid, which belongs to the invoices and not to any one patient. -->
+    <template id="statement_patients">
+        <div class="epg-pw-title">Works by patient
+            <span class="epg-pw-count"><t t-out="len(block['patients'])"/> patient(s)</span></div>
+        <table class="epg-ledger epg-patients">
+            <thead>
+                <tr>
+                    <th style="width:12%">Date</th>
+                    <th style="width:19%">Document</th>
+                    <th style="width:37%">Item</th>
+                    <th class="num" style="width:7%">Qty</th>
+                    <th class="num" style="width:12%">Rate</th>
+                    <th class="num" style="width:13%">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr t-if="not block['patients']">
+                    <td colspan="6" class="epg-sub text-center">No works in this period<t t-if="one_patient"> for a patient named "<t t-out="one_patient"/>"</t>.</td>
+                </tr>
+                <t t-foreach="block['patients']" t-as="pt">
+                    <tr class="epg-row-patient">
+                        <td colspan="3"><span class="epg-pt-name" t-out="pt['name']"/>
+                            <span class="epg-sub"> · <t t-out="pt['documents']"/> document(s)</span></td>
+                        <td class="num" t-out="int(pt['qty']) if pt['qty'] == int(pt['qty']) else pt['qty']"/>
+                        <td/>
+                        <td class="num"><span t-out="pt['total']" t-options="mo"/></td>
+                    </tr>
+                    <tr t-foreach="pt['lines']" t-as="pl">
+                        <td><span t-out="pl['date']" t-options="{'widget': 'date'}"/></td>
+                        <td class="epg-doc"><span t-out="pl['move']"/>
+                            <span t-if="pl['amount'] &lt; 0" class="epg-kind epg-kind-cn" t-out="pl['kind']"/></td>
+                        <td t-out="pl['name']"/>
+                        <td class="num" t-out="int(pl['quantity']) if pl['quantity'] == int(pl['quantity']) else pl['quantity']"/>
+                        <td class="num"><span t-out="pl['price_unit']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                        <td class="num"><span t-out="pl['amount']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                    </tr>
+                </t>
+                <tr class="epg-row-total" t-if="block['patients']">
+                    <td colspan="3"><t t-if="one_patient">Total</t><t t-else="">All patients</t></td>
+                    <td class="num" t-out="int(block['patients_qty']) if block['patients_qty'] == int(block['patients_qty']) else block['patients_qty']"/>
+                    <td/>
+                    <td class="num"><span t-out="block['patients_total']" t-options="mo"/></td>
+                </tr>
+            </tbody>
+        </table>
+        <t t-if="not one_patient and block['other_rows']">
+            <div class="epg-pw-title">Payments, credits and other entries</div>
+            <table class="epg-ledger">
+                <thead>
+                    <tr>
+                        <th style="width:12%">Date</th>
+                        <th style="width:19%">Document</th>
+                        <th style="width:39%">Description</th>
+                        <th class="num" style="width:15%" t-out="labels['debit']"/>
+                        <th class="num" style="width:15%" t-out="labels['credit']"/>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="block['other_rows']" t-as="l">
+                        <td><span t-out="l['doc_date']" t-options="{'widget': 'date'}"/></td>
+                        <td class="epg-doc"><span t-out="l['move']"/>
+                            <div><span t-attf-class="epg-kind #{'epg-kind-pay' if l['kind'] in ('Payment', 'Bank') else 'epg-kind-cn' if l['kind'] == 'Credit Note' else 'epg-kind-inv' if l['kind'] == 'Invoice' else ''}" t-out="l['kind']"/></div></td>
+                        <td t-out="l['name'] or l['ref']"/>
+                        <td class="num"><span t-if="l['debit']" t-out="l['debit']" t-options="mo"/></td>
+                        <td class="num"><span t-if="l['credit']" t-out="l['credit']" t-options="mo"/></td>
+                    </tr>
+                </tbody>
+            </table>
+        </t>
+        <div class="epg-pw-note">
+            Patient totals are the items invoiced, with tax<t t-if="not one_patient">; payments are made against the
+            invoices rather than a patient, so they are listed apart, and the amount due is in the summary above</t>.
+        </div>
     </template>
 
     <!-- The item-wise print: the statement above, on its own (landscape) report. -->
