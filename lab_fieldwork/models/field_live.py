@@ -562,6 +562,7 @@ class LabLocationPingPush(models.Model):
             'lat': latest['latitude'], 'lon': latest['longitude'],
             'epoch': epoch(latest['ts']),
             'speed_kmh': latest.get('speed_kmh') or 0.0,
+            'accuracy_m': latest.get('accuracy_m') or 0.0,
             'battery': latest.get('battery') or None,
             'source': latest.get('source') or 'browser',
             'kept': len(values),

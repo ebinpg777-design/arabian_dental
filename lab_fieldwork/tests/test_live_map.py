@@ -68,6 +68,27 @@ class TestLiveLayer(LiveTrackCase):
         self.assertLessEqual(len(thinned), 11)
         self.assertEqual(thinned[-1], 99, "the last point always survives")
 
+    def test_a_network_position_is_where_the_phone_is_but_never_a_road(self):
+        """Indoors the phone reports a cell tower's fixed position at "100 m" every
+        other fix, between real GPS fixes: drawn, the trail was a star of lines
+        radiating from the tower (Abdul Latheef, 2026-10-21/22). Such a fix still
+        says where the phone is; it is never part of the trail or its distance."""
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=10)
+        self._start_day(user, now - timedelta(minutes=30))
+        tower = (10.01, 76.0)
+        fixes = [(10.0, 76.0, 8), tower + (100,), (10.0003, 76.0, 9),
+                 tower + (100,), (10.0006, 76.0, 7), tower + (200,)]
+        self.env['lab.location.ping'].with_user(user).record([
+            {'latitude': lat, 'longitude': lon, 'accuracy_m': acc,
+             'ts': fields.Datetime.to_string(now + timedelta(seconds=30 * i))}
+            for i, (lat, lon, acc) in enumerate(fixes)])
+        [ex] = self.env['lab.location.ping'].with_user(user).get_live_map()['executives']
+        self.assertEqual([[p[0] for p in leg] for leg in ex['legs']], [[10.0, 10.0003, 10.0006]])
+        self.assertEqual((ex['last']['lat'], ex['last']['accuracy_m']), (10.01, 200.0),
+                         "the latest fix is still where the phone is")
+        self.assertLess(ex['km'], 0.1, "and the tower is no distance driven")
+
     def test_a_batch_writes_the_last_fix_forward_only(self):
         user = self.exec_user
         now = fields.Datetime.now() - timedelta(minutes=10)
