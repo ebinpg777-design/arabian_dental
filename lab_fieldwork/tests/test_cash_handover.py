@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Collected cash: into the float by itself, back to the office by code.
+"""Collected cash: held by itself, back to the office by code.
 
 The numbers an executive, the desk and the accountant read must be ONE number,
 and it must go DOWN when the office counts the envelope. (client, 2026-09-18)
 """
 import re
+from unittest.mock import patch
 
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
@@ -28,17 +29,16 @@ class TestCashHandover(TransactionCase):
         cls.other_exec = cls.env['res.users'].create({
             'name': 'Other Cash Exec', 'login': 'cash_other',
             'group_ids': [(6, 0, [base, G('lab_fieldwork.group_fieldwork_executive').id])]})
-        cls.officer = cls.env['res.users'].create({
-            'name': 'Cash Officer', 'login': 'cash_officer',
-            'group_ids': [(6, 0, [base, G('petty_cash.group_petty_cash_officer').id])]})
         cls.ops = cls.env['res.users'].create({
             'name': 'Ops Desk', 'login': 'cash_ops',
             'group_ids': [(6, 0, [base, G('lab_fieldwork.group_fieldwork_ops_manager').id])]})
+        # Whoever counts envelopes in: the operational desk (lab_petty_cash adds the
+        # petty cash box's keepers, and tests them there).
+        cls.officer = cls.ops
         cls.clinic = cls.env['res.partner'].create({
             'name': 'Cash Clinic', 'is_clinic': True,
             'partner_latitude': LAT, 'partner_longitude': LON, 'visit_radius_m': 200.0})
         cls.Handover = cls.env['lab.cash.handover']
-        cls.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.auto_float', 'True')
 
     def _cash_visit(self, amount, user=None):
         v = self.env['lab.visit'].create({
@@ -47,6 +47,18 @@ class TestCashHandover(TransactionCase):
         v.write({'outcome': 'payment', 'collected': amount, 'pay_mode': 'cash'})
         v.do_check_out(LAT, LON)
         return v
+
+    def _pocket_visit(self, amount, user=None):
+        """A visit whose cash was NOT taken in at check-out - the failure path
+        check-out writes on the visit instead of raising."""
+        Move = type(self.env['lab.cash.movement'])
+        with patch.object(Move, '_collect', side_effect=UserError("No cash today.")):
+            return self._cash_visit(amount, user=user)
+
+    def _held(self, user=None):
+        user = user or self.exec_user
+        user.invalidate_recordset(['fw_cash_in_hand'])
+        return user.fw_cash_in_hand
 
     def _position(self, user=None):
         user = user or self.exec_user
@@ -61,55 +73,34 @@ class TestCashHandover(TransactionCase):
         h.action_declare()
         return h
 
-    # ------------------------------------------------------- into the float
-    def test_check_out_puts_the_cash_in_a_float_that_opens_itself(self):
-        """0 allocations on the live database, and the button refused everyone.
-        Now the float is opened the first time cash is taken, and the cash is in
-        it the moment the visit closes - nothing for the executive to remember."""
-        self.assertFalse(self.exec_user.petty_cash_allocation_id)
+    # ------------------------------------------------------- held as field cash
+    def test_check_out_holds_the_cash_by_itself(self):
+        """The cash is the executive's to answer for the moment the visit closes -
+        nothing for them to remember, and no petty cash float to open first: field
+        cash is Field Work's own record since 2026-10-22."""
         v = self._cash_visit(1500.0)
-        self.exec_user.invalidate_recordset()
-        alloc = self.exec_user.petty_cash_allocation_id
-        self.assertTrue(alloc, "a float opened itself")
-        self.assertEqual(alloc.state, 'allocated')
-        self.assertFalse(alloc.journal_id, "a custody float books nothing")
         self.assertTrue(v.cash_banked)
-        self.assertEqual(v.cash_txn_id.type, 'collection')
-        self.assertFalse(v.cash_txn_id.move_id, "no journal entry for custody")
-        alloc.invalidate_recordset()
-        self.assertEqual(alloc.amount_collected, 1500.0)
-        self.assertEqual(alloc.amount_balance, 1500.0)
+        move = v.cash_txn_id
+        self.assertEqual((move.kind, move.state, move.amount, move.user_id),
+                         ('collection', 'posted', 1500.0, self.exec_user))
+        self.assertEqual(move.visit_id, v)
+        self.assertEqual(self._held(), 1500.0)
         self.assertEqual(self._position()['with_you'], 1500.0)
 
-    def test_a_setting_nobody_has_saved_still_opens_floats(self):
-        """get_param returns False for a key never saved, and str(False) is
-        'False' - read naively, an untouched setting meant OFF. The browser
-        walk caught it; the unit tests had all set the key. (2026-09-18)"""
-        params = self.env['ir.config_parameter'].sudo()
-        params.search([('key', '=', 'lab_fieldwork.auto_float')]).unlink()
-        # Odoo 20: get_str answers '' (not False) for a key never saved.
-        self.assertFalse(params.get_str('lab_fieldwork.auto_float'))
-        v = self._cash_visit(300.0)
-        self.assertTrue(v.cash_banked, "the default is on")
-
-    def test_the_setting_can_leave_floats_to_accounts(self):
-        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.auto_float', 'False')
-        v = self._cash_visit(900.0)
-        self.exec_user.invalidate_recordset()
-        self.assertFalse(self.exec_user.petty_cash_allocation_id)
+    def test_cash_check_out_could_not_take_in_stays_in_the_pocket(self):
+        v = self._pocket_visit(900.0)
         self.assertFalse(v.cash_banked)
         # The money is still the executive's to answer for.
         self.assertEqual(self._position()['with_you'], 900.0)
         self.assertEqual(self._position()['unbanked'], 900.0)
-        self.assertIn("did not go into the float", v.message_ids[0].body)
+        self.assertIn("was not taken in by itself", v.message_ids[0].body)
 
-    def test_the_search_on_cash_banked_tells_the_float_from_the_pocket(self):
+    def test_the_search_on_cash_banked_tells_the_held_from_the_pocket(self):
         """Odoo 19 hands the search method ('in', {True}) for `= True`; read as a
         negative, BOTH filters returned every visit, so banked cash still read
         as in the pocket and the figure could never go down. (2026-09-18)"""
         banked = self._cash_visit(1500.0)
-        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.auto_float', 'False')
-        pocket = self._cash_visit(700.0, user=self.other_exec)
+        pocket = self._pocket_visit(700.0, user=self.other_exec)
         Visit = self.env['lab.visit']
         both = Visit.search([('id', 'in', (banked | pocket).ids)])
         self.assertEqual(both.filtered_domain([('cash_banked', '=', True)]), banked)
@@ -118,7 +109,7 @@ class TestCashHandover(TransactionCase):
         self.assertEqual(Visit.search([('id', 'in', both.ids), ('cash_banked', '!=', True)]), pocket)
 
     # ------------------------------------------------------- back to the office
-    def test_hand_over_gets_a_code_and_the_count_takes_it_off_the_float(self):
+    def test_hand_over_gets_a_code_and_the_count_takes_it_off_what_is_held(self):
         self._cash_visit(1500.0)
         self._cash_visit(2550.0)
         self.assertEqual(self._position()['available'], 4050.0)
@@ -152,12 +143,10 @@ class TestCashHandover(TransactionCase):
         self.assertEqual(h.received_by_id, self.officer)
         self.assertEqual(h.difference, 0.0)
         txn = h.txn_id
-        self.assertEqual((txn.type, txn.state, txn.amount), ('handover', 'posted', 4050.0))
-        self.assertFalse(txn.move_id, "custody only - nothing in the ledger")
-        alloc = self.exec_user.petty_cash_allocation_id
-        alloc.invalidate_recordset()
-        self.assertEqual(alloc.amount_handed_over, 4050.0)
-        self.assertEqual(alloc.amount_balance, 0.0, "the float is empty again")
+        self.assertEqual((txn.kind, txn.state, txn.amount, txn.handover_id),
+                         ('handover', 'posted', 4050.0, h))
+        self.assertEqual(txn.amount_signed, -4050.0)
+        self.assertEqual(self._held(), 0.0, "nothing held any more")
         pos = self._position()
         self.assertEqual((pos['with_you'], pos['pending'], pos['available']), (0.0, 0.0, 0.0))
         day = self.env['lab.my.day'].with_user(self.exec_user).get_day()
@@ -174,10 +163,8 @@ class TestCashHandover(TransactionCase):
         h.with_user(self.officer).action_confirm_receipt()
         self.assertEqual(h.state, 'received')
         self.assertEqual(h.difference, -300.0)
-        self.assertEqual(h.txn_id.amount, 1200.0, "only what was counted leaves the float")
-        alloc = self.exec_user.petty_cash_allocation_id
-        alloc.invalidate_recordset()
-        self.assertEqual(alloc.amount_balance, 300.0, "the shortfall is still owed")
+        self.assertEqual(h.txn_id.amount, 1200.0, "only what was counted leaves")
+        self.assertEqual(self._held(), 300.0, "the shortfall is still owed")
         self.assertEqual(self._position()['with_you'], 300.0)
         todo = h.activity_ids.filtered(lambda a: a.user_id == self.exec_user)
         self.assertTrue(todo, "the executive is told, in their own name")
@@ -246,7 +233,6 @@ class TestCashHandover(TransactionCase):
         pos = self._position()
         self.assertEqual(row['amount'], pos['with_you'])
         self.assertEqual(row['pending'], 400.0)
-        self.assertTrue(row['allocation_id'])
 
     def test_cash_past_the_policy_is_chased_once(self):
         self._cash_visit(1500.0)
@@ -334,9 +320,8 @@ class TestCashHandover(TransactionCase):
         self.assertEqual((pos['with_you'], pos['received']), (500.0, 500.0))
 
     def test_cash_in_the_pocket_is_settled_by_its_receipt_too(self):
-        """Cash that never reached the float (the visits before it existed)."""
-        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.auto_float', 'False')
-        v = self._cash_visit(3000.0)
+        """Cash that was never taken in (a check-out that could not)."""
+        v = self._pocket_visit(3000.0)
         self.assertFalse(v.cash_banked)
         self.assertEqual(self._position()['unbanked'], 3000.0)
         self._receipt(3000.0, journal_type='cash')

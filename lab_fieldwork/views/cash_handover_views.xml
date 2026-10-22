@@ -53,7 +53,6 @@
                             <field name="amount" readonly="state != 'draft'"
                                    class="o_fw_big_amount"/>
                             <field name="available" invisible="state != 'draft'"/>
-                            <field name="allocation_id" invisible="not allocation_id"/>
                             <field name="currency_id" invisible="1"/>
                             <field name="can_receive" invisible="1"/>
                         </group>
@@ -299,9 +298,9 @@
         <field name="target">new</field>
     </record>
 
-    <!-- Menus. The executive's tree stays flat; the office gets it twice - on the
-         operational desk, where cash rides with travel, and in the Petty Cash app,
-         where the accountant already lives. -->
+    <!-- Menus. The executive's tree stays flat; the office gets it on the
+         operational desk, where cash rides with travel - and lab_petty_cash puts it
+         in the Petty Cash app too, where the accountant already lives. -->
     <menuitem id="menu_fw_my_handovers" name="My Handovers"
               parent="menu_fieldwork_root" sequence="32"
               action="action_cash_handover_my"
@@ -316,19 +315,4 @@
               action="action_cash_receive"
               groups="lab_fieldwork.group_fieldwork_ops_manager"/>
 
-    <menuitem id="menu_pc_field_handovers" name="Field Cash Handovers"
-              parent="petty_cash.menu_petty_cash" sequence="40"
-              action="action_cash_handover_all"
-              groups="petty_cash.group_petty_cash_officer"/>
-    <menuitem id="menu_pc_receive_field_cash" name="Receive Field Cash"
-              parent="petty_cash.menu_petty_cash" sequence="41"
-              action="action_cash_receive"
-              groups="petty_cash.group_petty_cash_officer"/>
-
-    <!-- The office's petty cash is ebshel_petty_cash, its own "Petty Cash" app
-         (client, 2026-10-22). This app holds the executives' field cash floats,
-         collections and handovers, so it is named for them: one Petty Cash app. -->
-    <record id="petty_cash.menu_petty_cash_root" model="ir.ui.menu">
-        <field name="name">Field Cash</field>
-    </record>
 </odoo>

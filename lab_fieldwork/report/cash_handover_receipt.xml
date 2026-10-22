@@ -22,8 +22,6 @@
                                             <td><strong style="font-size:1.25em;"
                                                         t-field="doc.amount"
                                                         t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td></tr>
-                                        <tr><td style="color:#666;">Float</td>
-                                            <td><span t-field="doc.allocation_id"/></td></tr>
                                         <tr t-if="doc.note"><td style="color:#666;">Note</td>
                                             <td><span t-field="doc.note"/></td></tr>
                                     </table>

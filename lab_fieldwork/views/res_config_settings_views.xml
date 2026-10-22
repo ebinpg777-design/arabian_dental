@@ -124,11 +124,7 @@
                         </setting>
                     </block>
                     <block title="Cash in the Field" name="fw_cash_block"
-                           help="Cash taken at a clinic goes into the executive's petty cash float at check-out and comes off it when the office counts the handover. A custody record - it never touches the ledger.">
-                        <setting id="fw_auto_float" string="Floats Open Themselves"
-                                 help="The first time an executive takes cash, a float opens in their name - no advance, no journal. Off, accounts opens every float by hand.">
-                            <field name="fw_auto_float"/>
-                        </setting>
+                           help="Cash taken at a clinic is held as the executive's field cash at check-out and leaves it when the office counts the handover. A custody record - it never touches the ledger.">
                         <setting id="fw_cash_policy" string="When to Chase Held Cash"
                                  help="Collected cash older than the days, or at or above the amount, is chased on My Day and the Ops Desk and raises a to-do for the executive. 0 switches either rule off.">
                             <div class="content-group mt-2">

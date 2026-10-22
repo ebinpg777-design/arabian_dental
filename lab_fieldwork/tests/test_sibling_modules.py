@@ -104,22 +104,7 @@ class TestSiblingModulesAreOptional(TransactionCase):
         blank = self.env['res.partner'].create({'name': 'No Phone'})
         self.assertFalse(_wa_source(blank))
 
-    # ---------------------------------------------------------- petty_cash
-    def _float_for(self, user, amount=5000.0):
-        """An allocated petty-cash float in the holder's hands."""
-        journal = self.env['account.journal'].create({
-            'name': 'Test Petty Cash', 'type': 'cash', 'code': 'TPTY',
-            'company_id': self.env.company.id, 'is_petty_cash': True})
-        allocation = self.env['petty.cash.allocation'].create({
-            'partner_id': user.partner_id.id,
-            'journal_id': journal.id,
-            'amount_limit': amount,
-            'company_id': self.env.company.id})
-        # The approval chain is an accounts job and refuses to run for somebody
-        # else; this test is about what happens once the float exists.
-        allocation.state = 'allocated'
-        return allocation
-
+    # ---------------------------------------------------------- field cash
     def _finished_visit_with_cash(self, amount=2500.0):
         """A completed visit carrying cash, as the executive sees it.
 
@@ -151,9 +136,9 @@ class TestSiblingModulesAreOptional(TransactionCase):
            `cash_txn_id` is not one of the fields a completed visit leaves open.
 
         On the live database when this was found: 4 visits had collected cash
-        and 0 had ever reached a float. (2026-09-12)
+        and 0 had ever reached a float. (2026-09-12) The float is Field Work's
+        own field cash since 2026-10-22; the lock still has to let it through.
         """
-        self._float_for(self.exec_user)
         visit = self._finished_visit_with_cash(2500.0)
         self.assertFalse(visit.cash_banked, "nothing banked yet")
 
@@ -162,35 +147,29 @@ class TestSiblingModulesAreOptional(TransactionCase):
         self.assertTrue(visit.cash_banked, "the visit says the money has moved")
         txn = visit.cash_txn_id.sudo()
         self.assertEqual(txn.state, 'posted')
-        self.assertEqual(txn.type, 'collection')
+        self.assertEqual(txn.kind, 'collection')
         self.assertEqual(txn.amount, 2500.0)
         self.assertEqual(txn.visit_id, visit)
 
     def test_banking_the_same_visit_twice_does_not_double_count(self):
         """It returns the existing movement rather than making a second one."""
-        self._float_for(self.exec_user)
         visit = self._finished_visit_with_cash(1200.0)
         visit.action_cash_to_float()
         first = visit.cash_txn_id
         visit.action_cash_to_float()
         self.assertEqual(visit.cash_txn_id, first, "same movement, not a new one")
         self.assertEqual(
-            self.env['petty.cash.transaction'].sudo().search_count(
+            self.env['lab.cash.movement'].sudo().search_count(
                 [('visit_id', '=', visit.id)]), 1)
 
-    def test_a_person_still_cannot_post_a_transaction_themselves(self):
-        """The guard is about who the USER is, so it must still bite for one.
-
-        Honouring `env.su` widens this to system code only. An executive acting
-        as themselves is exactly who it was written to stop.
-        """
-        allocation = self._float_for(self.exec_user)
-        txn = self.env['petty.cash.transaction'].sudo().create({
-            'allocation_id': allocation.id,
-            'partner_id': self.clinic.id,
-            'type': 'collection',
-            'amount': 100.0,
-            'company_id': self.env.company.id})
-        txn.action_approve()
-        with self.assertRaises(UserError, msg="an executive is not an officer"):
-            txn.with_user(self.exec_user).action_post()
+    def test_an_executive_cannot_make_or_undo_field_cash_themselves(self):
+        """Only the system records field cash - from a visit, a collection or a
+        counted handover - and only a field work manager takes one back."""
+        with self.assertRaises(AccessError):
+            self.env['lab.cash.movement'].with_user(self.exec_user).create({
+                'user_id': self.exec_user.id, 'kind': 'collection', 'amount': 100.0,
+                'partner_id': self.clinic.id})
+        visit = self._finished_visit_with_cash(400.0)
+        visit.action_cash_to_float()
+        with self.assertRaises(UserError):
+            visit.cash_txn_id.with_user(self.exec_user).action_cancel()

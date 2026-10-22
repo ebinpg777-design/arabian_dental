@@ -55,9 +55,6 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='lab_fieldwork.rate_public')
 
     # --- cash collected in the field
-    fw_auto_float = fields.Boolean(
-        'Open floats automatically', default=True,
-        config_parameter='lab_fieldwork.auto_float')
     fw_cash_max_days = fields.Integer(
         'Hand over within (days)', default=2,
         config_parameter='lab_fieldwork.cash_max_days')
@@ -108,7 +105,6 @@ class ResConfigSettings(models.TransientModel):
         ('fw_require_odo_photo', 'lab_fieldwork.require_odo_photo'),
         ('fw_require_attendance', 'lab_fieldwork.require_attendance'),
         ('fw_auto_close_day', 'lab_fieldwork.auto_close_day'),
-        ('fw_auto_float', 'lab_fieldwork.auto_float'),
         ('fw_track_live', 'lab_fieldwork.track_live'),
         ('fw_auto_arrive', 'lab_fieldwork.auto_arrive'),
     )

@@ -27,9 +27,7 @@ PARAMS = (
     # administrator once the SLA passes.
     ('fw_auto_submit_day_sheet', 'auto_submit_day_sheet', True, 'bool'),
     ('fw_approval_sla_days',     'approval_sla_days',     2,    'int'),
-    # Cash in the field (2026-09-18): a float opens itself the first time
-    # somebody takes cash; held cash past these is chased.
-    ('fw_auto_float',            'auto_float',            True,    'bool'),
+    # Cash in the field (2026-09-18): held cash past these is chased.
     ('fw_cash_max_days',         'cash_max_days',         2,       'int'),
     ('fw_cash_ceiling',          'cash_ceiling',          10000.0, 'float'),
 )
@@ -105,12 +103,6 @@ class LabFieldworkSettings(models.TransientModel):
         help="A day sheet waiting longer than this on either desk is raised "
              "with the Field Work Administrators - once.")
 
-    fw_auto_float = fields.Boolean(
-        'Open floats automatically',
-        help="The first time an executive takes cash at a clinic, a petty cash "
-             "float opens in their name to hold it - no advance, no journal. Off, "
-             "accounts opens every float by hand and cash waits in the pocket "
-             "until they do.")
     fw_cash_max_days = fields.Integer(
         'Hand over within (days)',
         help="Collected cash older than this is chased: a red chip on My Day, a "

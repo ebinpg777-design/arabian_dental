@@ -34,7 +34,7 @@
                     <button name="action_cash_to_float" type="object"
                             string="Cash into My Float" class="btn-secondary"
                             invisible="pay_mode != 'cash' or collected &lt;= 0
-                                       or cash_banked or not petty_cash_allocation_id"/>
+                                       or cash_banked"/>
                     <button name="action_view_cash_txn" type="object"
                             string="View Cash Movement" class="btn-secondary"
                             invisible="not cash_banked"/>
@@ -287,9 +287,6 @@
                                    required="collected &gt; 0"
                                    invisible="collected &lt;= 0"/>
                             <field name="cash_banked" invisible="1"/>
-                            <field name="petty_cash_allocation_id" readonly="1"
-                                   invisible="not petty_cash_allocation_id"
-                                   options="{'no_create': True, 'no_open': True}"/>
                             <field name="cash_txn_id" readonly="1"
                                    invisible="not cash_banked"
                                    options="{'no_create': True, 'no_open': True}"/>

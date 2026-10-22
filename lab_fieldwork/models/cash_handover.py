@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 """Collected cash going back to the office.
 
-The other half of the float. A visit's cash goes INTO the executive's petty
-cash float (petty_cash.py); until now nothing took it out again, so the figure
-on My Day could only ever grow, and the office had no record of the envelope
-it was handed on Friday except the accountant's memory.
+The other half of field cash. A visit's cash is held by the executive
+(cash_movement.py); until now nothing took it out again, so the figure on My
+Day could only ever grow, and the office had no record of the envelope it was
+handed on Friday except the accountant's memory.
 
 A handover is that envelope. The executive says "here is 13,250" - on the
 phone, standing at the desk - and gets a six-letter code; the office counts the
 money, confirms it against the code, and only THEN does it leave the
-executive's float. Custody changes hands when the count does, not when the
+executive's hands. Custody changes hands when the count does, not when the
 phone says so: a one-tap "I returned it" is the executive's word, and the count
 is the office's. A count that differs is recorded as a difference with a
-reason, and a shortfall stays on the executive's float, where it is owed.
+reason, and a shortfall stays with the executive, where it is owed.
 
-What it books, and does not. The float is a CUSTODY record: a field collection
+What it books, and does not. Field cash is a CUSTODY record: a collection
 enters it with no journal entry (accounts still books the receipt against the
 doctor's account when the money lands), so a handover leaves it the same way.
 Nothing here touches the ledger. (client, 2026-09-18)
@@ -32,9 +32,8 @@ from odoo.tools import float_compare, formatLang
 # phone: no 0/O, no 1/I/L, nothing lower-case.
 CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 # Who may count and confirm: the operational desk (cash rides with travel
-# there) and whoever keeps the petty cash box.
-RECEIVERS = ('lab_fieldwork.group_fieldwork_ops_manager',
-             'petty_cash.group_petty_cash_officer')
+# there). lab_petty_cash adds whoever keeps the petty cash box.
+RECEIVERS = ('lab_fieldwork.group_fieldwork_ops_manager',)
 # The notes a bundle is counted in, largest first. Any other value can still
 # be typed on a line.
 DENOMINATIONS = (500, 200, 100, 50, 20, 10)
@@ -56,9 +55,6 @@ class CashHandover(models.Model):
     user_id = fields.Many2one(
         'res.users', string='Handed Over By', required=True, index=True,
         default=lambda self: self.env.user, tracking=True)
-    allocation_id = fields.Many2one(
-        'petty.cash.allocation', string='Float', readonly=True, copy=False,
-        index='btree_not_null')
     date = fields.Date(
         string='Handed Over On', required=True, tracking=True,
         default=lambda self: fields.Date.context_today(self))
@@ -87,7 +83,7 @@ class CashHandover(models.Model):
         'res.users', string='Counted By', readonly=True, copy=False, tracking=True)
     received_at = fields.Datetime(string='Counted At', readonly=True, copy=False)
     txn_id = fields.Many2one(
-        'petty.cash.transaction', string='Float Movement', readonly=True, copy=False)
+        'lab.cash.movement', string='Cash Movement', readonly=True, copy=False)
 
     state = fields.Selection([
         ('draft', 'Draft'), ('declared', 'Handed Over'),
@@ -223,24 +219,13 @@ class CashHandover(models.Model):
                 raise UserError(_("%s has already been handed over.", rec.name))
             if rec.amount <= 0:
                 raise UserError(_("Enter how much you are handing over."))
-            # Everything they hold goes to the float first, so the float is the
-            # one place the office reads when it counts.
+            # Everything they took in cash is recorded as held first, so the
+            # field cash is the one place the office reads when it counts.
             problem = self._sweep_unbanked(rec.user_id)
-            allocation = rec.user_id.sudo().petty_cash_allocation_id
-            if not allocation:
-                raise UserError(problem or _(
-                    "%s has no petty cash float, so there is no record of the cash "
-                    "to hand over. Ask accounts to open one.", rec.user_id.name))
-            if allocation.company_id != rec.company_id:
-                raise UserError(_(
-                    "%(who)s holds a float in %(co)s; this handover is in %(here)s. "
-                    "Cash does not move between companies.",
-                    who=rec.user_id.name, co=allocation.company_id.display_name,
-                    here=rec.company_id.display_name))
             available = self.cash_position(rec.user_id)[rec.user_id.id]['available']
             if float_compare(rec.amount, available,
                              precision_rounding=rec.currency_id.rounding or 0.01) > 0:
-                raise UserError(_(
+                raise UserError(problem or _(
                     "You are holding %(held)s of collected cash, so %(amount)s cannot "
                     "be handed over. Returning an advance the lab gave you is a "
                     "different thing - ask accounts.",
@@ -248,7 +233,6 @@ class CashHandover(models.Model):
             rec.write({
                 'state': 'declared',
                 'code': self._new_code(),
-                'allocation_id': allocation.id,
                 'counted_amount': rec.amount,
             })
             rec.message_post(body=_(
@@ -258,7 +242,7 @@ class CashHandover(models.Model):
         return self._open()
 
     def action_confirm_receipt(self):
-        """The office has counted the envelope. The money leaves the float NOW."""
+        """The office has counted the envelope. The money leaves the executive NOW."""
         self.ensure_one()
         if not self._is_receiver():
             raise UserError(_(
@@ -276,7 +260,7 @@ class CashHandover(models.Model):
                 "The count (%(counted)s) differs from what was declared (%(declared)s). "
                 "Say why before confirming - it is the reason the executive will read.",
                 counted=self._money(counted), declared=self._money(self.amount)))
-        txn = self.env['petty.cash.transaction']._lab_hand_over(self, counted)
+        txn = self.env['lab.cash.movement']._hand_over(self, counted)
         self.write({
             'state': 'received',
             'received_by_id': self.env.uid,
@@ -292,16 +276,16 @@ class CashHandover(models.Model):
                           self._money(self.amount - counted)),
                 note=_("The office counted %(counted)s against the %(declared)s you "
                        "declared on %(name)s. Reason given: %(why)s. The difference "
-                       "stays on your float until it is settled.",
+                       "stays with you until it is settled.",
                        counted=self._money(counted), declared=self._money(self.amount),
                        name=self.name, why=self.difference_reason))
         self.message_post(body=_(
-            "Counted %(counted)s by %(who)s%(diff)s. Taken off float %(float)s.",
+            "Counted %(counted)s by %(who)s%(diff)s. No longer held by %(holder)s.",
             counted=self._money(counted), who=self.env.user.name,
             diff=(_(" - %(d)s against the declared amount: %(why)s",
                     d=self._money(counted - self.amount), why=self.difference_reason)
                   if short else ''),
-            float=self.allocation_id.display_name))
+            holder=self.user_id.name))
         return True
 
     def action_cancel(self):
@@ -336,8 +320,14 @@ class CashHandover(models.Model):
 
     # ------------------------------------------------------------ helpers
     @api.model
+    def _receiver_groups(self):
+        """The groups that count envelopes in. lab_petty_cash adds the petty cash
+        box's keepers."""
+        return RECEIVERS
+
+    @api.model
     def _is_receiver(self):
-        return self.env.su or any(self.env.user.has_group(g) for g in RECEIVERS)
+        return self.env.su or any(self.env.user.has_group(g) for g in self._receiver_groups())
 
     @api.model
     def _new_code(self):
@@ -375,8 +365,8 @@ class CashHandover(models.Model):
 
     @api.model
     def _sweep_unbanked(self, user):
-        """Push every rupee this person took as cash and never sent to the float
-        into it. Returns the reason the last one could not move, or ''."""
+        """Record as held every rupee this person took as cash and never recorded.
+        Returns the reason the last one could not be, or ''."""
         problem = ''
         Visit = self.env['lab.visit'].sudo()
         Loose = self.env['lab.cash.collection'].sudo()
@@ -400,9 +390,9 @@ class CashHandover(models.Model):
     def cash_position(self, users):
         """{user id: what they hold of the lab's money}, from every place it can be.
 
-        ``unbanked``   cash taken and never sent to the float (old visits, or a
+        ``unbanked``   cash taken and never recorded as held (old visits, or a
                        push that failed) - still in the pocket;
-        ``in_float``   collections in the float minus what the office has counted;
+        ``in_float``   cash held (collections) minus what the office has counted;
         ``pending``    handed over, waiting for the count;
         ``with_you``   unbanked + in_float: not yet in the office's hands;
         ``available``  with_you - pending: what can be handed over now;
@@ -417,8 +407,8 @@ class CashHandover(models.Model):
         users = users.sudo()
         today = fields.Date.context_today(self)
         out = {u.id: dict(unbanked=0.0, in_float=0.0, pending=0.0, pending_count=0,
-                          with_you=0.0, available=0.0, received=0.0, oldest=None, days=0,
-                          allocation_id=False) for u in users}
+                          with_you=0.0, available=0.0, received=0.0, oldest=None, days=0)
+               for u in users}
         if not users:
             return out
 
@@ -440,20 +430,13 @@ class CashHandover(models.Model):
                 ('cash_banked', '=', False)]):
             held.append((loose.user_id.id, 'pocket', loose.partner_id, loose.amount, loose.date))
 
-        allocations = {u: u.petty_cash_allocation_id for u in users}
-        alloc_ids = [a.id for a in allocations.values() if a]
         handed = defaultdict(float)
-        if alloc_ids:
-            owner = {a.id: u.id for u, a in allocations.items() if a}
-            for txn in self.env['petty.cash.transaction'].sudo().search([
-                    ('allocation_id', 'in', alloc_ids),
-                    ('type', 'in', ('collection', 'handover')),
-                    ('state', '=', 'posted')], order='date, id'):
-                uid = owner[txn.allocation_id.id]
-                if txn.type == 'handover':
-                    handed[uid] += txn.amount
-                else:
-                    held.append((uid, 'float', txn.partner_id, txn.amount, txn.date))
+        for move in self.env['lab.cash.movement'].sudo().search([
+                ('user_id', 'in', users.ids), ('state', '=', 'posted')], order='date, id'):
+            if move.kind == 'handover':
+                handed[move.user_id.id] += move.amount
+            else:
+                held.append((move.user_id.id, 'float', move.partner_id, move.amount, move.date))
 
         received = self._receipts_for(held)
         floats = defaultdict(list)
@@ -470,12 +453,9 @@ class CashHandover(models.Model):
             else:
                 floats[uid].append((amount, day, False))
 
-        for user, allocation in allocations.items():
+        rounding = self.env.company.currency_id.rounding or 0.01
+        for user in users:
             row = out[user.id]
-            row['allocation_id'] = allocation.id
-            if not allocation:
-                continue
-            rounding = allocation.currency_id.rounding or 0.01
             moves = sorted(floats[user.id], key=lambda m: m[1] or today)
             booked = sum(amount for amount, _day, is_booked in moves if is_booked)
             # A counted envelope was usually booked by the accounts as well: let
@@ -651,102 +631,3 @@ class CashHandoverLine(models.Model):
     def _compute_subtotal(self):
         for line in self:
             line.subtotal = line.denomination * line.count
-
-
-class PettyCashTransaction(models.Model):
-    """The movement a counted handover becomes: cash OUT of the float, no entry."""
-    _inherit = 'petty.cash.transaction'
-
-    type = fields.Selection(
-        selection_add=[('handover', 'Handed to Office')],
-        ondelete={'handover': 'cascade'})
-    handover_id = fields.Many2one(
-        'lab.cash.handover', string='Handover', readonly=True, copy=False,
-        index='btree_not_null')
-
-    @api.model
-    def _deduction_types(self):
-        # The balance guards in petty_cash (approve and post) read this, so a
-        # handover can never take more than the float holds.
-        return super()._deduction_types() + ('handover',)
-
-    @api.depends('type', 'amount')
-    def _compute_amount_signed(self):
-        super()._compute_amount_signed()
-        # A collection RAISES the float and a handover lowers it; the base
-        # signs everything but an allocation negative, which read a
-        # collection as money leaving the executive's hands.
-        for rec in self:
-            if rec.type == 'collection':
-                rec.amount_signed = rec.amount
-            elif rec.type == 'handover':
-                rec.amount_signed = -rec.amount
-
-    @api.model
-    def _lab_hand_over(self, handover, amount):
-        """Take counted cash out of the executive's float, and post it.
-
-        As the system, like `_lab_collect`: the officer confirming the count
-        is not necessarily a petty cash manager, and the movement is the
-        outcome of the count, not an approval anybody is being asked for.
-        """
-        allocation = handover.allocation_id
-        if not allocation or allocation.state != 'allocated':
-            raise UserError(_(
-                "%s has no open float to take this cash out of.", handover.user_id.name))
-        txn = self.sudo().create({
-            'allocation_id': allocation.id,
-            'partner_id': handover.user_id.partner_id.id,
-            'type': 'handover',
-            'amount': amount,
-            'date': fields.Date.context_today(self),
-            'company_id': allocation.company_id.id,
-            'handover_id': handover.id,
-            'note': _("Handed to the office on %(name)s, counted by %(who)s",
-                      name=handover.name, who=self.env.user.name),
-        })
-        txn.action_approve()
-        txn.action_post()
-        return txn
-
-
-class PettyCashAllocation(models.Model):
-    _inherit = 'petty.cash.allocation'
-
-    amount_handed_over = fields.Monetary(
-        string='Handed to Office', currency_field='currency_id',
-        compute='_compute_amounts', store=True,
-        help="Collected cash the office has counted back in. Counted in the "
-             "returned amount - it left the float - and shown on its own so the "
-             "accountant can see collections and handovers side by side.")
-    handover_count = fields.Integer(compute='_compute_handover_count')
-
-    @api.depends('transaction_ids.type', 'transaction_ids.state',
-                 'transaction_ids.amount')
-    def _compute_amounts(self):
-        super()._compute_amounts()
-        for rec in self:
-            posted = rec.transaction_ids.filtered(lambda t: t._counts_as_posted())
-            handed = sum(posted.filtered(lambda t: t.type == 'handover').mapped('amount'))
-            rec.amount_handed_over = handed
-            # Folded into the returned figure so the base identity
-            # (balance = allocated - utilized - returned) stays true.
-            rec.amount_returned += handed
-            rec.amount_balance -= handed
-
-    @api.depends('transaction_ids.type', 'transaction_ids.state')
-    def _compute_handover_count(self):
-        for rec in self:
-            rec.handover_count = len(rec.transaction_ids.filtered(
-                lambda t: t.type == 'handover' and t.state != 'cancelled'))
-
-    def action_view_handovers(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': _('Cash Handed to Office'),
-            'res_model': 'lab.cash.handover',
-            'view_mode': 'list,form',
-            'domain': [('allocation_id', '=', self.id)],
-            'context': {'create': False},
-        }

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.6.4.2',
+    'version': '20.0.7.0.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -53,7 +53,6 @@ in the server, not merely in the form.
         'lab_access_control',   # state-lock mixin, proven and tested
         'lab_order_control',    # the verification state a new case lands in
         'sale_custom',            # patient / U-L / colour — the lab's own order fields
-        'petty_cash',             # the float an executive carries
         'base_geolocalize',       # clinic coordinates
         'sale_management',        # orders taken during a visit
         'hr',
@@ -76,7 +75,7 @@ in the server, not merely in the form.
         'views/lab_coverage_views.xml',
         'views/lab_performance_views.xml',
         'views/res_partner_views.xml',
-        'views/petty_cash_views.xml',
+        'views/cash_movement_views.xml',
         'views/collect_cash_views.xml',
         'views/fieldwork_settings_views.xml',
         'views/res_config_settings_views.xml',

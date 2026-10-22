@@ -19,8 +19,7 @@ from . import lab_coverage
 # yet. Registry order is import order. (client, 2026-09-12)
 from . import cash_collection
 from . import lab_performance
-from . import petty_cash
-# After petty_cash: it adds a movement type to the model petty_cash.py extends.
+from . import cash_movement
 from . import cash_handover
 from . import clinic_favourite
 from . import my_day

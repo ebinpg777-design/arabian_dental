@@ -232,8 +232,8 @@ class ResPartner(models.Model):
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window', 'name': _('Cash Collected Here'),
-            'res_model': 'petty.cash.transaction', 'view_mode': 'list,form',
-            'domain': [('partner_id', '=', self.id), ('type', '=', 'collection')],
+            'res_model': 'lab.cash.movement', 'view_mode': 'list,form',
+            'domain': [('partner_id', '=', self.id), ('kind', '=', 'collection')],
             'context': {'create': False},
         }
 

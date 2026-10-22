@@ -145,7 +145,6 @@ class LabMyDay(models.AbstractModel):
                 'overdue': Handover._is_overdue(position, (max_days, ceiling)),
                 'max_days': max_days,
                 'ceiling': ceiling,
-                'allocation_id': position['allocation_id'],
                 'pending_rows': [{
                     'id': h.id, 'name': h.name, 'amount': h.amount, 'code': h.code,
                     'date': format_date(self.env, h.date, date_format='d MMM'),

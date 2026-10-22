@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Field cash in the Petty Cash app, where the accountant already lives: the
+         same screens the operational desk has in Field Work. -->
+    <menuitem id="menu_field_cash" name="Field Cash"
+              parent="ebshel_petty_cash.menu_root" sequence="25"
+              groups="ebshel_petty_cash.group_petty_cash_approver"/>
+    <menuitem id="menu_field_cash_held" name="Cash with Executives"
+              parent="menu_field_cash" sequence="10"
+              action="lab_fieldwork.action_field_cash"/>
+    <menuitem id="menu_field_cash_handovers" name="Field Cash Handovers"
+              parent="menu_field_cash" sequence="20"
+              action="lab_fieldwork.action_cash_handover_all"/>
+    <menuitem id="menu_field_cash_receive" name="Receive Field Cash"
+              parent="menu_field_cash" sequence="30"
+              action="lab_fieldwork.action_cash_receive"/>
+</odoo>

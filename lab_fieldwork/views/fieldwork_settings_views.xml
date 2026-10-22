@@ -87,16 +87,15 @@
                     </div>
 
                     <group string="Cash in the Field" name="cash">
-                        <field name="fw_auto_float"/>
                         <field name="fw_cash_max_days"/>
                         <field name="fw_cash_ceiling"/>
                     </group>
                     <div class="text-muted small mb-3 ps-1">
-                        Cash an executive takes at a clinic goes into a petty cash float
-                        in their name at check-out, and comes off it when they hand the
-                        envelope to the office and the office counts it against the
-                        handover code. The float is a <b>custody</b> record — it never
-                        touches the ledger; accounts still books the receipt against the
+                        Cash an executive takes at a clinic is held as their field cash
+                        at check-out, and leaves it when they hand the envelope to the
+                        office and the office counts it against the handover code. Field
+                        cash is a <b>custody</b> record — it never touches the ledger;
+                        accounts still books the receipt against the
                         doctor's account. Cash held longer, or more, than these limits is
                         chased on My Day and the Ops Desk.
                     </div>

@@ -45,8 +45,6 @@ class CollectCash(models.TransientModel):
         string='Note',
         help="What this payment was for, if it is worth saying.")
 
-    allocation_id = fields.Many2one(
-        'petty.cash.allocation', compute='_compute_float', string='Float')
     balance = fields.Monetary(
         compute='_compute_float', string='Cash in Hand',
         currency_field='currency_id')
@@ -54,14 +52,11 @@ class CollectCash(models.TransientModel):
     @api.depends('user_id')
     def _compute_float(self):
         for rec in self:
-            allocation = rec.user_id.sudo().petty_cash_allocation_id
-            rec.allocation_id = allocation
-            rec.balance = rec.user_id.sudo().petty_cash_balance
-            rec.currency_id = (allocation.currency_id
-                               or rec.env.company.currency_id)
+            rec.balance = rec.user_id.sudo().fw_cash_in_hand
+            rec.currency_id = rec.env.company.currency_id
 
     def action_record(self):
-        """Put the money in the float, and show the movement it became."""
+        """Record the money, and hold it as the executive's field cash."""
         self.ensure_one()
         # Only your own cash, unless you are the desk that manages floats. An
         # executive recording a collection "collected by" somebody else would
@@ -80,18 +75,16 @@ class CollectCash(models.TransientModel):
             'pay_mode': self.pay_mode,
             'note': self.note,
         })
-        # Into the float by the same path a visit's cash takes. The float opens
-        # itself on first use now (unless the setting leaves that to accounts),
-        # so this no longer waits for one to exist; and a failure is written on
-        # the collection rather than raised - the money is recorded either way,
-        # which is the point of this screen. (client, 2026-09-12 / 2026-09-18)
+        # Held by the same path a visit's cash takes; a failure is written on the
+        # collection rather than raised - the money is recorded either way, which
+        # is the point of this screen. (client, 2026-09-12 / 2026-09-18)
         if self.pay_mode == 'cash':
             try:
                 with self.env.cr.savepoint():
                     collection.action_cash_to_float()
             except UserError as exc:
                 collection.message_post(body=_(
-                    "The cash did not go into the float by itself: %s Use "
+                    "The cash was not taken in by itself: %s Use "
                     "\"Into my float\" once that is sorted.",
                     exc.args[0] if exc.args else exc))
         return {'type': 'ir.actions.act_window_close'}

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Manager / CEO Dashboard',
-    'version': '20.0.1.18.0',
+    'version': '20.0.1.19.0',
     'summary': 'CEO-level board: revenue, cash, receivables, coverage and alerts',
     'description': """
 Lab Manager / CEO Dashboard
@@ -10,7 +10,7 @@ The board a lab owner opens, as opposed to the one a field manager opens.
 
 * **Headlines with a baseline** - revenue, orders booked and collections each carry the
   immediately preceding window of the same length, so growth is like-for-like.
-* **Cash** - liquid balances plus the petty cash float physically out with the field force.
+* **Cash** - liquid balances plus the field cash physically out with the field force.
 * **Receivables** - open AR and the share of it past due, which is the number that decides
   whether a good revenue month is actually a good month.
 * **Twelve-month revenue trend**, top clinics, and sales-team performance.
@@ -23,7 +23,6 @@ The board a lab owner opens, as opposed to the one a field manager opens.
     'depends': [
         'lab_fieldwork',
         'lab_finance_ops',
-        'petty_cash',
         # For the Collections screen on the Management menu. The dependency runs this
         # way round because this module is the consumer: lab_collections knows
         # nothing about the CEO board, and pointing it at one would couple the lab's

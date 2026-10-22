@@ -12,8 +12,8 @@ This is that payment on its own. It is deliberately the SAME three facts a
 visit records - who it came from, how much, and how it was paid - because every
 figure the lab keeps about collections reads those three and must not care
 which screen they were typed on: the day's total, the day sheet, the
-executive's collection target, and the manager's performance report. Cash also
-reaches the petty cash float by the same path a visit's cash does.
+executive's collection target, and the manager's performance report. Cash is also
+held as field cash by the same path a visit's cash takes.
 (client, 2026-09-12)
 """
 from odoo import _, api, fields, models
@@ -51,7 +51,7 @@ class CashCollection(models.Model):
         related='company_id.currency_id', string='Currency', readonly=True)
 
     cash_txn_id = fields.Many2one(
-        'petty.cash.transaction', string='Cash Movement', readonly=True,
+        'lab.cash.movement', string='Cash Movement', readonly=True,
         copy=False)
     cash_banked = fields.Boolean(compute='_compute_cash_banked', store=True)
 
@@ -74,8 +74,8 @@ class CashCollection(models.Model):
                 rec.partner_id.sudo().display_name or _('Collection'),
                 rec.amount)
 
-    # What the float movement was raised from. Once the cash is in the float,
-    # changing any of these makes the collection and the movement disagree.
+    # What the cash movement was raised from. Once the cash is held, changing
+    # any of these makes the collection and the movement disagree.
     BANKED_FIELDS = ('amount', 'pay_mode', 'partner_id', 'user_id', 'date')
 
     def write(self, vals):
@@ -85,39 +85,40 @@ class CashCollection(models.Model):
             banked = self.filtered('cash_banked')
             if touched and banked:
                 raise UserError(_(
-                    "%(what)s is already in the float, so its %(fields)s can no "
+                    "%(what)s is already held as field cash, so its %(fields)s can no "
                     "longer be changed here. Ask a field work manager to correct "
                     "it.", what=banked[0].display_name,
                     fields=', '.join(self._fields[f].string for f in touched)))
         return super().write(vals)
 
     def action_cash_to_float(self):
-        """Take this money into the executive's float, as a visit's cash does.
+        """Hold this money as the executive's field cash, as a visit's cash is.
 
         Only cash: a cheque or an online payment reaches the bank directly and
-        is reconciled there, so putting it in the float would count the same
-        money twice - the rule the visit button already states.
+        is reconciled there, so holding it here would count the same money
+        twice - the rule the visit button already states.
         """
         self.ensure_one()
         if self.cash_banked:
             return self.action_view_cash_txn()
         if self.pay_mode != 'cash':
             raise UserError(_(
-                "Only cash goes into the float. A cheque or online payment "
-                "reaches the bank directly and is reconciled there — putting "
-                "it here would count the same money twice."))
-        txn = self.env['petty.cash.transaction']._lab_collect(
+                "Only cash is held. A cheque or online payment reaches the "
+                "bank directly and is reconciled there — recording it here "
+                "would count the same money twice."))
+        move = self.env['lab.cash.movement']._collect(
             self.user_id, self.partner_id, self.amount, date=self.date,
+            collection=self,
             note=self.note or _("Collected from %(clinic)s",
                                 clinic=self.partner_id.sudo().display_name))
-        self.sudo().cash_txn_id = txn
+        self.sudo().cash_txn_id = move
         return self.action_view_cash_txn()
 
     def action_view_cash_txn(self):
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
-            'res_model': 'petty.cash.transaction',
+            'res_model': 'lab.cash.movement',
             'res_id': self.cash_txn_id.id,
             'view_mode': 'form',
         }
@@ -143,7 +144,7 @@ class CashCollection(models.Model):
 
     @api.model
     def _unbanked_for(self, user, day):
-        """Cash collected on `day` that has not reached the float yet."""
+        """Cash collected on `day` that is not held as field cash yet."""
         rows = self.sudo().search([('user_id', '=', user.id),
                                    ('date', '=', day),
                                    ('pay_mode', '=', 'cash'),

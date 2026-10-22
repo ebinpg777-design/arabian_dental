@@ -289,7 +289,7 @@ class LabTrip(models.Model):
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window', 'name': _('Cash Taken this Day'),
-            'res_model': 'petty.cash.transaction', 'view_mode': 'list,form',
+            'res_model': 'lab.cash.movement', 'view_mode': 'list,form',
             'domain': [('visit_id', 'in', self._day_visits().ids)],
             'context': {'create': False},
         }

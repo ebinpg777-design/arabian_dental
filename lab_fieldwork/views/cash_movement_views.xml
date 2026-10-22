@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Field cash, from the two sides that care about it: the executive who is
+        carrying it, and the manager who has to know how much of it is walking around.
+    -->
+
+    <record id="view_cash_movement_list" model="ir.ui.view">
+        <field name="name">lab.cash.movement.list</field>
+        <field name="model">lab.cash.movement</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false"
+                  decoration-success="kind == 'collection'"
+                  decoration-info="kind == 'handover'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="date"/>
+                <field name="user_id" optional="show"/>
+                <field name="kind" widget="badge"/>
+                <field name="partner_id" optional="show"/>
+                <field name="visit_id" optional="show"/>
+                <field name="handover_id" optional="hide"/>
+                <field name="amount_signed" sum="Held"/>
+                <field name="state" widget="badge" optional="hide"/>
+                <field name="company_id" column_invisible="1"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cash_movement_form" model="ir.ui.view">
+        <field name="name">lab.cash.movement.form</field>
+        <field name="model">lab.cash.movement</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <header>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state != 'posted'"
+                            groups="lab_fieldwork.group_fieldwork_manager"
+                            confirm="Take this movement back? The cash it recorded will no longer count as held."/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="user_id"/>
+                            <field name="kind"/>
+                            <field name="amount"/>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <field name="partner_id" invisible="not partner_id"/>
+                            <field name="visit_id" invisible="not visit_id"/>
+                            <field name="collection_id" invisible="not collection_id"/>
+                            <field name="handover_id" invisible="not handover_id"/>
+                            <field name="note"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cash_movement_search" model="ir.ui.view">
+        <field name="name">lab.cash.movement.search</field>
+        <field name="model">lab.cash.movement</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="partner_id"/>
+                <field name="visit_id"/>
+                <filter name="collections" string="Collected"
+                        domain="[('kind', '=', 'collection')]"/>
+                <filter name="handovers" string="Handed to Office"
+                        domain="[('kind', '=', 'handover')]"/>
+                <separator/>
+                <filter name="posted" string="Posted" domain="[('state', '=', 'posted')]"/>
+                <separator/>
+                <filter name="this_month" string="This Month" date="date"/>
+                <group>
+                    <filter name="g_holder" string="Held By"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter name="g_type" string="Movement" context="{'group_by': 'kind'}"/>
+                    <filter name="g_clinic" string="Clinic" context="{'group_by': 'partner_id'}"/>
+                    <filter name="g_date" string="Date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- The executive: "how much am I holding, and where did it come from?" -->
+    <record id="view_cash_movement_kanban" model="ir.ui.view">
+        <field name="name">lab.cash.movement.kanban</field>
+        <field name="model">lab.cash.movement</field>
+        <field name="arch" type="xml">
+            <!-- Cards, because this list is read on a phone. As a list it was
+                 877px wide on a 412px screen, so an executive had to drag the
+                 table sideways to see the figure they came for. (client, 2026-08-24) -->
+            <kanban quick_create="false" create="false" class="o_fw_kanban"
+                    default_order="date desc, id desc">
+                <field name="state"/>
+                <field name="currency_id"/>
+                <field name="kind"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="fs-6"><field name="date" widget="date"/></strong>
+                            <strong><field name="amount_signed" widget="monetary"/></strong>
+                        </div>
+                        <div class="text-muted small mt-1"><field name="kind"/></div>
+                        <div t-if="record.partner_id.raw_value" class="text-muted small">
+                            <field name="partner_id"/>
+                        </div>
+                        <div class="mt-2"><field name="state" widget="badge"
+                             decoration-success="state == 'posted'"/></div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_my_cash" model="ir.actions.act_window">
+        <field name="name">My Cash</field>
+        <field name="res_model">lab.cash.movement</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_cash_movement_search"/>
+        <field name="domain">[('user_id', '=', uid)]</field>
+        <field name="context">{'search_default_g_type': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No cash movements yet</p>
+            <p>Cash you collect at a clinic appears here once it is taken in from the
+               visit, and leaves when the office counts your handover.</p>
+        </field>
+    </record>
+
+    <!-- The manager: "how much customer money is in pockets right now?" -->
+    <record id="action_field_cash" model="ir.actions.act_window">
+        <field name="name">Field Cash</field>
+        <field name="res_model">lab.cash.movement</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_cash_movement_search"/>
+        <field name="context">{'search_default_posted': 1, 'search_default_g_holder': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No field cash yet</p>
+            <p>Cash taken at a clinic is held here from the visit's check-out, so every
+               rupee points back at the clinic and the visit it came from, until the
+               office counts it in.</p>
+        </field>
+    </record>
+</odoo>

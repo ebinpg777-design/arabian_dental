@@ -49,12 +49,14 @@ class LabCeoDashboard(models.AbstractModel):
             WHERE a.account_type = 'asset_cash' AND l.company_id IN %s
         """, (tuple(self.env.companies.ids),))
         liquid = round(self.env.cr.fetchone()[0] or 0.0, 2)
-        floats = self.env['petty.cash.allocation'].sudo().search(
-            [('state', '=', 'allocated')])
+        # The field force's cash: collected, held, not yet counted in by the office
+        # (lab_fieldwork's field cash - the petty_cash floats until 2026-10-22).
+        held = {user: total for user, total in self.env['lab.cash.movement'].sudo()._read_group(
+            [('state', '=', 'posted')], ['user_id'], ['amount_signed:sum'])}
         return {
             'liquid': liquid,
-            'petty': round(sum(floats.mapped('amount_balance')), 2),
-            'petty_holders': len(floats),
+            'petty': round(sum(held.values()), 2),
+            'petty_holders': len([t for t in held.values() if t > 0]),
         }
 
     # ------------------------------------------------------------------ trend

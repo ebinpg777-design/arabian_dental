@@ -432,8 +432,8 @@ class LabDesk(models.AbstractModel):
         policy = Handover._cash_policy()
         overdue = [u for u in users if Handover._is_overdue(positions[u.id], policy)]
         if overdue:
-            floats = [positions[u.id]['allocation_id'] for u in overdue
-                      if positions[u.id]['allocation_id']]
+            held = self.env['lab.cash.movement'].sudo().search([
+                ('user_id', 'in', [u.id for u in overdue]), ('state', '=', 'posted')])
             out.append({
                 'key': 'cash_overdue', 'level': 'danger', 'icon': 'fa-money',
                 'title': self.env._('Cash on the road past the policy'),
@@ -443,8 +443,8 @@ class LabDesk(models.AbstractModel):
                     who=', '.join(u.name for u in overdue),
                     amount=Handover._money(sum(positions[u.id]['available'] for u in overdue)),
                     days=policy[0], ceiling=Handover._money(policy[1])),
-                'model': 'petty.cash.allocation', 'ids': floats,
-                'label': self.env._('Show the floats')})
+                'model': 'lab.cash.movement', 'ids': held.ids,
+                'label': self.env._('Show their field cash')})
         waiting = Handover.sudo().search([('state', '=', 'declared')])
         if waiting:
             out.append({
@@ -830,7 +830,6 @@ class LabDesk(models.AbstractModel):
             out.append({
                 'user_id': user.id, 'user': user.name,
                 'partner_id': user.partner_id.id,
-                'allocation_id': row['allocation_id'],
                 'amount': row['with_you'], 'pending': row['pending'],
                 'pending_count': row['pending_count'], 'days': row['days'],
                 'overdue': Handover._is_overdue(row, policy),
@@ -1834,14 +1833,6 @@ class LabDesk(models.AbstractModel):
                         self.env._('%(who)s.',
                                    who=', '.join(untargeted.mapped('name')[:5])),
                         'lab.target', [], self.env._('Set targets')))
-        floatless = execs.filtered(lambda u: not u.petty_cash_allocation_id)
-        if floatless:
-            gaps.append(_gap('no_float', 'info', 'fa-money', len(floatless),
-                        self.env._('Executives with no petty cash float'),
-                        self.env._('%(who)s. Collected cash has nowhere to go.',
-                                   who=', '.join(floatless.mapped('name')[:5])),
-                        'petty.cash.allocation', [],
-                        self.env._('Allocate a float')))
         return gaps
 
 

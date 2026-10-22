@@ -1,0 +1,5 @@
+id,name,model_id,group_id/id,operation,domain
+access_cash_handover_box,Cash handover: the petty cash box,lab.cash.handover,ebshel_petty_cash.group_petty_cash_approver,cru,
+access_cash_handover_line_box,Cash handover line: the petty cash box,lab.cash.handover.line,ebshel_petty_cash.group_petty_cash_approver,crud,
+access_cash_receive_box,Receive field cash: the petty cash box,lab.cash.receive,ebshel_petty_cash.group_petty_cash_approver,cru,
+access_cash_movement_box,Field cash: the petty cash box,lab.cash.movement,ebshel_petty_cash.group_petty_cash_approver,r,

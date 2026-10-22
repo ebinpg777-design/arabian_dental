@@ -423,46 +423,14 @@ class TestFieldwork(TransactionCase):
                         idx = end
         self.assertFalse(offenders, "py_js cannot evaluate these: %s" % offenders)
 
-    # ------------------------------------------------- cash into the float
-    def _float_for(self, user, amount=5000.0):
-        journal = self.env['account.journal'].search(
-            [('type', '=', 'cash'), ('company_id', '=', self.env.company.id)], limit=1)
-        if not journal and self.env['account.account'].sudo().search_count(
-                [('company_ids', 'in', self.env.company.id)]):
-            # Every cash journal on the staging database is ARCHIVED, so the
-            # search above finds none and this used to skip - taking ten cash
-            # tests with it, silently, while reporting green. The accounts are
-            # there (465 of them), so a journal can simply be made.
-            # (client, 2026-09-12)
-            journal = self.env['account.journal'].sudo().create({
-                'name': 'Test Cash', 'type': 'cash', 'code': 'TSTCS',
-                'company_id': self.env.company.id})
-        if not journal:
-            # A bare database with no chart of accounts at all: the whole float
-            # mechanism sits on accounting and none of it is this module's to
-            # assert in that state. (2026-08-31)
-            self.skipTest('no chart of accounts on this database')
-        mgr = self.env.ref('petty_cash.group_petty_cash_manager')
-        if not self.env.user.has_group('petty_cash.group_petty_cash_manager'):
-            self.env.user.sudo().write({'group_ids': [(4, mgr.id)]})
-        alloc = self.env['petty.cash.allocation'].create({
-            'partner_id': user.partner_id.id, 'journal_id': journal.id,
-            'amount_limit': amount})
-        alloc.action_submit_request()
-        alloc.action_allocate()
-        for tx in alloc.transaction_ids.filtered(lambda t: t.state != 'posted'):
-            # petty_cash refuses to post an allocation without the account the
-            # money comes FROM (the fixture predates that guard): the cash
-            # journal's own account is exactly what a real allocation names.
-            if tx.type in ('allocation', 'return') and not tx.counter_account_id:
-                tx.counter_account_id = journal.default_account_id
-            if tx.state == 'draft':
-                tx.action_submit()
-            if tx.state == 'submitted':
-                tx.action_approve()
-            if tx.state == 'approved':
-                tx.action_post()
-        return alloc
+    # ------------------------------------------------- cash held by the executive
+    def _held(self, user):
+        """Field cash this person holds (lab.cash.movement, since 2026-10-22)."""
+        user.invalidate_recordset(['fw_cash_in_hand'])
+        return user.fw_cash_in_hand
+
+    def _moves(self, user):
+        return self.env['lab.cash.movement'].sudo().search([('user_id', '=', user.id)])
 
     def _cash_visit(self, amount=1500.0, mode='cash'):
         v = self._visit(user=self.exec_user)
@@ -471,17 +439,14 @@ class TestFieldwork(TransactionCase):
         v.do_check_out(LAT, LON)
         return v
 
-    def test_cash_collected_lands_in_the_executives_float(self):
+    def test_cash_collected_is_held_by_the_executive(self):
         """The accountant needs to see where the money is: it is with this person."""
-        alloc = self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
-        opening = alloc.amount_balance
+        opening = self._held(self.exec_user)
         v = self._cash_visit(1500.0)
         v.action_cash_to_float()
-        alloc.invalidate_recordset()
         self.assertTrue(v.cash_banked)
-        self.assertEqual(alloc.amount_balance, opening + 1500.0)
-        self.assertEqual(alloc.amount_collected, 1500.0)
+        self.assertEqual(self._held(self.exec_user), opening + 1500.0)
+        self.assertEqual(v.cash_txn_id.kind, 'collection')
         self.assertEqual(v.cash_txn_id.visit_id, v, "the movement points back at the visit")
 
     # ------------------------------------------- cash with no visit behind it
@@ -503,14 +468,10 @@ class TestFieldwork(TransactionCase):
         while the executive is there for something else. Recording it used to
         mean creating a visit that never happened - a false call in the day
         sheet to get a true number into the cash box. (client, 2026-09-12)"""
-        alloc = self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
-        opening = alloc.amount_balance
+        opening = self._held(self.exec_user)
         before = self.env['lab.visit'].search_count([])
         self._collect(800.0)
-        alloc.invalidate_recordset()
-        self.assertEqual(alloc.amount_balance, opening + 800.0)
-        self.assertEqual(alloc.amount_collected, 800.0)
+        self.assertEqual(self._held(self.exec_user), opening + 800.0)
         self.assertEqual(self.env['lab.visit'].search_count([]), before,
                          "and no visit was invented to carry it")
 
@@ -530,38 +491,28 @@ class TestFieldwork(TransactionCase):
                          "and towards the target they are judged on")
 
     def test_the_movement_is_a_field_collection_with_no_visit(self):
-        alloc = self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
         self._collect(800.0)
-        txn = alloc.transaction_ids.filtered(lambda t: t.type == 'collection')
+        txn = self._moves(self.exec_user).filtered(lambda t: t.kind == 'collection')
         self.assertEqual(len(txn), 1)
         self.assertFalse(txn.visit_id, "there was no visit, and it does not pretend")
+        self.assertTrue(txn.collection_id, "it points at the collection instead")
         self.assertEqual(txn.state, 'posted', "the money is in, not waiting to be")
         self.assertEqual(txn.partner_id, self.clinic)
 
-    def test_it_counts_in_the_float_the_same_way_a_visits_cash_does(self):
+    def test_it_is_held_the_same_way_a_visits_cash_is(self):
         """The accountant sees one kind of collection, however it was entered."""
-        alloc = self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
         self._cash_visit(1500.0).action_cash_to_float()
         self._collect(500.0)
-        alloc.invalidate_recordset()
-        self.assertEqual(alloc.amount_collected, 2000.0)
-        self.assertEqual(alloc.collection_count, 2)
+        self.assertEqual(self._held(self.exec_user), 2000.0)
+        self.assertEqual(len(self._moves(self.exec_user).filtered(
+            lambda t: t.kind == 'collection')), 2)
 
-    def test_cash_is_still_recorded_for_somebody_with_no_float(self):
-        """Nobody on this database has a petty cash float - 0 allocations -
-        so refusing to record the money until accounts allocates one would
-        leave the day's figure wrong to protect a cash box nobody keeps. The
-        money is recorded; only the float movement waits. (client, 2026-09-12)
-
-        Since 2026-09-18 a float opens itself on first use; this is the lab
-        that has switched that off and left floats to accounts.
-        """
-        self.env['ir.config_parameter'].sudo().set_str(
-            'lab_fieldwork.auto_float', 'False')
+    def test_cash_is_held_by_anybody_with_nothing_to_open_first(self):
+        """No petty cash float had to exist - 0 allocations on the live database
+        once refused everyone (client, 2026-09-12). Field cash is the person's own
+        record: the first rupee is held like the hundredth. (2026-10-22)"""
         other = self.env['res.users'].create(
-            {'name': 'Floatless', 'login': 'no_float_exec',
+            {'name': 'First Timer', 'login': 'first_cash_exec',
              'group_ids': [(4, self.env.ref('base.group_user').id),
                            (4, self.env.ref(
                                'lab_fieldwork.group_fieldwork_executive').id)]})
@@ -570,11 +521,10 @@ class TestFieldwork(TransactionCase):
             [('user_id', '=', other.id)])
         self.assertEqual(len(rows), 1, "the money is on the record")
         self.assertEqual(rows.amount, 800.0)
-        self.assertFalse(rows.cash_banked, "and waiting for a float to exist")
+        self.assertTrue(rows.cash_banked, "and held")
+        self.assertEqual(self._held(other), 800.0)
 
     def test_nothing_is_recorded_for_nothing(self):
-        self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
         with self.assertRaises(UserError):
             self._collect(0.0)
 
@@ -586,49 +536,29 @@ class TestFieldwork(TransactionCase):
              'group_ids': [(4, self.env.ref('base.group_user').id),
                            (4, self.env.ref(
                                'lab_fieldwork.group_fieldwork_executive').id)]})
-        self._float_for(mate)
-        mate.invalidate_recordset()
         wiz = self.env['lab.collect.cash'].with_user(self.exec_user).create({
             'user_id': mate.id, 'partner_id': self.clinic.id, 'amount': 800.0})
         with self.assertRaises(UserError):
             wiz.action_record()
 
-    def test_collected_cash_counts_as_allocated_to_the_holder(self):
-        alloc = self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
-        advanced = alloc.amount_allocated
-        self._cash_visit(1500.0).action_cash_to_float()
-        alloc.invalidate_recordset()
-        self.assertEqual(alloc.amount_allocated, advanced + 1500.0)
-        self.assertEqual(
-            alloc.amount_balance,
-            alloc.amount_allocated - alloc.amount_utilized - alloc.amount_returned)
-
-    def test_a_cheque_does_not_go_into_the_float(self):
-        """It reaches the bank directly; booking it here would count it twice."""
-        self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
+    def test_a_cheque_is_not_held(self):
+        """It reaches the bank directly; holding it here would count it twice."""
         v = self._cash_visit(1500.0, mode='cheque')
         with self.assertRaises(UserError):
             v.action_cash_to_float()
 
     def test_banking_the_same_cash_twice_does_nothing(self):
-        alloc = self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
         v = self._cash_visit(1500.0)
         v.action_cash_to_float()
         first = v.cash_txn_id
         v.action_cash_to_float()
-        alloc.invalidate_recordset()
         self.assertEqual(v.cash_txn_id, first)
-        self.assertEqual(alloc.amount_collected, 1500.0)
+        self.assertEqual(self._held(self.exec_user), 1500.0)
 
-    def test_cash_in_the_float_cannot_be_rewritten_by_the_executive(self):
-        """Once the money is in the float, the collection is what the movement
-        was raised from; changing it afterwards made the two disagree.
+    def test_cash_held_cannot_be_rewritten_by_the_executive(self):
+        """Once the money is held, the collection is what the movement was
+        raised from; changing it afterwards made the two disagree.
         (2026-09-15)"""
-        self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
         self._collect(800.0)
         collection = self.env['lab.cash.collection'].search(
             [('user_id', '=', self.exec_user.id)], order='id desc', limit=1)
@@ -734,24 +664,17 @@ class TestFieldwork(TransactionCase):
         self.assertGreater(row.value_drop, 0,
                            "the alert leads with the money, so it has to be carried")
 
-    def test_cash_cannot_cross_companies(self):
-        """Said plainly, rather than letting the ORM raise its generic crossover error
-        naming a 'Draft Payment' the user never asked for."""
-        self._float_for(self.exec_user)
-        self.exec_user.invalidate_recordset()
+    def test_cash_is_held_in_the_company_it_was_taken_in(self):
+        """A petty cash float belonged to one company and refused cash taken in
+        another. Field cash is recorded where the visit is. (2026-10-22)"""
         other_co = self.env['res.company'].create({'name': 'Other Co'})
         v = self._visit(user=self.exec_user)
         v.do_check_in(LAT, LON)
         v.write({'outcome': 'payment', 'collected': 1000.0, 'pay_mode': 'cash'})
         v.sudo().write({'company_id': other_co.id})
-        # Check-out tries by itself (2026-09-18), cannot, and says why on the
-        # visit instead of refusing to close it.
         v.do_check_out(LAT, LON)
-        self.assertFalse(v.cash_banked)
-        self.assertTrue(any('between companies' in (m.body or '')
-                            for m in v.message_ids), "said plainly, on the visit")
-        with self.assertRaises(UserError):
-            v.action_cash_to_float()
+        self.assertTrue(v.cash_banked)
+        self.assertEqual(v.cash_txn_id.company_id, other_co)
 
     # ------------------------------------------------------- control tower
     def test_an_unpinned_clinic_is_counted_not_swallowed(self):

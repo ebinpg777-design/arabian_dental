@@ -25,10 +25,7 @@
                     <group>
                         <field name="user_id"
                                groups="lab_fieldwork.group_fieldwork_manager"/>
-                        <field name="allocation_id" readonly="1"
-                               invisible="not allocation_id"/>
-                        <field name="balance" readonly="1"
-                               invisible="not allocation_id"/>
+                        <field name="balance" readonly="1"/>
                         <field name="currency_id" invisible="1"/>
                     </group>
                 </group>
@@ -38,9 +35,8 @@
                 <p class="text-muted mt-2">
                     No visit is needed — use this for money taken at a door you
                     did not raise a visit for. It counts in today's collections
-                    and towards your target straight away<span
-                        invisible="not allocation_id">, and cash goes into your
-                    float</span>.
+                    and towards your target straight away, and cash is held as
+                    your field cash until you hand it to the office.
                 </p>
                 <footer>
                     <button string="Record" name="action_record" type="object"
