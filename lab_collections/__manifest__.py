@@ -1,6 +1,6 @@
 {
     'name': 'Collections by Sales Route',
-    'version': '20.0.2.15.3',
+    'version': '20.0.2.16.0',
     'summary': 'Route-wise payment tracking and a collection-performance dashboard',
     'description': """
 Collections by Sales Route
@@ -35,6 +35,7 @@ Money coming in, read the way the lab is organised.
         'views/collection_dashboard_views.xml',
         'views/collection_menus.xml',
         'views/lab_visit_views.xml',
+        'views/fieldwork_settings_views.xml',
         'security/ir.access.csv',
     ],
     'assets': {

@@ -510,17 +510,20 @@
                                         </div>
                                         <div t-else="" class="o_coll_detail">
                                             <!-- Salesperson review strip: where they
-                                                 stand in the room, and what is stuck. -->
+                                                 stand in the room, and what is stuck.
+                                                 The ranks go with the boards: a field
+                                                 executive is shown neither where the
+                                                 company keeps the ranking to the office. -->
                                             <t t-set="person" t-value="this.state.tab === 'user' ? this.personFor(row.key) : false"/>
                                             <div t-if="person" class="o_coll_stats">
-                                                <div class="o_coll_stat">
+                                                <div class="o_coll_stat" t-if="this.state.boards">
                                                     <span class="o_coll_stat_label">Rank — invoiced</span>
                                                     <span class="o_coll_stat_value">
                                                         <t t-if="person.rank_sales">#<t t-out="person.rank_sales"/></t>
                                                         <t t-else="">—</t>
                                                     </span>
                                                 </div>
-                                                <div class="o_coll_stat">
+                                                <div class="o_coll_stat" t-if="this.state.boards">
                                                     <span class="o_coll_stat_label">Rank — collected</span>
                                                     <span class="o_coll_stat_value">
                                                         <t t-if="person.rank_collected">#<t t-out="person.rank_collected"/></t>

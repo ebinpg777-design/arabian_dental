@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Whether the field force sees the room: with the other field-force rules,
+         on the Field Work Administrator's page. (client, 2026-10-22) -->
+    <record id="view_fieldwork_settings_form_boards" model="ir.ui.view">
+        <field name="name">lab.fieldwork.settings.form.boards</field>
+        <field name="model">lab.fieldwork.settings</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_fieldwork_settings_form"/>
+        <field name="arch" type="xml">
+            <group name="app" position="before">
+                <group string="Collections Leaderboards" name="boards">
+                    <field name="fw_executive_boards"/>
+                    <field name="fw_boards_company_id" groups="base.group_multi_company"/>
+                </group>
+                <div class="text-muted small ps-1">
+                    The Collections screen ranks the salespeople: Top Salespeople, Top
+                    Collectors and Best Collection Rate, and each executive's own rank on
+                    their row. Untick to keep the ranking to the office and management;
+                    executives then see their own figures only. This is the setting of
+                    the company you are working in.
+                </div>
+            </group>
+        </field>
+    </record>
+</odoo>

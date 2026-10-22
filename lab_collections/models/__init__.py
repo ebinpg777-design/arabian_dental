@@ -6,4 +6,5 @@ from . import collection_open_item
 from . import collection_performance
 from . import collection_report_render
 from . import finance_ops_countback
+from . import fieldwork_settings
 from . import lab_visit

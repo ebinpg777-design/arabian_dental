@@ -131,10 +131,10 @@ class TestCollectionBasis(TransactionCase):
 
     def test_a_row_is_read_against_the_same_figure_as_the_headline(self):
         self._invoice(320.0, '2026-01-12')
-        for row in self.perf.report_rows('team_id', self.options, _basis='opening'):
+        for row in self.perf._report_rows('team_id', self.options, _basis='opening'):
             self.assertEqual(row['base'], row['opening'])
             self.assertEqual(row['pending'], round(row['opening'] - row['collected'], 2))
-        for row in self.perf.report_rows('team_id', self.options, _basis='sales'):
+        for row in self.perf._report_rows('team_id', self.options, _basis='sales'):
             self.assertEqual(row['base'], row['sales'])
             self.assertEqual(row['pending'], round(row['sales'] - row['collected'], 2))
 

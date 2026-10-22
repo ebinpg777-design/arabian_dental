@@ -217,6 +217,47 @@ class CollectionPerformance(models.AbstractModel):
         return None
 
     @api.model
+    def _viewer_rows(self, rows, group, scope=False):
+        """`rows` cut to what this viewer may see: their own routes, or their own row.
+
+        The fence dashboard_data puts up, for the public methods that hand rows
+        out on their own: asked directly over RPC they gave a field executive
+        every route and every salesperson in the lab. (2026-10-22)
+        """
+        scope = self._viewer_route_ids() if scope is False else scope
+        if scope is None:
+            return rows
+        if group == 'team_id':
+            return [r for r in rows if r['key'] in scope]
+        return [r for r in rows if r['key'] == self.env.uid]
+
+    @api.model
+    def _boards_shown(self, company, scope=False):
+        """May this viewer see the leaderboards, and their own rank in the room?
+
+        The office and management always do. A field executive does where the
+        company lets them: Field Work ▸ Settings. (client, 2026-10-22)
+        """
+        scope = self._viewer_route_ids() if scope is False else scope
+        return scope is None or company.lab_collection_executive_boards
+
+    @api.model
+    def _viewer_people(self, people, scope, ranked):
+        """The review strip for this viewer: everyone for the office, their own row
+        for an executive - ranked against the room, or not ranked at all.
+
+        `people` must be the whole room: ranked over one person's row, every
+        executive read "#1". (2026-10-22)
+        """
+        if scope is None:
+            return people
+        own = [dict(p) for p in people if p['key'] == self.env.uid]
+        if not ranked:
+            for person in own:
+                person.update(rank_sales=0, rank_collected=0)
+        return own
+
+    @api.model
     def _can_drill_documents(self):
         """May this viewer open the invoices and receipts themselves?
 
@@ -635,6 +676,12 @@ class CollectionPerformance(models.AbstractModel):
             # recompute stamped with the route leader on 324 July invoices.
             users = self._partner_user_map(company, {d['partner_id'] for d in debits})
             debits = [d for d in debits if users.get(d['partner_id'], 0) == user_id]
+        scope = None if self.env.su else self._viewer_route_ids()
+        if scope is not None:
+            # A field executive asking on their own: their routes' book, not the
+            # lab's and not its top debtors. Internal readers that need the whole
+            # book (the EOD page) ask as superuser. (2026-10-22)
+            debits = [d for d in debits if d['team_key'] in scope]
         ageing = self._ageing_from(debits)
         summary = {
             'total': ageing['total'],
@@ -1135,8 +1182,18 @@ class CollectionPerformance(models.AbstractModel):
         return debits, opening_debits, users
 
     @api.model
-    def report_rows(self, group='team_id', options=None, _debits=None, _trend=None,
-                    _users=None, _opening=None, _basis=None, _carried=None):
+    def report_rows(self, group='team_id', options=None):
+        """The rows of one tab, as far as this viewer may see them: a field
+        executive gets their own routes, or their own row.
+
+        The screen and the PDF build theirs with _report_rows() - the boards need
+        the whole room - and fence what they show themselves. (2026-10-22)
+        """
+        return self._viewer_rows(self._report_rows(group, options), group)
+
+    @api.model
+    def _report_rows(self, group='team_id', options=None, _debits=None, _trend=None,
+                     _users=None, _opening=None, _basis=None, _carried=None):
         """One row per route (or salesperson), sorted by what is still uncollected.
 
         ``_opening`` is {key: {open}} as of the day before the receipts period,
@@ -1232,7 +1289,13 @@ class CollectionPerformance(models.AbstractModel):
         """
         self._check_collections_access()
         options = options or {}
-        return self._trend_by_route(self._dates(options), self._company(options))
+        trend = self._trend_by_route(self._dates(options), self._company(options))
+        scope = self._viewer_route_ids()
+        if scope is not None:
+            # The sparklines of the rows this viewer is shown, and the lab's line
+            # beside the headline - what the screen draws. (2026-10-22)
+            trend = {k: v for k, v in trend.items() if k == 'total' or k in scope}
+        return trend
 
     @api.model
     def dashboard_data(self, options=None, with_trend=True, with_extras=False,
@@ -1283,12 +1346,12 @@ class CollectionPerformance(models.AbstractModel):
             'user_id': self._overdue_by('user_id', opening_debits, company,
                                         users=users),
         }
-        by_route = self.report_rows('team_id', options, _debits=debits, _trend=trend,
-                                    _opening=opening_by['team_id'], _basis=basis,
-                                    _carried=carried_by['team_id'])
-        by_user = self.report_rows('user_id', options, _debits=debits, _trend={},
-                                   _users=users, _opening=opening_by['user_id'],
-                                   _basis=basis, _carried=carried_by['user_id'])
+        by_route = self._report_rows('team_id', options, _debits=debits, _trend=trend,
+                                     _opening=opening_by['team_id'], _basis=basis,
+                                     _carried=carried_by['team_id'])
+        by_user = self._report_rows('user_id', options, _debits=debits, _trend={},
+                                    _users=users, _opening=opening_by['user_id'],
+                                    _basis=basis, _carried=carried_by['user_id'])
         # The boards are built from EVERY salesperson, whatever the viewer is
         # allowed to see below - kept before the scope narrows the rows.
         all_user_rows = by_user
@@ -1376,12 +1439,15 @@ class CollectionPerformance(models.AbstractModel):
             'by_user': by_user,
         }
         if with_extras:
-            # Boards from everyone (a ranking must include the room); the review
-            # strip only from the rows this viewer is entitled to.
-            data['boards'] = self.leaderboards(options, limit=limit,
-                                               _rows=all_user_rows)
-            data['people'] = self.performance(options, _rows=by_user,
-                                              _debits=debits, _users=users)
+            # Boards from everyone (a ranking must include the room), for a viewer
+            # the company shows them to; the review strip only for the rows this
+            # viewer is entitled to, ranked against that same room.
+            shown = self._boards_shown(company, scope)
+            data['boards'] = self._leaderboards(
+                options, limit=limit, _rows=all_user_rows) if shown else None
+            data['people'] = self._viewer_people(
+                self._performance(options, _rows=all_user_rows, _debits=debits,
+                                  _users=users), scope, shown)
         return data
 
     # ------------------------------------------------------------------ leaderboards
@@ -1403,13 +1469,20 @@ class CollectionPerformance(models.AbstractModel):
         # clinic→salesperson map, which both halves need. (2026-08-21)
         debits, opening_debits, users = self._ledger_snapshot(
             company, self._dates(options))
-        rows = self.report_rows(
+        rows = self._report_rows(
             'user_id', options, _debits=debits, _users=users,
             _opening=self._overdue_by('user_id', opening_debits, company, users=users))
+        # The same fence as dashboard_data: this used to hand an executive the
+        # review line of every salesperson in the lab. (2026-10-22)
+        scope = self._viewer_route_ids()
+        if scope is not None:
+            debits = [d for d in debits if d['team_key'] in scope]
+        shown = self._boards_shown(company, scope)
         return {
-            'boards': self.leaderboards(options, limit=limit, _rows=rows),
-            'people': self.performance(options, _rows=rows, _debits=debits,
-                                       _users=users),
+            'boards': self._leaderboards(options, limit=limit, _rows=rows) if shown else None,
+            'people': self._viewer_people(
+                self._performance(options, _rows=rows, _debits=debits, _users=users),
+                scope, shown),
         }
 
     # ------------------------------------------------------------------ movement
@@ -1580,7 +1653,16 @@ class CollectionPerformance(models.AbstractModel):
                 self._overdue_by(group, carried_rows, company, users=users).items()}
 
     @api.model
-    def leaderboards(self, options=None, limit=5, _rows=None):
+    def leaderboards(self, options=None, limit=5):
+        """The three boards, for a viewer who may see them - nothing for a field
+        executive where the company keeps them to the office."""
+        self._check_collections_access()
+        if not self._boards_shown(self._company(options or {})):
+            return {}
+        return self._leaderboards(options, limit=limit)
+
+    @api.model
+    def _leaderboards(self, options=None, limit=5, _rows=None):
         """Who wrote the most business, and who brought the most money in.
 
         Deliberately two separate tables rather than one ranking: the person who
@@ -1590,7 +1672,7 @@ class CollectionPerformance(models.AbstractModel):
         """
         self._check_collections_access()
         options = options or {}
-        rows = self.report_rows('user_id', options) if _rows is None else _rows
+        rows = self._report_rows('user_id', options) if _rows is None else _rows
         # "Unassigned" is not a person, and an excluded login is not a competitor.
         named = [r for r in rows if r['key'] and not r.get('excluded')]
         # Hoisted out of the comprehension below, where it re-sorted the whole row
@@ -1632,7 +1714,23 @@ class CollectionPerformance(models.AbstractModel):
         return books[len(books) // 2] * 0.25       # a quarter of the median book
 
     @api.model
-    def performance(self, options=None, _rows=None, _debits=None, _users=None):
+    def performance(self, options=None):
+        """The review lines this viewer may see: everyone's for the office, their
+        own for a field executive - ranked against the room where the company shows
+        them the leaderboards. (2026-10-22: asked on its own, this handed an
+        executive every salesperson's line.)"""
+        self._check_collections_access()
+        options = options or {}
+        company = self._company(options)
+        scope = self._viewer_route_ids()
+        debits = None
+        if scope is not None:
+            debits = [d for d in self._open_debits(company) if d['team_key'] in scope]
+        return self._viewer_people(self._performance(options, _debits=debits),
+                                   scope, self._boards_shown(company, scope))
+
+    @api.model
+    def _performance(self, options=None, _rows=None, _debits=None, _users=None):
         """One line per salesperson: book, money in, target, and what is stuck.
 
         Everything a review conversation needs in one row - what they were asked to
@@ -1642,7 +1740,7 @@ class CollectionPerformance(models.AbstractModel):
         self._check_collections_access()
         options = options or {}
         company = self._company(options)
-        rows = self.report_rows('user_id', options) if _rows is None else _rows
+        rows = self._report_rows('user_id', options) if _rows is None else _rows
         debits = self._open_debits(company) if _debits is None else _debits
         users = self._partner_user_map(
             company, {d['partner_id'] for d in debits}) if _users is None else _users

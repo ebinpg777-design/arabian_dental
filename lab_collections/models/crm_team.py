@@ -25,6 +25,17 @@ class ResCompany(models.Model):
              "invoicing of the sales period (the default), or everything that "
              "was still open on the day before the receipts period began.")
 
+    # Whether the field force sees the room: Top salespeople, Top collectors and
+    # Best collection rate on the Collections screen and its PDF, and their own
+    # rank on their row. The office and management always do. Set in Field Work >
+    # Settings. (client, 2026-10-22)
+    lab_collection_executive_boards = fields.Boolean(
+        string='Executives See the Leaderboards', default=True,
+        help="Show field executives the Top Salespeople, Top Collectors and Best "
+             "Collection Rate boards, and their own rank among the salespeople. "
+             "Off, they see only their own figures; the office and management "
+             "still see the boards.")
+
 
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'

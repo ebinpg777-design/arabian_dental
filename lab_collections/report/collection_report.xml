@@ -81,7 +81,7 @@
                         </tr>
                     </table>
 
-                    <table class="ocl-boards" t-if="boards['top_sales']">
+                    <table class="ocl-boards" t-if="boards.get('top_sales')">
                         <tr>
                             <td class="ocl-board">
                                 <div class="oi-label">Top salespeople — by what they invoiced</div>

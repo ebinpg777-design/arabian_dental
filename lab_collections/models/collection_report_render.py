@@ -31,7 +31,7 @@ class CollectionReportRender(models.AbstractModel):
         carried_rows = [d for d in closing_debits if d['date'] <= opening_day_raw]
 
         def rows_for(grouping):
-            return Perf.report_rows(
+            return Perf._report_rows(
                 grouping, options, _debits=debits, _users=users, _trend={},
                 _opening=Perf._overdue_by(grouping, opening_debits, company,
                                           users=users),
@@ -78,8 +78,12 @@ class CollectionReportRender(models.AbstractModel):
         # The boards rank people whichever tab is printed: the person rows are
         # the ones already built when that is the tab, else built from the same
         # snapshot rather than from a fresh countback.
-        boards = Perf.leaderboards(
-            options, _rows=all_rows if group == 'user_id' else rows_for('user_id'))
+        # Not printed for a field executive where the company keeps them to the
+        # office (Field Work > Settings). (client, 2026-10-22)
+        boards = {}
+        if Perf._boards_shown(company, scope):
+            boards = Perf._leaderboards(
+                options, _rows=all_rows if group == 'user_id' else rows_for('user_id'))
         excluded_names = ', '.join(e['label'] for e in boards.get('excluded', []))
         return {
             'doc_ids': docids, 'doc_model': 'lab.collection.performance', 'docs': [],
