@@ -546,3 +546,9 @@ $fl-info: #2563eb;
     70% { box-shadow: 0 0 0 8px rgba(15, 157, 88, 0); }
     100% { box-shadow: 0 0 0 0 rgba(15, 157, 88, 0); }
 }
+
+// Full window: the head, the figures and the people list put away (live_map.scss
+// lifts the whole screen over the window).
+.o_fw_fl.o_fw_full_window {
+    .o_fw_fl_head, .o_fw_fl_strip, .o_fw_fl_rail { display: none; }
+}

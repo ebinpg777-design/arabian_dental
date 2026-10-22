@@ -1,6 +1,7 @@
 /** @odoo-module **/
 
 import { Component, onMounted, onWillStart, onWillUnmount, proxy, signal, useProps } from "@odoo/owl";
+import { useHotkey } from "@web/core/hotkeys/hotkey_hook";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
@@ -113,6 +114,7 @@ export class LiveMap extends Component {
             replayAt: null,              // epoch seconds while replaying, null = live/final
             playing: false,
             range: null,                 // {min, max} epochs of the day's recording
+            fullWindow: false,           // the map over the whole browser window
         });
         this.map = null;
         this.tiles = null;
@@ -126,8 +128,12 @@ export class LiveMap extends Component {
         this.pollTimer = null;
         this.playTimer = null;
         this.resizeObserver = null;
+        this.fullLink = null;
 
         onWillStart(() => this.load());
+        // Esc leaves the full window - a dialog opened over the map closes first.
+        useHotkey("escape", () => this.setFullWindow(false),
+                  { isAvailable: () => this.state.fullWindow });
 
         // Live only while somebody is looking: a wall board on a sleeping tab must
         // not poll all day for nobody (same rule as the Ops Desk).
@@ -290,6 +296,26 @@ export class LiveMap extends Component {
         });
         map.addControl(new ShowAll());
 
+        // The map over the whole window, for a wall screen or a phone, and back.
+        // The resize observer below re-measures it either way. (client, 2026-10-22)
+        const FullWindow = L.Control.extend({
+            options: { position: "topleft" },
+            onAdd: () => {
+                const box = L.DomUtil.create("div", "leaflet-bar o_fw_live_full");
+                const link = L.DomUtil.create("a", "", box);
+                link.href = "#";
+                link.setAttribute("role", "button");
+                this.fullLink = link;
+                this.paintFullLink();
+                L.DomEvent.on(link, "click", (ev) => {
+                    L.DomEvent.stop(ev);
+                    this.setFullWindow(!this.state.fullWindow);
+                });
+                return box;
+            },
+        });
+        map.addControl(new FullWindow());
+
         // The client action lays out in stages and a phone rotates: re-measure
         // whenever the box changes, and take the first fit once it has a size.
         if (window.ResizeObserver) {
@@ -313,6 +339,23 @@ export class LiveMap extends Component {
                 }
             }, 200);
         }
+    }
+
+    /** The map over the whole window (the page's head and lists hidden), or back. */
+    setFullWindow(on) {
+        this.state.fullWindow = Boolean(on);
+        this.paintFullLink();
+    }
+
+    paintFullLink() {
+        const link = this.fullLink;
+        if (!link) {
+            return;
+        }
+        const on = this.state.fullWindow;
+        link.title = on ? _t("Back to the page (Esc)") : _t("Full window");
+        link.setAttribute("aria-label", link.title);
+        link.innerHTML = on ? '<i class="fa fa-compress"/>' : '<i class="fa fa-expand"/>';
     }
 
     /** The tile layer waits for the payload: the lab picks its tile server. */

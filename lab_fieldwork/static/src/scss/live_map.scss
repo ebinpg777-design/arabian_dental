@@ -195,8 +195,9 @@
         z-index: 0;
     }
 
-    // The "show everyone" control, sized like Leaflet's own zoom buttons.
-    .o_fw_live_reset a {
+    // The "show everyone" and "full window" controls, sized like Leaflet's own
+    // zoom buttons.
+    .o_fw_live_reset a, .o_fw_live_full a {
         display: grid; place-items: center; width: 30px; height: 30px;
         color: #14181d; font-size: .9rem;
     }
@@ -340,3 +341,17 @@
 // the last fix came from the Traccar Client app
 .o_fw_live_via { color: #2563eb; font-weight: 600; margin-left: .15rem; }
 
+// Full window (client, 2026-10-22): the map over the whole browser window, the
+// page's head and lists put away; the map's own replay, legend and person panel
+// stay. Below Bootstrap's dialogs (1050), so a record opened from the map still
+// shows over it.
+.o_fw_live.o_fw_full_window,
+.o_fw_fl.o_fw_full_window {
+    position: fixed;
+    inset: 0;
+    z-index: 1045;
+}
+
+.o_fw_live.o_fw_full_window {
+    .o_fw_live_head, .o_fw_live_panel { display: none; }
+}

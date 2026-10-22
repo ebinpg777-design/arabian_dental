@@ -8,7 +8,7 @@
 -->
 <t t-name="lab_fieldwork.FieldLive">
     <div class="o_fw_fl o_action o_action_delegate_scroll"
-         t-att-class="{ 'o_fw_fl_has_story': this.showStory }">
+         t-att-class="{ 'o_fw_fl_has_story': this.showStory, 'o_fw_full_window': this.state.fullWindow }">
 
         <!-- ================================================== the head -->
         <div class="o_fw_fl_head">

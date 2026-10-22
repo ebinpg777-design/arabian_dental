@@ -9,7 +9,8 @@
     of the bottom sheet.
 -->
 <t t-name="lab_fieldwork.LiveMap">
-    <div class="o_fw_live o_action o_action_delegate_scroll">
+    <div class="o_fw_live o_action o_action_delegate_scroll"
+         t-att-class="{ 'o_fw_full_window': this.state.fullWindow }">
 
         <div class="o_fw_live_head">
             <div class="o_fw_live_head_row">
