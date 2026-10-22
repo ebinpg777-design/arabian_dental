@@ -20,6 +20,8 @@ class AccountMove(models.Model):
     ebshel_deferral_ids = fields.One2many('ebshel.deferral', 'move_id', string='Deferrals')
     ebshel_deferral_id = fields.Many2one('ebshel.deferral', string='Deferral entry of', readonly=True, copy=False, index=True)
     ebshel_deferral_count = fields.Integer(compute='_compute_ebshel_deferral_count')
+    # read by the Journal Items list's account domain (views/account_move_views.xml)
+    entry_cash_accounts = fields.Boolean(related='company_id.entry_cash_accounts')
 
     @api.depends('ebshel_deferral_ids')
     def _compute_ebshel_deferral_count(self):

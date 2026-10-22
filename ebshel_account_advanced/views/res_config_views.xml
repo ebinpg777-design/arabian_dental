@@ -37,6 +37,12 @@
                             </div>
                         </div>
                     </setting>
+                    <setting id="entry_cash_accounts_setting" string="Cash on journal entries"
+                             help="Bank and cash accounts offered on a journal entry's lines - for contra entries and cash vouchers. Odoo leaves them to bank statements and payments.">
+                        <div class="content-group">
+                            <div class="mt8"><field name="entry_cash_accounts"/><label for="entry_cash_accounts" class="o_light_label ms-2"/></div>
+                        </div>
+                    </setting>
                     <setting id="ebshel_close_setting" string="Month-end close" help="Whether closing a period from the cockpit moves the lock date.">
                         <div class="content-group">
                             <div class="mt8"><field name="ebshel_close_lock"/><label for="ebshel_close_lock" class="o_light_label ms-2"/></div>

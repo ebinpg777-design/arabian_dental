@@ -4,3 +4,4 @@ from . import test_bank_cockpit
 from . import test_regressions
 from . import test_followup_queries
 from . import test_review_fixes
+from . import test_cash_on_entries

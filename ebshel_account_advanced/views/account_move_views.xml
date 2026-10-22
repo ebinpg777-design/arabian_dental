@@ -17,4 +17,22 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Bank and cash accounts on a journal entry's lines (client, 2026-10-22): Odoo's
+         list leaves out account_type asset_cash; the company switch in Settings >
+         Accounting > Advanced Accounting brings them back. Only this list: an invoice's
+         lines keep Odoo's own account list. -->
+    <record id="view_move_form_cash_accounts" model="ir.ui.view">
+        <field name="name">account.move.form.cash.accounts</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@id='aml_tab']/field[@name='line_ids']" position="before">
+                <field name="entry_cash_accounts" invisible="1"/>
+            </xpath>
+            <xpath expr="//page[@id='aml_tab']/field[@name='line_ids']/list/field[@name='account_id']" position="attributes">
+                <attribute name="domain">[('company_ids', 'parent_of', company_id)] + ([] if parent.entry_cash_accounts else [('account_type', '!=', 'asset_cash')])</attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>

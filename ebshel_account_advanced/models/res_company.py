@@ -24,6 +24,14 @@ class ResCompany(models.Model):
     ebshel_close_lock = fields.Boolean('Lock the books when a period is closed', default=True)
     ebshel_cash_weeks = fields.Integer('Cash forecast horizon (weeks)', default=13)
     ebshel_cash_collection_rate = fields.Integer('Expected collection rate (%)', default=90)
+    # Odoo 20 leaves bank and cash accounts out of a journal entry's lines - it
+    # expects bank statements and payments to post them. A cash book kept as
+    # journal entries (contra entries, cash vouchers) needs them there. One switch
+    # per company, on by default. (client, 2026-10-22)
+    entry_cash_accounts = fields.Boolean(
+        'Bank and cash accounts on journal entries', default=True,
+        help="Offer bank and cash accounts on a journal entry's lines. Off: Odoo's own "
+             "list, which leaves them to bank statements and payments.")
 
 
 class ResConfigSettings(models.TransientModel):
@@ -39,3 +47,4 @@ class ResConfigSettings(models.TransientModel):
     ebshel_close_lock = fields.Boolean(related='company_id.ebshel_close_lock', readonly=False)
     ebshel_cash_weeks = fields.Integer(related='company_id.ebshel_cash_weeks', readonly=False)
     ebshel_cash_collection_rate = fields.Integer(related='company_id.ebshel_cash_collection_rate', readonly=False)
+    entry_cash_accounts = fields.Boolean(related='company_id.entry_cash_accounts', readonly=False)

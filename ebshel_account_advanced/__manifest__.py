@@ -24,11 +24,13 @@ Everything the accounting team does after the entries are booked, on one set of 
   to invoices, written off, or taught to rules; a reconciliation statement at any date, in PDF.
 * **Entry studio** - journal entries typed like a spreadsheet, pasted from Excel, balanced in one key, from
   templates that split an amount by percentage; bulk analytic redistribution of journal items.
+* **Cash on journal entries** - bank and cash accounts offered on a journal entry's lines (Odoo leaves
+  them to bank statements and payments), for contra entries and cash vouchers; a switch per company.
 
 Every screen sits inside the Accounting app's own menus (Customers, Accounting, Reporting,
 Configuration) - there is no separate top-level menu.
 """,
-    'version': '20.0.1.3.0',
+    'version': '20.0.1.4.0',
     'category': 'Accounting/Accounting',
     'author': 'Ebshel Technologies',
     'website': 'https://ebshel.com',
