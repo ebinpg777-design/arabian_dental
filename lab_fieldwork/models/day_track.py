@@ -268,6 +268,7 @@ class LabDailyUpdate(models.Model):
             'clinics': list(clinics.values()),
             'geometry': geometry or [],
             'trail': trail,
+            'breaks': live['breaks'],
             'trail_km': live['trail_km'],
             'halts': live['halts'],
             'overspeed': live['overspeed'],
@@ -345,7 +346,8 @@ class LabDailyUpdate(models.Model):
         """
         # Imported here: location_live extends lab.location.ping, which loads after
         # this module, and its helpers are the live map's single definition.
-        from .location_live import (MAX_OVERSPEED_POINTS, downsample, split_legs,
+        from .location_live import (JUMP_MIN_M, MAX_KMH, MAX_OVERSPEED_POINTS,
+                                    TRAIL_GAP_SECONDS, kmh_between, simplify, split_legs,
                                     trail_km)
         points = self.env['lab.location.ping'].sudo()._day_points(self.user_id, self.date)
         local = self.with_context(tz=self.user_id.tz or 'UTC')
@@ -353,9 +355,21 @@ class LabDailyUpdate(models.Model):
         def hm(when):
             return fields.Datetime.context_timestamp(local, when).strftime('%H:%M') if when else ''
 
-        legs, _gaps = split_legs(points)
-        trail = [[[p[1], p[2], hm(p[0]), round(p[3] or 0.0)] for p in downsample(leg)]
-                 for leg in legs if len(leg) > 1]
+        legs = [leg for leg in split_legs(points)[0] if len(leg) > 1]
+        trail = [[[p[1], p[2], hm(p[0]), round(p[3] or 0.0)] for p in simplify(leg)]
+                 for leg in legs]
+        # Why each break in the line is there: the phone went quiet, or its position
+        # jumped (a GPS error - the line is left out rather than drawn across the map).
+        breaks = []
+        for before, after in zip(legs, legs[1:]):
+            a, b = before[-1], after[0]
+            seconds = int((b[0] - a[0]).total_seconds())
+            metres = metres_between(a[1], a[2], b[1], b[2]) or 0.0
+            jump = (seconds <= TRAIL_GAP_SECONDS and metres > JUMP_MIN_M
+                    and kmh_between(a, b) > MAX_KMH)
+            breaks.append({'kind': 'jump' if jump else 'silence', 'seconds': seconds,
+                           'minutes': seconds // 60, 'from': hm(a[0]), 'to': hm(b[0]),
+                           'km': round(metres / 1000.0, 1)})
         halts = [{'lat': h.latitude, 'lon': h.longitude, 'minutes': h.minutes,
                   'place': h.place or '', 'from': hm(h.started_at), 'to': hm(h.ended_at)}
                  for h in self.env['lab.location.halt'].sudo().search(
@@ -363,7 +377,8 @@ class LabDailyUpdate(models.Model):
                      order='started_at')]
         overspeed = [[p[1], p[2], hm(p[0]), round(p[3] or 0.0)]
                      for p in points if p[4]][-MAX_OVERSPEED_POINTS:]
-        return {'trail': trail, 'trail_km': round(trail_km(points), 1) if points else 0.0,
+        return {'trail': trail, 'breaks': breaks,
+                'trail_km': round(trail_km(points), 1) if points else 0.0,
                 'halts': halts, 'overspeed': overspeed}
 
     def _track_straight_km(self, points):

@@ -64,9 +64,39 @@ class TestLiveLayer(LiveTrackCase):
         self.assertLess(km, 0.2, "the gap itself (1.1 km) is never counted as distance")
         jumpy = [(t0, 10.0, 76.0, 0.0), (t0 + timedelta(seconds=10), 10.5, 76.0, 0.0)]
         self.assertEqual(location_live.trail_km(jumpy), 0.0, "55 km in ten seconds is a GPS jump")
-        thinned = location_live.downsample(list(range(100)), 10)
-        self.assertLessEqual(len(thinned), 11)
-        self.assertEqual(thinned[-1], 99, "the last point always survives")
+        legs, gaps = location_live.split_legs(jumpy)
+        self.assertEqual(([len(leg) for leg in legs], [gap[2] for gap in gaps]), ([1, 1], ['jump']),
+                         "and never a line across the map (2026-10-22)")
+        # Thinning keeps the SHAPE: ten fixes along one straight road are its two
+        # ends, and a corner is never cut (every nth point did, 2026-10-22).
+        straight = [(t0 + timedelta(seconds=30 * i), 10.0 + i * 1e-4, 76.0, 20.0) for i in range(10)]
+        self.assertEqual(location_live.simplify(straight, 4), [straight[0], straight[-1]])
+        corner = straight[:5] + [(t0 + timedelta(seconds=30 * (5 + i)), 10.0004, 76.0 + (i + 1) * 1e-4, 20.0)
+                                 for i in range(5)]
+        self.assertEqual(location_live.simplify(corner, 4), [corner[0], corner[4], corner[-1]],
+                         "the corner and the last point survive")
+        self.assertEqual(location_live.simplify(corner, 100), corner, "under the cap nothing is thinned")
+        # A fix the phone could not have reached and could not have left is a GPS
+        # error, not a road: 3.2 km away for 12 seconds, drawn as a spike on the map.
+        spike = [straight[0], straight[1], (t0 + timedelta(seconds=45), 10.03, 76.0, 20.0),
+                 straight[2], straight[3]]
+        self.assertEqual(location_live.drop_spikes(spike), straight[:4])
+        self.assertEqual(location_live.drop_spikes(spike[:3]), spike[:3], "the last fix is never doubted")
+
+    def test_the_map_draws_every_fix_the_phone_recorded_but_a_spike(self):
+        """Field Live thinned everyone to 300 points a day (2026-10-21) and the
+        trails cut corners across the map; a GPS spike drew a line to nowhere.
+        (client, 2026-10-22: "location map showing not good - revert and fix")"""
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=10)
+        self._start_day(user, now - timedelta(minutes=30))
+        path = walk(10.0, 76.0, 6, metres_each=300.0, seconds_each=30, speed=36.0)
+        path.insert(3, (10.03, 76.0, 75, 36.0))   # 3 km away for 15 seconds, and back
+        self._pings(user, now, path)
+        [ex] = self.env['lab.location.ping'].with_user(user).get_live_map()['executives']
+        self.assertTrue(ex['full_trail'])
+        self.assertEqual([len(leg) for leg in ex['legs']], [6], "every fix, the spike excepted")
+        self.assertNotIn(10.03, [p[0] for p in ex['legs'][0]])
 
     def test_a_batch_writes_the_last_fix_forward_only(self):
         user = self.exec_user

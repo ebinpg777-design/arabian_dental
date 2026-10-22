@@ -27,6 +27,7 @@ All of it is derived from pings that only exist while the executive is on duty, 
 the privacy boundary stays the one the trail already has.
 """
 import logging
+import math
 import secrets
 from datetime import datetime, timedelta
 
@@ -45,6 +46,8 @@ PALETTE = ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#db2777',
 MOVING_KMH = 4.0            # below this a fix is "standing", whatever the GPS jitter says
 JITTER_M = 15.0             # two fixes closer than this are the same place
 MAX_KMH = 150.0             # a jump faster than this is a GPS error, not a journey
+JUMP_MIN_M = 250.0          # ...and shorter than a normal 30-second step it is still drawn:
+                            # the rule is about long lines across the map, not about seconds
 TRAIL_GAP_SECONDS = 900     # silence longer than this breaks the trail into a new leg
 MAX_TRAIL_POINTS = 1500     # what the browser is sent per executive per day
 MAX_OVERSPEED_POINTS = 400
@@ -56,17 +59,27 @@ ROAD_FACTOR = 1.3           # straight line -> road, for the ETA
 ETA_FLOOR_KMH = 20.0        # an executive who just stopped is not stuck there
 
 
-def split_legs(points, gap_seconds=TRAIL_GAP_SECONDS):
-    """[[point, ...], ...] and [(from, to)] - the trail cut wherever the recording
-    stopped for longer than `gap_seconds`. A point is (ts, lat, lon, speed)."""
+def split_legs(points, gap_seconds=TRAIL_GAP_SECONDS, max_kmh=MAX_KMH):
+    """[[point, ...], ...] and [(from, to, kind)] - the trail cut wherever the
+    recording stopped for longer than `gap_seconds` ('silence'), or jumped faster
+    than `max_kmh` ('jump': a GPS error, and drawn it was a line across the map
+    nobody drove - 2026-10-22). A point is (ts, lat, lon, speed, ...)."""
     legs, gaps, leg = [], [], []
     last = None
     for point in points:
-        if last is not None and (point[0] - last[0]).total_seconds() > gap_seconds:
-            gaps.append((last[0], point[0]))
-            if leg:
-                legs.append(leg)
-            leg = []
+        if last is not None:
+            metres = metres_between(last[1], last[2], point[1], point[2]) or 0.0
+            if (point[0] - last[0]).total_seconds() > gap_seconds:
+                kind = 'silence'
+            elif metres > JUMP_MIN_M and kmh_between(last, point) > max_kmh:
+                kind = 'jump'
+            else:
+                kind = None
+            if kind:
+                gaps.append((last, point, kind))
+                if leg:
+                    legs.append(leg)
+                leg = []
         leg.append(point)
         last = point
     if leg:
@@ -87,8 +100,71 @@ def trail_km(points):
     return round(km, 2)
 
 
+def kmh_between(a, b):
+    """The speed the phone would have needed between two fixes."""
+    metres = metres_between(a[1], a[2], b[1], b[2]) or 0.0
+    seconds = abs((b[0] - a[0]).total_seconds()) or 1.0
+    return metres / seconds * 3.6
+
+
+def drop_spikes(points):
+    """The trail without its GPS errors: a fix the phone could not have reached from
+    the one before (faster than MAX_KMH) and could not have left for the one after -
+    out and back in two steps - is a spike, not a journey. Drawn, it was a line across
+    the map to nowhere (one day: 3.2 km in 12 seconds). The last fix is never doubted:
+    it is where the person is now. (client, 2026-10-22)"""
+    if len(points) < 3:
+        return list(points)
+    out = [points[0]]
+    for i in range(1, len(points) - 1):
+        current, following = points[i], points[i + 1]
+        if kmh_between(out[-1], current) > MAX_KMH and kmh_between(current, following) > MAX_KMH:
+            continue
+        out.append(current)
+    out.append(points[-1])
+    return out
+
+
+def _metres_off_line(p, a, b):
+    """How far `p` sits from the segment a-b, in metres (equirectangular - the
+    legs are a few km, where that is exact enough)."""
+    ky = 111_320.0
+    kx = ky * math.cos(math.radians((a[1] + b[1]) / 2))
+    ax, ay, bx, by = a[2] * kx, a[1] * ky, b[2] * kx, b[1] * ky
+    px, py = p[2] * kx, p[1] * ky
+    dx, dy = bx - ax, by - ay
+    if not dx and not dy:
+        return math.hypot(px - ax, py - ay)
+    t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+
+
+def _rdp(points, tolerance):
+    """Ramer-Douglas-Peucker: the points that keep the line within `tolerance`
+    metres of the original. Iterative - a day is thousands of fixes."""
+    if len(points) < 3:
+        return list(points)
+    keep = [False] * len(points)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(points) - 1)]
+    while stack:
+        first, last = stack.pop()
+        worst, index = 0.0, None
+        for i in range(first + 1, last):
+            off = _metres_off_line(points[i], points[first], points[last])
+            if off > worst:
+                worst, index = off, i
+        if index is not None and worst > tolerance:
+            keep[index] = True
+            stack.append((first, index))
+            stack.append((index, last))
+    return [point for point, kept in zip(points, keep) if kept]
+
+
 def downsample(points, limit=MAX_TRAIL_POINTS):
-    """At most `limit` points, the last one always kept."""
+    """At most `limit` points, every nth, the last one always kept. Thins by count
+    and so cuts corners: the trail is thinned by shape (simplify) since 2026-10-22,
+    and this is its last resort."""
     if len(points) <= limit:
         return points
     step = -(-len(points) // limit)
@@ -96,6 +172,26 @@ def downsample(points, limit=MAX_TRAIL_POINTS):
     if kept[-1] is not points[-1]:
         kept.append(points[-1])
     return kept
+
+
+def simplify(points, limit=MAX_TRAIL_POINTS):
+    """At most `limit` points, and the line's SHAPE kept.
+
+    Under the cap nothing is touched: the map draws every fix the phone recorded.
+    Over it, the points that go are the ones sitting on the line between their
+    neighbours (a straight road keeps its two ends), with a wider and wider
+    tolerance until the trail fits. Every nth point - the overview's thinning
+    from 2026-10-21 - cut corners and drew roads nobody drove. (client, 2026-10-22)
+    """
+    if len(points) <= limit:
+        return list(points)
+    tolerance = 5.0
+    while tolerance <= 2000.0:
+        kept = _rdp(points, tolerance)
+        if len(kept) <= limit:
+            return kept
+        tolerance *= 2
+    return downsample(points, limit)
 
 
 def epoch(when):
@@ -143,10 +239,11 @@ class LabLocationPingLive(models.Model):
             [('user_id', '=', user.id), ('date', '=', day)],
             ['ts', 'latitude', 'longitude', 'speed_kmh', 'overspeed', 'battery', 'accuracy_m', 'source'],
             order='ts')
-        return [(p['ts'], p['latitude'], p['longitude'], p['speed_kmh'] or 0.0,
-                 bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0,
-                 p['source'] or 'browser')
-                for p in pings]
+        return drop_spikes([
+            (p['ts'], p['latitude'], p['longitude'], p['speed_kmh'] or 0.0,
+             bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0,
+             p['source'] or 'browser')
+            for p in pings])
 
     @api.model
     def _trail_km_for(self, user, day):
@@ -423,11 +520,13 @@ class LabLocationPingLive(models.Model):
         module docstring for the shape). A manager sees the team; an executive only
         themselves - the call refuses anything else rather than filtering quietly.
 
-        `max_points` caps each trail (MAX_TRAIL_POINTS by default): Field Live asks
-        for a light overview of everyone and the full trail of the person in focus
-        (2026-10-21). Halts are no longer re-detected on every read: the batch that
-        arrives does it, and the five-minute cron closes the halt of a phone that
-        went quiet (_cron_close_halts)."""
+        `max_points` caps each trail (MAX_TRAIL_POINTS by default) - by shape, never
+        every nth point. Under the cap the trail is every fix the phone recorded,
+        and `full_trail` says so; Field Live's overview thinned everyone to 300
+        points for a day (2026-10-21) and the trails cut corners across the map
+        (client, 2026-10-22). Halts are no longer re-detected on every read: the
+        batch that arrives does it, and the five-minute cron closes the halt of a
+        phone that went quiet (_cron_close_halts)."""
         me = self.env.user
         if not self._is_manager() and user_ids and set(user_ids) != {me.id}:
             raise AccessError(_("Only field managers can see where others are."))
@@ -459,9 +558,11 @@ class LabLocationPingLive(models.Model):
             legs, gaps = split_legs(points)
             budget = max(50, int(max_points or MAX_TRAIL_POINTS))
             trail_points = sum(len(leg) for leg in legs)
-            if trail_points > budget:
-                keep = max(1, budget // max(1, len(legs)))
-                legs = [downsample(leg, keep) for leg in legs]
+            full_trail = trail_points <= budget
+            if not full_trail:
+                # each leg keeps its share of the cap, by shape
+                legs = [simplify(leg, max(2, int(budget * len(leg) / trail_points)))
+                        for leg in legs]
             doors = []
             for visit in visits:
                 clinic = visit.partner_id
@@ -504,8 +605,11 @@ class LabLocationPingLive(models.Model):
                 'halt_minutes': sum(h['minutes'] for h in halts),
                 'on_duty': on_duty, 'duty_since_epoch': duty_since,
                 'legs': [[[p[1], p[2], epoch(p[0]), p[3]] for p in leg] for leg in legs],
-                'gaps': [{'from_epoch': epoch(a), 'to_epoch': epoch(b),
-                          'minutes': int((b - a).total_seconds() // 60)} for a, b in gaps],
+                'full_trail': full_trail,
+                'gaps': [{'from_epoch': epoch(a[0]), 'to_epoch': epoch(b[0]),
+                          'minutes': int((b[0] - a[0]).total_seconds() // 60), 'kind': kind,
+                          'km': round((metres_between(a[1], a[2], b[1], b[2]) or 0.0) / 1000.0, 1)}
+                         for a, b, kind in gaps],
                 'doors': doors, 'halts': halts, 'overspeed_points': overspeed,
             })
         icp = self.env['ir.config_parameter'].sudo()

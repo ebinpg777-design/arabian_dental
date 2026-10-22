@@ -187,23 +187,29 @@ export class FwDayMap extends Component {
         }
         // The ends of every break, marked, so a gap reads as a gap and not as a map
         // that failed to draw.
+        const breaks = track.breaks || [];
         segments.forEach((segment, index) => {
             const ends = [];
             if (index > 0) {
-                ends.push(["resumed", segment[0]]);
+                ends.push(["resumed", segment[0], breaks[index - 1]]);
             }
             if (index < segments.length - 1) {
-                ends.push(["stopped", segment[segment.length - 1]]);
+                ends.push(["stopped", segment[segment.length - 1], breaks[index]]);
             }
-            for (const [what, ping] of ends) {
+            for (const [what, ping, brk] of ends) {
+                // A jump is a GPS error: the line across the map is left out, and
+                // the two ends say so rather than claiming the phone was off.
+                const why = brk && brk.kind === "jump"
+                    ? `Position jumped ${this.escape(String(brk.km))} km in ` +
+                      `${this.escape(String(brk.seconds))} s at ${this.escape(brk.from)}<br/>` +
+                      '<span class="text-muted">a GPS error, not a road - the line is left out</span>'
+                    : `Recording ${what} at ${this.escape(ping[2])}<br/>` +
+                      '<span class="text-muted">the app was closed or the phone ' +
+                      "had no signal</span>";
                 L.circleMarker([ping[0], ping[1]], {
                     radius: 4, color: "#0ea5e9", weight: 2,
                     fillColor: "#fff", fillOpacity: 1,
-                }).addTo(map).bindPopup(
-                    `Recording ${what} at ${this.escape(ping[2])}<br/>` +
-                    '<span class="text-muted">the app was closed or the phone ' +
-                    "had no signal</span>"
-                );
+                }).addTo(map).bindPopup(why);
             }
         });
         // Faster than the limit, as Field Live marks it.
