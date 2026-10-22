@@ -165,23 +165,17 @@ export class FieldLive extends LiveMap {
             return;
         }
         const speed = Number(payload.speed_kmh) || 0;
-        const accuracy = Number(payload.accuracy_m) || 0;
-        // A fix the phone puts at 100 m or worse (a cell tower's position) moves
-        // the marker but never extends the trail - the rule the server draws by.
-        const limit = Number(this.config.trail_accuracy_m) || 0;
-        if (!limit || !accuracy || accuracy < limit) {
-            const point = [payload.lat, payload.lon, payload.epoch, speed];
-            const legs = ex.legs || (ex.legs = []);
-            const lastLeg = legs[legs.length - 1];
-            if (lastLeg && lastLeg.length && payload.epoch - lastLeg[lastLeg.length - 1][2] <= 900) {
-                lastLeg.push(point);
-            } else {
-                legs.push([point]);
-            }
+        const point = [payload.lat, payload.lon, payload.epoch, speed];
+        const legs = ex.legs || (ex.legs = []);
+        const lastLeg = legs[legs.length - 1];
+        if (lastLeg && lastLeg.length && payload.epoch - lastLeg[lastLeg.length - 1][2] <= 900) {
+            lastLeg.push(point);
+        } else {
+            legs.push([point]);
         }
         ex.last = {
             lat: payload.lat, lon: payload.lon, epoch: payload.epoch, age_s: 0,
-            speed_kmh: speed, accuracy_m: accuracy || (ex.last ? ex.last.accuracy_m : 0),
+            speed_kmh: speed, accuracy_m: ex.last ? ex.last.accuracy_m : 0,
             battery: payload.battery ?? (ex.last ? ex.last.battery : null),
             source: payload.source || "browser",
         };

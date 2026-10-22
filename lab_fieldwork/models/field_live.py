@@ -54,6 +54,7 @@ LONG_VISIT_MINUTES = 90     # checked in, not out
 KM_VARIANCE_PCT = 30        # claim vs trail
 OVERSPEED_TIMES = 3
 STORY_MAX = 80
+OVERVIEW_POINTS = 300       # trail points per person in the overview; the focus gets the full trail
 PULSE_HOURS = range(7, 21)
 TREND_DAYS = 14
 WAITING_STATES = ('submitted', 'ops_approved', 'ops_checked')
@@ -77,9 +78,7 @@ class LabFieldLive(models.AbstractModel):
             raise AccessError(_("Only field managers open Field Live."))
         # A light trail per person for the overview; the person in focus is fetched
         # in full by the screen (get_live_map for one user).
-        # The whole trail of everyone: the overview was thinned to 300 points a
-        # person (2026-10-21) and cut corners across the map. (client, 2026-10-22)
-        board = Ping.get_live_map(day=day, user_ids=user_ids)
+        board = Ping.get_live_map(day=day, user_ids=user_ids, max_points=OVERVIEW_POINTS)
         day = fields.Date.to_date(board['day'])
         is_today = bool(board['is_today'])
         now = fields.Datetime.now()
@@ -563,7 +562,6 @@ class LabLocationPingPush(models.Model):
             'lat': latest['latitude'], 'lon': latest['longitude'],
             'epoch': epoch(latest['ts']),
             'speed_kmh': latest.get('speed_kmh') or 0.0,
-            'accuracy_m': latest.get('accuracy_m') or 0.0,
             'battery': latest.get('battery') or None,
             'source': latest.get('source') or 'browser',
             'kept': len(values),

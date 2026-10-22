@@ -527,13 +527,9 @@ export class LiveMap extends Component {
             const gap = (ex.gaps || []).find((g) => Math.abs(g.from_epoch - end[2]) < 120)
                 || { from_epoch: end[2], to_epoch: start[2],
                      minutes: Math.round((start[2] - end[2]) / 60) };
-            const text = gap.kind === "jump"
-                ? esc(_t("the position jumped %(km)s km in %(s)s s at %(at)s - a GPS error, not a road", {
-                    km: gap.km, s: gap.to_epoch - gap.from_epoch, at: clock(gap.from_epoch),
-                }))
-                : esc(_t("recording stopped %(from)s - resumed %(to)s (%(min)s min)", {
-                    from: clock(gap.from_epoch), to: clock(gap.to_epoch), min: Math.round(gap.minutes),
-                }));
+            const text = esc(_t("recording stopped %(from)s - resumed %(to)s (%(min)s min)", {
+                from: clock(gap.from_epoch), to: clock(gap.to_epoch), min: Math.round(gap.minutes),
+            }));
             gapEnds.push({ key: `${gap.from_epoch}:end`, lat: end[0], lon: end[1], text });
             gapEnds.push({ key: `${gap.from_epoch}:start`, lat: start[0], lon: start[1], text });
         }
