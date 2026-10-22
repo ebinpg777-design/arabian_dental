@@ -324,4 +324,11 @@
               parent="petty_cash.menu_petty_cash" sequence="41"
               action="action_cash_receive"
               groups="petty_cash.group_petty_cash_officer"/>
+
+    <!-- The office's petty cash is ebshel_petty_cash, its own "Petty Cash" app
+         (client, 2026-10-22). This app holds the executives' field cash floats,
+         collections and handovers, so it is named for them: one Petty Cash app. -->
+    <record id="petty_cash.menu_petty_cash_root" model="ir.ui.menu">
+        <field name="name">Field Cash</field>
+    </record>
 </odoo>
