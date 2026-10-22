@@ -1,5 +1,0 @@
-id,name,model_id,group_id/id,operation,domain
-admin_access, db_backup admin access,database.backup,base.group_system,crud,
-admin_access_auto_databse_backup,admin_access_auto_databse_backup,auto.database.backup,base.group_system,crud,
-access_auto_database_backup_status,access_auto_database_backup_status,auto.database.backup.status,base.group_system,crud,
-access_dropbox_auth_refresh_token_wiz,access_dropbox_auth_refresh_token_wiz,dropbox.auth.refresh.token.wiz,base.group_system,crud,
