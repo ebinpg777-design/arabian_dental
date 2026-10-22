@@ -6,9 +6,13 @@ from the invoices. This module adds the other direction: a payment typed in by h
 lists the partner's open items - one ``account.payment.allocation`` per receivable or
 payable journal item that is posted, unreconciled, on the payment's counterpart
 account, in its currency and with the sign the payment direction settles - the user
-ticks what the money is for, and confirming the payment books one counterpart journal
-item per allocation (``_prepare_move_lines_per_type``), reconciles each with its
-invoice and drops the lines that were not ticked.
+ticks what the money is for, and confirming the payment books its receivable or
+payable side as Odoo does - ONE journal item - reconciles that item with each ticked
+invoice for exactly the amount allocated to it, and drops the lines that were not ticked.
+What is not allocated stays open on the same item.
+
+Version 20.0.1.0.0 booked one item per allocated invoice instead; the upgrade to
+20.0.1.1.0 merges those entries (``_merge_split_entries``).
 
 The list is built by onchange, not by a stored compute: payments made by the wizard,
 the bank reconciliation or any code never load a partner's open items - only a form
@@ -22,8 +26,6 @@ How the amount and the allocations relate (``amount_from_allocation``):
   lowering it trims the newest allocations, raising it leaves the rest unallocated (an
   open credit on the partner's account); clearing it hands it back to the allocations.
 """
-from itertools import zip_longest
-
 from odoo import Command, _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools import formatLang
@@ -273,10 +275,10 @@ class AccountPayment(models.Model):
             pay._follow_allocations()
         return True
 
-    # -- confirmation: split, post, reconcile -----------------------------------------
+    # -- confirmation: post, reconcile ------------------------------------------------
 
     def _allocations_to_apply(self):
-        """The ticked lines with an amount: what the confirmation books and reconciles."""
+        """The ticked lines with an amount: what the confirmation reconciles."""
         self.ensure_one()
         if getattr(self, "is_multi_partner", False):
             # ebshel_multi_partner_payment books one counterpart per partner line instead
@@ -321,147 +323,40 @@ class AccountPayment(models.Model):
 
     def action_post(self):
         self._check_allocations()
-        self.filtered(
-            lambda pay: pay.move_id and pay.move_id.state == "draft" and pay._allocations_to_apply()
-        )._sync_allocations_to_draft_move()
-        result = super(AccountPayment, self.with_context(payment_allocation_split=True)).action_post()
+        result = super().action_post()
         self._reconcile_allocations()
         return result
 
-    def _prepare_move_lines_per_type(self, write_off_line_vals=None, force_balance=None):
-        vals = super()._prepare_move_lines_per_type(
-            write_off_line_vals=write_off_line_vals, force_balance=force_balance
-        )
-        # Only while confirming: Odoo's own synchronisation of a draft entry expects ONE
-        # counterpart line, so a draft payment keeps the standard entry.
-        if not self.env.context.get("payment_allocation_split"):
-            return vals
-        allocations = self._allocations_to_apply()
-        counterparts = vals.get("counterpart_lines") or []
-        if allocations and len(counterparts) == 1:
-            vals["counterpart_lines"] = self._split_counterpart(counterparts[0], allocations)
-        return vals
-
-    def _split_counterpart(self, base, allocations):
-        """One counterpart item per allocation, plus one for whatever is left."""
-        self.ensure_one()
-        currency = self._allocation_currency()
-        company_currency = self.company_id.currency_id
-        total_currency = base["amount_currency"]
-        total_balance = base["balance"]
-        allocated = sum(allocations.mapped("allocate"))
-        if currency.compare_amounts(allocated, abs(total_currency)) > 0:
-            raise UserError(
-                _(
-                    "The allocations (%(allocated)s) exceed what the payment books on the "
-                    "partner's account (%(total)s).",
-                    allocated=self._money(allocated),
-                    total=self._money(abs(total_currency)),
-                )
-            )
-        sign = -1 if total_currency < 0 else 1
-        lines = []
-        for allocation in allocations:
-            amount_currency = currency.round(sign * allocation.allocate)
-            balance = (
-                company_currency.round(total_balance * amount_currency / total_currency)
-                if total_currency
-                else 0.0
-            )
-            lines.append(
-                {
-                    **base,
-                    "name": "%s: %s" % (base["name"], allocation.display_name)
-                    if base.get("name")
-                    else allocation.display_name,
-                    "amount_currency": amount_currency,
-                    "balance": balance,
-                    "allocation_id": allocation.id,
-                }
-            )
-        rest_currency = currency.round(
-            total_currency - sum(line["amount_currency"] for line in lines)
-        )
-        rest_balance = company_currency.round(total_balance - sum(line["balance"] for line in lines))
-        if not currency.is_zero(rest_currency):
-            lines.append(
-                {**base, "amount_currency": rest_currency, "balance": rest_balance, "allocation_id": False}
-            )
-        elif not company_currency.is_zero(rest_balance):
-            # conversion dust: onto the last allocation, so the entry balances
-            lines[-1]["balance"] = company_currency.round(lines[-1]["balance"] + rest_balance)
-        return lines
-
-    def _sync_allocations_to_draft_move(self):
-        """Rebuild the draft entry's items with the split - what Odoo's own synchronisation
-        does, but with any number of counterpart lines (a payment reset to draft keeps its
-        entry, and confirming it again posts that entry as it is)."""
-        for pay in self.with_context(payment_allocation_split=True):
-            liquidity_lines, counterpart_lines, writeoff_lines = pay._seek_for_lines()
-            write_off_line_vals = []
-            if liquidity_lines and counterpart_lines and writeoff_lines:
-                write_off_line_vals.append(
-                    {
-                        "name": writeoff_lines[0].name,
-                        "account_id": writeoff_lines[0].account_id.id,
-                        "partner_id": writeoff_lines[0].partner_id.id,
-                        "currency_id": writeoff_lines[0].currency_id.id,
-                        "amount_currency": sum(writeoff_lines.mapped("amount_currency")),
-                        "balance": sum(writeoff_lines.mapped("balance")),
-                    }
-                )
-            per_type = pay._prepare_move_lines_per_type(write_off_line_vals=write_off_line_vals)
-            commands = []
-            for existing, new_vals_list in (
-                (liquidity_lines, per_type.get("liquidity_lines", [])),
-                (counterpart_lines, per_type.get("counterpart_lines", [])),
-            ):
-                for line, new_vals in zip_longest(existing, new_vals_list):
-                    if line and new_vals:
-                        commands.append(Command.update(line.id, new_vals))
-                    elif new_vals:
-                        commands.append(Command.create(new_vals))
-                    elif line:
-                        commands.append(Command.delete(line.id))
-            commands += [Command.delete(line.id) for line in writeoff_lines]
-            commands += [
-                Command.create(vals)
-                for vals in per_type.get("write_off_lines", []) + per_type.get("withholding_lines", [])
-            ]
-            pay.move_id.with_context(skip_invoice_sync=True).write(
-                {
-                    "date": pay.date,
-                    "partner_id": pay.commercial_partner_id.id,
-                    "currency_id": pay.currency_id.id,
-                    "partner_bank_id": pay.partner_bank_id.id,
-                    "line_ids": commands,
-                }
-            )
-
     def _reconcile_allocations(self):
+        """The payment's one receivable or payable item, reconciled with each ticked
+        invoice or bill for what was allocated to it - not Odoo's oldest-first fill,
+        which would ignore a part payment typed on a later item."""
         for pay in self:
             allocations = pay._allocations_to_apply()
             if not allocations or pay.move_id.state != "posted":
                 continue
             _liquidity, counterparts, _writeoff = pay._seek_for_lines()
-            by_allocation = {
-                line.allocation_id.id: line for line in counterparts if line.allocation_id
-            }
+            line = counterparts[:1]
             for allocation in allocations:
-                line = by_allocation.get(allocation.id)
-                if line:  # the entry was built with the split
-                    (line + allocation.move_line_id).reconcile()
+                line._reconcile_up_to(allocation.move_line_id, allocation.allocate)
             # a confirmed payment keeps only what it settled
             (pay.allocation_ids - allocations).unlink()
 
     def action_draft(self):
         result = super().action_draft()
-        self.filtered(lambda pay: pay.move_id and pay.move_id.state == "draft")._merge_counterpart_lines()
+        drafts = self.filtered(lambda pay: pay.move_id and pay.move_id.state == "draft")
+        # Odoo 20 keeps a reset entry reconciled; the confirmation reconciles the
+        # allocations again, so they are released here and the invoices are open
+        # meanwhile (what merging a 20.0.1.0.0 entry did as a side effect)
+        for pay in drafts.filtered("allocation_ids"):
+            pay._seek_for_lines()[1].remove_move_reconcile()
+        drafts._merge_counterpart_lines()
         return result
 
     def _merge_counterpart_lines(self):
         """Back to one receivable or payable item - what Odoo's synchronisation of a draft
-        payment expects; the allocations stay for the next confirmation."""
+        payment expects; the allocations stay for the next confirmation. Only an entry
+        booked by 20.0.1.0.0 (one item per allocation) has anything to merge."""
         for pay in self:
             _liquidity, counterparts, _writeoff = pay._seek_for_lines()
             if len(counterparts) <= 1 and not counterparts.allocation_id:
@@ -480,3 +375,42 @@ class AccountPayment(models.Model):
                 )
             ] + [Command.delete(line.id) for line in counterparts[1:]]
             pay.move_id.with_context(skip_invoice_sync=True).write({"line_ids": commands})
+
+    # -- entries booked by 20.0.1.0.0 ---------------------------------------------------
+
+    @api.model
+    def _merge_split_entries(self):
+        """Book as ONE receivable or payable item the payments that 20.0.1.0.0 confirmed
+        with one item per allocated invoice, and reconcile it with the same items for the
+        same amounts. Only the journal entry is reset and posted again - it keeps its
+        number and date - never the payment, whose confirmation may notify the customer;
+        the invoices end as paid as they were, so nothing announces them paid again."""
+        split = self.env["account.move.line"].search([("allocation_id", "!=", False)])
+        payments = self.search([("move_id", "in", split.move_id.ids)])
+        merged = self.browse()
+        for pay in payments.with_context(allocation_merge=True):
+            _liquidity, counterparts, _writeoff = pay._seek_for_lines()
+            if len(counterparts) <= 1 and not counterparts.allocation_id:
+                continue
+            # what the items settle now, in the payment's currency, to settle it again
+            settled = {}
+            for partial in counterparts.matched_debit_ids | counterparts.matched_credit_ids:
+                if partial.debit_move_id in counterparts:
+                    other, amount = partial.credit_move_id, partial.debit_amount_currency
+                else:
+                    other, amount = partial.debit_move_id, partial.credit_amount_currency
+                if other not in counterparts:
+                    settled[other] = settled.get(other, 0.0) + amount
+            counterparts.remove_move_reconcile()
+            move = pay.move_id
+            posted = move.state == "posted"
+            if posted:
+                move.button_draft()
+            pay._merge_counterpart_lines()
+            if posted:
+                move._post(soft=False)
+            line = pay._seek_for_lines()[1][:1]
+            for other, amount in settled.items():
+                line._reconcile_up_to(other, amount)
+            merged |= pay
+        return merged

@@ -1,4 +1,7 @@
 # Part of ebshel_payment_allocation. See LICENSE file for full copyright and licensing details.
+from unittest.mock import patch
+
+from odoo import Command
 from odoo.exceptions import UserError
 from odoo.tests import Form, tagged
 
@@ -38,13 +41,20 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
         )
         form.payment_type = payment_type
         form.partner_id = partner
-        # some installations require more on a payment (a sales team, say): fill
-        # what the form asks for so the suite also passes there
-        if "team_id" in form._view["fields"]:
+        self._fill_required(form)
+        return form
+
+    def _fill_required(self, form):
+        """Some installations require more on a payment - a sales team on a customer
+        receipt, say, hidden on the others: fill it where the form shows it, so the
+        suite also passes there."""
+        if "team_id" in form._view["fields"] and not form.team_id:
             team = self.env["crm.team"].search([], limit=1)
             if team:
-                form.team_id = team
-        return form
+                try:
+                    form.team_id = team
+                except AssertionError:  # not shown for this kind of payment
+                    pass
 
     @staticmethod
     def _tick(form, *indexes, allocate=None):
@@ -59,6 +69,14 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
 
     def _counterparts(self, payment):
         return payment._seek_for_lines()[1]
+
+    def _settled(self, line):
+        """{invoice or bill: amount} the payment item is reconciled with."""
+        out = {}
+        for partial in line.matched_debit_ids | line.matched_credit_ids:
+            other = partial.debit_move_id if partial.credit_move_id == line else partial.credit_move_id
+            out[other.move_id] = out.get(other.move_id, 0.0) + partial.amount
+        return out
 
     # -- listing ----------------------------------------------------------------------
 
@@ -94,6 +112,7 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
         self._tick(form, 0)
         self.assertEqual(form.amount, 600.0)
         form.partner_id = self.partner_b  # a customer with nothing open
+        self._fill_required(form)
         payment = form.save()
         self.assertFalse(payment.allocation_ids)
         self.assertEqual(payment.amount, 0.0)
@@ -113,11 +132,12 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
         self.assertEqual(self.inv_c.payment_state, "not_paid")
         self.assertTrue(payment.is_reconciled)
         self.assertEqual(payment.reconciled_invoice_ids, self.inv_a | self.inv_b)
+        # ONE receivable item, as Odoo books it, reconciled with both (client, 2026-10-22)
         counterparts = self._counterparts(payment)
-        self.assertEqual(sorted(counterparts.mapped("amount_currency")), [-700.0, -600.0])
-        self.assertTrue(all(line.reconciled for line in counterparts))
-        self.assertEqual(counterparts.allocation_id, payment.allocation_ids)
-        self.assertIn(self.inv_a.name, counterparts.filtered(lambda l: l.amount_currency == -600.0).name)
+        self.assertEqual(counterparts.mapped("amount_currency"), [-1300.0])
+        self.assertTrue(counterparts.reconciled)
+        self.assertFalse(counterparts.allocation_id)
+        self.assertEqual(self._settled(counterparts), {self.inv_a: 600.0, self.inv_b: 700.0})
         # the line that was not ticked is gone: the payment keeps what it settled
         self.assertEqual(self._rows(payment), [(self.inv_a, True, 600.0), (self.inv_b, True, 700.0)])
 
@@ -133,6 +153,21 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
         self.assertEqual(self.inv_b.payment_state, "partial")
         self.assertEqual(self.inv_b.amount_residual, 300.0)
         self.assertTrue(payment.is_reconciled)
+
+    def test_a_part_payment_on_a_later_invoice_stays_a_part_payment(self):
+        """Odoo fills the oldest first: 100 typed on the January invoice would have
+        become 600 off it and 300 off February. The allocation is what was meant."""
+        form = self._form(self.partner_a)
+        form.amount = 1000.0
+        self._tick(form, 0, allocate=100.0)
+        self._tick(form, 1, allocate=700.0)
+        payment = form.save()
+        payment.action_post()
+        self.assertEqual(self.inv_a.amount_residual, 500.0)
+        self.assertEqual(self.inv_b.payment_state, "paid")
+        [line] = self._counterparts(payment)
+        self.assertEqual(self._settled(line), {self.inv_a: 100.0, self.inv_b: 700.0})
+        self.assertEqual(line.amount_residual, -200.0, "the rest stays an open credit")
 
     def test_an_amount_typed_first_fills_what_is_left(self):
         form = self._form(self.partner_a)
@@ -160,9 +195,10 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
         payment.action_post()
         self.assertEqual(self.inv_a.payment_state, "paid")
         self.assertFalse(payment.is_reconciled)
-        counterparts = self._counterparts(payment)
-        self.assertEqual(sorted(counterparts.mapped("amount_currency")), [-600.0, -400.0])
-        self.assertEqual(sum(counterparts.mapped("amount_residual")), -400.0)
+        [line] = self._counterparts(payment)
+        self.assertEqual(line.amount_currency, -1000.0)
+        self.assertEqual(line.amount_residual, -400.0)
+        self.assertEqual(self._settled(line), {self.inv_a: 600.0})
 
     def test_clearing_the_amount_hands_it_back(self):
         form = self._form(self.partner_a)
@@ -193,7 +229,7 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
         payment.action_post()
         self.assertEqual(self.bill_a.payment_state, "paid")
         self.assertEqual(self.bill_b.payment_state, "paid")
-        self.assertEqual(sorted(self._counterparts(payment).mapped("amount_currency")), [300.0, 450.0])
+        self.assertEqual(self._counterparts(payment).mapped("amount_currency"), [750.0])
         self.assertEqual(payment.reconciled_bill_ids, self.bill_a | self.bill_b)
 
     # -- after confirmation -------------------------------------------------------------
@@ -247,3 +283,56 @@ class TestPaymentAllocation(AccountTestInvoicingCommon):
         self.assertFalse(payments.allocation_ids)
         self.assertIn(self.inv_c.payment_state, ("paid", "in_payment"))
         self.assertEqual(len(self._counterparts(payments)), 1)
+
+    # -- entries booked by 20.0.1.0.0 ---------------------------------------------------
+
+    def _book_the_old_way(self, payment):
+        """The entry as 20.0.1.0.0 booked it: one receivable item per allocation, each
+        reconciled with its invoice."""
+        payment.action_draft()
+        move = payment.move_id
+        [line] = self._counterparts(payment)
+        allocations = payment.allocation_ids.filtered("selected")
+        commands = [Command.update(line.id, {
+            "amount_currency": -allocations[0].allocate, "balance": -allocations[0].allocate,
+            "allocation_id": allocations[0].id})]
+        for allocation in allocations[1:]:
+            commands.append(Command.create({
+                "name": "%s: %s" % (line.name, allocation.display_name),
+                "account_id": line.account_id.id, "partner_id": line.partner_id.id,
+                "currency_id": line.currency_id.id, "date_maturity": line.date_maturity,
+                "amount_currency": -allocation.allocate, "balance": -allocation.allocate,
+                "allocation_id": allocation.id}))
+        move.with_context(skip_invoice_sync=True, skip_account_move_synchronization=True).write(
+            {"line_ids": commands})
+        move._post(soft=False)
+        for item in self._counterparts(payment):
+            (item + item.allocation_id.move_line_id).reconcile()
+        return move
+
+    def test_entries_booked_by_the_first_version_are_merged(self):
+        form = self._form(self.partner_a)
+        self._tick(form, 0, 1)
+        form.amount = 1000.0          # 600 + 400 of 700
+        payment = form.save()
+        payment.action_post()
+        move = self._book_the_old_way(payment)
+        name = move.name
+        self.assertEqual(len(self._counterparts(payment)), 2, "fixture: the old shape")
+        self.assertEqual(self.inv_b.amount_residual, 300.0)
+
+        with patch.object(type(self.env["account.move"]), "_invoice_paid_hook", autospec=True) as paid:
+            merged = self.env["account.payment"]._merge_split_entries()
+        self.assertFalse([call for call in paid.call_args_list if call.args[0]],
+                         "the invoices were paid before: nothing announces them paid again")
+
+        self.assertEqual(merged, payment)
+        [line] = self._counterparts(payment)
+        self.assertEqual(line.amount_currency, -1000.0)
+        self.assertFalse(line.allocation_id)
+        self.assertEqual(self._settled(line), {self.inv_a: 600.0, self.inv_b: 400.0})
+        self.assertEqual((move.state, move.name), ("posted", name), "same entry, same number")
+        self.assertEqual(self.inv_a.payment_state, "paid")
+        self.assertEqual(self.inv_b.amount_residual, 300.0)
+        self.assertTrue(payment.is_reconciled)
+        self.assertFalse(self.env["account.payment"]._merge_split_entries(), "nothing left to merge")

@@ -36,16 +36,22 @@ money.
 1. Checks the allocations against the live open amounts: an item paid elsewhere
    since the list was built, or an allocation above its open amount, is refused
    with a message naming the invoice.
-2. Books the payment's receivable or payable side as **one journal item per
-   allocation** (named after the invoice) plus one for whatever is left, instead
-   of Odoo's single counterpart line.
-3. Reconciles each of those items with its invoice, so partial allocations give
-   partial payments and the invoice's payment state follows.
+2. Books the payment's receivable or payable side as Odoo does: **one journal
+   item**.
+3. Reconciles that item with each ticked invoice for **exactly the amount
+   allocated to it** - a part payment typed on a later invoice stays a part
+   payment, rather than Odoo's oldest-first fill - so the invoice's payment state
+   follows. What is not allocated stays open on the same item, as an open credit.
 4. Drops the lines that were not ticked.
 
-Reset to draft merges the split back into one counterpart line (what Odoo's
-own payment-to-entry synchronisation expects while a payment is draft); the
-allocations stay and are applied again on the next confirmation.
+Reset to draft unreconciles the item as usual; the allocations stay and are
+applied again on the next confirmation.
+
+**Upgrading from 20.0.1.0.0**, which booked one journal item per allocated
+invoice: the upgrade merges each such entry into one item and reconciles it with
+the same invoices for the same amounts. Only the journal entry is reset and posted
+again (it keeps its number and date), not the payment, so no confirmation is sent
+again, and the invoices end as paid as they were.
 
 ## Design notes
 
@@ -60,10 +66,11 @@ allocations stay and are applied again on the next confirmation.
   the payment direction settles (money in: positive residuals - invoices, vendor
   refunds; money out: negative - bills, credit notes, a customer's overpayment).
   Instalments of one invoice are separate items. At most 1,000 items are listed.
-* The split happens in `_prepare_move_lines_per_type`, only under the
-  `payment_allocation_split` context that `action_post` sets: Odoo's own
-  synchronisation of a draft entry expects one counterpart line, so a draft
-  payment keeps the standard entry.
+* The amounts: Odoo reconciles two items for the smaller of their open amounts.
+  `account.move.line._reconcile_up_to(other, amount)` reconciles one pair at a
+  time under a `reconcile_cap` context that `_prepare_reconciliation_single_partial`
+  reads for that pair only, so the partial is the allocation; matching numbers,
+  payment states and exchange differences stay Odoo's own.
 * `ebshel_multi_partner_payment`: a multi-partner payment cannot be allocated to
   invoices (its counterpart is split by partner instead); the confirmation says
   so if items were ticked.
