@@ -818,6 +818,24 @@ export class ScanStation extends Component {
                 );
             }
             if (found.stage === "first") {
+                // The same box read again while its choice is still open - the
+                // live camera after its 5 s memory, "Read this frame", a photo or
+                // the number typed - is still ONE box: it showed twice on the list
+                // (client, 2026-10-22). Its card comes back to the top instead.
+                const waiting = this.state.run.find(
+                    (entry) => entry.choice && entry.summary && entry.summary.id === found.id
+                );
+                if (waiting) {
+                    this.state.run.splice(this.state.run.indexOf(waiting), 1);
+                    waiting.at = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                    this.state.run.unshift(waiting);
+                    this.buzz([12]);
+                    this.notification.add(
+                        _t("Already on the list — load it for delivery, or deliver it now."),
+                        { type: "info", title: _t("%s — scanned again", found.delivery) }
+                    );
+                    return;
+                }
                 // FIRST scan: the bag is open at the lab. The box is staged and
                 // the choice is the executive's - onto the run, or straight into
                 // the doctor's hands. The second scan of the same box delivers.
