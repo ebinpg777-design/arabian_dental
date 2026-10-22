@@ -339,8 +339,15 @@ class LabDailyUpdate(models.Model):
         Distance is the sum WITHIN segments only: what crossed a gap is unknown, and
         adding a straight line across it would put a number on a guess.
         """
-        pings = self.env['lab.location.ping'].sudo().search(
+        Ping = self.env['lab.location.ping'].sudo()
+        pings = Ping.search(
             [('user_id', '=', self.user_id.id), ('date', '=', self.date)], order='ts')
+        # The live map's rule (65be508): a fix the phone itself puts at 100 m or
+        # worse is a cell tower's position, not a point on a road - drawn, the
+        # route ran out to the tower and back with every fix. (2026-10-22)
+        limit = Ping._trail_accuracy()
+        if limit:
+            pings = pings.filtered(lambda p: not p.accuracy_m or p.accuracy_m < limit)
         if not pings:
             return [], 0.0
         segments, current = [], []
