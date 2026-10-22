@@ -20,11 +20,16 @@
                     <span><i style="background:#0f9d58"/>at the door</span>
                     <span><i style="background:#dc3545"/>away from the clinic</span>
                     <span><i style="background:#2563eb"/>clinic not pinned</span>
-                    <span t-if="this.state.track.geometry.length"><i style="background:#6d28d9"/>the round, by road</span>
-                    <span t-else=""><i style="background:#6d28d9"/>the round, in order (straight lines)</span>
                     <span t-if="this.state.track.trail &amp;&amp; this.state.track.trail.length">
-                        <i style="background:#0ea5e9"/>route recorded on the phone
+                        <i style="background:#0ea5e9"/>live GPS trail
                     </span>
+                    <span t-if="this.state.track.halts &amp;&amp; this.state.track.halts.length"
+                          class="o_fw_daymap_key_halt"><i/>stopped (minutes)</span>
+                    <span t-if="this.state.track.overspeed &amp;&amp; this.state.track.overspeed.length">
+                        <i style="background:#dc2626"/>over the speed limit
+                    </span>
+                    <span t-if="this.state.track.geometry.length"><i style="background:#6d28d9"/>the round, by road (computed)</span>
+                    <span t-else=""><i style="background:#6d28d9"/>the round, in order (straight lines)</span>
                     <span class="o_fw_daymap_ring"><i/>clinic's own pin</span>
                 </div>
             </t>

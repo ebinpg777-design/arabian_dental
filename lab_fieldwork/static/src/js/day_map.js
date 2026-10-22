@@ -88,14 +88,15 @@ export class FwDayMap extends Component {
         if (t.odo_km) {
             parts.push(`${t.odo_km} km on the odometer`);
         }
+        if (t.trail_km) {
+            // Field Live's own figure for the day: the same trail, the same distance.
+            parts.push(`${t.trail_km} km on the GPS trail`);
+        }
         if (t.road_km) {
             // The figure worth putting next to the odometer: both are road distance.
-            parts.push(`${t.road_km} km by road`);
+            parts.push(`${t.road_km} km by road between the doors`);
         } else if (t.straight_km) {
             parts.push(`${t.straight_km} km straight-line between fixes`);
-        }
-        if (t.trail_km) {
-            parts.push(`${t.trail_km} km recorded`);
         }
         if (t.route_state === "failed") {
             parts.push("routing service unavailable");
@@ -154,19 +155,38 @@ export class FwDayMap extends Component {
         this.map = map;
         L.tileLayer(track.tiles, { maxZoom: 19, attribution: track.attribution }).addTo(map);
 
-        // The recorded route, under everything else: this is where the phone actually
-        // was, minute by minute, so it is the ground the rest of the map sits on. Each
-        // segment is drawn on its own — a break in the line is a stretch the phone was
-        // not watching, and bridging it would invent a road nobody took.
-        for (const segment of track.trail || []) {
+        const segments = track.trail || [];
+        const live = segments.length > 0;
+
+        // The round as computed - by road between the doors, or straight lines
+        // without a route. Under the live trail and faint beside it: it is where the
+        // day SHOULD have gone, and the line on top is where the phone says it went.
+        // (client, 2026-10-22: "this map is not based on the live GPS map")
+        if (track.geometry && track.geometry.length > 1) {
+            L.polyline(track.geometry, live
+                ? { color: "#6d28d9", weight: 2, opacity: 0.55, dashArray: "6 6" }
+                : { color: "#6d28d9", weight: 4, opacity: 0.8 }).addTo(map);
+        } else {
+            const line = track.points.map((p) => [p.lat, p.lon]);
+            if (line.length > 1) {
+                L.polyline(line, {
+                    color: "#6d28d9", weight: live ? 2 : 3, opacity: live ? 0.5 : 0.7,
+                    dashArray: "6 6",
+                }).addTo(map);
+            }
+        }
+
+        // The live GPS trail - Field Live's own reading of the day, on top. Each leg
+        // is drawn on its own: a break in the line is a stretch the phone was not
+        // recording, and bridging it would invent a road nobody took.
+        for (const segment of segments) {
             const line = segment.map((p) => [p[0], p[1]]);
             L.polyline(line, {
-                color: "#0ea5e9", weight: 5, opacity: 0.45, lineJoin: "round",
+                color: "#0ea5e9", weight: 5, opacity: 0.9, lineJoin: "round",
             }).addTo(map);
         }
         // The ends of every break, marked, so a gap reads as a gap and not as a map
         // that failed to draw.
-        const segments = track.trail || [];
         segments.forEach((segment, index) => {
             const ends = [];
             if (index > 0) {
@@ -186,21 +206,25 @@ export class FwDayMap extends Component {
                 );
             }
         });
-
-        // The path through the day. A road route is drawn solid; without one the map
-        // falls back to straight lines, dashed, so nobody reads a crow's flight as a
-        // road that was driven.
-        if (track.geometry && track.geometry.length > 1) {
-            L.polyline(track.geometry, {
-                color: "#6d28d9", weight: 4, opacity: 0.8,
-            }).addTo(map);
-        } else {
-            const line = track.points.map((p) => [p.lat, p.lon]);
-            if (line.length > 1) {
-                L.polyline(line, {
-                    color: "#6d28d9", weight: 3, opacity: 0.7, dashArray: "6 6",
-                }).addTo(map);
-            }
+        // Faster than the limit, as Field Live marks it.
+        for (const fix of track.overspeed || []) {
+            L.circleMarker([fix[0], fix[1]], {
+                radius: 3, color: "#dc2626", weight: 1, fillColor: "#dc2626", fillOpacity: 0.9,
+            }).addTo(map).bindPopup(`${this.escape(String(fix[3]))} km/h at ${this.escape(fix[2])}`);
+        }
+        // Where the phone stood still away from a door, and for how long.
+        for (const halt of track.halts || []) {
+            L.marker([halt.lat, halt.lon], {
+                icon: L.divIcon({
+                    className: "o_fw_daymap_halt",
+                    html: `<span>${this.escape(String(halt.minutes))}′</span>`,
+                    iconSize: [26, 18], iconAnchor: [13, 9],
+                }),
+            }).addTo(map).bindPopup(
+                `<b>Stopped ${this.escape(String(halt.minutes))} min</b><br/>` +
+                `${this.escape(halt.from)}–${this.escape(halt.to)}` +
+                (halt.place ? `<br/>${this.escape(halt.place)}` : "")
+            );
         }
 
         // The clinics' own pins, and the gap to the fix taken there.
