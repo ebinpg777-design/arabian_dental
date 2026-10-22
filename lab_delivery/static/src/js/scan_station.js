@@ -47,7 +47,8 @@ export class ScanStation extends Component {
         this.action = useService("action");
         this.notification = usePlugin(NotificationPlugin);
         // A phone the lab has excused from scanning gets the keyboard and
-        // nothing else: the invoice number is typed. (client, 2026-09-28)
+        // nothing else: the order number on the case's sticker is typed.
+        // (client, 2026-09-28; the sticker, not the invoice, since 2026-10-22)
         this.live = isBarcodeScannerSupported() && !this.cameraExempt;
         this.state = proxy({
             // 'camera' only ever offered when the live scanner can exist at all.
@@ -178,7 +179,7 @@ export class ScanStation extends Component {
             (!settings.facingMode && !/back|rear|environment/.test(label));
         this.state.mirror = isFront;
         this.state.cameraStatus = isFront
-            ? _t("This is the front camera — hold the sheet up facing it, or use Photo.")
+            ? _t("This is the front camera — hold the sticker up facing it, or use Photo.")
             : "";
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
@@ -306,65 +307,80 @@ export class ScanStation extends Component {
      * many dark/light alternations run across the middle - a barcode's
      * signature). Cheap, from a 160x40 thumbnail, and honest enough to tell
      * "move back a little" from "bring the barcode into the slot".
+     *
+     * Read BOTH ways round, the busier axis speaking: an invoice's barcode runs
+     * across the frame, but the case sticker - the code to scan since
+     * 2026-10-22 - carries its barcode down its right edge, so a sticker held
+     * upright lays the bars flat and a left-to-right probe alone saw "no
+     * barcode in the slot" with one in plain view. (client, 2026-10-22)
      */
     measure(roi) {
         try {
-            const probe = document.createElement("canvas");
-            probe.width = 160;
-            probe.height = 40;
-            const ctx = probe.getContext("2d");
-            ctx.drawImage(roi, 0, 0, 160, 40);
-            const data = ctx.getImageData(0, 0, 160, 40).data;
-            const lum = (i) => 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-            let edge = 0;
-            let count = 0;
-            for (let y = 8; y < 32; y += 4) {
-                for (let x = 1; x < 160; x++) {
-                    edge += Math.abs(lum((y * 160 + x) * 4) - lum((y * 160 + x - 1) * 4));
-                    count++;
-                }
-            }
-            const meanEdge = edge / count;
-            const row = [];
-            for (let x = 0; x < 160; x++) {
-                row.push(lum((20 * 160 + x) * 4));
-            }
-            const mid = (Math.max(...row) + Math.min(...row)) / 2;
-            let transitions = 0;
-            let dark = row[0] < mid;
-            for (const v of row) {
-                const d = v < mid;
-                if (d !== dark) {
-                    transitions++;
-                    dark = d;
-                }
-            }
-            this.state.sharp = meanEdge > 18 ? 3 : meanEdge > 10 ? 2 : meanEdge > 5 ? 1 : 0;
-            this.state.bars = transitions > 40 ? 3 : transitions > 22 ? 2 : transitions > 10 ? 1 : 0;
+            const across = this.measureAxis(roi, true);
+            const down = this.measureAxis(roi, false);
+            const best = down.transitions > across.transitions ? down : across;
+            this.state.sharp = best.meanEdge > 18 ? 3 : best.meanEdge > 10 ? 2 : best.meanEdge > 5 ? 1 : 0;
+            this.state.bars = best.transitions > 40 ? 3 : best.transitions > 22 ? 2 : best.transitions > 10 ? 1 : 0;
             // How wide the pattern sits in the slot: the bench says a code that
             // spans less than a third of a 720p frame cannot be read by anything,
             // and one that spans half reads raw. So WIDTH is the meter that
             // actually moves the read rate - "fill the slot" is the instruction.
-            let first = -1;
-            let last = -1;
-            dark = row[0] < mid;
-            for (let x = 1; x < row.length; x++) {
-                const d = row[x] < mid;
-                if (d !== dark) {
-                    if (first < 0) {
-                        first = x;
-                    }
-                    last = x;
-                    dark = d;
-                }
-            }
-            const span = first >= 0 && transitions > 10 ? (last - first) / row.length : 0;
-            this.state.width = span > 0.6 ? 3 : span > 0.4 ? 2 : span > 0.2 ? 1 : 0;
+            this.state.width = best.span > 0.6 ? 3 : best.span > 0.4 ? 2 : best.span > 0.2 ? 1 : 0;
         } catch {
             this.state.sharp = 0;
             this.state.bars = 0;
             this.state.width = 0;
         }
+    }
+
+    /**
+     * One axis of `measure`, on a 160x40 thumbnail laid along it: the edge energy
+     * of six lines along the axis, then the dark/light alternations along its
+     * middle line and how much of the slot they span.
+     */
+    measureAxis(roi, across) {
+        const along = 160;
+        const probe = document.createElement("canvas");
+        probe.width = across ? along : 40;
+        probe.height = across ? 40 : along;
+        const ctx = probe.getContext("2d");
+        ctx.drawImage(roi, 0, 0, probe.width, probe.height);
+        const data = ctx.getImageData(0, 0, probe.width, probe.height).data;
+        // brightness at step `i` along the axis, line `j` across it
+        const lum = (i, j) => {
+            const k = ((across ? j : i) * probe.width + (across ? i : j)) * 4;
+            return 0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2];
+        };
+        let edge = 0;
+        let count = 0;
+        for (let j = 8; j < 32; j += 4) {
+            for (let i = 1; i < along; i++) {
+                edge += Math.abs(lum(i, j) - lum(i - 1, j));
+                count++;
+            }
+        }
+        const line = [];
+        for (let i = 0; i < along; i++) {
+            line.push(lum(i, 20));
+        }
+        const mid = (Math.max(...line) + Math.min(...line)) / 2;
+        let transitions = 0;
+        let first = -1;
+        let last = -1;
+        let dark = line[0] < mid;
+        for (let i = 1; i < line.length; i++) {
+            const d = line[i] < mid;
+            if (d !== dark) {
+                transitions++;
+                if (first < 0) {
+                    first = i;
+                }
+                last = i;
+                dark = d;
+            }
+        }
+        const span = first >= 0 && transitions > 10 ? (last - first) / line.length : 0;
+        return { meanEdge: edge / count, transitions, span };
     }
 
     /** A full-sensor still where the browser offers one; the video frame otherwise. */
@@ -573,13 +589,13 @@ export class ScanStation extends Component {
                 if (this.state.bars >= 2 && this.state.width <= 1) {
                     this.state.cameraStatus = this.state.zoom
                         ? _t("Bars in view but small — zoom in until they fill the slot.")
-                        : _t("Bars in view but small — bring the sheet closer until the bars fill the slot, keeping it sharp.");
+                        : _t("Bars in view but small — bring the sticker closer until the bars fill the slot, keeping it sharp.");
                 } else if (this.state.bars >= 2 && this.state.sharp <= 1) {
-                    this.state.cameraStatus = _t("Bars in view but blurry — move the sheet back a little, or zoom in instead of coming closer.");
+                    this.state.cameraStatus = _t("Bars in view but blurry — move the sticker back a little, or zoom in instead of coming closer.");
                 } else if (this.state.bars < 1) {
                     this.state.cameraStatus = this.state.mirror
-                        ? _t("No barcode in the slot — this is the FRONT camera. Hold the sheet up facing it, or use Photo.")
-                        : _t("No barcode in the slot — bring the bars inside the frame, filling its width.");
+                        ? _t("No barcode in the slot — this is the FRONT camera. Hold the sticker up facing it, or use Photo.")
+                        : _t("No barcode in the slot — bring the sticker's bars inside the frame, filling it.");
                 } else {
                     this.state.cameraStatus = _t("Almost — hold flat and still for a second, or tap Read this frame.");
                 }
@@ -699,9 +715,9 @@ export class ScanStation extends Component {
                     tone: "bad",
                     title: _t("No barcode in that photo"),
                     detail: _t(
-                        "Fill the frame and hold steady. If ONE sheet keeps failing, " +
-                        "its print is probably damaged — type the number printed " +
-                        "under the bars instead."
+                        "Fill the frame with the sticker's barcode and hold steady. If ONE " +
+                        "sticker keeps failing, its print is probably damaged — type the " +
+                        "order number printed at its top instead."
                     ),
                 });
                 return;
@@ -711,7 +727,7 @@ export class ScanStation extends Component {
                 this.card({
                     tone: "bad",
                     title: _t("That is the payment QR"),
-                    detail: _t("Aim at the black bars near the top of the invoice, not the SCAN TO PAY square."),
+                    detail: _t("Scan the barcode on the case's sticker, not the SCAN TO PAY square on the invoice."),
                 });
                 return;
             }
@@ -952,13 +968,15 @@ export class ScanStation extends Component {
         this.handleCode(code, "photo");
     }
 
+    /** The case's sticker is what to scan: one sticker per order, its barcode the
+     *  order number. (client, 2026-10-22) */
     get emptyHint() {
         if (this.state.mode === "camera") {
-            return _t("Point the camera at the barcode on the invoice.");
+            return _t("Point the camera at the barcode on the case's sticker.");
         }
         if (this.state.mode === "photo") {
-            return _t("Photograph the barcode on the invoice — it is read on this phone.");
+            return _t("Photograph the barcode on the case's sticker — it is read on this phone.");
         }
-        return _t("Type the invoice, order or delivery number — or use a handheld scanner.");
+        return _t("Type the order number on the case's sticker — or use a handheld scanner.");
     }
 }

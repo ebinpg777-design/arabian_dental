@@ -8,3 +8,4 @@ from . import test_carrier_clinic_access
 from . import test_phone_exceptions
 from . import test_desk_undelivered
 from . import test_sales_user_opens_order
+from . import test_sticker_scan

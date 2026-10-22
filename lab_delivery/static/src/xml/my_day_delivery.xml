@@ -22,10 +22,11 @@
         </div>
     </xpath>
     <xpath expr="//section[hasclass('o_fw_sec_do')]//div[hasclass('o_fw_sec_grid')]" position="inside">
-        <!-- The fastest path of all: point the phone at the barcode on the invoice
-             already in the bag. -->
+        <!-- The fastest path of all: point the phone at the barcode on the case's
+             sticker - one sticker per order, its barcode the order number.
+             (client, 2026-10-22: the sticker, not the invoice) -->
         <button class="o_fw_qa o_fw_qa_scan" t-on-click="() => this.scanDelivery()">
-            <i class="fa fa-qrcode" title="Scan the invoice barcode"/>
+            <i class="fa fa-qrcode" title="Scan the case sticker"/>
             <span>Scan</span>
         </button>
         <!-- Deliver opens the work waiting, not a blank wizard: the executive is
@@ -74,11 +75,17 @@
                               t-att-class="d.out ? 'o_fw_chip_open' : ''"
                               t-out="d.state_label"/>
                     </div>
+                    <!-- The order number first and bold: it is the big number on the
+                         case's sticker, so a box in the bag finds its line at a glance.
+                         (client, 2026-10-22) -->
                     <div class="o_fw_meta">
-                        <t t-out="d.name"/>
-                        <t t-if="d.patient"> · <t t-out="d.patient"/></t>
+                        <strong t-if="d.order" t-out="d.order"/>
+                        <t t-if="d.patient"><t t-if="d.order"> · </t><t t-out="d.patient"/></t>
                         <t t-if="d.scheduled_label"> · due <t t-out="d.scheduled_label"/></t>
-                        <t t-if="d.invoice"> · <strong t-out="d.invoice"/></t>
+                    </div>
+                    <div class="o_fw_meta text-muted small">
+                        <t t-out="d.name"/>
+                        <t t-if="d.invoice"> · <t t-out="d.invoice"/></t>
                     </div>
                     <div t-if="d.is_courier" class="o_fw_meta">
                         <i class="fa fa-cube me-1" title="Courier"/>

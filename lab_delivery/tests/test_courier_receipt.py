@@ -782,7 +782,7 @@ class TestScanToDeliver(TransactionCase):
             self.Delivery.scan(upi)
         message = str(caught.exception)
         self.assertIn('payment QR', message)
-        self.assertIn('under the doctor', message)
+        self.assertIn("case's sticker", message, "says which barcode to scan instead")
 
     def test_any_url_is_treated_the_same_way(self):
         with self.assertRaises(UserError) as caught:

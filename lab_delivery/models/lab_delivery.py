@@ -578,11 +578,15 @@ class LabDelivery(models.Model):
     def scan(self, code, latitude=False, longitude=False, accuracy=False):
         """One camera for every code the lab prints.
 
-        The invoice carries a barcode of its own number; the job card carries the
-        order number; a dispatch note carries the delivery number. An executive
-        standing at a door should not have to know which of the three they are
-        holding, so all three resolve here - and a mistyped or foreign code says so
-        by name rather than opening the wrong box.
+        THE STICKER ON THE CASE is the code to scan (client, 2026-10-22): every
+        sales order gets its own sticker (epg_sticker_print, one per order) whose
+        barcode is the order number, so one scan is one box - where an invoice may
+        cover several cases and has to ask which. A sticker made for a clinic's or a
+        route's whole parcel lists all its orders, and is answered with that list.
+        The older codes still resolve: the invoice's barcode, the job card's order
+        number, a dispatch note's delivery number - an executive at a door should
+        not have to know which sheet they are holding - and a mistyped or foreign
+        code says so by name rather than opening the wrong box.
 
         What comes back is never a silent state change: a scan is a camera reading,
         and a camera can read the wrong sheet. It opens the handover popup, already
@@ -600,16 +604,15 @@ class LabDelivery(models.Model):
         # payment link. Name it, and say which mark to aim at. (client, 2026-08-28)
         if '://' in token or token.lower().startswith('upi'):
             raise UserError(_(
-                "That is the payment QR code at the foot of the invoice, not the "
-                "case barcode. Aim at the barcode just under the doctor's address, "
-                "near the top of the sheet."))
+                "That is the payment QR code on the invoice, not a case barcode. "
+                "Scan the barcode on the case's sticker."))
 
         deliveries, orders = self._scan_resolve(token)
         if not deliveries and not orders:
             _logger.info("scan: %r matched nothing", token)
             raise UserError(_(
                 "Nothing in the lab carries the code %s. Scan the barcode on the "
-                "invoice, or type the invoice, order or delivery number.", token))
+                "case's sticker, or type the order number printed on it.", token))
 
         # An invoice can cover several cases. Guessing which box is in the hand is
         # exactly the mistake this feature exists to prevent, so it asks.
@@ -962,6 +965,15 @@ class LabDelivery(models.Model):
 
         Order = self.env['sale.order'].sudo()
         orders = Order.search(exact)
+        if not orders and ',' in token:
+            # A sticker for a clinic's or a route's whole parcel lists its orders,
+            # "S75482, S75483": each one a case of its own. (client, 2026-10-22)
+            names = [name.strip() for name in token.split(',') if name.strip()]
+            patterns = [n.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') for n in names]
+            # never an empty domain: a code of commas alone would match every order
+            if patterns:
+                orders = Order.search(['|'] * (len(patterns) - 1)
+                                      + [('name', '=ilike', pattern) for pattern in patterns])
         if not orders:
             invoices = self.env['account.move'].sudo().search(
                 exact + [('move_type', '=', 'out_invoice')])

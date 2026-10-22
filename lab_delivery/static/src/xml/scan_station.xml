@@ -89,7 +89,7 @@
                     <div class="o_fws_camhint" t-att-class="this.state.cameraStatus ? 'o_fws_camhint_warn' : ''">
                         <t t-if="this.state.cameraStatus" t-out="this.state.cameraStatus"/>
                         <t t-else="">Hold the barcode inside the frame. Blurry up close? Move
-                        the sheet back a little — the lab's server reads what the camera
+                        the sticker back a little — the lab's server reads what the camera
                         cannot.</t>
                     </div>
                 </t>
@@ -114,7 +114,7 @@
                                t-model.proxy="this.state.manual"
                                inputmode="text" autocomplete="off"
                                autocapitalize="characters" spellcheck="false"
-                               t-att-placeholder="this.cameraExempt ? 'Invoice number' : 'Invoice / order / delivery no.'"
+                               t-att-placeholder="this.cameraExempt ? 'Order number (on the sticker)' : 'Order no. (on the sticker)'"
                                t-on-keydown="this.onManualKeydown"/>
                         <button class="o_fws_go" t-att-disabled="!this.state.manual.trim() or this.state.busy"
                                 t-on-click="() => this.submitManual()">
@@ -123,7 +123,7 @@
                     </div>
                     <div class="o_fws_typehint">
                         <t t-if="this.cameraExempt">Scanning is switched off for this login:
-                        type the invoice number and press Enter.</t>
+                        type the order number from the case's sticker and press Enter.</t>
                         <t t-else="">A handheld scanner works anywhere on this screen — it types
                         the code and presses Enter by itself.</t>
                     </div>

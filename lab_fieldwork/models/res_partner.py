@@ -320,7 +320,7 @@ class ResUsers(models.Model):
     fw_camera_exception = fields.Boolean(
         string='Camera Access Exception',
         help="This person's phone cannot scan. On dispatched deliveries they "
-             "type the invoice number instead of scanning it.")
+             "type the order number from the case's sticker instead of scanning it.")
 
     def action_fw_set_exception(self):
         """Switch one phone exception on or off, from the executive's profile.

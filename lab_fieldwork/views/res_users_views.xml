@@ -25,7 +25,7 @@
                         day trail, and no location warning is shown to them or raised on
                         their day sheet.</p>
                         <p class="mb-0"><b>Camera:</b> on dispatched deliveries they type
-                        the invoice number instead of scanning it.</p>
+                        the order number from the case's sticker instead of scanning it.</p>
                     </div>
                 </page>
             </xpath>
@@ -58,7 +58,7 @@
                     <label for="fw_camera_exception"/>
                     <div class="d-flex align-items-center gap-2" name="fw_camera_switch">
                         <field name="fw_camera_exception" readonly="1" nolabel="1" widget="boolean"/>
-                        <span invisible="not fw_camera_exception" class="badge text-bg-warning">On: invoice number typed, not scanned</span>
+                        <span invisible="not fw_camera_exception" class="badge text-bg-warning">On: order number typed, not scanned</span>
                         <button name="action_fw_set_exception" type="object" string="Switch on" class="btn btn-sm btn-warning"
                                 context="{'fw_exception': 'camera', 'fw_value': True}" invisible="fw_camera_exception"/>
                         <button name="action_fw_set_exception" type="object" string="Switch off" class="btn btn-sm btn-secondary"
@@ -107,7 +107,7 @@
                         person - no position is asked for on visits, deliveries or the day trail,
                         and no location warning is shown to them or raised on their day sheet.</p>
                         <p class="mb-0"><b>Camera:</b> on dispatched deliveries they type the
-                        invoice number instead of scanning it.</p>
+                        order number from the case's sticker instead of scanning it.</p>
                     </div>
                 </group>
             </xpath>
