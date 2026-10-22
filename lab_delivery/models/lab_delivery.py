@@ -944,6 +944,34 @@ class LabDelivery(models.Model):
         except Exception:  # noqa: BLE001 - keeping evidence must never break the scan
             _logger.exception("decode_photo: could not keep the failed photo")
 
+    def _work_lines(self, items=3):
+        """One line per case, as the executive knows it: order number, patient, the
+        work (as on the case's sticker), then the delivery number.
+
+        Superuser for the DISPLAY STRINGS only, as in _scan_summary: the order may be
+        another salesperson's, and its lines a model the executive cannot read.
+        (client, 2026-10-22)
+        """
+        lines = []
+        for delivery in self.sudo():
+            order = delivery.sale_order_id
+            bits = [order.name] if order else []
+            patient = delivery.patient or (order.patient if order and 'patient' in order._fields else '')
+            if patient:
+                bits.append(_('Patient %s', patient))
+            work = []
+            for line in order.order_line.filtered(lambda l: not l.display_type and l.product_id):
+                qty = line.product_uom_qty
+                qty = int(qty) if qty == int(qty) else qty
+                # migrated product names carry stray spaces ("HAWLEYS PER JAW ")
+                work.append('%s ×%s' % (' '.join(line.product_id.display_name.split()), qty))
+            if len(work) > items:
+                work = work[:items] + [_('+%s more', len(work) - items)]
+            if work:
+                bits.append(', '.join(work))
+            lines.append(' · '.join(bits) + (' (%s)' % delivery.name if bits else delivery.name))
+        return lines
+
     @api.model
     def _scan_resolve(self, token):
         """(deliveries, orders) behind a scanned code, in order of directness.

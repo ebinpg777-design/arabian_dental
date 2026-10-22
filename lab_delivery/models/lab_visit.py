@@ -109,11 +109,14 @@ class LabVisit(models.Model):
             # executive go, rather than refuse someone who really did deliver.
             open_deliveries = open_deliveries._close_if_shipped()
             if open_deliveries:
+                # Each case as the executive knows it - the order number, the patient
+                # and the work, as on the case's sticker - not only DLV/..., a number
+                # nobody at the clinic door can match to a box. (client, 2026-10-22)
                 raise UserError(_(
-                    "The outcome says Delivered, but %(names)s for this clinic "
-                    "%(is_are)s still open. Mark the delivery itself as delivered "
-                    "first, or correct the outcome — otherwise the delay engine keeps "
-                    "chasing work that already arrived.",
-                    names=', '.join(open_deliveries.mapped('name')),
-                    is_are=_('is') if len(open_deliveries) == 1 else _('are')))
+                    "The outcome says Delivered, but this work for %(clinic)s is still "
+                    "open:\n%(cases)s\n\nMark the delivery itself as delivered first, or "
+                    "correct the outcome — otherwise the delay engine keeps chasing work "
+                    "that already arrived.",
+                    clinic=visit.partner_id.display_name,
+                    cases='\n'.join('• ' + line for line in open_deliveries._work_lines())))
         return super().do_check_out(*args, **kwargs)

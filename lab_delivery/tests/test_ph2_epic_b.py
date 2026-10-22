@@ -189,13 +189,23 @@ class TestEpicBDelivery(TransactionCase):
     def test_closing_a_visit_as_delivered_with_an_open_delivery_is_blocked(self):
         visit = self.env['lab.visit'].create({
             'partner_id': self.clinic.id, 'user_id': self.exec_user.id})
-        self.env['lab.delivery'].create({
-            'sale_order_id': self._order().id, 'executive_id': self.exec_user.id,
+        order = self._order()
+        if 'patient' in order._fields:
+            order.patient = 'Rani'
+        delivery = self.env['lab.delivery'].create({
+            'sale_order_id': order.id, 'executive_id': self.exec_user.id,
             'partner_id': self.clinic.id, 'scheduled_date': fields.Datetime.now(),
             'state': 'assigned'})
         visit.outcome = 'delivered'
-        with self.assertRaises(UserError):
+        with self.assertRaises(UserError) as caught:
             visit.do_check_out()
+        # the case as the executive knows it - order, patient, work - not only DLV/...
+        # (client, 2026-10-22)
+        message = str(caught.exception)
+        for text in (order.name, 'Epic B Appliance ×1', delivery.name, 'Epic B Clinic'):
+            self.assertIn(text, message)
+        if 'patient' in order._fields:
+            self.assertIn('Patient Rani', message)
 
     # ------------------------------------------------- shipped at the counter
     def _shipped_order(self):
