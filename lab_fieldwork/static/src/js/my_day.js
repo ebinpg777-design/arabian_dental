@@ -26,6 +26,8 @@ function newerVersion(candidate, current) {
 // How often the "Where I am" card re-reads the recorder: often enough that "last fix
 // 2 min ago" is true, rare enough to cost nothing. No RPC - the numbers are local.
 const WHERE_TICK_MS = 30000;
+// ...and while the app's recorder has just started and has no fix yet
+const WHERE_FIRST_FIX_MS = 5000;
 // A dismissed nudge is forgotten after this long: the key is visit + kind, and a
 // visit is one day's thing, so there is nothing to keep past the week.
 const DISMISS_KEEP_MS = 7 * 24 * 3600 * 1000;
@@ -62,10 +64,8 @@ export class LabMyDay extends Component {
             where: { status: null, server: null, trail: false, dismissed: {},
                      now: Date.now() } });
         this.state.where.dismissed = this.readDismissed();
-        onMounted(() => {
-            this._whereTimer = setInterval(() => this.syncWhere(), WHERE_TICK_MS);
-        });
-        onWillUnmount(() => clearInterval(this._whereTimer));
+        onMounted(() => this.scheduleWhere());
+        onWillUnmount(() => clearTimeout(this._whereTimer));
         // TAKE THE SCREEN TO THE ANSWER. The clinics panel opens below the day's
         // own work, which on a phone is far enough down that tapping the tile
         // looked like it had done nothing at all. The scroll has to wait for the
@@ -330,6 +330,21 @@ export class LabMyDay extends Component {
     /** Re-check with the server, then copy the recorder's numbers onto the card. */
     refreshWhere() {
         this.tracker.refresh().then(() => this.syncWhere(), () => this.syncWhere());
+    }
+
+    /**
+     * Read the recorder onto the card again, soon. Every 30 s normally - but every
+     * 5 s while the app's recorder runs with no fix yet: at 30 s a fix that had
+     * arrived stayed "waiting for the first fix" on the card for up to half a
+     * minute after Start my day. (client, 2026-10-22)
+     */
+    scheduleWhere() {
+        const s = this.state.where.status || {};
+        const waiting = s.native && s.recording && !s.lastFix;
+        this._whereTimer = setTimeout(() => {
+            this.syncWhere();
+            this.scheduleWhere();
+        }, waiting ? WHERE_FIRST_FIX_MS : WHERE_TICK_MS);
     }
 
     /** No RPC: the recorder already knows; this reads it onto reactive state. */

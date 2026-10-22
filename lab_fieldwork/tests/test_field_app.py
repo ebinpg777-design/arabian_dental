@@ -5,6 +5,7 @@ through the Traccar door without the Traccar switch, and the APK is kept by Fiel
 Work settings and served from the download page. (client, 2026-10-20: live GPS
 without the third-party Traccar Client app)"""
 import base64
+import json
 from datetime import timedelta
 
 from odoo import fields
@@ -325,3 +326,46 @@ class TestFieldAppIphone(HttpCase):
         self.assertIn('Version <b>1.0.2</b> is out', page.text)
         self.assertIn('itms-services://', page.text)
         self.assertNotIn('/lab_fieldwork/app/download', page.text)
+
+
+@tagged('post_install', '-at_install')
+class TestFieldStaffStartOnMyDay(HttpCase):
+    """ADL FieldX opens on My Day, not on Odoo's app screen and a tap on Field Work.
+    (client, 2026-10-22: "check the delay in connecting ADL FieldX app")"""
+
+    APP = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile ADLField/1.0.1'
+    BROWSER = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile'
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        env = cls.env(su=True)
+        executive = env.ref('lab_fieldwork.group_fieldwork_executive')
+        cls.exec_user = env['res.users'].create({
+            'login': 'start_exec', 'password': 'start_exec_pw1', 'name': 'Start Exec',
+            'group_ids': [(4, executive.id), (4, env.ref('base.group_user').id)]})
+        cls.office_user = env['res.users'].create({
+            'login': 'start_office', 'password': 'start_office_pw1', 'name': 'Start Office',
+            'group_ids': [(4, executive.id), (4, env.ref('sales_team.group_sale_manager').id)]})
+        cls.my_day = env.ref('lab_fieldwork.action_my_day')
+
+    def _home(self, login, agent):
+        self.authenticate(login, login + '_pw1')
+        reply = self.url_open('/web/session/get_session_info', data=json.dumps(
+            {'jsonrpc': '2.0', 'method': 'call', 'params': {}}),
+            headers={'Content-Type': 'application/json', 'User-Agent': agent})
+        return reply.json()['result'].get('home_action_id')
+
+    def test_an_executive_opens_on_my_day_in_the_app_and_in_a_browser(self):
+        self.assertEqual(self._home('start_exec', self.APP), self.my_day.id)
+        self.assertEqual(self._home('start_exec', self.BROWSER), self.my_day.id)
+
+    def test_office_staff_keep_odoos_start_screen_in_a_browser(self):
+        self.assertFalse(self._home('start_office', self.BROWSER))
+        self.assertEqual(self._home('start_office', self.APP), self.my_day.id,
+                         "inside the field app, the field app's page")
+
+    def test_a_home_action_set_on_the_user_still_wins(self):
+        own = self.env.ref('lab_fieldwork.action_visit_my')
+        self.exec_user.sudo().write({'action_id': own.id})
+        self.assertEqual(self._home('start_exec', self.APP), own.id)
