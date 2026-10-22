@@ -25,9 +25,10 @@ class PartnerStatementWizard(models.TransientModel):
              "whole route is printed, one statement per page, in route order.")
     min_outstanding = fields.Monetary(
         string='Skip outstanding below', default=1.0, currency_field='currency_id',
-        help="Customers whose outstanding on the end date is under this amount are left "
-             "out of the run — nobody posts a statement for 50 paise. Set it to 0 to "
-             "print everyone.")
+        help="In a run by Sales Route or for every partner with an open balance, those "
+             "whose outstanding on the end date is under this amount are left out - "
+             "nobody posts a statement for 50 paise. Set it to 0 to print everyone. "
+             "Partners picked by hand are always printed.")
     currency_id = fields.Many2one(related='company_id.currency_id')
     include_empty = fields.Boolean(
         string='Include clinics with no entries',
@@ -205,10 +206,10 @@ class PartnerStatementWizard(models.TransientModel):
         """Drop partners whose outstanding as of the end date is under the floor.
 
         Outstanding = unreconciled residual on the statement's account types, the same
-        figure the statement itself prints as "amount due". Applied to every selection
-        path — hand-picked partners included: the floor is about not POSTING trivial
-        statements, however the list was built. abs() so a payable run (negative sign)
-        and clinics we owe are judged by size, not sign.
+        figure the statement itself prints as "amount due". Applied to the runs - by
+        route, or every partner with an open balance - not to partners picked by hand
+        (see _partners). abs() so a payable run (negative sign) and clinics we owe are
+        judged by size, not sign.
         """
         self.ensure_one()
         floor = self.min_outstanding or 0.0
@@ -245,7 +246,12 @@ class PartnerStatementWizard(models.TransientModel):
             if self.team_ids:      # both given: the ticked clinics that are on those routes
                 partners = partners.filtered(
                     lambda p: self._route_of(p) in self.team_ids)
-            return self._sorted_by_route(self._above_threshold(partners))
+            # Picked by hand, a partner prints whenever its ledger has anything to show,
+            # paid up or not: the floor keeps trivial pages out of a RUN. A vendor is
+            # usually paid up, so with the floor every vendor statement came back
+            # "Nothing to print". (client, 2026-10-22: "Statement not working for
+            # vendors")
+            return self._sorted_by_route(self._partners_with_ledger(partners))
         if self.team_ids:          # no clinic ticked: the whole route
             return self._sorted_by_route(self._above_threshold(self._route_partners()))
         return self.env['res.partner']

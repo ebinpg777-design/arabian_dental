@@ -426,6 +426,20 @@ class TestEnteredBetweenFilter(TransactionCase):
         wide = self._wizard(min_outstanding=1.0)
         self.assertIn(self.partner, wide._partners())
 
+    def test_a_partner_picked_by_hand_prints_even_when_paid_up(self):
+        """A vendor is usually paid up, and its statement is still its bills and
+        payments: the floor drops partners from a run, never one picked by hand.
+        (client, 2026-10-22: "Statement not working for vendors")"""
+        inv = self._invoice(100.0)
+        inv._reverse_moves([{'date': self.day, 'invoice_date': self.day}], cancel=True)
+        self.assertEqual(inv.payment_state, 'reversed')
+        picked = self._wizard(min_outstanding=1.0)
+        self.assertIn(self.partner, picked._partners(), "picked by hand: printed")
+        run = self._wizard(min_outstanding=1.0, partner_ids=[(5, 0, 0)],
+                           all_with_balance=True)
+        self.assertNotIn(self.partner, run._partners(),
+                         "a run still leaves out what is settled")
+
 
 @tagged('post_install', '-at_install')
 class TestMigratedDocumentNumber(TransactionCase):
