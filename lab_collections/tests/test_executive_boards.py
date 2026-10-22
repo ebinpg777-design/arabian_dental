@@ -150,6 +150,24 @@ class TestExecutiveBoards(TransactionCase):
         whole = self.Perf.with_user(self.office).outstanding_summary()
         self.assertGreaterEqual(whole['total'], 50000300.0, "the office reads the whole book")
 
+    # ------------------------------------------------------------- the open items
+    def test_an_executives_open_items_are_their_round_and_theirs_alone(self):
+        """A card drill wrote every clinic's open items as the executive's rows, and
+        the executive could read every row in the table. (2026-10-22)"""
+        Item = self.env['lab.collection.open.item']
+        office = self.Perf.with_user(self.office).action_drill('open', options=self.options)
+        self.assertIn(self.rival_clinic, Item.search(office['domain']).partner_id,
+                      "fixture: the office's drill has the rival's clinic")
+        mine = self.Perf.with_user(self.executive).action_drill('open', options=self.options)
+        rows = Item.search(mine['domain'])
+        self.assertIn(self.clinic, rows.partner_id)
+        self.assertEqual(Item.search([('id', 'in', rows.ids)]).team_id, self.route,
+                         "the drill wrote their round only")
+        readable = Item.with_user(self.executive).search([])
+        self.assertEqual(readable.create_uid, self.executive,
+                         "nothing of the office's drill is theirs to read")
+        self.assertNotIn(self.rival_clinic, readable.sudo().partner_id)
+
     # ------------------------------------------------------------- the settings page
     def test_the_field_work_administrator_sets_it_for_the_company(self):
         Settings = self.env['lab.fieldwork.settings'].with_user(self.fw_admin)

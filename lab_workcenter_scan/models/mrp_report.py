@@ -25,6 +25,7 @@ A report that shows nothing while that is true is not honest, it is broken.
 from datetime import timedelta
 
 from odoo import _, api, fields, models
+from odoo.exceptions import AccessError
 
 WEEKS = 8
 TOP_PEOPLE = 12
@@ -1075,7 +1076,12 @@ class LabMrpReport(models.AbstractModel):
         short; and the shape of a week, which a total hides: the person who hits
         it every day and the one who hits it on Friday with a Monday of nothing.
         (client, 2026-09-09)
+
+        Manufacturing users only, like the report's menu: it reads every
+        technician's targets as superuser. (2026-10-22)
         """
+        if not (self.env.su or self.env.user.has_group('mrp.group_mrp_user')):
+            raise AccessError(_("The production report is for manufacturing users."))
         today = self.env['lab.station']._lab_today()
         date_from = fields.Date.to_date(date_from) if date_from else self._week_start(today)
         date_to = fields.Date.to_date(date_to) if date_to else date_from + timedelta(days=6)

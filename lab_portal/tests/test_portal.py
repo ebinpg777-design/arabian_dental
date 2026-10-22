@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.exceptions import AccessError
 from odoo.tests import TransactionCase, tagged
 
 
@@ -22,6 +23,19 @@ class TestLabPortal(TransactionCase):
         cls.case = cls.env['sale.order'].create({
             'partner_id': cls.clinic.id, 'patient': 'Small Patient',
             'order_line': [(0, 0, {'product_id': product.id, 'product_uom_qty': 1})]})
+
+    def test_a_case_track_is_only_for_who_may_read_the_case(self):
+        """Read as superuser behind the page, which checks the case first; over RPC
+        it answered for any order id. (2026-10-22)"""
+        stranger = self.env['res.users'].create({
+            'name': 'Dr Elsewhere', 'login': 'portal_doc_elsewhere',
+            'partner_id': self.other_clinic.id,
+            'group_ids': [(6, 0, [self.env.ref('base.group_portal').id])]})
+        for method in ('portal_productions', 'portal_case_steps'):
+            with self.subTest(method=method), self.assertRaises(AccessError):
+                getattr(self.case.with_user(stranger), method)()
+        self.assertEqual(self.case.sudo().portal_productions(), [], "the page's own way in")
+        self.assertEqual(self.case.sudo().portal_case_steps(), [])
 
     def test_a_new_case_reads_as_registered(self):
         self.assertEqual(self.case.portal_stage, 'registered')

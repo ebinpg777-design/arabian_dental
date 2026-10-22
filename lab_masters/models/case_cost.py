@@ -9,7 +9,13 @@ station board plans. When somebody corrects a rate, this moves.
 One call fills the screen. A board that asks the server once per product is a
 board nobody opens twice.
 """
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import AccessError
+
+
+# The groups the Case Cost menus are shown to (Cost Centres; Manufacturing > Reporting).
+CASE_COST_GROUPS = ('account.group_account_readonly', 'hr.group_hr_user',
+                    'mrp.group_mrp_manager')
 
 
 class LabCaseCost(models.AbstractModel):
@@ -70,7 +76,13 @@ class LabCaseCost(models.AbstractModel):
         Returns one row a product with its material lines, its stages grouped by
         department, and the three numbers that matter: what it costs, what it
         sells for, and what is left.
+
+        Read as superuser, so only for the people the screen's menus are for: every
+        bill of materials with its cost, price and margin is not a field
+        executive's to fetch over RPC. (2026-10-22)
         """
+        if not (self.env.su or any(self.env.user.has_group(g) for g in CASE_COST_GROUPS)):
+            raise AccessError(_("Case Cost is for the cost centres and manufacturing managers."))
         boms = self.env['mrp.bom'].sudo().search([], order='code')
         sold = self._sold_last_year(boms.product_tmpl_id)
         currency = self.env.company.currency_id

@@ -574,7 +574,10 @@ class DoctorTicket(models.Model):
     @api.model
     def doctor_habits(self, doctor_id):
         """When this practice picks up, from every call ever logged to it: the two hours of
-        the day that were answered most, and how many attempts in ten reach somebody."""
+        the day that were answered most, and how many attempts in ten reach somebody.
+
+        Read as superuser, so the desk's alone (2026-10-22)."""
+        self._check_desk()
         Log = self.env['lab.doctor.call.log'].sudo()
         calls = Log.search_read(
             [('order_id.partner_id.commercial_partner_id', '=', int(doctor_id))],

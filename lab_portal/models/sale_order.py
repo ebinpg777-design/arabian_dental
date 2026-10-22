@@ -117,8 +117,14 @@ class SaleOrder(models.Model):
         `mrp.production`, and must not be able to. What is published here is the
         appliance, where it is and whether it is finished — never who worked on it, how
         long it took, or what it cost.
+
+        The portal page hands this a record it has already checked; anybody else
+        must be able to read the order themselves - over RPC this answered for any
+        order id. (2026-10-22)
         """
         self.ensure_one()
+        if not self.env.su:
+            self.check_access('read')
         out = []
         productions = self.sudo().mrp_production_ids.filtered(
             lambda m: m.state != 'cancel').sorted('id')
@@ -189,6 +195,8 @@ class SaleOrder(models.Model):
         technician names. A customer view is not a window into how the lab is staffed.
         """
         self.ensure_one()
+        if not self.env.su:          # see portal_productions
+            self.check_access('read')
         steps = []
         # Same reasoning as the stage: the step NAMES are published, the work orders are
         # not readable by a portal user.

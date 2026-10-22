@@ -109,8 +109,10 @@ class TestOpenItemPrintingForExecutives(TransactionCase):
         order.action_confirm()
         order._create_invoices()
         order.invoice_ids.action_post()
-        items = cls.env['lab.collection.performance']._populate_open_items(
-            cls.env.company, [partner.id])
+        # Written by the executive, as their own drill writes them: an executive
+        # reads only the open-item rows they made. (2026-10-22)
+        items = cls.env['lab.collection.performance'].with_user(
+            cls.executive)._populate_open_items(cls.env.company, [partner.id])
         return items.filtered(lambda i: i.move_id == order.invoice_ids)
 
     def test_an_executive_downloads_the_invoice_and_opens_the_statement_dialog(self):

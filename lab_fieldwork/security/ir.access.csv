@@ -29,9 +29,9 @@ access_visit_purpose_all,visit purpose read,lab.visit.purpose,base.group_user,r,
 access_visit_purpose_mgr,visit purpose manage,lab.visit.purpose,lab_fieldwork.group_fieldwork_admin,crud,
 access_visit_outcome_all,visit outcome read,lab.visit.outcome,base.group_user,r,
 access_visit_outcome_mgr,visit outcome manage,lab.visit.outcome,lab_fieldwork.group_fieldwork_admin,crud,
-access_quick_entry,quick entry,lab.case.quick.entry,lab_fieldwork.group_fieldwork_executive,crud,
+access_quick_entry,quick entry,lab.case.quick.entry,lab_fieldwork.group_fieldwork_executive,crud,"[('create_uid', '=', user.id)]"
 access_quick_entry_mgr,quick entry mgr,lab.case.quick.entry,lab_fieldwork.group_fieldwork_manager,crud,
-access_quick_entry_line,quick entry line,lab.case.quick.entry.line,lab_fieldwork.group_fieldwork_executive,crud,
+access_quick_entry_line,quick entry line,lab.case.quick.entry.line,lab_fieldwork.group_fieldwork_executive,crud,"[('create_uid', '=', user.id)]"
 access_quick_entry_line_mgr,quick entry line mgr,lab.case.quick.entry.line,lab_fieldwork.group_fieldwork_manager,crud,
 access_res_partner_fw_executive,res.partner field executive create,res.partner,lab_fieldwork.group_fieldwork_executive,c,
 rule_partner_executive_confined,Executives: clinics on their round only,res.partner,,r,"[(1, '=', 1)] if not user.has_group('lab_fieldwork.group_fieldwork_executive') or user.has_group('lab_fieldwork.group_fieldwork_manager') or user.has_group('base.group_system') or user.has_group('base.group_erp_manager') else [('fw_reachable', '=', True)]"
@@ -57,7 +57,7 @@ rule_sale_order_executive_visited,Field executives read confirmed orders of clin
                 '|', ('partner_id.visit_ids.user_id', '=', user.id),
                      ('partner_id.commercial_partner_id.visit_ids.user_id', '=', user.id)]"
 rule_sale_order_manager_all,Field managers read every order,sale.order,lab_fieldwork.group_fieldwork_manager,r,
-access_collect_cash_exec,record cash collected executive,lab.collect.cash,lab_fieldwork.group_fieldwork_executive,cru,
+access_collect_cash_exec,record cash collected executive,lab.collect.cash,lab_fieldwork.group_fieldwork_executive,cru,"[('create_uid', '=', user.id)]"
 access_collect_cash_mgr,record cash collected manager,lab.collect.cash,lab_fieldwork.group_fieldwork_manager,cru,
 rule_cash_collection_own,Cash collection: own,lab.cash.collection,lab_fieldwork.group_fieldwork_executive,cru,"[('user_id', '=', user.id)]"
 rule_cash_collection_all,Cash collection: all,lab.cash.collection,lab_fieldwork.group_fieldwork_manager,crud,

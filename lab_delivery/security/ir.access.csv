@@ -4,10 +4,10 @@ rule_delivery_own,Executives see their own deliveries,lab.delivery,lab_fieldwork
 rule_delivery_all,Registration and managers see every delivery,lab.delivery,lab_order_control.group_lab_order_checker,crud,
 rule_delivery_all_1,Registration and managers see every delivery,lab.delivery,lab_fieldwork.group_fieldwork_manager,crud,
 rule_delivery_all_2,Registration and managers see every delivery,lab.delivery,base.group_system,r,
-access_delivery_done_wizard,delivery done wizard,lab.delivery.done.wizard,lab_fieldwork.group_fieldwork_executive,crud,
+access_delivery_done_wizard,delivery done wizard,lab.delivery.done.wizard,lab_fieldwork.group_fieldwork_executive,crud,"[('create_uid', '=', user.id)]"
 access_delivery_done_wizard_mgr,delivery done wizard mgr,lab.delivery.done.wizard,lab_fieldwork.group_fieldwork_manager,crud,
 access_delivery_done_wizard_checker,delivery done wizard checker,lab.delivery.done.wizard,lab_order_control.group_lab_order_checker,crud,
-access_delivery_new_wizard_exec,delivery new wizard exec,lab.delivery.new.wizard,lab_fieldwork.group_fieldwork_executive,crud,
+access_delivery_new_wizard_exec,delivery new wizard exec,lab.delivery.new.wizard,lab_fieldwork.group_fieldwork_executive,crud,"[('create_uid', '=', user.id)]"
 access_delivery_new_wizard_mgr,delivery new wizard mgr,lab.delivery.new.wizard,lab_fieldwork.group_fieldwork_manager,crud,
 access_delivery_new_wizard_checker,delivery new wizard checker,lab.delivery.new.wizard,lab_order_control.group_lab_order_checker,crud,
 access_courier_exec,courier executive,lab.courier,lab_fieldwork.group_fieldwork_executive,r,

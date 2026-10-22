@@ -1980,19 +1980,27 @@ class CollectionPerformance(models.AbstractModel):
             'context': {'create': False},
         }
 
-    def _populate_open_items(self, company, partner_ids=None):
+    def _populate_open_items(self, company, partner_ids=None, team_ids=None):
         """Fill the open-item rows for this drill, straight from the countback.
 
         INSERT ... SELECT rather than ORM create(): the rows are a read-only
         snapshot of a query that has just run, and 9,455 of them through the ORM
         would cost seconds for nothing. They are transient - Odoo vacuums them.
+
+        ``team_ids`` keeps the rows to those routes: a field executive's drill is
+        their round, and the rows are theirs to read (ir.access). Written for the
+        whole company, a plain read of the model handed them every clinic's open
+        items. (2026-10-22)
         """
         Item = self.env['lab.collection.open.item'].sudo()
         receivable = self._receivable_ids(company)
-        if partner_ids is not None and not partner_ids:
+        if (partner_ids is not None and not partner_ids) or \
+                (team_ids is not None and not team_ids):
             return Item.browse()
         partner_sql = SQL("AND l.partner_id IN %s", tuple(partner_ids)) \
             if partner_ids is not None else SQL("")
+        team_sql = SQL("AND c.team_key IN %s", tuple(team_ids)) \
+            if team_ids is not None else SQL("")
         as_of = fields.Date.context_today(self)
         # The same stale-ledger trap _open_debits guards against: raw SQL sees only
         # what is written, so an invoice posted earlier in this transaction was
@@ -2011,12 +2019,12 @@ class CollectionPerformance(models.AbstractModel):
                    c.days, c.open_amt, c.billed, c.description,
                    c.move_type, c.patient_names, c.product_names
               FROM (%s) c
-             WHERE c.open_amt > 0
+             WHERE c.open_amt > 0 %s
          RETURNING id
             """,
             self.env.uid, self.env.uid, company.id,
             company.currency_id.id,
-            self._countback_sql(company, receivable, partner_sql, as_of)))
+            self._countback_sql(company, receivable, partner_sql, as_of), team_sql))
         return Item.browse([r[0] for r in self.env.cr.fetchall()])
 
     def _open_item_action(self, kind, group, key, company, scope=None):
@@ -2028,7 +2036,9 @@ class CollectionPerformance(models.AbstractModel):
             users = self._partner_user_map(
                 company, self._receivable_partner_ids(company))
             partner_ids = [p for p, u in users.items() if u == key]
-        items = self._populate_open_items(company, partner_ids)
+        items = self._populate_open_items(
+            company, partner_ids,
+            team_ids=scope if scope is not None and partner_ids is None else None)
         domain = [('id', 'in', items.ids)]
         labels = dict((b[0], b[1]) for b in AGE_BUCKETS)
         if kind == 'overdue':

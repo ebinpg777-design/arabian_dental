@@ -31,7 +31,7 @@ from datetime import timedelta
 from collections import defaultdict
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 from odoo.tools import format_date, formatLang
 
 LOOKBACK_DAYS = 60      # radius calibration window, as Field Health had it
@@ -244,7 +244,17 @@ class LabDesk(models.AbstractModel):
         }
 
     @api.model
+    def _check_desk_access(self):
+        """The desks' figures are the whole field force's - every executive's cash,
+        phone, whereabouts and target, read as superuser - so they are the
+        managers'. The desk screens are gone (2026-10-20) but these stay callable
+        over RPC, where an executive could fetch them all. (2026-10-22)"""
+        if not (self.env.su or self.env['lab.location.ping']._is_manager()):
+            raise AccessError(_("The field desks are for the field work managers."))
+
+    @api.model
     def get_ops_desk(self, day=None):
+        self._check_desk_access()
         today, _real_today = self._pinned_day(day)
         board = self._field_board(today)
         users, visits = board['users'], board['visits']
@@ -471,6 +481,7 @@ class LabDesk(models.AbstractModel):
     # =========================================================== marketing desk
     @api.model
     def get_marketing_desk(self, day=None):
+        self._check_desk_access()
         today, real_today = self._pinned_day(day)
         return {
             'currency_id': self.env.company.currency_id.id,
@@ -1518,6 +1529,7 @@ class LabDesk(models.AbstractModel):
 
     @api.model
     def get_admin_desk(self, day=None):
+        self._check_desk_access()
         Sheet = self.env['lab.daily.update']
         today, real_today = self._pinned_day(day)
         # ONE ledger scan for the whole page: receivables, the unvisited

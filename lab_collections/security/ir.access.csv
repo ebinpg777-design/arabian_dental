@@ -1,5 +1,5 @@
 id,name,model_id,group_id/id,operation,domain
 access_lab_collection_open_item,lab.collection.open.item,lab.collection.open.item,account.group_account_readonly,crud,
-access_lab_collection_open_item_exec,lab.collection.open.item.exec,lab.collection.open.item,lab_fieldwork.group_fieldwork_executive,r,
+access_lab_collection_open_item_exec,lab.collection.open.item.exec,lab.collection.open.item,lab_fieldwork.group_fieldwork_executive,r,"[('create_uid', '=', user.id)]"
 access_lab_collection_open_item_billing,lab.collection.open.item.billing,lab.collection.open.item,account.group_account_invoice,r,
 access_lab_collection_open_item_fw_manager,lab.collection.open.item.fw.manager,lab.collection.open.item,lab_fieldwork.group_fieldwork_manager,r,

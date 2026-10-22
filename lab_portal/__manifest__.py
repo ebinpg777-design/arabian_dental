@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Customer Portal',
-    'version': '20.0.1.1.0',
+    'version': '20.0.1.1.1',
     'summary': 'Doctors track their cases and see where each one is in the lab',
     'description': """
 Customer Portal
