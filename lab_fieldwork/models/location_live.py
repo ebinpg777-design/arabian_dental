@@ -50,6 +50,7 @@ JUMP_MIN_M = 250.0          # ...and shorter than a normal 30-second step it is 
                             # the rule is about long lines across the map, not about seconds
 TRAIL_GAP_SECONDS = 900     # silence longer than this breaks the trail into a new leg
 MAX_TRAIL_POINTS = 1500     # what the browser is sent per executive per day
+TRAIL_ACCURACY_M = 100      # a fix at this many metres or worse is not drawn (see _trail_accuracy)
 MAX_OVERSPEED_POINTS = 400
 HALT_RADIUS_M = 60.0        # how far a "stopped" phone may drift and still be stopped
 HALT_SPEED_KMH = 5.0
@@ -233,17 +234,40 @@ class LabLocationPingLive(models.Model):
 
     # ---------------------------------------------------------------- reading the day
     @api.model
-    def _day_points(self, user, day):
-        """The day's trail as [(ts, lat, lon, speed_kmh, overspeed, battery), ...]."""
+    def _trail_accuracy(self):
+        """A fix the phone itself puts at this many metres or worse is where the
+        phone roughly is, never a point on a road. Indoors a phone reports a cell
+        tower's fixed position at "100 m" every other fix, between real GPS fixes:
+        drawn, the trail was a star of lines radiating from the tower (Abdul
+        Latheef, 2026-10-22). 0 draws every fix."""
+        return max(0, self._param_int('lab_fieldwork.trail_accuracy_m', TRAIL_ACCURACY_M))
+
+    @api.model
+    def _day_fixes(self, user, day):
+        """Every fix of the day, in order, as [(ts, lat, lon, speed_kmh, overspeed,
+        battery, accuracy_m, source), ...] - the latest one is where the phone is."""
         pings = self.sudo().search_read(
             [('user_id', '=', user.id), ('date', '=', day)],
             ['ts', 'latitude', 'longitude', 'speed_kmh', 'overspeed', 'battery', 'accuracy_m', 'source'],
             order='ts')
-        return drop_spikes([
-            (p['ts'], p['latitude'], p['longitude'], p['speed_kmh'] or 0.0,
-             bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0,
-             p['source'] or 'browser')
-            for p in pings])
+        return [(p['ts'], p['latitude'], p['longitude'], p['speed_kmh'] or 0.0,
+                 bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0,
+                 p['source'] or 'browser')
+                for p in pings]
+
+    @api.model
+    def _trail_points(self, fixes):
+        """The fixes worth drawing and measuring: accurate enough to sit on a road
+        (_trail_accuracy), and no GPS spike (drop_spikes)."""
+        limit = self._trail_accuracy()
+        if limit:
+            fixes = [p for p in fixes if not p[6] or p[6] < limit]
+        return drop_spikes(fixes)
+
+    @api.model
+    def _day_points(self, user, day):
+        """The day's TRAIL: what the map draws and the distance counts."""
+        return self._trail_points(self._day_fixes(user, day))
 
     @api.model
     def _trail_km_for(self, user, day):
@@ -541,7 +565,8 @@ class LabLocationPingLive(models.Model):
             [('user_id', 'in', users.ids)])}
         executives, clinics = [], {}
         for index, user in enumerate(users):
-            points = self._day_points(user, day)
+            fixes = self._day_fixes(user, day)
+            points = self._trail_points(fixes)
             visits = Visit.search([('user_id', '=', user.id), ('date', '=', day),
                                    ('state', '!=', 'cancel')], order='id')
             open_visit = visits.filtered(lambda v: v.state == 'open')[:1]
@@ -553,7 +578,8 @@ class LabLocationPingLive(models.Model):
                     [('employee_id', '=', employee.id), ('check_out', '=', False)],
                     order='check_in desc', limit=1)
                 duty_since = epoch(att.check_in) if att else None
-            last = points[-1] if points else None
+            # the latest fix whatever its accuracy: where the phone is, not a road
+            last = fixes[-1] if fixes else None
             status, label, since = self._status_of(user, last, open_visit, on_duty, is_today, now)
             legs, gaps = split_legs(points)
             budget = max(50, int(max_points or MAX_TRAIL_POINTS))
@@ -620,7 +646,8 @@ class LabLocationPingLive(models.Model):
                                  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
             'attribution': icp.get_str('lab_fieldwork.map_attribution',
                                        '&copy; OpenStreetMap contributors'),
-            'config': {'live_ms': 20000, 'stale_minutes': self._stale_minutes(),
+            'config': {'live_ms': 20000, 'trail_accuracy_m': self._trail_accuracy(),
+                       'stale_minutes': self._stale_minutes(),
                        'offline_minutes': self._offline_minutes(), 'speed_limit': self._speed_limit()},
             'executives': executives,
             'clinics': list(clinics.values()),
@@ -764,10 +791,10 @@ class LabMyDayLive(models.AbstractModel):
         state['ios_download'] = self.env['lab.field.app']._ios_info()
         Ping = self.env['lab.location.ping'].sudo()
         day = Ping._today_for(user)
-        points = Ping._day_points(user, day)
-        state['km_today'] = trail_km(points)
-        state['last_fix_age_s'] = int((fields.Datetime.now() - points[-1][0]).total_seconds()) \
-            if points else None
+        fixes = Ping._day_fixes(user, day)
+        state['km_today'] = trail_km(Ping._trail_points(fixes))
+        state['last_fix_age_s'] = int((fields.Datetime.now() - fixes[-1][0]).total_seconds()) \
+            if fixes else None
         nudges = []
         if (state.get('enabled') or state.get('app_mode')) and state.get('on_duty') \
                 and Ping._auto_arrive_enabled():
