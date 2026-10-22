@@ -52,6 +52,9 @@ ROUTING_TIMEOUT = 8
 # OSRM takes coordinates in the URL; a very long round would make a URL nobody's proxy
 # will forward. Beyond this the track is thinned evenly before asking.
 MAX_WAYPOINTS = 60
+# Longer than this between two recorded positions and the phone was asleep, out
+# of coverage, or in somebody's pocket with the app closed. The trail breaks.
+TRAIL_GAP_SECONDS = 900
 
 
 class LabDailyUpdate(models.Model):
@@ -261,17 +264,13 @@ class LabDailyUpdate(models.Model):
             del point['sort']
 
         geometry = self._road_route(points, force=force_route)
-        live = self._track_live()
-        trail = live['trail']
+        trail, trail_km = self._track_trail()
         return {
             'points': points,
             'clinics': list(clinics.values()),
             'geometry': geometry or [],
             'trail': trail,
-            'breaks': live['breaks'],
-            'trail_km': live['trail_km'],
-            'halts': live['halts'],
-            'overspeed': live['overspeed'],
+            'trail_km': trail_km,
             'road_km': self.route_km if geometry else 0.0,
             'route_state': self.route_state,
             'bounds': self._track_bounds(points, clinics.values(), geometry, trail),
@@ -310,7 +309,7 @@ class LabDailyUpdate(models.Model):
         lats = [p['lat'] for p in points] + [c['lat'] for c in clinics]
         lons = [p['lon'] for p in points] + [c['lon'] for c in clinics]
         for segment in (trail or []):
-            for lat, lon, *_rest in segment:
+            for lat, lon, _label in segment:
                 lats.append(lat)
                 lons.append(lon)
         # A road route can swing wide of every door it joins; frame the line, not
@@ -328,58 +327,42 @@ class LabDailyUpdate(models.Model):
             west, east = middle - FALLBACK_SPAN_DEG, middle + FALLBACK_SPAN_DEG
         return [[south, west], [north, east]]
 
-    def _track_live(self):
-        """The day as the live GPS map reads it: Field Live's own trail, distance,
-        halts and speeding, for this executive and this day.
+    def _track_trail(self):
+        """The recorded route between the doors, split at the gaps.
 
-        The day sheet drew the same pings its own way - the raw sum of every step,
-        jitter at a standstill included - so one day read 133 km recorded against
-        66 on the odometer, and the round drawn by road sat on top of the line the
-        phone recorded. The trail is now Field Live's: cut into legs at the same
-        silences, the same distance (still fixes and impossible jumps left out).
-        (client, 2026-10-22: "this map is not based on the live GPS map")
+        Returned as a LIST OF SEGMENTS rather than one line, and that is the point. A
+        browser only watches while its page is open, so a locked phone or a switched
+        app leaves a hole in the record. Joining the two ends of that hole would draw a
+        road nobody can say was taken — the one thing a tracking map must never do. A
+        gap stays a gap, and the map shows it as one.
 
-        The trail is a LIST OF SEGMENTS rather than one line, and that is the point. A
-        recording stops when the app is closed or the phone has no signal, and joining
-        the two ends of that hole would draw a road nobody can say was taken - the one
-        thing a tracking map must never do. A gap stays a gap, and the map shows it.
+        Distance is the sum WITHIN segments only: what crossed a gap is unknown, and
+        adding a straight line across it would put a number on a guess.
         """
-        # Imported here: location_live extends lab.location.ping, which loads after
-        # this module, and its helpers are the live map's single definition.
-        from .location_live import (JUMP_MIN_M, MAX_KMH, MAX_OVERSPEED_POINTS,
-                                    TRAIL_GAP_SECONDS, kmh_between, simplify, split_legs,
-                                    trail_km)
-        points = self.env['lab.location.ping'].sudo()._day_points(self.user_id, self.date)
-        local = self.with_context(tz=self.user_id.tz or 'UTC')
-
-        def hm(when):
-            return fields.Datetime.context_timestamp(local, when).strftime('%H:%M') if when else ''
-
-        legs = [leg for leg in split_legs(points)[0] if len(leg) > 1]
-        trail = [[[p[1], p[2], hm(p[0]), round(p[3] or 0.0)] for p in simplify(leg)]
-                 for leg in legs]
-        # Why each break in the line is there: the phone went quiet, or its position
-        # jumped (a GPS error - the line is left out rather than drawn across the map).
-        breaks = []
-        for before, after in zip(legs, legs[1:]):
-            a, b = before[-1], after[0]
-            seconds = int((b[0] - a[0]).total_seconds())
-            metres = metres_between(a[1], a[2], b[1], b[2]) or 0.0
-            jump = (seconds <= TRAIL_GAP_SECONDS and metres > JUMP_MIN_M
-                    and kmh_between(a, b) > MAX_KMH)
-            breaks.append({'kind': 'jump' if jump else 'silence', 'seconds': seconds,
-                           'minutes': seconds // 60, 'from': hm(a[0]), 'to': hm(b[0]),
-                           'km': round(metres / 1000.0, 1)})
-        halts = [{'lat': h.latitude, 'lon': h.longitude, 'minutes': h.minutes,
-                  'place': h.place or '', 'from': hm(h.started_at), 'to': hm(h.ended_at)}
-                 for h in self.env['lab.location.halt'].sudo().search(
-                     [('user_id', '=', self.user_id.id), ('date', '=', self.date)],
-                     order='started_at')]
-        overspeed = [[p[1], p[2], hm(p[0]), round(p[3] or 0.0)]
-                     for p in points if p[4]][-MAX_OVERSPEED_POINTS:]
-        return {'trail': trail, 'breaks': breaks,
-                'trail_km': round(trail_km(points), 1) if points else 0.0,
-                'halts': halts, 'overspeed': overspeed}
+        pings = self.env['lab.location.ping'].sudo().search(
+            [('user_id', '=', self.user_id.id), ('date', '=', self.date)], order='ts')
+        if not pings:
+            return [], 0.0
+        segments, current = [], []
+        metres_total, previous = 0.0, None
+        for ping in pings:
+            local = fields.Datetime.context_timestamp(
+                self.with_context(tz=self.user_id.tz or 'UTC'), ping.ts)
+            if previous is not None:
+                waited = (ping.ts - previous.ts).total_seconds()
+                if waited > TRAIL_GAP_SECONDS:
+                    if len(current) > 1:
+                        segments.append(current)
+                    current = []
+                else:
+                    step = metres_between(previous.latitude, previous.longitude,
+                                          ping.latitude, ping.longitude)
+                    metres_total += step or 0.0
+            current.append([ping.latitude, ping.longitude, local.strftime('%H:%M')])
+            previous = ping
+        if len(current) > 1:
+            segments.append(current)
+        return segments, round(metres_total / 1000.0, 1)
 
     def _track_straight_km(self, points):
         """Great-circle distance along the track.
