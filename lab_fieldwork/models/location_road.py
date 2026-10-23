@@ -203,12 +203,40 @@ class LabLocationPingRoad(models.Model):
             for a, b in zip(wps, wps[1:]):
                 mode = mode_of.get(id(b), 'still')
                 when, speed = epoch(b[0]), b[3]
-                for lat, lon in cache.get(str(when)) or [_vertex(b[1], b[2])]:
+                geometry = cache.get(str(when))
+                # A stretch the phone crossed with nothing recorded is drawn as the
+                # drive it was once its road is known, not as a dotted straight line
+                # (client, 2026-10-23: "why these dots ... the map should be realistic").
+                if mode == 'blind' and geometry and len(geometry) > 1:
+                    mode = 'vehicle'
+                for lat, lon in geometry or [_vertex(b[1], b[2])]:
                     if abs(out[-1][0] - lat) < 1e-6 and abs(out[-1][1] - lon) < 1e-6:
                         continue
                     out.append([lat, lon, when, speed, mode])
             legs_out.append(out)
         return {'state': state, 'legs': legs_out, 'complete': complete}
+
+    @api.model
+    def _cron_fill_roads(self):
+        """The roads of everyone recording today, a bounded number of requests each,
+        every five minutes: the team view draws a stretch the phone crossed with no
+        signal along its road from what is known here (get_live_map), and asks
+        nothing itself. The person in focus still asks for the rest at once
+        (get_road_trail). (client, 2026-10-23)"""
+        if not (self._road_trail_enabled() and routing_url(self.env)):
+            return
+        Ping = self.sudo()
+        Users = self.env['res.users'].sudo().with_context(active_test=False)
+        self.env.cr.execute("SELECT DISTINCT user_id FROM lab_location_ping WHERE date >= %s",
+                            [fields.Date.today() - timedelta(days=1)])
+        filled = 0
+        for (user_id,) in self.env.cr.fetchall():
+            user = Users.browse(user_id)
+            day = Ping._today_for(user)
+            if Ping.search_count([('user_id', '=', user.id), ('date', '=', day)], limit=1):
+                Ping._road_legs(user, day)
+                filled += 1
+        _logger.info("road trail: %d trail(s) of today brought up to date", filled)
 
     @api.model
     def _ask_roads(self, url, chunk):

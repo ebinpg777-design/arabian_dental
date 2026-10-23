@@ -26,6 +26,7 @@ project's live map as the pattern):
 All of it is derived from pings that only exist while the executive is on duty, so
 the privacy boundary stays the one the trail already has.
 """
+import json
 import logging
 import secrets
 from datetime import datetime, timedelta
@@ -261,6 +262,35 @@ def thin_runs(points, modes, limit):
             kept.append((point, span))
             span = 'still'
     return kept
+
+
+def drawn_leg(leg, index_of, points, steps=None):
+    """A thinned leg [(point, mode)] as the map draws it: [lat, lon, epoch, speed, mode]
+    a vertex. A blind stretch whose road is known (`steps`: lab.location.road's, keyed
+    by the time of the fix each step ends at) is drawn along that road, as the drive it
+    was - the phone recorded nothing there, and a dotted straight line across the
+    fields read as a fault (client, 2026-10-23). Only blind stretches: everywhere else
+    the fixes are close enough that the line between them is the road."""
+    out, prev = [], None
+    for point, mode in leg:
+        pieces = None
+        if mode == 'blind' and prev is not None and steps:
+            i, j = index_of.get(id(prev)), index_of.get(id(point))
+            if i is not None and j is not None and j > i:
+                pieces = [(points[k], steps.get(str(epoch(points[k][0])))) for k in range(i + 1, j + 1)]
+                if not all(road and len(road) > 1 for _p, road in pieces):
+                    pieces = None
+        if pieces:
+            for end, road in pieces:
+                when = epoch(end[0])
+                for lat, lon in road:
+                    if out and abs(out[-1][0] - lat) < 1e-6 and abs(out[-1][1] - lon) < 1e-6:
+                        continue
+                    out.append([lat, lon, when, end[3], 'vehicle'])
+        else:
+            out.append([point[1], point[2], epoch(point[0]), point[3], mode])
+        prev = point
+    return out
 
 
 def downsample(points, limit=MAX_TRAIL_POINTS):
@@ -655,6 +685,18 @@ class LabLocationPingLive(models.Model):
         Halt = self.env['lab.location.halt'].sudo()
         emp_by_user = {e.user_id.id: e for e in self.env['hr.employee'].sudo().search(
             [('user_id', 'in', users.ids)])}
+        # The roads known for the day (filled by _cron_fill_roads), read once for all:
+        # blind stretches are drawn along them. Nothing is asked of the service here.
+        roads = {}
+        if users and self._road_trail_enabled():
+            limit = self._trail_accuracy()
+            for road in self.env['lab.location.road'].sudo().search(
+                    [('user_id', 'in', users.ids), ('date', '=', day)]):
+                if road.steps and road.accuracy_key == limit:
+                    try:
+                        roads[road.user_id.id] = json.loads(road.steps)
+                    except ValueError:
+                        pass
         executives, clinics = [], {}
         for index, user in enumerate(users):
             fixes = self._day_fixes(user, day)
@@ -684,6 +726,7 @@ class LabLocationPingLive(models.Model):
             # [(point, mode of the stretch it ends)]: thinned, never across a change of mode
             legs = [thin_runs(leg, [mode_of.get(id(p), 'still') for p in leg], keep or len(leg))
                     for leg in legs]
+            index_of = {id(p): k for k, p in enumerate(points)}
             doors = []
             for visit in visits:
                 clinic = visit.partner_id
@@ -726,8 +769,7 @@ class LabLocationPingLive(models.Model):
                 'overspeed': sum(1 for p in points if p[4]),
                 'halt_minutes': sum(h['minutes'] for h in halts),
                 'on_duty': on_duty, 'duty_since_epoch': duty_since,
-                'legs': [[[p[1], p[2], epoch(p[0]), p[3], mode] for p, mode in leg]
-                         for leg in legs],
+                'legs': [drawn_leg(leg, index_of, points, roads.get(user.id)) for leg in legs],
                 'gaps': [{'from_epoch': epoch(a), 'to_epoch': epoch(b),
                           'minutes': int((b - a).total_seconds() // 60)} for a, b in gaps],
                 'doors': doors, 'halts': halts, 'overspeed_points': overspeed,

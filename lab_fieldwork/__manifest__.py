@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.7.2.1',
+    'version': '20.0.7.2.2',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work

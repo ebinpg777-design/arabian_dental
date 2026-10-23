@@ -161,3 +161,49 @@ class TestRoadTrail(LiveTrackCase):
         with self.assertRaises(AccessError):
             mine.get_road_trail(user_id=self.ops_user.id)
         self.assertEqual(mine.get_road_trail()['state'], 'off', "my own day: allowed")
+
+    # ------------------------------------------- a stretch crossed with no signal
+    def _blind_day(self):
+        """Three fixes 200 m and 20 s apart, then 900 m crossed in 150 s with nothing
+        recorded - a blind stretch - and three fixes more."""
+        fixes, metres, when = [], 0.0, self.now
+        for _i in range(3):
+            fixes.append((metres, when))
+            metres, when = metres + 200.0, when + timedelta(seconds=20)
+        metres, when = metres + 700.0, when + timedelta(seconds=130)
+        for _i in range(3):
+            fixes.append((metres, when))
+            metres, when = metres + 200.0, when + timedelta(seconds=20)
+        self.env['lab.location.ping'].with_user(self.exec_user).record([
+            {'latitude': 10.0 + m * NORTH, 'longitude': 76.0, 'accuracy_m': 8, 'speed_kmh': 36.0,
+             'ts': fields.Datetime.to_string(t)} for m, t in fixes])
+
+    def test_a_blind_stretch_is_drawn_along_its_road_once_the_road_is_known(self):
+        """Client, 2026-10-23: "why these dots ... the map should be realistic"."""
+        self._blind_day()
+        [ex] = self.Ping.get_live_map(user_ids=[self.exec_user.id])['executives']
+        self.assertIn('blind', {v[4] for leg in ex['legs'] for v in leg},
+                      "no road known yet: the dotted straight line, as before")
+        fake, calls = fake_osrm()
+        with self._patched(fake):
+            self.env['lab.location.ping'].with_context(lab_test_routing=True)._cron_fill_roads()
+        self.assertEqual(len(calls), 1, "the five-minute job asked for the day's roads")
+        [ex] = self.Ping.get_live_map(user_ids=[self.exec_user.id])['executives']
+        vertices = [v for leg in ex['legs'] for v in leg]
+        self.assertNotIn('blind', {v[4] for v in vertices}, "drawn as the drive it was")
+        bends = [v for v in vertices if abs(v[1] - 76.0003) < 1e-6]
+        self.assertEqual(len(bends), 1, "the road in the blind stretch only; the rest as recorded")
+        with self._patched(fake):
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual(len(calls), 1, "the person in focus reads the same roads")
+        self.assertNotIn('blind', {v[4] for leg in road['legs'] for v in leg})
+
+    def test_the_job_asks_nothing_when_roads_are_off(self):
+        self._blind_day()
+        fake, calls = fake_osrm()
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.road_trail', 'False')
+        with self._patched(fake):
+            self.env['lab.location.ping'].with_context(lab_test_routing=True)._cron_fill_roads()
+        self.assertEqual(calls, [])
+        [ex] = self.Ping.get_live_map(user_ids=[self.exec_user.id])['executives']
+        self.assertIn('blind', {v[4] for leg in ex['legs'] for v in leg})
