@@ -9,7 +9,7 @@
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <title>ADL FieldX</title>
+                <title>ADL Pro</title>
                 <style>
                     :root { color-scheme: light; }
                     body { margin: 0; padding: 24px 16px 40px; background: #f6f7f9; color: #111827;
@@ -37,7 +37,7 @@
             <body>
                 <main>
                     <img class="logo" src="/web/binary/company_logo" alt=""/>
-                    <h1><span>ADL FieldX</span>Arabian Dental Lab</h1>
+                    <h1><span>ADL Pro</span>Arabian Dental Lab</h1>
 
                     <t t-if="in_app">
                         <p class="note ok">
@@ -99,7 +99,7 @@
                                 <ol t-else="">
                                     <li>Tap <b>Install on iPhone</b>: Apple's TestFlight or App Store page opens. Install
                                         TestFlight first if it asks.</li>
-                                    <li>Install ADL FieldX, open it and sign in with your usual login.</li>
+                                    <li>Install ADL Pro, open it and sign in with your usual login.</li>
                                     <li>Allow <b>location</b>: <b>Allow While Using App</b>, and when the iPhone asks later,
                                         <b>Change to Always Allow</b>, so the route keeps recording with the screen off.</li>
                                 </ol>

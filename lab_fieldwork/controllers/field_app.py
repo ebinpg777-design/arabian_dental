@@ -44,7 +44,7 @@ class FieldAppController(http.Controller):
         if not attachment:
             raise request.not_found()
         version = App._version()
-        filename = 'adl-field-%s.apk' % version if version else 'adl-field.apk'
+        filename = 'adl-pro-%s.apk' % version if version else 'adl-pro.apk'
         stream = request.env['ir.binary']._get_stream_from(
             attachment, 'raw', filename=filename, mimetype=APP_MIMETYPE)
         return stream.get_response(as_attachment=True)

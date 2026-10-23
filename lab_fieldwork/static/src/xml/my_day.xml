@@ -215,7 +215,7 @@
                         <t t-elif="this.appLive">
                             <!-- the Lab app on the phone is posting; this browser stands down -->
                             <span class="o_fw_tracking"
-                                  title="ADL FieldX on your phone records your route; this page does not need to.">
+                                  title="ADL Pro on your phone records your route; this page does not need to.">
                                 <i class="fa fa-mobile"/> app recording
                             </span>
                             <span class="o_fw_where_line" t-out="this.appLiveLine"/>
@@ -282,7 +282,7 @@
                     </div>
                     <div t-if="this.appUpdate" class="o_fw_app_note">
                         <i class="fa fa-arrow-circle-up me-1" title="Update"/>
-                        Version <t t-out="this.appUpdate"/> of ADL FieldX is out.
+                        Version <t t-out="this.appUpdate"/> of ADL Pro is out.
                         <a href="/lab_fieldwork/app">Get it</a>
                     </div>
                     <div t-if="this.gapNotice" class="o_fw_app_note">
@@ -291,7 +291,7 @@
                     </div>
                     <div t-if="this.appOffer" class="o_fw_app_note o_fw_app_offer">
                         <i class="fa fa-mobile me-1" title="The app"/>
-                        Record with the screen off: <a href="/lab_fieldwork/app">get the ADL FieldX app</a>.
+                        Record with the screen off: <a href="/lab_fieldwork/app">get the ADL Pro app</a>.
                     </div>
                     <MyTrail t-if="this.state.where.trail" userId="this.userId"/>
                 </div>

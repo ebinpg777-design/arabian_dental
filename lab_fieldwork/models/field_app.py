@@ -55,7 +55,7 @@ APP_PAGE = '/lab_fieldwork/app'
 APP_DOWNLOAD = '/lab_fieldwork/app/download'
 IOS_ATTACHMENT = 'lab_fieldwork.field_app.ipa'
 IOS_PREFIX = '/lab_fieldwork/app/ios'
-IOS_FILE = 'ADLFieldX.ipa'
+IOS_FILE = 'ADLPro.ipa'
 IOS_AGENTS = ('iPhone', 'iPad', 'iPod')
 GPS_PATH = '/lab_fieldwork/gps'
 # A phone whose app posted within this long is live, and every browser of that user
@@ -133,7 +133,7 @@ def read_ipa(content, env=None):
         'bundle_id': bundle_id,
         'version': clean_version(info.get('CFBundleShortVersionString') or info.get('CFBundleVersion')),
         'build': clean_version(info.get('CFBundleVersion')),
-        'name': str(info.get('CFBundleDisplayName') or info.get('CFBundleName') or 'ADL FieldX'),
+        'name': str(info.get('CFBundleDisplayName') or info.get('CFBundleName') or 'ADL Pro'),
         'devices': devices,
         'all_devices': all_devices,
         'expires': expires.date().isoformat() if hasattr(expires, 'date') else '',
@@ -155,13 +155,13 @@ class ResUsersFieldApp(models.Model):
     _inherit = 'res.users'
 
     fw_native_app = fields.Boolean(
-        'Uses ADL FieldX', readonly=True, copy=False,
+        'Uses ADL Pro', readonly=True, copy=False,
         groups='lab_fieldwork.group_fieldwork_manager',
-        help="This person's phone runs ADL FieldX, the lab's app, which records the "
+        help="This person's phone runs ADL Pro, the lab's app, which records the "
              "route with the screen off. The app sets this itself the first time it is "
              "opened; browsers then stop asking for a position while it is posting.")
     fw_native_app_version = fields.Char(
-        'ADL FieldX Version', readonly=True, copy=False, size=VERSION_MAX,
+        'ADL Pro Version', readonly=True, copy=False, size=VERSION_MAX,
         groups='lab_fieldwork.group_fieldwork_manager')
 
     def _fw_native_config(self, version=None):
@@ -312,7 +312,7 @@ class LabFieldApp(models.AbstractModel):
                 'bundle-identifier': self._param('ios_bundle_id'),
                 'bundle-version': self._param('ios_version') or '1.0',
                 'kind': 'software',
-                'title': self._param('ios_name') or 'ADL FieldX',
+                'title': self._param('ios_name') or 'ADL Pro',
             },
         }]})
 

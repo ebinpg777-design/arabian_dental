@@ -3,7 +3,7 @@ from odoo import api, models
 from odoo.http import request
 
 # Whoever holds one of these does office work too: in a browser, Odoo's own start
-# screen is theirs; only inside ADL FieldX do they open on My Day.
+# screen is theirs; only inside ADL Pro do they open on My Day.
 OFFICE_GROUPS = ('lab_fieldwork.group_fieldwork_manager', 'sales_team.group_sale_manager',
                  'account.group_account_manager', 'base.group_system')
 
@@ -24,9 +24,9 @@ class IrHttp(models.AbstractModel):
         info['fw_location_exception'] = flags['location']
         info['fw_camera_exception'] = flags['camera']
         # Straight to My Day, not Odoo's app screen and a tap on Field Work: every
-        # opening of ADL FieldX paid for a screen the executive only walked through.
+        # opening of ADL Pro paid for a screen the executive only walked through.
         # A home action set on the user still wins. (client, 2026-10-22: "check the
-        # delay in connecting ADL FieldX app")
+        # delay in connecting ADL Pro app")
         if not info.get('home_action_id'):
             home = self._fw_home_action_id()
             if home:
@@ -35,7 +35,7 @@ class IrHttp(models.AbstractModel):
 
     @api.model
     def _fw_home_action_id(self):
-        """My Day for field staff: inside ADL FieldX for anyone who has My Day, and in
+        """My Day for field staff: inside ADL Pro for anyone who has My Day, and in
         a browser for executives whose only work is field work."""
         user = self.env.user
         if not user.has_group('lab_fieldwork.group_fieldwork_executive'):

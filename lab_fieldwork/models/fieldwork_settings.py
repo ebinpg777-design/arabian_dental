@@ -110,7 +110,7 @@ class LabFieldworkSettings(models.TransientModel):
              "0 never chases by age.")
     # The Lab app (2026-10-20): the APK the executives install, served from the page
     # /lab_fieldwork/app. models/field_app.py keeps it; this page only takes it in.
-    fw_app_apk = fields.Binary('Upload a New APK', attachment=False)  # ADL FieldX
+    fw_app_apk = fields.Binary('Upload a New APK', attachment=False)  # ADL Pro
     fw_app_apk_filename = fields.Char()
     fw_app_version = fields.Char(
         'App Version', size=32,
@@ -123,7 +123,7 @@ class LabFieldworkSettings(models.TransientModel):
     fw_ios_ipa_filename = fields.Char()
     fw_ios_link = fields.Char(
         'iPhone Link',
-        help="A TestFlight or App Store link for ADL FieldX on iPhone. Used when no "
+        help="A TestFlight or App Store link for ADL Pro on iPhone. Used when no "
              "iPhone build is uploaded here.")
     fw_ios_remove = fields.Boolean(
         'Remove the iPhone Build',

@@ -162,7 +162,7 @@ class TestFieldApp(HttpCase):
         self.assertEqual(apk.status_code, 200)
         self.assertEqual(apk.content, APK)
         self.assertIn('android.package-archive', apk.headers.get('Content-Type', ''))
-        self.assertIn('adl-field-v1.0.0.apk', apk.headers.get('Content-Disposition', ''))
+        self.assertIn('adl-pro-v1.0.0.apk', apk.headers.get('Content-Disposition', ''))
         # the version alone can change, keeping the file; the settings read it back
         Settings.create({'fw_app_version': '1.0.1'}).action_save()
         self.assertEqual(self.App._version(), '1.0.1')
@@ -193,9 +193,9 @@ def _ipa(devices=('00008030-001A2B3C4D5E6F70', '00008110-000A1B2C3D4E5F60'), ver
     import zipfile
     from datetime import datetime
     info = plistlib.dumps({'CFBundleIdentifier': bundle, 'CFBundleShortVersionString': version,
-                           'CFBundleVersion': '7', 'CFBundleDisplayName': 'ADL FieldX'},
+                           'CFBundleVersion': '7', 'CFBundleDisplayName': 'ADL Pro'},
                           fmt=plistlib.FMT_BINARY)
-    provision = {'ExpirationDate': datetime(2027, 10, 21, 9, 0, 0), 'Name': 'ADL FieldX Ad Hoc'}
+    provision = {'ExpirationDate': datetime(2027, 10, 21, 9, 0, 0), 'Name': 'ADL Pro Ad Hoc'}
     if devices:
         provision['ProvisionedDevices'] = list(devices)
     if all_devices:
@@ -203,9 +203,9 @@ def _ipa(devices=('00008030-001A2B3C4D5E6F70', '00008110-000A1B2C3D4E5F60'), ver
     envelope = b'0\x82\x10\x00signed-data' + plistlib.dumps(provision) + b'\x00\x01signature'
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w') as archive:
-        archive.writestr('Payload/ADLFieldX.app/Info.plist', info)
-        archive.writestr('Payload/ADLFieldX.app/embedded.mobileprovision', envelope)
-        archive.writestr('Payload/ADLFieldX.app/ADLFieldX', b'\xcf\xfa\xed\xfe binary')
+        archive.writestr('Payload/ADLPro.app/Info.plist', info)
+        archive.writestr('Payload/ADLPro.app/embedded.mobileprovision', envelope)
+        archive.writestr('Payload/ADLPro.app/ADLPro', b'\xcf\xfa\xed\xfe binary')
     return buffer.getvalue()
 
 
@@ -269,11 +269,11 @@ class TestFieldAppIphone(HttpCase):
         item = plistlib.loads(manifest.content)['items'][0]
         self.assertEqual(item['metadata']['bundle-identifier'], 'com.arabiandentallab.field')
         self.assertEqual(item['metadata']['bundle-version'], '1.0.0')
-        self.assertTrue(item['assets'][0]['url'].endswith('/lab_fieldwork/app/ios/%s/ADLFieldX.ipa' % token))
-        got = self.url_open('/lab_fieldwork/app/ios/%s/ADLFieldX.ipa' % token)
+        self.assertTrue(item['assets'][0]['url'].endswith('/lab_fieldwork/app/ios/%s/ADLPro.ipa' % token))
+        got = self.url_open('/lab_fieldwork/app/ios/%s/ADLPro.ipa' % token)
         self.assertEqual((got.status_code, got.content), (200, build))
         self.assertEqual(self.url_open('/lab_fieldwork/app/ios/wrong-token/manifest.plist').status_code, 404)
-        self.assertEqual(self.url_open('/lab_fieldwork/app/ios/wrong-token/ADLFieldX.ipa').status_code, 404)
+        self.assertEqual(self.url_open('/lab_fieldwork/app/ios/wrong-token/ADLPro.ipa').status_code, 404)
         # the page, on an iPhone: the iPhone button, not the APK
         page = self._page()
         self.assertIn('Install on iPhone', page.text)
@@ -330,8 +330,8 @@ class TestFieldAppIphone(HttpCase):
 
 @tagged('post_install', '-at_install')
 class TestFieldStaffStartOnMyDay(HttpCase):
-    """ADL FieldX opens on My Day, not on Odoo's app screen and a tap on Field Work.
-    (client, 2026-10-22: "check the delay in connecting ADL FieldX app")"""
+    """ADL Pro opens on My Day, not on Odoo's app screen and a tap on Field Work.
+    (client, 2026-10-22: "check the delay in connecting ADL Pro app")"""
 
     APP = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile ADLField/1.0.1'
     BROWSER = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile'

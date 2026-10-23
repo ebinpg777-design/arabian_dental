@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.7.2.0',
+    'version': '20.0.7.2.1',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -26,7 +26,7 @@ there, leave — and everything else is derived from it or generated for them.
   executive is right now (pushed from the phones, not polled), each one's day as
   facts and as a timeline, the team's numbers across the top, the alerts worth a
   word (no signal, a long stop, a phone dying, a day not started, a claim far from
-  the trail, cash past the policy), which phones run the ADL FieldX app, and a feed
+  the trail, cash past the policy), which phones run the ADL Pro app, and a feed
   of what is happening. Beside the map, three reports on the same day: everyone's
   day on one clock, a scoreboard by person and by route, and the trends — the
   fortnight's visits, cases, money and km, day by day and person by person, and the

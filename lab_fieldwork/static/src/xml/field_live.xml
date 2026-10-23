@@ -148,7 +148,7 @@
             </div>
             <div class="o_fw_fl_tile" t-on-click="() => this.setRail('phones')">
                 <span class="o_fw_fl_tile_n"><t t-out="this.kpis.on_app"/><small>/<t t-out="this.kpis.roster"/></small></span>
-                <span class="o_fw_fl_tile_l">on ADL FieldX</span>
+                <span class="o_fw_fl_tile_l">on ADL Pro</span>
             </div>
             <div class="o_fw_fl_tile o_fw_fl_pulse" title="Clinic check-ins by hour">
                 <span class="o_fw_fl_pulse_bars">
@@ -290,7 +290,7 @@
                 <!-- phones: the check with the app -->
                 <div t-if="this.state.rail === 'phones'" class="o_fw_fl_list">
                     <div class="o_fw_fl_phones_sum">
-                        <b t-out="this.onAppPhones"/> of <t t-out="this.phones.length"/> on ADL FieldX
+                        <b t-out="this.onAppPhones"/> of <t t-out="this.phones.length"/> on ADL Pro
                         <span t-if="this.silentPhones" class="o_fw_fl_silent"> · <b t-out="this.silentPhones"/> silent on duty</span>
                     </div>
                     <div t-if="!this.phones.length" class="o_fw_fl_empty"><i class="fa fa-mobile" aria-hidden="true"/><b>No phone to show.</b></div>
@@ -310,7 +310,7 @@
                         </span>
                     </div>
                     <div class="o_fw_fl_phones_note">
-                        A phone on ADL FieldX records with the screen off. One still on the browser
+                        A phone on ADL Pro records with the screen off. One still on the browser
                         records only while My Day is in front; a silent phone on the app is usually
                         battery saving — the app's My Day shows a Battery settings button.
                     </div>

@@ -19,7 +19,7 @@ One call, `get_board`, gives the screen everything it draws:
   while on duty, a long stop away from any clinic, a phone about to die, a day not
   started by ten, a visit left open, a claim far from the trail - plus the money
   alerts the Ops Desk used to carry (`lab.desk._ops_alerts`);
-* the **phones**: which are on ADL FieldX and which build, which still send from
+* the **phones**: which are on ADL Pro and which build, which still send from
   the browser, which have gone quiet on duty;
 * the reports: the **fortnight** (fourteen days of visits, cases, money and km, team
   and person by person, from the day sheets - today from the live facts), the
@@ -328,7 +328,7 @@ class LabFieldLive(models.AbstractModel):
             detail = _('on duty, no position for %s min') % (age // 60) if age is not None \
                 else _('on duty, no position yet today')
             if phone.get('on_app'):
-                detail += _(' · ADL FieldX may have been stopped by battery saving')
+                detail += _(' · ADL Pro may have been stopped by battery saving')
             add('silent', 'danger', _('No signal'), detail)
         open_halt = next((h for h in ex.get('halts') or [] if not h['ended_epoch']), None)
         if open_halt:

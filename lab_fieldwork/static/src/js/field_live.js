@@ -13,7 +13,7 @@ import { LiveMap } from "@lab_fieldwork/js/live_map";
  * the Live Map's, unchanged - this component extends it. What it adds is what the
  * three desks it replaced never had in one place: the team's numbers across the
  * top, every executive as a card with their day's facts, the alerts worth a
- * manager's minute, the phones (who is on ADL FieldX, who has gone quiet), the
+ * manager's minute, the phones (who is on ADL Pro, who has gone quiet), the
  * feed of what is happening, and - for the person in focus - the day as a story.
  *
  * Beside the map, three reports on the same payload (2026-10-21): the day as a
@@ -789,7 +789,7 @@ export class FieldLive extends LiveMap {
 
     phoneWord(phone) {
         if (phone.on_app) {
-            return phone.app_version ? _t("ADL FieldX %s", phone.app_version) : _t("ADL FieldX");
+            return phone.app_version ? _t("ADL Pro %s", phone.app_version) : _t("ADL Pro");
         }
         if (phone.traccar) {
             return _t("Traccar");

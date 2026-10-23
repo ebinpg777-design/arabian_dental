@@ -112,7 +112,7 @@
                         raised with the administrators, once.
                     </div>
 
-                    <group string="ADL FieldX (the app)" name="app">
+                    <group string="ADL Pro (the app)" name="app">
                         <field name="fw_app_info"/>
                         <field name="fw_app_version"/>
                         <field name="fw_app_apk" filename="fw_app_apk_filename"/>
@@ -125,7 +125,7 @@
                         <field name="fw_ios_remove"/>
                     </group>
                     <div class="text-muted small ps-1">
-                        ADL FieldX, the executives' app, is this site in a shell, with one
+                        ADL Pro, the executives' app, is this site in a shell, with one
                         addition: it keeps recording an executive's route with the screen
                         off, which a web page cannot. Upload each new build here with its
                         version. Executives get it from the download page (send them the

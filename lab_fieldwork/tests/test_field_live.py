@@ -138,12 +138,12 @@ class TestFieldLive(TransactionCase):
         self.assertEqual(len(alert), 1)
         self.assertEqual(alert[0]['level'], 'danger')
         self.assertIn('no position for 45 min', alert[0]['detail'])
-        self.assertNotIn('FieldX', alert[0]['detail'], "a browser phone: no app to blame")
+        self.assertNotIn('ADL Pro', alert[0]['detail'], "a browser phone: no app to blame")
         self.assertTrue(self._me(board)['phone_app']['silent'])
         self.assertEqual(board['kpis']['silent'], 1)
         self.env['lab.my.day'].with_user(self.exec_user).tracking_state(client='app', app_version='1.0.0')
         board = self._board()
-        self.assertIn('FieldX', self._alerts(board, 'silent', self.exec_user)[0]['detail'])
+        self.assertIn('ADL Pro', self._alerts(board, 'silent', self.exec_user)[0]['detail'])
         # off duty, silence is nobody's business
         self.env['hr.attendance'].sudo().search([('employee_id', '=', self.employee.id)]).write(
             {'check_out': fields.Datetime.now()})
