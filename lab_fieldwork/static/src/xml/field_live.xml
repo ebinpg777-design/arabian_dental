@@ -135,7 +135,7 @@
             </div>
             <div class="o_fw_fl_tile">
                 <span class="o_fw_fl_tile_n"><t t-out="this.km(this.kpis.km)"/><small> km</small></span>
-                <span class="o_fw_fl_tile_l">on the trail<t t-if="this.kpis.claimed_km"> · <t t-out="this.km(this.kpis.claimed_km)"/> claimed</t></span>
+                <span class="o_fw_fl_tile_l">travelled<t t-if="this.kpis.claimed_km"> · <t t-out="this.km(this.kpis.claimed_km)"/> claimed</t><t t-if="this.kpis.foot_km"> · <t t-out="this.km(this.kpis.foot_km)"/> on foot</t></span>
             </div>
             <div class="o_fw_fl_tile">
                 <span class="o_fw_fl_tile_n" t-out="this.hoursWord(this.kpis.clinic_minutes)"/>
@@ -231,7 +231,9 @@
                                 <i class="fa fa-check-square-o" aria-hidden="true"/>
                                 <t t-out="ex.visits_done"/>/<t t-out="ex.visits_planned"/>
                             </span>
-                            <span title="Distance on the trail"><i class="fa fa-road" aria-hidden="true"/> <t t-out="this.km(ex.km)"/> km</span>
+                            <span title="Travelled, in a vehicle"><i class="fa fa-road" aria-hidden="true"/> <t t-out="this.km(ex.km)"/> km</span>
+                            <span t-if="ex.foot_km" title="On foot"><i class="fa fa-male" aria-hidden="true"/> <t t-out="this.km(ex.foot_km)"/> km</span>
+                            <span t-if="ex.blind_km" class="text-muted" title="Crossed with no clear signal: a straight line under the road, counted in the km travelled">~<t t-out="this.km(ex.blind_km)"/> km blind</span>
                             <span t-if="ex.facts and ex.facts.cases" title="Cases today"><i class="fa fa-cube" aria-hidden="true"/> <t t-out="ex.facts.cases"/></span>
                             <span t-if="ex.facts and ex.facts.collected" title="Collected today"><i class="fa fa-inr" aria-hidden="true"/> <t t-out="this.money(ex.facts.collected)"/></span>
                             <span t-if="ex.halt_minutes" class="o_fw_fl_c_halt" title="Minutes stopped away from clinics"><i class="fa fa-pause-circle-o" aria-hidden="true"/> <t t-out="this.round(ex.halt_minutes)"/> min</span>
@@ -428,7 +430,7 @@
                                     <th class="o_fw_fl_num" t-on-click="() => this.setSort('cases')">Cases <i t-attf-class="fa {{ this.sortIcon('cases') }}"/></th>
                                     <th class="o_fw_fl_num" t-on-click="() => this.setSort('collected')">Collected <i t-attf-class="fa {{ this.sortIcon('collected') }}"/></th>
                                     <th class="o_fw_fl_num" t-on-click="() => this.setSort('cash')">Cash held <i t-attf-class="fa {{ this.sortIcon('cash') }}"/></th>
-                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('km')">Trail km <i t-attf-class="fa {{ this.sortIcon('km') }}"/></th>
+                                    <th class="o_fw_fl_num" t-on-click="() => this.setSort('km')" title="In a vehicle; a walk is not travel">Km travelled <i t-attf-class="fa {{ this.sortIcon('km') }}"/></th>
                                     <th class="o_fw_fl_num" t-on-click="() => this.setSort('claimed')">Claimed <i t-attf-class="fa {{ this.sortIcon('claimed') }}"/></th>
                                     <th class="o_fw_fl_num" t-on-click="() => this.setSort('clinic')">At clinics <i t-attf-class="fa {{ this.sortIcon('clinic') }}"/></th>
                                     <th class="o_fw_fl_num" t-on-click="() => this.setSort('halts')">Stopped <i t-attf-class="fa {{ this.sortIcon('halts') }}"/></th>
@@ -507,7 +509,7 @@
                         <span class="o_fw_fl_muted">from the day sheets · today from the live board</span>
                     </div>
                     <div t-if="this.trend" class="o_fw_fl_charts">
-                        <t t-foreach="[['visits', 'Visits done', ''], ['cases', 'Cases', ''], ['collected', 'Collected', 'money'], ['gps_km', 'Km on the trail', 'km']]" t-as="chart" t-key="chart[0]">
+                        <t t-foreach="[['visits', 'Visits done', ''], ['cases', 'Cases', ''], ['collected', 'Collected', 'money'], ['gps_km', 'Km travelled', 'km']]" t-as="chart" t-key="chart[0]">
                             <div class="o_fw_fl_chart">
                                 <div class="o_fw_fl_chart_head">
                                     <span t-out="chart[1]"/>
@@ -572,7 +574,7 @@
                                     <th class="o_fw_fl_num">Case value</th>
                                     <th class="o_fw_fl_num">Collected</th>
                                     <th class="o_fw_fl_num">Km claimed</th>
-                                    <th class="o_fw_fl_num">Km trail</th>
+                                    <th class="o_fw_fl_num">Km travelled</th>
                                     <th class="o_fw_fl_num">Score</th>
                                 </tr>
                             </thead>
@@ -625,7 +627,7 @@
                     <div class="o_fw_fl_fact"><b t-out="ex.facts.cases"/><span>cases · <t t-out="this.money(ex.facts.value)"/></span></div>
                     <div class="o_fw_fl_fact"><b t-out="this.money(ex.facts.collected)"/><span>collected</span></div>
                     <div class="o_fw_fl_fact" t-att-class="{ 'o_fw_fl_fact_warn': ex.facts.cash_with > 0 }"><b t-out="this.money(ex.facts.cash_with)"/><span>cash with them</span></div>
-                    <div class="o_fw_fl_fact"><b><t t-out="this.km(ex.km)"/> km</b><span>on the trail</span></div>
+                    <div class="o_fw_fl_fact"><b><t t-out="this.km(ex.km)"/> km</b><span>travelled<t t-if="ex.foot_km"> · <t t-out="this.km(ex.foot_km)"/> on foot</t></span></div>
                     <div class="o_fw_fl_fact" t-att-class="{ 'o_fw_fl_fact_warn': ex.trip and ex.trip.variance_pct and (ex.trip.variance_pct > 30 or ex.trip.variance_pct &lt; -30) }">
                         <b><t t-if="ex.trip"><t t-out="this.km(ex.trip.claimed_km)"/> km</t><t t-else="">—</t></b>
                         <span>claimed<t t-if="ex.trip and ex.trip.variance_pct"> · <t t-out="this.round(ex.trip.variance_pct)"/>%</t></span>

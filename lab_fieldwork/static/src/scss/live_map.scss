@@ -221,6 +221,9 @@
         &.o_fw_live_key_halt i { border-radius: 3px; }
         &.o_fw_live_key_speed i { width: 7px; height: 7px; }
         &.o_fw_live_key_gap i { border: 2px solid #6c757d; }
+        &.o_fw_live_key_foot i, &.o_fw_live_key_blind i { width: 18px; height: 0; border-radius: 0; }
+        &.o_fw_live_key_foot i { border-top: 3px dashed #475569; }
+        &.o_fw_live_key_blind i { border-top: 3px dotted #6c757d; }
     }
 
     // ------------------------------------------------------------------- phone

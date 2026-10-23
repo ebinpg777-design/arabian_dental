@@ -99,8 +99,14 @@ class LabTrip(models.Model):
     @api.depends('user_id', 'date', 'state', 'distance')
     def _compute_gps_km(self):
         Ping = self.env['lab.location.ping'].sudo()
+        # the day's travel km when the caller already read the day (a batch, the upgrade)
+        known = self.env.context.get('fw_trail_km') or {}
         for trip in self:
-            km = Ping._trail_km_for(trip.user_id, trip.date) if trip.user_id and trip.date else 0.0
+            key = '%s/%s' % (trip.user_id.id, fields.Date.to_string(trip.date)) if trip.date else None
+            if key in known:
+                km = known[key]
+            else:
+                km = Ping._trail_km_for(trip.user_id, trip.date) if trip.user_id and trip.date else 0.0
             trip.gps_km = round(km, 1)
             trip.km_variance_pct = round((trip.distance - km) / km * 100.0) \
                 if km >= 1.0 and trip.distance else 0.0

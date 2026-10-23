@@ -187,7 +187,15 @@ class LabDailyUpdate(models.Model):
     km = fields.Float('Distance (km)', readonly=True)
     # From the phone's trail (the live layer, 2026-10-19): the distance it saw, the
     # minutes spent stopped away from any clinic, and the fixes over the speed limit.
-    gps_km = fields.Float('Distance (phone trail)', digits=(8, 1), readonly=True)
+    gps_km = fields.Float(
+        'Travelled (phone trail)', digits=(8, 1), readonly=True,
+        help="Kilometres in a vehicle on the phone's trail - what the claim is judged "
+             "against. A walk is not travel; see On Foot.")
+    foot_km = fields.Float('On Foot (phone trail)', digits=(8, 1), readonly=True)
+    blind_km = fields.Float(
+        'No Clear Signal (km)', digits=(8, 1), readonly=True,
+        help="Stretches the phone crossed with nothing reliable recorded: straight lines "
+             "under the road, counted in the kilometres travelled.")
     halt_minutes = fields.Integer('Stopped Away from Clinics (min)', readonly=True)
     overspeed_count = fields.Integer('Over the Speed Limit', readonly=True)
     delivery_count = fields.Integer('Deliveries', readonly=True)

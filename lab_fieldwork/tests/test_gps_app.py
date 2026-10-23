@@ -6,6 +6,9 @@ from datetime import timedelta
 
 from odoo import fields
 from odoo.exceptions import AccessError
+import gzip
+import json
+
 from odoo.tests import HttpCase, tagged
 
 from ..controllers import gps
@@ -64,6 +67,63 @@ class TestGpsApp(HttpCase):
         self.assertAlmostEqual(pings[0]['battery'], 40.0, msg="0..1 -> percent")
         self.assertEqual(pings[1]['ts'], fields.Datetime.to_string(when), "epoch milliseconds")
         self.assertIsNone(pings[1]['speed_kmh'], "no speed sent stays unknown, not zero")
+
+    def test_a_gzipped_batch_is_taken_like_a_plain_one(self):
+        """The app gzips its batches from 1.0.4: six times less on the mobile
+        connection, and the door undoes it - Werkzeug does not. (2026-10-23)"""
+        device = self._switch_on()
+        self._on_duty()
+        when = fields.Datetime.now() - timedelta(minutes=2)
+        body = {'device_id': device, 'location': {
+            'timestamp': when.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'coords': {'latitude': 11.13, 'longitude': 76.13, 'speed': 8, 'accuracy': 6}}}
+        r = self.url_open('/lab_fieldwork/gps', data=gzip.compress(json.dumps(body).encode()),
+                          headers={'Content-Type': 'application/json', 'Content-Encoding': 'gzip'})
+        self.assertEqual((r.status_code, r.text), (200, 'OK 1'))
+        self.assertEqual(len(self._pings()), 1)
+        r = self.url_open('/lab_fieldwork/gps', data=b'not gzip at all',
+                          headers={'Content-Type': 'application/json', 'Content-Encoding': 'gzip'})
+        self.assertEqual(r.status_code, 400)
+        # a bomb: 4 KB that would inflate to 3 MB is refused before it does
+        bomb = gzip.compress(b'0' * (3 * 1024 * 1024))
+        self.assertLess(len(bomb), 8 * 1024)
+        zipped = {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'}
+        r = self.url_open('/lab_fieldwork/gps', data=bomb, headers=zipped)
+        self.assertEqual((r.status_code, r.text), (413, 'too big'))
+        self.assertEqual(len(self._pings()), 1, "and nothing of it was kept")
+        # a valid gzip header over broken deflate data, and a stream cut short
+        r = self.url_open('/lab_fieldwork/gps', headers=zipped,
+                          data=b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03' + b'\xff' * 16)
+        self.assertEqual((r.status_code, r.text), (400, 'bad gzip'))
+        r = self.url_open('/lab_fieldwork/gps', headers=zipped,
+                          data=gzip.compress(json.dumps(body).encode())[:-20])
+        self.assertEqual(r.status_code, 400)
+        # a plain body past the cap is refused before it is read
+        r = self.url_open('/lab_fieldwork/gps', data=b'0' * (2 * 1024 * 1024 + 1),
+                          headers={'Content-Type': 'application/json'})
+        self.assertEqual(r.status_code, 413)
+
+    def test_a_body_of_another_shape_is_refused_never_an_error(self):
+        """The door is public: a stray `5` or `{"location": "x"}` is answered, never a
+        500 with a traceback in the log. (review, 2026-10-23)"""
+        for data in ('5', '"abc"', 'true', '[' * 100000, '{"location": "x"}',
+                     '{"location": {"coords": "x"}}', '{"locations": [{"location": [1, 2]}]}',
+                     '{"location": {"battery": "x"}}', '{"locations": 7}'):
+            r = self.url_open('/lab_fieldwork/gps', data=data, headers={'Content-Type': 'application/json'})
+            self.assertIn(r.status_code, (400, 403), data[:40])
+
+    def test_the_phones_activity_rides_along(self):
+        self.assertEqual(gps.parse_activity({'type': 'in_vehicle', 'confidence': 80}), 'vehicle')
+        self.assertEqual(gps.parse_activity({'type': 'on_bicycle', 'confidence': 70}), 'vehicle')
+        self.assertEqual(gps.parse_activity({'type': 'walking'}), 'foot')
+        self.assertEqual(gps.parse_activity('still'), 'still')
+        self.assertIsNone(gps.parse_activity({'type': 'in_vehicle', 'confidence': 20}), "a guess is no answer")
+        self.assertIsNone(gps.parse_activity({'type': 'tilting', 'confidence': 90}))
+        self.assertIsNone(gps.parse_activity(None))
+        _device, pings = gps.parse_body({'device_id': 'X' * 16, 'location': {
+            'timestamp': '2026-10-23T05:00:00Z', 'activity': {'type': 'on_foot', 'confidence': 77},
+            'coords': {'latitude': 11.0, 'longitude': 76.0, 'accuracy': 5}}})
+        self.assertEqual(pings[0]['motion'], 'foot')
 
     def test_only_an_administrator_switches_the_app_and_the_id_is_secret(self):
         with self.assertRaises(AccessError):

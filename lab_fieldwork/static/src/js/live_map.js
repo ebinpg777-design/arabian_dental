@@ -496,12 +496,40 @@ export class LiveMap extends Component {
         const alpha = dim ? 0.3 : 1;
         const colour = ex.colour || "#4f46e5";
 
-        // The trail, one polyline per leg: a break in the line is a stretch the
-        // phone was not watching, and bridging it would invent a road nobody took.
+        // The trail, one polyline per run of one kind: a break in the line is a
+        // stretch the phone was not watching, and bridging it would invent a road
+        // nobody took. A stretch on foot is dashed, and a stretch the phone crossed
+        // with no clear signal is a dotted grey line - a straight line under the
+        // road, not the road. (2026-10-23)
         const legs = this.legsAt(ex, at).filter((leg) => leg.length > 1);
-        legs.forEach((leg, i) => {
-            const latlngs = leg.map((p) => [p[0], p[1]]);
-            const style = { color: colour, weight: dim ? 3 : 4, opacity: 0.55 * alpha, lineJoin: "round" };
+        const runs = [];
+        for (const leg of legs) {
+            let run = { mode: "vehicle", points: [leg[0]] };
+            runs.push(run);
+            for (let i = 1; i < leg.length; i++) {
+                // A fix pushed live carries no mode until the next reload classifies
+                // it: it continues the run it joins, like a still step.
+                const said = leg[i][4] || "still";
+                const mode = said === "foot" || said === "blind" ? said : "vehicle";
+                if (said !== "still" && mode !== run.mode && run.points.length > 1) {
+                    run = { mode, points: [leg[i - 1], leg[i]] };
+                    runs.push(run);
+                } else {
+                    if (said !== "still") {
+                        run.mode = mode;
+                    }
+                    run.points.push(leg[i]);
+                }
+            }
+        }
+        const styleFor = (mode) => mode === "foot"
+            ? { color: colour, weight: dim ? 2 : 3, opacity: 0.7 * alpha, dashArray: "4 7", lineJoin: "round" }
+            : mode === "blind"
+                ? { color: "#6c757d", weight: dim ? 2 : 3, opacity: 0.6 * alpha, dashArray: "1 7", lineCap: "round" }
+                : { color: colour, weight: dim ? 3 : 4, opacity: 0.55 * alpha, dashArray: null, lineJoin: "round" };
+        runs.forEach((run, i) => {
+            const latlngs = run.points.map((p) => [p[0], p[1]]);
+            const style = styleFor(run.mode);
             if (lay.trails[i]) {
                 lay.trails[i].setLatLngs(latlngs);
                 lay.trails[i].setStyle(style);
@@ -509,7 +537,7 @@ export class LiveMap extends Component {
                 lay.trails[i] = L.polyline(latlngs, style).addTo(lay.group);
             }
         });
-        while (lay.trails.length > legs.length) {
+        while (lay.trails.length > runs.length) {
             lay.trails.pop().remove();
         }
 
@@ -1023,6 +1051,8 @@ export class LiveMap extends Component {
             { kind: "door", colour: DOOR_COLOURS.far, label: _t("door: away") },
             { kind: "door", colour: DOOR_COLOURS.nofix, label: _t("door: no fix") },
             { kind: "door", colour: DOOR_COLOURS.nopin, label: _t("door: clinic not pinned") },
+            { kind: "foot", colour: "transparent", label: _t("on foot") },
+            { kind: "blind", colour: "transparent", label: _t("no clear signal") },
             { kind: "halt", colour: HALT_COLOUR, label: _t("halt (minutes)") },
             { kind: "speed", colour: OVERSPEED_COLOUR, label: _t("over the speed limit") },
             { kind: "gap", colour: "#fff", label: _t("recording gap") },

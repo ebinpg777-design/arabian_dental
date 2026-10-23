@@ -408,6 +408,8 @@ class LabFieldLive(models.AbstractModel):
             'cases': totals['cases'], 'case_value': totals['value'],
             'collected': totals['collected'], 'cash_with_field': totals['unbanked'],
             'km': round(sum(ex['km'] for ex in executives), 1),
+            'foot_km': round(sum(ex.get('foot_km', 0.0) for ex in executives), 1),
+            'blind_km': round(sum(ex.get('blind_km', 0.0) for ex in executives), 1),
             'claimed_km': round(totals['distance'], 1),
             'halt_minutes': sum(ex['halt_minutes'] for ex in executives),
             'overspeed': sum(ex['overspeed'] for ex in executives),

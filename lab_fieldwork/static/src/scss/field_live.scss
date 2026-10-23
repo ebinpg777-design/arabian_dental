@@ -336,6 +336,9 @@ $fl-info: #2563eb;
         i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .15); display: inline-block; }
         &.o_fw_fl_key_door i { border-radius: 2px; }
         &.o_fw_fl_key_gap i { border: 1px dashed #6b7280; }
+        &.o_fw_fl_key_foot i, &.o_fw_fl_key_blind i { width: 16px; height: 0; border: 0; border-radius: 0; }
+        &.o_fw_fl_key_foot i { border-top: 2px dashed #475569; }
+        &.o_fw_fl_key_blind i { border-top: 3px dotted #6b7280; }
     }
 
     // ---------- the reports, over the map

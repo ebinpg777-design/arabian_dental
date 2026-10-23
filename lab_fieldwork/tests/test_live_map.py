@@ -14,6 +14,16 @@ from .test_live_track import LiveTrackCase
 from ..models import location_live
 
 
+def at(t0, seconds, north_m, speed=0.0, motion=None):
+    """A trail point as _day_fixes gives it, `north_m` north of 10N 76E."""
+    return (t0 + timedelta(seconds=seconds), 10.0 + north_m / 111_320.0, 76.0, speed,
+            False, 0.0, 10.0, 'app', motion)
+
+
+def letters(modes):
+    return ''.join('.' if m == 'still' else m[0].upper() for m in modes)
+
+
 def walk(start_lat, start_lon, steps, metres_each=100.0, seconds_each=30, speed=None):
     """A straight walk north: `steps` fixes `metres_each` apart, `seconds_each` apart."""
     out = []
@@ -67,6 +77,201 @@ class TestLiveLayer(LiveTrackCase):
         thinned = location_live.downsample(list(range(100)), 10)
         self.assertLessEqual(len(thinned), 11)
         self.assertEqual(thinned[-1], 99, "the last point always survives")
+
+    def test_the_modes_tell_a_drive_from_a_walk_and_a_blind_stretch(self):
+        """A travel claim is about the vehicle: the walk between two doors is not a
+        kilometre to reimburse, and a stretch the phone crossed with nothing
+        reliable recorded is a straight line under the road. (2026-10-23)"""
+        t0 = fields.Datetime.now()
+        north = lambda i, metres: 10.0 + i * metres / 111_320.0        # noqa: E731
+        pts = []
+        # a drive: 300 m every 30 s (36 km/h), 6 steps
+        pts += [(t0 + timedelta(seconds=30 * i), north(i, 300), 76.0, 36.0) for i in range(7)]
+        # ...a signal: 40 s crawling at 3 km/h inside the drive (two short steps)
+        base = pts[-1]
+        pts += [(base[0] + timedelta(seconds=20 * i), base[1] + i * 17 / 111_320.0, 76.0, 3.0) for i in (1, 2)]
+        # ...then on again
+        base = pts[-1]
+        pts += [(base[0] + timedelta(seconds=30 * i), base[1] + i * 300 / 111_320.0, 76.0, 36.0) for i in (1, 2, 3)]
+        # a walk: 60 m every 40 s (5.4 km/h), 5 steps
+        base = pts[-1]
+        pts += [(base[0] + timedelta(seconds=40 * i), base[1] + i * 60 / 111_320.0, 76.0, 5.0) for i in range(1, 6)]
+        # blind: the next reliable fix 2 km away, 8 minutes later (15 km/h implied)
+        base = pts[-1]
+        pts += [(base[0] + timedelta(seconds=480), base[1] + 2000 / 111_320.0, 76.0, 0.0)]
+        modes = location_live.classify_modes(pts)
+        self.assertEqual(modes[0], 'still')
+        # points 0-6 the drive, 7-8 the crawl, 9-11 on again, 12-16 the walk, 17 blind
+        self.assertEqual(set(modes[1:12]), {'vehicle'}, "the crawl at the signal is part of the drive")
+        self.assertEqual(set(modes[12:17]), {'foot'})
+        self.assertEqual(modes[17], 'blind')
+        km = location_live.mode_km(pts, modes)
+        self.assertAlmostEqual(km['vehicle'], 2.73, 1)
+        self.assertAlmostEqual(km['foot'], 0.3, 1)
+        self.assertAlmostEqual(km['blind'], 2.0, 1)
+        self.assertAlmostEqual(km['travel'], km['vehicle'] + km['blind'], 2)
+        self.assertAlmostEqual(km['total'], location_live.trail_km(pts), 1, "the total is the trail")
+        # a GPS flick: one 15-second "drive" step inside a walk stays a walk
+        walk = [(t0 + timedelta(seconds=40 * i), north(i, 60), 76.0, 5.0) for i in range(4)]
+        flick = walk[:2] + [(walk[1][0] + timedelta(seconds=15), walk[1][1] + 80 / 111_320.0, 76.0, 19.0)] + \
+            [(walk[2][0] + timedelta(seconds=20), walk[2][1] + 80 / 111_320.0, 76.0, 5.0),
+             (walk[3][0] + timedelta(seconds=20), walk[3][1] + 80 / 111_320.0, 76.0, 5.0)]
+        self.assertEqual(set(location_live.classify_modes(flick)[1:]), {'foot'})
+
+    def test_the_live_map_carries_the_mode_and_counts_only_travel(self):
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=10)
+        self._start_day(user, now - timedelta(minutes=30))
+        # a 2.1 km drive at 36 km/h, then a 240 m walk
+        path = walk(10.0, 76.0, 8, metres_each=300.0, seconds_each=30, speed=36.0)
+        last = path[-1]
+        path += [(last[0] + i * 60 / 111_320.0, 76.0, last[2] + 40 * i, 5.0) for i in range(1, 5)]
+        self._pings(user, now, path)
+        [ex] = self.env['lab.location.ping'].with_user(user).get_live_map()['executives']
+        modes = [p[4] for leg in ex['legs'] for p in leg]
+        self.assertEqual(modes[0], 'still')
+        self.assertEqual(modes[1:8], ['vehicle'] * 7)
+        self.assertEqual(modes[8:], ['foot'] * 4)
+        self.assertAlmostEqual(ex['km'], 2.1, 1, "travelled: the drive")
+        self.assertAlmostEqual(ex['foot_km'], 0.24, 1)
+        self.assertAlmostEqual(ex['trail_km'], ex['km'] + ex['foot_km'], 1)
+
+    def test_a_trip_is_judged_against_the_drive_not_the_walk(self):
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=10)
+        self._start_day(user, now - timedelta(minutes=30))
+        trip = self.env['lab.trip'].sudo().create({
+            'user_id': user.id, 'date': self.env['lab.location.ping']._today_for(user),
+            'vehicle': 'bike', 'odo_start': 100, 'odo_end': 102})
+        path = walk(10.0, 76.0, 8, metres_each=300.0, seconds_each=30, speed=36.0)
+        last = path[-1]
+        path += [(last[0] + i * 60 / 111_320.0, 76.0, last[2] + 40 * i, 5.0) for i in range(1, 5)]
+        self._pings(user, now, path)
+        self.assertAlmostEqual(trip.gps_km, 2.1, 1, "the claim is judged against the drive")
+
+    def test_heartbeats_are_neither_a_walk_nor_a_hurry(self):
+        """A heartbeat repeats the last position with a fresh time. A parked phone
+        wandering by 20-45 m between heartbeats walked nowhere; and the stretch that
+        leaves a run of heartbeats may have begun right after the first of them - a
+        600 m walk out of a hospital is a walk, not a 21 km/h drive. (review, 2026-10-23)"""
+        t0 = fields.Datetime.now()
+        wander = [at(t0, 0, 0)] + [at(t0, 300 * i, (-1) ** i * (10 + i)) for i in range(1, 13)]
+        km = location_live.mode_km(wander)
+        self.assertEqual((km['foot'], km['travel']), (0.0, 0.0), letters(location_live.classify_modes(wander)))
+        for leave in (700, 800):
+            out = [at(t0, 0, 0, 4.0), at(t0, 300, 0), at(t0, 600, 0), at(t0, leave, 600, 4.0)]
+            km = location_live.mode_km(out)
+            self.assertAlmostEqual(km['foot'], 0.6, 1, "left at %d s" % leave)
+            self.assertEqual(km['travel'], 0.0)
+
+    def test_traffic_is_not_a_walk_but_a_visit_makes_one(self):
+        """Walking pace between two drives with no stop in it is a jam; a walk to a
+        clinic has the visit in it. (review, 2026-10-23)"""
+        t0 = fields.Datetime.now()
+        pts, t, y = [], 0, 0
+        for _i in range(4):
+            pts.append(at(t0, t, y, 36.0)); t += 10; y += 100           # noqa: E702
+        for _i in range(20):                                             # 1 km in 20 min
+            pts.append(at(t0, t, y, 3.0)); t += 60; y += 50             # noqa: E702
+        for _i in range(3):
+            pts.append(at(t0, t, y, 36.0)); t += 10; y += 100           # noqa: E702
+        km = location_live.mode_km(pts)
+        self.assertEqual(km['foot'], 0.0, letters(location_live.classify_modes(pts)))
+        self.assertAlmostEqual(km['travel'], 1.6, 1)
+        pts, t, y = [], 0, 0
+        for _i in range(5):
+            pts.append(at(t0, t, y, 36.0)); t += 10; y += 100           # noqa: E702
+        for _i in range(3):
+            pts.append(at(t0, t, y, 4.0)); t += 45; y += 55             # noqa: E702
+        for _i in range(4):                                              # the visit
+            pts.append(at(t0, t, y)); t += 300                          # noqa: E702
+        for _i in range(3):
+            y -= 55; pts.append(at(t0, t, y, 4.0)); t += 45            # noqa: E702
+        for _i in range(3):
+            y += 100; pts.append(at(t0, t, y, 36.0)); t += 10          # noqa: E702
+        km = location_live.mode_km(pts)
+        self.assertAlmostEqual(km['foot'], 0.33, 1, letters(location_live.classify_modes(pts)))
+
+    def test_a_recording_gap_is_never_smoothed_across(self):
+        t0 = fields.Datetime.now()
+        pts = [at(t0, 0, 0, 36.0), at(t0, 10, 100, 36.0), at(t0, 20, 200, 36.0), at(t0, 30, 300, 36.0),
+               at(t0, 60, 340, 4.0), at(t0, 1260, 350, 4.0), at(t0, 1285, 385, 4.0),
+               at(t0, 1295, 485, 36.0), at(t0, 1305, 585, 36.0)]
+        modes = location_live.classify_modes(pts)
+        self.assertEqual(modes[4], 'foot', letters(modes))
+        self.assertEqual(modes[5], 'still', "the gap itself is no distance")
+        self.assertEqual(modes[6], 'foot', letters(modes))
+
+    def test_the_phones_sensors_decide_first(self):
+        """The Lab app 1.0.4 sends Android's activity recognition with each fix: a jam
+        is a drive at any pace, and a walk the sensors saw is never smoothed into the
+        drive around it. A speed nobody's speedometer reads is ignored."""
+        t0 = fields.Datetime.now()
+        jam = [at(t0, 60 * i, 50 * i, 3.0, 'vehicle') for i in range(10)]
+        self.assertEqual(set(location_live.classify_modes(jam)[1:]), {'vehicle'})
+        mixed = [at(t0, 0, 0, 36.0, 'vehicle'), at(t0, 10, 100, 36.0, 'vehicle'),
+                 at(t0, 40, 150, 6.0, 'foot'), at(t0, 70, 200, 6.0, 'foot'),
+                 at(t0, 80, 300, 36.0, 'vehicle'), at(t0, 90, 400, 36.0, 'vehicle')]
+        self.assertEqual(letters(location_live.classify_modes(mixed)), '.VFFVV')
+        # "on foot" at 40 km/h is a phone in a hand in a bus
+        bus = [at(t0, 0, 0, 40.0, 'foot'), at(t0, 10, 110, 40.0, 'foot'), at(t0, 20, 220, 40.0, 'foot')]
+        self.assertEqual(set(location_live.classify_modes(bus)[1:]), {'vehicle'})
+        bogus = [at(t0, 0, 0, 4.0), at(t0, 60, 60, 240.0)]
+        self.assertEqual(location_live.classify_modes(bogus)[1], 'foot', "240 km/h is a jump, not a reading")
+
+    def test_the_overview_thins_without_losing_a_walk_or_a_blind_stretch(self):
+        """Field Live draws 300 points a person. Thinned the plain way, each kept point
+        carried the mode of its own last 10-second step, so a blind stretch or a walk
+        between two kept points was drawn as road. (review, 2026-10-23)"""
+        t0 = fields.Datetime.now()
+        pts, t, y = [], 0, 0
+        for i in range(1200):
+            if i == 1001:
+                t += 360; y += 2000                                      # noqa: E702
+            elif 501 <= i <= 505:
+                t += 45; y += 50                                         # noqa: E702
+            elif i:
+                t += 10; y += 100                                        # noqa: E702
+            walking = 501 <= i <= 505
+            pts.append(at(t0, t, y, 4.0 if walking else 36.0, 'foot' if walking else None))
+        modes = location_live.classify_modes(pts)
+        kept = location_live.thin_runs(pts, modes, 300)
+        self.assertLess(len(kept), 320)
+        drawn = {}
+        for (a, _ma), (b, mode) in zip(kept, kept[1:]):
+            if mode != 'still':
+                drawn[mode] = drawn.get(mode, 0.0) + location_live.metres_between(a[1], a[2], b[1], b[2]) / 1000
+        counted = location_live.mode_km(pts, modes)
+        for mode in ('vehicle', 'foot', 'blind'):
+            self.assertAlmostEqual(drawn.get(mode, 0.0), counted[mode], 1, mode)
+
+    def test_the_phone_says_what_it_was_doing(self):
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=10)
+        self._start_day(user, now - timedelta(minutes=30))
+        Ping = self.env['lab.location.ping'].with_user(user)
+        Ping.record([{'latitude': 10.0 + i * 60 / 111_320.0, 'longitude': 76.0, 'accuracy_m': 8,
+                      'speed_kmh': 3.0, 'motion': 'vehicle' if i else 'nonsense',
+                      'ts': fields.Datetime.to_string(now + timedelta(seconds=60 * i))} for i in range(6)])
+        pings = self.env['lab.location.ping'].sudo().search([('user_id', '=', user.id)], order='ts')
+        self.assertEqual(pings.mapped('motion'), [False] + ['vehicle'] * 5)
+        [ex] = Ping.get_live_map()['executives']
+        self.assertAlmostEqual(ex['km'], 0.3, 1, "a jam at 3 km/h the phone knew was a drive")
+        self.assertEqual(ex['foot_km'], 0.0)
+
+    def test_a_speed_the_phone_did_not_give_is_never_measured_from_a_tower(self):
+        """A browser fix carries no speed: it is the ground covered since the last
+        fix that sits on a road - 2 km "covered" from a tower in 30 s read 240 km/h."""
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=10)
+        self._start_day(user, now - timedelta(minutes=30))
+        self.env['lab.location.ping'].with_user(user).record([
+            {'latitude': lat, 'longitude': 76.0, 'accuracy_m': acc,
+             'ts': fields.Datetime.to_string(now + timedelta(seconds=seconds))}
+            for lat, acc, seconds in ((10.0, 8, 0), (10.018, 150, 30), (10.00054, 8, 60))])
+        last = self.env['lab.location.ping'].sudo().search([('user_id', '=', user.id)], order='ts desc', limit=1)
+        self.assertLess(last.speed_kmh, 10.0, "60 m in a minute from the last real fix")
+        self.assertFalse(last.overspeed)
 
     def test_a_network_position_is_where_the_phone_is_but_never_a_road(self):
         """Indoors the phone reports a cell tower's fixed position at "100 m" every

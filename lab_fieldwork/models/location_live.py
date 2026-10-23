@@ -75,6 +75,159 @@ def split_legs(points, gap_seconds=TRAIL_GAP_SECONDS):
     return legs, gaps
 
 
+# Travel modes (2026-10-23): what each stretch of the trail was - a drive, a walk,
+# standing still, or a stretch the phone crossed with nothing reliable recorded.
+# A travel claim is about the vehicle: a walk between two doors is not a kilometre
+# to reimburse, and a blind stretch is a straight line under the road.
+#
+# The phone's own motion sensors decide first where it gave them (the Lab app from
+# 1.0.4 sends Android's activity recognition with every fix: in a vehicle / on foot /
+# still) - they tell a traffic jam at walking pace from a walk, which no speed can.
+# Without them, speed decides, read the way a person reads a trail by eye.
+VEHICLE_KMH = 10.0        # from this speed the person is in a vehicle; below, on foot
+DRIFT_KMH = 1.0           # slower than this even at best: a phone on a desk, wandering
+FOOT_MAX_KMH = 20.0       # the sensors' "on foot" is believed up to this pace
+BLIND_SECONDS = 120       # two reliable fixes this far apart in time...
+BLIND_METRES = 500.0      # ...and in distance: the phone moved with nothing reliable between
+FOOT_MAX_M = 1500.0       # a "walk" this long between two fixes is not one
+STAY_M = 50.0             # a fix this close to the last one is the phone still there (a heartbeat)
+PAUSE_SECONDS = 240       # a stop this long - a heartbeat, a visit - is where a walk begins or ends
+CRAWL_SECONDS = 1800      # walking pace between two drives, with no stop in it: traffic
+SHORT_VEHICLE_S = 20      # a "drive" this short inside a walk is a GPS flick, not a drive
+
+
+def _step(a, b):
+    """(metres, seconds, implied km/h) from point `a` to point `b`."""
+    metres = metres_between(a[1], a[2], b[1], b[2]) or 0.0
+    seconds = max(1.0, (b[0] - a[0]).total_seconds())
+    return metres, seconds, metres / seconds * 3.6
+
+
+def _motion(point):
+    """What the phone's sensors said at this fix ('vehicle'/'foot'/'still'), or None."""
+    return point[8] if len(point) > 8 else None
+
+
+def _stays(points):
+    """For each point, the index of the first point of the stay it belongs to: a
+    phone saying again and again, minutes apart, that it is where it was (the
+    heartbeats of a parked phone) is one stay, begun when it got there. A short
+    step is never a stay - the trail only keeps one under STAY_M after a heartbeat's
+    wait, and a crawl in traffic is 50 m a minute."""
+    first = [0] * len(points)
+    for i in range(1, len(points)):
+        metres, secs, _kmh = _step(points[i - 1], points[i])
+        stays = metres < STAY_M and (points[i][3] or 0.0) < MOVING_KMH \
+            and PAUSE_SECONDS <= secs <= TRAIL_GAP_SECONDS
+        first[i] = first[i - 1] if stays else i
+    return first
+
+
+def classify_modes(points):
+    """One mode per point - 'vehicle', 'foot', 'blind' or 'still' - for the stretch
+    that ENDS at it (the first point is 'still'). A point is (ts, lat, lon, speed,
+    ..., motion at [8]); the speed is the phone's own reading on arrival where it gave
+    one (Doppler) - the speed at the START of a stretch belongs to the stretch before.
+
+    * The sensors, where the phone gave them: 'vehicle' is a drive at any pace (a
+      jam); 'foot' is a walk unless even the slowest reading of the stretch is
+      faster than anyone walks.
+    * Leaving a stay, the phone may have set off any time after it got there: a
+      heartbeat repeats the last position with a fresh time, and timing the stretch
+      from the last repeat made a 600 m walk out of a hospital "21 km/h". So the
+      stretch is timed from the start of the stay - the slowest it can have been -
+      for telling a walk from a drive.
+    * Slower than DRIFT_KMH even at the fastest reading is a phone on a desk: still.
+    * Far and long with nothing between, and not a walk: blind (travel, but a
+      straight line under the road).
+    * Then the corrections a reader makes by eye, never across a recording gap and
+      never against the sensors: a walking-pace stretch between two drives with no
+      stop in it, shorter than CRAWL_SECONDS, is traffic; a "drive" shorter than
+      SHORT_VEHICLE_S inside a walk is a GPS flick.
+    A jitter step, an impossible jump and a recording gap are 'still': never distance.
+    """
+    n = len(points)
+    modes = ['still'] * n
+    seconds = [0.0] * n
+    sure = [False] * n          # the sensors said so: never smoothed away
+    paused = [False] * n        # a stop of PAUSE_SECONDS or more ends here
+    first = _stays(points)
+    for i in range(1, n):
+        a, b = points[i - 1], points[i]
+        metres, secs, fastest = _step(a, b)
+        seconds[i] = secs
+        if secs > TRAIL_GAP_SECONDS:
+            modes[i] = 'gap'
+            continue
+        if metres < JITTER_M or fastest > MAX_KMH:
+            paused[i] = secs >= PAUSE_SECONDS
+            continue
+        since = (b[0] - points[first[i - 1]][0]).total_seconds()
+        slowest = metres / since * 3.6 if since > secs else fastest
+        reported = b[3] or 0.0
+        if reported > MAX_KMH:
+            reported = 0.0          # a jump read as a speed, not a speedometer
+        motion = _motion(b)
+        if secs > BLIND_SECONDS and metres > BLIND_METRES and \
+                (slowest >= VEHICLE_KMH or metres > FOOT_MAX_M):
+            modes[i] = 'blind'
+        elif motion == 'vehicle':
+            modes[i], sure[i] = 'vehicle', True
+        elif motion == 'foot' and slowest < FOOT_MAX_KMH:
+            modes[i], sure[i] = 'foot', True
+        elif max(fastest, reported) < DRIFT_KMH:
+            paused[i] = secs >= PAUSE_SECONDS
+        elif max(slowest, reported) >= VEHICLE_KMH:
+            modes[i] = 'vehicle'
+        else:
+            modes[i] = 'foot'
+        # leaving a stay of a pause or more: a walk can begin here
+        paused[i] = paused[i] or since - secs >= PAUSE_SECONDS
+    _smooth_modes(modes, seconds, sure, paused, 'foot', 'vehicle', CRAWL_SECONDS, pauses_keep=True)
+    _smooth_modes(modes, seconds, sure, paused, 'vehicle', 'foot', SHORT_VEHICLE_S)
+    return ['still' if mode == 'gap' else mode for mode in modes]
+
+
+def _smooth_modes(modes, seconds, sure, paused, inner, outer, max_seconds, pauses_keep=False):
+    """A run of `inner` (stills inside it allowed) shorter than `max_seconds`, with
+    `outer` on both sides, becomes `outer` - unless the sensors vouched for any of it,
+    or (`pauses_keep`) it holds a stop, the step into it or out of it included. A
+    recording gap ('gap') ends a run and is never looked across."""
+    n, i = len(modes), 0
+    while i < n:
+        if modes[i] != inner:
+            i += 1
+            continue
+        j = i
+        while j < n and modes[j] in (inner, 'still'):
+            j += 1
+        before = next((modes[k] for k in range(i - 1, -1, -1) if modes[k] != 'still'), None)
+        after = modes[j] if j < n else None
+        if before == outer and after == outer \
+                and not any(sure[k] for k in range(i, j)) \
+                and not (pauses_keep and any(paused[k] for k in range(i, min(j + 1, n)))) \
+                and sum(seconds[k] for k in range(i, j) if modes[k] == inner) < max_seconds:
+            for k in range(i, j):
+                if modes[k] == inner:
+                    modes[k] = outer
+        i = j
+
+
+def mode_km(points, modes=None):
+    """Distance along the trail by mode: the steps trail_km counts, each laid to the
+    stretch it ends. 'travel' (vehicle + blind) is what a travel claim is judged
+    against; 'foot' is a walk; 'total' is trail_km."""
+    modes = modes or classify_modes(points)
+    out = {'vehicle': 0.0, 'foot': 0.0, 'blind': 0.0}
+    for i in range(1, len(points)):
+        if modes[i] in out:
+            out[modes[i]] += _step(points[i - 1], points[i])[0] / 1000.0
+    out = {mode: round(km, 2) for mode, km in out.items()}
+    out['travel'] = round(out['vehicle'] + out['blind'], 2)
+    out['total'] = round(out['vehicle'] + out['foot'] + out['blind'], 2)
+    return out
+
+
 def trail_km(points):
     """Distance along the trail, skipping jitter and jumps, and never across a gap."""
     km = 0.0
@@ -86,6 +239,28 @@ def trail_km(points):
                 continue
             km += metres / 1000.0
     return round(km, 2)
+
+
+def thin_runs(points, modes, limit):
+    """[(point, mode)] - `points` thinned to about `limit` like downsample(), but never
+    across a change of mode: the point where a drive turns into a walk is always
+    kept, and each kept point carries the mode of the whole stretch it ends, not of
+    its own last step. Thinned the plain way, a walk or a blind stretch between two
+    kept points was drawn as road - or a road as a walk. (2026-10-23)"""
+    n = len(points)
+    step = max(1, -(-n // max(1, limit)))
+    kept = []
+    carried = None              # the run's mode so far, carried over still steps
+    span = 'still'              # the moving mode of the steps since the last kept point
+    for i, (point, mode) in enumerate(zip(points, modes)):
+        if mode != 'still':
+            span = carried = mode
+        after = modes[i + 1] if i + 1 < n else None
+        turns = after not in (None, 'still') and carried is not None and after != carried
+        if i == 0 or i == n - 1 or i % step == 0 or turns:
+            kept.append((point, span))
+            span = 'still'
+    return kept
 
 
 def downsample(points, limit=MAX_TRAIL_POINTS):
@@ -149,14 +324,16 @@ class LabLocationPingLive(models.Model):
     @api.model
     def _day_fixes(self, user, day):
         """Every fix of the day, in order, as [(ts, lat, lon, speed_kmh, overspeed,
-        battery, accuracy_m, source), ...] - the latest one is where the phone is."""
+        battery, accuracy_m, source, motion), ...] - the latest one is where the phone
+        is. Readers unpack with `*_rest`: the tuple has grown before."""
         pings = self.sudo().search_read(
             [('user_id', '=', user.id), ('date', '=', day)],
-            ['ts', 'latitude', 'longitude', 'speed_kmh', 'overspeed', 'battery', 'accuracy_m', 'source'],
+            ['ts', 'latitude', 'longitude', 'speed_kmh', 'overspeed', 'battery', 'accuracy_m',
+             'source', 'motion'],
             order='ts')
         return [(p['ts'], p['latitude'], p['longitude'], p['speed_kmh'] or 0.0,
                  bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0,
-                 p['source'] or 'browser')
+                 p['source'] or 'browser', p['motion'] or None)
                 for p in pings]
 
     @api.model
@@ -174,7 +351,12 @@ class LabLocationPingLive(models.Model):
 
     @api.model
     def _trail_km_for(self, user, day):
-        return trail_km(self._day_points(user, day))
+        """The day's TRAVEL km - in a vehicle, or blind - never a walk."""
+        return self._trail_split_for(user, day)['travel']
+
+    @api.model
+    def _trail_split_for(self, user, day):
+        return mode_km(self._day_points(user, day))
 
     @api.model
     def _day_summary(self, user, day):
@@ -182,8 +364,11 @@ class LabLocationPingLive(models.Model):
         points = self._day_points(user, day)
         halts = self.env['lab.location.halt'].sudo().search(
             [('user_id', '=', user.id), ('date', '=', day)])
+        split = mode_km(points)
         return {
-            'gps_km': trail_km(points),
+            'gps_km': split['travel'],
+            'foot_km': split['foot'],
+            'blind_km': split['blind'],
             'halt_minutes': sum(halts.mapped('minutes')),
             'overspeed_count': sum(1 for p in points if p[4]),
         }
@@ -202,8 +387,10 @@ class LabLocationPingLive(models.Model):
             self._touch_last_fix(user, values)
             if day == self._today_for(user):
                 self._auto_visits(user, day, values)
-                self._detect_halts(user, day)
-                self._refresh_trip_km(user, day)
+                # one read of the day for both: each batch used to read it twice
+                points = self._day_points(user, day)
+                self._detect_halts(user, day, points=points)
+                self._refresh_trip_km(user, day, points=points)
         except Exception:                                      # noqa: BLE001
             _logger.exception("live layer: after-record step failed for %s", user.login)
 
@@ -276,11 +463,11 @@ class LabLocationPingLive(models.Model):
         return zones
 
     @api.model
-    def _detect_halts(self, user, day):
+    def _detect_halts(self, user, day, points=None):
         """Stretches of the day's trail where the phone sat still away from any
         clinic. Re-reading the day never doubles a halt: they are keyed by when they
         began, and an open one is extended or closed in place."""
-        points = self._day_points(user, day)
+        points = self._day_points(user, day) if points is None else points
         if len(points) < 2:
             return self.env['lab.location.halt']
         minimum = timedelta(minutes=self._halt_minutes())
@@ -288,7 +475,7 @@ class LabLocationPingLive(models.Model):
         found = []          # (started, ended or None, lat, lon)
         anchor = None       # (ts, lat, lon)
         last_ts = points[0][0]
-        for ts, lat, lon, speed, _over, _batt, _acc, _src in points:
+        for ts, lat, lon, speed, *_rest in points:
             still = speed < HALT_SPEED_KMH and (
                 anchor is None or (metres_between(anchor[1], anchor[2], lat, lon) or 0.0) <= HALT_RADIUS_M)
             if anchor is not None and (ts - last_ts).total_seconds() > TRAIL_GAP_SECONDS:
@@ -330,10 +517,14 @@ class LabLocationPingLive(models.Model):
         return touched
 
     @api.model
-    def _refresh_trip_km(self, user, day):
+    def _refresh_trip_km(self, user, day, points=None):
         trips = self.env['lab.trip'].sudo().search(
             [('user_id', '=', user.id), ('date', '=', day), ('state', '!=', 'cancel')])
         if trips:
+            if points is not None:
+                # the day already read: the trip takes its km from it (lab_trip.py)
+                trips = trips.with_context(fw_trail_km={
+                    '%s/%s' % (user.id, fields.Date.to_string(day)): mode_km(points)['travel']})
             trips._compute_gps_km()
 
     # ---------------------------------------------------------------- the live map
@@ -468,6 +659,10 @@ class LabLocationPingLive(models.Model):
         for index, user in enumerate(users):
             fixes = self._day_fixes(user, day)
             points = self._trail_points(fixes)
+            # the mode of the stretch ending at each point, carried into the legs
+            modes = classify_modes(points)
+            mode_of = {id(p): m for p, m in zip(points, modes)}
+            split = mode_km(points, modes)
             visits = Visit.search([('user_id', '=', user.id), ('date', '=', day),
                                    ('state', '!=', 'cancel')], order='id')
             open_visit = visits.filtered(lambda v: v.state == 'open')[:1]
@@ -485,9 +680,10 @@ class LabLocationPingLive(models.Model):
             legs, gaps = split_legs(points)
             budget = max(50, int(max_points or MAX_TRAIL_POINTS))
             trail_points = sum(len(leg) for leg in legs)
-            if trail_points > budget:
-                keep = max(1, budget // max(1, len(legs)))
-                legs = [downsample(leg, keep) for leg in legs]
+            keep = max(1, budget // max(1, len(legs))) if trail_points > budget else None
+            # [(point, mode of the stretch it ends)]: thinned, never across a change of mode
+            legs = [thin_runs(leg, [mode_of.get(id(p), 'still') for p in leg], keep or len(leg))
+                    for leg in legs]
             doors = []
             for visit in visits:
                 clinic = visit.partner_id
@@ -523,13 +719,15 @@ class LabLocationPingLive(models.Model):
                               'visit_id': open_visit.id, 'since_epoch': epoch(open_visit.check_in)}
                 if open_visit else None,
                 'next': self._next_clinic(user, day, last) if is_today else None,
-                'km': trail_km(points),
+                'km': split['travel'],
+                'foot_km': split['foot'], 'blind_km': split['blind'], 'trail_km': split['total'],
                 'visits_done': len(visits.filtered(lambda v: v.state == 'done')),
                 'visits_planned': len(visits),
                 'overspeed': sum(1 for p in points if p[4]),
                 'halt_minutes': sum(h['minutes'] for h in halts),
                 'on_duty': on_duty, 'duty_since_epoch': duty_since,
-                'legs': [[[p[1], p[2], epoch(p[0]), p[3]] for p in leg] for leg in legs],
+                'legs': [[[p[1], p[2], epoch(p[0]), p[3], mode] for p, mode in leg]
+                         for leg in legs],
                 'gaps': [{'from_epoch': epoch(a), 'to_epoch': epoch(b),
                           'minutes': int((b - a).total_seconds() // 60)} for a, b in gaps],
                 'doors': doors, 'halts': halts, 'overspeed_points': overspeed,
@@ -688,7 +886,7 @@ class LabMyDayLive(models.AbstractModel):
         Ping = self.env['lab.location.ping'].sudo()
         day = Ping._today_for(user)
         fixes = Ping._day_fixes(user, day)
-        state['km_today'] = trail_km(Ping._trail_points(fixes))
+        state['km_today'] = mode_km(Ping._trail_points(fixes))['travel']
         state['last_fix_age_s'] = int((fields.Datetime.now() - fixes[-1][0]).total_seconds()) \
             if fixes else None
         nudges = []
@@ -733,6 +931,9 @@ class LabDeskLive(models.AbstractModel):
         for visit in board['visits']:
             if visit.partner_id.is_geolocated:
                 clinics.setdefault(visit.user_id.id, []).append(visit.partner_id)
+        trips = {t.user_id.id: t for t in self.env['lab.trip'].sudo().search(
+            [('date', '=', today), ('state', '!=', 'cancel'),
+             ('user_id', 'in', [r['id'] for r in board['rows']])])}
         for row in board['rows']:
             user = self.env['res.users'].sudo().browse(row['id'])
             last_at = user.fw_last_ping_at
@@ -762,5 +963,9 @@ class LabDeskLive(models.AbstractModel):
                 else:
                     row['where'] = _('near %s', min(near)[1]) if near else _('on the road')
             row['halt_minutes'] = halt_minutes.get(user.id, 0)
-            row['gps_km'] = Ping._trail_km_for(user, today) if seen_today else 0.0
+            # The trip's own figure: every batch refreshes it (_refresh_trip_km), and
+            # reading the day's pings again here doubled Field Live's work per poll.
+            trip = trips.get(user.id)
+            row['gps_km'] = (trip.gps_km if trip else Ping._trail_km_for(user, today)) \
+                if seen_today else 0.0
         return board

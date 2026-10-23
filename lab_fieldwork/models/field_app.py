@@ -141,7 +141,9 @@ def read_ipa(content, env=None):
 
 
 def track_interval(env):
-    """How often the phone sends, in seconds: the same setting the browser reads."""
+    """How often the phone sends, in seconds: the same setting the browser reads. It
+    only sends when it has something new - standing still that is its five-minute
+    heartbeat - so this is the delay while moving."""
     try:
         return max(30, int(env['ir.config_parameter'].sudo().get_str(
             'lab_fieldwork.track_interval', '90')))
@@ -183,6 +185,8 @@ class ResUsersFieldApp(models.Model):
             'path': GPS_PATH,
             'device_id': me.fw_gps_device_id,
             'interval_s': track_interval(self.env),
+            # the door takes gzipped batches (controllers/gps.py): six times less data
+            'gzip': True,
             'min_move_m': MIN_MOVE_METRES,
             'heartbeat_s': HEARTBEAT_SECONDS,
             'idle_check_s': IDLE_CHECK_SECONDS,
