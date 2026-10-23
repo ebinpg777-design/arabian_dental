@@ -68,6 +68,10 @@
                                     <label for="fw_halt_minutes" class="col-lg-6 o_light_label"/>
                                     <field name="fw_halt_minutes"/>
                                 </div>
+                                <div class="row">
+                                    <label for="fw_road_trail" class="col-lg-6 o_light_label"/>
+                                    <field name="fw_road_trail"/>
+                                </div>
                             </div>
                         </setting>
                     </block>

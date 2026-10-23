@@ -1,0 +1,163 @@
+# -*- coding: utf-8 -*-
+"""The trail along the roads (client, 2026-10-23: "show the map through roads instead
+of straight lines"). Nothing here touches the network: the routing service is a
+function, as in test_day_track."""
+from datetime import timedelta
+from unittest.mock import patch
+
+from freezegun import freeze_time
+
+from odoo import fields
+from odoo.exceptions import AccessError
+from odoo.tests import tagged
+
+from .test_live_track import LiveTrackCase
+from ..models import location_road
+from ..models.lab_visit import metres_between
+
+ROUTING = 'https://routing.test/route/v1/driving/'
+NORTH = 1 / 111_320.0
+
+
+def fake_osrm(detours=(), fail=False):
+    """A routing service in a function: the road from each coordinate to the next is
+    the straight line with a bend east of its middle, 1.1 times as long - except the
+    steps in `detours` (by index), five times as long, as a fix snapped to the wrong
+    road comes back. Returns (the function, the calls it took)."""
+    calls = []
+
+    def fake_get(url, params=None, timeout=None):
+        calls.append((url, params))
+        if fail:
+            raise OSError('no route to host')
+        coords = [tuple(float(x) for x in c.split(',')) for c in url[len(ROUTING):].split(';')]
+        legs = []
+        for i, (a, b) in enumerate(zip(coords, coords[1:])):
+            straight = metres_between(a[1], a[0], b[1], b[0]) or 0.0
+            mid = [(a[0] + b[0]) / 2 + 0.0003, (a[1] + b[1]) / 2]
+            legs.append({
+                'distance': straight * (5.0 if i in detours else 1.1),
+                'steps': [{'geometry': {'coordinates': [list(a), mid]}},
+                          {'geometry': {'coordinates': [mid, list(b)]}}],
+            })
+
+        class Response:
+            status_code = 200
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {'code': 'Ok',
+                        'routes': [{'legs': legs, 'distance': sum(l['distance'] for l in legs)}],
+                        'waypoints': [{'location': list(c)} for c in coords]}
+        return Response()
+    return fake_get, calls
+
+
+@tagged('post_install', '-at_install')
+class TestRoadTrail(LiveTrackCase):
+
+    def setUp(self):
+        super().setUp()
+        day = fields.Date.context_today(self.exec_user)
+        self._freezer = freeze_time(day.strftime('%Y-%m-%d') + ' 05:30:00')
+        self._freezer.start()
+        self.addCleanup(self._freezer.stop)
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.routing_url', ROUTING)
+        self.Ping = self.env['lab.location.ping'].with_user(self.ops_user) \
+            .with_context(lab_test_routing=True)
+        self.now = fields.Datetime.now() - timedelta(minutes=30)
+        self.env['hr.attendance'].sudo().create({
+            'employee_id': self.employee.id, 'check_in': self.now - timedelta(minutes=30),
+            'check_out': False})
+
+    def _drive(self, start_step, steps, metres_each=200.0, seconds_each=20, speed=36.0):
+        """`steps` fixes north of 10N 76E, from step `start_step`, as the executive."""
+        self.env['lab.location.ping'].with_user(self.exec_user).record([
+            {'latitude': 10.0 + (start_step + i) * metres_each * NORTH, 'longitude': 76.0,
+             'accuracy_m': 8, 'speed_kmh': speed,
+             'ts': fields.Datetime.to_string(self.now + timedelta(seconds=(start_step + i) * seconds_each))}
+            for i in range(steps)])
+
+    def _patched(self, fake):
+        return patch('odoo.addons.lab_fieldwork.models.location_road.requests.get', fake)
+
+    def test_the_trail_is_drawn_along_the_roads_and_each_step_is_asked_once(self):
+        self._drive(0, 6)
+        fake, calls = fake_osrm()
+        with self._patched(fake):
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual((road['state'], road['complete'], len(calls)), ('ok', True, 1))
+        self.assertEqual(len(calls[0][0][len(ROUTING):].split(';')), 6, "every fix a waypoint")
+        [leg] = road['legs']
+        # the first fix, then for each of the 5 steps the bend and the fix: 11 vertices
+        self.assertEqual(len(leg), 11)
+        self.assertEqual(leg[0][4], 'still')
+        self.assertEqual({v[4] for v in leg[1:]}, {'vehicle'})
+        self.assertEqual(leg[1][2], leg[2][2], "the bend carries the time of the fix its step ends at")
+        self.assertAlmostEqual(leg[1][1], 76.0003, 6, "the bend is east of the line")
+        self.assertGreater(leg[2][2], leg[0][2])
+        with self._patched(fake):
+            again = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual(len(calls), 1, "read from the cache, the service is not asked again")
+        self.assertEqual(again['legs'], road['legs'])
+        record = self.env['lab.location.road'].sudo().search([('user_id', '=', self.exec_user.id)])
+        self.assertEqual((len(record), record.state, record.request_count), (1, 'ok', 1))
+
+    def test_a_fix_snapped_to_the_wrong_road_is_drawn_straight(self):
+        self._drive(0, 5)
+        fake, calls = fake_osrm(detours={2})
+        with self._patched(fake):
+            [leg] = self.Ping.get_road_trail(user_id=self.exec_user.id)['legs']
+        # 4 steps: three with a bend (2 vertices each), the detour one straight (1)
+        self.assertEqual(len(leg), 1 + 2 + 2 + 1 + 2)
+        bends = [v for v in leg if abs(v[1] - 76.0003) < 1e-6]
+        self.assertEqual(len(bends), 3)
+
+    def test_new_fixes_are_asked_for_on_their_own(self):
+        self._drive(0, 4)
+        fake, calls = fake_osrm()
+        with self._patched(fake):
+            self.Ping.get_road_trail(user_id=self.exec_user.id)
+            self._drive(4, 3)
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls[1][0][len(ROUTING):].split(';')), 4,
+                         "the last known fix and the three new ones")
+        self.assertEqual(len(road['legs'][0]), 1 + 6 * 2)
+
+    def test_a_service_that_does_not_answer_is_asked_once_in_ten_minutes(self):
+        self._drive(0, 4)
+        fake, calls = fake_osrm(fail=True)
+        with self._patched(fake):
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+            self.assertEqual((road['state'], road['complete'], len(calls)), ('failed', False, 1))
+            self.assertEqual(len(road['legs'][0]), 4, "drawn straight, as before")
+            self.assertEqual(self.Ping.get_road_trail(user_id=self.exec_user.id)['state'], 'failed')
+            self.assertEqual(len(calls), 1, "an outage is not asked again on every poll")
+        later = fields.Datetime.now() + timedelta(minutes=11)   # from the frozen clock
+        self._freezer.stop()
+        self._freezer = freeze_time(later)
+        self._freezer.start()
+        good, calls2 = fake_osrm()
+        with self._patched(good):
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual((road['state'], len(calls2)), ('ok', 1))
+
+    def test_roads_can_be_switched_off_and_the_executive_sees_only_themselves(self):
+        self._drive(0, 3)
+        fake, calls = fake_osrm()
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.road_trail', 'False')
+        with self._patched(fake):
+            self.assertEqual(self.Ping.get_road_trail(user_id=self.exec_user.id)['state'], 'off')
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.road_trail', 'True')
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.routing_url', '')
+        with self._patched(fake):
+            self.assertEqual(self.Ping.get_road_trail(user_id=self.exec_user.id)['state'], 'off')
+        self.assertEqual(calls, [])
+        self.assertEqual(location_road.routing_url(self.env), '', "off under the test runner by default")
+        mine = self.env['lab.location.ping'].with_user(self.exec_user)
+        with self.assertRaises(AccessError):
+            mine.get_road_trail(user_id=self.ops_user.id)
+        self.assertEqual(mine.get_road_trail()['state'], 'off', "my own day: allowed")

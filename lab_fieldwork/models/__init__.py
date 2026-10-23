@@ -36,6 +36,7 @@ from . import day_track
 from . import location_halt
 from . import location_ping
 from . import location_live
+from . import location_road
 # After location_ping and location_live: it imports the ping module (whose
 # lab.my.day extension must follow my_day) and extends the users model they built.
 from . import field_app

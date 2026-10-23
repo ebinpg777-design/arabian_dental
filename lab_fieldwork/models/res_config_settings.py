@@ -87,6 +87,12 @@ class ResConfigSettings(models.TransientModel):
         help="When the phone stands inside a planned clinic's radius, My Day asks the "
              "executive to check in; when it walks well away from an open visit, to check "
              "out. Nothing is checked in or out by itself.")
+    fw_road_trail = fields.Boolean(
+        'Draw the trail along the roads', default=True,
+        config_parameter='lab_fieldwork.road_trail',
+        help="The live map asks the routing service - the one the day sheet's route uses, "
+             "lab_fieldwork.routing_url - for the road from each fix to the next, and draws "
+             "that instead of straight lines between the fixes.")
     fw_speed_limit = fields.Integer(
         'Speed limit (km/h)', default=60,
         config_parameter='lab_fieldwork.speed_limit',
@@ -107,6 +113,7 @@ class ResConfigSettings(models.TransientModel):
         ('fw_auto_close_day', 'lab_fieldwork.auto_close_day'),
         ('fw_track_live', 'lab_fieldwork.track_live'),
         ('fw_auto_arrive', 'lab_fieldwork.auto_arrive'),
+        ('fw_road_trail', 'lab_fieldwork.road_trail'),
     )
 
     def set_values(self):

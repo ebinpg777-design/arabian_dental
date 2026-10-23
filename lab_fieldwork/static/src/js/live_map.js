@@ -459,7 +459,9 @@ export class LiveMap extends Component {
 
     /** The trail cut at the replay time: legs keep their breaks. */
     legsAt(ex, at) {
-        const legs = ex.legs || [];
+        // The trail along the roads when the server has worked it out for this
+        // person (field_live.js loadRoad), the fixes joined straight otherwise.
+        const legs = ex.road_legs || ex.legs || [];
         if (at === null) {
             return legs;
         }

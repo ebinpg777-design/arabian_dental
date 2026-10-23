@@ -119,7 +119,9 @@ export class FieldLive extends LiveMap {
                 day: this.state.day || null,
                 user_ids: null,
             });
+            const before = (this.state.data && this.state.data.executives) || [];
             this.state.data = data;
+            this.keepFullTrail(before);
             this.state.day = data.day;
             this.state.isToday = Boolean(data.is_today);
             this.state.lost = false;
@@ -166,6 +168,7 @@ export class FieldLive extends LiveMap {
         }
         const speed = Number(payload.speed_kmh) || 0;
         const accuracy = Number(payload.accuracy_m) || 0;
+        const roadLeg = ex.road_legs && ex.road_legs.length ? ex.road_legs[ex.road_legs.length - 1] : null;
         // A fix the phone puts at 100 m or worse (a cell tower's position) moves
         // the marker but never extends the trail - the rule the server draws by.
         const limit = Number(this.config.trail_accuracy_m) || 0;
@@ -177,6 +180,10 @@ export class FieldLive extends LiveMap {
                 lastLeg.push(point);
             } else {
                 legs.push([point]);
+            }
+            // ...and the road trail grows by a straight stub until the next look
+            if (roadLeg && roadLeg.length && payload.epoch - roadLeg[roadLeg.length - 1][2] <= 900) {
+                roadLeg.push([payload.lat, payload.lon, payload.epoch, speed, "still"]);
             }
         }
         ex.last = {
@@ -223,6 +230,32 @@ export class FieldLive extends LiveMap {
      * The overview carries a light trail per person; the person in focus gets the
      * full one, fetched once and kept until the next reload.
      */
+    /**
+     * The person in focus keeps their full trail across reloads. The board carries
+     * 300 points a person for the overview; a reload replaced the focused person's
+     * full trail with that thinned one until they were focused again. (2026-10-23)
+     */
+    keepFullTrail(before) {
+        if (!this.state.focusId) {
+            return;
+        }
+        const prev = before.find((e) => e.user_id === this.state.focusId && e.full_trail);
+        const cur = ((this.state.data && this.state.data.executives) || [])
+            .find((e) => e.user_id === this.state.focusId);
+        if (!prev || !cur) {
+            return;
+        }
+        Object.assign(cur, {
+            legs: prev.legs, gaps: prev.gaps, overspeed_points: prev.overspeed_points,
+            road_legs: prev.road_legs, full_trail: true,
+        });
+        if (this.state.isToday) {
+            // ...and today's grows: fetch it again, with the fixes since
+            cur.full_trail = false;
+            this.loadTrail(cur);
+        }
+    }
+
     async loadTrail(ex) {
         if (!ex || ex.full_trail || this.state.view === "trends") {
             return;
@@ -241,9 +274,39 @@ export class FieldLive extends LiveMap {
                     full_trail: true,
                 });
                 this.redraw();
+                this.loadRoad(current);
             }
         } catch (error) {
             console.warn("field live: full trail not loaded", error?.message || error);
+        }
+    }
+
+    /**
+     * The same trail along the roads (2026-10-23): asked after the plain one is up,
+     * since the first look at a long day takes the routing service a few seconds;
+     * a day not finished in one answer is asked again until it is.
+     */
+    async loadRoad(ex, attempt = 0) {
+        if (!ex || this.state.view === "trends") {
+            return;
+        }
+        try {
+            const road = await this.orm.call("lab.location.ping", "get_road_trail", [], {
+                user_id: ex.user_id,
+                day: this.state.day || null,
+            });
+            const current = ((this.state.data && this.state.data.executives) || [])
+                .find((e) => e.user_id === ex.user_id);
+            if (!current || !road || !road.legs) {
+                return;
+            }
+            current.road_legs = road.legs;
+            this.redraw();
+            if (!road.complete && road.state === "ok" && attempt < 12) {
+                setTimeout(() => this.loadRoad(current, attempt + 1), 400);
+            }
+        } catch (error) {
+            console.warn("field live: roads not loaded", error?.message || error);
         }
     }
 
