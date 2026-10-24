@@ -1057,7 +1057,6 @@ export class LiveMap extends Component {
             { kind: "blind", colour: "transparent", label: _t("no clear signal") },
             { kind: "halt", colour: HALT_COLOUR, label: _t("halt (minutes)") },
             { kind: "speed", colour: OVERSPEED_COLOUR, label: _t("over the speed limit") },
-            { kind: "gap", colour: "#fff", label: _t("recording gap") },
         ];
     }
 

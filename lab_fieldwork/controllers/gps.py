@@ -146,6 +146,22 @@ def parse_body(body):
     return device_id, pings
 
 
+PHONE_EVENTS = ('location_off', 'location_on', 'permission_off', 'recorder_restarted')
+
+
+def parse_events(body):
+    """[{'kind', 'ts'}] - what the phone says about itself (ADL Pro 1.0.9):
+    ``"events": [{"type": "location_off", "timestamp": ISO}, ...]`` beside the
+    locations. Anything else is skipped."""
+    events = body.get('events') if isinstance(body, dict) else None
+    out = []
+    for event in events if isinstance(events, list) else []:
+        if isinstance(event, dict) and event.get('type') in PHONE_EVENTS:
+            out.append({'kind': event['type'],
+                        'ts': fields.Datetime.to_string(parse_time(event.get('timestamp')))})
+    return out
+
+
 def parse_query(params):
     """(device_id, [ping]) from an OsmAnd query string."""
     device_id = params.get('id') or params.get('deviceid')
@@ -210,6 +226,9 @@ class FieldGpsController(http.Controller):
         # heard from, position or not: which silence it is, when one comes (2026-10-24)
         request.env['lab.location.ping'].sudo()._heard(user)
         kept = 0
+        events = parse_events(body) if body else []
+        if events and not user.fw_location_exception:
+            request.env['lab.location.event'].sudo()._record(user, events)
         # An excused phone is never watched, app or browser; the app is answered
         # OK all the same, or it retries the same positions for ever.
         if pings and not user.fw_location_exception:

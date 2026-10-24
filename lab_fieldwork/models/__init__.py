@@ -34,6 +34,7 @@ from . import desk_cover
 from . import daily_update
 from . import day_track
 from . import location_halt
+from . import location_event
 from . import location_ping
 from . import location_live
 from . import location_road

@@ -379,6 +379,7 @@ $fl-info: #2563eb;
     .o_fw_fl_band_visit { top: 4px; bottom: 4px; line-height: 22px; background: $fl-clinic; }
     .o_fw_fl_band_halt { top: 4px; bottom: 4px; background: $fl-halt; }
     .o_fw_fl_band_gap { top: 6px; bottom: 6px; background: repeating-linear-gradient(45deg, #9ca3af 0 3px, #e5e7eb 3px 6px); }
+    .o_fw_fl_band_locoff { top: 6px; bottom: 6px; background: repeating-linear-gradient(45deg, $fl-danger 0 3px, #fecaca 3px 6px); }
     .o_fw_fl_band_speed { top: 0; bottom: 0; background: $fl-danger; padding: 0; }
     .o_fw_fl_band_open { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .6); }
     .o_fw_fl_band_link { cursor: pointer; &:hover { filter: brightness(1.08); } }

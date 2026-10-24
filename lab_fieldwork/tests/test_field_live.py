@@ -68,6 +68,26 @@ class TestFieldLive(TransactionCase):
         return [a for a in board['alerts'] if a['key'] == key
                 and (user is None or a['user_id'] == user.id)]
 
+    def test_location_turned_off_in_the_phone_is_told_on_the_board(self):
+        """Client, 2026-10-24: "if any time location off in the phone settings then
+        that information needed"."""
+        self._on_duty(hours_ago=2)
+        self._ping(90)
+        Event = self.env['lab.location.event']
+        off = fields.Datetime.now() - timedelta(minutes=60)
+        Event._record(self.exec_user, [{'kind': 'location_off', 'ts': fields.Datetime.to_string(off)}])
+        board = self._board()
+        me = self._me(board)
+        self.assertIn('location_off', [e['kind'] for e in me['story']])
+        self.assertEqual([b['kind'] for b in me['bands'] if b['kind'] == 'locoff'], ['locoff'])
+        self.assertTrue(self._alerts(board, 'location_off', self.exec_user), "off now: the manager is told")
+        Event._record(self.exec_user, [{'kind': 'location_on',
+                                        'ts': fields.Datetime.to_string(off + timedelta(minutes=30))}])
+        board = self._board()
+        self.assertFalse(self._alerts(board, 'location_off', self.exec_user))
+        locoff = [b for b in self._me(board)['bands'] if b['kind'] == 'locoff']
+        self.assertEqual(locoff[0]['to_epoch'] - locoff[0]['from_epoch'], 30 * 60)
+
     # ------------------------------------------------------------------ access
     def test_only_a_manager_opens_the_board(self):
         with self.assertRaises(AccessError):

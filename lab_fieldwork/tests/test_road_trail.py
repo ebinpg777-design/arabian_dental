@@ -2,6 +2,7 @@
 """The trail along the roads (client, 2026-10-23: "show the map through roads instead
 of straight lines"). Nothing here touches the network: the routing service is a
 function, as in test_day_track."""
+import math
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -12,7 +13,7 @@ from odoo.exceptions import AccessError
 from odoo.tests import tagged
 
 from .test_live_track import LiveTrackCase
-from ..models import location_road
+from ..models import location_live, location_road
 from ..models.lab_visit import metres_between
 
 ROUTING = 'https://routing.test/route/v1/driving/'
@@ -50,6 +51,36 @@ def fake_osrm(detours=(), fail=False):
             def json(self):
                 return {'code': 'Ok',
                         'routes': [{'legs': legs, 'distance': sum(l['distance'] for l in legs)}],
+                        'waypoints': [{'location': list(c)} for c in coords]}
+        return Response()
+    return fake_get, calls
+
+
+def fake_osrm_longer(factor):
+    """A routing service whose road between two fixes is `factor` times the straight
+    line - a bend east at the middle - and says so in its distance."""
+    calls = []
+
+    def fake_get(url, params=None, timeout=None):
+        calls.append((url, params))
+        coords = [tuple(float(x) for x in c.split(',')) for c in url[len(ROUTING):].split(';')]
+        legs = []
+        for a, b in zip(coords, coords[1:]):
+            straight = metres_between(a[1], a[0], b[1], b[0]) or 0.0
+            east = math.sqrt(max(0.0, (factor * straight / 2) ** 2 - (straight / 2) ** 2))
+            mid = [(a[0] + b[0]) / 2 + east / (111_320.0 * math.cos(math.radians(a[1]))), (a[1] + b[1]) / 2]
+            legs.append({'distance': straight * factor,
+                         'steps': [{'geometry': {'coordinates': [list(a), mid]}},
+                                   {'geometry': {'coordinates': [mid, list(b)]}}]})
+
+        class Response:
+            status_code = 200
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {'code': 'Ok', 'routes': [{'legs': legs}],
                         'waypoints': [{'location': list(c)} for c in coords]}
         return Response()
     return fake_get, calls
@@ -230,3 +261,67 @@ class TestRoadTrail(LiveTrackCase):
         self.assertEqual(len(leg), 1 + 6 * 2, "every step along its own road")
         for v, w in zip(leg, leg[1:]):
             self.assertGreaterEqual(w[0], v[0] - 1e-9, "the trail only ever heads north: nothing runs back")
+
+    # ------------------------------------------- the km of a stretch not recorded
+    def test_a_stretch_not_recorded_counts_its_road_not_the_straight_line(self):
+        """Client, 2026-10-24: "the KM showing also wrong... a big problem on
+        reimbursing the KM allowance". A gap measured as the straight line across it
+        under-counted every one."""
+        t0 = fields.Datetime.now()
+        pts = [(t0, 10.0, 76.0, 36.0), (t0 + timedelta(seconds=20), 10.0 + 200 * NORTH, 76.0, 36.0),
+               (t0 + timedelta(seconds=380), 10.0 + 3200 * NORTH, 76.0, 36.0)]
+        modes = location_live.classify_modes(pts)
+        self.assertEqual(modes[2], 'blind')
+        road = [[10.0 + 200 * NORTH, 76.0], [10.0 + 1700 * NORTH, 76.0 + 2000 / 109_600.0],
+                [10.0 + 3200 * NORTH, 76.0]]
+        steps = {str(location_live.epoch(pts[2][0])): road}
+        straight = location_live.mode_km(pts, modes)
+        along = location_live.mode_km(pts, modes, steps)
+        self.assertAlmostEqual(straight['blind'], 3.0, 1)
+        self.assertAlmostEqual(along['blind'], location_live.road_metres(road) / 1000.0, 1)
+        self.assertGreater(along['travel'], straight['travel'] + 1.5, "5 km by road, not 3 across")
+        self.assertEqual(along['blind_road'], along['blind'])
+        # a one-vertex entry is a fix snapped to the wrong road: the straight line stands
+        snapped = {str(location_live.epoch(pts[2][0])): [[10.0 + 3200 * NORTH, 76.0]]}
+        self.assertEqual(location_live.mode_km(pts, modes, snapped), straight | {'blind_road': 0.0})
+        # never shorter than the straight line, whatever the cache says
+        short = {str(location_live.epoch(pts[2][0])): [[10.0 + 200 * NORTH, 76.0], [10.0 + 1000 * NORTH, 76.0]]}
+        self.assertAlmostEqual(location_live.mode_km(pts, modes, short)['blind'], 3.0, 1)
+
+    def test_the_job_measures_a_gap_on_the_trip_until_it_is_approved(self):
+        self._blind_day()
+        day = self.env['lab.location.ping']._today_for(self.exec_user)
+        trip = self.env['lab.trip'].sudo().create({
+            'user_id': self.exec_user.id, 'date': day, 'vehicle': 'bike', 'odo_start': 100, 'odo_end': 103})
+        self.assertAlmostEqual(trip.gps_km, 1.7, 1, "0.8 km driven, 0.9 km across the gap")
+        fake, _calls = fake_osrm_longer(1.3)
+        with self._patched(fake):
+            self.env['lab.location.ping'].with_context(lab_test_routing=True)._cron_fill_roads()
+        self.assertAlmostEqual(trip.gps_km, (0.8 + 0.9) * 1.3, 1, "the drive and the gap along their roads")
+        # approved: a signed figure is not changed under the people who signed it
+        trip.sudo().state = 'approved'
+        before = trip.gps_km
+        later = self.now + timedelta(minutes=12)
+        self.env['lab.location.ping'].with_user(self.exec_user).record([
+            {'latitude': 10.0 + m * NORTH, 'longitude': 76.0, 'accuracy_m': 8, 'speed_kmh': 36.0,
+             'ts': fields.Datetime.to_string(later + timedelta(seconds=s))}
+            for m, s in ((4000.0, 0), (6000.0, 200), (6200.0, 220))])
+        with self._patched(fake):
+            self.env['lab.location.ping'].with_context(lab_test_routing=True)._cron_fill_roads()
+        self.assertEqual(trip.gps_km, before)
+
+    def test_a_drive_counts_its_road_and_a_snap_beside_it_does_not(self):
+        """Straight lines cut every corner: 119 km on a day the vehicle read 128."""
+        t0 = fields.Datetime.now()
+        pts = [(t0, 10.0, 76.0, 36.0), (t0 + timedelta(seconds=20), 10.0 + 200 * NORTH, 76.0, 36.0)]
+        modes = location_live.classify_modes(pts)
+        self.assertEqual(modes[1], 'vehicle')
+        key = str(location_live.epoch(pts[1][0]))
+        bend = [[10.0, 76.0], [10.0 + 100 * NORTH, 76.0 + 60 / 109_600.0], [10.0 + 200 * NORTH, 76.0]]
+        km = location_live.mode_km(pts, modes, {key: bend})['vehicle']
+        self.assertAlmostEqual(km, location_live.road_metres(bend) / 1000.0, 2)
+        self.assertGreater(km, 0.2)
+        around = [[10.0, 76.0], [10.0, 76.0 + 300 / 109_600.0], [10.0 + 200 * NORTH, 76.0 + 300 / 109_600.0],
+                  [10.0 + 200 * NORTH, 76.0]]
+        self.assertAlmostEqual(location_live.mode_km(pts, modes, {key: around})['vehicle'], 0.2, 2,
+                               "800 m around the block for a 200 m step: the road beside it")

@@ -31,7 +31,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
 from .lab_visit import metres_between
-from .location_live import JITTER_M, MAX_KMH, classify_modes, epoch, road_step, split_legs
+from .location_live import JITTER_M, MAX_KMH, classify_modes, epoch, road_step
 
 _logger = logging.getLogger(__name__)
 
@@ -145,7 +145,8 @@ class LabLocationPingRoad(models.Model):
         # The waypoints: a leg per recording gap, jitter skipped; and the runs of
         # consecutive steps whose road is not known yet.
         legs_wp, runs = [], []
-        for leg in split_legs(points)[0]:
+        # One linked trail (2026-10-24): the road across a silence is asked too.
+        for leg in ([points] if points else []):
             wps = [leg[0]]
             for p in leg[1:]:
                 if _straight(wps[-1], p) >= JITTER_M:
@@ -223,7 +224,12 @@ class LabLocationPingRoad(models.Model):
         every five minutes: the team view draws a stretch the phone crossed with no
         signal along its road from what is known here (get_live_map), and asks
         nothing itself. The person in focus still asks for the rest at once
-        (get_road_trail). (client, 2026-10-23)"""
+        (get_road_trail). (client, 2026-10-23)
+
+        Yesterday too, and each day's km read again after (2026-10-24): a stretch
+        the phone did not record counts its road, not the straight line across
+        (mode_km), and the app sends the whole day again when it ends - so the last
+        stretches of a day, and anything that arrived late, are measured as well."""
         if not (self._road_trail_enabled() and routing_url(self.env)):
             return
         Ping = self.sudo()
@@ -233,11 +239,13 @@ class LabLocationPingRoad(models.Model):
         filled = 0
         for (user_id,) in self.env.cr.fetchall():
             user = Users.browse(user_id)
-            day = Ping._today_for(user)
-            if Ping.search_count([('user_id', '=', user.id), ('date', '=', day)], limit=1):
-                Ping._road_legs(user, day)
-                filled += 1
-        _logger.info("road trail: %d trail(s) of today brought up to date", filled)
+            today = Ping._today_for(user)
+            for day in (today - timedelta(days=1), today):
+                if Ping.search_count([('user_id', '=', user.id), ('date', '=', day)], limit=1):
+                    Ping._road_legs(user, day)
+                    Ping._refresh_day_km(user, day)
+                    filled += 1
+        _logger.info("road trail: %d day(s) of trail brought up to date", filled)
 
     @api.model
     def _ask_roads(self, url, chunk):

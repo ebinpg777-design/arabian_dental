@@ -192,6 +192,34 @@ class TestLiveLayer(LiveTrackCase):
         km = location_live.mode_km(pts)
         self.assertAlmostEqual(km['foot'], 0.33, 1, letters(location_live.classify_modes(pts)))
 
+    def test_a_long_silence_ending_elsewhere_is_linked_and_counted(self):
+        """Client, 2026-10-24: "not recorded time should not needed. It should be
+        linked." An hour with nothing recorded, after which the phone is 8 km on, was
+        a journey: counted. One that ends where it began is the phone still there."""
+        t0 = fields.Datetime.now()
+        pts = [at(t0, 0, 0, 36.0), at(t0, 20, 200, 36.0), at(t0, 3620, 8200, 36.0), at(t0, 3640, 8400, 36.0)]
+        modes = location_live.classify_modes(pts)
+        self.assertEqual(modes[2], 'blind', letters(modes))
+        self.assertAlmostEqual(location_live.mode_km(pts, modes)['travel'], 8.4, 1)
+        parked = [at(t0, 0, 0), at(t0, 3600, 40)]
+        self.assertEqual(location_live.classify_modes(parked)[1], 'still')
+        # 100 km in twenty minutes is a GPS error, not a journey
+        wild = [at(t0, 0, 0, 36.0), at(t0, 1200, 100_000, 36.0)]
+        self.assertEqual(location_live.mode_km(wild)['travel'], 0.0)
+
+    def test_the_map_draws_one_linked_trail(self):
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=90)
+        self._start_day(user, now - timedelta(minutes=30))
+        path = walk(10.0, 76.0, 3, metres_each=200.0, seconds_each=20, speed=36.0)
+        path += [(10.0 + 6000 / 111_320.0, 76.0, 3600, 36.0), (10.0 + 6200 / 111_320.0, 76.0, 3620, 36.0)]
+        self._pings(user, now, path)
+        [ex] = self.env['lab.location.ping'].with_user(user).get_live_map()['executives']
+        self.assertEqual(len(ex['legs']), 1, "one trail, no break")
+        self.assertEqual(ex['gaps'], [])
+        self.assertIn('blind', {p[4] for p in ex['legs'][0]}, "drawn as the journey it was")
+        self.assertAlmostEqual(ex['km'], 6.2, 1)
+
     def test_a_recording_gap_is_never_smoothed_across(self):
         t0 = fields.Datetime.now()
         pts = [at(t0, 0, 0, 36.0), at(t0, 10, 100, 36.0), at(t0, 20, 200, 36.0), at(t0, 30, 300, 36.0),

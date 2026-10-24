@@ -376,7 +376,7 @@
                 <div t-if="this.state.view === 'timeline'" class="o_fw_fl_report">
                     <div class="o_fw_fl_report_head">
                         <h5>The day on one clock</h5>
-                        <span class="o_fw_fl_muted">on duty · <i class="o_fw_fl_key_i o_fw_fl_band_visit"/> at a clinic · <i class="o_fw_fl_key_i o_fw_fl_band_halt"/> stopped · <i class="o_fw_fl_key_i o_fw_fl_band_gap"/> not recorded · <i class="o_fw_fl_key_i o_fw_fl_band_speed"/> over the limit</span>
+                        <span class="o_fw_fl_muted">on duty · <i class="o_fw_fl_key_i o_fw_fl_band_visit"/> at a clinic · <i class="o_fw_fl_key_i o_fw_fl_band_halt"/> stopped · <i class="o_fw_fl_key_i o_fw_fl_band_locoff"/> location off · <i class="o_fw_fl_key_i o_fw_fl_band_speed"/> over the limit</span>
                     </div>
                     <div t-if="!this.executives.length" class="o_fw_fl_empty"><i class="fa fa-clock-o" aria-hidden="true"/><b>Nobody to show for this day.</b></div>
                     <div t-else="" class="o_fw_fl_tl">

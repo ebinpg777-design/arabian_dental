@@ -40,6 +40,8 @@ const EVENT_ICONS = {
     start: "fa-play-circle", end: "fa-stop-circle", visit_in: "fa-sign-in",
     visit_out: "fa-sign-out", halt: "fa-pause-circle", speed: "fa-tachometer",
     gap: "fa-eye-slash", cash: "fa-money", sheet: "fa-file-text-o",
+    location_off: "fa-ban", location_on: "fa-map-marker", permission_off: "fa-lock",
+    recorder_restarted: "fa-refresh",
 };
 const LEVEL_ICONS = { danger: "fa-exclamation-circle", warning: "fa-exclamation-triangle", info: "fa-info-circle" };
 const MOBILE = "(max-width: 767.98px)";
@@ -595,13 +597,13 @@ export class FieldLive extends LiveMap {
     }
 
     // --------------------------------------------------------------- the split
-    /** The duty minutes as shares: at clinics, on the road, stopped, not recorded. */
+    /** The duty minutes as shares: at clinics, on the road, stopped. */
     splitParts(ex) {
         const split = ex.split || {};
         const total = Math.max(1, split.duty || 0);
         const parts = [
             ["clinic", _t("at clinics")], ["road", _t("on the road")],
-            ["stopped", _t("stopped")], ["unrecorded", _t("not recorded")],
+            ["stopped", _t("stopped")],
         ];
         return parts.map(([key, label]) => ({
             key, label, minutes: split[key] || 0,

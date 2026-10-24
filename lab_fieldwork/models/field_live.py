@@ -293,13 +293,25 @@ class LabFieldLive(models.AbstractModel):
                            'title': _('%s km/h') % int(round(point[3]))})
             bands.append({'kind': 'speed', 'from_epoch': point[2], 'to_epoch': point[2] + 60,
                           'label': _('%s km/h') % int(round(point[3]))})
+        # What the phone said about itself (ADL Pro 1.0.9): location turned off and on
+        # again in its settings, the permission taken, the recorder started again - a
+        # stretch with no route explained by the phone. (client, 2026-10-24)
+        off_since = None
+        for event in self.env['lab.location.event'].sudo().search(
+                [('user_id', '=', user.id), ('date', '=', day)], order='ts'):
+            when = epoch(event.ts)
+            events.append({'kind': event.kind, 'epoch': when,
+                           'title': dict(event._fields['kind'].selection)[event.kind]})
+            if event.kind == 'location_off':
+                off_since = off_since or when
+            elif event.kind == 'location_on' and off_since:
+                bands.append({'kind': 'locoff', 'from_epoch': off_since, 'to_epoch': when,
+                              'label': _('Location off')})
+                off_since = None
+        if off_since:
+            bands.append({'kind': 'locoff', 'from_epoch': off_since, 'to_epoch': max(off_since, open_until),
+                          'label': _('Location off'), 'open': True})
         gap_minutes = 0
-        for gap in ex.get('gaps') or []:
-            events.append({'kind': 'gap', 'epoch': gap['from_epoch'],
-                           'title': _('Not recorded for %s min') % gap['minutes']})
-            bands.append({'kind': 'gap', 'from_epoch': gap['from_epoch'], 'to_epoch': gap['to_epoch'],
-                          'label': _('Not recorded')})
-            gap_minutes += gap['minutes']
         for cash in records['cash'].get(user.id, []):
             events.append({'kind': 'cash', 'epoch': epoch(cash.create_date),
                            'title': _('Cash taken'), 'amount': cash.amount,
@@ -333,6 +345,15 @@ class LabFieldLive(models.AbstractModel):
         last = ex.get('last')
         age = last['age_s'] if last else None
         phone = ex.get('phone_app') or {}
+        day_events = self.env['lab.location.event'].sudo().search(
+            [('user_id', '=', user.id), ('date', '=', fields.Date.context_today(self.with_context(
+                tz=tz_name(self.env, user))))], order='ts')
+        off_since = self.env['lab.location.event']._location_off_since(day_events)
+        if ex.get('on_duty') and off_since and not (last and last['epoch'] and last['epoch'] > epoch(off_since)):
+            add('location_off', 'danger', _('Location is OFF'),
+                _("turned off in the phone's settings at %s - nothing can be recorded until it is on")
+                % fields.Datetime.context_timestamp(self.with_context(tz=tz_name(self.env, user)),
+                                                    off_since).strftime('%H:%M'))
         if ex.get('on_duty') and (age is None or age >= offline_s):
             detail = _('on duty, no position for %s min') % (age // 60) if age is not None \
                 else _('on duty, no position yet today')

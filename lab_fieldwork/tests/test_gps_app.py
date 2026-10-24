@@ -125,6 +125,25 @@ class TestGpsApp(HttpCase):
             'coords': {'latitude': 11.0, 'longitude': 76.0, 'accuracy': 5}}})
         self.assertEqual(pings[0]['motion'], 'foot')
 
+    def test_the_phone_says_when_location_was_turned_off(self):
+        """Client, 2026-10-24: "if any time location off in the phone settings then
+        that information needed"."""
+        device = self._switch_on()
+        self._on_duty()
+        off = fields.Datetime.now() - timedelta(minutes=20)
+        on = fields.Datetime.now() - timedelta(minutes=5)
+        body = {'device_id': device, 'locations': [], 'events': [
+            {'type': 'location_off', 'timestamp': off.strftime('%Y-%m-%dT%H:%M:%SZ')},
+            {'type': 'location_on', 'timestamp': on.strftime('%Y-%m-%dT%H:%M:%SZ')},
+            {'type': 'nonsense', 'timestamp': on.strftime('%Y-%m-%dT%H:%M:%SZ')}]}
+        for _again in range(2):          # an answer lost on the way: the batch comes again
+            r = self.url_open('/lab_fieldwork/gps', json=body)
+            self.assertEqual(r.status_code, 200)
+        events = self.env['lab.location.event'].sudo().search([('user_id', '=', self.exec_user.id)], order='ts')
+        self.assertEqual(events.mapped('kind'), ['location_off', 'location_on'], "each once, the unknown skipped")
+        self.assertEqual(gps.parse_events({'events': 'x'}), [])
+        self.assertEqual(gps.parse_events([1, 2]), [])
+
     def test_only_an_administrator_switches_the_app_and_the_id_is_secret(self):
         with self.assertRaises(AccessError):
             self.exec_user.with_user(self.exec_user).with_context(fw_value=True).action_fw_tracking_app()

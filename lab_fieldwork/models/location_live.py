@@ -160,7 +160,12 @@ def classify_modes(points):
         metres, secs, fastest = _step(a, b)
         seconds[i] = secs
         if secs > TRAIL_GAP_SECONDS:
-            modes[i] = 'gap'
+            # A long silence after which the phone is somewhere else is a journey the
+            # phone did not record: linked, counted, measured along its road (mode_km).
+            # One that ends where it began is the phone still there. (client,
+            # 2026-10-24: "not recorded time should not needed. It should be linked.")
+            # A "journey" faster than anything on the road is a GPS error: not counted.
+            modes[i] = 'blind' if metres > BLIND_METRES and fastest <= MAX_KMH else 'gap'
             continue
         if metres < JITTER_M or fastest > MAX_KMH:
             paused[i] = secs >= PAUSE_SECONDS
@@ -216,16 +221,49 @@ def _smooth_modes(modes, seconds, sure, paused, inner, outer, max_seconds, pause
         i = j
 
 
-def mode_km(points, modes=None):
+DRIVE_ROAD_FACTOR = 1.5        # a drive's road at most this times its step...
+DRIVE_ROAD_SLACK_M = 50.0      # ...plus this, or it is a snap to the road beside it
+
+
+def road_metres(road):
+    """The length of a road as lab.location.road holds it: [[lat, lon], ...]."""
+    return sum(metres_between(a[0], a[1], b[0], b[1]) or 0.0 for a, b in zip(road, road[1:]))
+
+
+def mode_km(points, modes=None, steps=None):
     """Distance along the trail by mode: the steps trail_km counts, each laid to the
     stretch it ends. 'travel' (vehicle + blind) is what a travel claim is judged
-    against; 'foot' is a walk; 'total' is trail_km."""
+    against; 'foot' is a walk; 'total' is trail_km.
+
+    Every drive and every blind stretch - two fixes far apart with nothing recorded
+    between, however long the silence - counts the road between its two fixes where
+    it is known (`steps`: lab.location.road's, filled every five minutes), never less
+    than the straight line. Straight lines cut every corner and every gap: 119 km on
+    a day the vehicle read 128, 88 on one it read 105. (client, 2026-10-24: "the KM
+    showing also wrong... a big problem on reimbursing the KM allowance") 'blind_road'
+    says how much of 'blind' is road."""
     modes = modes or classify_modes(points)
     out = {'vehicle': 0.0, 'foot': 0.0, 'blind': 0.0}
+    by_road = 0.0
     for i in range(1, len(points)):
-        if modes[i] in out:
-            out[modes[i]] += _step(points[i - 1], points[i])[0] / 1000.0
+        mode = modes[i]
+        if mode not in out:
+            continue
+        metres = _step(points[i - 1], points[i])[0]
+        if mode in ('vehicle', 'blind') and steps:
+            road = road_step(steps, points[i - 1], points[i])
+            if road and len(road) > 1:
+                along = road_metres(road)
+                # A drive's step is a few hundred metres at most: a road far longer
+                # than the line between its two fixes is one snapped to the road
+                # beside it (the gaps' own guard is applied when their road is read).
+                if mode == 'blind' or along <= DRIVE_ROAD_FACTOR * metres + DRIVE_ROAD_SLACK_M:
+                    metres = max(metres, along)
+                    if mode == 'blind':
+                        by_road += metres
+        out[mode] += metres / 1000.0
     out = {mode: round(km, 2) for mode, km in out.items()}
+    out['blind_road'] = round(by_road / 1000.0, 2)
     out['travel'] = round(out['vehicle'] + out['blind'], 2)
     out['total'] = round(out['vehicle'] + out['foot'] + out['blind'], 2)
     return out
@@ -412,7 +450,39 @@ class LabLocationPingLive(models.Model):
 
     @api.model
     def _trail_split_for(self, user, day):
-        return mode_km(self._day_points(user, day))
+        return mode_km(self._day_points(user, day), steps=self._road_steps(user, day))
+
+    @api.model
+    def _road_steps(self, user, day):
+        """The roads known for this person's day (lab.location.road, filled every five
+        minutes by _cron_fill_roads): the km of a stretch the phone did not record is
+        measured along them. {} when roads are off or none is known yet."""
+        if not self._road_trail_enabled():
+            return {}
+        road = self.env['lab.location.road'].sudo().search(
+            [('user_id', '=', user.id), ('date', '=', day)], limit=1)
+        if not road.steps or road.accuracy_key != self._trail_accuracy():
+            return {}
+        try:
+            return json.loads(road.steps)
+        except ValueError:
+            return {}
+
+    @api.model
+    def _refresh_day_km(self, user, day):
+        """The day's km read again - after its roads were filled, or fixes a phone sent
+        late or again landed in it - on the trip until it is approved and on the day
+        sheet until a desk has signed it: a signed figure is not changed under the
+        people who signed it. (2026-10-24)"""
+        self._refresh_trip_km(user, day)
+        sheets = self.env['lab.daily.update'].sudo().search(
+            [('user_id', '=', user.id), ('date', '=', day), ('state', 'in', ('draft', 'submitted', 'sent_back'))])
+        if sheets:
+            summary = self._day_summary(user, day)
+            values = {key: summary[key] for key in ('gps_km', 'foot_km', 'blind_km')}
+            for sheet in sheets:
+                if any(round(sheet[key] or 0.0, 1) != round(value, 1) for key, value in values.items()):
+                    sheet.write(values)
 
     @api.model
     def _day_summary(self, user, day):
@@ -420,7 +490,7 @@ class LabLocationPingLive(models.Model):
         points = self._day_points(user, day)
         halts = self.env['lab.location.halt'].sudo().search(
             [('user_id', '=', user.id), ('date', '=', day)])
-        split = mode_km(points)
+        split = mode_km(points, steps=self._road_steps(user, day))
         return {
             'gps_km': split['travel'],
             'foot_km': split['foot'],
@@ -574,13 +644,17 @@ class LabLocationPingLive(models.Model):
 
     @api.model
     def _refresh_trip_km(self, user, day, points=None):
+        """The trip's km read again - after every batch, and after the day's roads were
+        filled. Never on an approved trip: the figure it was approved with stands, also
+        when fixes the phone sent late or again land in its day afterwards (2026-10-24)."""
         trips = self.env['lab.trip'].sudo().search(
-            [('user_id', '=', user.id), ('date', '=', day), ('state', '!=', 'cancel')])
+            [('user_id', '=', user.id), ('date', '=', day), ('state', 'not in', ('cancel', 'approved'))])
         if trips:
             if points is not None:
                 # the day already read: the trip takes its km from it (lab_trip.py)
                 trips = trips.with_context(fw_trail_km={
-                    '%s/%s' % (user.id, fields.Date.to_string(day)): mode_km(points)['travel']})
+                    '%s/%s' % (user.id, fields.Date.to_string(day)):
+                        mode_km(points, steps=self._road_steps(user, day))['travel']})
             trips._compute_gps_km()
 
     # ---------------------------------------------------------------- the live map
@@ -756,7 +830,7 @@ class LabLocationPingLive(models.Model):
             # the mode of the stretch ending at each point, carried into the legs
             modes = classify_modes(points)
             mode_of = {id(p): m for p, m in zip(points, modes)}
-            split = mode_km(points, modes)
+            split = mode_km(points, modes, roads.get(user.id))
             visits = Visit.search([('user_id', '=', user.id), ('date', '=', day),
                                    ('state', '!=', 'cancel')], order='id')
             open_visit = visits.filtered(lambda v: v.state == 'open')[:1]
@@ -771,7 +845,9 @@ class LabLocationPingLive(models.Model):
             # the latest fix whatever its accuracy: where the phone is, not a road
             last = fixes[-1] if fixes else None
             status, label, since = self._status_of(user, last, open_visit, on_duty, is_today, now)
-            legs, gaps = split_legs(points)
+            # One linked trail: a silence is drawn as the journey it was, along its road
+            # once known (drawn_leg), never as a break (client, 2026-10-24).
+            legs, gaps = ([points] if points else []), []
             budget = max(50, int(max_points or MAX_TRAIL_POINTS))
             trail_points = sum(len(leg) for leg in legs)
             keep = max(1, budget // max(1, len(legs))) if trail_points > budget else None
@@ -986,7 +1062,7 @@ class LabMyDayLive(models.AbstractModel):
         Ping = self.env['lab.location.ping'].sudo()
         day = Ping._today_for(user)
         fixes = Ping._day_fixes(user, day)
-        state['km_today'] = mode_km(Ping._trail_points(fixes))['travel']
+        state['km_today'] = mode_km(Ping._trail_points(fixes), steps=Ping._road_steps(user, day))['travel']
         state['last_fix_age_s'] = int((fields.Datetime.now() - fixes[-1][0]).total_seconds()) \
             if fixes else None
         nudges = []
