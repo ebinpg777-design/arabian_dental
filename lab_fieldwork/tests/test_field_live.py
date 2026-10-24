@@ -144,6 +144,18 @@ class TestFieldLive(TransactionCase):
         self.env['lab.my.day'].with_user(self.exec_user).tracking_state(client='app', app_version='1.0.0')
         board = self._board()
         self.assertIn('ADL Pro', self._alerts(board, 'silent', self.exec_user)[0]['detail'])
+        # which silence (2026-10-24): not heard from at all - no network, or the app
+        # stopped; heard from but holding no position - no GPS fix
+        self.assertEqual(self._me(board)['phone_app']['reason'], 'network')
+        self.assertIn('not heard from', self._alerts(board, 'silent', self.exec_user)[0]['detail'])
+        self.env['lab.location.ping'].sudo()._heard(self.exec_user)
+        board = self._board()
+        alert = self._alerts(board, 'silent', self.exec_user)[0]
+        self.assertEqual(alert['title'], 'No GPS fix')
+        self.assertIn('holds no position', alert['detail'])
+        self.assertEqual(self._me(board)['phone_app']['reason'], 'gps')
+        self.assertEqual(self._me(board)['status_label'], 'no GPS fix')
+        self.assertLess(self._me(board)['phone_app']['heard_age_s'], 60)
         # off duty, silence is nobody's business
         self.env['hr.attendance'].sudo().search([('employee_id', '=', self.employee.id)]).write(
             {'check_out': fields.Datetime.now()})

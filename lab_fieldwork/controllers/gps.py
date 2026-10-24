@@ -207,6 +207,8 @@ class FieldGpsController(http.Controller):
         if not user:
             _logger.info("field GPS: position for an unknown device %s", device_id)
             return request.make_response('unknown device', status=403)
+        # heard from, position or not: which silence it is, when one comes (2026-10-24)
+        request.env['lab.location.ping'].sudo()._heard(user)
         kept = 0
         # An excused phone is never watched, app or browser; the app is answered
         # OK all the same, or it retries the same positions for ever.

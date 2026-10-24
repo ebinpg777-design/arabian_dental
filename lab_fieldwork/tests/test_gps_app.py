@@ -140,6 +140,8 @@ class TestGpsApp(HttpCase):
         r = self.url_open('/lab_fieldwork/gps?id=%s&lat=11.12&lon=76.12&speed=0' % device)
         self.assertEqual(r.status_code, 200)
         self.assertFalse(self._pings(), "the app may run all day; off duty nothing is kept")
+        self.assertTrue(self.exec_user.sudo().fw_last_heard_at,
+                        "heard from all the same: which silence it is, when one comes (2026-10-24)")
         self._on_duty()
         first = now - timedelta(minutes=3)
         stamp = int((first - fields.Datetime.to_datetime('1970-01-01 00:00:00')).total_seconds())

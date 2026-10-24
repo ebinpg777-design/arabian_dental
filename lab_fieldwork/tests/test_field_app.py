@@ -65,6 +65,11 @@ class TestFieldApp(HttpCase):
         self.assertTrue(me.fw_native_app)
         self.assertEqual(me.fw_native_app_version, '1.0.0')
         self.assertFalse(me.fw_gps_app, "the Traccar switch stays off")
+        # the phone itself, as the app from 1.0.8 says it (2026-10-24); tidied, capped
+        self.assertFalse(me.fw_native_device)
+        self.env['lab.my.day'].with_user(self.exec_user).tracking_state(
+            client='app', app_version='1.0.0', app_device='  vivo  V2250 \u00b7 Android 14 ' + 'x' * 80)
+        self.assertEqual(me.fw_native_device, ('vivo V2250 \u00b7 Android 14 ' + 'x' * 80)[:64])
         # the same id every time; a new build is noted; junk in the version is not kept
         again = self._state(client='app', app_version='1.1.0<script>')
         self.assertEqual(again['native']['device_id'], native['device_id'])

@@ -31,7 +31,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta
 
-from .field_app import APP_LIVE_SECONDS
+from .field_app import APP_LIVE_SECONDS, IDLE_CHECK_SECONDS
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
@@ -47,6 +47,8 @@ MOVING_KMH = 4.0            # below this a fix is "standing", whatever the GPS j
 JITTER_M = 15.0             # two fixes closer than this are the same place
 MAX_KMH = 150.0             # a jump faster than this is a GPS error, not a journey
 TRAIL_GAP_SECONDS = 900     # silence longer than this breaks the trail into a new leg
+# heard from within the app's idle report-in, with slack: the phone is online
+HEARD_RECENT_SECONDS = IDLE_CHECK_SECONDS + 120
 MAX_TRAIL_POINTS = 1500     # what the browser is sent per executive per day
 TRAIL_ACCURACY_M = 100      # a fix at this many metres or worse is not drawn (see _trail_accuracy)
 MAX_OVERSPEED_POINTS = 400
@@ -264,6 +266,30 @@ def thin_runs(points, modes, limit):
     return kept
 
 
+ROAD_STEP_TOLERANCE_M = 150.0   # a known road must set off this close to its step's start fix
+
+
+def road_step(steps, start, end):
+    """The road from fix `start` to fix `end` as lab.location.road holds it - keyed by
+    the end fix's time - or None when it is not known for THIS step. A one-vertex entry
+    is known: that step is drawn straight (a fix snapped to the wrong road).
+
+    Fixes that reach the server late - a phone back in coverage sending what it took
+    meanwhile (2026-10-24) - land between two fixes whose road was already read. The
+    step ending at the later fix now starts at a new fix, and its stored road, set off
+    from the earlier one, would be drawn running back there. A road that does not set
+    off near the step's start is not known for it; the service is asked again."""
+    if not steps:
+        return None
+    road = steps.get(str(epoch(end[0])))
+    if not road:
+        return None
+    if len(road) > 1 and \
+            (metres_between(start[1], start[2], road[0][0], road[0][1]) or 0.0) > ROAD_STEP_TOLERANCE_M:
+        return None
+    return road
+
+
 def drawn_leg(leg, index_of, points, steps=None):
     """A thinned leg [(point, mode)] as the map draws it: [lat, lon, epoch, speed, mode]
     a vertex. A blind stretch whose road is known (`steps`: lab.location.road's, keyed
@@ -277,7 +303,7 @@ def drawn_leg(leg, index_of, points, steps=None):
         if mode == 'blind' and prev is not None and steps:
             i, j = index_of.get(id(prev)), index_of.get(id(point))
             if i is not None and j is not None and j > i:
-                pieces = [(points[k], steps.get(str(epoch(points[k][0])))) for k in range(i + 1, j + 1)]
+                pieces = [(points[k], road_step(steps, points[k - 1], points[k])) for k in range(i + 1, j + 1)]
                 if not all(road and len(road) > 1 for _p, road in pieces):
                     pieces = None
         if pieces:
@@ -595,11 +621,37 @@ class LabLocationPingLive(models.Model):
             if age <= self._offline_minutes():
                 return 'stopped', _('stopped'), last[0]
             if on_duty:
-                return 'offline', _('no signal'), last[0]
+                return 'offline', self._silent_word(user, now), last[0]
             return 'off', _('day ended'), last[0]
         if on_duty:
-            return 'offline', _('no position yet'), None
+            return 'offline', self._silent_word(user, now, first=True), None
         return 'off', _('off today'), None
+
+    @api.model
+    def _heard(self, user):
+        """The phone reported in - a batch, or an empty report-in: when the server
+        last heard from it, to the minute (2026-10-24)."""
+        now = fields.Datetime.now()
+        last = user.sudo().fw_last_heard_at
+        if not last or (now - last).total_seconds() >= 60:
+            user.sudo().write({'fw_last_heard_at': now})
+
+    @api.model
+    def _heard_recently(self, user, now):
+        """Whether the phone has reported in lately, with or without a position: the
+        app posts every batch and, with nothing to send, every IDLE_CHECK_SECONDS."""
+        heard = user.sudo().fw_last_heard_at
+        return bool(heard) and (now - heard).total_seconds() <= HEARD_RECENT_SECONDS
+
+    @api.model
+    def _silent_word(self, user, now, first=False):
+        """Which silence this is. A phone that reports in but holds no position has
+        no GPS fix (Location off, or the app held back from it); one not heard from
+        has no network, or the app was stopped. (client, 2026-10-24: "may be
+        because of network issue or because of any other issues")"""
+        if self._heard_recently(user, now):
+            return _('no GPS fix')
+        return _('no position yet') if first else _('no signal')
 
     @api.model
     def _next_clinic(self, user, day, last):
@@ -807,6 +859,12 @@ class ResUsersLive(models.Model):
                                     groups='lab_fieldwork.group_fieldwork_manager')
     fw_last_battery = fields.Float('Phone Battery (%)', digits=(5, 1), readonly=True,
                                    groups='lab_fieldwork.group_fieldwork_manager')
+    # When the phone last reported in at all - a batch, or an empty report-in - as
+    # against the last POSITION above: a phone heard from with no position has no
+    # GPS fix; one not heard from has no network, or the app stopped. Management
+    # asked which it was (2026-10-24).
+    fw_last_heard_at = fields.Datetime('Phone Last Heard', readonly=True,
+                                       groups='lab_fieldwork.group_fieldwork_manager')
 
     # The free Traccar Client app instead of the browser (client, 2026-10-19). It
     # tracks with the screen off; the browser cannot. The identifier is the phone's
@@ -882,7 +940,7 @@ class LabMyDayLive(models.AbstractModel):
     _inherit = 'lab.my.day'
 
     @api.model
-    def tracking_state(self, client=None, app_version=None):
+    def tracking_state(self, client=None, app_version=None, app_device=None):
         """Plus what the trail noticed: the km so far, how fresh the last fix is, and
         the nudges - a planned clinic the phone is standing in, an open visit the
         phone has walked away from.
@@ -905,7 +963,7 @@ class LabMyDayLive(models.AbstractModel):
                 # when recording starts and End the day is when it stops, and in
                 # between the app is handed nothing it could record with.
                 # (client, 2026-10-20)
-                config = user._fw_native_config(app_version)
+                config = user._fw_native_config(app_version, app_device)
                 state['native'] = config if state.get('on_duty') else None
             else:
                 state['app'] = user._fw_app_setup()

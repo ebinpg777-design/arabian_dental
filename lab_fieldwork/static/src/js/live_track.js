@@ -110,11 +110,18 @@ export class LiveTracker {
         // only says when. Outside it is null, and everything below runs as before.
         this.native = nativeBridge();
         this.nativeVersion = "";
+        this.nativeDevice = "";
         if (this.native) {
             try {
                 this.nativeVersion = String(this.native.version() || "");
             } catch {
                 // An older shell without version(): still the shell.
+            }
+            try {
+                // the phone itself (1.0.8): a shell without device() has no say
+                this.nativeDevice = typeof this.native.device === "function" ? String(this.native.device() || "") : "";
+            } catch {
+                this.nativeDevice = "";
             }
         }
         this.hiddenSince = null;       // when the page went to the background
@@ -190,7 +197,9 @@ export class LiveTracker {
         let state;
         // The app's page says so, and says which build it is: the server answers
         // with the service's settings instead of a watch for this page.
-        const kwargs = this.native ? { client: "app", app_version: this.nativeVersion } : {};
+        const kwargs = this.native
+            ? { client: "app", app_version: this.nativeVersion, app_device: this.nativeDevice }
+            : {};
         try {
             state = await this.orm.silent.call("lab.my.day", "tracking_state", [], kwargs);
         } catch {

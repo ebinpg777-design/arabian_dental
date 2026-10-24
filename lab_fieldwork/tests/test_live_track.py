@@ -295,3 +295,37 @@ class TestTrailOnTheMap(LiveTrackCase):
         sheet = self.env['lab.daily.update'].create({
             'user_id': other.id, 'date': self.today})
         self.assertFalse(sheet.get_day_track()['trail'])
+
+
+@tagged('post_install', '-at_install')
+class TestLateFixes(LiveTrackCase):
+    """A phone back in coverage sends what it took meanwhile (client, 2026-10-24:
+    "sync when network comes back"). Until then a fix taken before the newest one
+    held was read as "already have this stretch" and dropped - and the network
+    coming back left exactly the gap it had made."""
+
+    def test_fixes_taken_before_the_newest_held_are_filed_in_their_place(self):
+        self._on_duty()
+        kept = self._post([(self._at(6, 0), LAT, LON, 10),
+                           (self._at(6, 10), LAT + 0.01, LON, 10)])
+        self.assertEqual(kept, 2)
+        # taken in between, delivered after: two fixes 500 m and 1 km on
+        late = self._post([(self._at(6, 3), LAT + 0.0045, LON, 10),
+                           (self._at(6, 6), LAT + 0.009, LON, 10)])
+        self.assertEqual(late, 2, "late is not the same as already held")
+        stored = self._stored()
+        self.assertEqual([p.ts for p in stored],
+                         [self._at(6, 0), self._at(6, 3), self._at(6, 6), self._at(6, 10)],
+                         "in the order they were taken, not received")
+        self.assertAlmostEqual(stored[1].speed_kmh, 0.0045 * 111.32 / 3 * 60, delta=0.5,
+                               msg="its speed is the ground covered since the fix before it")
+        me = self.exec_user.sudo()
+        self.assertEqual(me.fw_last_ping_at, self._at(6, 10), "the last position stays the latest")
+
+    def test_a_retry_of_a_held_fix_is_not_a_second_one(self):
+        self._on_duty()
+        rows = [(self._at(6, 0), LAT, LON, 10), (self._at(6, 5), LAT + 0.01, LON, 10)]
+        self.assertEqual(self._post(rows), 2)
+        self.assertEqual(self._post(rows), 0, "the same batch again: nothing new")
+        self.assertEqual(self._post(rows[:1]), 0, "the older one alone, again: held already")
+        self.assertEqual(len(self._stored()), 2)

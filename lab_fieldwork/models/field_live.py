@@ -159,6 +159,9 @@ class LabFieldLive(models.AbstractModel):
         """The phone behind the dot: on the app or not, heard from when."""
         last = ex.get('last') or {}
         age = last.get('age_s')
+        silent = bool(ex.get('on_duty')) and (age is None or age >= offline_s)
+        now = fields.Datetime.now()
+        heard = user.sudo().fw_last_heard_at
         return {
             'on_app': bool(user.fw_native_app),
             'app_version': user.fw_native_app_version or '',
@@ -166,7 +169,13 @@ class LabFieldLive(models.AbstractModel):
             'source': last.get('source') or '',
             'battery': last.get('battery'),
             'last_age_s': age,
-            'silent': bool(ex.get('on_duty')) and (age is None or age >= offline_s),
+            'silent': silent,
+            # which silence (2026-10-24): the phone reports in but holds no position
+            # (gps), or has not been heard from (network - or the app stopped)
+            'reason': ('gps' if self.env['lab.location.ping']._heard_recently(user, now)
+                       else 'network') if silent else '',
+            'heard_age_s': int((now - heard).total_seconds()) if heard else None,
+            'device': user.sudo().fw_native_device or '',
         }
 
     @api.model
@@ -327,9 +336,15 @@ class LabFieldLive(models.AbstractModel):
         if ex.get('on_duty') and (age is None or age >= offline_s):
             detail = _('on duty, no position for %s min') % (age // 60) if age is not None \
                 else _('on duty, no position yet today')
-            if phone.get('on_app'):
-                detail += _(' · ADL Pro may have been stopped by battery saving')
-            add('silent', 'danger', _('No signal'), detail)
+            if phone.get('reason') == 'gps':
+                detail += _(' · the phone reports in but holds no position: Location may be '
+                            'off, or ADL Pro held back from it')
+                add('silent', 'danger', _('No GPS fix'), detail)
+            else:
+                if phone.get('on_app'):
+                    detail += _(' · not heard from: no network, or ADL Pro was stopped by '
+                                'battery saving')
+                add('silent', 'danger', _('No signal'), detail)
         open_halt = next((h for h in ex.get('halts') or [] if not h['ended_epoch']), None)
         if open_halt:
             minutes = max(0, (epoch(now) - open_halt['started_epoch']) // 60)

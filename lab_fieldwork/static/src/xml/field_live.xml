@@ -305,8 +305,9 @@
                         </span>
                         <span class="o_fw_fl_phone_age" t-att-class="{ 'o_fw_fl_silent': phone.silent }">
                             <i class="fa fa-signal" aria-hidden="true"/> <t t-out="this.ageLabel(phone.last_age_s)"/>
-                            <t t-if="phone.silent"> · silent</t>
+                            <t t-if="phone.silent"> · silent<t t-if="phone.reason === 'gps'"> — phone online, no GPS fix</t><t t-elif="phone.reason === 'network'"> — not reached: no network, or the app stopped</t></t>
                             <t t-elif="!phone.on_duty"> · off duty</t>
+                            <t t-if="phone.device"> · <span class="o_fw_fl_muted" t-out="phone.device"/></t>
                         </span>
                     </div>
                     <div class="o_fw_fl_phones_note">

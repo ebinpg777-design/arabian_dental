@@ -72,6 +72,7 @@
                         <span invisible="not fw_native_app" class="badge text-bg-success">Installed</span>
                         <span invisible="not fw_native_app_version" class="text-muted small">
                             v<field name="fw_native_app_version" readonly="1" nolabel="1" class="d-inline"/>
+                            <span invisible="not fw_native_device"> · <field name="fw_native_device" readonly="1" nolabel="1" class="d-inline"/></span>
                         </span>
                     </div>
                     <!-- the free Traccar Client app (2026-10-19): switched by button like

@@ -207,3 +207,26 @@ class TestRoadTrail(LiveTrackCase):
         self.assertEqual(calls, [])
         [ex] = self.Ping.get_live_map(user_ids=[self.exec_user.id])['executives']
         self.assertIn('blind', {v[4] for leg in ex['legs'] for v in leg})
+
+    # ---------------------------------------- fixes that reach the server late
+    def test_fixes_arriving_late_do_not_reuse_a_road_that_set_off_elsewhere(self):
+        """A phone back in coverage sends the fixes it took meanwhile (2026-10-24):
+        they land between two fixes whose road was already read. The step ending at
+        the later fix now starts at a late one, so its stored road - set off from
+        the earlier fix - is asked again rather than drawn running back there."""
+        self._drive(0, 3)            # 0, 200, 400 m
+        self._drive(5, 2)            # 1000, 1200 m: the phone silent for 600 m
+        fake, calls = fake_osrm()
+        with self._patched(fake):
+            first = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual((len(calls), len(first['legs'][0])), (1, 1 + 4 * 2))
+        self._drive(3, 2)            # 600 and 800 m, taken meanwhile, arriving now
+        with self._patched(fake):
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual(len(calls), 2, "one request: the late steps and the one now starting elsewhere")
+        self.assertEqual(len(calls[1][0][len(ROUTING):].split(';')), 4,
+                         "from the last read fix through the two late ones to the next")
+        [leg] = road['legs']
+        self.assertEqual(len(leg), 1 + 6 * 2, "every step along its own road")
+        for v, w in zip(leg, leg[1:]):
+            self.assertGreaterEqual(w[0], v[0] - 1e-9, "the trail only ever heads north: nothing runs back")

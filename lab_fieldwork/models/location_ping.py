@@ -208,23 +208,46 @@ class LabLocationPing(models.Model):
             good_point = (good.ts, good.latitude, good.longitude) if good else None
 
             values = []
+            held = None                   # the day's fixes already held, read once, for late ones
             for when, latitude, longitude, accuracy, extra in rows:
                 if not self._on_duty_at(windows, when):
                     continue
-                if last_ts and when <= last_ts:
-                    continue                      # already have this stretch
+                late = bool(last_ts) and when <= last_ts
+                if late:
+                    # Taken BEFORE the newest fix held: a phone back in coverage sending
+                    # what it took meanwhile, after something newer got in first (a
+                    # browser fix, a second phone). Until 2026-10-24 this was read as
+                    # "already have this stretch" and dropped - the network coming back
+                    # left the gap it had made. Only a fix held at that very second is
+                    # a retry; the rest are filed in their place, judged against the
+                    # held fix just before each.
+                    if held is None:
+                        held = self.sudo().search_read(
+                            [('user_id', '=', user.id), ('date', '=', day)],
+                            ['ts', 'latitude', 'longitude', 'accuracy_m'], order='ts')
+                    before = [h for h in held if h['ts'] <= when]
+                    if before and (when - before[-1]['ts']).total_seconds() < 1.0:
+                        continue                  # held already: a retry
+                    prev = before[-1] if before else None
+                    prev_ts = prev['ts'] if prev else None
+                    prev_point = (prev['latitude'], prev['longitude']) if prev else None
+                    prev_good = prev_point and (not trail_limit or not prev['accuracy_m']
+                                                or prev['accuracy_m'] < trail_limit)
+                    prev_good_point = (prev_ts,) + prev_point if prev_good else None
+                else:
+                    prev_ts, prev_point, prev_good_point = last_ts, last_point, good_point
                 moved = waited = 0.0
-                if last_point:
-                    moved = metres_between(last_point[0], last_point[1],
+                if prev_point:
+                    moved = metres_between(prev_point[0], prev_point[1],
                                            latitude, longitude) or 0.0
-                    waited = (when - last_ts).total_seconds() if last_ts else 0
+                    waited = (when - prev_ts).total_seconds() if prev_ts else 0
                     if moved < MIN_MOVE_METRES and waited < HEARTBEAT_SECONDS:
                         continue
                 speed = extra.get('speed_kmh')
-                if speed is None and good_point and when > good_point[0]:
+                if speed is None and prev_good_point and when > prev_good_point[0]:
                     # the ground covered, when the phone gave none
-                    speed = (metres_between(good_point[1], good_point[2], latitude, longitude) or 0.0) \
-                        / (when - good_point[0]).total_seconds() * 3.6
+                    speed = (metres_between(prev_good_point[1], prev_good_point[2], latitude, longitude) or 0.0) \
+                        / (when - prev_good_point[0]).total_seconds() * 3.6
                 speed = round(max(speed or 0.0, 0.0), 1)
                 values.append({
                     'user_id': user.id, 'date': day, 'ts': when,
@@ -239,9 +262,15 @@ class LabLocationPing(models.Model):
                     # set only by the app endpoint: the browser cannot claim to be the app
                     'source': 'app' if self.env.context.get('fw_ping_source') == 'app' else 'browser',
                 })
-                last_ts, last_point = when, (latitude, longitude)
-                if not trail_limit or not accuracy or accuracy < trail_limit:
-                    good_point = (when, latitude, longitude)
+                if late:
+                    # a second late fix of the batch is judged against this one
+                    held.append({'ts': when, 'latitude': latitude, 'longitude': longitude,
+                                 'accuracy_m': accuracy})
+                    held.sort(key=lambda h: h['ts'])
+                else:
+                    last_ts, last_point = when, (latitude, longitude)
+                    if not trail_limit or not accuracy or accuracy < trail_limit:
+                        good_point = (when, latitude, longitude)
                 if existing + len(values) >= MAX_PINGS_PER_DAY:
                     break
             if values:

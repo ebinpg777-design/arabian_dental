@@ -67,6 +67,7 @@ APP_LIVE_SECONDS = 900
 # the phone too.
 IDLE_CHECK_SECONDS = 600
 VERSION_MAX = 32
+DEVICE_MAX = 64
 VERSION_CHARS = re.compile(r'[^0-9A-Za-z._-]')
 
 
@@ -163,8 +164,13 @@ class ResUsersFieldApp(models.Model):
     fw_native_app_version = fields.Char(
         'ADL Pro Version', readonly=True, copy=False, size=VERSION_MAX,
         groups='lab_fieldwork.group_fieldwork_manager')
+    # Make, model and Android version, as the app reports them (1.0.8): which phones
+    # go blind on the road is a question of make (2026-10-24).
+    fw_native_device = fields.Char(
+        'Phone', readonly=True, copy=False, size=DEVICE_MAX,
+        groups='lab_fieldwork.group_fieldwork_manager')
 
-    def _fw_native_config(self, version=None):
+    def _fw_native_config(self, version=None, device=None):
         """The settings the app's tracking service runs on, provisioning the phone on
         the way: a device identifier (the Traccar one, reused), the flag, the version
         the app reports. Only ever called for env.user (tracking_state), so an
@@ -179,6 +185,9 @@ class ResUsersFieldApp(models.Model):
         version = clean_version(version)
         if version and version != me.fw_native_app_version:
             vals['fw_native_app_version'] = version
+        device = ' '.join(str(device or '').split())[:DEVICE_MAX]
+        if device and device != me.fw_native_device:
+            vals['fw_native_device'] = device
         if vals:
             me.write(vals)
         return {

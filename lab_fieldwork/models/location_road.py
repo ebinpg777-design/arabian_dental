@@ -31,7 +31,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
 from .lab_visit import metres_between
-from .location_live import JITTER_M, MAX_KMH, classify_modes, epoch, split_legs
+from .location_live import JITTER_M, MAX_KMH, classify_modes, epoch, road_step, split_legs
 
 _logger = logging.getLogger(__name__)
 
@@ -157,7 +157,8 @@ class LabLocationPingRoad(models.Model):
             for a, b in zip(wps, wps[1:]):
                 secs = max(1.0, (b[0] - a[0]).total_seconds())
                 jump = _straight(a, b) / secs * 3.6 > MAX_KMH
-                if str(epoch(b[0])) in cache or jump:
+                # known for THIS step: a late fix between two read ones changes the step
+                if road_step(cache, a, b) is not None or jump:
                     run = None
                     continue
                 if run is None:
@@ -203,7 +204,7 @@ class LabLocationPingRoad(models.Model):
             for a, b in zip(wps, wps[1:]):
                 mode = mode_of.get(id(b), 'still')
                 when, speed = epoch(b[0]), b[3]
-                geometry = cache.get(str(when))
+                geometry = road_step(cache, a, b)
                 # A stretch the phone crossed with nothing recorded is drawn as the
                 # drive it was once its road is known, not as a dotted straight line
                 # (client, 2026-10-23: "why these dots ... the map should be realistic").
