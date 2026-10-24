@@ -50,6 +50,20 @@ class TestFieldwork(TransactionCase):
             'user_id': (user or self.exec_user).id,
         }, **vals))
 
+    def test_a_visit_counts_its_activities_and_opens_them_from_the_top(self):
+        """A follow-up raised by the desk was only found by scrolling to the chatter;
+        the smart button counts them and opens the visit's own list, able to raise
+        the first one. (from the sister project, 2026-09-29)"""
+        v = self._visit()
+        self.assertEqual(v.activity_count, 0)
+        v.activity_schedule('mail.mail_activity_data_todo', summary='Call back about the slip')
+        v.invalidate_recordset(['activity_count'])
+        self.assertEqual(v.activity_count, 1)
+        action = v.action_view_activities()
+        self.assertEqual(action['res_model'], 'mail.activity')
+        self.assertEqual(self.env['mail.activity'].search_count(action['domain']), 1)
+        self.assertEqual(action['context']['default_res_id'], v.id)
+
     # ------------------------------------------------------------------ the loop
     def test_the_whole_day_in_five_steps(self):
         """Plan, arrive, record, close — the only sequence a user must learn."""

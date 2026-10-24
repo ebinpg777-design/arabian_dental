@@ -304,6 +304,11 @@ class LabVisit(models.Model):
     # executive actually has at the door — "when were we last here, and how did it go" —
     # without making them leave the record to find out.
     clinic_visit_count = fields.Integer(compute='_compute_clinic_history')
+    # What is still to be done about this visit, on the visit itself. The chatter's
+    # own Activity button schedules one; nothing up here said how many were already
+    # waiting, so a follow-up raised by the desk was only ever found by scrolling to
+    # the bottom of the record. (from the sister project, 2026-09-29)
+    activity_count = fields.Integer(compute='_compute_activity_count')
     clinic_last_visit = fields.Date(compute='_compute_clinic_history',
                                     string='Previously Visited')
     order_value = fields.Monetary(compute='_compute_orders', store=True,
@@ -713,6 +718,25 @@ class LabVisit(models.Model):
             'name': _('Previous Visits to %s', self.partner_id.display_name),
             'res_model': 'lab.visit', 'view_mode': 'list,form',
             'domain': [('partner_id', '=', self.partner_id.id), ('id', '!=', self.id)],
+        }
+
+    @api.depends('activity_ids')
+    def _compute_activity_count(self):
+        for visit in self:
+            visit.activity_count = len(visit.activity_ids)
+
+    def action_view_activities(self):
+        """The visit's own to-do list. Opened from the smart button, and able to
+        raise a new one: the point of the button is that a follow-up on this visit
+        is reachable from the top of it."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Activities'),
+            'res_model': 'mail.activity',
+            'view_mode': 'list,form',
+            'domain': [('res_model', '=', self._name), ('res_id', '=', self.id)],
+            'context': {'default_res_model': self._name, 'default_res_id': self.id},
         }
 
     def action_view_clinic(self):

@@ -132,6 +132,13 @@
                                 <span class="o_stat_text">In Float</span>
                             </div>
                         </button>
+                        <!-- Always shown, unlike the buttons above it: this one is also
+                             how a follow-up gets raised, and a button that only appears
+                             once something exists cannot be used to make the first one. -->
+                        <button name="action_view_activities" type="object"
+                                class="oe_stat_button" icon="fa-clock-o">
+                            <field name="activity_count" widget="statinfo" string="Activities"/>
+                        </button>
                         <button name="action_view_clinic" type="object"
                                 class="oe_stat_button" icon="fa-stethoscope">
                             <div class="o_stat_info">
@@ -169,7 +176,16 @@
 
                     <group>
                         <group>
-                            <field name="partner_id" readonly="state != 'planned'"
+                            <!-- Correctable by the supervising role after check-in: an
+                                 executive who checked in at the wrong door could not fix
+                                 it and neither could anyone else, the field going
+                                 read-only the moment the visit left 'planned' - before
+                                 the mistake is usually noticed. The lock mixin already
+                                 says who may edit a closed record (lock_can_edit), so the
+                                 view asks it rather than inventing a second rule. It stays
+                                 shut for the executive, whose GPS was judged against THIS
+                                 clinic. (from the sister project, 2026-09-29) -->
+                            <field name="partner_id" readonly="state != 'planned' and not lock_can_edit"
                                    options="{'no_create': True, 'no_quick_create': True, 'no_open': True}"/>
                             <field name="contact_id" readonly="state == 'done'"
                                    options="{'no_create': True, 'no_open': True}"/>
@@ -187,7 +203,7 @@
                             <field name="user_id" readonly="state != 'planned'"
                                    domain="[('id', 'in', allowed_user_ids)]"
                                    options="{'no_create': True, 'no_open': True}"/>
-                            <field name="date" readonly="state != 'planned'"/>
+                            <field name="date" readonly="state != 'planned' and not lock_can_edit"/>
                             <field name="beat_id" readonly="1"
                                    options="{'no_create': True, 'no_open': True}"/>
                             <field name="company_id" invisible="1"/>

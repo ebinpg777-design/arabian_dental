@@ -357,6 +357,12 @@
         <field name="res_model">lab.case</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="domain">[('user_id', '=', uid)]</field>
+        <!-- No New here. A slip belongs to a visit - visit_id is required and the
+             form keeps it invisible - so this button opened a record that could
+             never be saved: "Missing required value for the field 'Visit'". Cases
+             are registered from the visit, which is also where the check-in rule
+             is enforced. (from the sister project, 2026-09-29) -->
+        <field name="context">{'create': False}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No cases registered yet</p>
             <p>Register a case from the visit you are on. It becomes an order when you
@@ -368,6 +374,12 @@
         <field name="name">Case Slips</field>
         <field name="res_model">lab.case</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="context">{'search_default_g_user': 1}</field>
+        <field name="context">{'search_default_g_user': 1, 'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No case slips yet</p>
+            <p>A slip is registered from the visit it was handed over on - open the
+               visit and use <b>Register a Case</b>. That is also where the rule lives
+               that a case cannot be taken before checking in at the clinic.</p>
+        </field>
     </record>
 </odoo>
