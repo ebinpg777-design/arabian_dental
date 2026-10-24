@@ -93,6 +93,17 @@ class TestProductionSlips(TransactionCase):
         low.priority = 'low'
         self.assertEqual(slips_for_orders(low)[0]['priority'], '')
 
+    def test_a_long_patient_line_cannot_widen_the_columns(self):
+        """One over-long patient line used to stretch its whole column, and every
+        barcode in it printed several times too big, cut off at the edge."""
+        order = self._order()
+        order.patient = ("A Very Long Patient Name WORK - begs retainer only upper arch "
+                         "(NOTE-NEED CLEARANCE FOR RETRACTION OF ANTERIOR TEETH) Contact -98")
+        html = self.env['ir.actions.report']._render_qweb_html(
+            'sale_custom.report_production_slips_sale', order.ids)[0].decode()
+        grid = html[html.index('class="ops-grid"') - 200:html.index('class="ops-grid"') + 300]
+        self.assertIn('table-layout:fixed', grid, "columns hold at half the sheet")
+
     def test_pages_are_chunked_by_eight(self):
         self.assertEqual(PER_PAGE, 8)
         self.assertEqual([len(p) for p in _pages(range(20))], [8, 8, 4])

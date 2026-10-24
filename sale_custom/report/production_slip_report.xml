@@ -170,9 +170,16 @@
                              sheet could not be guillotined in one pass. Table rows
                              keep the height they are given. The border reset below
                              is what stops Bootstrap's zero-width borders printing as
-                             hairlines around every cell. (client, 2026-08-28) -->
-                        <table class="ops-grid" style="width:100%; border-collapse:collapse; border:0;"
-                               t-attf-style="width:100%; border-collapse:collapse; border:0; {{ 'page-break-after:always;' if not slip_page_last else '' }}">
+                             hairlines around every cell. (client, 2026-08-28)
+                             table-layout:fixed keeps both columns at half the sheet
+                             whatever a card holds: under the automatic layout one
+                             over-long patient line (it never wraps) widened its whole
+                             column for every card on the page, and each barcode,
+                             drawn at the card's width, came out several times too
+                             big and cut off at the edge - unscannable. (2026-10-21,
+                             from the sister project) -->
+                        <table class="ops-grid" style="width:100%; table-layout:fixed; border-collapse:collapse; border:0;"
+                               t-attf-style="width:100%; table-layout:fixed; border-collapse:collapse; border:0; {{ 'page-break-after:always;' if not slip_page_last else '' }}">
                             <t t-foreach="[0, 2, 4, 6]" t-as="row">
                                 <tr style="height:71mm;">
                                     <t t-foreach="[0, 1]" t-as="col">
