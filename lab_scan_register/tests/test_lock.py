@@ -25,9 +25,12 @@ class TestLock(ScanCase):
 
     def test_a_confirmed_register_cannot_be_edited(self):
         scan = self._confirmed()
-        for vals in ({'note': 'x'}, {'partner_id': self.other_clinic.id}, {'channel_id': self.group.id}):
+        for vals in ({'note': 'x'}, {'channel_id': self.group.id}):
             with self.subTest(vals=vals), self.assertRaises(UserError):
                 scan.write(vals)
+        # the doctor or clinic stays open until the orders are made (client, 2026-10-23)
+        scan.write({'partner_id': self.other_clinic.id})
+        self.assertEqual(scan.partner_id, self.other_clinic)
 
     def test_its_patients_cannot_be_edited_added_or_removed(self):
         scan = self._confirmed()
@@ -101,9 +104,14 @@ class TestLock(ScanCase):
         arch = self._form_arch()
         sheet_fields = [n for n in arch.iter('field') if not any(a.tag == 'list' for a in n.iterancestors())]
         unlocked = sorted({n.get('name') for n in sheet_fields
-                           if n.get('name') in LOCKED_FIELDS - {'user_id', 'line_ids'}
+                           if n.get('name') in LOCKED_FIELDS - {'user_id', 'line_ids', 'partner_id', 'doctor_name'}
                            and "state != 'draft'" not in (n.get('readonly') or '')})
         self.assertFalse(unlocked, "editable after confirming: %s" % unlocked)
+        # the doctor or clinic, and the doctor's name the work goes ahead on meanwhile:
+        # open until the orders are made, which need the contact (client, 2026-10-23)
+        for name in ('partner_id', 'doctor_name'):
+            nodes = [n for n in sheet_fields if n.get('name') == name]
+            self.assertTrue(nodes and all(n.get('readonly') == "state in ('done', 'cancel')" for n in nodes), name)
         files = sorted({n.get('name') for n in sheet_fields if n.get('name') in FILE_FIELDS
                         and "state in ('done', 'cancel')" not in (n.get('readonly') or '')})
         self.assertFalse(files, "the link stays open until the orders are made: %s" % files)

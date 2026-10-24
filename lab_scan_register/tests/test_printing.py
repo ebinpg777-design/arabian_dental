@@ -105,7 +105,8 @@ class TestPrinting(ScanCase):
         self._off(self._start(self._plate((a | b).line_ids, printer=self.p1)), failed=b.line_ids)
         self.assertEqual((self.p1.print_count, self.p1.done_count, self.p1.failed_count), (1, 1, 0),
                          "a plate that lost one of two models still printed")
-        self.assertEqual((self.p1.model_done_count, self.p1.model_failed_count, self.p1.failure_rate), (1, 1, 50.0))
+        # a model is an arch: Tanvi's upper printed, both of Diya's arches lost
+        self.assertEqual((self.p1.model_done_count, self.p1.model_failed_count, self.p1.failure_rate), (1, 2, 66.7))
         self.assertEqual(self.p1.plate_failure_rate, 0.0)
         self.assertEqual(self.p1.done_recent, 1)
         self.assertTrue(self.p1.last_print_date)

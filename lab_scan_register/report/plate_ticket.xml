@@ -64,6 +64,14 @@
                     <div t-if="o.preview_small" style="margin-top:2mm; text-align:center;">
                         <img t-att-src="image_data_uri(o.preview_small)" style="height:30mm;"/>
                     </div>
+                    <!-- a re-plate never mixes with a first print in the wash basket -->
+                    <div t-if="o.replate_count or o.restarted_from_id"
+                         style="margin-top:2mm; border:0.5mm solid #b91c1c; color:#b91c1c; padding:1mm 2mm; font-weight:bold; letter-spacing:.06em;">
+                        <t t-if="o.restarted_from_id">RESTART of <t t-out="o.restarted_from_id.name"/></t>
+                        <t t-else="">RE-PLATE</t>
+                        · <t t-out="sum(o.line_ids.filtered(lambda l: l.replated_from_id and l.result != 'withdrawn').mapped('model_count'))"/>
+                        of <t t-out="o.model_count"/> models print again
+                    </div>
                     <div style="margin-top:3mm; border-top:0.3mm solid #111; padding-top:1.5mm; font-size:8pt; color:#666; text-transform:uppercase; letter-spacing:.08em;">
                         <t t-out="o.patient_count"/> patients · <t t-out="o.model_count"/> models
                     </div>
@@ -72,12 +80,13 @@
                             <div style="float:right; text-align:right; color:#333;">
                                 <t t-out="dict(line._fields['part'].selection).get(line.part)"/>
                                 <div t-if="line.attempt &gt; 1" style="color:#b91c1c; font-weight:bold;">↻ attempt <t t-out="line.attempt"/></div>
+                                <div t-if="line.replated_from_id" style="color:#b91c1c; font-size:7.5pt;">failed on <t t-out="line.replated_from_id.order_id.name"/></div>
                             </div>
                             <div style="font-size:10.5pt; font-weight:bold;">
                                 <span t-if="line.priority == '1'" style="color:#b91c1c;">⚡</span>
                                 <t t-out="line.patient_name or '—'"/>
                             </div>
-                            <div style="color:#555;"><t t-out="line.scan_id.name"/> · <t t-out="line.partner_id.name or ''"/></div>
+                            <div style="color:#555;"><t t-out="line.scan_id.name"/> · <t t-out="line.scan_id._doctor_label()"/></div>
                         </div>
                     </t>
                     <div style="margin-top:2mm; font-size:7.5pt; color:#666;">

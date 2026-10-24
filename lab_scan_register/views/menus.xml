@@ -3,8 +3,10 @@
     <menuitem id="menu_scan_root" name="Scans" sequence="22"
               web_icon="lab_scan_register,static/description/icon.png"
               groups="lab_scan_register.group_scan_user"/>
+    <!-- the scan manager's board, and the administrator's (client, 2026-10-23) -->
     <menuitem id="menu_scan_dashboard" name="Dashboard" parent="menu_scan_root"
-              action="action_scan_dashboard" sequence="5"/>
+              action="action_scan_dashboard" sequence="5"
+              groups="lab_scan_register.group_scan_manager"/>
     <menuitem id="menu_scan_register" name="Scan Register" parent="menu_scan_root"
               action="action_scan" sequence="10"/>
     <!-- The printing room: plates, the patients waiting for one, the registers in its

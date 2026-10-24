@@ -8,8 +8,11 @@ the room plates them later from Waiting for a Plate.
 Start Print: the plate goes on a machine - scanned off the machine's sticker (or the
 plate ticket, to pick the plate) - and the clock starts.
 
-Plate Off: every patient ticked Printed; untick the ones that failed, say which arch
-and why, and the failed models go on a new plate at once.
+Plate Off: every patient ticked Printed; untick the ones that failed - or just the
+arch that failed, U or L - and why, and the failed models go on the next plate at
+once: the plate being plated with room for them, or a new one filled with the
+patients waiting. The same board, opened while the plate prints, is A Model Failed:
+a model seen coming off mid-print is recorded then, and the plate goes on.
 
 Print Failed: the whole plate was lost mid-print; what went wrong, on record against
 the machine, and unless somebody says otherwise it starts again now.
@@ -22,7 +25,7 @@ import pytz
 from odoo import Command, _, api, fields, models
 from odoo.exceptions import UserError
 
-from .print_order import FAILURE_REASONS
+from .print_order import FAILURE_REASONS, _arches
 from .printer import EPOCH
 
 ORDER = 'lab.scan.print.order'
@@ -109,9 +112,33 @@ def _take_code(wizard, field='code', printer_field='printer_id', order_field='or
                         'message': _("Nothing carries the number or name '%s'.", code)}}
 
 
-def _models(line):
-    """Models a patient puts on a plate: both arches are two."""
-    return 1 if line.arch in ('upper', 'lower') else 2
+def _models(line, part=None):
+    """Models a patient puts on a plate: the arches still to print - after a plate
+    lost only the lower, one - and both arches are two."""
+    part = part or line.print_part or line.arch
+    return 2 if part == 'both' else 1
+
+
+def _fill_candidates(env, room, exclude, company):
+    """Waiting patients for a plate's free room: the ones back from a failed plate
+    first, then the urgent, then the earliest delivery (_urgency_key); a patient's
+    arches together, and one who does not fit is passed over for a smaller one who
+    does. Only patients the desk sent for printing."""
+    out = env['lab.scan.line']
+    if room <= 0:
+        return out
+    used = 0
+    for line in env[ORDER]._waiting_lines(company):
+        if line in exclude or line.print_state != 'to_plate' or line.scan_id.already_printed:
+            continue
+        need = _models(line)
+        if used + need > room:
+            continue
+        out |= line
+        used += need
+        if used >= room:
+            break
+    return out
 
 
 def _last_batch(printer):
@@ -184,6 +211,17 @@ class PrintOrderMake(models.TransientModel):
                            help="More models than one plate holds: fill a plate on each machine in service - "
                                 "the free one first - the urgent patients first, a patient's arches together.")
     plan_text = fields.Char('Plan', compute='_compute_plan_text')
+    # Add Patients fills the plate's room with the patients waiting, by urgency, so a
+    # plate is made in one dialog (client, 2026-10-23); the ones it opened with stay.
+    fill = fields.Boolean('Fill with the patients waiting, by urgency',
+                          help="Adds the patients waiting for a plate - back from a failed plate first, then the "
+                               "urgent, then the earliest delivery - up to what the plate holds.")
+    initial_line_ids = fields.Many2many('lab.scan.line', 'lab_scan_make_initial_rel', 'wizard_id', 'line_id',
+                                        string='Opened With')
+    # Print Again: which arch broke in finishing
+    again = fields.Boolean()
+    again_part = fields.Selection([('both', 'Upper & Lower'), ('upper', 'Upper'), ('lower', 'Lower')],
+                                  string='Print Again', help="The arch to print again.")
 
     # ------------------------------------------------------------------ defaults
     @api.model
@@ -192,6 +230,8 @@ class PrintOrderMake(models.TransientModel):
         a Plate), on one patient (Print Again) or on a plating order (Add Patients)."""
         res = super().default_get(fields_list)
         ctx = self.env.context
+        if ctx.get('default_again'):
+            res['again'] = True
         Order, Line = self.env[ORDER], self.env['lab.scan.line']
         scans = _active(self.env, 'lab.scan')
         order = Order.browse(res.get('order_id')).exists() if res.get('order_id') else _active(self.env, ORDER)[:1]
@@ -214,8 +254,17 @@ class PrintOrderMake(models.TransientModel):
                 lines = _active(self.env, 'lab.scan.line')
             elif ctx.get('default_scan_line_id'):
                 lines = Line.browse(ctx['default_scan_line_id']).exists()
+            if 'initial_line_ids' in fields_list:
+                res['initial_line_ids'] = [Command.set(lines.ids)]
+            if not lines and order and res.get('mode', ctx.get('default_mode')) == 'existing':
+                # Add Patients with nobody picked: the plate's room, filled by urgency
+                capacity, used = Order._plate_room(order)
+                lines = _fill_candidates(self.env, capacity - used, order.line_ids.scan_line_id, order.company_id)
+                res['fill'] = bool(lines)
             if lines:
                 res['line_ids'] = [Command.set(lines.ids)]
+            if ctx.get('default_again') and len(lines) == 1 and 'again_part' in fields_list:
+                res['again_part'] = lines.arch or 'both'
         if 'resin_batch' in fields_list and not res.get('resin_batch'):
             res['resin_batch'] = _last_batch(self.env[PRINTER].browse(res.get('printer_id')))
         return res
@@ -228,15 +277,16 @@ class PrintOrderMake(models.TransientModel):
         for wiz in self:
             wiz.printer_hint = _printer_hint(wiz.printer_id)
 
-    @api.depends('line_ids.arch', 'printer_id.plate_capacity', 'mode', 'order_id.model_count',
-                 'order_id.printer_id.plate_capacity')
+    @api.depends('line_ids.arch', 'line_ids.print_part', 'printer_id.plate_capacity', 'mode',
+                 'order_id.model_count', 'order_id.printer_id.plate_capacity', 'again', 'again_part')
     def _compute_capacity(self):
         """The gauge: "7 of 8 models". A hint, never a block - the room knows its plates.
         With no machine picked yet, the smallest plate among the machines in service."""
         for wiz in self:
             existing = wiz.mode == 'existing' and wiz.order_id
             printer = wiz.order_id.printer_id if existing else wiz.printer_id
-            count = (wiz.order_id.model_count if existing else 0) + sum(_models(line) for line in wiz.line_ids)
+            again = wiz.again_part if wiz.again else None
+            count = (wiz.order_id.model_count if existing else 0) + sum(_models(line, again) for line in wiz.line_ids)
             capacity = printer.plate_capacity if printer else wiz._usual_capacity()
             wiz.model_count = count
             wiz.capacity = capacity
@@ -248,7 +298,7 @@ class PrintOrderMake(models.TransientModel):
         ready = self.env[PRINTER].search([('state', '=', 'ready'), ('company_id', '=', self.env.company.id)])
         return min(ready.mapped('plate_capacity') or [0])
 
-    @api.depends('split', 'line_ids', 'line_ids.arch', 'mode')
+    @api.depends('split', 'line_ids', 'line_ids.arch', 'line_ids.print_part', 'mode')
     def _compute_plan_text(self):
         """"3DP-01: 4 patients (8 models) · 3DP-02: 1 patient (2 models)" - the plates
         the spread would make, before anything is made."""
@@ -256,12 +306,12 @@ class PrintOrderMake(models.TransientModel):
             if not wiz.split or wiz.mode != 'new' or not wiz.line_ids:
                 wiz.plan_text = False
                 continue
-            plan = wiz._plan()
-            # self.env._: a generator's frame has no record for _() to read the language from
-            wiz.plan_text = ' · '.join(
-                self.env._("%(machine)s: %(n)d patient(s), %(models)d models", machine=printer.code, n=len(lines),
-                           models=sum(_models(l) for l in lines)) for printer, lines in plan) \
-                or _("No machine is in service to take a plate.")
+            # a loop, not a generator: _() reads the language from its caller's frame
+            bits = []
+            for printer, lines in wiz._plan():
+                bits.append(_("%(machine)s: %(n)d patient(s), %(models)d models", machine=printer.code,
+                              n=len(lines), models=sum(_models(l) for l in lines)))
+            wiz.plan_text = ' · '.join(bits) or _("No machine is in service to take a plate.")
 
     def _plan(self):
         """[(machine, patients)]: one plate per machine in service, each filled up to its
@@ -303,6 +353,20 @@ class PrintOrderMake(models.TransientModel):
             self.mode = 'existing'
             self.printer_id = self.order_id.printer_id
 
+    @api.onchange('fill')
+    def _onchange_fill(self):
+        """On: the room left on the plate filled with the patients waiting. Off: back to
+        the patients the dialog opened with."""
+        Order = self.env[ORDER]
+        if not self.fill:
+            self.line_ids = self.initial_line_ids
+            return
+        plate = self.order_id if self.mode == 'existing' else Order
+        capacity, used = Order._plate_room(plate=plate or None, printer=None if plate else self.printer_id)
+        used += sum(_models(line) for line in self.line_ids)
+        exclude = self.line_ids | (plate.line_ids.scan_line_id if plate else self.env['lab.scan.line'])
+        self.line_ids = self.line_ids | _fill_candidates(self.env, capacity - used, exclude, self.env.company)
+
     @api.onchange('printer_id')
     def _onchange_printer_id(self):
         if not self.resin_batch:
@@ -339,9 +403,10 @@ class PrintOrderMake(models.TransientModel):
             return {'type': 'ir.actions.act_window', 'name': _('The plates planned'), 'res_model': ORDER,
                     'view_mode': 'list,form', 'views': [(False, 'list'), (False, 'form')],
                     'domain': [('id', 'in', orders.ids)], 'context': {'create': False}}
+        parts = {line.id: self.again_part for line in self.line_ids} if self.again and self.again_part else None
         order = self.env[ORDER]._make(self.line_ids, printer=None if existing else printer,
                                       resin_batch=self.resin_batch or False, note=self.note or False,
-                                      existing=existing)
+                                      existing=existing, parts=parts)
         self._hand_slice_to(order)
         if self.start_now:
             order._start(printer, resin_batch=self.resin_batch or False, note=self.note or False)
@@ -476,28 +541,49 @@ class PrintOrderStart(models.TransientModel):
 # ------------------------------------------------------------------ Plate Off
 # A re-plate is a new plate like any other: its machine is picked at Start Print
 # (client, 2026-10-14). "The same machine" is kept as a plan the Start dialog offers.
-REPLATE_MODES = [('new', 'A new plate - machine picked at Start'),
+# By default the failed models go where they fit best: the plate being plated with
+# room for them, else a new plate - filled with the patients waiting (2026-10-23).
+REPLATE_MODES = [('auto', 'The best plate: one being plated with room, else a new one'),
+                 ('new', 'A new plate - machine picked at Start'),
                  ('same', 'A new plate planned on the same machine'),
                  ('existing', 'Add to a plate being plated')]
 FAILED_PARTS = [('all', 'All'), ('upper', 'Upper'), ('lower', 'Lower')]
+BOARD_MODES = [('off', 'Plate Off'), ('lost', 'A Model Failed')]
 
 
 class PrintOrderOff(models.TransientModel):
     _name = 'lab.scan.print.order.off'
     _description = 'Plate Off'
 
+    mode = fields.Selection(BOARD_MODES, default='off', required=True,
+                            help="Plate Off: the plate came off. A Model Failed: a model came off while "
+                                 "the plate goes on printing.")
     order_id = fields.Many2one(ORDER, string='Plate', required=True, domain=[('state', '=', 'printing')])
     code = fields.Char('Scan the Plate Ticket',
                        help="Scan the plate ticket - or the machine's sticker - to pick the plate coming off.")
     line_ids = fields.One2many('lab.scan.print.order.off.line', 'wizard_id', string='Patients')
-    failed_count = fields.Integer(compute='_compute_failed_count')
+    failed_count = fields.Integer(compute='_compute_failed')
+    failed_models = fields.Integer('Models Lost', compute='_compute_failed')
+    replate_models = fields.Integer('Models to Re-plate', compute='_compute_failed',
+                                    help="The lost models going on another plate now.")
     reason = fields.Selection(FAILURE_REASONS, string='What Went Wrong',
                               help="One reason for the plate; a row can say otherwise.")
     note = fields.Text('Details')
     skip_cure = fields.Boolean('Models already washed and cured', default=False)
     replate = fields.Boolean('Re-plate the failed models now', default=True)
-    replate_mode = fields.Selection(REPLATE_MODES, string='Re-plate On', default='new')
+    replate_mode = fields.Selection(REPLATE_MODES, string='Re-plate On', default='auto', required=True)
     replate_order_id = fields.Many2one(ORDER, string='Plate Being Plated', domain=[('state', '=', 'draft')])
+    suggested_order_id = fields.Many2one(ORDER, string='Best Plate', compute='_compute_suggestion')
+    suggest_text = fields.Char(compute='_compute_suggestion')
+    same_text = fields.Char(compute='_compute_suggestion')
+    fill = fields.Boolean('Fill the plate with the patients waiting',
+                          help="The patients waiting for a plate join the re-plates - back from a failed plate "
+                               "first, then the urgent, then the earliest delivery - up to what the plate holds.")
+    fill_line_ids = fields.Many2many('lab.scan.line', 'lab_scan_off_fill_rel', 'wizard_id', 'line_id',
+                                     string='Waiting Patients', compute='_compute_fill', store=True,
+                                     readonly=False)
+    capacity_text = fields.Char(compute='_compute_capacity_text')
+    over_capacity = fields.Boolean(compute='_compute_capacity_text')
 
     # ------------------------------------------------------------------ defaults
     @api.model
@@ -511,7 +597,7 @@ class PrintOrderOff(models.TransientModel):
         return res
 
     def _defaults_for(self, order, given=None):
-        """Rows for every patient still on the plate, and where a re-plate would go."""
+        """Rows for every patient still on the plate."""
         given = given or {}
         vals = {}
         if 'line_ids' not in given:
@@ -520,16 +606,92 @@ class PrintOrderOff(models.TransientModel):
 
     @api.model
     def _rows(self, order):
-        pending = order.line_ids.filtered(lambda l: l.result == 'pending')
-        return [Command.create({'line_id': line.id, 'ok': True,
-                                'failed_part': line.part if line.part in ('upper', 'lower') else 'all'})
-                for line in pending]
+        """Every patient printed - except an arch already lost mid-print, which stays lost."""
+        rows = []
+        for line in order.line_ids.filtered(lambda l: l.result == 'pending'):
+            lost = line.lost_part
+            rows.append(Command.create({
+                'line_id': line.id, 'ok': not lost, 'upper_ok': lost != 'upper', 'lower_ok': lost != 'lower',
+                'failed_part': lost or False, 'reason': line.failure_reason if lost else False}))
+        return rows
 
     # ------------------------------------------------------------------ computes
-    @api.depends('line_ids.ok')
-    def _compute_failed_count(self):
+    @api.depends('line_ids.ok', 'line_ids.failed_part', 'line_ids.hold', 'line_ids.lost_part', 'mode')
+    def _compute_failed(self):
         for wiz in self:
-            wiz.failed_count = len(wiz.line_ids.filtered(lambda r: not r.ok))
+            failed = wiz.line_ids.filtered(lambda r: not r.ok)
+            wiz.failed_count = len(failed)
+            wiz.failed_models = sum(len(r._lost_arches()) for r in failed)
+            wiz.replate_models = sum(r._replate_models(wiz.mode) for r in failed if not r.hold)
+
+    @api.depends('order_id', 'replate_models')
+    def _compute_suggestion(self):
+        Order = self.env[ORDER]
+        for wiz in self:
+            order = wiz.order_id
+            plate = Order._suggest_plate(wiz.replate_models, machine=order.printer_id, exclude=order,
+                                         company=order.company_id) if order and wiz.replate_models else Order
+            wiz.suggested_order_id = plate
+            if plate:
+                capacity, used = Order._plate_room(plate)
+                wiz.suggest_text = ' · '.join([
+                    plate.name,
+                    _("planned on %s", plate.printer_id.code) if plate.printer_id else _("machine picked at Start"),
+                    _("%(used)d of %(capacity)d models", used=used, capacity=capacity),
+                    _("sliced already: slice it again") if plate.slice_filename else _("not sliced yet")])
+            elif wiz.replate_models:
+                wiz.suggest_text = _("No plate being plated has room: a new plate, its machine picked at Start.")
+            else:
+                wiz.suggest_text = False
+            printer = order.printer_id
+            wiz.same_text = _("%s is not in service: the new plate stays unplanned, its machine picked at Start.",
+                              printer.display_name) if printer and printer.state != 'ready' else False
+
+    def _fill_target(self):
+        """(the plate being plated the models join, or None; the machine of a new plate, or None)."""
+        if self.replate_mode == 'auto' and self.suggested_order_id:
+            return self.suggested_order_id, None
+        if self.replate_mode == 'existing' and self.replate_order_id:
+            return self.replate_order_id, None
+        if self.replate_mode == 'same' and self.order_id.printer_id.state == 'ready':
+            return None, self.order_id.printer_id
+        return None, None
+
+    @api.depends('fill', 'replate', 'replate_mode', 'replate_order_id', 'suggested_order_id', 'replate_models',
+                 'order_id')
+    def _compute_fill(self):
+        Order = self.env[ORDER]
+        for wiz in self:
+            if not (wiz.fill and wiz.replate and wiz.replate_models and wiz.order_id):
+                wiz.fill_line_ids = self.env['lab.scan.line']
+                continue
+            plate, printer = wiz._fill_target()
+            capacity, used = Order._plate_room(plate=plate, printer=printer)
+            exclude = wiz.order_id.line_ids.scan_line_id | (plate.line_ids.scan_line_id if plate
+                                                            else self.env['lab.scan.line'])
+            wiz.fill_line_ids = _fill_candidates(wiz.env, capacity - used - wiz.replate_models, exclude,
+                                                 wiz.order_id.company_id)
+
+    @api.depends('fill_line_ids', 'replate_models', 'replate_mode', 'replate_order_id', 'suggested_order_id',
+                 'fill', 'replate')
+    def _compute_capacity_text(self):
+        """"3 re-plated + 4 waiting = 7 of 8 models" - what the next plate will hold."""
+        Order = self.env[ORDER]
+        for wiz in self:
+            if not (wiz.replate and wiz.replate_models and wiz.order_id):
+                wiz.capacity_text, wiz.over_capacity = False, False
+                continue
+            plate, printer = wiz._fill_target()
+            capacity, used = Order._plate_room(plate=plate, printer=printer)
+            waiting = sum(_models(line) for line in wiz.fill_line_ids) if wiz.fill else 0
+            total = used + wiz.replate_models + waiting
+            bits = [_("%d on the plate", used)] if plate else []
+            bits.append(_("%d re-plated", wiz.replate_models))
+            if wiz.fill:
+                bits.append(_("%d waiting", waiting))
+            wiz.capacity_text = _("%(parts)s = %(total)d of %(capacity)d models", parts=' + '.join(bits),
+                                  total=total, capacity=capacity)
+            wiz.over_capacity = total > capacity
 
     # ------------------------------------------------------------------ onchanges
     @api.onchange('code')
@@ -542,14 +704,34 @@ class PrintOrderOff(models.TransientModel):
             self.line_ids = [Command.clear()] + self._rows(self.order_id)
 
     # ------------------------------------------------------------------ buttons
+    def _destination(self):
+        """Where the re-plated models go: a plate being plated, or a machine for a new
+        plate - an empty one when the machine is picked at Start."""
+        Printer = self.env[PRINTER]
+        if self.replate_mode == 'auto':
+            return self.suggested_order_id or Printer
+        if self.replate_mode == 'same':
+            # a plan only: a machine gone into maintenance leaves the plate unplanned
+            return self.order_id.printer_id if self.order_id.printer_id.state == 'ready' else Printer
+        if self.replate_mode == 'existing':
+            if not self.replate_order_id:
+                raise UserError(_("Pick the plate being plated to add the failed models to."))
+            return self.replate_order_id
+        return Printer
+
+    def _reason_for(self, row):
+        return row.reason or row.line_id.failure_reason or self.reason
+
     def action_confirm(self):
         """Every row's verdict to the order in one go; the failed models re-plated where asked."""
         self.ensure_one()
+        if self.mode == 'lost':
+            return self.action_record_failure()
         order = self.order_id
         if order.state != 'printing':
             raise UserError(_("%s is not on a machine.", order.name))
         failed = self.line_ids.filtered(lambda r: not r.ok)
-        if failed and not self.reason and any(not row.reason for row in failed):
+        if any(not self._reason_for(row) for row in failed):
             raise UserError(_("Say what went wrong with the failed models — one reason for the plate, "
                               "or a reason on each failed row."))
         results = {}
@@ -557,21 +739,41 @@ class PrintOrderOff(models.TransientModel):
             if row.ok:
                 results[row.line_id.id] = ('ok', False, row.note or False, False)
             else:
-                results[row.line_id.id] = ('failed', row.reason or self.reason, row.note or False,
+                results[row.line_id.id] = ('failed', self._reason_for(row), row.note or False,
                                            row.failed_part or 'all')
-        replate_on = None
-        if self.replate and failed:
-            if self.replate_mode == 'new':
-                replate_on = self.env[PRINTER]          # a new plate; the machine is picked at Start
-            elif self.replate_mode == 'same':
-                # a plan only: a machine gone into maintenance leaves the plate unplanned
-                replate_on = order.printer_id if order.printer_id.state == 'ready' else self.env[PRINTER]
-            else:
-                if not self.replate_order_id:
-                    raise UserError(_("Pick the plate being plated to add the failed models to."))
-                replate_on = self.replate_order_id
-        new = order._plate_off(results, skip_cure=self.skip_cure, replate_on=replate_on)
-        return _form(new) if new else CLOSE
+        replate_on = self._destination() if self.replate and failed else None
+        routes = {row.line_id.scan_line_id.id: None for row in failed if row.hold}
+        made = order._plate_off(results, skip_cure=self.skip_cure, replate_on=replate_on, routes=routes,
+                                fill=self.fill_line_ids if self.fill and replate_on is not None else None,
+                                note=self.note or False)
+        return self._open(made)
+
+    def action_record_failure(self):
+        """A Model Failed: the unticked models are lost now; the plate goes on."""
+        self.ensure_one()
+        order = self.order_id
+        rows = self.line_ids.filtered(lambda r: not r.ok and r._lost_arches() - set(_arches(r.lost_part)))
+        if not rows:
+            raise UserError(_("Untick the models that came off the plate."))
+        if any(not self._reason_for(row) for row in rows):
+            raise UserError(_("Say what went wrong — one reason, or a reason on each row."))
+        results = {row.line_id.id: (row.failed_part or 'all', self._reason_for(row), row.note or False)
+                   for row in rows}
+        replate_on = self._destination() if self.replate and self.replate_models else None
+        routes = {row.line_id.scan_line_id.id: None for row in rows if row.hold}
+        made = order._fail_lines(results, replate_on=replate_on, routes=routes,
+                                 fill=self.fill_line_ids if self.fill and replate_on is not None else None,
+                                 note=self.note or False)
+        return self._open(made)
+
+    def _open(self, plates):
+        if len(plates) == 1:
+            return _form(plates)
+        if plates:
+            return {'type': 'ir.actions.act_window', 'name': _('The plates the models went on'), 'res_model': ORDER,
+                    'view_mode': 'list,form', 'views': [(False, 'list'), (False, 'form')],
+                    'domain': [('id', 'in', plates.ids)], 'context': {'create': False}}
+        return CLOSE
 
 
 class PrintOrderOffLine(models.TransientModel):
@@ -588,11 +790,77 @@ class PrintOrderOffLine(models.TransientModel):
     part = fields.Selection(related='line_id.part')
     model_count = fields.Integer(related='line_id.model_count')
     attempt = fields.Integer(related='line_id.attempt')
+    lost_part = fields.Selection(related='line_id.lost_part')
+    has_upper = fields.Boolean(compute='_compute_has_arches')
+    has_lower = fields.Boolean(compute='_compute_has_arches')
+    # One tap per lost model: the Printed toggle is every arch of the patient at once,
+    # U and L each arch alone (client, 2026-10-23: "the U or L of one scan will fail").
     ok = fields.Boolean('Printed', default=True)
+    upper_ok = fields.Boolean('U', default=True, help="The upper came off printed.")
+    lower_ok = fields.Boolean('L', default=True, help="The lower came off printed.")
     failed_part = fields.Selection(FAILED_PARTS, string='Failed Arch', default='all')
     reason = fields.Selection(FAILURE_REASONS, string='Different Reason',
                               help="Blank means the plate's reason.")
     note = fields.Char('Note')
+    hold = fields.Boolean('Wait', help="Leave this patient waiting for a plate instead of re-plating them now.")
+
+    @api.depends('part')
+    def _compute_has_arches(self):
+        for row in self:
+            arches = _arches(row.part)
+            row.has_upper = 'upper' in arches
+            row.has_lower = 'lower' in arches
+
+    @api.onchange('ok')
+    def _onchange_ok(self):
+        """Printed on is every arch printed (but one already lost mid-print); off, from
+        every arch printed, is every arch lost. Off because U or L was unticked leaves
+        the arches as they are: Odoo runs this again when _sync_verdict turns Printed
+        off for one arch, and unticking the other arch then would lose both."""
+        for row in self:
+            arches = _arches(row.part)
+            if row.ok:
+                for arch in arches:
+                    row[arch + '_ok'] = row.lost_part != arch
+            elif all(row[arch + '_ok'] for arch in arches):
+                for arch in arches:
+                    row[arch + '_ok'] = False
+            row._sync_verdict()
+
+    @api.onchange('upper_ok', 'lower_ok')
+    def _onchange_arches(self):
+        for row in self:
+            if row.lost_part:
+                row[row.lost_part + '_ok'] = False
+            row._sync_verdict()
+
+    def _sync_verdict(self):
+        """The row's verdict from its arches: what Plate Off sends the plate."""
+        arches = _arches(self.part)
+        lost = [arch for arch in arches if not self[arch + '_ok']]
+        self.ok = not lost
+        if not lost:
+            self.failed_part = 'all'
+        elif len(lost) == len(arches):
+            self.failed_part = 'all' if self.part == 'both' else self.part
+        else:
+            self.failed_part = lost[0]
+
+    def _lost_arches(self):
+        """The arches this row says are lost - with one already lost mid-print."""
+        arches = set(_arches(self.part))
+        lost = set(_arches(self.lost_part)) if self.lost_part else set()
+        if not self.ok:
+            lost |= set(_arches(self.part if self.failed_part in (False, 'all') else self.failed_part))
+        return lost & arches
+
+    def _replate_models(self, mode):
+        """The models this row puts on another plate now: mid-print, a patient with
+        both who lost one is settled at Plate Off, not re-plated yet."""
+        lost = self._lost_arches()
+        if mode == 'lost' and self.part == 'both' and len(lost) == 1:
+            return 0
+        return len(lost)
 
 
 # ------------------------------------------------------------------ Print Failed

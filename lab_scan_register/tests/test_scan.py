@@ -53,9 +53,10 @@ class TestRegister(ScanCase):
         self.assertEqual(scan.priority, '1', "urgent if any patient is")
 
     # ------------------------------------------------------------------ confirm
-    def test_confirming_needs_a_doctor_and_named_patients(self):
-        with self.assertRaises(UserError):
-            self._register(partner_id=False).action_confirm()
+    def test_confirming_needs_named_patients(self):
+        # the doctor or clinic is not one of them: it is needed at Create Orders only
+        # (client, 2026-10-23)
+        self._register(partner_id=False).action_confirm()
         with self.assertRaises(UserError):
             self._register(patients=()).action_confirm()
         with self.assertRaises(UserError):

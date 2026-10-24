@@ -291,8 +291,10 @@ class TestPrintOrders(ScanCase):
         self.assertIn('Supports failed', b.last_print_failure)
         self.assertIn(replate.name, b.last_print_failure)
         tile = self.env.ref('lab_scan_register.tile_scan_print_failed')
-        self.assertEqual(self.Scan.search(eval(tile.domain)) & (a | b | c), c,
-                         "back in the queue with a failed model: C (B is still in progress)")
+        # B is in progress - Bindu washes - yet Binu's lower is not printed: the tile
+        # shows it too (client, 2026-10-23: "U or L of one scan will be failed")
+        self.assertEqual(self.Scan.search(eval(tile.domain)) & (a | b | c), b | c,
+                         "a model failed and is not printed yet: B and C, whatever their status")
         self.assertEqual(self.Line.search([('replated_by_id', '=', False), ('result', '=', 'failed')]) & order.line_ids,
                          self.Line, "both re-plated")
         self._off(self._start(replate))
@@ -326,7 +328,8 @@ class TestPrintOrders(ScanCase):
         self.assertEqual(set(restart.line_ids.mapped('attempt')), {2})
         self.assertEqual(restart.line_ids.replated_from_id, order.line_ids)
         self.assertEqual((scan.state, scan.printer_id), ('in_progress', self.p2))
-        self.assertEqual((self.p1.failed_count, self.p1.model_failed_count), (1, 2))
+        self.assertEqual((self.p1.failed_count, self.p1.model_failed_count), (1, 4),
+                         "two patients, upper and lower each: four models")
 
     # ------------------------------------------------------------------ the register's status
     def test_a_register_split_over_two_plates_rolls_up_correctly(self):
@@ -391,7 +394,8 @@ class TestPrintOrders(ScanCase):
         self.assertTrue(all(leaving.print_line_ids.mapped('superseded')))
         self._off(plate)
         self.assertEqual((plate.printed_count, plate.withdrawn_count), (1, 1))
-        self.assertEqual((self.p1.model_done_count, self.p1.model_failed_count), (1, 0), "taken off is neither")
+        self.assertEqual((self.p1.model_done_count, self.p1.model_failed_count), (2, 0),
+                         "Staying's two arches; taken off is neither")
         # sent again later, the patient starts afresh
         leaving.action_confirm()
         leaving._send_to_print()

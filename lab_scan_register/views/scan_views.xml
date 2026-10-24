@@ -20,6 +20,7 @@
                 <field name="channel_id"/>
                 <field name="member_id" optional="hide"/>
                 <field name="partner_id"/>
+                <field name="doctor_name" optional="show"/>
                 <field name="patient_names"/>
                 <field name="patient_count" string="Patients" sum="Patients"/>
                 <field name="date_delivery" optional="show"/>
@@ -76,7 +77,13 @@
                                 </span>
                                 <span class="text-muted ms-2 text-nowrap"><field name="name"/></span>
                             </div>
-                            <strong class="text-truncate"><field name="partner_id" placeholder="Doctor not matched"/></strong>
+                            <strong class="text-truncate">
+                                <t t-if="record.partner_id.raw_value"><field name="partner_id"/></t>
+                                <t t-elif="record.doctor_name.raw_value">
+                                    <field name="doctor_name"/> <small class="text-muted fw-normal">· not matched yet</small>
+                                </t>
+                                <span t-else="" class="text-muted fw-normal">Doctor not matched</span>
+                            </strong>
                             <div class="text-truncate">
                                 <i class="fa fa-user-o me-1 text-muted"/>
                                 <field name="patient_names" placeholder="No patients yet"/>
@@ -184,8 +191,11 @@
                         <i class="fa fa-truck me-1"/><b>A delivery is asked for within two days</b> and the orders are
                         not made yet.
                     </div>
+                    <!-- in any status: a register with one patient in wash &amp; cure and one
+                         whose lower failed is Print In Progress, and still has a model to
+                         print again (client, 2026-10-23) -->
                     <div class="alert alert-danger mb-2" role="alert"
-                         invisible="state != 'printing' or not last_print_failure">
+                         invisible="not last_print_failure">
                         <i class="fa fa-print me-1"/><b>A model failed</b> —
                         <field name="last_print_failure" class="oe_inline"/>.
                     </div>
@@ -235,8 +245,14 @@
 
                     <group>
                         <group string="Doctor / Clinic" name="doctor">
-                            <field name="partner_id" readonly="state != 'draft'" placeholder="Pick the clinic or doctor"/>
-                            <field name="doctor_name" readonly="state != 'draft'" invisible="not doctor_name"/>
+                            <!-- needed for Create Orders, and settable until then (client, 2026-10-23) -->
+                            <field name="partner_id" readonly="state in ('done', 'cancel')"
+                                   placeholder="Pick the clinic or doctor - needed only for Create Orders"
+                                   required="state == 'printed' or (state == 'confirmed' and already_printed)"/>
+                            <!-- typed as the scan arrives; the work goes ahead on it while the
+                                 contact above is still being found (client, 2026-10-23) -->
+                            <field name="doctor_name" readonly="state in ('done', 'cancel')"
+                                   placeholder="The doctor's name as given"/>
                             <field name="clinic_name" readonly="state != 'draft'" invisible="not clinic_name"/>
                             <field name="doctor_email" readonly="state != 'draft'" widget="email" invisible="not doctor_email"/>
                             <field name="ref" readonly="state != 'draft'" placeholder="The platform's own case number"
@@ -410,7 +426,8 @@
             <search>
                 <field name="name"/>
                 <field name="patient_names" string="Patient"/>
-                <field name="partner_id"/>
+                <field name="partner_id" string="Doctor / Clinic"
+                       filter_domain="['|', ('partner_id', 'ilike', self), ('doctor_name', 'ilike', self)]"/>
                 <field name="doctor_name"/>
                 <field name="ref"/>
                 <field name="channel_id"/>
@@ -431,7 +448,9 @@
                 <filter name="waiting" string="Patient Waiting for a Plate" domain="[('line_ids.print_state', '=', 'to_plate')]"/>
                 <filter name="washing" string="In Wash &amp; Cure" domain="[('line_ids.print_state', '=', 'washing')]"/>
                 <filter name="failed_in_queue" string="Failed, Back in Queue"
-                        domain="[('state', '=', 'printing'), ('failed_print_count', '>', 0)]"/>
+                        domain="[('replate_waiting_count', '>', 0)]"/>
+                <filter name="failed_pending" string="Failed, Not Printed Yet"
+                        domain="[('replate_pending_count', '>', 0)]"/>
                 <separator/>
                 <filter name="whatsapp" string="WhatsApp" domain="[('source', '=', 'whatsapp')]"/>
                 <filter name="email" string="E-mail" domain="[('source', '=', 'email')]"/>

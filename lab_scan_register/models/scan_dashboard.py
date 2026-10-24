@@ -13,6 +13,14 @@ dashboard with print order and machine details; a Today period"): the plates
 from Plating to Printed, each machine's day and how busy it was, a timeline that
 carries the queue forward onto the machines, when the waiting patients will be
 printed, what to plate next, and why models fail.
+
+A model is an arch (client, 2026-10-23: "one or two scans will fail, or the U or L
+of one scan"): every model figure is a sum of the plate lines' printed and failed
+models, with the patients' row count beside it for the click. The re-plate backlog,
+the quality panels - reasons by machine, by arch, by attempt, by resin batch, the
+models failed twice, the printing time and resin the failures cost, ready on time -
+answer what the scan manager asks of the room. The board is the scan manager's and
+the administrator's alone.
 """
 import math
 from collections import defaultdict
@@ -24,7 +32,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
 from .channel import KINDS
-from .print_order import (FAILED_PARTS, FAILURE_REASONS, LAB_HOURS, SLICED_NOT_STARTED_HOURS,
+from .print_order import (FAILURE_REASONS, LAB_HOURS, PARTS, SLICED_NOT_STARTED_HOURS,
                           STATES as PLATE_STATES, WAITING_LONG_HOURS, WASH_LONG_HOURS)
 from .scan_line import OPEN
 
@@ -49,6 +57,21 @@ PACE_DAYS = 30
 PRINT_NEXT = 8
 DAY_MINUTES = 24 * 60
 RECENT_PLATES = 10
+# the re-plate backlog: how many rows the board lists, and when a wait is long
+BACKLOG_ROWS = 12
+REPLATE_LONG_HOURS = 4
+REPEAT_ROWS = 8
+# the board redraws itself: every minute on Today, every three otherwise
+REFRESH_TODAY = 60
+REFRESH_OTHER = 180
+# the reasons as the heat table's column heads
+REASON_SHORT = {'adhesion': 'Adhesion', 'supports': 'Supports', 'material': 'Resin', 'power': 'Power',
+                'layers': 'Layers', 'file': 'File', 'machine': 'Machine', 'other': 'Other'}
+
+
+def models_printed_domain_of(models_window):
+    """The lines of a window with an arch printed."""
+    return models_window + [('printed_models', '>', 0)]
 
 
 def _avg(values, digits=1):
@@ -102,8 +125,10 @@ class Scan(models.Model):
     # ------------------------------------------------------------------ the figures
     @api.model
     def get_dashboard(self, period='month'):
-        if not self.env['lab.scan'].has_access('read'):
-            raise AccessError(_("The scan dashboard needs access to the scan register."))
+        # the scan manager's board, and the administrator's (who implies the role)
+        # (client, 2026-10-23); the menu is the door, this is the wall
+        if not (self.env.su or self.env.user.has_group('lab_scan_register.group_scan_manager')):
+            raise AccessError(_("The scan dashboard is for the scan manager."))
         period = period if period in PERIODS else 'month'
         now = fields.Datetime.now()
         start, end, prev_start, prev_end = self._dashboard_window(period, now)
@@ -237,28 +262,38 @@ class Scan(models.Model):
 
         open_lines = Line.search([('scan_id.company_id', '=', company.id), ('scan_id.state', 'in', OPEN)])
         dup_scans = open_lines.filtered('duplicate_count').scan_id
-        # a failed model is waiting until some later line re-plates it; the reverse
-        # link is computed, so the ids of the re-plated ones are read once here
-        replated = Model.search(base + [('replated_from_id', '!=', False)]).replated_from_id.ids
+        in_printing = [('scan_id.state', 'in', ('printing', 'in_progress'))]
         attention = [
             {'key': 'at_risk', 'label': _("Delivery at risk"), 'icon': 'fa-truck', 'tone': 'danger',
              'domain': open_domain + [('delivery_at_risk', '=', True)]},
             {'key': 'failed', 'label': _("Failed print, back in the queue"), 'icon': 'fa-print',
              'tone': 'danger',
-             'domain': base + [('state', '=', 'printing'), ('failed_print_count', '>', 0)]},
+             'domain': base + [('state', 'in', ('printing', 'in_progress')), ('replate_waiting_count', '>', 0)]},
+            {'key': 'half_printed', 'label': _("One arch printed, the other to print again"),
+             'icon': 'fa-adjust', 'tone': 'danger', 'model': Line._name,
+             'domain': base + [('replate_pending', '=', True), ('arch', '=', 'both'),
+                               ('print_part', 'in', ('upper', 'lower'))]},
+            {'key': 'failed_twice', 'label': _("Failed twice or more, not printed yet"), 'icon': 'fa-exclamation',
+             'tone': 'danger', 'model': Line._name,
+             'domain': base + [('replate_pending', '=', True), ('failed_print_count', '>=', 2)]},
+            {'key': 'lost_mid_print', 'label': _("Lost mid-print, settled at Plate Off"), 'icon': 'fa-chain-broken',
+             'tone': 'warning', 'model': MODEL,
+             'domain': base + [('result', '=', 'pending'), ('lost_part', '!=', False)]},
             {'key': 'due_off', 'label': _("Plate due off"), 'icon': 'fa-bell', 'tone': 'danger',
              'model': ORDER, 'domain': base + [('due_off', '=', True)]},
             {'key': 'running_long', 'label': _("Print running longer than usual"), 'icon': 'fa-clock-o',
              'tone': 'warning', 'model': ORDER, 'domain': base + [('running_long', '=', True)]},
+            # the patients - the queue's own rows, where Put on a Plate is
             {'key': 'replate_waiting', 'label': _("Models waiting to be re-plated"), 'icon': 'fa-repeat',
-             'tone': 'danger', 'model': MODEL,
-             'domain': base + [('result', '=', 'failed'), ('superseded', '=', False),
-                               ('id', 'not in', replated),
-                               ('scan_id.state', 'in', ('printing', 'in_progress'))]},
+             'tone': 'danger', 'model': Line._name,
+             'domain': base + in_printing + [('print_state', '=', 'to_plate'), ('last_failure', '!=', False)]},
+            {'key': 'replate_waiting_long', 'label': _("Re-plates waiting over %d h", REPLATE_LONG_HOURS),
+             'icon': 'fa-hourglass-end', 'tone': 'danger', 'model': Line._name,
+             'domain': base + in_printing + [('print_state', '=', 'to_plate'), ('last_failure', '!=', False),
+                                             ('waiting_since', '<', ago(REPLATE_LONG_HOURS))]},
             {'key': 'waiting_long', 'label': _("Waiting for a plate over a day"), 'icon': 'fa-pause-circle-o',
              'tone': 'warning', 'model': Line._name,
-             'domain': base + [('print_state', '=', 'to_plate'),
-                               ('scan_id.date_print_start', '<', ago(WAITING_LONG_HOURS))]},
+             'domain': base + [('print_state', '=', 'to_plate'), ('waiting_since', '<', ago(WAITING_LONG_HOURS))]},
             {'key': 'washing_long', 'label': _("In wash & cure over %d h", WASH_LONG_HOURS), 'icon': 'fa-tint',
              'tone': 'warning', 'model': ORDER,
              'domain': base + [('state', '=', 'washing'), ('date_end', '<', ago(WASH_LONG_HOURS))]},
@@ -290,6 +325,7 @@ class Scan(models.Model):
         return dict(room, **{
             'period': period,
             'is_today': period == 'today',
+            'refresh_seconds': REFRESH_TODAY if period == 'today' else REFRESH_OTHER,
             'now': fields.Datetime.to_string(now),
             'start': fields.Date.to_string(start),
             'end': fields.Date.to_string(end - timedelta(days=1)),
@@ -335,8 +371,11 @@ class Scan(models.Model):
         # failed line always sits on a closed plate; the line carries its plate's
         # start and machine, so the plate's window reads straight on the lines
         models_window = base + in_window
-        models_printed_domain = models_window + [('result', '=', 'ok')]
-        models_failed_domain = models_window + [('result', '=', 'failed')]
+        # a model is an arch: these are the lines with an arch printed / lost, their
+        # sums the figures and their rows what a click opens
+        models_printed_domain = models_window + [('printed_models', '>', 0)]
+        models_failed_domain = models_window + [('failed_models', '>', 0)]
+        verdict = ['|', ('printed_models', '>', 0), ('failed_models', '>', 0)]
 
         def local(dt):
             return pytz.utc.localize(dt).astimezone(tz).replace(tzinfo=None)
@@ -348,8 +387,16 @@ class Scan(models.Model):
                       for printer, state, n, hours, ml, models in Order._read_group(
                           plates_domain, ['printer_id', 'state'],
                           ['__count', 'duration_hours:sum', 'resin_ml:sum', 'model_count:sum'])}
-        models_by_printer = {(printer.id, result): n for printer, result, n in Model._read_group(
-            models_window + [('result', 'in', ('ok', 'failed'))], ['printer_id', 'result'], ['__count'])}
+        # the arches are the figures; the rows (a patient per plate) are what a click opens
+        models_by_printer = {printer.id: (ok or 0, lost or 0, rows) for printer, ok, lost, rows in Model._read_group(
+            models_window + verdict, ['printer_id'], ['printed_models:sum', 'failed_models:sum', '__count'])}
+        patients_by_printer = {(printer.id, key): n for key, dom in (('ok', models_printed_domain),
+                                                                     ('failed', models_failed_domain))
+                               for printer, n in Model._read_group(dom, ['printer_id'], ['__count'])}
+        reasons_by_printer = defaultdict(list)
+        for printer, reason, n in Model._read_group(models_failed_domain, ['printer_id', 'failure_reason'],
+                                                    ['failed_models:sum'], order='failed_models:sum desc'):
+            reasons_by_printer[printer.id].append((reason, n or 0))
         queued_by_printer = {printer.id: n for printer, n in Order._read_group(
             base + [('state', '=', 'draft')], ['printer_id'], ['__count'])}
         running_by_printer = {order.printer_id.id: order
@@ -387,14 +434,14 @@ class Scan(models.Model):
                                  order='date_end desc, id desc', limit=200):
             last_failed.setdefault(line.printer_id.id, line)
         reasons = dict(FAILURE_REASONS)
+        unsaid = _("Not said")          # here, not in a comprehension: _() reads its caller's frame
         printers = []
         for printer in machines:
             cells = [by_printer.get((printer.id, state), (0, 0.0, 0.0, 0)) for state in CLOSED]
             plates = sum(c[0] for c in cells)
             hours = sum(c[1] for c in cells)
             resin = sum(c[2] for c in cells)
-            models_done = models_by_printer.get((printer.id, 'ok'), 0)
-            models_failed = models_by_printer.get((printer.id, 'failed'), 0)
+            models_done, models_failed, patients_seen = models_by_printer.get(printer.id, (0, 0, 0))
             running = running_by_printer.get(printer.id)
             failed = last_failed.get(printer.id)
             next_plate = printer.next_order_id
@@ -411,6 +458,7 @@ class Scan(models.Model):
                     'estimated_hours': round(running.estimated_hours or printer.typical_hours or 0.0, 2),
                     'patients': running.patient_count, 'models': running.model_count,
                     'running_long': running.running_long, 'due_off': running.due_off,
+                    'failed_models': running.failed_models, 'lost': running.lost_count,
                 } if running else None,
                 # a machine in service with nothing on it: free since its last plate came off
                 'idle_since': stamp(printer.last_print_date) if not running and printer.state == 'ready' else None,
@@ -419,6 +467,13 @@ class Scan(models.Model):
                 'queued': queued_by_printer.get(printer.id, 0),
                 'plates': plates,
                 'models_done': models_done, 'models_failed': models_failed,
+                'patients': patients_seen,
+                'patients_done': patients_by_printer.get((printer.id, 'ok'), 0),
+                'patients_failed': patients_by_printer.get((printer.id, 'failed'), 0),
+                'reasons_top': [{'key': r or 'none', 'label': reasons.get(r, unsaid), 'count': n,
+                                 'domain': models_failed_domain + [('printer_id', '=', printer.id),
+                                                                   ('failure_reason', '=', r)]}
+                                for r, n in reasons_by_printer.get(printer.id, [])[:2]],
                 'failure_rate': round(models_failed * 100.0 / (models_done + models_failed))
                 if models_done + models_failed else None,
                 'hours': round(hours, 1),
@@ -432,8 +487,7 @@ class Scan(models.Model):
                 if failed else None,
                 'domain': plates_domain + [('printer_id', '=', printer.id)],
                 'model': ORDER,
-                'models_domain': models_window + [('printer_id', '=', printer.id),
-                                                  ('result', 'in', ('ok', 'failed'))],
+                'models_domain': models_window + verdict + [('printer_id', '=', printer.id)],
                 'models_model': MODEL,
                 'running_domain': base + [('state', '=', 'printing'), ('printer_id', '=', printer.id)],
                 'running_model': ORDER,
@@ -444,11 +498,13 @@ class Scan(models.Model):
         # -------------------------------------------------------- the headline's plates
         def closed_totals(domain):
             plates_ = Order.search_count(base + [('state', 'in', CLOSED)] + domain)
-            done_ = Model.search_count(base + domain + [('result', '=', 'ok')])
-            failed_ = Model.search_count(base + domain + [('result', '=', 'failed')])
-            return plates_, done_, failed_
+            [(done_, failed_)] = Model._read_group(base + domain + verdict, [],
+                                                   ['printed_models:sum', 'failed_models:sum'])
+            return plates_, done_ or 0, failed_ or 0
         plates_total, printed_total, failed_total = closed_totals(in_window)
         plates_prev, printed_prev, failed_prev = closed_totals(in_before)
+        by_arch_printed = {arch: n or 0 for arch, n in Model._read_group(
+            models_printed_domain, ['printed_arches'], ['printed_models:sum'])}
         models_total = sum(v[3] for (_p, state), v in by_printer.items() if state in CLOSED)
         resin_total = sum(v[2] for (_p, state), v in by_printer.items() if state in CLOSED)
         # resin is a figure only once a file has been read (or a figure typed); a
@@ -462,6 +518,14 @@ class Scan(models.Model):
             'plates': plates_total, 'plates_prev': plates_prev,
             'models_printed': printed_total, 'models_failed': failed_total,
             'models_printed_prev': printed_prev,
+            # the rows behind the two figures: patients with an arch printed / lost
+            'patients_printed': Model.search_count(models_printed_domain),
+            'patients_failed': Model.search_count(models_failed_domain),
+            'models_upper': by_arch_printed.get('upper', 0) + by_arch_printed.get('both', 0) // 2,
+            'models_lower': by_arch_printed.get('lower', 0) + by_arch_printed.get('both', 0) // 2,
+            'half_failed': Model.search_count(models_printed_domain + [('failed_models', '>', 0)]),
+            'half_failed_domain': models_printed_domain + [('failed_models', '>', 0)],
+            'plates_partial': Order.search_count(plates_domain + [('is_partial', '=', True)]),
             'model_failure_rate': rate(failed_total, printed_total),
             'model_failure_rate_prev': rate(failed_prev, printed_prev),
             'avg_models_per_plate': round(models_total / float(plates_total), 1) if plates_total else None,
@@ -502,6 +566,8 @@ class Scan(models.Model):
         plate_flow = [
             {'key': 'draft', 'label': _("Plating"), 'icon': 'fa-th', 'count': len(draft),
              'models': sum(draft.mapped('model_count')),
+             'replate_models': sum(draft.line_ids.filtered(
+                 lambda l: l.replated_from_id and l.result == 'pending').mapped('model_count')),
              'ready': len(draft.filtered('is_ready')), 'files': len(draft.filtered('files_missing_count')),
              'unplanned': len(draft.filtered(lambda o: not o.printer_id)),
              'domain': base + [('state', '=', 'draft')]},
@@ -515,6 +581,7 @@ class Scan(models.Model):
              'domain': base + [('state', '=', 'washing')]},
             {'key': 'printed', 'label': _("Printed in the period"), 'icon': 'fa-check', 'period': True,
              'count': Order.search_count(printed_window), 'models': printed_total,
+             'partial': Order.search_count(printed_window + [('is_partial', '=', True)]),
              'domain': printed_window},
             {'key': 'failed', 'label': _("Failed in the period"), 'icon': 'fa-exclamation-triangle', 'period': True,
              'count': Order.search_count(failed_window), 'models': failed_total,
@@ -560,7 +627,8 @@ class Scan(models.Model):
         for plate in unplanned:
             place(('suggested', plate), plate.estimated_hours or pace)
         waiting = Order._waiting_lines(company)
-        models_waiting = sum(1 if line.arch in ('upper', 'lower') else 2 for line in waiting)
+        # the arches still to print: a patient waiting for their lower again is one
+        models_waiting = sum(line.print_models or (2 if line.arch == 'both' else 1) for line in waiting)
         caps = [p.plate_capacity for p in ready if p.plate_capacity]
         capacity = round(sum(caps) / len(caps)) if caps else 8
         plates_needed = math.ceil(models_waiting / float(capacity)) if models_waiting else 0
@@ -573,6 +641,9 @@ class Scan(models.Model):
             'patients': len(waiting), 'models': models_waiting,
             'urgent': len(waiting.filtered(lambda l: l.priority == '1')),
             'replates': len(waiting.filtered('last_failure')),
+            'replate_models': sum(waiting.filtered('last_failure').mapped('print_models')),
+            'upper': len(waiting.filtered(lambda l: (l.print_part or l.arch) in ('upper', 'both'))),
+            'lower': len(waiting.filtered(lambda l: (l.print_part or l.arch) in ('lower', 'both'))),
             'due_soon': len(waiting.filtered(lambda l: l.date_delivery and l.date_delivery <= local_today + timedelta(days=1))),
             'plates_needed': plates_needed, 'capacity': capacity,
             'plated': len(draft), 'pace_hours': pace,
@@ -583,11 +654,13 @@ class Scan(models.Model):
         }
         print_next = [{
             'id': line.id, 'scan_id': line.scan_id.id, 'scan': line.scan_id.name,
-            'patient': line.patient_name or '', 'doctor': line.scan_id.partner_id.display_name or '',
+            'patient': line.patient_name or '', 'doctor': line.scan_id._doctor_label(),
             'delivery': fields.Date.to_string(line.date_delivery) if line.date_delivery else None,
             'late': bool(line.date_delivery and line.date_delivery <= local_today + timedelta(days=1)),
             'urgent': line.priority == '1', 'replate': bool(line.last_failure),
-            'arch': dict(line._fields['arch'].selection).get(line.arch, ''),
+            # the arch still to print, not the register's: after a lost lower, Lower
+            'arch': dict(PARTS).get(line.print_part or line.arch, ''),
+            'part_key': line.print_part or line.arch, 'attempts': line.print_attempts,
             'since': stamp(line.scan_id.date_print_start or line.scan_id.date_received),
         } for line in waiting[:PRINT_NEXT]]
 
@@ -650,17 +723,19 @@ class Scan(models.Model):
                 timeline['lanes'].append(dict(self._lane(p, busy, window_hours), cells=cells))
 
         # -------------------------------------------------------- why models fail
-        by_reason = Model._read_group(models_failed_domain, ['failure_reason'], ['__count'])
-        failed_n = sum(n for _r, n in by_reason)
+        by_reason = Model._read_group(models_failed_domain, ['failure_reason'], ['failed_models:sum', '__count'])
+        failed_n = sum(n or 0 for _r, n, _rows in by_reason)
         not_said = _("Not said")         # outside the generator: _() reads its caller's frame for the language
-        failure_reasons = sorted(({'key': r or 'none', 'label': reasons.get(r, not_said), 'count': n,
-                                   'pct': round(n * 100.0 / failed_n) if failed_n else 0,
+        failure_reasons = sorted(({'key': r or 'none', 'label': reasons.get(r, not_said), 'count': n or 0,
+                                   'rows': rows, 'pct': round((n or 0) * 100.0 / failed_n) if failed_n else 0,
                                    'domain': models_failed_domain + [('failure_reason', '=', r)]}
-                                  for r, n in by_reason), key=lambda x: -x['count'])
-        parts = dict(FAILED_PARTS)
-        failed_parts = [{'key': k or 'all', 'label': parts.get(k, parts['all']), 'count': n,
-                         'domain': models_failed_domain + [('failed_part', '=', k)]}
-                        for k, n in Model._read_group(models_failed_domain, ['failed_part'], ['__count'])]
+                                  for r, n, rows in by_reason), key=lambda x: -x['count'])
+        parts = dict(PARTS)
+        # by the arch lost: Upper, Lower, or both of a patient
+        failed_parts = [{'key': k, 'label': parts.get(k, k), 'count': rows, 'models': n or 0,
+                         'domain': models_failed_domain + [('failed_arches', '=', k)]}
+                        for k, n, rows in Model._read_group(models_failed_domain, ['failed_arches'],
+                                                            ['failed_models:sum', '__count']) if k]
 
         # -------------------------------------------------------- the latest plates
         state_label = dict(PLATE_STATES)
@@ -671,6 +746,10 @@ class Scan(models.Model):
                                                -o.id))[:RECENT_PLATES]
         recent_plates = [{
             'id': o.id, 'name': o.name, 'state': o.state, 'state_label': state_label.get(o.state, o.state),
+            'printed_models': o.printed_models, 'failed_models': o.failed_models,
+            'replate': bool(o.replate_count), 'restart': bool(o.restarted_from_id),
+            'replated_on': ', '.join(sorted(set(o.line_ids.filtered(lambda l: l.result == 'failed')
+                                                .replated_by_id.order_id.mapped('name')))),
             'printer': {'id': o.printer_id.id, 'code': o.printer_id.code, 'name': o.printer_id.name,
                         'color': o.printer_id.color or 0} if o.printer_id else None,
             'patients': o.patient_count, 'models': o.model_count, 'failed': o.failed_count,
@@ -682,8 +761,13 @@ class Scan(models.Model):
             'late': o.state == 'printing' and (o.running_long or o.due_off),
         } for o in recent]
 
+        quality = self._dashboard_quality(company, base, models_window, models_failed_domain, in_window,
+                                          in_before, plates_domain, busy, machines, models_by_printer, tz, now)
         return {
             'headline': headline,
+            'quality': quality,
+            'replate_backlog': self._dashboard_backlog(company, base, now),
+            'print_trend': self._dashboard_print_trend(base, models_window, verdict, start, end, period),
             'printers': printers,
             'plate_stages': plate_stages,
             'plate_flow': plate_flow,
@@ -701,6 +785,222 @@ class Scan(models.Model):
             'models_printed_domain': models_printed_domain, 'models_printed_model': MODEL,
             'models_failed_domain': models_failed_domain, 'models_failed_model': MODEL,
         }
+
+    @api.model
+    def _dashboard_backlog(self, company, base, now):
+        """Every failed model still waiting for a plate, oldest first: the arch it needs,
+        how often it failed, why, on which machine, how long it waits, and the plate
+        being plated with room for it."""
+        Line = self.env['lab.scan.line']
+        Order = self.env['lab.scan.print.order']
+        domain = base + [('print_state', '=', 'to_plate'), ('last_failure', '!=', False),
+                         ('scan_id.state', 'in', ('printing', 'in_progress'))]
+        backlog = Line.search(domain, order='waiting_since asc, id')
+        parts = dict(PARTS)
+
+        def age(line):
+            return (now - line.waiting_since).total_seconds() / 3600 if line.waiting_since else 0.0
+        buckets = [{'key': 'fresh', 'label': _("under 2 h"), 'count': 0},
+                   {'key': 'hours', 'label': _("2 – 8 h"), 'count': 0},
+                   {'key': 'old', 'label': _("over 8 h"), 'count': 0}]
+        for line in backlog:
+            hours = age(line)
+            buckets[0 if hours < 2 else 1 if hours < 8 else 2]['count'] += 1
+        rows = []
+        for line in backlog[:BACKLOG_ROWS]:
+            failed = line._live_print_lines().filtered(lambda p: p.result == 'failed')[-1:]
+            fits = Order._suggest_plate(line.print_models or 1, company=company)
+            capacity, used = Order._plate_room(fits) if fits else (0, 0)
+            rows.append({
+                'id': line.id, 'scan_id': line.scan_id.id, 'scan': line.scan_id.name,
+                'patient': line.patient_name or '', 'doctor': line.scan_id._doctor_label(),
+                'part_key': line.print_part or line.arch, 'part_label': parts.get(line.print_part or line.arch, ''),
+                'models': line.print_models, 'attempts': line.failed_print_count,
+                'reason': line.last_failure or '',
+                'machine': {'code': failed.printer_id.code, 'color': failed.printer_id.color or 0}
+                if failed.printer_id else None,
+                'failed_at': fields.Datetime.to_string(line.waiting_since) if line.waiting_since else None,
+                'age_hours': round(age(line), 2),
+                'delivery': fields.Date.to_string(line.date_delivery) if line.date_delivery else None,
+                'late': bool(line.delivery_at_risk), 'urgent': line.priority == '1',
+                'suggested_plate': {'id': fits.id, 'name': fits.name, 'fill': used, 'capacity': capacity,
+                                    'machine_code': fits.printer_id.code or ''} if fits else None,
+            })
+        return {
+            'count': len(backlog), 'models': sum(backlog.mapped('print_models')),
+            'oldest_hours': round(age(backlog[0]), 1) if backlog else None,
+            'failed_twice': len(backlog.filtered(lambda l: l.failed_print_count >= 2)),
+            'buckets': buckets, 'rows': rows, 'domain': domain, 'model': Line._name,
+        }
+
+    @api.model
+    def _dashboard_quality(self, company, base, models_window, models_failed_domain, in_window, in_before,
+                           plates_domain, busy, machines, models_by_printer, tz, now):
+        """Where the failures are: reasons by machine, by attempt, by resin batch; the
+        models lost more than once; what the failures cost in printing time and
+        resin; and whether printed models were ready for their delivery dates."""
+        Model = self.env['lab.scan.print.order.line']
+        Order = self.env['lab.scan.print.order']
+        MODEL, ORDER = Model._name, Order._name
+        reasons = dict(FAILURE_REASONS)
+        verdict = ['|', ('printed_models', '>', 0), ('failed_models', '>', 0)]
+
+        # reasons x machine: a heat table, each cell its failed models
+        cells = defaultdict(dict)
+        for printer, reason, n, rows in Model._read_group(
+                models_failed_domain, ['printer_id', 'failure_reason'], ['failed_models:sum', '__count']):
+            cells[printer.id][reason or 'none'] = (n or 0, rows)
+        columns = [{'key': key, 'label': label, 'short': REASON_SHORT.get(key, label)}
+                   for key, label in FAILURE_REASONS]
+        matrix_rows, totals, total_rows = [], defaultdict(int), defaultdict(int)
+        for printer in machines.filtered(lambda p: p.id in cells or p.state != 'retired'):
+            mine = cells.get(printer.id, {})
+            if not mine and printer.state == 'retired':
+                continue
+            done, lost, _rows = models_by_printer.get(printer.id, (0, 0, 0))
+            row_cells = []
+            for col in columns:
+                n, rows = mine.get(col['key'], (0, 0))
+                totals[col['key']] += n
+                total_rows[col['key']] += rows
+                row_cells.append({'reason': col['key'], 'count': n, 'rows': rows,
+                                  'domain': models_failed_domain + [('printer_id', '=', printer.id),
+                                                                    ('failure_reason', '=', col['key'])]})
+            matrix_rows.append({
+                'printer': {'id': printer.id, 'code': printer.code, 'name': printer.name, 'color': printer.color or 0},
+                'cells': row_cells, 'total': sum(c['count'] for c in row_cells),
+                'rows': sum(c['rows'] for c in row_cells),
+                'rate': round(lost * 100.0 / (done + lost)) if done + lost else None,
+                'domain': models_failed_domain + [('printer_id', '=', printer.id)],
+            })
+        matrix = {'reasons': columns, 'rows': matrix_rows,
+                  'total_row': {'cells': [{'reason': c['key'], 'count': totals[c['key']], 'rows': total_rows[c['key']],
+                                           'domain': models_failed_domain + [('failure_reason', '=', c['key'])]}
+                                          for c in columns],
+                                'total': sum(totals.values())}}
+
+        # by attempt: do re-plates fail again?
+        attempts = defaultdict(lambda: [0, 0, 0])
+        for attempt, ok, lost, rows in Model._read_group(models_window + verdict, ['attempt'],
+                                                         ['printed_models:sum', 'failed_models:sum', '__count']):
+            key = min(attempt or 1, 3)
+            attempts[key][0] += ok or 0
+            attempts[key][1] += lost or 0
+            attempts[key][2] += rows
+        labels = {1: _("First print"), 2: _("Second print"), 3: _("Third or later")}
+        by_attempt = [{'attempt': key, 'label': labels[key], 'ok': ok, 'failed': lost, 'rows': rows,
+                       'rate': round(lost * 100.0 / (ok + lost)) if ok + lost else None,
+                       'domain': models_window + verdict + ([('attempt', '>=', 3)] if key == 3
+                                                            else [('attempt', '=', key)])}
+                      for key, (ok, lost, rows) in sorted(attempts.items())]
+
+        # by resin batch: a bad bottle shows as a red rate
+        by_batch = []
+        for batch, ok, lost, rows in Model._read_group(
+                models_window + verdict + [('order_id.resin_batch', '!=', False)], ['order_id.resin_batch'],
+                ['printed_models:sum', 'failed_models:sum', '__count']):
+            total = (ok or 0) + (lost or 0)
+            by_batch.append({'batch': batch, 'failed': lost or 0, 'total': total, 'rows': rows,
+                             'rate': round((lost or 0) * 100.0 / total) if total else None,
+                             'domain': models_window + verdict + [('order_id.resin_batch', '=', batch)]})
+        by_batch = sorted(by_batch, key=lambda b: (-b['failed'], -b['total']))[:6]
+
+        # the models lost twice or more in the period, with the path they took
+        repeat = []
+        unsaid = _("Not said")
+        twice = Model.search(models_failed_domain + [('attempt', '>=', 2)], order='date_start desc, id desc')
+        for patient in twice.scan_line_id[:REPEAT_ROWS]:
+            path = [{'reason': reasons.get(p.failure_reason, unsaid), 'machine': p.printer_id.code or '',
+                     'when': fields.Datetime.to_string(p.date_result or p.date_end) if (p.date_result or p.date_end)
+                     else None} for p in patient._live_print_lines().filtered(lambda p: p.result == 'failed')]
+            state = dict(patient._fields['print_state'].selection).get(patient.print_state, '')
+            repeat.append({'line_id': patient.id, 'scan_id': patient.scan_id.id, 'patient': patient.patient_name or '',
+                           'doctor': patient.scan_id._doctor_label(), 'attempts': len(path), 'path': path,
+                           'where': patient.current_order_id.name or state})
+
+        # what the failures cost: the lost share of each plate's time and resin
+        def rework(window):
+            hours = resin = 0.0
+            for plate in Order.search(base + [('state', 'in', CLOSED), ('failed_models', '>', 0)] + window):
+                share = plate.failed_models / float(plate.model_count) if plate.model_count else 1.0
+                hours += (plate.duration_hours or 0.0) * share
+                resin += (plate.resin_ml or 0.0) * share
+            return round(hours, 1), round(resin, 1)
+        hours, resin = rework(in_window)
+        hours_prev, resin_prev = rework(in_before)
+        printing = sum(busy.values())
+        replate_lines = Model.search(models_window + [('replated_from_id', '!=', False), ('result', '!=', 'withdrawn')])
+
+        # ready on time: each patient printed in the period against their delivery date
+        def local_day(dt):
+            return pytz.utc.localize(dt).astimezone(tz).date()
+        on_time, same_day, late = [], [], []
+        latest = {}
+        for line in Model.search(models_printed_domain_of(models_window) + [('date_delivery', '!=', False)],
+                                 order='id'):
+            latest[line.scan_line_id.id] = line
+        for patient_id, line in latest.items():
+            done_on = line.date_result or line.date_end
+            if not done_on:
+                continue
+            day = local_day(done_on)
+            (on_time if day < line.date_delivery else same_day if day == line.date_delivery else late).append(patient_id)
+        Line = self.env['lab.scan.line']
+        # at risk is a computed reading of the delivery date, not a column: read on the rows
+        at_risk = Line.search(base + [('print_state', 'in', ('to_plate', 'plated', 'printing')),
+                                      ('date_delivery', '!=', False)]).filtered('delivery_at_risk')
+        with_due = len(on_time) + len(same_day) + len(late)
+        return {
+            'matrix': matrix,
+            'by_attempt': by_attempt,
+            'by_batch': by_batch,
+            'repeat': repeat,
+            'rework': {'hours': hours, 'resin_ml': resin, 'hours_prev': hours_prev, 'resin_ml_prev': resin_prev,
+                       'share_pct': round(hours * 100.0 / printing) if printing else None,
+                       'replate_plates': len(replate_lines.order_id), 'replate_models': sum(replate_lines.mapped('model_count')),
+                       'domain': models_failed_domain, 'model': MODEL,
+                       'plates_domain': plates_domain + [('failed_models', '>', 0)], 'plates_model': ORDER},
+            'on_time': {'with_due': with_due, 'on_time': len(on_time), 'same_day': len(same_day), 'late': len(late),
+                        'pct': round(len(on_time) * 100.0 / with_due) if with_due else None,
+                        'at_risk_now': len(at_risk), 'model': Line._name,
+                        'on_time_domain': [('id', 'in', on_time)], 'same_day_domain': [('id', 'in', same_day)],
+                        'late_domain': [('id', 'in', late)], 'at_risk_domain': [('id', 'in', at_risk.ids)]},
+        }
+
+    @api.model
+    def _dashboard_print_trend(self, base, models_window, verdict, start, end, period):
+        """Models printed and failed, bucket by bucket - the hours of today, the weeks of
+        the quarter, the days otherwise - each bucket opening its own lines."""
+        Model = self.env['lab.scan.print.order.line'].with_context(tz=self._lab_tz().zone)
+        granularity = {'quarter': 'week', 'today': 'hour'}.get(period, 'day')
+        sums = {}
+        for bucket, ok, lost, rows in Model._read_group(models_window + verdict, ['date_start:%s' % granularity],
+                                                        ['printed_models:sum', 'failed_models:sum', '__count']):
+            if not bucket:
+                continue
+            key = bucket.hour if granularity == 'hour' else (bucket.date() if isinstance(bucket, datetime) else bucket)
+            sums[key] = (ok or 0, lost or 0, rows)
+        out = []
+
+        def point(key, label, a, b):
+            ok, lost, rows = sums.get(key, (0, 0, 0))
+            out.append({'key': str(key), 'label': label, 'ok': ok, 'failed': lost, 'rows': rows,
+                        'rate': round(lost * 100.0 / (ok + lost)) if ok + lost else None,
+                        'domain': models_window + verdict + [('date_start', '>=', self._utc(a)),
+                                                             ('date_start', '<', self._utc(b))]})
+        if granularity == 'hour':
+            hours = list(sums)
+            for hour in range(min([LAB_HOURS[0]] + hours), max([LAB_HOURS[1]] + [h + 1 for h in hours])):
+                a = datetime.combine(start, time(hour))
+                point(hour, '%02d' % hour, a, a + timedelta(hours=1))
+            return out
+        day = start - timedelta(days=start.weekday()) if granularity == 'week' else start
+        step = timedelta(days=7 if granularity == 'week' else 1)
+        while day < end:
+            point(day, day.strftime('%d %b') if granularity == 'week' else day.strftime('%d'),
+                  max(day, start), min(day + step, end))
+            day += step
+        return out
 
     @api.model
     def _lane(self, printer, busy, window_hours):

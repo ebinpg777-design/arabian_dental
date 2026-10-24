@@ -63,6 +63,7 @@ RESULTS = [
 ]
 PARTS = [('both', 'Upper & Lower'), ('upper', 'Upper'), ('lower', 'Lower')]
 FAILED_PARTS = [('all', 'All'), ('upper', 'Upper'), ('lower', 'Lower')]
+OTHER_ARCH = {'upper': 'lower', 'lower': 'upper'}
 # a print still running past the file's estimate by this much is running long
 RUNNING_LONG_GRACE = 1.25
 DUE_OFF_GRACE_MINUTES = 30
@@ -91,11 +92,18 @@ SLICE_FIELDS = frozenset({'slice_attachment_id', 'slice_filename'})
 HEAD_BYTES = 1024 * 1024
 
 
-def _hours_text(hours, env):
-    """2h 05m. `env` translates it: a helper's own frame has no record for _() to read
-    the language from (Odoo 20 logs a warning per call)."""
+def _arches(part):
+    """The arches a part names: both is the upper and the lower."""
+    return ('upper', 'lower') if part == 'both' else ((part,) if part in ('upper', 'lower') else ())
+
+
+def _hours_text(hours, env=None):
+    """"2h 05m". `env` gives the language: a bare function has no record whose
+    language _() could read, and outside a web request (crons, tests) _() then
+    logs a warning with a stack trace on every call."""
     hours = hours or 0.0
-    return env._("%(h)dh %(m)02dm", h=int(hours), m=int(round((hours - int(hours)) * 60)))
+    h, m = int(hours), int(round((hours - int(hours)) * 60))
+    return env._("%(h)dh %(m)02dm", h=h, m=m) if env else "%dh %02dm" % (h, m)
 
 
 class PrintOrder(models.Model):
@@ -131,10 +139,25 @@ class PrintOrder(models.Model):
     model_count = fields.Integer('Models', compute='_compute_lines', store=True, help="Arches on the plate.")
     capacity = fields.Integer('Plate Holds', related='printer_id.plate_capacity')
     over_capacity = fields.Boolean('Over Capacity', compute='_compute_over_capacity')
-    printed_count = fields.Integer('Printed Models', compute='_compute_lines', store=True)
-    failed_count = fields.Integer('Failed Models', compute='_compute_lines', store=True)
+    printed_count = fields.Integer('Patients Printed', compute='_compute_lines', store=True)
+    failed_count = fields.Integer('Patients Who Lost a Model', compute='_compute_lines', store=True)
     withdrawn_count = fields.Integer('Taken Off', compute='_compute_lines', store=True)
-    is_partial = fields.Boolean('Partly Failed', compute='_compute_lines', store=True)
+    # A model is an arch (client, 2026-10-23: "one or two scans will fail, or the U or L
+    # of one scan"): a patient whose lower failed printed one model and lost one.
+    printed_models = fields.Integer('Models Printed', compute='_compute_lines', store=True,
+                                    help="Arches that came off this plate printed.")
+    failed_models = fields.Integer('Models Failed', compute='_compute_lines', store=True,
+                                   help="Arches lost on this plate - one arch of a patient counts one.")
+    replate_count = fields.Integer('Re-plated Patients', compute='_compute_lines', store=True,
+                                   help="Patients on this plate printing again what an earlier plate lost.")
+    lost_count = fields.Integer('Lost Mid-Print', compute='_compute_lines', store=True,
+                                help="Patients one of whose arches came off while the plate goes on printing.")
+    is_partial = fields.Boolean('Partly Failed', compute='_compute_lines', store=True,
+                                help="Some models printed and some were lost.")
+    failed_summary = fields.Char('Failed', compute='_compute_summaries',
+                                 help="Who lost what on this plate, and where it went.")
+    replate_summary = fields.Char('Re-plates', compute='_compute_summaries',
+                                  help="What this plate prints again, and from which plate.")
     is_ready = fields.Boolean('Ready to Print', compute='_compute_is_ready', search='_search_is_ready',
                               help="Plating on a machine in service, every patient with files (or a link), "
                                    "and a print time - from the sliced file or typed.")
@@ -224,7 +247,8 @@ class PrintOrder(models.Model):
 
     # ================================================================== computes
     @api.depends('line_ids.result', 'line_ids.model_count', 'line_ids.scan_id', 'line_ids.priority',
-                 'line_ids.date_delivery')
+                 'line_ids.date_delivery', 'line_ids.printed_models', 'line_ids.failed_models',
+                 'line_ids.replated_from_id', 'line_ids.lost_part')
     def _compute_lines(self):
         for order in self:
             live = order.line_ids.filtered(lambda l: l.result != 'withdrawn')
@@ -235,10 +259,43 @@ class PrintOrder(models.Model):
             order.printed_count = len(live.filtered(lambda l: l.result == 'ok'))
             order.failed_count = len(live.filtered(lambda l: l.result == 'failed'))
             order.withdrawn_count = len(order.line_ids) - len(live)
-            order.is_partial = bool(order.printed_count and order.failed_count)
+            order.printed_models = sum(live.mapped('printed_models'))
+            order.failed_models = sum(live.mapped('failed_models'))
+            order.replate_count = len(live.filtered('replated_from_id'))
+            order.lost_count = len(live.filtered(lambda l: l.result == 'pending' and l.lost_part))
+            # in models: a plate whose only patient lost the lower printed the upper
+            order.is_partial = bool(order.printed_models and order.failed_models)
             order.priority = '1' if '1' in live.mapped('priority') else '0'
             dates = [d for d in live.mapped('date_delivery') if d]
             order.date_delivery = min(dates) if dates else False
+
+    @api.depends('line_ids.result', 'line_ids.failed_arches', 'line_ids.replated_from_id', 'line_ids.attempt')
+    def _compute_summaries(self):
+        """"Binu (lower) → PRINT/2026/0013 · Cini → waiting for a plate", and the
+        other way round on the re-plate: what the alerts and the ticket name."""
+        labels = dict(PARTS)
+        for order in self:
+            bits = []
+            for line in order.line_ids.filtered(
+                    lambda l: l.result == 'failed' or (l.result == 'pending' and l.lost_part)):
+                what = line.patient_name or _('A patient')
+                if line.part == 'both' and line.failed_arches in ('upper', 'lower'):
+                    what = '%s (%s)' % (what, labels[line.failed_arches].lower())
+                if line.result == 'pending':
+                    where = _("lost mid-print, settled at Plate Off")
+                elif line.replated_by_id:
+                    where = '→ %s' % line.replated_by_id.order_id.name
+                else:
+                    where = _("→ waiting for a plate")
+                bits.append('%s %s' % (what, where))
+            order.failed_summary = ' · '.join(bits) or False
+            again = []
+            # a loop, not a generator: _() reads the language from its caller's frame
+            for line in order.line_ids.filtered(lambda l: l.replated_from_id and l.result != 'withdrawn'):
+                again.append(_("%(patient)s%(part)s #%(n)d from %(plate)s", patient=line.patient_name or _('A patient'),
+                               part=(' ' + labels[line.part].lower()) if line.part != 'both' else '',
+                               n=line.attempt, plate=line.replated_from_id.order_id.name))
+            order.replate_summary = ' · '.join(again) or False
 
     @api.depends('model_count', 'printer_id.plate_capacity')
     def _compute_over_capacity(self):
@@ -534,11 +591,14 @@ class PrintOrder(models.Model):
 
     # ================================================================== plating
     @api.model
-    def _make(self, scan_lines, printer=None, resin_batch=False, note=False, existing=None):
+    def _make(self, scan_lines, printer=None, resin_batch=False, note=False, existing=None, parts=None):
         """A plate from these patients - a new one on `printer`, or added to a plate
         still being plated. A patient is on one open plate at most; a register still
-        Confirmed goes to Sent for Printing on the way."""
+        Confirmed goes to Sent for Printing on the way. Each patient goes on with the
+        arches they still need (`print_part`: only the lower after a plate lost only
+        the lower), or the arch `parts` names for them (Print Again)."""
         Line = self.env['lab.scan.print.order.line']
+        parts = parts or {}
         if not scan_lines:
             raise UserError(_("Pick at least one patient to put on the plate."))
         if existing:
@@ -569,9 +629,10 @@ class PrintOrder(models.Model):
             live = line._live_print_lines()
             latest = live[-1:]
             replated_from = latest if latest.result == 'failed' else Line
-            part = line.arch or 'both'
-            if replated_from.failed_part in ('upper', 'lower'):
-                part = replated_from.failed_part
+            part = parts.get(line.id) or line.print_part or line.arch or 'both'
+            if line.arch != 'both' and part != line.arch:
+                raise UserError(_("%(patient)s has only the %(arch)s to print.", patient=line.patient_name or
+                                  _('A patient'), arch=dict(PARTS)[line.arch].lower()))
             Line.with_context(print_workflow=True).create({
                 'order_id': order.id, 'scan_line_id': line.id, 'part': part,
                 'model_count': 2 if part == 'both' else 1, 'attempt': len(live) + 1,
@@ -653,10 +714,14 @@ class PrintOrder(models.Model):
         self.scan_ids._sync_print_state()
         return True
 
-    def _plate_off(self, results, skip_cure=False, replate_on=None):
+    def _plate_off(self, results, skip_cure=False, replate_on=None, routes=None, fill=None, note=False):
         """The plate came off. `results` says, for every patient on it, printed or
-        failed (and why, and which arch); the lost ones can go straight onto a new
-        plate - a printer for a new one, or a plate still being plated."""
+        failed (and why, and which arch); the lost models can go straight onto
+        another plate - see _route_failed for `replate_on`, `routes` and `fill`.
+        A patient whose arch was lost mid-print keeps that loss whatever the row says
+        about the other arch. Any arch printed sends the plate to wash & cure: a plate
+        whose only patient lost the lower still printed the upper. `note` - what the
+        operator saw - goes on every failed model that has no note of its own."""
         self.ensure_one()
         if self.state != 'printing':
             raise UserError(_("%s is not printing.", self.name))
@@ -664,56 +729,205 @@ class PrintOrder(models.Model):
         missing = pending.filtered(lambda l: l.id not in results)
         if missing:
             raise UserError(_("Say what became of %s.", ', '.join(missing.mapped('patient_name'))))
+        now = fields.Datetime.now()
         for line in pending:
-            result, reason, note, failed_part = results[line.id]
+            result, reason, row_note, failed_part = results[line.id]
             if result not in ('ok', 'failed'):
                 raise UserError(_("A model came off printed or failed, nothing else."))
+            if line.lost_part:
+                # the arch lost mid-print stays lost; the row speaks for the other one
+                lost = {line.lost_part}
+                if result == 'failed':
+                    lost |= set(_arches(line.part if failed_part in (False, None, 'all') else failed_part))
+                result = 'failed'
+                failed_part = 'all' if lost >= {'upper', 'lower'} else line.lost_part
+                reason = reason or line.failure_reason
+                row_note = row_note or line.failure_note
             if result == 'failed' and not reason:
                 raise UserError(_("Say why %s's model failed.", line.patient_name))
+            failed = result == 'failed'
             line.with_context(print_workflow=True).write({
                 'result': result,
-                'failure_reason': reason if result == 'failed' else False,
-                'failure_note': note or False,
-                'failed_part': (failed_part or 'all') if result == 'failed' else False,
+                'failure_reason': reason if failed else False,
+                'failure_note': (row_note or note or False) if failed else (row_note or False),
+                'failed_part': line._normalised_failed_part(failed_part) if failed else False,
+                'lost_part': False,
+                'date_result': line.date_result if line.lost_part and line.date_result else now,
             })
         ok = pending.filtered(lambda l: l.result == 'ok')
         failed = pending - ok
-        now = fields.Datetime.now()
+        printed = sum(pending.mapped('printed_models'))
         vals = {'date_end': now, 'off_user_id': self.env.uid}
-        if ok and skip_cure:
+        if printed and skip_cure:
             vals.update(state='done', date_cured=now, cure_user_id=self.env.uid)
-        elif ok:
+        elif printed:
             vals['state'] = 'washing'
         else:
             reasons = set(failed.mapped('failure_reason'))
-            vals.update(state='failed', failure_reason=reasons.pop() if len(reasons) == 1 else 'other',
-                        failure_note='\n'.join(filter(None, failed.mapped('failure_note'))) or False)
+            vals.update(state='failed', failure_reason=reasons.pop() if len(reasons) == 1 else 'other')
+        if failed:
+            vals['failure_note'] = note or '\n'.join(filter(None, failed.mapped('failure_note'))) or False
         self._move(vals)
-        replate = self.browse()
-        # `replate_on`: a machine to plan the new plate on - or no machine (an empty one),
-        # picked at Start - or a plate being plated; None is no re-plate
-        if failed and replate_on is not None:
-            if replate_on._name == 'lab.scan.printer':
-                replate = self._make(failed.scan_line_id, replate_on or None, resin_batch=self.resin_batch,
-                                     note=_("Re-plate of %s", self.name))
-            else:
-                replate = self._make(failed.scan_line_id, existing=replate_on)
+        where = self._route_failed(failed, replate_on=replate_on, routes=routes, fill=fill) if failed else {}
         time_text = _hours_text(self.duration_hours, self.env)
         for line in ok:
             line.scan_id.message_post(body=_("%(patient)s printed on %(machine)s in %(time)s.",
                                              patient=line.patient_name, machine=self.printer_id.display_name,
                                              time=time_text))
-        reasons = dict(FAILURE_REASONS)
-        for line in failed:
-            what = _("%(patient)s's %(part)s", patient=line.patient_name, part=line.failed_part) \
-                if line.failed_part in ('upper', 'lower') else line.patient_name
-            where = _("re-plated on %s", replate._get_html_link()) if replate else _("waiting for a plate")
-            line.scan_id.message_post(body=_("%(what)s failed on %(machine)s: %(reason)s — %(where)s.",
-                                             what=what, machine=self.printer_id.display_name,
-                                             reason=reasons.get(line.failure_reason), where=where))
-        self.message_post(body=_("Plate off: %(ok)d printed, %(failed)d failed.", ok=len(ok), failed=len(failed)))
+        self._post_failures(failed, where)
+        self.message_post(body=_("Plate off: %(printed)d model(s) printed, %(failed)d failed.%(note)s",
+                                 printed=printed, failed=sum(failed.mapped('failed_models')),
+                                 note=(' ' + note) if note else ''))
         self.scan_ids._sync_print_state()
-        return replate
+        return self.browse(list({p.id for p in where.values() if p}))
+
+    def _route_failed(self, lines, replate_on=None, routes=None, fill=None):
+        """Where the failed models of this plate go next. `routes` maps a patient
+        (lab.scan.line id) to a destination; a patient it does not name follows
+        `replate_on`. A destination is a machine to plan a new plate on - an empty
+        one when the machine is picked at Start - or a plate still being plated, or
+        None: left waiting for a plate. One new plate per machine; `fill` (waiting
+        patients) joins the new plate, or else the plate being plated, so one Plate
+        Off makes the next plate - the re-plates and new scans together (client,
+        2026-10-23). Returns {patient id: the plate they went on, or False}."""
+        self.ensure_one()
+        ScanLine = self.env['lab.scan.line']
+        routes = routes or {}
+        new, existing, where = {}, {}, {}
+        for line in lines:
+            patient = line.scan_line_id
+            dest = routes[patient.id] if patient.id in routes else replate_on
+            where[patient.id] = False
+            if dest is None:
+                continue
+            if dest._name == 'lab.scan.printer':
+                new.setdefault(dest.id or 0, [dest, ScanLine])[1] |= patient
+            else:
+                existing.setdefault(dest.id, [dest, ScanLine])[1] |= patient
+        fill = (fill or ScanLine) - lines.scan_line_id
+        if fill and not new and not existing:
+            raise UserError(_("The waiting patients need a plate to go on: re-plate the failed models too, "
+                              "or put them on a plate from Waiting for a Plate."))
+        for key, (printer, patients) in new.items():
+            plate = self._make(patients | fill, printer or None, resin_batch=self.resin_batch,
+                               note=_("Re-plate of %s", self.name))
+            fill = ScanLine
+            for patient in patients:
+                where[patient.id] = plate
+        for key, (plate, patients) in existing.items():
+            self._make(patients | fill, existing=plate)
+            fill = ScanLine
+            plate.message_post(body=_("Re-plate of %(plate)s: %(patients)s.", plate=self._get_html_link(),
+                                      patients=', '.join(n for n in patients.mapped('patient_name') if n)))
+            for patient in patients:
+                where[patient.id] = plate
+        return where
+
+    def _post_failures(self, failed, where, mid_print=False):
+        """On each register: whose model failed, which arch, why - and where it went."""
+        reasons = dict(FAILURE_REASONS)
+        labels = dict(PARTS)
+        for line in failed:
+            what = line.patient_name or _('A patient')
+            if line.part == 'both' and line.failed_arches in ('upper', 'lower'):
+                what = _("%(patient)s's %(part)s", patient=what, part=labels[line.failed_arches].lower())
+            plate = where.get(line.scan_line_id.id)
+            if line.result == 'pending':
+                there = _("recorded, settled at Plate Off")
+            elif plate:
+                there = _("re-plated on %s", plate._get_html_link())
+            else:
+                there = _("waiting for a plate")
+            when = _(" mid-print after %s", _hours_text(self.elapsed_hours, self.env)) if mid_print else ''
+            line.scan_id.message_post(body=_("%(what)s failed on %(machine)s%(when)s: %(reason)s — %(where)s.",
+                                             what=what, machine=self.printer_id.display_name, when=when,
+                                             reason=reasons.get(line.failure_reason), where=there))
+
+    def _fail_lines(self, results, replate_on=None, routes=None, fill=None, note=False):
+        """Models lost while the plate goes on printing (A Model Failed). `results` -
+        {line id: (lost, reason, note)}, lost all | upper | lower - names the lost
+        ones only. A patient lost whole is failed now and can go on another plate at
+        once (_route_failed). One arch of a patient with both is recorded on the line
+        and settled at Plate Off: the other arch is still printing, and a patient is
+        on one open plate at a time. Every model lost is Print Failed, not this."""
+        self.ensure_one()
+        if self.state != 'printing':
+            raise UserError(_("%s is not printing.", self.name))
+        Line = self.env['lab.scan.print.order.line']
+        pending = self.line_ids.filtered(lambda l: l.result == 'pending')
+        lines = pending.filtered(lambda l: l.id in results)
+        if not lines:
+            raise UserError(_("Untick the models that failed."))
+        now = fields.Datetime.now()
+        whole, half, lost_arch = Line, Line, {}
+        for line in lines:
+            lost, reason, row_note = results[line.id]
+            if not reason:
+                raise UserError(_("Say why %s's model failed.", line.patient_name or _('A patient')))
+            arches = set(_arches(line.part if lost in (False, None, 'all') else lost)) | set(_arches(line.lost_part))
+            if line.part == 'both' and len(arches) == 1:
+                half |= line
+                lost_arch[line.id] = arches.pop()
+            else:
+                whole |= line
+        if not pending - whole:
+            raise UserError(_("Every model on %s is lost: record it with Print Failed, which can start the "
+                              "plate again.", self.name))
+        for line in half:
+            lost, reason, row_note = results[line.id]
+            line.with_context(print_workflow=True).write({
+                'lost_part': lost_arch[line.id], 'failure_reason': reason,
+                'failure_note': row_note or note or False, 'date_result': now})
+        for line in whole:
+            lost, reason, row_note = results[line.id]
+            line.with_context(print_workflow=True).write({
+                'result': 'failed', 'failure_reason': reason, 'failure_note': row_note or note or False,
+                'failed_part': line._normalised_failed_part('all'), 'lost_part': False, 'date_result': now})
+        Line.flush_model(['result'])
+        where = self._route_failed(whole, replate_on=replate_on, routes=routes, fill=fill) if whole else {}
+        self._post_failures(whole | half, where, mid_print=True)
+        left = sum(l.model_count - (1 if l.lost_part else 0) for l in pending - whole)
+        self.message_post(body=_("A model failed mid-print: %(lost)s. The plate goes on for %(left)d model(s).",
+                                 lost=', '.join(n for n in (whole | half).mapped('patient_name') if n), left=left))
+        self.scan_ids._sync_print_state()
+        return self.browse(list({p.id for p in where.values() if p}))
+
+    @api.model
+    def _plate_room(self, plate=None, printer=None):
+        """(capacity, models already on it) of a plate being plated - or of a new plate
+        on `printer`, or of a new plate with no machine yet (the usual plate)."""
+        printer = plate.printer_id if plate else printer
+        capacity = printer.plate_capacity if printer else 0
+        if not capacity:
+            ready = self.env['lab.scan.printer'].search([('state', '=', 'ready'),
+                                                           ('company_id', '=', self.env.company.id)])
+            caps = [c for c in ready.mapped('plate_capacity') if c]
+            capacity = min(caps) if caps else 8
+        return capacity, (plate.model_count if plate else 0)
+
+    @api.model
+    def _suggest_plate(self, models_needed=0, machine=None, exclude=None, company=None):
+        """The plate being plated that the failed models could join: room for them,
+        its machine in service or not picked yet. The plate planned on `machine` - the
+        one that just came free - first, then one not sliced yet (nothing to slice
+        again), the urgent, the earliest delivery, the most room."""
+        company = company or self.env.company
+        domain = [('state', '=', 'draft'), ('company_id', '=', company.id)]
+        if exclude:
+            domain.append(('id', 'not in', exclude.ids))
+        best = []
+        for plate in self.search(domain):
+            if plate.printer_id and plate.printer_id.state != 'ready':
+                continue
+            capacity, used = self._plate_room(plate)
+            room = capacity - used
+            if room < models_needed:
+                continue
+            best.append(((0 if machine and plate.printer_id == machine else 1,
+                          1 if (plate.slice_attachment_id or plate.slice_filename) else 0,
+                          0 if plate.priority == '1' else 1,
+                          plate.date_delivery or datetime.max.date(), -room, plate.id), plate))
+        return min(best, key=lambda b: b[0])[1] if best else self.browse()
 
     def _fail(self, reason, note=False, restart_on=None):
         """The whole plate died mid-print. Every model on it failed for that one
@@ -723,8 +937,12 @@ class PrintOrder(models.Model):
         if self.state != 'printing':
             raise UserError(_("%s is not printing.", self.name))
         pending = self.line_ids.filtered(lambda l: l.result == 'pending')
-        pending.with_context(print_workflow=True).write({
-            'result': 'failed', 'failure_reason': reason, 'failure_note': note or False, 'failed_part': 'all'})
+        now = fields.Datetime.now()
+        for line in pending:
+            # an upper-only re-plate lost is its upper lost: a restart prints the upper
+            line.with_context(print_workflow=True).write({
+                'result': 'failed', 'failure_reason': reason, 'failure_note': note or False,
+                'failed_part': line._normalised_failed_part('all'), 'lost_part': False, 'date_result': now})
         self._move({'state': 'failed', 'failure_reason': reason, 'failure_note': note or False,
                     'date_end': fields.Datetime.now(), 'off_user_id': self.env.uid})
         label = dict(FAILURE_REASONS).get(reason, reason)
@@ -876,7 +1094,7 @@ class PrintOrder(models.Model):
                     with att.raw.open() as source, archive.open('%s/%s' % (sub, att.name), 'w') as target:
                         shutil.copyfileobj(source, target, ZIP_CHUNK)
                 manifest.append('%s · %s · %s · %s · %s · %s' % (
-                    line.patient_name or '-', line.scan_id.name, line.partner_id.name or '-',
+                    line.patient_name or '-', line.scan_id.name, line.scan_id._doctor_label() or '-',
                     dict(PARTS).get(line.part, line.part), line.date_delivery or '-',
                     ', '.join(files.mapped('name')) or _('no files')))
             archive.writestr('%s/manifest.txt' % folder, '\n'.join(manifest))
@@ -981,10 +1199,17 @@ class PrintOrder(models.Model):
         return self._dialog('lab.scan.print.order.start', _('Start Print'))
 
     def action_plate_off(self):
-        return self._dialog('lab.scan.print.order.off', _('Plate Off'))
+        # the board opens ready to make the next plate: the failed models, and the
+        # patients waiting, together (client, 2026-10-23)
+        return self._dialog('lab.scan.print.order.off', _('Plate Off'), default_fill=True)
 
     def action_print_failed(self):
         return self._dialog('lab.scan.print.order.fail', _('Print Failed'))
+
+    def action_model_failed(self):
+        """Some models came off the plate while the rest go on printing."""
+        return self._dialog('lab.scan.print.order.off', _('A Model Failed'), default_mode='lost',
+                            default_fill=True)
 
     def action_add_patients(self):
         return self._dialog('lab.scan.print.order.make', _('Add Patients'), default_mode='existing')
@@ -1018,6 +1243,7 @@ class PrintOrderLine(models.Model):
                                    index=True)
     scan_id = fields.Many2one(related='scan_line_id.scan_id', string='Scan Register', store=True, index=True)
     partner_id = fields.Many2one(related='scan_id.partner_id', string='Doctor / Clinic', store=True)
+    doctor_name = fields.Char(related='scan_id.doctor_name')
     patient_name = fields.Char(related='scan_line_id.patient_name', string='Patient')
     product_id = fields.Many2one(related='scan_line_id.product_id')
     description = fields.Char(related='scan_line_id.description')
@@ -1030,12 +1256,27 @@ class PrintOrderLine(models.Model):
     date_end = fields.Datetime(related='order_id.date_end', store=True)
     part = fields.Selection(PARTS, string='Part', default='both', required=True,
                             help="What of this patient is on this plate.")
-    model_count = fields.Integer('Models', default=2, help="Arches of this patient on the plate.")
+    model_count = fields.Integer('Models', compute='_compute_model_count', store=True, readonly=False,
+                                 precompute=True, help="Arches of this patient on the plate.")
     attempt = fields.Integer('Attempt', readonly=True, default=1, help="The patient's first plate is 1.")
     result = fields.Selection(RESULTS, string='Result', default='pending', required=True, index=True)
     failure_reason = fields.Selection(FAILURE_REASONS, string='Failure Reason')
     failure_note = fields.Char('Note')
     failed_part = fields.Selection(FAILED_PARTS, string='Failed Part')
+    # One arch of a patient with both came off while the plate goes on printing: the
+    # loss is recorded at once and settled at Plate Off (a patient is on one open
+    # plate at a time, so the lost arch cannot go on another plate before then).
+    lost_part = fields.Selection([('upper', 'Upper'), ('lower', 'Lower')], string='Lost Mid-Print',
+                                 readonly=True, copy=False)
+    date_result = fields.Datetime('Verdict On', readonly=True, copy=False,
+                                  help="When the model was recorded printed or failed - at Plate Off, or the "
+                                       "moment it was lost mid-print.")
+    printed_arches = fields.Selection(PARTS, string='Printed', compute='_compute_arches', store=True,
+                                      help="The arches of this patient this plate printed.")
+    failed_arches = fields.Selection(PARTS, string='Lost', compute='_compute_arches', store=True, index=True,
+                                     help="The arches of this patient this plate lost.")
+    printed_models = fields.Integer('Models Printed', compute='_compute_arches', store=True)
+    failed_models = fields.Integer('Models Failed', compute='_compute_arches', store=True)
     replated_from_id = fields.Many2one('lab.scan.print.order.line', string='Re-plate Of', readonly=True,
                                        index='btree_not_null', help="The failed line this one prints again.")
     replated_by_id = fields.Many2one('lab.scan.print.order.line', string='Re-plated On', compute='_compute_replated_by',
@@ -1062,6 +1303,52 @@ class PrintOrderLine(models.Model):
 
     _one_open_plate_per_patient = models.UniqueIndex("(scan_line_id) WHERE result = 'pending'",
                                                      "This patient is already on a plate that has not come off yet.")
+    # 'failed' says which arch; nothing else carries one - and a plate holding only
+    # the lower cannot have lost the upper
+    _failed_part_only_when_failed = models.Constraint(
+        "CHECK ((failed_part IS NULL) = (result IS DISTINCT FROM 'failed'))",
+        "A failed model says which arch failed, and only a failed one does.")
+    _failed_part_within_part = models.Constraint(
+        "CHECK (part = 'both' OR failed_part IS NULL OR failed_part = part)",
+        "A plate holding one arch of a patient can only have lost that arch.")
+
+    @api.depends('part')
+    def _compute_model_count(self):
+        for line in self:
+            line.model_count = 2 if line.part == 'both' else 1
+
+    @api.depends('part', 'model_count', 'result', 'failed_part', 'lost_part')
+    def _compute_arches(self):
+        """Which arches this plate printed and which it lost, and how many models
+        each is: printed + failed is the line's models once it has a verdict."""
+        for line in self:
+            printed = failed = False
+            if line.result == 'ok':
+                printed = line.part
+            elif line.result == 'failed':
+                if line.part == 'both' and line.failed_part in ('upper', 'lower'):
+                    failed, printed = line.failed_part, OTHER_ARCH[line.failed_part]
+                else:
+                    failed = line.part
+            elif line.result == 'pending' and line.lost_part:
+                failed = line.lost_part
+            n = line.model_count or 0
+            lost = min(n, n if failed and failed == line.part else (1 if failed else 0))
+            line.printed_arches = printed
+            line.failed_arches = failed
+            line.failed_models = lost
+            line.printed_models = (n - lost) if printed else 0
+
+    def _normalised_failed_part(self, failed_part):
+        """The arch a failure is recorded against: on a plate holding one arch of the
+        patient, that arch ('All' meant it); on a plate holding both, all or one."""
+        self.ensure_one()
+        if self.part != 'both':
+            if failed_part not in (False, None, 'all', self.part):
+                raise UserError(_("%(patient)s's plate holds only the %(part)s.", patient=self.patient_name or
+                                  _('A patient'), part=dict(PARTS)[self.part].lower()))
+            return self.part
+        return failed_part if failed_part in ('upper', 'lower') else 'all'
 
     @api.depends('scan_line_id.attachment_ids', 'scan_id.attachment_ids')
     def _compute_attachments(self):
@@ -1111,7 +1398,8 @@ class PrintOrderLine(models.Model):
             operator = 'in' if operator == '=' else 'not in'
         else:
             raise NotImplementedError()
-        replated = self.search([('replated_from_id', '!=', False)])
+        # a re-plate taken off again re-plated nothing
+        replated = self.search([('replated_from_id', '!=', False), ('result', '!=', 'withdrawn')])
         ids = set()
         if False in values or None in values:
             ids |= set(self.search([('id', 'not in', replated.replated_from_id.ids)]).ids)
@@ -1122,7 +1410,7 @@ class PrintOrderLine(models.Model):
 
     def _compute_replated_by(self):
         latest = {}
-        for line in self.search([('replated_from_id', 'in', self.ids)], order='id'):
+        for line in self.search([('replated_from_id', 'in', self.ids), ('result', '!=', 'withdrawn')], order='id'):
             latest[line.replated_from_id.id] = line
         for line in self:
             line.replated_by_id = latest.get(line.id, False)
@@ -1134,7 +1422,8 @@ class PrintOrderLine(models.Model):
 
     def write(self, vals):
         if not self.env.context.get('print_workflow'):
-            if {'result', 'failure_reason', 'failed_part', 'attempt', 'replated_from_id', 'superseded'} & set(vals):
+            if {'result', 'failure_reason', 'failed_part', 'attempt', 'replated_from_id', 'superseded',
+                'lost_part', 'date_result'} & set(vals):
                 raise UserError(_("What became of a model is recorded with Plate Off and Print Failed, not by "
                                   "editing it."))
             if {'part', 'model_count', 'scan_line_id', 'order_id'} & set(vals):
@@ -1159,6 +1448,18 @@ class PrintOrderLine(models.Model):
         why = _("Taken off by %s", self.env.user.name)
         orders = self.env['lab.scan.print.order']._withdraw_lines(self.scan_line_id, why)
         self.scan_id._sync_print_state()
+        return True
+
+    def action_clear_loss(self):
+        """A model recorded as lost mid-print that is printing after all."""
+        for line in self:
+            if line.result != 'pending' or not line.lost_part:
+                raise UserError(_("%s has no model recorded as lost on this plate.", line.patient_name))
+        self.with_context(print_workflow=True).write({'lost_part': False, 'failure_reason': False,
+                                                      'failure_note': False, 'date_result': False})
+        for line in self:
+            line.order_id.message_post(body=_("%s: the model recorded as lost is printing after all.",
+                                              line.patient_name or _('A patient')))
         return True
 
     def action_view_scan(self):

@@ -148,7 +148,8 @@ class Printer(models.Model):
     # ------------------------------------------------------------------ computes
     @api.depends('order_ids.state', 'order_ids.date_start', 'order_ids.date_end', 'order_ids.duration_hours',
                  'order_ids.resin_ml', 'order_ids.estimated_hours', 'order_ids.expected_end',
-                 'order_ids.slice_parsed', 'order_ids.line_ids.result', 'typical_hours')
+                 'order_ids.slice_parsed', 'order_ids.line_ids.result', 'order_ids.line_ids.printed_models',
+                 'order_ids.line_ids.failed_models', 'typical_hours')
     def _compute_stats(self):
         """One pass over the plates and one over the models, both grouped by machine;
         a search for the running plates (one per machine) because the card needs the
@@ -164,8 +165,10 @@ class Printer(models.Model):
                                        ['printer_id', 'state'], ['__count', 'duration_hours:sum', 'resin_ml:sum'])}
         last = {printer.id: when for printer, when in Order._read_group(
             mine + [('state', 'in', CLOSED_STATES)], ['printer_id'], ['date_end:max'])}
-        models_ = {(printer.id, result): n for printer, result, n in Line._read_group(
-            mine + [('result', 'in', ('ok', 'failed'))], ['printer_id', 'result'], ['__count'])}
+        # models are arches: a patient whose lower failed printed one and lost one
+        models_ = {printer.id: (ok or 0, lost or 0) for printer, ok, lost in Line._read_group(
+            mine + ['|', ('printed_models', '>', 0), ('failed_models', '>', 0)], ['printer_id'],
+            ['printed_models:sum', 'failed_models:sum'])}
         running = {order.printer_id.id: order for order in Order.search(mine + [('state', '=', 'printing')])}
         # actual over estimate, plate by plate: a ratio of sums would let one long plate
         # hide ten short ones
@@ -188,8 +191,7 @@ class Printer(models.Model):
             printer.failed_count = failed
             printer.print_count = done + failed
             printer.plate_failure_rate = round(failed * 100.0 / (done + failed), 1) if done + failed else 0.0
-            ok = models_.get((printer.id, 'ok'), 0)
-            lost = models_.get((printer.id, 'failed'), 0)
+            ok, lost = models_.get(printer.id, (0, 0))
             printer.model_done_count = ok
             printer.model_failed_count = lost
             printer.failure_rate = round(lost * 100.0 / (ok + lost), 1) if ok + lost else 0.0
@@ -387,6 +389,10 @@ class Printer(models.Model):
     def action_plate_off(self):
         """The plate on this machine came off: the running order's Plate Off dialog."""
         return self._running_or_raise().action_plate_off()
+
+    def action_model_failed(self):
+        """Some models came off the running plate; the rest go on printing."""
+        return self._running_or_raise().action_model_failed()
 
     def action_plate_failed(self):
         return self._running_or_raise().action_print_failed()

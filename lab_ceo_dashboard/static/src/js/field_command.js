@@ -12,10 +12,10 @@ const REMEMBER = "lab_field_command.screen";
  * Field Command — everything behind the Management hub's Field Force tile.
  *
  * One user's "field force" is a queue to sign, another's is a chart to read.
- * The server says which screens this user's roles earn (the role desks, then
- * the analysis pulse for everyone) and this component is only the switcher over
- * them: each tab carries a live badge of what is waiting there, the default is
- * the most specific role's own desk, and the last choice is remembered — a
+ * The server says which screens this user's roles earn (Field Live for every
+ * manager role since 2026-10-23, then the analysis pulse for everyone) and this
+ * component is only the switcher over them: each tab carries a live badge of what
+ * is waiting there, the default is the first screen, and the last choice is remembered — a
  * manager who lives in Analysis is not dragged back to their queue every
  * morning. The screens themselves stay whole: the same components, mounted the
  * same way the hub mounts this one. (client, 2026-08-31)
@@ -32,7 +32,7 @@ export class LabFieldCommand extends Component {
         onWillStart(() => this.load());
     }
 
-    /** Which set of screens this tile holds: "field" (the desks and the
+    /** Which set of screens this tile holds: "field" (Field Live and the
      *  analysis) or "production" (the floor and the reports). */
     get command() {
         const params = (this.props.action && this.props.action.params) || {};

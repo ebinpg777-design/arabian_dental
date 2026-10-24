@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Manager / CEO Dashboard',
-    'version': '20.0.1.19.0',
+    'version': '20.0.1.20.0',
     'summary': 'CEO-level board: revenue, cash, receivables, coverage and alerts',
     'description': """
 Lab Manager / CEO Dashboard

@@ -100,6 +100,11 @@ class LabCeoDashboard(models.AbstractModel):
          'lab_scan_register.action_scan_dashboard',
          'What the doctors sent, and where it is now'),
     ]
+    # A screen only some readers may open: offered to them alone, the way a menu
+    # would be. The scan dashboard is the scan manager's (client, 2026-10-23).
+    LAUNCHER_GROUPS = {
+        'scans': 'lab_scan_register.group_scan_manager',
+    }
 
     # The Field Force tile is not one screen: it is whichever of these this
     # user's field work role earns, behind one switcher (the Field Command
@@ -107,16 +112,13 @@ class LabCeoDashboard(models.AbstractModel):
     # administrator implies both manager desks, so the order IS the default.
     # The analysis pulse is appended for everyone: gaining a desk must never
     # cost a manager the numbers they already had. (client, 2026-08-31)
+    # One screen for every manager role since 2026-10-23: Field Live replaced the
+    # three role desks (Ops Desk, Marketing Desk, Command Center). The shared
+    # manager base is what every manager role and the administrator imply.
     FIELD_SCREENS = [
-        ('admin', 'lab_fieldwork.group_fieldwork_admin', 'lab_admin_desk',
-         'Command Center', 'fa-building-o',
-         'Both desks, the crons and the cover board'),
-        ('ops', 'lab_fieldwork.group_fieldwork_ops_manager', 'lab_ops_desk',
-         'Ops Desk', 'fa-inbox',
-         'Your approval queue and the field, live'),
-        ('mkt', 'lab_fieldwork.group_fieldwork_marketing_manager',
-         'lab_marketing_desk', 'Marketing Desk', 'fa-star',
-         'Activities to judge, and where to push'),
+        ('live', 'lab_fieldwork.group_fieldwork_manager', 'lab_field_live',
+         'Field Live', 'fa-map-marker',
+         'Where the field force is right now, and how the day is going'),
     ]
 
     @api.model
@@ -144,9 +146,21 @@ class LabCeoDashboard(models.AbstractModel):
         # 'flagged' counts for the administrator only: a day a desk raised is
         # waiting on THEM, and it left the desk that raised it.
         # (client, 2026-09-05)
-        states = {'ops': ['submitted'], 'mkt': ['ops_approved', 'ops_checked'],
-                  'admin': ['submitted', 'ops_approved', 'ops_checked',
-                            'flagged']}.get(key)
+        by_role = {'ops': ['submitted'], 'mkt': ['ops_approved', 'ops_checked'],
+                   'admin': ['submitted', 'ops_approved', 'ops_checked', 'flagged']}
+        if key == 'live':
+            # Field Live is every manager's one screen: what waits on THEM is the
+            # union of the queues their roles sign.
+            user = self.env.user
+            states = set()
+            for role, group in (('ops', 'lab_fieldwork.group_fieldwork_ops_manager'),
+                                ('mkt', 'lab_fieldwork.group_fieldwork_marketing_manager'),
+                                ('admin', 'lab_fieldwork.group_fieldwork_admin')):
+                if user.has_group(group):
+                    states |= set(by_role[role])
+            states = sorted(states)
+        else:
+            states = by_role.get(key)
         if not states or 'lab.daily.update' not in self.env:
             return 0
         return self.env['lab.daily.update'].sudo().search_count(
@@ -315,6 +329,10 @@ class LabCeoDashboard(models.AbstractModel):
             # SHOWS is checked as themselves, which is the check that matters.
             action = self.env.ref(xmlid, raise_if_not_found=False)
             if not action:
+                continue
+            group = self.LAUNCHER_GROUPS.get(key)
+            if group and not (self.env.ref(group, raise_if_not_found=False)
+                              and self.env.user.has_group(group)):
                 continue
             action = action.sudo()
             if action._name == 'ir.actions.act_window' and (

@@ -82,9 +82,12 @@
                                 <span t-elif="record.due_off.raw_value" class="badge rounded-pill text-bg-warning"
                                       title="Past its expected off time">
                                     <i class="fa fa-bell"/> Due off</span>
-                                <span t-if="record.failed_count.raw_value" class="badge rounded-pill text-bg-danger"
-                                      title="Models that failed on this plate">
-                                    <i class="fa fa-times"/> <field name="failed_count"/> of <t t-out="record.printed_count.raw_value + record.failed_count.raw_value"/> failed</span>
+                                <span t-if="record.failed_models.raw_value" class="badge rounded-pill text-bg-danger"
+                                      title="Models (arches) lost on this plate">
+                                    <i class="fa fa-times" title="Models lost"/> <field name="failed_models"/> of <field name="model_count"/> models failed</span>
+                                <span t-if="record.replate_count.raw_value" class="badge rounded-pill text-bg-warning"
+                                      title="Patients printing again what an earlier plate lost">
+                                    <i class="fa fa-repeat" title="Re-plates"/> <field name="replate_count"/> re-plate</span>
                                 <span t-if="record.withdrawn_count.raw_value" class="badge rounded-pill text-bg-secondary"
                                       title="Patients taken off the plate">
                                     <field name="withdrawn_count"/> taken off</span>
@@ -161,6 +164,9 @@
                     <!-- Printing -->
                     <button name="action_plate_off" type="object" string="Plate Off" class="btn-primary"
                             icon="fa-check" invisible="state != 'printing'" data-hotkey="q"/>
+                    <button name="action_model_failed" type="object" string="A Model Failed"
+                            icon="fa-chain-broken" invisible="state != 'printing'"
+                            help="Some models came off; the plate goes on printing for the rest."/>
                     <button name="action_print_failed" type="object" string="Print Failed"
                             icon="fa-exclamation-triangle" invisible="state != 'printing'"/>
                     <!-- Wash &amp; Cure -->
@@ -188,9 +194,9 @@
                             </div>
                         </button>
                         <button name="action_view_lines" type="object" class="oe_stat_button" icon="fa-exclamation-triangle"
-                                invisible="failed_count == 0" context="{'search_default_failed': 1}">
+                                invisible="failed_models == 0" context="{'search_default_lost': 1}">
                             <div class="o_field_widget o_stat_info">
-                                <span class="o_stat_value text-danger"><field name="failed_count"/></span>
+                                <span class="o_stat_value text-danger"><field name="failed_models"/></span>
                                 <span class="o_stat_text">Failed models</span>
                             </div>
                         </button>
@@ -214,17 +220,27 @@
                         <span invisible="not failure_note"> — <field name="failure_note" class="oe_inline"/></span>
                         <span invisible="not restart_id"> · restarted as <field name="restart_id" class="oe_inline" options="{'no_create': True}"/></span>
                     </div>
-                    <div class="alert alert-warning mb-2" role="alert" invisible="not is_partial">
-                        <i class="fa fa-exclamation-triangle me-1"/><field name="failed_count" class="oe_inline fw-bold"/>
-                        of <t/><span class="fw-bold"><field name="model_count" class="oe_inline"/></span> models failed on this plate;
-                        the Patients tab says which, why, and the plate each was re-plated on.
+                    <div class="alert alert-warning mb-2" role="alert" invisible="not failed_models or state == 'failed'">
+                        <i class="fa fa-exclamation-triangle me-1" title="Models lost"/><field name="failed_models" class="oe_inline fw-bold"/>
+                        of <t/><span class="fw-bold"><field name="model_count" class="oe_inline"/></span> models failed:
+                        <field name="failed_summary" class="oe_inline"/>
+                    </div>
+                    <div class="alert alert-danger mb-2" role="alert" invisible="not lost_count or state != 'printing'">
+                        <i class="fa fa-chain-broken me-1" title="Lost mid-print"/><b>Lost mid-print</b> — the plate goes on for the rest;
+                        Plate Off settles them. <field name="failed_summary" class="oe_inline"/>
+                    </div>
+                    <div class="alert alert-info mb-2" role="alert" invisible="not replate_count">
+                        <i class="fa fa-repeat me-1" title="Re-plates"/><b>Re-plates</b> —
+                        <field name="replate_summary" class="oe_inline"/>
                     </div>
                     <div class="alert alert-info mb-2" role="alert" invisible="not restarted_from_id">
                         <i class="fa fa-refresh me-1"/>Restart of <field name="restarted_from_id" class="oe_inline" options="{'no_create': True}"/>
                         with the same sliced-file figures.
                     </div>
-                    <div class="alert alert-info mb-2" role="alert" invisible="not replate_of_ids">
-                        <i class="fa fa-repeat me-1"/>Re-plates models that failed on
+                    <!-- the patient-by-patient Re-plates banner above says more; this one is
+                         for a plate whose re-plated lines were all taken off since -->
+                    <div class="alert alert-info mb-2" role="alert" invisible="not replate_of_ids or replate_count">
+                        <i class="fa fa-repeat me-1" title="Re-plates"/>Re-plates models that failed on
                         <field name="replate_of_ids" widget="many2many_tags" class="oe_inline" options="{'no_create': True}"/>
                     </div>
                     <div class="alert alert-info mb-2" role="alert"
@@ -298,6 +314,7 @@
                                     <field name="scan_id" readonly="1"/>
                                     <field name="patient_name" readonly="1"/>
                                     <field name="partner_id" readonly="1" optional="show"/>
+                                    <field name="doctor_name" readonly="1" optional="show"/>
                                     <field name="date_delivery" optional="show" readonly="1"/>
                                     <field name="part" readonly="parent.state != 'draft'"/>
                                     <field name="model_count" string="Models" readonly="parent.state != 'draft'" sum="Models"/>
@@ -307,8 +324,10 @@
                                            decoration-success="result == 'ok'"
                                            decoration-danger="result == 'failed'"
                                            decoration-muted="result == 'withdrawn'"/>
-                                    <field name="failed_part" readonly="1" invisible="result != 'failed'"/>
-                                    <field name="failure_reason" readonly="1" invisible="result not in ('failed', 'withdrawn')"/>
+                                    <field name="failed_arches" string="Lost" widget="badge" readonly="1"
+                                           decoration-danger="failed_arches" invisible="not failed_arches"/>
+                                    <field name="failure_reason" readonly="1" invisible="result not in ('failed', 'withdrawn') and not lost_part"/>
+                                    <field name="lost_part" column_invisible="1"/>
                                     <field name="failure_note" readonly="1" optional="hide"/>
                                     <field name="replated_by_id" string="Re-plated On" readonly="1" optional="show"
                                            invisible="result != 'failed'"/>
@@ -320,6 +339,9 @@
                                     <button name="action_take_off" type="object" icon="fa-times" title="Take off the plate"
                                             invisible="parent.state != 'draft' or result != 'pending'"
                                             confirm="Take this patient off the plate? They go back to Waiting for a Plate."/>
+                                    <button name="action_clear_loss" type="object" icon="fa-undo"
+                                            title="Printing after all: the model recorded as lost is still on the plate"
+                                            invisible="result != 'pending' or not lost_part"/>
                                     <button name="action_view_scan" type="object" icon="fa-external-link" title="Open the register"/>
                                 </list>
                             </field>
@@ -360,6 +382,7 @@
                                             <field name="patient_name" readonly="1"/>
                                             <field name="scan_id" readonly="1" options="{'no_open': True}"/>
                                             <field name="partner_id" readonly="1" options="{'no_open': True}"/>
+                                            <field name="doctor_name" readonly="1" invisible="partner_id or not doctor_name"/>
                                         </group>
                                         <group string="Download Link">
                                             <field name="download_url" widget="url" placeholder="Paste the download link"
@@ -592,6 +615,9 @@
                 <field name="printer_id"/>
                 <field name="part"/>
                 <field name="model_count" string="Models" sum="Models" optional="hide"/>
+                <field name="printed_models" string="Printed" sum="Printed" optional="show"/>
+                <field name="failed_models" string="Failed" sum="Failed" optional="show"/>
+                <field name="failed_arches" string="Lost" optional="show"/>
                 <field name="attempt" string="#"/>
                 <field name="result" widget="badge"
                        decoration-info="result == 'pending'"
@@ -599,7 +625,7 @@
                        decoration-danger="result == 'failed'"
                        decoration-muted="result == 'withdrawn'"/>
                 <field name="failure_reason"/>
-                <field name="failed_part" optional="show"/>
+                <field name="failed_part" optional="hide"/>
                 <field name="failure_note" optional="hide"/>
                 <field name="replated_from_id" optional="hide"/>
                 <field name="replated_by_id" string="Re-plated On" optional="show"/>
@@ -625,6 +651,9 @@
                 <field name="partner_id"/>
                 <filter name="ok" string="Printed" domain="[('result', '=', 'ok')]"/>
                 <filter name="failed" string="Failed" domain="[('result', '=', 'failed')]"/>
+                <filter name="lost" string="A Model Lost" domain="[('failed_models', '>', 0)]"/>
+                <filter name="half_failed" string="One Arch Printed, One Lost"
+                        domain="[('printed_models', '>', 0), ('failed_models', '>', 0)]"/>
                 <filter name="pending" string="On a Plate" domain="[('result', '=', 'pending')]"/>
                 <filter name="withdrawn" string="Taken Off" domain="[('result', '=', 'withdrawn')]"/>
                 <separator/>
@@ -711,7 +740,7 @@
         <field name="name">lab.scan.line.print.queue.list</field>
         <field name="model">lab.scan.line</field>
         <field name="arch" type="xml">
-            <list create="0" delete="0" default_order="priority desc, date_delivery, date_received, id"
+            <list create="0" delete="0" default_order="replate_pending desc, priority desc, date_delivery, date_received, id"
                   decoration-danger="last_failure" decoration-bf="priority == '1'">
                 <header>
                     <button name="action_put_on_plate" type="object" string="Put on a Plate"
@@ -722,11 +751,15 @@
                 <field name="patient_name"/>
                 <field name="partner_id"/>
                 <field name="product_id" optional="show"/>
-                <field name="arch" readonly="1"/>
+                <field name="print_part" string="To Print" widget="badge" readonly="1"
+                       decoration-warning="last_failure"/>
+                <field name="arch" readonly="1" optional="hide"/>
                 <field name="date_delivery"/>
                 <field name="date_received" optional="show"/>
                 <field name="print_attempts" string="Attempts"/>
                 <field name="last_failure" optional="show"/>
+                <field name="waiting_since" optional="show"/>
+                <field name="replate_pending" column_invisible="1"/>
                 <field name="print_state" widget="badge" optional="hide"/>
                 <field name="company_id" groups="base.group_multi_company" optional="hide"/>
                 <button name="action_put_on_plate" type="object" icon="fa-th" title="Put on a plate"/>
@@ -747,16 +780,16 @@
                 <field name="product_id"/>
                 <filter name="urgent" string="Urgent" domain="[('priority', '=', '1')]"/>
                 <filter name="replate" string="Back From a Failed Plate" domain="[('last_failure', '!=', False)]"/>
-                <filter name="arch_upper" string="Upper" domain="[('arch', '=', 'upper')]"/>
-                <filter name="arch_lower" string="Lower" domain="[('arch', '=', 'lower')]"/>
-                <filter name="arch_both" string="Upper &amp; Lower" domain="[('arch', '=', 'both')]"/>
+                <filter name="arch_upper" string="Upper to Print" domain="[('print_part', '=', 'upper')]"/>
+                <filter name="arch_lower" string="Lower to Print" domain="[('print_part', '=', 'lower')]"/>
+                <filter name="arch_both" string="Both to Print" domain="[('print_part', '=', 'both')]"/>
                 <separator/>
                 <filter name="date_delivery" string="Delivery Date" date="date_delivery"/>
                 <group>
                     <filter name="group_scan" string="Register" context="{'group_by': 'scan_id'}"/>
                     <filter name="group_partner" string="Doctor / Clinic" context="{'group_by': 'partner_id'}"/>
                     <filter name="group_delivery" string="Delivery Date" context="{'group_by': 'date_delivery:day'}"/>
-                    <filter name="group_arch" string="Arch" context="{'group_by': 'arch'}"/>
+                    <filter name="group_arch" string="To Print" context="{'group_by': 'print_part'}"/>
                 </group>
             </search>
         </field>

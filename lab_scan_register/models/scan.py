@@ -103,7 +103,14 @@ class Scan(models.Model):
     # ------------------------------------------------------------- who
     partner_id = fields.Many2one('res.partner', string='Doctor / Clinic', tracking=True, index=True,
                                  domain="['|', ('is_company', '=', True), ('is_clinic', '=', True)]")
-    doctor_name = fields.Char('Doctor Name', help="As written on the request, when it could not be matched to a contact.")
+    # Typed by the desk as soon as the scan arrives, so the work goes ahead while the
+    # doctor or clinic is still being found among the contacts - which is sometimes only
+    # known at the end, and is needed only to make the orders. (client, 2026-10-23)
+    doctor_name = fields.Char(
+        'Doctor Name', tracking=True,
+        help="The doctor's name as given - on the request, or typed in when the scan arrives. "
+             "The work goes ahead on it; the doctor or clinic itself (the contact) is needed "
+             "only to make the orders.")
     clinic_name = fields.Char('Clinic Name', help="As written on the request.")
     doctor_email = fields.Char('Doctor Email')
 
@@ -171,6 +178,13 @@ class Scan(models.Model):
                                         help="Its patients' models that failed on a plate since it was last "
                                              "confirmed.")
     waiting_count = fields.Integer('Waiting for a Plate', compute='_compute_printer', store=True)
+    # Two different questions about a failed model, kept apart: is it printed yet (any
+    # status - the register may be in progress while another patient washes), and is
+    # it back in the queue with nobody re-plating it (client, 2026-10-23).
+    replate_pending_count = fields.Integer('Failed, Not Printed Yet', compute='_compute_printer', store=True,
+                                           help="Patients whose model a plate lost and has not printed since.")
+    replate_waiting_count = fields.Integer('Failed, Back in the Queue', compute='_compute_printer', store=True,
+                                           help="Patients whose model a plate lost, waiting for a plate again.")
     last_print_failure = fields.Char('Last Failure', compute='_compute_prints',
                                      help="The patient whose model failed last and is not printed yet, and why.")
     print_summary = fields.Char('In Printing', compute='_compute_prints',
@@ -199,7 +213,8 @@ class Scan(models.Model):
 
     @api.depends('print_line_ids.result', 'print_line_ids.superseded', 'print_line_ids.order_state',
                  'print_line_ids.printer_id', 'print_line_ids.date_start', 'print_line_ids.date_end',
-                 'print_line_ids.order_id.duration_hours', 'line_ids.print_state')
+                 'print_line_ids.order_id.duration_hours', 'line_ids.print_state', 'line_ids.replate_pending',
+                 'line_ids.last_failure')
     def _compute_printer(self):
         """The machine is the one printing its models now (the latest started), else
         the one its last plate came off; time and failures count since the register
@@ -218,10 +233,13 @@ class Scan(models.Model):
             scan.print_hours = round(sum(clean.mapped('duration_hours')), 2)
             scan.failed_print_count = len(live.filtered(lambda p: p.result == 'failed'))
             scan.waiting_count = len(scan.line_ids.filtered(lambda l: l.print_state == 'to_plate'))
+            scan.replate_pending_count = len(scan.line_ids.filtered('replate_pending'))
+            scan.replate_waiting_count = len(scan.line_ids.filtered(
+                lambda l: l.print_state == 'to_plate' and l.last_failure))
 
     @api.depends('print_line_ids.result', 'print_line_ids.superseded', 'print_line_ids.order_state',
-                 'print_line_ids.failure_reason', 'print_line_ids.failure_note', 'line_ids.print_state',
-                 'line_ids.current_order_id')
+                 'print_line_ids.failure_reason', 'print_line_ids.failure_note', 'print_line_ids.lost_part',
+                 'print_line_ids.failed_arches', 'line_ids.print_state', 'line_ids.current_order_id')
     def _compute_prints(self):
         labels = dict(self.env['lab.scan.line']._fields['print_state'].selection)
         reasons = dict(self.env['lab.scan.print.order.line']._fields['failure_reason'].selection)
@@ -234,22 +252,30 @@ class Scan(models.Model):
             scan.open_order_ids = pending.filtered(lambda p: p.order_state == 'draft').order_id
             ends = [d for d in scan.current_order_ids.mapped('expected_end') if d]
             scan.expected_end = max(ends) if ends else False
-            # the failure the desk needs to hear about: a patient still without a clean
-            # print whose latest plate lost their model
-            failure = False
+            # the failures the desk needs to hear about: every patient still without a
+            # clean print whose plate lost their model - newest first
+            failures = []
+            parts = dict(self.env['lab.scan.print.order.line']._fields['part'].selection)
             for patient in scan.line_ids.filtered(lambda l: l.print_state in ('to_plate', 'plated', 'printing')):
                 live = patient._live_print_lines() if isinstance(patient.id, int) else lines.browse()
-                failed = live.filtered(lambda p: p.result == 'failed')[-1:]
-                if not failed or live.filtered(lambda p: p.result == 'ok' and p.id > failed.id):
+                latest = live[-1:]
+                lost_now = latest if latest.result == 'pending' and latest.lost_part else lines.browse()
+                failed = lost_now or live.filtered(lambda p: p.result == 'failed')[-1:]
+                if not failed or (not lost_now and live.filtered(lambda p: p.result == 'ok' and p.id > failed.id)):
                     continue
                 what = patient.patient_name or _('A patient')
-                if failed.failed_part in ('upper', 'lower'):
-                    what = '%s (%s)' % (what, dict(failed._fields['failed_part'].selection)[failed.failed_part].lower())
-                where = _("re-plated on %s", patient.current_order_id.name) if patient.current_order_id \
-                    else _("waiting for a plate")
-                failure = '%s: %s%s · %s' % (what, reasons.get(failed.failure_reason, _('failed')),
-                                             (' — %s' % failed.failure_note) if failed.failure_note else '', where)
-            scan.last_print_failure = failure
+                if failed.failed_arches in ('upper', 'lower'):
+                    what = '%s (%s)' % (what, parts[failed.failed_arches].lower())
+                if lost_now:
+                    where = _("lost mid-print on %s, settled at Plate Off", failed.order_id.name)
+                elif patient.current_order_id:
+                    where = _("re-plated on %s", patient.current_order_id.name)
+                else:
+                    where = _("waiting for a plate")
+                failures.append((failed.id, '%s: %s%s · %s' % (
+                    what, reasons.get(failed.failure_reason, _('failed')),
+                    (' — %s' % failed.failure_note) if failed.failure_note else '', where)))
+            scan.last_print_failure = '; '.join(text for _id, text in sorted(failures, reverse=True)) or False
             # "1 printing on 3DP-02 · off 06:40 · 1 waiting for a plate"
             parts = []
             for key, label in labels.items():
@@ -366,6 +392,12 @@ class Scan(models.Model):
             code = digits(str(self.company_id.country_id.phone_code or ''))
             return (code + number) if code else number
         return number
+
+    def _doctor_label(self):
+        """Who the work is for, as far as anyone knows yet: the contact once it is
+        picked, the doctor's name as given until then."""
+        self.ensure_one()
+        return self.partner_id.display_name or self.doctor_name or ''
 
     @api.depends('name', 'patient_names', 'patient_count')
     def _compute_display_name(self):
@@ -507,6 +539,12 @@ class Scan(models.Model):
             if ('line_ids' in locked and self._only_late_edits(vals['line_ids'])
                     and not any(s.state in FILES_SETTLED for s in settled)):
                 locked.discard('line_ids')
+            # ...and its doctor or clinic, which may only be known by the time the
+            # orders are made - the one moment it is required - and the doctor's name
+            # the work goes ahead on meanwhile (client, 2026-10-23)
+            for name in ('partner_id', 'doctor_name'):
+                if name in locked and not any(s.state in FILES_SETTLED for s in settled):
+                    locked.discard(name)
             if settled and locked:
                 labels = ', '.join(sorted(self._fields[f].string for f in locked))
                 raise UserError(_(
@@ -597,9 +635,10 @@ class Scan(models.Model):
         for scan in self:
             if scan.state != 'draft':
                 raise UserError(_("%s is not a draft.", scan.name))
+            # The doctor or clinic is NOT asked for here: a scan often arrives before
+            # anybody knows whose it is, and it can be printed all the same. It is
+            # needed when the orders are made, and not before. (client, 2026-10-23)
             problems = []
-            if not scan.partner_id:
-                problems.append(_("the doctor or clinic"))
             if not scan.line_ids:
                 problems.append(_("at least one patient"))
             no_name = scan.line_ids.filtered(lambda l: not (l.patient_name or '').strip())
@@ -782,6 +821,12 @@ class Scan(models.Model):
         if not (self.state == 'printed' or (self.state == 'confirmed' and self.already_printed)):
             raise UserError(_("%s must be printed before its orders are made - or, if its models are "
                               "printed already, tick Already Printed on the confirmed register.", self.name))
+        # the one step that cannot go without it: every order is made out to the clinic
+        if not self.partner_id:
+            if self.doctor_name:
+                raise UserError(_("Choose the doctor or clinic of %(scan)s (given as \"%(doctor)s\") "
+                                  "before its orders are made.", scan=self.name, doctor=self.doctor_name))
+            raise UserError(_("Choose the doctor or clinic of %s before its orders are made.", self.name))
         # the product is what the order is made of: needed here, and not before
         # (client, 2026-10-14)
         no_product = self.line_ids.filtered(lambda l: not l.sale_order_id and not l.product_id)

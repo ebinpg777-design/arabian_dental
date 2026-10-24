@@ -1,6 +1,7 @@
 // The Scan Register dashboard. Same visual language as the Management menu's
-// Business Pulse (cards, pill tabs, quiet panels). SCSS variables only - Odoo 19
-// exposes no --bs-* custom properties in the backend.
+// Business Pulse (cards, pill tabs, quiet panels). SCSS variables for the theme -
+// Odoo 19 exposes no --bs-* custom properties in the backend - and the board's own
+// tokens as custom properties on its root.
 
 $sd-whatsapp: #25a366;
 $sd-email: #3b6fd8;
@@ -17,17 +18,57 @@ $sd-bad: #b42318;
 }
 
 .o_sd {
-    padding: 1rem 1.25rem 2rem;
-    max-width: 1500px;
-    margin: 0 auto;
-    overflow-y: auto;
+    --sd-main: #{$sd-main};
+    --sd-print: #{$sd-print};
+    --sd-good: #{$sd-good};
+    --sd-warn: #{$sd-warn};
+    --sd-bad: #{$sd-bad};
+    --sd-upper: #2563eb;
+    --sd-lower: #c2410c;
+    --sd-panel: #{$body-bg};
+    --sd-soft: #{$o-gray-100};
+    --sd-line: #{$border-color};
+    --sd-shadow: 0 4px 14px rgba(15, 23, 42, .08);
+    background: color-mix(in srgb, #{$o-gray-100} 55%, #{$body-bg});
 
     .o_sd_click { cursor: pointer; }
     .o_sd_body { transition: opacity .15s; }
     .o_sd_dim { opacity: .55; }
+    // cards, steps and plates are buttons: a button's own look undone
+    button.o_sd_card, button.o_sd_flowstep, button.o_sd_step {
+        font: inherit; color: inherit; text-align: left; width: 100%; display: block;
+        &:focus-visible { outline: 2px solid var(--sd-main); outline-offset: 2px; }
+    }
+
+    // ------------------------------------------------------------ the pinned head and the one scroller
+    // The root IS the action: core gives it height 100%, a column flex and overflow
+    // hidden, and hides its scrollbar on a desktop (o_action_delegate_scroll keeps a
+    // phone on that path too). So the root never scrolls: the head is pinned and the
+    // body under it is the scroller, full width - the wheel works over the gutters and
+    // the scrollbar shows (client, 2026-10-23: "scroll is not working"). Inside the
+    // Management hub the root has no bounded height, and the body simply flows.
+    > .o_sd_head {
+        flex: 0 0 auto;
+        display: flex; align-items: center; gap: .6rem 1.1rem; flex-wrap: wrap;
+        padding: .65rem 1.25rem .6rem;
+        background: var(--sd-panel); border-bottom: 1px solid var(--sd-line);
+        box-shadow: 0 1px 0 rgba(15, 23, 42, .03);
+    }
+    > .o_sd_scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-gutter: stable;
+        // no overscroll-behavior: contain - inside the Management hub this body does not
+        // overflow, and Chrome then stops the wheel here instead of handing it to the
+        // hub's own pane, so the hub could not be scrolled over the board
+        -webkit-overflow-scrolling: touch;
+        &:focus { outline: none; }
+    }
+    .o_sd_page { max-width: 1500px; margin: 0 auto; padding: 1rem 1.25rem 2.5rem; }
 
     // ------------------------------------------------------------ header
-    .o_sd_head { display: flex; align-items: center; gap: .75rem 1.25rem; flex-wrap: wrap; margin-bottom: .85rem; }
     .o_sd_eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: $o-gray-600; font-weight: 600; }
     .o_sd_h { margin: 0; font-size: 1.4rem; font-weight: 700; color: $o-gray-900; }
     .o_sd_tabs { display: flex; gap: .35rem; flex-wrap: wrap; }
@@ -46,6 +87,7 @@ $sd-bad: #b42318;
     .o_sd_live_dot { font-size: .5rem; vertical-align: middle; color: #ef4444; animation: o_sd_pulse 2s infinite; }
     .o_sd_tab_on .o_sd_live_dot { color: #fecaca; }
     .o_sd_range { font-size: .85rem; color: $o-gray-600; }
+    .o_sd_live { color: var(--sd-good); font-weight: 600; }
     .o_sd_head_actions { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
     .o_sd_iconbtn {
         border: 1px solid $border-color; background: $body-bg; color: $o-gray-700; border-radius: .5rem;
@@ -53,12 +95,14 @@ $sd-bad: #b42318;
         &:hover { color: $sd-main; border-color: $sd-main; }
     }
     .o_sd_full {
-        border: 0;
+        border: 1px solid transparent;
+        border-radius: .5rem;
+        padding: .35rem .6rem;
         background: transparent;
         color: $o-gray-700;
         font-weight: 600;
         font-size: .85rem;
-        &:hover { color: $sd-main; }
+        &:hover { color: $sd-main; border-color: var(--sd-line); background: var(--sd-panel); }
     }
 
     // ------------------------------------------------------------ alerts
@@ -89,6 +133,12 @@ $sd-bad: #b42318;
         font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: $o-gray-600;
         margin: .1rem 0 .4rem;
     }
+    .o_sd_group_s, .o_sd_title_s {
+        font-weight: 500; text-transform: none; letter-spacing: 0; color: $o-gray-500; font-size: .8rem; margin-left: .25rem;
+    }
+    // the period's six figures share the row's whole width (auto-fit drops the empty
+    // tracks); two classes so the generic card grid below does not win on order
+    .o_sd_cards.o_sd_cards_kpi { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
     .o_sd_cards {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
@@ -110,6 +160,41 @@ $sd-bad: #b42318;
     }
     .o_sd_accent_scan { --sd-accent: #{$sd-main}; }
     .o_sd_accent_print { --sd-accent: #{$sd-print}; }
+    .o_sd_accent_bad { --sd-accent: #{$sd-bad}; }
+    .o_sd_accent_warn { --sd-accent: #{$sd-warn}; }
+    .o_sd_accent_good { --sd-accent: #{$sd-good}; }
+    .o_sd_card_row { display: flex; align-items: center; gap: .65rem; margin-top: .15rem; }
+    // printed and lost in one ring: the track is what was lost, the arc what printed
+    .o_sd_dual {
+        flex: 0 0 46px; width: 46px; height: 46px;
+        svg { width: 46px; height: 46px; display: block; }
+        circle { fill: none; stroke-width: 5; }
+        .o_sd_dual_lost { stroke: color-mix(in srgb, var(--sd-bad) 70%, #{$body-bg}); }
+        .o_sd_dual_lost.o_sd_dual_none { stroke: $o-gray-200; }
+        .o_sd_dual_ok { stroke: var(--sd-good); stroke-linecap: round; }
+    }
+    .o_sd_bad_t { color: var(--sd-bad); font-weight: 600; }
+    .o_sd_warn_t { color: var(--sd-warn); font-weight: 600; }
+    // U / L / U+L: the arch, everywhere the same
+    .o_sd_arch {
+        display: inline-flex; align-items: center; justify-content: center; min-width: 1.35rem; height: 1.15rem;
+        padding: 0 .3rem; border-radius: .3rem; font-size: .66rem; font-weight: 800; letter-spacing: .02em;
+        background: $o-gray-200; color: $o-gray-700; vertical-align: middle; margin-left: .25rem;
+        &.o_sd_arch_upper { background: color-mix(in srgb, var(--sd-upper) 14%, #{$body-bg}); color: var(--sd-upper); }
+        &.o_sd_arch_lower { background: color-mix(in srgb, var(--sd-lower) 14%, #{$body-bg}); color: var(--sd-lower); }
+        &.o_sd_arch_both {
+            background: linear-gradient(90deg, color-mix(in srgb, var(--sd-upper) 14%, #{$body-bg}) 50%,
+                                        color-mix(in srgb, var(--sd-lower) 14%, #{$body-bg}) 50%);
+            color: $o-gray-800;
+        }
+    }
+    .o_sd_meter_split {
+        display: flex; background: $o-gray-100;
+        > span { border-radius: 0; }
+    }
+    .o_sd_m_good { background: var(--sd-good); }
+    .o_sd_m_warn { background: #f59e0b; }
+    .o_sd_m_bad { background: #ef4444; }
     .o_sd_card_top { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
     .o_sd_card_l { color: $o-gray-600; font-size: .78rem; font-weight: 600; line-height: 1.2; }
     .o_sd_card_i {
@@ -145,6 +230,24 @@ $sd-bad: #b42318;
         padding: .9rem 1rem;
         margin-bottom: .75rem;
         min-width: 0;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+    }
+    .o_sd_sub_h { font-size: .72rem; font-weight: 700; color: $o-gray-500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .2rem; }
+    .o_sd_btn {
+        border: 1px solid var(--sd-line); background: var(--sd-panel); color: $o-gray-800; border-radius: .45rem;
+        padding: .2rem .55rem; font-size: .76rem; font-weight: 600; white-space: nowrap;
+        &:hover { border-color: var(--sd-main); color: var(--sd-main); }
+        &.o_sd_btn_primary { background: var(--sd-main); border-color: var(--sd-main); color: #fff; margin-left: auto;
+            &:hover { filter: brightness(1.06); color: #fff; } }
+    }
+    .o_sd_chip_btn {
+        border: 1px solid color-mix(in srgb, var(--sd-bad) 35%, #{$body-bg}); background: color-mix(in srgb, var(--sd-bad) 7%, #{$body-bg});
+        color: var(--sd-bad); border-radius: 999px; padding: .05rem .5rem; font-size: .7rem; font-weight: 700; margin-left: .4rem;
+        &:hover { background: color-mix(in srgb, var(--sd-bad) 14%, #{$body-bg}); }
+    }
+    .o_sd_more {
+        border: 0; background: transparent; color: var(--sd-main); font-weight: 600; font-size: .8rem; padding: .4rem 0 0;
+        &:hover { text-decoration: underline; }
     }
     .o_sd_title {
         font-weight: 700;
@@ -175,16 +278,16 @@ $sd-bad: #b42318;
     .o_sd_pill {
         display: inline-flex; align-items: center; gap: .25rem; border-radius: 2rem; padding: .05rem .5rem; font-size: .72rem; font-weight: 600;
         background: $o-gray-100; color: $o-gray-700; white-space: nowrap;
-        &.o_sd_pill_good { background: #e7f6ec; color: $sd-good; }
-        &.o_sd_pill_bad { background: #fde8e7; color: $sd-bad; }
-        &.o_sd_pill_warn { background: #fff4e5; color: $sd-warn; }
+        &.o_sd_pill_good { background: color-mix(in srgb, var(--sd-good) 12%, #{$body-bg}); color: var(--sd-good); }
+        &.o_sd_pill_bad { background: color-mix(in srgb, var(--sd-bad) 11%, #{$body-bg}); color: var(--sd-bad); }
+        &.o_sd_pill_warn { background: color-mix(in srgb, var(--sd-warn) 12%, #{$body-bg}); color: var(--sd-warn); }
         &.o_sd_click:hover { filter: brightness(.95); }
     }
 
     // ------------------------------------------------------------ pipeline
     .o_sd_pipe { display: flex; align-items: stretch; gap: .5rem; flex-wrap: wrap; }
     .o_sd_step {
-        flex: 1 1 150px;
+        flex: 1 1 150px; width: auto !important; border: 0;
         border-radius: .6rem;
         padding: .7rem .85rem;
         background: $o-gray-100;
@@ -249,16 +352,17 @@ $sd-bad: #b42318;
         gap: .3rem;
     }
     .o_sd_key { display: inline-block; width: .7rem; height: .7rem; border-radius: .15rem; margin-left: .5rem; }
-    .o_sd_trend {
+    .o_sd_trend, .o_sd_ptrend {
         display: flex;
         align-items: flex-end;
         gap: 3px;
         height: 170px;
         padding-top: 1.1rem;
-        overflow-x: auto;
+        min-width: 0;
     }
     .o_sd_col {
-        flex: 1 0 14px;
+        flex: 1 1 0;
+        min-width: 4px;
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -293,12 +397,28 @@ $sd-bad: #b42318;
         color: $o-gray-500;
         margin-top: .2rem;
         white-space: nowrap;
+        overflow: hidden;
+    }
+    // models printed and lost, with the failure rate drawn over the columns
+    .o_sd_ptrend { position: relative; height: 150px; }
+    .o_sd_ptrend_rate {
+        position: absolute; left: 0; right: 0; top: 1.1rem; bottom: 1.05rem; width: 100%; height: calc(100% - 2.15rem);
+        pointer-events: none; z-index: 2;
+        polyline { fill: none; stroke: #b42318; stroke-width: 2; stroke-dasharray: 4 3; }
+    }
+    .o_sd_k_ok { background: var(--sd-good); }
+    .o_sd_k_bad { background: #ef4444; }
+    .o_sd_key.o_sd_k_rate { background: transparent; border-top: 2px dashed #b42318; height: 0; border-radius: 0; }
+    .o_sd_cost, .o_sd_ontime { margin-top: .75rem; padding-top: .6rem; border-top: 1px dashed var(--sd-line); font-size: .82rem; color: $o-gray-700; }
+    .o_sd_seg3 {
+        display: flex; height: 22px; border-radius: .4rem; overflow: hidden; gap: 2px; margin-top: .25rem;
+        > span { min-width: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .72rem; font-weight: 700; }
     }
 
     // ------------------------------------------------------------ the plates' flow
     .o_sd_flow { display: flex; align-items: stretch; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
     .o_sd_flowstep {
-        flex: 1 1 165px; min-width: 0;
+        flex: 1 1 165px; min-width: 0; width: auto !important;
         background: $body-bg; border: 1px solid $border-color; border-top: 4px solid $o-gray-400; border-radius: .65rem;
         padding: .6rem .8rem;
         &:hover { box-shadow: 0 4px 14px rgba(15, 23, 42, .08); }
@@ -380,8 +500,8 @@ $sd-bad: #b42318;
     .o_sd_mc_fail { color: $sd-bad; }
 
     // ------------------------------------------------------------ the machines' timeline
-    .o_sd_tl, .o_sd_heat { overflow-x: auto; }
-    .o_sd_tl_row, .o_sd_heat_row { display: flex; align-items: stretch; min-width: 760px; border-bottom: 1px solid $o-gray-100; }
+    .o_sd_tl, .o_sd_heat { min-width: 0; }
+    .o_sd_tl_row, .o_sd_heat_row { display: flex; align-items: stretch; min-width: 0; border-bottom: 1px solid $o-gray-100; }
     .o_sd_tl_axis, .o_sd_heat_head { border-bottom: 1px solid $border-color; }
     .o_sd_tl_name {
         flex: 0 0 150px; display: flex; flex-direction: column; justify-content: center; gap: .1rem; padding: .3rem .5rem .3rem 0; min-width: 0;
@@ -450,9 +570,10 @@ $sd-bad: #b42318;
     .o_sd_next_due, .o_sd_next_since { flex: 0 0 auto; font-size: .74rem; white-space: nowrap; }
 
     // ------------------------------------------------------------ the latest plates
-    .o_sd_tablewrap { overflow-x: auto; }
+    // a table wider than a phone scrolls sideways in its panel, never past the screen
+    .o_sd_tablewrap { min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .o_sd_table {
-        width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 640px;
+        width: 100%; border-collapse: collapse; font-size: .82rem;
         th { font-size: .66rem; text-transform: uppercase; letter-spacing: .04em; color: $o-gray-500; font-weight: 700; padding: .3rem .5rem; border-bottom: 1px solid $border-color; }
         td { padding: .4rem .5rem; border-bottom: 1px solid $o-gray-100; vertical-align: middle; }
         tbody tr:hover { background: $o-gray-100; }
@@ -470,23 +591,102 @@ $sd-bad: #b42318;
         > span { display: block; height: 100%; background: $sd-print; }
         &.o_sd_minibar_late > span { background: $sd-bad; }
     }
+
+    // ------------------------------------------------------------ the re-plate backlog
+    .o_sd_backlog { border-left: 4px solid var(--sd-bad); }
+    .o_sd_bl_all { display: inline-flex; align-items: center; gap: .35rem; margin-bottom: .25rem; cursor: pointer; }
+    .o_sd_bl_row {
+        display: flex; align-items: center; gap: .6rem; padding: .45rem .35rem; border-bottom: 1px solid $o-gray-100;
+        border-radius: .4rem;
+        &:hover { background: $o-gray-100; }
+        &.o_sd_bl_on { background: color-mix(in srgb, var(--sd-main) 8%, #{$body-bg}); }
+        &:last-of-type { border-bottom: 0; }
+    }
+    .o_sd_bl_check { flex: 0 0 auto; width: 1rem; height: 1rem; cursor: pointer; }
+    .o_sd_bl_main { flex: 1 1 auto; min-width: 0; }
+    .o_sd_bl_who { display: flex; align-items: center; flex-wrap: wrap; gap: .15rem .35rem; font-size: .86rem; }
+    .o_sd_bl_meta {
+        font-size: .74rem; color: $o-gray-600; display: flex; align-items: center; gap: .35rem; min-width: 0;
+        > span:not(.o_sd_mc_code) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    }
+    .o_sd_mc_code_s { font-size: .64rem; padding: 0 .45rem; }
+    .o_sd_bl_side { flex: 0 0 auto; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; justify-content: flex-end; }
+    .o_sd_bl_age, .o_sd_bl_due { font-size: .74rem; white-space: nowrap; color: $o-gray-600; }
+
+    // ------------------------------------------------------------ reasons x machine
+    .o_sd_matrixwrap { min-width: 0; }
+    .o_sd_matrix {
+        width: 100%; border-collapse: separate; border-spacing: 3px; font-size: .8rem; table-layout: fixed;
+        th { font-size: .64rem; text-transform: uppercase; letter-spacing: .03em; color: $o-gray-500; font-weight: 700;
+             padding: .2rem .3rem; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        th:first-child, td:first-child { width: 5.5rem; text-align: left; }
+        td { padding: .3rem; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; border-radius: .3rem; }
+        .o_sd_mx_short { display: none; text-decoration: none; }
+    }
+    .o_sd_mx_cell {
+        background: color-mix(in srgb, #ef4444 var(--a, 0%), #{$o-gray-100});
+        color: $o-gray-900;
+        &.o_sd_mx_zero { background: $o-gray-100; color: transparent; }
+        &.o_sd_click:hover { outline: 2px solid #ef4444; }
+    }
+    .o_sd_mx_total td { color: $o-gray-600; font-weight: 600; background: transparent; }
+
+    // ------------------------------------------------------------ lost twice or more
+    .o_sd_rep {
+        display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; padding: .4rem .3rem; border-bottom: 1px solid $o-gray-100;
+        font-size: .82rem; border-radius: .4rem;
+        &:hover { background: $o-gray-100; }
+        &:last-child { border-bottom: 0; }
+    }
+    .o_sd_rep_who { flex: 0 1 auto; display: inline-flex; align-items: center; gap: .35rem; }
+    .o_sd_rep_path { flex: 1 1 auto; display: inline-flex; align-items: center; flex-wrap: wrap; gap: .2rem; }
+    .o_sd_rep_where { flex: 0 0 auto; font-size: .76rem; }
 }
 
 @keyframes o_sd_pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 
 @media (max-width: 767.98px) {
     .o_sd {
-        padding: .75rem .75rem 2rem;
-        .o_sd_head_actions { margin-left: 0; }
-        .o_sd_bar { grid-template-columns: minmax(0, 8rem) minmax(0, 1fr) auto; }
-        .o_sd_grid { grid-template-columns: 1fr; }
+        // the head stays pinned, so on a phone it is one title row and one row of
+        // periods that scrolls sideways - not a third of the screen
+        > .o_sd_head { padding: .4rem .75rem .45rem; gap: .35rem .5rem; }
+        .o_sd_eyebrow { display: none; }
+        .o_sd_h { font-size: 1.15rem; }
+        .o_sd_head_actions { order: 2; margin-left: auto; gap: .25rem; }
+        .o_sd_full { padding: .35rem .5rem; }
+        .o_sd_full_l { display: none; }
+        .o_sd_tabs {
+            order: 3; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; gap: .3rem;
+            scrollbar-width: none;
+            &::-webkit-scrollbar { display: none; }
+        }
+        .o_sd_tab { flex: 0 0 auto; padding: .2rem .7rem; font-size: .78rem; min-height: 32px; }
+        .o_sd_range { order: 4; flex: 1 1 100%; font-size: .72rem; }
+        .o_sd_page { padding: .6rem .75rem 4.5rem; }          // room for the phone's bottom bar
+        .o_sd_cards, .o_sd_cards.o_sd_cards_kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+        .o_sd_card_v { font-size: 1.4rem; }
+        .o_sd_card { padding: .6rem .7rem .65rem; }
+        .o_sd_bar { grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr) auto; }
+        .o_sd_grid, .o_sd_machines { grid-template-columns: minmax(0, 1fr); }
         .o_sd_flow_sep, .o_sd_arrow { display: none; }
+        .o_sd_flowstep, .o_sd_step { flex-basis: 45%; }
+        .o_sd_tl_row, .o_sd_heat_row { flex-wrap: wrap; }
+        .o_sd_tl_name { flex: 1 1 100%; flex-direction: row; align-items: center; gap: .5rem; padding: .3rem 0 0; }
+        .o_sd_tl_axis .o_sd_tl_name { display: none; }
+        .o_sd_tl_track, .o_sd_heat_cells { flex: 1 1 100%; }
+        .o_sd_opt { display: none; }
+        .o_sd_table {
+            th, td { padding: .35rem .3rem; }
+            .o_sd_pill { white-space: normal; }
+        }
+        .o_sd_minibar { width: 56px; }
+        .o_sd_matrix {
+            .o_sd_mx_long { display: none; }
+            .o_sd_mx_short { display: inline; }
+            th:first-child, td:first-child { width: 3.6rem; }
+        }
+        .o_sd_bl_row { flex-wrap: wrap; }
+        .o_sd_bl_side { flex: 1 1 100%; justify-content: flex-start; padding-left: 1.6rem; }
+        .o_sd_rep_where { flex: 1 1 100%; }
     }
 }
-
-// The dashboard IS the action, and scrolls itself. Core locks every action at
-// `html .o_web_client > .o_action_manager > .o_action { overflow: hidden }` on a
-// desktop-width screen, which outranks the bare `.o_sd { overflow-y: auto }` above -
-// so below the fold could not be reached (client, 2026-10-15: "scrolling not
-// working"). Answered at the same weight, as the Technician Day does.
-html .o_web_client > .o_action_manager > .o_action.o_sd { overflow-y: auto; min-height: 0; }

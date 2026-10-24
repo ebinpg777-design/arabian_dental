@@ -96,6 +96,9 @@
                     <field name="next_order_id" invisible="1"/>
                     <button name="action_plate_off" type="object" string="Plate Off" class="btn-primary"
                             icon="fa-check" invisible="running_count == 0"/>
+                    <button name="action_model_failed" type="object" string="A Model Failed"
+                            icon="fa-chain-broken" invisible="running_count == 0"
+                            help="Some models came off; the plate goes on printing for the rest."/>
                     <button name="action_plate_failed" type="object" string="Plate Failed"
                             icon="fa-exclamation-triangle" invisible="running_count == 0"/>
                     <button name="action_set_maintenance" type="object" string="Under Maintenance"

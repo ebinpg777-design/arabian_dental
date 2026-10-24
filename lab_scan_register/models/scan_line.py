@@ -86,6 +86,20 @@ class ScanLine(models.Model):
     last_failure = fields.Char('Last Failure', compute='_compute_print_state', store=True,
                                help="Why the patient's last plate lost their model, while they wait for "
                                     "another; blank once it printed.")
+    # What is still to print of this patient: both arches before the first plate, only
+    # the lower after a plate lost only the lower, nothing once printed. The plate
+    # dialogs, the capacity gauge, the spread over machines, the queue and the
+    # dashboard all count by it (client, 2026-10-23: "the U or L of one scan").
+    print_part = fields.Selection(ARCHES, string='To Print', compute='_compute_print_state', store=True,
+                                  index=True, help="The arches still to print.")
+    print_models = fields.Integer('Models to Print', compute='_compute_print_state', store=True)
+    replate_pending = fields.Boolean('Failed, Not Printed Yet', compute='_compute_print_state', store=True,
+                                     index=True,
+                                     help="A plate lost this patient's model and it has not printed since - "
+                                          "waiting, on a new plate, or printing again.")
+    waiting_since = fields.Datetime('Waiting Since', compute='_compute_print_state', store=True,
+                                    help="Since when the patient waits for a plate: their model failed then, "
+                                         "or the register was sent for printing then.")
     # what the patient will be printed from: their scans, the register's shared ones, or the
     # link to fetch them - needed before they go for 3D printing (client, 2026-10-14)
     download_url = fields.Char(related='scan_id.download_url', readonly=False, string='Download Link')
@@ -118,16 +132,19 @@ class ScanLine(models.Model):
         return self.print_line_ids.filtered(lambda p: p.result != 'withdrawn' and not p.superseded) \
             .sorted('id')
 
-    @api.depends('scan_id.state', 'print_line_ids.result', 'print_line_ids.superseded',
-                 'print_line_ids.order_state', 'print_line_ids.failure_reason')
+    @api.depends('scan_id.state', 'scan_id.date_print_start', 'arch', 'print_line_ids.result',
+                 'print_line_ids.superseded', 'print_line_ids.order_state', 'print_line_ids.failure_reason',
+                 'print_line_ids.part', 'print_line_ids.failed_arches', 'print_line_ids.lost_part',
+                 'print_line_ids.date_result', 'print_line_ids.date_end')
     def _compute_print_state(self):
         """Where the patient's models are, from their latest plate - the one rule the
-        register's own status is rolled up from (Scan._sync_print_state)."""
+        register's own status is rolled up from (Scan._sync_print_state) - and, from
+        the same plate, what is still to print of them."""
         reasons = dict(self.env['lab.scan.print.order.line']._fields['failure_reason'].selection)
         for line in self:
             live = line._live_print_lines() if isinstance(line.id, int) else line.print_line_ids.browse()
             latest = live[-1:]
-            state, order, failure = 'none', False, False
+            state, order, failure, since = 'none', False, False, False
             scan_state = line.scan_id.state
             if scan_state == 'done':
                 state = 'printed' if any(p.result == 'ok' for p in live) else 'none'
@@ -141,11 +158,30 @@ class ScanLine(models.Model):
                     state = 'to_plate'
                     if latest.result == 'failed':
                         failure = reasons.get(latest.failure_reason) or _('failed')
+                        since = latest.date_result or latest.date_end
+                    else:
+                        since = line.scan_id.date_print_start
+            # what is still to print: the arches of the plate the patient is on, the
+            # ones the last plate lost, nothing once printed - or all of them
+            if scan_state in ('done', 'cancel') or state in ('washing', 'printed'):
+                part = False
+            elif latest.result == 'pending':
+                part = latest.part
+            elif latest.result == 'failed':
+                part = latest.failed_arches or latest.part
+            else:
+                part = line.arch or 'both'
+            verdicts = live.filtered(lambda p: p.result in ('ok', 'failed'))
             line.print_state = state
             line.current_order_id = order
             line.print_attempts = len(live)
             line.failed_print_count = len(live.filtered(lambda p: p.result == 'failed'))
             line.last_failure = failure
+            line.print_part = part
+            line.print_models = 2 if part == 'both' else (1 if part else 0)
+            line.replate_pending = state in ('to_plate', 'plated', 'printing') and bool(
+                verdicts[-1:].result == 'failed' or (latest.result == 'pending' and latest.lost_part))
+            line.waiting_since = since
 
     @api.depends('date_delivery', 'scan_id.state')
     def _compute_delivery(self):
@@ -295,7 +331,7 @@ class ScanLine(models.Model):
         self.ensure_one()
         if self.print_state not in ('washing', 'printed') or self.sale_order_id or self.scan_id.state == 'done':
             raise UserError(_("Only a printed model whose order is not made yet can be printed again."))
-        return self._make_dialog(_('Print Again'))
+        return self._make_dialog(_('Print Again'), default_again=True)
 
     def action_view_print_order(self):
         """The patient's plate now - or the last one they were on."""

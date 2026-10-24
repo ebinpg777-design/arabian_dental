@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Scan Register',
-    'version': '20.0.2.1.0',
+    'version': '20.0.3.0.0',
     'category': 'Sales/Sales',
     'summary': 'Every scan a doctor sends - by WhatsApp, scanner cloud or e-mail - '
                'registered, confirmed, printed plate by plate as print orders, and turned '

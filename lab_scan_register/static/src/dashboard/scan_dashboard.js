@@ -1,15 +1,24 @@
 /** @odoo-module **/
 /**
- * The Scan Register dashboard: what the doctors sent, where it stands now, how
- * long each step takes, the printing room - plates, machines, the queue and when
- * it will be printed - and what needs somebody. Every figure comes from one server
- * call (lab.scan.get_dashboard) together with the domain behind it, so a click
- * opens exactly the records that make the number - no second calculation living
- * here to drift from the real one.
+ * The Scan Register dashboard: the scan manager's morning screen (client, 2026-10-23:
+ * "make it more attractive and useful; scroll is not working; visible to the scan
+ * manager and the administrator").
  *
- * Today redraws itself every minute, so the screen can stay up in the printing room.
+ * What needs somebody first, then the printing room this period - plates, models
+ * printed and lost (a model is an arch), the re-plate backlog, what the failures cost,
+ * ready on time - then the room now: the plates from Plating to Printed, each machine,
+ * the timeline, the backlog to put on a plate and the queue; then where the failures
+ * cluster, and the scans themselves. Every figure comes from one server call
+ * (lab.scan.get_dashboard) together with the domain behind it, so a click opens
+ * exactly the records that make the number - no second calculation living here.
+ *
+ * The board scrolls in its own body, under a pinned head: core locks the action
+ * itself (overflow hidden, scrollbar hidden on a desktop), so the body is the one
+ * scroller, full width - the gutters scroll and the bar shows. It redraws itself on
+ * every period (every minute on Today, every three otherwise) while the tab is in
+ * front, and after any dialog it opened.
  */
-import { Component, onMounted, onWillStart, onWillUnmount, proxy, useProps } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, proxy, signal, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
@@ -21,8 +30,20 @@ const PERIODS = [
     ["quarter", "Last 90 days"],
 ];
 const SOURCE_ICON = { whatsapp: "fa-whatsapp", email: "fa-envelope-o", transfer: "fa-cloud-download" };
+const ARCH_CHIP = { both: "U+L", upper: "U", lower: "L" };
+const TONES = ["danger", "warning", "info"];
 const REFRESH_MS = 60000;
+const PERIOD_KEY = "lab_scan_dashboard.period";
 const ORDER = "lab.scan.print.order";
+
+function storedPeriod() {
+    try {
+        const saved = window.localStorage.getItem(PERIOD_KEY);
+        return PERIODS.some((p) => p[0] === saved) ? saved : "month";
+    } catch {
+        return "month";
+    }
+}
 
 export class ScanDashboard extends Component {
     static template = "lab_scan_register.ScanDashboard";
@@ -33,17 +54,40 @@ export class ScanDashboard extends Component {
         this.action = useService("action");
         this.periods = PERIODS;
         this.sourceIcon = SOURCE_ICON;
-        this.state = proxy({ period: "month", data: null, loading: true, showClear: false, updated: null });
+        this.scrollRef = signal.ref();
+        this.state = proxy({
+            period: storedPeriod(), data: null, loading: true, showClear: false, updated: null,
+            picked: {},
+        });
         this.loadSeq = 0;
+        this.onVisible = () => {
+            if (!document.hidden && !this.state.loading) {
+                this.load(true);
+            }
+        };
         onWillStart(() => this.load());
         onMounted(() => {
-            this.timer = setInterval(() => {
-                if (this.state.period === "today" && !document.hidden && !this.state.loading) {
-                    this.load(true);
-                }
-            }, REFRESH_MS);
+            // the keys page the board at once: Page Down, Space, the arrows
+            this.scrollRef()?.focus({ preventScroll: true });
+            this.schedule();
+            document.addEventListener("visibilitychange", this.onVisible);
         });
-        onWillUnmount(() => clearInterval(this.timer));
+        onWillUnmount(() => {
+            clearTimeout(this.timer);
+            document.removeEventListener("visibilitychange", this.onVisible);
+        });
+    }
+
+    /** The next quiet redraw, at the pace the server sets for the period. */
+    schedule() {
+        clearTimeout(this.timer);
+        const seconds = this.state.data?.refresh_seconds;
+        this.timer = setTimeout(() => {
+            if (!document.hidden && !this.state.loading) {
+                this.load(true);
+            }
+            this.schedule();
+        }, seconds ? seconds * 1000 : REFRESH_MS);
     }
 
     /** Only the newest answer is drawn: a refresh coming back after the period
@@ -60,11 +104,18 @@ export class ScanDashboard extends Component {
             }
             this.state.data = data;
             this.state.updated = luxon.DateTime.local().toFormat("HH:mm");
+            // a ticked row that left the backlog is no longer ticked
+            const rows = new Set(((data.replate_backlog || {}).rows || []).map((r) => r.id));
+            for (const id of Object.keys(this.state.picked)) {
+                if (!rows.has(Number(id))) {
+                    delete this.state.picked[id];
+                }
+            }
         } catch (error) {
             if (!quiet) {
                 throw error;
             }
-            // a failed background refresh waits for the next minute, not a dialog a minute
+            // a failed background refresh waits for the next one, not a dialog
             console.warn("Scan dashboard: refresh failed", error);
         } finally {
             if (ticket === this.loadSeq) {
@@ -76,12 +127,20 @@ export class ScanDashboard extends Component {
     setPeriod(period) {
         if (period !== this.state.period) {
             this.state.period = period;
-            this.load();
+            try {
+                window.localStorage.setItem(PERIOD_KEY, period);
+            } catch {
+                // a private window: the period is simply not remembered
+            }
+            this.load().then(() => this.schedule());
         }
     }
 
     // ------------------------------------------------------------------ opening
     open(domain, name, model = "lab.scan") {
+        if (!domain) {
+            return;
+        }
         // views spelled out: a client-built action is not expanded from view_mode
         this.action.doAction({
             type: "ir.actions.act_window",
@@ -108,6 +167,66 @@ export class ScanDashboard extends Component {
     }
     openFull() {
         this.action.doAction("lab_scan_register.action_scan_analysis");
+    }
+    openFailedModels() {
+        this.action.doAction("lab_scan_register.action_scan_print_order_line_failed");
+    }
+    /** A dialog the server built (call_kw returns it unexpanded): its views added,
+     * and the board redrawn when it closes. */
+    async runDialog(action) {
+        if (!action) {
+            return;
+        }
+        await this.action.doAction(
+            { ...action, views: action.views || [[false, "form"]] },
+            { onClose: () => this.load(true) }
+        );
+    }
+    /** The New Print Order dialog on these failed models, waiting for a plate. */
+    async putOnPlate(ids) {
+        if (!ids.length) {
+            return;
+        }
+        const action = await this.orm.call("lab.scan.line", "action_put_on_plate", [ids]);
+        await this.runDialog(action);
+    }
+    /** Some models came off a running plate: the board, in A Model Failed. */
+    async modelFailed(plateId) {
+        const action = await this.orm.call(ORDER, "action_model_failed", [[plateId]]);
+        await this.runDialog(action);
+    }
+
+    // ------------------------------------------------------------------ the backlog
+    togglePick(id) {
+        if (this.state.picked[id]) {
+            delete this.state.picked[id];
+        } else {
+            this.state.picked[id] = true;
+        }
+    }
+    get pickedIds() {
+        return Object.keys(this.state.picked).map(Number);
+    }
+    get allPicked() {
+        const rows = this.backlog.rows || [];
+        return rows.length > 0 && rows.every((r) => this.state.picked[r.id]);
+    }
+    toggleAll() {
+        const rows = this.backlog.rows || [];
+        const all = this.allPicked;
+        for (const row of rows) {
+            if (all) {
+                delete this.state.picked[row.id];
+            } else {
+                this.state.picked[row.id] = true;
+            }
+        }
+    }
+    get backlog() {
+        return this.state.data?.replate_backlog || { rows: [], buckets: [] };
+    }
+    archChip(key) {
+        return ARCH_CHIP[key] || "";
     }
 
     // ------------------------------------------------------------------ figures
@@ -144,6 +263,9 @@ export class ScanDashboard extends Component {
         // a nought is an empty bar, not a dot; anything else is at least visible
         const max = Math.max(...values, 0);
         return max && value ? Math.max(3, Math.round((value * 100) / max)) : 0;
+    }
+    pct(part, whole) {
+        return whole ? Math.round((part * 100) / whole) : 0;
     }
 
     // ------------------------------------------------------------------ time
@@ -191,21 +313,56 @@ export class ScanDashboard extends Component {
     }
 
     // ------------------------------------------------------------------ panels
+    get att() {
+        return Object.fromEntries((this.state.data?.attention || []).map((a) => [a.key, a]));
+    }
+    get alerts() {
+        const rows = (this.state.data?.attention || []).filter((a) => a.count);
+        return rows.sort((a, b) => TONES.indexOf(a.tone) - TONES.indexOf(b.tone));
+    }
+    get clearChecks() {
+        return (this.state.data?.attention || []).filter((a) => !a.count);
+    }
     get trendMax() {
         return Math.max(...(this.state.data?.trend || []).map((p) => p.total), 0);
     }
     get sourceTotal() {
         return (this.state.data?.sources || []).reduce((sum, s) => sum + s.count, 0);
     }
+    flowStep(key) {
+        return (this.state.data?.plate_flow || []).find((f) => f.key === key) || {};
+    }
     flowCount(key) {
-        const step = (this.state.data?.plate_flow || []).find((f) => f.key === key);
-        return step ? step.count : 0;
+        return this.flowStep(key).count || 0;
     }
-    get alerts() {
-        return (this.state.data?.attention || []).filter((a) => a.count);
+    get quality() {
+        return this.state.data?.quality || {};
     }
-    get clearChecks() {
-        return (this.state.data?.attention || []).filter((a) => !a.count);
+    get printTrend() {
+        return this.state.data?.print_trend || [];
+    }
+    get printTrendMax() {
+        return Math.max(...this.printTrend.map((p) => p.ok + p.failed), 0);
+    }
+    /** The failure rate as a line over the columns: an SVG polyline, 0-100 both ways. */
+    get rateLine() {
+        const points = this.printTrend;
+        const n = points.length;
+        if (!n) {
+            return "";
+        }
+        return points
+            .map((p, i) => (p.rate === null || p.rate === undefined ? null : `${((i + 0.5) * 100) / n},${100 - Math.min(100, p.rate)}`))
+            .filter(Boolean)
+            .join(" ");
+    }
+    get matrixMax() {
+        const rows = this.quality.matrix?.rows || [];
+        return Math.max(0, ...rows.flatMap((r) => r.cells.map((c) => c.count)));
+    }
+    heatShare(count) {
+        const max = this.matrixMax;
+        return max && count ? Math.max(12, Math.round((count * 100) / max)) : 0;
     }
     ring(pct) {
         const r = 15.5;

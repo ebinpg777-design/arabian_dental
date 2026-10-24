@@ -126,8 +126,9 @@ class TestDashboard(PrintingSteps, TransactionCase):
         return scans
 
     def test_the_machines_and_their_failures_are_on_the_board(self):
-        """A plate that lost one model of three counts one plate, two models printed
-        and one failed - on the machine it ran on, and on the board."""
+        """A plate that lost one patient of three counts one plate, four models
+        printed and two failed - a model is an arch - on the machine it ran on, and
+        on the board."""
         other = self.env['lab.scan.printer'].create({'name': 'Idle Printer', 'company_id': self.company.id})
         a1, a2, a3 = self._confirmed_patients('A1', 'A2', 'A3')
         plate = self._start(self._plate((a1 | a2 | a3).line_ids))
@@ -136,17 +137,19 @@ class TestDashboard(PrintingSteps, TransactionCase):
         d = self._dash()
         h = d['headline']
         self.assertEqual((h['plates'], h['models_printed'], h['models_failed'], h['model_failure_rate']),
-                         (1, 2, 1, 33))
+                         (1, 4, 2, 33))
+        self.assertEqual((h['patients_printed'], h['patients_failed']), (2, 1))
         self.assertEqual(h['avg_models_per_plate'], 6.0, "three patients, upper and lower each")
         printers = {p['id']: p for p in d['printers']}
         mine, idle = printers[self.printer.id], printers[other.id]
         self.assertEqual((mine['plates'], mine['models_done'], mine['models_failed'], mine['failure_rate']),
-                         (1, 2, 1, 33))
+                         (1, 4, 2, 33))
+        self.assertEqual((mine['patients'], mine['patients_done'], mine['patients_failed']), (3, 2, 1))
         self.assertEqual((mine['running'], mine['running_order']['name']), (1, running.name))
         self.assertEqual((idle['plates'], idle['models_done'], idle['running'], idle['failure_rate']), (0, 0, 0, None))
         Order, Line = self.env[mine['model']], self.env[mine['models_model']]
         self.assertEqual(Order.search(mine['domain']), plate, "the plate behind the figures")
-        self.assertEqual(Line.search_count(mine['models_domain']), 3)
+        self.assertEqual(Line.search_count(mine['models_domain']), mine['patients'])
         self.assertEqual(Line.search(d['models_failed_domain']).scan_id, a1)
         self.assertEqual(self.env[mine['running_model']].search(mine['running_domain']), running)
         att = {a['key']: a['count'] for a in d['attention']}
@@ -163,10 +166,10 @@ class TestDashboard(PrintingSteps, TransactionCase):
         self._start(replate, printer=spare)          # the machine is picked at Start
         d = self._dash()
         self.assertEqual((d['headline']['models_printed'], d['headline']['models_failed'],
-                          d['headline']['model_failure_rate']), (1, 1, 50))
+                          d['headline']['model_failure_rate']), (2, 2, 50))
         machines = {p['name']: p for p in d['printers']}
         self.assertEqual((machines['Dash Printer']['models_done'], machines['Dash Printer']['models_failed'],
-                          machines['Dash Printer']['running']), (1, 1, 0))
+                          machines['Dash Printer']['running']), (2, 2, 0))
         self.assertEqual((machines['Spare']['plates'], machines['Spare']['running']), (0, 1))
         att = {a['key']: a['count'] for a in d['attention']}
         self.assertEqual(att['failed'], 0, "re-plated and printing, so not waiting in the queue")
@@ -176,7 +179,7 @@ class TestDashboard(PrintingSteps, TransactionCase):
         att = {a['key']: a['count'] for a in d['attention']}
         self.assertEqual(att['failed'], 1)
         self.assertEqual({p['name']: p['plates'] for p in d['printers']}['Spare'], 1, "a failed plate is a plate")
-        self.assertEqual(d['headline']['models_failed'], 2)
+        self.assertEqual(d['headline']['models_failed'], 4, "Bad's two arches, lost twice")
 
     def test_every_plate_figure_and_attention_line_opens_exactly_its_rows(self):
         """Whatever the board counts, a click opens those rows and no others - on the
@@ -191,12 +194,14 @@ class TestDashboard(PrintingSteps, TransactionCase):
             {'date_sliced': fields.Datetime.now() - timedelta(hours=5)})
         d = self._dash()
         h = d['headline']
+        # the figures count arches; a click opens the rows - a patient per plate - so
+        # each figure has a row twin the click is measured against
         checks = [(d['plates_model'], d['plates_domain'], h['plates']),
-                  (d['models_printed_model'], d['models_printed_domain'], h['models_printed']),
-                  (d['models_failed_model'], d['models_failed_domain'], h['models_failed'])]
+                  (d['models_printed_model'], d['models_printed_domain'], h['patients_printed']),
+                  (d['models_failed_model'], d['models_failed_domain'], h['patients_failed'])]
         for pr in d['printers']:
             checks += [(pr['model'], pr['domain'], pr['plates']),
-                       (pr['models_model'], pr['models_domain'], pr['models_done'] + pr['models_failed']),
+                       (pr['models_model'], pr['models_domain'], pr['patients']),
                        (pr['running_model'], pr['running_domain'], pr['running']),
                        (pr['queue_model'], pr['queue_domain'], pr['queued'])]
         for item in d['attention']:
@@ -359,7 +364,7 @@ class TestDashboard(PrintingSteps, TransactionCase):
                                  {'draft': 1, 'printing': 1, 'washing': 1, 'printed': 1, 'failed': 0}, period)
                 self.assertEqual((flow['draft']['unplanned'], flow['draft']['models']), (1, 2))
                 checks = [(f['model'], f['domain'], f['count']) for f in d['plate_flow']]
-                checks += [(d['models_failed_model'], r['domain'], r['count']) for r in d['failure_reasons']]
+                checks += [(d['models_failed_model'], r['domain'], r['rows']) for r in d['failure_reasons']]
                 checks += [(d['models_failed_model'], fp['domain'], fp['count']) for fp in d['failed_parts']]
                 checks.append((d['forecast']['model'], d['forecast']['domain'], d['forecast']['patients']))
                 for lane in d['timeline']['lanes']:
@@ -370,7 +375,8 @@ class TestDashboard(PrintingSteps, TransactionCase):
                         self.assertEqual(self.env[model].search_count(domain), count)
                 self.assertEqual([(r['key'], r['count']) for r in d['failure_reasons']], [('supports', 1)],
                                  "the row's own reason beats the plate's")
-                self.assertEqual([(fp['key'], fp['count']) for fp in d['failed_parts']], [('upper', 1)])
+                self.assertEqual([(fp['key'], fp['count'], fp['models']) for fp in d['failed_parts']],
+                                 [('upper', 1, 1)], "B's upper: one patient, one model")
             self.assertEqual(d['timeline']['mode'], 'days')
             today = next(c for c in d['timeline']['lanes'][0]['cells'] if c['date'] == '2026-03-11')
             self.assertGreaterEqual(today['plates'], 1)

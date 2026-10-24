@@ -78,7 +78,9 @@ class ScanLinkOrdersLine(models.TransientModel):
     clinic_id = fields.Many2one(related='wizard_id.clinic_id')
     sale_order_id = fields.Many2one(
         'sale.order', string='Order',
-        domain="[('state', '!=', 'cancel'), ('scan_line_id', '=', False), ('partner_id', 'child_of', clinic_id)]")
+        # the register's clinic's orders - or, while it has none yet, any open order
+        domain="[('state', '!=', 'cancel'), ('scan_line_id', '=', False), "
+               "('partner_id.commercial_partner_id', '=?', clinic_id)]")
     order_patient = fields.Char(related='sale_order_id.patient', string='Patient on the Order')
     order_date = fields.Datetime(related='sale_order_id.date_order', string='Order Date')
 
@@ -164,6 +166,10 @@ class ScanLinkOrdersRegister(models.Model):
             done.append(order)
         self.message_post(body=Markup(_("Existing orders linked: %s")) % Markup(', ').join(
             o._get_html_link() for o in done))
+        # a register still without its clinic takes the one its orders were booked for
+        clinics = self.line_ids.sale_order_id.partner_id.commercial_partner_id
+        if not self.partner_id and len(clinics) == 1:
+            self._move({'partner_id': clinics.id})
         # every patient has an order: nothing is left to make - unless a plate of it is
         # on a machine, when printing ends first and Create Orders closes the register
         if all(l.sale_order_id for l in self.line_ids) and self.state not in ('printing', 'in_progress'):

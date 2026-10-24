@@ -15,3 +15,6 @@ from . import test_slice_upload
 from . import test_retention
 from . import test_already_printed
 from . import test_link_orders
+from . import test_clinic_at_orders
+from . import test_doctor_name
+from . import test_partial_failures

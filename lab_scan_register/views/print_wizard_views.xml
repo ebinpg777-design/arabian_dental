@@ -21,10 +21,16 @@
                 <!-- No machine here: it is picked at Start Print, where the operator scans
                      its sticker (client, 2026-10-14). -->
                 <group>
-                    <field name="mode" widget="radio" options="{'horizontal': true}"/>
+                    <field name="mode" widget="radio" options="{'horizontal': true}" invisible="again"/>
                     <field name="order_id" invisible="mode != 'existing'" required="mode == 'existing'"
                            options="{'no_create': True}"/>
+                    <!-- a model broken in finishing: only the arch that broke goes on a plate -->
+                    <field name="again_part" widget="radio" options="{'horizontal': true}" invisible="not again"
+                           required="again"/>
+                    <field name="fill" widget="boolean_toggle" options="{'autosave': False}" invisible="again"/>
                 </group>
+                <field name="again" invisible="1"/>
+                <field name="initial_line_ids" invisible="1"/>
                 <!-- Each patient's scans are attached here, as they go to the printing room:
                      the upload button in the row, or the register's download link. A row still
                      red has neither, and the dialog will not send it. -->
@@ -34,7 +40,9 @@
                         <field name="scan_id" readonly="1"/>
                         <field name="patient_name" readonly="1"/>
                         <field name="partner_id" readonly="1" optional="hide"/>
-                        <field name="arch" readonly="1" optional="show"/>
+                        <field name="print_part" string="To Print" widget="badge" readonly="1"
+                               decoration-warning="last_failure"/>
+                        <field name="arch" readonly="1" optional="hide"/>
                         <field name="date_delivery" readonly="1" optional="show"/>
                         <field name="attachment_ids" string="Scans" widget="many2many_binary"/>
                         <field name="print_file_count" string="Files" readonly="1" optional="hide"/>
@@ -126,10 +134,23 @@
         <field name="name">lab.scan.print.order.off.form</field>
         <field name="model">lab.scan.print.order.off</field>
         <field name="arch" type="xml">
+            <!-- One board for a plate coming off and for a model lost while it prints.
+                 One tap per lost model - the row's Printed toggle, or U / L for one
+                 arch - and the failed models go where they fit best, with the
+                 patients waiting if the plate has room (client, 2026-10-23). -->
             <form>
+                <field name="mode" invisible="1"/>
                 <div class="o_scan_wizard_head mb-3">
-                    <div class="fs-5 fw-bold"><i class="fa fa-check text-success me-2"/>The plate came off</div>
-                    <div class="text-muted">Every model is ticked printed. Untick the ones that failed.</div>
+                    <div class="fs-5 fw-bold" invisible="mode != 'off'"><i class="fa fa-check text-success me-2" title="Plate off"/>The plate came off</div>
+                    <div class="fs-5 fw-bold text-danger" invisible="mode != 'lost'"><i class="fa fa-exclamation-triangle me-2" title="A model failed"/>A model failed — the plate goes on</div>
+                    <div class="text-muted" invisible="mode != 'off'">
+                        Every model is ticked printed. Untick a patient whose models failed, or just
+                        their <b>U</b> (upper) or <b>L</b> (lower).
+                    </div>
+                    <div class="text-muted" invisible="mode != 'lost'">
+                        Untick what came off the plate. A patient lost whole goes on another plate now;
+                        one arch of a patient with both is recorded now and settled at Plate Off.
+                    </div>
                 </div>
                 <group>
                     <field name="code" placeholder="Scan the plate ticket…" class="o_scan_code_input" default_focus="1"/>
@@ -137,17 +158,29 @@
                 </group>
                 <field name="line_ids" nolabel="1">
                     <list editable="bottom" create="0" delete="0"
-                          decoration-danger="not ok" decoration-success="ok">
-                        <field name="ok" widget="boolean_toggle"/>
-                        <field name="scan_name" readonly="1"/>
+                          decoration-danger="not ok and (not has_upper or not upper_ok) and (not has_lower or not lower_ok)"
+                          decoration-warning="not ok and ((has_upper and upper_ok) or (has_lower and lower_ok))"
+                          decoration-success="ok">
+                        <!-- autosave off: a toggle that autosaves skips the onchange, and the
+                             row's verdict is worked out there -->
+                        <field name="ok" widget="boolean_toggle" options="{'autosave': False}"/>
                         <field name="patient_name" readonly="1"/>
+                        <field name="scan_name" readonly="1" optional="show"/>
                         <field name="partner_id" readonly="1" optional="hide"/>
-                        <field name="part" readonly="1"/>
-                        <field name="model_count" string="Models" readonly="1"/>
-                        <field name="attempt" string="#" readonly="1" optional="hide"/>
-                        <field name="failed_part" invisible="ok" required="not ok"/>
-                        <field name="reason" invisible="ok"/>
-                        <field name="note" placeholder="what you saw"/>
+                        <field name="part" readonly="1" string="On the Plate"/>
+                        <field name="upper_ok" string="U" widget="boolean_toggle" options="{'autosave': False}" invisible="not has_upper"
+                               readonly="lost_part == 'upper'"/>
+                        <field name="lower_ok" string="L" widget="boolean_toggle" options="{'autosave': False}" invisible="not has_lower"
+                               readonly="lost_part == 'lower'"/>
+                        <field name="attempt" string="#" readonly="1" optional="show"
+                               decoration-warning="attempt &gt; 1"/>
+                        <field name="reason" invisible="ok" placeholder="the plate's reason"/>
+                        <field name="note" placeholder="what you saw" optional="show"/>
+                        <field name="hold" string="Wait" invisible="ok" optional="show"/>
+                        <field name="failed_part" column_invisible="1"/>
+                        <field name="has_upper" column_invisible="1"/>
+                        <field name="has_lower" column_invisible="1"/>
+                        <field name="lost_part" column_invisible="1"/>
                         <field name="line_id" column_invisible="1"/>
                     </list>
                 </field>
@@ -158,18 +191,55 @@
                     </group>
                     <group string="The Failed Models">
                         <field name="replate"/>
-                        <field name="replate_mode" widget="radio" invisible="not replate"/>
+                        <field name="replate_mode" widget="radio" invisible="not replate or replate_models == 0"/>
+                        <div colspan="2" class="text-muted small" invisible="not replate or replate_models == 0 or replate_mode != 'auto' or not suggest_text">
+                            <i class="fa fa-arrow-right me-1" title="Where the lost models go"/><field name="suggest_text" class="oe_inline"/>
+                        </div>
+                        <div colspan="2" class="text-warning small" invisible="not replate or replate_mode != 'same' or not same_text">
+                            <i class="fa fa-wrench me-1" title="Machine out of service"/><field name="same_text" class="oe_inline"/>
+                        </div>
                         <field name="replate_order_id" options="{'no_create': True}"
-                               invisible="not replate or replate_mode != 'existing'"/>
+                               invisible="not replate or replate_mode != 'existing'"
+                               required="replate and replate_mode == 'existing' and replate_models &gt; 0"/>
+                        <div colspan="2" class="text-muted small" invisible="mode != 'lost' or replate_models &gt; 0">
+                            One arch of a patient is settled at Plate Off: nothing to re-plate yet.
+                        </div>
                     </group>
                 </group>
-                <group>
+                <!-- the next plate: the re-plates and the patients waiting together -->
+                <div invisible="not replate or replate_models == 0">
+                    <div class="d-flex align-items-center gap-3 flex-wrap mb-1">
+                        <field name="fill" nolabel="1" widget="boolean_toggle" options="{'autosave': False}"/>
+                        <label for="fill" class="mb-0 fw-bold"/>
+                        <span class="text-muted" invisible="not capacity_text"><field name="capacity_text" class="oe_inline"/></span>
+                        <span class="badge rounded-pill text-bg-warning" invisible="not over_capacity"
+                              title="More than the plate usually holds — a hint, not a stop">over capacity</span>
+                    </div>
+                    <field name="fill_line_ids" nolabel="1" invisible="not fill" options="{'no_create': True}">
+                        <list create="0">
+                            <field name="priority" widget="priority" nolabel="1" readonly="1"/>
+                            <field name="patient_name" readonly="1"/>
+                            <field name="scan_id" readonly="1" optional="show"/>
+                            <field name="print_part" string="To Print" widget="badge" readonly="1"
+                                   decoration-warning="last_failure"/>
+                            <field name="date_delivery" readonly="1" optional="show"/>
+                            <field name="last_failure" readonly="1" optional="hide"/>
+                            <field name="has_print_files" string="Files" widget="boolean" readonly="1" optional="show"/>
+                        </list>
+                    </field>
+                </div>
+                <group invisible="mode != 'off'">
                     <field name="skip_cure"/>
                 </group>
                 <field name="failed_count" invisible="1"/>
+                <field name="failed_models" invisible="1"/>
+                <field name="replate_models" invisible="1"/>
+                <field name="suggested_order_id" invisible="1"/>
                 <footer>
                     <button name="action_confirm" type="object" string="Plate Off" class="btn-primary"
-                            icon="fa-check" data-hotkey="q"/>
+                            icon="fa-check" data-hotkey="q" invisible="mode != 'off'"/>
+                    <button name="action_record_failure" type="object" string="Record the Failure" class="btn-danger"
+                            icon="fa-exclamation-triangle" data-hotkey="q" invisible="mode != 'lost'"/>
                     <button string="Cancel" special="cancel" data-hotkey="x"/>
                 </footer>
             </form>

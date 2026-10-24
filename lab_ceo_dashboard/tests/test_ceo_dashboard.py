@@ -291,25 +291,31 @@ class TestFieldCommand(TransactionCase):
     def test_a_reader_with_no_field_role_keeps_the_pulse_alone(self):
         self.assertEqual(self._keys(self.reader), ['pulse'])
 
-    def test_a_desk_holder_gets_their_desk_first_and_the_pulse_last(self):
-        self.assertEqual(self._keys(self.ops), ['ops', 'pulse'],
-                         "gaining a desk must never cost the analysis")
+    def test_a_manager_gets_field_live_first_and_the_pulse_last(self):
+        self.assertEqual(self._keys(self.ops), ['live', 'pulse'],
+                         "gaining a role must never cost the analysis")
 
-    def test_the_administrator_gets_every_screen_most_specific_first(self):
-        self.assertEqual(self._keys(self.fw_admin),
-                         ['admin', 'ops', 'mkt', 'pulse'])
+    def test_the_administrator_gets_field_live_too_and_nothing_else(self):
+        """Field Live (2026-10-23) is the one screen; the three desks are gone."""
+        self.assertEqual(self._keys(self.fw_admin), ['live', 'pulse'])
 
-    def test_the_badges_count_what_is_waiting_on_each_desk(self):
-        before = {s['key']: s['badge'] for s in self.Dash.with_user(
-            self.fw_admin).get_field_command()['screens']}
+    def test_the_badge_counts_what_is_waiting_on_the_readers_own_roles(self):
+        mkt = self.env['res.users'].create({
+            'name': 'FC Mkt', 'login': 'fc_mkt',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id,
+                                  self.env.ref('lab_ceo_dashboard.group_lab_executive').id,
+                                  self.env.ref('lab_fieldwork.group_fieldwork_marketing_manager').id])]})
+
+        def badge(user):
+            return {s['key']: s['badge'] for s in self.Dash.with_user(
+                user).get_field_command()['screens']}['live']
+        before = {u.login: badge(u) for u in (self.fw_admin, self.ops, mkt)}
         self.env['lab.daily.update'].sudo().create({
             'user_id': self.ops.id, 'date': '2026-01-05',
         }).write({'state': 'submitted'})
-        after = {s['key']: s['badge'] for s in self.Dash.with_user(
-            self.fw_admin).get_field_command()['screens']}
-        self.assertEqual(after['ops'] - before['ops'], 1)
-        self.assertEqual(after['admin'] - before['admin'], 1)
-        self.assertEqual(after['mkt'], before['mkt'],
+        self.assertEqual(badge(self.ops) - before['fc_ops'], 1, "waiting on the ops desk")
+        self.assertEqual(badge(self.fw_admin) - before['fc_fw_admin'], 1, "and on the administrator")
+        self.assertEqual(badge(mkt), before['fc_mkt'],
                          "a submitted sheet is not the marketing desk's yet")
 
     def test_the_launcher_points_at_the_switcher_for_everyone(self):
