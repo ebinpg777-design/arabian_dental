@@ -25,7 +25,7 @@
 ###############################################################################
 {
     'name': 'Automatic Database Backup',
-    'version': '20.0.1.0.0',
+    'version': '20.0.1.2.0',
     'category': 'Extra Tools',
     'summary': 'Scheduled database backups to local storage, FTP, SFTP, '
                'Google Drive, Dropbox, OneDrive, Nextcloud or Amazon S3, '
@@ -60,5 +60,5 @@ the database manager is disabled (list_db = False).
     'currency': 'USD',
     'installable': True,
     'auto_install': False,
-    'application': False,
+    'application': True,
 }

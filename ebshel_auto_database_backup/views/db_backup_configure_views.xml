@@ -22,6 +22,7 @@
                 <sheet>
                     <field name="gdrive_backup_error_test" invisible="1"/>
                     <field name="onedrive_backup_error_test" invisible="1"/>
+                    <field name="is_redirect_uri_insecure" invisible="1"/>
                     <div class="oe_title">
                         <h1>
                             <field name="name" placeholder="Name..."/>
@@ -55,6 +56,18 @@
                             <field name="gdrive_refresh_token" password="True" invisible="1"/>
                             <field name="gdrive_token_validity" invisible="1"/>
                             <field name="google_drive_folder_key" invisible="backup_destination != 'google_drive'" required="backup_destination == 'google_drive'"/>
+                            <div class="text-muted small" colspan="2" invisible="is_redirect_uri_insecure or backup_destination not in ('google_drive', 'onedrive')">
+                                The provider must know the Redirect URI above, exactly as shown: add it to the OAuth client's
+                                authorized redirect URIs (Google Cloud Console, APIs &amp; Services, Credentials) before <b>Setup Token</b>,
+                                or the sign-in ends in "Error 400: redirect_uri_mismatch".
+                            </div>
+                            <div class="alert alert-warning mb-0" role="alert" colspan="2" invisible="not is_redirect_uri_insecure or backup_destination not in ('google_drive', 'onedrive')">
+                                Google and Microsoft only accept an <b>https://</b> redirect URI (plain http is allowed for localhost only),
+                                so <b>Setup Token</b> would end in "Error 400: redirect_uri_mismatch".
+                                Serve Odoo over https and set the <code>web.base.url</code> system parameter to that address
+                                (with <code>web.base.url.freeze</code> set to True when a proxy reaches Odoo over http),
+                                then add the Redirect URI above to the OAuth client's authorized redirect URIs.
+                            </div>
                             <field name="dropbox_client_key" string="App Key" invisible="backup_destination != 'dropbox'" required="backup_destination == 'dropbox'" password="True"/>
                             <field name="dropbox_client_secret" string="App Secret" invisible="backup_destination != 'dropbox'" required="backup_destination == 'dropbox'" password="True"/>
                             <field name="onedrive_client_key" string="Client ID" invisible="backup_destination != 'onedrive'" required="backup_destination == 'onedrive'"/>
@@ -216,7 +229,11 @@
         <field name="context">{'search_default_all': 1}</field>
     </record>
 <!--Menu items-->
-    <menuitem id="db_backup_menu_root" name="Automatic Database Backup" parent="base.menu_custom" sequence="10" groups="base.group_system"/>
+    <!-- An app of its own (home screen, Apps list), for administrators only:
+         under Settings > Technical it was reachable in developer mode only. -->
+    <menuitem id="db_backup_menu_root" name="Database Backup"
+              web_icon="ebshel_auto_database_backup,static/description/icon.png"
+              sequence="900" groups="base.group_system"/>
     <menuitem id="menu_db_backup_configuration" parent="db_backup_menu_root" name="Backup Configuration"
               action="db_backup_configure_action"/>
 </odoo>

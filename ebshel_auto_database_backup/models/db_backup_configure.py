@@ -36,7 +36,7 @@ import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timedelta
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlparse
 
 import requests
 
@@ -59,18 +59,27 @@ ONEDRIVE_TOKEN_ENDPOINT = \
 MICROSOFT_GRAPH_END_POINT = "https://graph.microsoft.com"
 GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/auth'
 GOOGLE_TOKEN_ENDPOINT = 'https://accounts.google.com/o/oauth2/token'
+GDRIVE_CLIENT_ID = re.compile(r'[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com')
 GOOGLE_API_BASE_URL = 'https://www.googleapis.com'
 headers = {"content-type": "application/x-www-form-urlencoded"}
 
 # Seconds before an idle network call (connect, or a read/write that makes no
 # progress) is given up. Uploads of any size are fine: it is not a total time.
 NETWORK_TIMEOUT = 300
+# The same for HTTP calls, with a short CONNECT limit of its own. A server with
+# an IPv6 address but no IPv6 route (Ortho's node, 2026-10-07) gets eight IPv6
+# addresses first for www.googleapis.com, and waiting the full 300 s on each
+# made one Drive request take 40 minutes - uploads ran for hours and Setup
+# Token timed out at the proxy. 15 s per address falls through to IPv4 fast.
+HTTP_TIMEOUT = (15, NETWORK_TIMEOUT)
 # OneDrive upload fragments must be a multiple of 320 KiB (max 60 MiB).
 ONEDRIVE_CHUNK_SIZE = 320 * 1024 * 32
 # Dropbox refuses a single upload request larger than 150 MiB.
 DROPBOX_CHUNK_SIZE = 64 * 1024 * 1024
 BACKUP_TIME_FORMAT = '%Y-%m-%d_%H-%M-%S'
 OAUTH_STATE_SCOPE = 'ebshel_auto_database_backup.oauth_state'
+# Google and Microsoft take a plain http redirect URI from these hosts only
+LOOPBACK_HOSTS = ('localhost', '127.0.0.1', '::1')
 # Strip query strings from URLs quoted in error messages: pre-authenticated
 # upload URLs carry their credential there.
 URL_QUERY_RE = re.compile(r'(https?://[^\s?#]+)[?#]\S*')
@@ -271,6 +280,11 @@ class DbBackupConfigure(models.Model):
                                         compute='_compute_redirect_uri',
                                         help='The redirect URI used for the '
                                              'Onedrive API authentication flow')
+    is_redirect_uri_insecure = fields.Boolean(
+        string='Redirect URI Not Accepted', compute='_compute_redirect_uri',
+        help='Google and Microsoft only accept an https redirect URI, except '
+             'for localhost: an http one ends in "Error 400: '
+             'redirect_uri_mismatch"')
     aws_access_key = fields.Char(string="Amazon S3 Access Key",
                                  help="Field used to store the Access Key "
                                       "for an Amazon S3 bucket.")
@@ -305,6 +319,26 @@ class DbBackupConfigure(models.Model):
         self.onedrive_backup_error_test = False
         if self.backup_destination == 'local':
             self.hide_active = True
+
+    @api.constrains('gdrive_client_key')
+    def _check_gdrive_client_key(self):
+        """Refuse a Client ID Google cannot know.
+
+        Pasting the ID over a field that already held it once produced
+        "...ofc1.apps.googler.apps.googleusercontent.comusercontent.com" on
+        a live site, and the first anyone heard of it was Google's "Access
+        blocked: The OAuth client was not found" page behind Setup Token.
+        Saying so on save names the field and the cure. (client, 2026-10-07)
+        """
+        for rec in self:
+            key = (rec.gdrive_client_key or '').strip()
+            if key and not GDRIVE_CLIENT_ID.fullmatch(key):
+                raise ValidationError(_(
+                    "The Google Drive Client ID \"%(key)s\" is not a Google "
+                    "client ID. It looks like "
+                    "1234567890-abc123.apps.googleusercontent.com - copy it "
+                    "again from Google Cloud Console (APIs & Services > "
+                    "Credentials) into an empty field.", key=key))
 
     @api.onchange('gdrive_client_key', 'gdrive_client_secret',
                   'google_drive_folder_key', 'onedrive_client_key',
@@ -472,6 +506,9 @@ class DbBackupConfigure(models.Model):
             base_url = rec.get_base_url()
             rec.onedrive_redirect_uri = base_url + '/onedrive/authentication'
             rec.gdrive_redirect_uri = base_url + '/google_drive/authentication'
+            url = urlparse(base_url)
+            rec.is_redirect_uri_insecure = url.scheme != 'https' and \
+                url.hostname not in LOOPBACK_HOSTS
 
     @api.depends('gdrive_access_token', 'gdrive_refresh_token')
     def _compute_is_google_drive_token_generated(self):
@@ -489,12 +526,14 @@ class DbBackupConfigure(models.Model):
         self.ensure_one()
         encoded_params = urlencode({
             'response_type': 'code',
-            'client_id': self.gdrive_client_key,
+            'client_id': (self.gdrive_client_key or '').strip(),
             'scope': 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file',
             'redirect_uri': self.get_base_url() + '/google_drive/authentication',
             'access_type': 'offline',
             'state': self._get_oauth_state(),
-            'approval_prompt': 'force',
+            # always ask for consent: Google sends a refresh token only then
+            # (approval_prompt=force is deprecated)
+            'prompt': 'consent',
         })
         auth_url = "%s?%s" % (GOOGLE_AUTH_ENDPOINT, encoded_params)
         return {
@@ -508,13 +547,13 @@ class DbBackupConfigure(models.Model):
         self.ensure_one()
         data = {
             'refresh_token': self.gdrive_refresh_token,
-            'client_id': self.gdrive_client_key,
+            'client_id': (self.gdrive_client_key or '').strip(),
             'client_secret': self.gdrive_client_secret,
             'grant_type': 'refresh_token',
         }
         try:
             res = requests.post(GOOGLE_TOKEN_ENDPOINT, data=data,
-                                headers=headers, timeout=NETWORK_TIMEOUT)
+                                headers=headers, timeout=HTTP_TIMEOUT)
             res.raise_for_status()
             response = res.content and res.json() or {}
             if response:
@@ -542,7 +581,7 @@ class DbBackupConfigure(models.Model):
         self.ensure_one()
         data = {
             'code': authorize_code,
-            'client_id': self.gdrive_client_key,
+            'client_id': (self.gdrive_client_key or '').strip(),
             'client_secret': self.gdrive_client_secret,
             'grant_type': 'authorization_code',
             'redirect_uri': self.get_base_url() + '/google_drive/authentication'
@@ -550,7 +589,7 @@ class DbBackupConfigure(models.Model):
         try:
             # The secret goes in the form body, never in the URL.
             res = requests.post(GOOGLE_TOKEN_ENDPOINT, data=data,
-                                headers=headers, timeout=NETWORK_TIMEOUT)
+                                headers=headers, timeout=HTTP_TIMEOUT)
             res.raise_for_status()
             response = res.content and res.json() or {}
             if response:
@@ -627,7 +666,7 @@ class DbBackupConfigure(models.Model):
         }
         try:
             res = requests.post(ONEDRIVE_TOKEN_ENDPOINT, data=data,
-                                headers=headers, timeout=NETWORK_TIMEOUT)
+                                headers=headers, timeout=HTTP_TIMEOUT)
             res.raise_for_status()
             response = res.content and res.json() or {}
             if response:
@@ -656,7 +695,7 @@ class DbBackupConfigure(models.Model):
         }
         try:
             res = requests.post(ONEDRIVE_TOKEN_ENDPOINT, data=data,
-                                headers=headers, timeout=NETWORK_TIMEOUT)
+                                headers=headers, timeout=HTTP_TIMEOUT)
             res.raise_for_status()
             response = res.content and res.json() or {}
             if response:
@@ -911,13 +950,13 @@ class DbBackupConfigure(models.Model):
                 'Content-Type': 'application/json; charset=UTF-8',
                 'X-Upload-Content-Length': str(size),
             }),
-            data=json.dumps(metadata), timeout=NETWORK_TIMEOUT)
+            data=json.dumps(metadata), timeout=HTTP_TIMEOUT)
         session.raise_for_status()
         with open(backup_file, 'rb') as stream:
             upload = requests.put(
                 session.headers['Location'], data=stream,
                 headers=dict(auth, **{'Content-Length': str(size)}),
-                timeout=NETWORK_TIMEOUT)
+                timeout=HTTP_TIMEOUT)
         upload.raise_for_status()
         if self.auto_remove:
             files_url = GOOGLE_API_BASE_URL + "/drive/v3/files"
@@ -929,14 +968,14 @@ class DbBackupConfigure(models.Model):
             }
             while True:
                 res = requests.get(files_url, params=params, headers=auth,
-                                   timeout=NETWORK_TIMEOUT)
+                                   timeout=HTTP_TIMEOUT)
                 res.raise_for_status()
                 result = res.json()
                 for file in result.get('files', []):
                     if self._is_expired_backup(file['name'], backup_filename):
                         requests.delete(
                             "%s/%s" % (files_url, file['id']), headers=auth,
-                            timeout=NETWORK_TIMEOUT).raise_for_status()
+                            timeout=HTTP_TIMEOUT).raise_for_status()
                 if not result.get('nextPageToken'):
                     break
                 params['pageToken'] = result['nextPageToken']
@@ -994,7 +1033,7 @@ class DbBackupConfigure(models.Model):
         upload_session = requests.post(
             upload_session_url,
             headers=dict(auth, **{'Content-Type': 'application/json'}),
-            timeout=NETWORK_TIMEOUT)
+            timeout=HTTP_TIMEOUT)
         upload_session.raise_for_status()
         upload_url = upload_session.json()['uploadUrl']
         # An upload session takes the file in fragments of at most 60 MiB,
@@ -1008,7 +1047,7 @@ class DbBackupConfigure(models.Model):
                 requests.put(upload_url, data=chunk, headers={
                     'Content-Length': str(len(chunk)),
                     'Content-Range': 'bytes %d-%d/%d' % (offset, end, size),
-                }, timeout=NETWORK_TIMEOUT).raise_for_status()
+                }, timeout=HTTP_TIMEOUT).raise_for_status()
                 offset = end + 1
         if self.auto_remove:
             list_url = MICROSOFT_GRAPH_END_POINT + \
@@ -1016,7 +1055,7 @@ class DbBackupConfigure(models.Model):
                 self.onedrive_folder_key
             while list_url:
                 response = requests.get(list_url, headers=auth,
-                                        timeout=NETWORK_TIMEOUT)
+                                        timeout=HTTP_TIMEOUT)
                 response.raise_for_status()
                 result = response.json()
                 for file in result.get('value', []):
@@ -1025,7 +1064,7 @@ class DbBackupConfigure(models.Model):
                             MICROSOFT_GRAPH_END_POINT +
                             "/v1.0/me/drive/items/%s" % file['id'],
                             headers=auth,
-                            timeout=NETWORK_TIMEOUT).raise_for_status()
+                            timeout=HTTP_TIMEOUT).raise_for_status()
                 list_url = result.get('@odata.nextLink')
 
     def _backup_to_amazon_s3(self, backup_file, backup_filename):

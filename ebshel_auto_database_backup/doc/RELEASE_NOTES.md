@@ -2,6 +2,15 @@
 
 Based on <auto_database_backup> by Cybrosys Techno Solutions (history below).
 
+#### 24.10.2026
+#### Version 20.0.1.2.0
+#### FIX
+- A Google Drive Client ID that is not one (a double paste on a live site) is refused on save,
+  naming the field and the cure; surrounding spaces are not sent to Google.
+- HTTP calls to Google and Microsoft use a 15 s connect timeout: a server with an IPv6 address but
+  no IPv6 route waited the full timeout on each of eight addresses, and one Drive request took
+  40 minutes.
+
 #### 07.05.2022
 #### Version 15.0.1.0.0
 #### ADD
@@ -65,3 +74,9 @@ Based on <auto_database_backup> by Cybrosys Techno Solutions (history below).
 - Ported ebshel_auto_database_backup to Odoo 20: ir.access, odoo.modules.db
   (verify_admin_password, list_dbs), Odoo UI icons. The module keeps writing
   its own zip manifest.
+
+#### 23.10.2026
+#### Version 20.0.1.0.1
+#### FIX
+- Google's consent request uses prompt=consent instead of the deprecated approval_prompt=force, so a new refresh token always comes back.
+- The form says which Redirect URI the provider must know, and warns when it is plain http outside localhost (Google and Microsoft refuse it with "Error 400: redirect_uri_mismatch").

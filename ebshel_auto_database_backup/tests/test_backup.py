@@ -135,3 +135,48 @@ class TestBackup(TransactionCase, MockEmail):
         self.assertFalse(self.Backup._get_record_from_oauth_state(state + 'x'))
         other = self.env.ref('base.user_admin')
         self.assertFalse(self.Backup.with_user(other)._get_record_from_oauth_state(state))
+
+
+@tagged('post_install', '-at_install')
+class TestGdriveClientId(TransactionCase):
+    """A Client ID Google cannot know is refused on save, not at Google."""
+
+    def _config(self, key):
+        with patch(MODEL + '.odoo_db.verify_admin_password'):
+            return self.env['db.backup.configure'].create({
+                'name': 'Drive', 'db_name': self.env.cr.dbname, 'master_pwd': 'x',
+                'backup_format': 'zip', 'backup_destination': 'google_drive',
+                'gdrive_client_key': key, 'gdrive_client_secret': 'GOCSPX-x'})
+
+    def test_a_double_pasted_client_id_is_refused(self):
+        """The value found on the live site behind 'OAuth client was not found'."""
+        with self.assertRaises(ValidationError):
+            self._config('1033152529932-pvfquq30k5635qiep7mgjv9e28vqofc1.apps.googler.apps'
+                         '.googleusercontent.comusercontent.com')
+
+    def test_a_real_client_id_is_kept(self):
+        key = '1033152529932-pvfquq30k5635qiep7mgjv9e28vqofc1.apps.googleusercontent.com'
+        self.assertEqual(self._config(key).gdrive_client_key, key)
+
+    def test_surrounding_spaces_are_not_sent_to_google(self):
+        key = '1033152529932-pvfquq30k5635qiep7mgjv9e28vqofc1.apps.googleusercontent.com'
+        config = self._config('  %s ' % key)
+        action = config.action_get_gdrive_auth_code()
+        self.assertIn('client_id=%s&' % key, action['url'])
+
+
+@tagged('post_install', '-at_install')
+class TestHttpTimeouts(TransactionCase):
+    """Every HTTP call gives up on a dead address in seconds, not minutes."""
+
+    def test_google_calls_use_a_short_connect_timeout(self):
+        from odoo.addons.ebshel_auto_database_backup.models import db_backup_configure as module
+        connect, read = module.HTTP_TIMEOUT
+        self.assertLessEqual(connect, 30, "a dead IPv6 address must not hold a request for minutes")
+        self.assertGreaterEqual(read, 60, "a slow upload still has time to make progress")
+        source = open(module.__file__, encoding='utf-8').read()
+        for call in ('requests.post(', 'requests.put(', 'requests.get(', 'requests.delete('):
+            for chunk in source.split(call)[1:]:
+                head = chunk.split('\n\n')[0][:600]
+                self.assertNotIn('timeout=NETWORK_TIMEOUT', head,
+                                 "%s must use HTTP_TIMEOUT, not the single 300 s limit" % call)

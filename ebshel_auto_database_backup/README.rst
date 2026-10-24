@@ -24,8 +24,8 @@ FTP or SFTP server, in Google Drive, Dropbox, OneDrive, Nextcloud or Amazon S3.
 Configuration
 =============
 
-Settings > Technical > Automatic Database Backup > Backup Configuration
-(developer mode). The scheduled action *Backup : Automatic Database Backup*
+Database Backup > Backup Configuration, an app on the home screen for
+administrators. The scheduled action *Backup : Automatic Database Backup*
 runs once a day; change its interval there.
 
 The PostgreSQL client tools (``pg_dump``) must be installed on the Odoo
